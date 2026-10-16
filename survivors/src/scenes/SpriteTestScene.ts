@@ -5,10 +5,10 @@ import { HBAsset } from '../hb/HBAsset';
 import { getSheetKey } from '../hb/HBSprite';
 import { DIRECTION_COUNT, DIRECTION_NAMES, Direction } from '../hb/directions';
 import {
-    MONSTER_DEFAULT_FRAMES_PER_SHEET,
     MONSTER_LOOPING_STATES,
     MONSTER_SHEET_BASE,
     MonsterState,
+    monsterFrameRate,
 } from '../hb/monsterSheets';
 
 const STATES = Object.values(MonsterState);
@@ -119,10 +119,8 @@ export class SpriteTestScene extends Phaser.Scene {
         });
     }
 
-    /** sp-client rule: 10 fps × (frames / 8) × temporalCoefficient, so every animation lasts the same. */
     private frameRateFor(sheet: number): number {
-        const frames = this.anims.get(getSheetKey(this.enemy.sprite, sheet))?.frames.length ?? MONSTER_DEFAULT_FRAMES_PER_SHEET;
-        return DEFAULT_ANIMATION_FRAME_RATE * (frames / MONSTER_DEFAULT_FRAMES_PER_SHEET) * this.enemy.temporalCoefficient;
+        return monsterFrameRate(this.anims, getSheetKey(this.enemy.sprite, sheet), DEFAULT_ANIMATION_FRAME_RATE, this.enemy.temporalCoefficient);
     }
 
     /** Small cross at the logical position (the feet) to check pivots visually. */

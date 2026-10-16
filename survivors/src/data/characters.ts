@@ -10,6 +10,11 @@ export interface CharacterDef {
     /** Animation speed (frames per second; every animation has 8 frames). */
     idleFrameRate: number;
     runFrameRate: number;
+    /** Death animation speed (frames per second; 8 frames, played once). */
+    dieFrameRate: number;
+    maxHp: number;
+    /** Time without taking damage after a hit, in milliseconds. */
+    invulnerabilityMs: number;
     appearance: Appearance;
 }
 
@@ -20,6 +25,10 @@ export const CHARACTERS = {
         hitboxHalfSize: 8,
         idleFrameRate: 8,
         runFrameRate: 14,
+        dieFrameRate: 10,
+        // Base 100 + 20% del Guerrero (docs/DESIGN.md).
+        maxHp: 120,
+        invulnerabilityMs: 600,
         // Cota de malla + armadura de placas, perneras, botas altas, casco completo,
         // espada larga y escudo de caballero (índices de sp-client/src/constants/Items.ts).
         appearance: {

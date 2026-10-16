@@ -41,3 +41,23 @@ export const GAMEPAD_DEADZONE = 0.2;
 export const POINTER_DEADZONE_PX = 8;
 /** Mouse: at this distance from the player (or more) it runs at full speed. */
 export const POINTER_FULL_SPEED_PX = 64;
+
+/** Enemies: half side of the square used against walls (smaller than the body, so they fit gaps). */
+export const ENEMY_WALL_HALF_SIZE = 6;
+/** Enemies: how long the corpse stays after the death animation, then how long it takes to fade. */
+export const ENEMY_CORPSE_MS = 1500;
+export const ENEMY_FADE_MS = 400;
+/** Enemies: push-apart speed per pixel of overlap, and its cap (px/s). */
+export const ENEMY_SEPARATION_PER_PX = 10;
+export const ENEMY_SEPARATION_MAX = 80;
+/** Grid cell size for neighbour queries. */
+export const SPATIAL_CELL_SIZE = 48;
+
+/** Monster BodyShadow from sp-client ShadowManager: black copy, rotated and squashed. */
+export const MONSTER_SHADOW_ALPHA = 0.5;
+export const MONSTER_SHADOW_ROTATION = -Math.PI / 4;
+export const MONSTER_SHADOW_SCALE_Y = 0.5;
+
+/** Player: blink period while invulnerable, and delay before the Game Over screen. */
+export const PLAYER_BLINK_MS = 80;
+export const GAME_OVER_DELAY_MS = 1200;

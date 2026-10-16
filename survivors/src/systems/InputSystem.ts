@@ -9,8 +9,13 @@ import Phaser from 'phaser';
 import { GAMEPAD_DEADZONE, POINTER_DEADZONE_PX, POINTER_FULL_SPEED_PX } from '../config/gameConfig';
 
 export enum Action {
+    /** Accept / continue: Enter, Space, gamepad A or a mouse click. */
+    Confirm = 'confirm',
     ToggleDebug = 'toggleDebug',
     OpenSpriteTest = 'openSpriteTest',
+    DebugSpawnMany = 'debugSpawnMany',
+    DebugKillVisible = 'debugKillVisible',
+    DebugGodMode = 'debugGodMode',
 }
 
 export type InputDevice = 'keyboard' | 'mouse' | 'gamepad' | 'none';
@@ -19,17 +24,25 @@ const KEY = Phaser.Input.Keyboard.KeyCodes;
 
 /** Keys per action. F1 is captured so the browser does not open its help page. */
 const KEYBOARD_ACTIONS: Record<Action, number[]> = {
+    [Action.Confirm]: [KEY.ENTER, KEY.SPACE],
     [Action.ToggleDebug]: [KEY.F1],
     [Action.OpenSpriteTest]: [KEY.T],
+    [Action.DebugSpawnMany]: [KEY.N],
+    [Action.DebugKillVisible]: [KEY.K],
+    [Action.DebugGodMode]: [KEY.G],
 };
 
 /** Standard Gamepad API button indices (Xbox layout). */
-const GAMEPAD_BUTTON = { View: 8, DpadUp: 12, DpadDown: 13, DpadLeft: 14, DpadRight: 15 } as const;
+const GAMEPAD_BUTTON = { A: 0, View: 8, DpadUp: 12, DpadDown: 13, DpadLeft: 14, DpadRight: 15 } as const;
 const GAMEPAD_AXIS = { LeftX: 0, LeftY: 1 } as const;
 
 const GAMEPAD_ACTIONS: Partial<Record<Action, number[]>> = {
+    [Action.Confirm]: [GAMEPAD_BUTTON.A],
     [Action.ToggleDebug]: [GAMEPAD_BUTTON.View],
 };
+
+/** Actions also triggered by a mouse click. */
+const POINTER_ACTIONS: ReadonlySet<Action> = new Set([Action.Confirm]);
 
 /** World position the mouse movement is measured from (the player's feet). */
 export type PointerAnchor = () => { x: number; y: number };
@@ -45,6 +58,8 @@ export class InputSystem {
     private readonly padJustPressed = new Set<number>();
     private pad: Gamepad | undefined;
     private pointerAnchor: PointerAnchor | undefined;
+    private pointerWasDown = false;
+    private pointerJustPressed = false;
     private lastDevice: InputDevice = 'none';
 
     constructor(private readonly scene: Phaser.Scene) {
@@ -79,6 +94,10 @@ export class InputSystem {
         this.padButtonsDown.clear();
         pressedNow.forEach((index) => this.padButtonsDown.add(index));
 
+        const pointerDown = this.scene.input.activePointer.isDown;
+        this.pointerJustPressed = pointerDown && !this.pointerWasDown;
+        this.pointerWasDown = pointerDown;
+
         this.updateMove();
     }
 
@@ -98,6 +117,10 @@ export class InputSystem {
         }
         if ((GAMEPAD_ACTIONS[action] ?? []).some((button) => this.padJustPressed.has(button))) {
             this.lastDevice = 'gamepad';
+            return true;
+        }
+        if (this.pointerJustPressed && POINTER_ACTIONS.has(action)) {
+            this.lastDevice = 'mouse';
             return true;
         }
         return false;
