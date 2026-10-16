@@ -4,7 +4,7 @@
 |---|---|---|
 | 0 — Reconocimiento | ✅ completada | 2026-10-16 |
 | 1 — Esqueleto y primer sprite | ✅ completada | 2026-10-16 |
-| 2 — Mapa y jugador | 🟨 en pruebas | 2026-10-16 |
+| 2 — Mapa y jugador | ✅ completada | 2026-10-16 |
 | 3 — Enemigos | ⬜ pendiente | |
 | 4 — Primera arma y combate | ⬜ pendiente | |
 | 5 — Experiencia y subida de nivel | ⬜ pendiente | |
@@ -15,7 +15,7 @@
 | 10 — Pulido (opcional) | ⬜ pendiente | |
 
 ## Fase actual
-Fase 2 programada y probada por el propietario con teclado, mando Xbox real y ratón (2026-10-16), en la rama `fase-2`. Pendiente: confirmar el cierre de la fase.
+Fase 2 completada (2026-10-16), probada por el propietario con teclado, mando Xbox real y ratón. Siguiente: `/fase 3`.
 - Hecho:
   - `HBMap.ts` lee el `.amd`. `mapAssets.ts` carga solo los paquetes de casillas que usa el mapa.
   - `mapRenderer.ts` pinta el suelo en una capa y los árboles con sombra, ordenados por Y. Los árboles se vuelven transparentes si tapan al jugador.
