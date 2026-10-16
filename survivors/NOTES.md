@@ -291,3 +291,20 @@ Tabla completa en `docs/REQUISITOS_HB.md`. Lo no obvio:
 - Posiciones medidas por correlación de imagen sobre el frame 14 (relativas a su esquina): vida (102,10), maná (102,32), XP (226,8), botones desde x=492 cada 37 px con y=7. Están en `config/hud.ts`.
 - Boceto y catálogo numerado de las piezas: `docs/mockups/hud/` (se ve con `mockups` de `.claude/launch.json` → http://localhost:8095/hud/).
 - Playwright: `keyboard.press` y `mouse.click` sueltan en el mismo frame y Phaser no ve el `JustDown`. En pruebas, mantener la tecla o el clic ~80 ms.
+
+## Objetos en el suelo y gemas de XP
+- `sprites/item-ground.spr` tiene 20 hojas.
+- Cada objeto de `sp-client/src/constants/Items.ts` indica su hoja (`itemSheetIndexMale`) y su frame (`itemSpriteIndexMale`, o `droppedItemSpriteIndexMale` en el suelo).
+- Gemas en la hoja 15 (12–15 px):
+  - Diamond 42, Ruby 43, Sapphire 44, Emerald 45, Crystal 46.
+  - Gold Nugget 21, Silver Nugget 23.
+- La hoja 19 tiene versiones "Magic" más pequeñas.
+- Sonidos de objetos (`SoundFileNames.ts`): coger E20, a la bolsa E29, soltar E12, equipar E28.
+- No hay sonido ni efecto de "subir de nivel" en el cliente.
+- `HBSpriteFile` ya no registra animaciones para ItemGround/ItemPack: son imágenes sueltas, como Interface.
+- **Phaser:** una escena no puede tener una propiedad llamada `data`, porque choca con su DataManager.
+
+## Texto y fuentes en Phaser
+- Phaser dibuja cada texto una sola vez en un canvas. Si la fuente web aún no ha cargado, se queda con la de respaldo.
+  Por eso `main.ts` espera `document.fonts.load()` antes de crear el juego (`config/ui.ts`, `loadUiFont`).
+- "MS Sans Serif" es una fuente de mapa de bits que Chrome no dibuja. Windows la cambia por "Microsoft Sans Serif" (TrueType).

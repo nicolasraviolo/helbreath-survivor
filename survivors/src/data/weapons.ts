@@ -3,9 +3,12 @@
 // Velocidad, recarga y alcance son nuestros, pensados para un survivors.
 import type { SoundKey } from '../config/assetManifest';
 import type { EffectKey } from '../config/effects';
+import type { DamageType } from '../entities/CharacterStats';
 
 export interface ProjectileWeaponDef {
     name: string;
+    /** Physical damage grows with Str, magic damage with Mag. */
+    damageType: DamageType;
     /** Damage to the enemy the projectile hits. */
     directDamage: number;
     /** Damage to every enemy inside the explosion (the hit enemy too, as in Helbreath). */
@@ -33,6 +36,7 @@ export interface ProjectileWeaponDef {
 export const WEAPONS = {
     energyBolt: {
         name: 'Energy Bolt',
+        damageType: 'magic',
         directDamage: 10,
         areaDamage: 7,
         // 3×3 casillas de 32 px → 1,5 casillas alrededor del impacto.

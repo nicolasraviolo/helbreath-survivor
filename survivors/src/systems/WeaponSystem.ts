@@ -17,7 +17,7 @@ export class WeaponSystem {
     private readonly effects: Pool<Effect>;
     private readonly finishedProjectiles: Projectile[] = [];
     private readonly finishedEffects: Effect[] = [];
-    private readonly context: WeaponContext & { x: number; y: number };
+    private readonly context: WeaponContext & { x: number; y: number; cooldownMultiplier: number };
 
     constructor(
         scene: Phaser.Scene,
@@ -30,6 +30,7 @@ export class WeaponSystem {
         this.context = {
             x: 0,
             y: 0,
+            cooldownMultiplier: 1,
             audio,
             findNearestEnemy: (maxDistance) => enemies.findNearest(this.context.x, this.context.y, maxDistance),
             launchProjectile: (def, fromX, fromY, toX, toY, maxDistance) => {
@@ -44,6 +45,10 @@ export class WeaponSystem {
 
     public add(weapon: Weapon): void {
         this.weapons.push(weapon);
+    }
+
+    public setCooldownMultiplier(value: number): void {
+        this.context.cooldownMultiplier = value;
     }
 
     /** Fires the weapons from the owner's feet at (x, y), unless `firing` is false (the owner is dead). */
@@ -77,6 +82,7 @@ export class WeaponSystem {
         this.effects.acquire().play(def.explodeEffect, x, y);
         this.audio.play(def.impactSound);
         this.combat.hitArea({
+            damageType: def.damageType,
             x,
             y,
             radius: def.areaRadius,

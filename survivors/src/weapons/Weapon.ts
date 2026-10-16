@@ -12,6 +12,8 @@ export interface WeaponContext {
     findNearestEnemy(maxDistance: number): Enemy | undefined;
     launchProjectile(def: ProjectileWeaponDef, fromX: number, fromY: number, toX: number, toY: number, maxDistance: number): void;
     readonly audio: AudioSystem;
+    /** Multiplies every cooldown (class bonus and Dex). */
+    readonly cooldownMultiplier: number;
 }
 
 export abstract class Weapon {
@@ -23,7 +25,7 @@ export abstract class Weapon {
         this.cooldownLeftMs -= deltaMs;
         if (this.cooldownLeftMs > 0) return;
         if (this.fire(context)) {
-            this.cooldownLeftMs = this.cooldownMs;
+            this.cooldownLeftMs = this.cooldownMs * context.cooldownMultiplier;
         } else {
             // Nothing to shoot at: stay ready and try again next frame.
             this.cooldownLeftMs = 0;

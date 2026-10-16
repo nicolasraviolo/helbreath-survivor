@@ -51,7 +51,7 @@ export class SpriteTestScene extends Phaser.Scene {
         this.main = this.add.existing(new HBAsset(this, cx, cy, this.enemy.sprite)).setScale(MAIN_SCALE);
 
         this.info = this.add.text(12, 10, '', { fontFamily: 'monospace', fontSize: '14px', color: '#e0d090' });
-        this.add.text(12, GAME_HEIGHT - 26, '← → girar   ↑ ↓ animación   Espacio pausa   Esc volver', {
+        this.add.text(12, GAME_HEIGHT - 26, '← → turn   ↑ ↓ animation   Space pause   Esc back', {
             fontFamily: 'monospace', fontSize: '13px', color: '#aaa',
         });
 
@@ -74,9 +74,9 @@ export class SpriteTestScene extends Phaser.Scene {
         const total = this.main.anims.currentAnim?.frames.length ?? 0;
         this.info.setText([
             `${this.enemy.name}`,
-            `Dirección: ${DIRECTION_NAMES[this.direction]} (${this.direction})`,
-            `Animación: ${state}  hoja ${MONSTER_SHEET_BASE[state] + this.direction}`,
-            `Frame: ${frame ? frame.index : '-'}/${total}${this.main.anims.isPaused ? '  [pausa]' : ''}`,
+            `Direction: ${DIRECTION_NAMES[this.direction]} (${this.direction})`,
+            `Animation: ${state}  sheet ${MONSTER_SHEET_BASE[state] + this.direction}`,
+            `Frame: ${frame ? frame.index : '-'}/${total}${this.main.anims.isPaused ? '  [paused]' : ''}`,
         ]);
     }
 

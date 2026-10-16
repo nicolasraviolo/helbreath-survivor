@@ -3,7 +3,7 @@
 Demo web de un juego estilo *Vampire Survivors* usando los assets de Helbreath, construida sobre el fork de `helbreath-base-game` (Phaser 3 + TypeScript).
 
 ## Sobre el propietario
-No sabe programar. Explica lo que haces en español sencillo, dile siempre **cómo probarlo** (comando exacto, URL, teclas, qué debería ver) y pide su OK antes de pasar a otra fase. Código e identificadores en inglés; explicaciones y comentarios de alto nivel en español.
+No sabe programar. Explica lo que haces en español sencillo, dile siempre **cómo probarlo** (comando exacto, URL, teclas, qué debería ver) y pide su OK antes de pasar a otra fase. Código e identificadores en inglés; explicaciones y comentarios de alto nivel en español. **El juego (todo lo que ve el jugador) está solo en inglés** de momento; ver regla 9.
 
 ## Mapa del repo
 - `survivors/` → **nuestro juego**. Todo el trabajo nuevo va aquí.
@@ -22,6 +22,7 @@ No sabe programar. Explica lo que haces en español sencillo, dile siempre **có
 6. TypeScript estricto. Sin `any` salvo justificación en comentario.
 7. Sin React en `survivors/`: UI con escenas de Phaser.
 8. Assets de Helbreath = propiedad de terceros. Proyecto fan gratuito: nada de anuncios ni pagos.
+9. Idioma del juego: **solo inglés** (decidido el 16-oct-2026). Textos en pantalla, nombres de stats, cartas, menús y créditos, en inglés. Más idiomas quizá en el futuro: no montar un sistema de traducciones hasta que se pida.
 
 ## Forma de trabajar
 - Una fase por sesión (`/fase N`). Antes de programar, presenta un plan corto y espera el OK.

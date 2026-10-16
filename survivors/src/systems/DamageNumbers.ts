@@ -1,6 +1,7 @@
 // Números de daño flotantes, reciclados con un pool (regla 5).
 // Estilo inspirado en sp-client/src/game/objects/GameObject.ts (addDamageText): "-N" rojo en Georgia
 // negrita, sube y se desvanece la segunda mitad de su vida. Añadimos un borde negro para que se lea sobre la hierba.
+// Los críticos salen en amarillo, más grandes y con "!" (como "-90Pts!" en el original).
 import Phaser from 'phaser';
 import {
     DAMAGE_NUMBER_FONT_SIZE,
@@ -10,6 +11,10 @@ import {
     DAMAGE_NUMBER_SPREAD_PX,
     DEPTH_DAMAGE_NUMBERS,
 } from '../config/gameConfig';
+
+const NORMAL_COLOR = '#ff2020';
+const CRITICAL_COLOR = '#ffe040';
+const CRITICAL_SCALE = 1.3;
 import { Pool, type Poolable } from '../utils/Pool';
 
 class DamageNumber implements Poolable {
@@ -22,7 +27,7 @@ class DamageNumber implements Poolable {
             fontFamily: 'Georgia, serif',
             fontStyle: 'bold',
             fontSize: `${DAMAGE_NUMBER_FONT_SIZE}px`,
-            color: '#ff2020',
+            color: NORMAL_COLOR,
             stroke: '#000000',
             strokeThickness: 3,
         }).setOrigin(0.5, 1).setDepth(DEPTH_DAMAGE_NUMBERS).setActive(false).setVisible(false);
@@ -42,12 +47,15 @@ export class DamageNumbers {
     }
 
     /** Shows "-amount" at (x, y). Skipped when too many are on screen. */
-    public show(x: number, y: number, amount: number): void {
+    public show(x: number, y: number, amount: number, critical = false): void {
         if (this.pool.active.length >= DAMAGE_NUMBER_MAX) return;
         const number = this.pool.acquire();
         number.ageMs = 0;
         const spread = (Math.random() - 0.5) * DAMAGE_NUMBER_SPREAD_PX;
-        number.text.setText(`-${amount}`).setPosition(x + spread, y).setAlpha(1).setActive(true).setVisible(true);
+        number.text.setText(critical ? `-${amount}!` : `-${amount}`)
+            .setColor(critical ? CRITICAL_COLOR : NORMAL_COLOR)
+            .setScale(critical ? CRITICAL_SCALE : 1)
+            .setPosition(x + spread, y).setAlpha(1).setActive(true).setVisible(true);
     }
 
     public update(deltaMs: number): void {

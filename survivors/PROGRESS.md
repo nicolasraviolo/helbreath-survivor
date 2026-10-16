@@ -7,7 +7,7 @@
 | 2 — Mapa y jugador | ✅ completada | 2026-10-16 |
 | 3 — Enemigos | ✅ completada | 2026-10-16 |
 | 4 — Primera arma y combate | ✅ completada | 2026-10-16 |
-| 5 — Experiencia y subida de nivel | ⬜ pendiente | |
+| 5 — Experiencia y subida de nivel | ✅ completada | 2026-10-16 |
 | 6 — Arsenal completo | ⬜ pendiente | |
 | 7 — Oleadas, jefes y final | ⬜ pendiente | |
 | 8 — Menús y personajes | ⬜ pendiente | |
@@ -15,7 +15,35 @@
 | 10 — Pulido (opcional) | ⬜ pendiente | |
 
 ## Fase actual
-Extra antes de la Fase 5 (2026-10-16): **barra inferior (HUD)** al estilo del original, pendiente de que la pruebe el propietario.
+Fase 5 completada (2026-10-16), probada por el propietario. Siguiente: `/nueva-skill añadir-mejora` y después `/fase 6`.
+- **Stats** (`data/stats.ts`, `entities/CharacterStats.ts`):
+  - Str: daño físico y requisito de armas/armaduras.
+  - Vit: vida.
+  - Dex: velocidad de movimiento y de ataque.
+  - Int: requisito de hechizos y de equipo de mago; un poco de maná.
+  - Mag: daño mágico y maná.
+  - Chr: crítico (daño doble, número amarillo con "!").
+- **Personajes:** se juega con el **Mago** (Str 12, Vit 10, Dex 10, Int 14, Mag 14, Chr 10; +1 Int +2 Mag por nivel, decidido por el propietario; se ajustará si es demasiado). El Guerrero (Str 14, Vit 12, Dex 14, Int 10, Mag 10, Chr 10; +1 Str +1 Vit por nivel) queda listo para la Fase 8.
+- **Requisitos:** `utils/requirements.ts` (`meetsRequirement`, `REQ_SCALE` 0.4). Aún no se usa; es para la Fase 6.
+- **Gemas de XP** (`entities/XpGem.ts`, `systems/XpSystem.ts`):
+  - esmeralda, zafiro y rubí de `item-ground.spr`;
+  - imán y sonido E20;
+  - pool, máximo 400 (después se suman a una existente).
+- **Curva:** 10 + 10·(nivel−1) (`data/leveling.ts`). Prueba: nivel 9 a los 2 min. El ajuste fino va con las oleadas (Fase 7).
+- **`LevelUpScene`:** 3 cartas "+3 a un stat" con antes → después. Se elige con teclado, mando o ratón. Un clic mantenido desde antes de abrirse no elige carta.
+- **Barra:**
+  - XP;
+  - maná real (no se gasta todavía);
+  - "Lv N  time  kills";
+  - panel de stats con el casco, C o Y del mando.
+- **Tecla de pruebas:** X sube un nivel.
+- **Interfaz:** todo el texto en inglés, con Comic Neue (ver Decisiones).
+- **Falta de la fase:** crear la skill `/nueva-skill añadir-mejora` (indicado en `docs/PLAN.md`), tras cerrar la fase.
+- **Cómo probar:** `pnpm --dir survivors dev` → http://localhost:8090. Recoger gemas, elegir cartas (flechas/cruceta + Enter/A, o clic), C para ver los stats, X para subir de nivel.
+- **Checkpoint 2026-10-16:** `tsc` y `build` sin errores. Playwright carga el juego; en consola, solo el 404 de `favicon.ico` y avisos de audio del navegador (sin interacción no deja sonar).
+
+Antes de la Fase 5:
+Barra inferior (HUD) al estilo del original, 2026-10-16.
 - `scenes/HudScene.ts` + `config/hud.ts`:
   - vida real con número;
   - maná llena con "— / —" (el Guerrero aún no usa maná);
@@ -46,7 +74,9 @@ Fase 4 completada (2026-10-16), probada por el propietario. Siguiente: `/fase 5`
 - Datos de referencia de Helbreath: `docs/hb-wiki/` (índice en `README.md`).
 
 ## Problemas conocidos
-- Con un solo Energy Bolt, 300 enemigos sobrepasan al jugador. Es lo esperado: la progresión llega en las Fases 5 y 6.
+- Con un solo Energy Bolt, 300 enemigos sobrepasan al jugador. Las cartas de stat ayudan, pero la progresión real llega con las armas de la Fase 6.
+- El daño mágico crece rápido (+2 Mag por nivel y +4% por punto). Vigilarlo al equilibrar.
+- Las flechas "→" de las cartas usan otra fuente: Comic Neue no tiene ese carácter. No molesta.
 - El navegador interno de la app, si el panel está en segundo plano, va a ~1 FPS y parece congelado. Para revisar el juego, usar Playwright o tener el panel visible.
 - En el navegador interno, `sp-client` muestra errores `Cannot suspend/resume a closed AudioContext`. Son del audio en una pestaña en segundo plano y no afectan.
 - `pnpm build` genera `dist/` sin assets (se resuelve en la Fase 9).
@@ -55,4 +85,7 @@ Fase 4 completada (2026-10-16), probada por el propietario. Siguiente: `/fase 5`
 - El personaje se ve pequeño a 800×600 (tamaño original de Helbreath). Si se quiere, se ajusta el zoom de la cámara más adelante.
 
 ## Decisiones tomadas
+- 2026-10-16 · Fuente de la interfaz: **Comic Neue**, copia libre (OFL) de Comic Sans MS, la letra de los diálogos del original. Va incluida en el juego (`@fontsource/comic-neue`, `config/ui.ts`) y se espera a que cargue antes de arrancar. Tamaño normal 15; en las cajas de la barra inferior, 12 (confirmado por el propietario). Los números de daño siguen en Georgia, como en sp-client, y los paneles de pruebas en monospace.
+- 2026-10-16 · Idioma del juego: **solo inglés** (regla 9 de CLAUDE.md). Documentación y explicaciones siguen en español.
+- 2026-10-16 · Las gemas de XP se dibujan por encima de enemigos y objetos, para que nunca queden tapadas.
 - 2026-10-16 · Mapa: **huntzone2** (elegido por el propietario frente a middleland). Zona de juego ~100×100 casillas desde (72,70). Riesgos y detalles en `NOTES.md`.

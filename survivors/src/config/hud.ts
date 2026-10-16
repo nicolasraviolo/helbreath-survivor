@@ -2,6 +2,7 @@
 // Las posiciones se midieron sobre la propia imagen (ver docs/mockups/hud/ y NOTES.md).
 import { getSheetKey } from '../hb/HBSprite';
 import { GAME_HEIGHT } from './gameConfig';
+import { px, UI_FONT, UI_FONT_SIZE } from './ui';
 
 /** Texture with every piece of the bottom bar. */
 export const HUD_TEXTURE = getSheetKey('ui.panel', 6);
@@ -32,11 +33,24 @@ export const HUD_INFO = { x: 226, y: 22, width: 170, height: 24 } as const;
 export const HUD_BUTTONS = { x: 492, step: 37, y: 7, width: 36, height: 44, count: 6 } as const;
 /** Index of the system (floppy disk) button, which opens the pause menu. */
 export const HUD_MENU_BUTTON = 5;
+/** Index of the character (helmet) button, which shows the stats panel. */
+export const HUD_CHARACTER_BUTTON = 0;
+
+/** Stats panel, above the bar on the left. */
+export const HUD_STATS_PANEL = { x: 8, width: 250, padding: 10, marginY: 8, columnWidth: 78, gap: 6 } as const;
+export const HUD_STATS_STYLE = {
+    fontFamily: UI_FONT,
+    fontSize: px(UI_FONT_SIZE.normal),
+    color: '#e8d9a8',
+    lineSpacing: 2,
+} as const;
+export const HUD_STATS_TITLE_STYLE = { ...HUD_STATS_STYLE, color: '#ffe080' } as const;
 
 export const HUD_DEPTH_TEXT = 10;
+/** Numbers on the gauges: the boxes are 16 px tall, so the small size. */
 export const HUD_TEXT_STYLE = {
-    fontFamily: 'monospace',
-    fontSize: '12px',
+    fontFamily: UI_FONT,
+    fontSize: px(UI_FONT_SIZE.small),
     fontStyle: 'bold',
     color: '#ffffff',
     stroke: '#000000',

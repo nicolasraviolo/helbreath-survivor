@@ -13,11 +13,17 @@ export enum Action {
     Confirm = 'confirm',
     /** Open / close the pause menu: Esc or gamepad Start. */
     Pause = 'pause',
+    /** Move the highlight in menus (level-up cards): arrows/WASD, d-pad or a flick of the left stick. */
+    MenuLeft = 'menuLeft',
+    MenuRight = 'menuRight',
+    /** Show / hide the stats panel: C or gamepad Y. */
+    ToggleStats = 'toggleStats',
     ToggleDebug = 'toggleDebug',
     OpenSpriteTest = 'openSpriteTest',
     DebugSpawnMany = 'debugSpawnMany',
     DebugKillVisible = 'debugKillVisible',
     DebugGodMode = 'debugGodMode',
+    DebugGiveXp = 'debugGiveXp',
 }
 
 export type InputDevice = 'keyboard' | 'mouse' | 'gamepad' | 'none';
@@ -28,20 +34,31 @@ const KEY = Phaser.Input.Keyboard.KeyCodes;
 const KEYBOARD_ACTIONS: Record<Action, number[]> = {
     [Action.Confirm]: [KEY.ENTER, KEY.SPACE],
     [Action.Pause]: [KEY.ESC],
+    [Action.MenuLeft]: [KEY.LEFT, KEY.A],
+    [Action.MenuRight]: [KEY.RIGHT, KEY.D],
+    [Action.ToggleStats]: [KEY.C],
     [Action.ToggleDebug]: [KEY.F1],
     [Action.OpenSpriteTest]: [KEY.T],
     [Action.DebugSpawnMany]: [KEY.N],
     [Action.DebugKillVisible]: [KEY.K],
     [Action.DebugGodMode]: [KEY.G],
+    [Action.DebugGiveXp]: [KEY.X],
 };
 
 /** Standard Gamepad API button indices (Xbox layout). */
-const GAMEPAD_BUTTON = { A: 0, View: 8, Start: 9, DpadUp: 12, DpadDown: 13, DpadLeft: 14, DpadRight: 15 } as const;
+const GAMEPAD_BUTTON = { A: 0, Y: 3, View: 8, Start: 9, DpadUp: 12, DpadDown: 13, DpadLeft: 14, DpadRight: 15 } as const;
 const GAMEPAD_AXIS = { LeftX: 0, LeftY: 1 } as const;
+/** Fake button ids for "the left stick was just pushed left/right" (menus). */
+const STICK_BUTTON = { Left: 100, Right: 101 } as const;
+/** How far the stick must be pushed to count as a menu move. */
+const STICK_MENU_THRESHOLD = 0.5;
 
 const GAMEPAD_ACTIONS: Partial<Record<Action, number[]>> = {
     [Action.Confirm]: [GAMEPAD_BUTTON.A],
     [Action.Pause]: [GAMEPAD_BUTTON.Start],
+    [Action.MenuLeft]: [GAMEPAD_BUTTON.DpadLeft, STICK_BUTTON.Left],
+    [Action.MenuRight]: [GAMEPAD_BUTTON.DpadRight, STICK_BUTTON.Right],
+    [Action.ToggleStats]: [GAMEPAD_BUTTON.Y],
     [Action.ToggleDebug]: [GAMEPAD_BUTTON.View],
 };
 
@@ -98,6 +115,9 @@ export class InputSystem {
         this.pad?.buttons.forEach((button, index) => {
             if (button.pressed) pressedNow.add(index);
         });
+        const stickX = this.pad?.axes[GAMEPAD_AXIS.LeftX] ?? 0;
+        if (stickX <= -STICK_MENU_THRESHOLD) pressedNow.add(STICK_BUTTON.Left);
+        if (stickX >= STICK_MENU_THRESHOLD) pressedNow.add(STICK_BUTTON.Right);
         for (const index of pressedNow) {
             if (!this.padButtonsDown.has(index)) this.padJustPressed.add(index);
         }

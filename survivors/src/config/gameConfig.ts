@@ -22,6 +22,8 @@ export const TILE_ANCHOR_OFFSET = TILE_SIZE / 2;
 /** Depths. Characters and objects use their Y in pixels, so these stay far below / above. */
 export const DEPTH_GROUND = -100000;
 export const DEPTH_GROUND_SHADOWS = -90000;
+/** XP gems: drawn above characters, effects and map objects so they are never hidden by enemy bodies (below damage numbers). */
+export const DEPTH_GEMS = 400000;
 export const DEPTH_DEBUG = 1000000;
 /** Spell effects are drawn this much above their Y depth (sp-client effects use +80). */
 export const DEPTH_EFFECT_OFFSET = 80;
@@ -80,3 +82,6 @@ export const MONSTER_SHADOW_SCALE_Y = 0.5;
 /** Player: blink period while invulnerable, and delay before the Game Over screen. */
 export const PLAYER_BLINK_MS = 80;
 export const GAME_OVER_DELAY_MS = 1200;
+
+/** Level-up cards: ignore input for a moment so a key or click held during play doesn't pick a card by accident. */
+export const LEVEL_UP_INPUT_DELAY_MS = 350;
