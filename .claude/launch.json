@@ -6,6 +6,12 @@
       "runtimeExecutable": "pnpm",
       "runtimeArgs": ["--dir", "sp-client", "dev"],
       "port": 8080
+    },
+    {
+      "name": "survivors",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--dir", "survivors", "dev"],
+      "port": 8090
     }
   ]
 }
