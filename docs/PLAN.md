@@ -2,6 +2,8 @@
 
 Leer solo la sección de la fase en curso. Cada fase: plan corto → OK del propietario → código → `/checkpoint`. No avanzar sin que el propietario haya probado la fase.
 
+Datos de referencia del Helbreath (hechizos, armas, armaduras, combate, monstruos): `docs/hb-wiki/README.md` dice qué archivo y qué sección leer en cada fase.
+
 ## Arquitectura técnica (referencia para todas las fases)
 
 | Tema | Decisión | Motivo |
