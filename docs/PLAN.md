@@ -11,6 +11,7 @@ Leer solo la sección de la fase en curso. Cada fase: plan corto → OK del prop
 | UI | Escenas de Phaser, **sin React** | Menos piezas; un Survivors tiene poca UI |
 | Física | Arcade Physics + pooling | Suficiente para 300+ enemigos. Si no llega, spatial hash (ver `sp-client/src/utils/SpatialGrid.ts`) |
 | Movimiento | Libre en píxeles; animación en 8 direcciones según el ángulo de la velocidad | La base es por casillas de 32 px; no reutilizar `Player.ts`/`Monster.ts` |
+| Controles | Teclado + **mando tipo Xbox** (Gamepad API estándar vía `input.gamepad` de Phaser) + táctil. `InputSystem` traduce todo a **acciones** (`move` como vector, `confirm`, `back`, `pause`, `navigate`); el resto del juego nunca lee teclas ni botones directamente | Añadir un dispositivo nuevo no obliga a tocar escenas ni entidades |
 | Reutilización | Portar `HBSprite.ts`, `HBMap.ts` y utilidades de animación/apariencia a `survivors/src/hb/` | Es la parte difícil y ya está resuelta |
 | Assets en dev | `publicDir: '../sp-client/public'` en `vite.config.ts` | No duplicar ~290 MB |
 | Assets en prod | `scripts/sync-assets.mjs` copia solo lo listado en `assetManifest.ts` a `survivors/public/` (ignorado por git) | Descarga pequeña |
@@ -57,10 +58,11 @@ survivors/
 
 ## Fase 2 — Mapa y jugador
 - Portar `HBMap.ts` y el render del mapa elegido. Cámara que sigue al jugador, limitada al área de juego.
-- Jugador con apariencia compuesta (Guerrero por defecto), movimiento libre WASD/flechas normalizado en diagonal, idle/caminar en 8 direcciones.
+- Jugador con apariencia compuesta (Guerrero por defecto), idle/caminar en 8 direcciones.
+- `InputSystem` con acciones: el vector de movimiento sale de WASD/flechas (normalizado en diagonal) **o** del stick izquierdo/cruceta del mando, con zona muerta (`data/` o `gameConfig.ts`).
 - Colisión con casillas bloqueadas.
 - `DebugSystem`: F1 muestra FPS, posición, hitboxes.
-- **Aceptación:** el personaje camina suave en cualquier dirección y no atraviesa muros.
+- **Aceptación:** el personaje camina suave en cualquier dirección y no atraviesa muros, con teclado y con mando Xbox; el stick analógico permite direcciones intermedias.
 
 ## Fase 3 — Enemigos
 - `Pool.ts` genérico. `Enemy.ts` ligero: sprite, animación, vida, velocidad; persigue al jugador y orienta su animación.
@@ -81,7 +83,8 @@ survivors/
 - `XpGem` con pooling, radio de imán, barra de XP.
 - Curva de nivel en `data/`. Al subir: pausa + `LevelUpScene` con 3 cartas (arma nueva, subir arma, pasiva) con icono, nombre y efecto.
 - `HudScene`: vida, XP, nivel, tiempo, kills.
-- **Aceptación:** se sube de nivel varias veces y las mejoras se notan.
+- Las cartas de `LevelUpScene` se eligen con flechas/cruceta/stick + Enter/**A**, además del ratón; siempre hay una carta resaltada.
+- **Aceptación:** se sube de nivel varias veces y las mejoras se notan; se puede elegir carta solo con el mando.
 - 👉 Tras esta fase: `/nueva-skill añadir-mejora`.
 
 ## Fase 6 — Arsenal completo
@@ -101,7 +104,8 @@ survivors/
 ## Fase 8 — Menús y personajes
 - `MainMenuScene` (Jugar, Créditos, volumen), `CharacterSelectScene` (3 personajes), `PauseScene`.
 - Créditos con el aviso legal de `docs/DESIGN.md`.
-- **Aceptación:** se juega con los 3 personajes y se vuelve al menú tras una partida.
+- Todos los menús navegables sin ratón: cruceta/stick para moverse, **A** confirmar, **B** volver, **Start** pausa. Si se desconecta el mando en partida → pausa automática.
+- **Aceptación:** se juega con los 3 personajes y se vuelve al menú tras una partida; una partida completa (menú → juego → Game Over → menú) se puede hacer solo con el mando.
 
 ## Fase 9 — Web, móvil y publicación
 - Joystick virtual táctil (aparece donde se toca), botón de pausa táctil.
@@ -111,4 +115,4 @@ survivors/
 - **Aceptación:** enlace público que funciona en PC y en el móvil del propietario.
 
 ## Fase 10 — Pulido (opcional)
-Temblor de cámara, partículas, sombras, progresión entre partidas con `localStorage`, más mapas, récords locales.
+Temblor de cámara, partículas, sombras, progresión entre partidas con `localStorage`, más mapas, récords locales. Mando: vibración al recibir daño, iconos de botones Xbox en pantalla cuando se usa mando, reasignar controles.
