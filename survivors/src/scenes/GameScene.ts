@@ -14,16 +14,21 @@ import type { EnemyWorld } from '../entities/Enemy';
 import { Player } from '../entities/Player';
 import { getMap, type HBMap } from '../hb/HBMap';
 import { MapView } from '../hb/mapRenderer';
+import { AudioSystem } from '../systems/AudioSystem';
+import { CombatSystem } from '../systems/CombatSystem';
+import { DamageNumbers } from '../systems/DamageNumbers';
 import { DebugSystem } from '../systems/DebugSystem';
 import { EnemySystem } from '../systems/EnemySystem';
 import { Action, InputSystem } from '../systems/InputSystem';
 import { SpawnSystem } from '../systems/SpawnSystem';
+import { WeaponSystem } from '../systems/WeaponSystem';
+import { EnergyBolt } from '../weapons/EnergyBolt';
 
 /** Enemies created by the debug "spawn many" key. */
 const DEBUG_SPAWN_COUNT = 100;
 
 /**
- * Escena de partida. Fase 3: mapa, jugador y enemigos que lo persiguen.
+ * Escena de partida. Fase 4: mapa, jugador, enemigos que lo persiguen y un arma automática (Energy Bolt).
  * Mover: WASD/flechas, stick/cruceta o mantener clic. F1 / View: depuración · T: prueba del Orc.
  * Solo en desarrollo: N 100 enemigos · K matar los visibles · G invencible.
  */
@@ -33,6 +38,10 @@ export class GameScene extends Phaser.Scene {
     private mapView!: MapView;
     private enemies!: EnemySystem;
     private spawner!: SpawnSystem;
+    private damageNumbers!: DamageNumbers;
+    private audio!: AudioSystem;
+    private combat!: CombatSystem;
+    private weapons!: WeaponSystem;
     private debug!: DebugSystem;
     private world!: EnemyWorld;
     private gameOver!: Phaser.GameObjects.Container;
@@ -66,6 +75,11 @@ export class GameScene extends Phaser.Scene {
 
         this.enemies = new EnemySystem(this);
         this.spawner = new SpawnSystem(camera, this.enemies, map, areaPx);
+        this.damageNumbers = new DamageNumbers(this);
+        this.audio = new AudioSystem(this);
+        this.combat = new CombatSystem(this.enemies, this.damageNumbers, this.audio);
+        this.weapons = new WeaponSystem(this, this.enemies, this.combat, this.audio);
+        this.weapons.add(new EnergyBolt());
         this.world = { map, area: areaPx, targetX: 0, targetY: 0, targetRadius: character.hitboxHalfSize };
 
         this.inputSystem = new InputSystem(this);
@@ -74,6 +88,8 @@ export class GameScene extends Phaser.Scene {
             `Enemigos: ${this.enemies.alive} vivos · ${this.enemies.pooled} en pool`,
             `Vida: ${this.player.hp}/${character.maxHp}${this.player.godMode ? '  [INVENCIBLE]' : ''}`,
             `Tiempo: ${formatTime(this.spawner.elapsed)}  aparición cada ${this.spawner.currentInterval().toFixed(2)} s`,
+            `Muertes: ${this.combat.kills} · proyectiles ${this.weapons.activeProjectiles} · números ${this.damageNumbers.active}`,
+            `Sonidos: ${this.audio.playingCount} sonando · ${this.audio.skippedCount} descartados`,
         ]);
         this.createGameOver();
         this.godModeLabel = this.add.text(GAME_WIDTH - 10, 10, 'INVENCIBLE (G)', {
@@ -100,6 +116,8 @@ export class GameScene extends Phaser.Scene {
         this.world.targetX = player.x;
         this.world.targetY = player.y;
         this.enemies.update(delta, this.world);
+        this.weapons.update(delta, player.x, player.y, !player.isDead);
+        this.damageNumbers.update(delta);
         this.spawner.enabled = !player.isDead;
         this.spawner.update(delta);
 

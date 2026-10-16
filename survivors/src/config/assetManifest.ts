@@ -24,9 +24,31 @@ export const SPRITES = {
     'gear.armor.plate.m': { file: 'sprites/mpmail.spr', type: SpriteType.EquipmentPack },
     'gear.swords.m': { file: 'sprites/msw.spr', type: SpriteType.Weapons },
     'gear.shields.m': { file: 'sprites/msh.spr', type: SpriteType.Shields },
+
+    // Efectos de hechizos (ver config/effects.ts para qué hoja y frames usa cada uno).
+    'fx.effect': { file: 'sprites/effect.spr', type: SpriteType.Effect },
 } as const satisfies Record<string, SpriteAsset>;
 
 export type SpriteKey = keyof typeof SPRITES;
+
+/**
+ * Sonidos (.mp3 de sp-client/public/assets/sounds). Los de cada monstruo salen de
+ * sp-client/src/constants/Monsters.ts (takeDamage / death).
+ */
+export const SOUNDS = {
+    'sfx.energyBolt.cast': { file: 'sounds/E1.mp3' },
+    'sfx.energyBolt.impact': { file: 'sounds/E2.mp3' },
+    'sfx.slime.hit': { file: 'sounds/M3.mp3' },
+    'sfx.slime.death': { file: 'sounds/M4.mp3' },
+    'sfx.ant.hit': { file: 'sounds/M31.mp3' },
+    'sfx.ant.death': { file: 'sounds/M32.mp3' },
+    'sfx.bunny.hit': { file: 'sounds/M79.mp3' },
+    'sfx.bunny.death': { file: 'sounds/M83.mp3' },
+    'sfx.orc.hit': { file: 'sounds/M11.mp3' },
+    'sfx.orc.death': { file: 'sounds/M12.mp3' },
+} as const satisfies Record<string, { file: string }>;
+
+export type SoundKey = keyof typeof SOUNDS;
 
 export const MAPS = {
     'map.huntzone2': { file: 'maps/huntzone2.amd' },

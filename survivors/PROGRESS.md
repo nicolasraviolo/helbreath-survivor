@@ -6,7 +6,7 @@
 | 1 — Esqueleto y primer sprite | ✅ completada | 2026-10-16 |
 | 2 — Mapa y jugador | ✅ completada | 2026-10-16 |
 | 3 — Enemigos | ✅ completada | 2026-10-16 |
-| 4 — Primera arma y combate | ⬜ pendiente | |
+| 4 — Primera arma y combate | 🟡 en curso (falta prueba del propietario) | |
 | 5 — Experiencia y subida de nivel | ⬜ pendiente | |
 | 6 — Arsenal completo | ⬜ pendiente | |
 | 7 — Oleadas, jefes y final | ⬜ pendiente | |
@@ -15,26 +15,26 @@
 | 10 — Pulido (opcional) | ⬜ pendiente | |
 
 ## Fase actual
-Fase 3 completada (2026-10-16), probada por el propietario. Siguiente: `/fase 4`.
-- Tras la prueba del propietario (2026-10-16): la G (invencible) no daba señales fuera del panel F1. Ahora el Guerrero se tiñe de dorado y aparece «INVENCIBLE (G)» arriba a la derecha.
+Fase 4 en curso (rama `fase-4`, 2026-10-16). El propietario la probó: funciona. Pendiente: marcarla como completada.
+- Más adelante el propietario quiere ajustar algunos detalles visuales; todavía no los ha concretado.
 - Hecho:
-  - `Pool.ts` y `SpatialGrid.ts` genéricos. `collision.ts` compartido entre jugador y enemigos.
-  - `Enemy.ts`: persigue, se orienta en 8 direcciones, lleva sombra como en el original, se desliza junto a los muros y tiene animación de muerte, cadáver y desvanecido.
-  - `EnemySystem`: un pool por tipo, separación entre enemigos y contacto con el jugador.
-  - `SpawnSystem`: aparición en un anillo fuera de la pantalla, cada vez más rápida (`data/spawn.ts`), y recolocación de los enemigos que quedan lejos.
-  - Enemigos en `data/enemies.ts`: Slime, Bunny, Ant y Orc.
-  - Jugador: 120 de vida, invulnerabilidad con parpadeo tras un golpe, barra de vida y animación de muerte. Game Over provisional con tiempo sobrevivido; Enter, A o clic reintentan.
-  - Depuración: el panel F1 muestra enemigos, vida, tiempo y ritmo de aparición. Solo en desarrollo: N = 100 enemigos, K = matar los visibles, G = invencible (Guerrero dorado y aviso "INVENCIBLE (G)" arriba a la derecha).
+  - **Energy Bolt** (`weapons/EnergyBolt.ts`, datos en `data/weapons.ts`): dispara solo al enemigo más cercano a menos de 320 px, cada 1,1 s. Daño según la wiki: 10 directo + 7 en un área de 3×3 casillas, así que el enemigo alcanzado recibe 17.
+  - `Weapon.ts` base, `WeaponSystem` (proyectiles y explosiones con pool), `Projectile.ts` y `Effect.ts`. Los efectos usan `effect.spr`: hoja 0, frames 2–5 en vuelo; hoja 6 para la explosión (`config/effects.ts`).
+  - `CombatSystem`: daño, destello blanco, retroceso que se frena rápido y contador de muertes.
+  - `DamageNumbers`: "-N" rojo con borde negro, sube y se desvanece (pool, máximo 120 en pantalla).
+  - `AudioSystem`: lanzamiento E1, impacto E2, golpe y muerte de cada monstruo. Como máximo 3 copias del mismo sonido, separadas al menos 70 ms, y 14 sonidos en total (`data/audio.ts`).
+  - Panel F1: muertes, proyectiles, números en pantalla y sonidos (sonando y descartados).
   - Comprobado:
     - `tsc` y `build` sin errores;
-    - 312 enemigos a ~138 FPS, con 0,14 ms de lógica;
-    - K mata y los cadáveres vuelven al pool;
-    - morir, Game Over y reintentar funcionan.
-- Cómo probar: `pnpm --dir survivors dev` → http://localhost:8090 · F1 · G · N ×3 · K · dejarse matar → Enter/A/clic.
+    - en Playwright, 324 enemigos a 144 FPS, matando y con sonido limitado;
+    - consola sin errores (salvo `favicon.ico`).
+- Cómo probar: `pnpm --dir survivors dev` → http://localhost:8090. No hace falta pulsar nada para atacar. F1 · G · N ×3 para ver muchos enemigos.
 - Checkpoint 2026-10-16: `tsc` y `build` sin errores; Playwright carga el juego sin errores (solo falta `favicon.ico`).
-- Siguiente: `/fase 4`, primera arma y combate.
+- Datos de referencia de Helbreath: `docs/hb-wiki/` (índice en `README.md`).
 
 ## Problemas conocidos
+- Con un solo Energy Bolt, 300 enemigos sobrepasan al jugador. Es lo esperado: la progresión llega en las Fases 5 y 6.
+- El navegador interno de la app, si el panel está en segundo plano, va a ~1 FPS y parece congelado. Para revisar el juego, usar Playwright o tener el panel visible.
 - En el navegador interno, `sp-client` muestra errores `Cannot suspend/resume a closed AudioContext`. Son del audio en una pestaña en segundo plano y no afectan.
 - `pnpm build` genera `dist/` sin assets (se resuelve en la Fase 9).
 - Algunos enemigos se quedan esperando en la orilla del río si el jugador está al otro lado. Sin búsqueda de caminos. Se recolocan si quedan lejos.

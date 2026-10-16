@@ -266,3 +266,15 @@ Tabla completa en `docs/REQUISITOS_HB.md`. Lo no obvio:
 - **Robes y gorros de mago piden Mag**, no Int. Int solo gobierna los hechizos (`ReqInt`).
 - **Puntos de stat del original:** 70 al empezar, +3 por nivel, tope 200 por stat.
 - **Escala:** se guardan los números originales y se aplica un multiplicador global `REQ_SCALE` (inicial 0.4) al leerlos.
+
+## Efectos y sonidos (Fase 4)
+- `effect.spr` tiene 10 hojas. Los pivotes vienen centrados en el propio `.spr` (p. ej. -12,-11 para un frame de 24×21), así que un `Sprite` normal queda bien colocado sin offsets.
+  - Energy Bolt en vuelo: hoja 0, frames 2–5 (6 frames en total), 20 fps, en bucle.
+  - Explosión: hoja 6, 15 frames a 50 fps (0,3 s). El último frame mide 200×120 px. El original lo desvanece desde el frame 6.
+- `registerSheetAnimation` crea animaciones con la hoja entera. Para usar un rango de frames, `config/effects.ts` registra animaciones propias con clave `fx.*`.
+- Sonidos: `.mp3` en `assets/sounds/`, nombrados `C*` (personaje), `E*` (efectos) y `M*` (monstruos).
+  - Cada monstruo tiene sus sonidos en `sp-client/src/constants/Monsters.ts` (move/attack/takeDamage/death). Suelen ser números seguidos (Slime M1–M4, Orc M9–M12, Ant M29–M32); Bunny es la excepción (M71/M75/M79/M83).
+  - El original no limita los sonidos simultáneos; el límite es nuestro (`AudioSystem`).
+- En el original, un monstruo golpeado no se tiñe: solo reproduce la animación TakeDamage (hojas 24–31). El destello blanco (`setTintFill`) es nuestro.
+- Wiki (`docs/hb-wiki/`): el área del hechizo también golpea al objetivo directo, por eso el Energy Bolt hace 10 + 7 al enemigo alcanzado.
+

@@ -94,6 +94,49 @@ export class EnemySystem {
         return moved;
     }
 
+    /** Closest living enemy to (x, y) within `maxDistance`, or undefined. */
+    public findNearest(x: number, y: number, maxDistance: number): Enemy | undefined {
+        let best: Enemy | undefined;
+        let bestSq = maxDistance * maxDistance;
+        for (const pool of this.pools.values()) {
+            for (const enemy of pool.active) {
+                if (!enemy.isAlive) continue;
+                const dx = enemy.x - x;
+                const dy = enemy.y - y;
+                const distSq = dx * dx + dy * dy;
+                if (distSq < bestSq) {
+                    bestSq = distSq;
+                    best = enemy;
+                }
+            }
+        }
+        return best;
+    }
+
+    /** First living enemy whose body (at its `bodyY`) touches the circle (x, y, radius), or undefined. */
+    public findTouching(x: number, y: number, radius: number): Enemy | undefined {
+        let found: Enemy | undefined;
+        this.grid.forEachNear(x, y, radius + SPATIAL_CELL_SIZE, (enemy) => {
+            if (found || !enemy.isAlive) return;
+            const reach = radius + enemy.def.radius;
+            const dx = enemy.x - x;
+            const dy = enemy.bodyY - y;
+            if (dx * dx + dy * dy <= reach * reach) found = enemy;
+        });
+        return found;
+    }
+
+    /** Calls `visit` for every living enemy whose body (at its `bodyY`) is inside the circle. */
+    public forEachInRadius(x: number, y: number, radius: number, visit: (enemy: Enemy) => void): void {
+        this.grid.forEachNear(x, y, radius + SPATIAL_CELL_SIZE, (enemy) => {
+            if (!enemy.isAlive) return;
+            const reach = radius + enemy.def.radius;
+            const dx = enemy.x - x;
+            const dy = enemy.bodyY - y;
+            if (dx * dx + dy * dy <= reach * reach) visit(enemy);
+        });
+    }
+
     /** Kills every living enemy inside a rectangle (debug). Returns how many died. */
     public killInside(rect: Phaser.Geom.Rectangle): number {
         let killed = 0;

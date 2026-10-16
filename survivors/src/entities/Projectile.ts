@@ -1,0 +1,54 @@
+// Proyectil reciclable: vuela en línea recta con su animación de efecto hasta chocar con un enemigo
+// o recorrer su distancia máxima. Lo crea, mueve y recicla WeaponSystem.
+import type Phaser from 'phaser';
+import { DEPTH_EFFECT_OFFSET } from '../config/gameConfig';
+import type { ProjectileWeaponDef } from '../data/weapons';
+import type { Poolable } from '../utils/Pool';
+
+export class Projectile implements Poolable {
+    public poolIndex = -1;
+    public x = 0;
+    public y = 0;
+    public def!: ProjectileWeaponDef;
+    private vx = 0;
+    private vy = 0;
+    private remaining = 0;
+    private readonly sprite: Phaser.GameObjects.Sprite;
+
+    constructor(scene: Phaser.Scene) {
+        this.sprite = scene.add.sprite(0, 0, '__DEFAULT').setActive(false).setVisible(false);
+    }
+
+    /** Starts flying from (x, y) towards (targetX, targetY), up to `maxDistance` pixels. */
+    public launch(def: ProjectileWeaponDef, x: number, y: number, targetX: number, targetY: number, maxDistance: number): void {
+        this.def = def;
+        this.x = x;
+        this.y = y;
+        const dx = targetX - x;
+        const dy = targetY - y;
+        const distance = Math.hypot(dx, dy) || 1;
+        this.vx = (dx / distance) * def.speed;
+        this.vy = (dy / distance) * def.speed;
+        this.remaining = maxDistance;
+        this.sprite.setActive(true).setVisible(true).play(def.flyEffect);
+        this.syncDisplay();
+    }
+
+    /** Moves the projectile. Returns false once it has used up its distance. */
+    public update(deltaMs: number): boolean {
+        const seconds = deltaMs / 1000;
+        this.x += this.vx * seconds;
+        this.y += this.vy * seconds;
+        this.remaining -= this.def.speed * seconds;
+        this.syncDisplay();
+        return this.remaining > 0;
+    }
+
+    public deactivate(): void {
+        this.sprite.stop().setActive(false).setVisible(false);
+    }
+
+    private syncDisplay(): void {
+        this.sprite.setPosition(this.x, this.y).setDepth(this.y + DEPTH_EFFECT_OFFSET);
+    }
+}

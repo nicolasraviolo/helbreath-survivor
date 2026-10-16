@@ -23,6 +23,21 @@ export const TILE_ANCHOR_OFFSET = TILE_SIZE / 2;
 export const DEPTH_GROUND = -100000;
 export const DEPTH_GROUND_SHADOWS = -90000;
 export const DEPTH_DEBUG = 1000000;
+/** Spell effects are drawn this much above their Y depth (sp-client effects use +80). */
+export const DEPTH_EFFECT_OFFSET = 80;
+/** Spells start this many pixels above the caster's feet (sp-client ENERGY_BOLT_ORIGIN_OFFSET_Y = 50). */
+export const ENERGY_BOLT_ORIGIN_OFFSET_Y = 40;
+/** Damage numbers float above every character and effect. */
+export const DEPTH_DAMAGE_NUMBERS = 500000;
+
+/** Damage numbers: rise and fade the second half of their life (sp-client lives 2 s; shorter here, there are many more hits). */
+export const DAMAGE_NUMBER_LIFE_MS = 1000;
+export const DAMAGE_NUMBER_RISE_PX_PER_S = 40;
+export const DAMAGE_NUMBER_FONT_SIZE = 16;
+/** Random sideways offset so numbers on the same enemy don't stack exactly. */
+export const DAMAGE_NUMBER_SPREAD_PX = 12;
+/** Most numbers on screen at once; more are skipped. */
+export const DAMAGE_NUMBER_MAX = 120;
 
 /** Alpha of a map object while it hides the player (sp-client MAP_OBJECT_COLLISION_ALPHA). */
 export const MAP_OBJECT_FADE_ALPHA = 0.5;
@@ -50,6 +65,10 @@ export const ENEMY_FADE_MS = 400;
 /** Enemies: push-apart speed per pixel of overlap, and its cap (px/s). */
 export const ENEMY_SEPARATION_PER_PX = 10;
 export const ENEMY_SEPARATION_MAX = 80;
+/** Enemies: white flash when hit, in milliseconds. */
+export const ENEMY_HIT_FLASH_MS = 90;
+/** Enemies: how fast knockback fades (share lost per second, exponential). */
+export const ENEMY_KNOCKBACK_DECAY = 12;
 /** Grid cell size for neighbour queries. */
 export const SPATIAL_CELL_SIZE = 48;
 

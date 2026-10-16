@@ -6,6 +6,8 @@ import {
     DEPTH_GROUND_SHADOWS,
     ENEMY_CORPSE_MS,
     ENEMY_FADE_MS,
+    ENEMY_HIT_FLASH_MS,
+    ENEMY_KNOCKBACK_DECAY,
     ENEMY_WALL_HALF_SIZE,
     MONSTER_SHADOW_ALPHA,
     MONSTER_SHADOW_ROTATION,
@@ -44,6 +46,10 @@ export class Enemy implements Poolable {
     /** Separation push accumulated by EnemySystem this frame, in px/s. */
     public pushX = 0;
     public pushY = 0;
+    /** Knockback velocity from hits (px/s); fades out over time. */
+    private knockX = 0;
+    private knockY = 0;
+    private flashMs = 0;
     public readonly sprite: HBAsset;
     private readonly shadow: Phaser.GameObjects.Sprite | undefined;
     private direction = Direction.South;
@@ -76,11 +82,41 @@ export class Enemy implements Poolable {
         this.phase = EnemyPhase.Alive;
         this.pushX = 0;
         this.pushY = 0;
+        this.knockX = 0;
+        this.knockY = 0;
+        this.flashMs = 0;
+        this.sprite.clearTint();
         this.sideBias = Math.random() < 0.5 ? 1 : -1;
         this.sprite.setAlpha(1);
         this.setActive(true);
         this.play(MonsterState.Move, true);
         this.syncDisplay();
+    }
+
+    /** Point where projectiles aim and hit (above the feet). */
+    public get bodyY(): number {
+        return this.y - this.def.bodyOffsetY;
+    }
+
+    /**
+     * Takes damage: flashes white and is pushed away from (fromX, fromY) at `knockback` px/s.
+     * Returns true if this hit killed it.
+     */
+    public takeDamage(amount: number, fromX: number, fromY: number, knockback: number): boolean {
+        if (!this.isAlive) return false;
+        this.hp -= amount;
+        this.flashMs = ENEMY_HIT_FLASH_MS;
+        this.sprite.setTintFill(0xffffff);
+        const dx = this.x - fromX;
+        const dy = this.y - fromY;
+        const distance = Math.hypot(dx, dy);
+        if (distance > 0) {
+            this.knockX += (dx / distance) * knockback;
+            this.knockY += (dy / distance) * knockback;
+        }
+        if (this.hp > 0) return false;
+        this.kill();
+        return true;
     }
 
     /** Starts the death animation. Returns false if it was already dead. */
@@ -94,6 +130,10 @@ export class Enemy implements Poolable {
 
     /** Returns true when the enemy has finished fading out and must go back to the pool. */
     public update(deltaMs: number, world: EnemyWorld): boolean {
+        if (this.flashMs > 0) {
+            this.flashMs -= deltaMs;
+            if (this.flashMs <= 0) this.sprite.clearTint();
+        }
         switch (this.phase) {
             case EnemyPhase.Alive:
                 this.chase(deltaMs, world);
@@ -124,8 +164,11 @@ export class Enemy implements Poolable {
         const dy = world.targetY - this.y;
         const distance = Math.hypot(dx, dy);
         const seconds = deltaMs / 1000;
-        let vx = this.pushX;
-        let vy = this.pushY;
+        let vx = this.pushX + this.knockX;
+        let vy = this.pushY + this.knockY;
+        const fade = Math.exp(-ENEMY_KNOCKBACK_DECAY * seconds);
+        this.knockX *= fade;
+        this.knockY *= fade;
         if (distance > world.targetRadius + this.def.radius) {
             vx += (dx / distance) * this.def.speed;
             vy += (dy / distance) * this.def.speed;
