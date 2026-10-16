@@ -48,11 +48,11 @@ export class DebugSystem {
         const move = this.input.getMove();
         this.text.setText([
             `FPS: ${this.scene.game.loop.actualFps.toFixed(0)}`,
-            `Pos: ${player.x.toFixed(0)}, ${player.y.toFixed(0)}  casilla ${Math.floor(player.x / TILE_SIZE)}, ${Math.floor(player.y / TILE_SIZE)}`,
-            `Dir: ${DIRECTION_NAMES[player.direction]}  estado: ${player.state}`,
+            `Pos: ${player.x.toFixed(0)}, ${player.y.toFixed(0)}  tile ${Math.floor(player.x / TILE_SIZE)}, ${Math.floor(player.y / TILE_SIZE)}`,
+            `Dir: ${DIRECTION_NAMES[player.direction]}  state: ${player.state}`,
             `Mov: ${move.x.toFixed(2)}, ${move.y.toFixed(2)}  (${move.length().toFixed(2)})`,
-            `Entrada: ${this.input.getLastDevice()}`,
-            `Mando: ${this.input.getGamepadName() ?? 'no detectado (pulsa un botón)'}`,
+            `Input: ${this.input.getLastDevice()}`,
+            `Gamepad: ${this.input.getGamepadName() ?? 'not detected (press a button)'}`,
             ...this.extraLines(),
         ]);
 

@@ -117,7 +117,7 @@ survivors/
 
 ## Fase 8 — Menús y personajes
 - `MainMenuScene` (Jugar, Créditos, volumen), `CharacterSelectScene` (3 personajes), `PauseScene`.
-- Créditos con el aviso legal de `docs/DESIGN.md`.
+- Créditos con el aviso legal de `docs/DESIGN.md` (en inglés, como todo el juego).
 - Ajustes: opción para mostrar u ocultar la barra de vida sobre el personaje.
 - Todos los menús navegables sin ratón: cruceta/stick para moverse, **A** confirmar, **B** volver, **Start** pausa. Si se desconecta el mando en partida → pausa automática.
 - **Aceptación:** se juega con los 3 personajes y se vuelve al menú tras una partida; una partida completa (menú → juego → Game Over → menú) se puede hacer solo con el mando.

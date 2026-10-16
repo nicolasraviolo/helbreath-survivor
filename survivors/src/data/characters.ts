@@ -1,9 +1,11 @@
-// Personajes jugables. Por ahora solo el Guerrero; Mago y Arquero llegan en la Fase 8 (docs/DESIGN.md).
+// Personajes jugables. Ahora se juega con el Mago (Energy Bolt); el Guerrero tendrá su arma en la Fase 6
+// y la selección de personaje llega en la Fase 8 (docs/DESIGN.md).
 import type { Appearance } from '../hb/playerAppearance';
+import type { Stats } from './stats';
 
 export interface CharacterDef {
     name: string;
-    /** Movement speed in pixels per second. */
+    /** Movement speed in pixels per second, before Dex. */
     speed: number;
     /** Half the side of the square used for wall collision, centred on the feet. */
     hitboxHalfSize: number;
@@ -12,9 +14,20 @@ export interface CharacterDef {
     runFrameRate: number;
     /** Death animation speed (frames per second; 8 frames, played once). */
     dieFrameRate: number;
-    maxHp: number;
+    /** Health before Vit and level (see data/stats.ts). */
+    baseHp: number;
     /** Time without taking damage after a hit, in milliseconds. */
     invulnerabilityMs: number;
+    /** Stats at level 1 (decided by the owner; the original allows 10–14 each and 70 in total). */
+    startStats: Stats;
+    /** Points added automatically on every level up. */
+    statsPerLevel: Partial<Stats>;
+    /** Class bonuses from docs/DESIGN.md, as multipliers (1 = no bonus). */
+    hpMultiplier: number;
+    physicalDamageMultiplier: number;
+    magicDamageMultiplier: number;
+    /** Multiplies weapon cooldowns (0.9 = 10% shorter). */
+    cooldownMultiplier: number;
     appearance: Appearance;
 }
 
@@ -43,22 +56,44 @@ export const MAGE_LOOK = {
     weapon: { sprite: 'gear.wand.m', startSheet: 0 },
 } as const satisfies Appearance;
 
+const COMMON = {
+    speed: 150,
+    hitboxHalfSize: 8,
+    idleFrameRate: 8,
+    runFrameRate: 14,
+    dieFrameRate: 10,
+    baseHp: 60,
+    invulnerabilityMs: 600,
+} as const;
+
 export const CHARACTERS = {
-    warrior: {
-        name: 'Guerrero',
-        speed: 150,
-        hitboxHalfSize: 8,
-        idleFrameRate: 8,
-        runFrameRate: 14,
-        dieFrameRate: 10,
-        // Base 100 + 20% del Guerrero (docs/DESIGN.md).
-        maxHp: 120,
-        invulnerabilityMs: 600,
-        // Provisional (petición del propietario, solo estética): el Guerrero se ve como mago hasta que haya selección de personaje.
+    mage: {
+        ...COMMON,
+        name: 'Mage',
+        startStats: { str: 12, vit: 10, dex: 10, int: 14, mag: 14, chr: 10 },
+        // Decidido por el propietario: 3 puntos por nivel (1 Int y 2 Mag). Si resulta demasiado, se ajusta.
+        statsPerLevel: { int: 1, mag: 2 },
+        hpMultiplier: 1,
+        physicalDamageMultiplier: 1,
+        // +15% daño mágico y −10% de recarga (docs/DESIGN.md).
+        magicDamageMultiplier: 1.15,
+        cooldownMultiplier: 0.9,
         appearance: MAGE_LOOK,
+    },
+    warrior: {
+        ...COMMON,
+        name: 'Warrior',
+        startStats: { str: 14, vit: 12, dex: 14, int: 10, mag: 10, chr: 10 },
+        statsPerLevel: { str: 1, vit: 1 },
+        // +20% vida y +10% daño físico (docs/DESIGN.md).
+        hpMultiplier: 1.2,
+        physicalDamageMultiplier: 1.1,
+        magicDamageMultiplier: 1,
+        cooldownMultiplier: 1,
+        appearance: WARRIOR_LOOK,
     },
 } as const satisfies Record<string, CharacterDef>;
 
 export type CharacterId = keyof typeof CHARACTERS;
 
-export const DEFAULT_CHARACTER: CharacterId = 'warrior';
+export const DEFAULT_CHARACTER: CharacterId = 'mage';

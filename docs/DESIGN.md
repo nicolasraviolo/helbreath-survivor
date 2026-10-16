@@ -115,8 +115,12 @@ Usar un sprite de objeto en suelo de `Items.ts` (oro, gemas…). Si no hay uno a
 ## Audio
 Música: `middleland.mp3` (partida), `dungeon.mp3` (minijefes), `abaddon.mp3` o `apocalypse.mp3` (jefe final). SFX de `sounds/` (C* personaje, E* efectos, M* monstruos). Máximo ~4 sonidos iguales a la vez.
 
-## Créditos y aviso legal (mostrar en el juego)
-"Helbreath © Siementech Co. Ltd. Base técnica: helbreath-base-game (MIT) de Erko Knoll. Proyecto fan no oficial, gratuito y sin ánimo de lucro."
+## Idioma
+El juego está **solo en inglés** (decidido el 16-oct-2026): todo texto en pantalla, nombres de stats y personajes (Mage, Warrior), cartas y menús. Este documento sigue en español. Otros idiomas, quizá más adelante.
+
+## Créditos y aviso legal (mostrar en el juego, en inglés)
+"Helbreath © Siementech Co. Ltd. Technical base: helbreath-base-game (MIT) by Erko Knoll. Unofficial fan project, free and non-profit."
+- Fuente: Comic Neue (SIL Open Font License), incluida en el juego; se menciona en los créditos.
 - Sin anuncios ni pagos. No publicar en tiendas comerciales.
 - El código copiado de la base conserva la licencia MIT.
 - Todo asset pasa por `assetManifest.ts` para poder sustituirlo por arte propio en el futuro.

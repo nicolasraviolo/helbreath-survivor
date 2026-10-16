@@ -171,7 +171,9 @@ export class HBSpriteFile {
         );
         pivotsBySpriteKey.set(this.spriteKey, { spriteSheetPivots });
 
-        if (!isTiles && this.spriteType !== SpriteType.Interface) {
+        const isStatic = isTiles || this.spriteType === SpriteType.Interface
+            || this.spriteType === SpriteType.ItemGround || this.spriteType === SpriteType.ItemPack;
+        if (!isStatic) {
             for (const sheet of this.spriteSheets) {
                 registerSheetAnimation(scene, sheet, this.frameRate);
             }

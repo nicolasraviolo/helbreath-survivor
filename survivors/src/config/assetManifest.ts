@@ -34,6 +34,9 @@ export const SPRITES = {
 
     // Interfaz: barra inferior original 800x600 (hoja 6; ver config/hud.ts para frames y posiciones).
     'ui.panel': { file: 'sprites/gamedialog86.spr', type: SpriteType.Interface },
+
+    // Objetos en el suelo (gemas de XP: hoja 15, ver data/leveling.ts).
+    'item.ground': { file: 'sprites/item-ground.spr', type: SpriteType.ItemGround },
 } as const satisfies Record<string, SpriteAsset>;
 
 export type SpriteKey = keyof typeof SPRITES;
@@ -53,6 +56,8 @@ export const SOUNDS = {
     'sfx.bunny.death': { file: 'sounds/M83.mp3' },
     'sfx.orc.hit': { file: 'sounds/M11.mp3' },
     'sfx.orc.death': { file: 'sounds/M12.mp3' },
+    // Recoger una gema: el sonido de "objeto añadido" del original (sp-client SoundFileNames.ts, ITEM_ADDED_SOUND).
+    'sfx.pickup': { file: 'sounds/E20.mp3' },
 } as const satisfies Record<string, { file: string }>;
 
 export type SoundKey = keyof typeof SOUNDS;

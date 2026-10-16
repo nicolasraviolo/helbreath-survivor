@@ -34,6 +34,10 @@ export class Player {
     public state = PlayerState.IdleCombat;
     public direction = Direction.South;
     public hp: number;
+    /** Changes with Vit and level: use setMaxHp. */
+    public maxHp: number;
+    /** Multiplies the character's speed (Dex). */
+    public speedMultiplier = 1;
     /** Debug: ignores all damage. Change it with setGodMode so the player shows it. */
     public godMode = false;
     private readonly layers = new Map<GearSlot, { def: GearLayer; sprite: Phaser.GameObjects.Sprite }>();
@@ -53,7 +57,8 @@ export class Player {
         /** Playable rectangle in pixels; the feet never leave it. */
         private readonly area: Phaser.Geom.Rectangle,
     ) {
-        this.hp = def.maxHp;
+        this.maxHp = def.baseHp;
+        this.hp = this.maxHp;
         this.container = scene.add.container(x, y);
         for (const [slot, layer] of Object.entries(def.appearance) as [GearSlot, GearLayer][]) {
             const sprite = scene.make.sprite({ x: 0, y: 0, key: '__DEFAULT' }, false);
@@ -94,7 +99,7 @@ export class Player {
         this.direction = newDirection;
 
         if (moving) {
-            const distance = (this.def.speed * deltaMs) / 1000;
+            const distance = (this.def.speed * this.speedMultiplier * deltaMs) / 1000;
             const half = this.def.hitboxHalfSize;
             moveAxis(this, move.x * distance, 0, this.map, this.area, half, true);
             moveAxis(this, 0, move.y * distance, this.map, this.area, half, true);
@@ -117,6 +122,17 @@ export class Player {
             this.die();
         }
         return true;
+    }
+
+    /**
+     * New maximum health. When it grows, current health grows by the same amount
+     * (like in Helbreath when Vit goes up); `fill` heals to full instead.
+     */
+    public setMaxHp(value: number, fill = false): void {
+        const gained = value - this.maxHp;
+        this.maxHp = value;
+        this.hp = fill ? value : Math.min(value, Math.max(0, this.hp + Math.max(0, gained)));
+        this.drawHealthBar();
     }
 
     /** Debug invincibility, shown as a golden tint on every layer. */
@@ -160,7 +176,7 @@ export class Player {
     }
 
     private drawHealthBar(): void {
-        const ratio = this.hp / this.def.maxHp;
+        const ratio = this.hp / this.maxHp;
         const left = -BAR_WIDTH / 2;
         this.healthBar.clear()
             .fillStyle(BAR_BACK_COLOR, 0.8)
