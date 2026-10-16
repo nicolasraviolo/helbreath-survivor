@@ -8,7 +8,7 @@ Haz un checkpoint del trabajo actual:
 3. Actualiza `survivors/PROGRESS.md`: qué se hizo, qué falta de la fase, problemas conocidos y la fecha.
 4. Si has aprendido algo no obvio sobre los assets o el código base, añádelo a `survivors/NOTES.md`.
 5. Haz `git add` de los cambios relevantes y un commit con mensaje en inglés tipo `feat(survivors): ...` o `fix(survivors): ...`.
-6. Pregúntame si la fase está **terminada**. Solo si digo que sí: márcala como completada en PROGRESS.md, haz commit, fusiona la rama en `master`, crea la etiqueta `fase-N` y sube todo con `git push origin master --follow-tags`.
+6. Pregúntame si la fase está **terminada**. Solo si digo que sí: márcala como completada en PROGRESS.md, haz commit, fusiona la rama en `master`, crea la etiqueta **anotada** `git tag -a fase-N -m "Fase N"` (`--follow-tags` no sube etiquetas simples) y sube todo con `git push origin master --follow-tags`.
 7. Resúmeme en 3–5 líneas qué tengo ahora y qué toca después.
 
 $ARGUMENTS
