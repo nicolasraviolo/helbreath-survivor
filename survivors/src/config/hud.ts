@@ -58,5 +58,11 @@ export const HUD_TEXT_STYLE = {
 } as const;
 export const HUD_INFO_STYLE = { ...HUD_TEXT_STYLE, color: '#e8d9a8' } as const;
 
+/**
+ * Active buffs (chests): bottom right, just above the bar, one line each with name and seconds left, in the game's
+ * own sprite font (the spell book letters). The first buff taken is the lowest line.
+ */
+export const HUD_BUFF = { right: 12, bottomGap: 26, lineHeight: 22 } as const;
+
 /** Pause overlay. */
 export const PAUSE_SHADE_ALPHA = 0.55;

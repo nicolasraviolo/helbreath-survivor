@@ -6,6 +6,7 @@
 import Phaser from 'phaser';
 import { GAME_WIDTH } from '../config/gameConfig';
 import {
+    HUD_BUFF,
     HUD_BUTTONS,
     HUD_CHARACTER_BUTTON,
     HUD_DEPTH_TEXT,
@@ -25,10 +26,12 @@ import {
     PAUSE_SHADE_ALPHA,
 } from '../config/hud';
 import { px, UI_FONT, UI_FONT_SIZE } from '../config/ui';
+import { PASSIVE_IDS, PASSIVES } from '../data/passives';
 import { STAT_IDS, STAT_INFO } from '../data/stats';
 import type { CharacterStats } from '../entities/CharacterStats';
 import { Action, InputSystem } from '../systems/InputSystem';
 import { formatTime } from '../utils/format';
+import { SpriteText } from '../hb/SpriteText';
 
 /** What the bar shows, read every frame from the game. */
 export interface HudState {
@@ -46,6 +49,14 @@ export interface HudState {
     pauseLocked: boolean;
     /** For the stats panel. */
     stats: Readonly<CharacterStats>;
+    /** Weapon or spell in hand. */
+    weaponName: string | undefined;
+    /** Share of damage removed by armor (0..1). */
+    defense: number;
+    /** Rank of each passive. */
+    passiveRanks: Readonly<Record<keyof typeof PASSIVES, number>>;
+    /** Buffs from chests that are on (they can be combined), with their seconds left. */
+    buffs: ReadonlyArray<{ name: string; secondsLeft: number; color: number }>;
 }
 
 export interface HudSceneData {
@@ -70,6 +81,8 @@ export class HudScene extends Phaser.Scene {
     private hpText!: Phaser.GameObjects.Text;
     private mpText!: Phaser.GameObjects.Text;
     private infoText!: Phaser.GameObjects.Text;
+    /** One line per active buff, created when first needed. */
+    private readonly buffTexts: SpriteText[] = [];
     private pauseOverlay!: Phaser.GameObjects.Container;
     private statsPanel!: Phaser.GameObjects.Container;
     private statsTitle!: Phaser.GameObjects.Text;
@@ -109,7 +122,7 @@ export class HudScene extends Phaser.Scene {
         const state = this.getState();
         this.handlePause(state.pauseLocked);
         if (this.inputSystem.justPressed(Action.ToggleStats)) this.toggleStats();
-        if (this.statsPanel.visible) this.refreshStats(state.stats);
+        if (this.statsPanel.visible) this.refreshStats(state);
         this.setGauge(this.hp, state.hp / state.maxHp);
         this.hpText.setText(`${Math.ceil(state.hp)} / ${state.maxHp}`);
         if (state.mana === undefined) {
@@ -121,6 +134,22 @@ export class HudScene extends Phaser.Scene {
         }
         this.setGauge(this.xp, state.xpRatio);
         this.infoText.setText(`Lv ${state.level}  ${formatTime(state.elapsedMs)}  ${state.kills} kills`);
+        this.showBuffs(state.buffs);
+    }
+
+    /** One line per active buff at the top of the screen: name and seconds left, in its colour. */
+    private showBuffs(buffs: HudState['buffs']): void {
+        while (this.buffTexts.length < buffs.length) {
+            const y = HUD_TOP - HUD_BUFF.bottomGap - this.buffTexts.length * HUD_BUFF.lineHeight;
+            const text = new SpriteText(this, GAME_WIDTH - HUD_BUFF.right, y, '', 0xffffff, 'right');
+            text.container.setDepth(HUD_DEPTH_TEXT);
+            this.buffTexts.push(text);
+        }
+        this.buffTexts.forEach((text, i) => {
+            const buff = buffs[i];
+            text.container.setVisible(buff !== undefined);
+            if (buff) text.setText(`${buff.name} ${buff.secondsLeft}s`).setColor(buff.color);
+        });
     }
 
     private createGauge(rect: { x: number; y: number; width: number }, emptyFrame: number): Gauge {
@@ -186,7 +215,7 @@ export class HudScene extends Phaser.Scene {
         this.derivedLabels = this.add.text(padding, derivedTop, '', HUD_STATS_STYLE);
         this.derivedValues = this.add.text(width - padding, derivedTop, '', { ...HUD_STATS_STYLE, align: 'right' }).setOrigin(1, 0);
         // Filled once now so the panel height fits its rows at any font size.
-        this.refreshStats(this.getState().stats);
+        this.refreshStats(this.getState());
         const height = derivedTop + this.derivedLabels.height + padding;
         const back = this.add.rectangle(0, 0, width, height, 0x1c140c, 0.9).setOrigin(0).setStrokeStyle(2, 0x8a7038);
         this.statsPanel = this.add.container(x, HUD_TOP - height - marginY, [
@@ -194,10 +223,11 @@ export class HudScene extends Phaser.Scene {
         ]).setVisible(false);
     }
 
-    private refreshStats(stats: Readonly<CharacterStats>): void {
+    private refreshStats(state: HudState): void {
+        const stats = state.stats;
         this.statsTitle.setText(`${stats.def.name} · Level ${stats.level}`);
         STAT_IDS.forEach((id, i) => this.statCells[i]?.setText(`${STAT_INFO[id].short} ${stats.stats[id]}`));
-        const rows = describeDerived(stats);
+        const rows = describeDerived(state);
         this.derivedLabels.setText(rows.map(([label]) => label));
         this.derivedValues.setText(rows.map(([, value]) => value));
     }
@@ -244,9 +274,17 @@ export class HudScene extends Phaser.Scene {
 }
 
 /** Label / value rows under the stat grid. */
-function describeDerived(stats: Readonly<CharacterStats>): [string, string][] {
+function describeDerived(state: HudState): [string, string][] {
+    const stats = state.stats;
     const bonus = (multiplier: number) => `${multiplier >= 1 ? '+' : ''}${Math.round((multiplier - 1) * 100)}%`;
+    const gear: [string, string][] = [];
+    if (state.weaponName) gear.push([stats.def.startWeapon.kind === 'spell' ? 'Spell' : 'Weapon', state.weaponName]);
+    // Always shown (every class can wear something), so the panel keeps the height it was built with.
+    gear.push(['Damage taken', `−${Math.round(state.defense * 100)}%`]);
+    // Always shown, at any rank (0 too), so the panel keeps the height it was built with.
+    for (const id of PASSIVE_IDS) gear.push([PASSIVES[id].name, `${state.passiveRanks[id]}/${PASSIVES[id].maxRank}`]);
     return [
+        ...gear,
         ['Health', String(stats.maxHp)],
         ['Mana', String(stats.maxMana)],
         ['Magic damage', bonus(stats.damageMultiplier('magic'))],

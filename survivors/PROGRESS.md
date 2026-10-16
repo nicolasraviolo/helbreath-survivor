@@ -8,13 +8,128 @@
 | 3 — Enemigos | ✅ completada | 2026-10-16 |
 | 4 — Primera arma y combate | ✅ completada | 2026-10-16 |
 | 5 — Experiencia y subida de nivel | ✅ completada | 2026-10-16 |
-| 6 — Arsenal completo | ⬜ pendiente | |
+| 6 — Arsenal completo | ✅ completada | 2026-10-16 |
 | 7 — Oleadas, jefes y final | ⬜ pendiente | |
 | 8 — Menús y personajes | ⬜ pendiente | |
 | 9 — Web, móvil y publicación | ⬜ pendiente | |
 | 10 — Pulido (opcional) | ⬜ pendiente | |
 
 ## Fase actual
+**Fase 6 completada (2026-10-16)**, probada por el propietario, en 3 bloques (6A Guerrero, 6B Maga, 6C objetos, buffs y pasivas).
+- Siguiente: `/nueva-skill añadir-arma` (indicado en `docs/PLAN.md`) y después `/fase 7` (oleadas, jefes y final).
+- **Checkpoint 2026-10-16:** `tsc` y `build` sin errores; Playwright: el cofre da su buff y la consola está limpia (solo el 404 de `favicon.ico`).
+
+**Bloque 6C: objetos en el suelo, buffs y pasivas** (probado y aprobado).
+- **Objetos** (`data/pickups.ts`, `entities/Pickup.ts` con pool, `systems/PickupSystem.ts`):
+  - **Red Potion** (item-ground 5/1): cura el 30% de la vida y suena C19. Cae con un 1,5% de probabilidad.
+  - **Imán**, dibujado con el Crystal (15/46) porque no hay sprite de imán: atrae todas las gemas del mapa. Cae con un 0,5%.
+  - **Cofre**, dibujado con la Gold Pocket (5/120): aparece cada 150 bajas (los minijefes llegan en la Fase 7) y suena E12 al caer.
+  - Poción e imán desaparecen a los 60 s, parpadeando antes. **Los cofres no desaparecen** (pedido por el propietario).
+- **Buffs del cofre** (`systems/BuffSystem.ts`): uno ofensivo o uno defensivo al azar, 20 s. **Se combinan** (pedido por el propietario): puedes tener los dos a la vez, cada uno con su contador. Coger uno que ya tienes renueva su tiempo.
+  - **Berserk:** +40% de daño. Círculo mágico al activarse (`effect8` hoja 1) y brillo rojo aditivo sobre el personaje, como en el original (`CharacterSprite.setGlow`).
+  - **Defense Shield:** −40% de daño recibido. `effect8` hoja 6 al activarse y aura `effect9` hoja 14 mientras dura. El aura venía desplazada de fábrica; ahora está centrada a los pies (corregido tras la prueba del propietario).
+  - Al coger un buff, su nombre ("Berserk!", "Defense Shield!") sube sobre el jugador y se desvanece en 2 s, como al lanzar un hechizo en el original.
+  - **Abajo a la derecha**, encima de la barra, una línea por buff activo con su nombre y los segundos que le quedan (pedido por el propietario).
+  - Los dos textos usan la **fuente dibujada del original** (`sprfonts.spr`, la del libro de hechizos) con `hb/SpriteText.ts`: tabla de anchos y sombra negra copiadas de `reference/Client.cpp`. Colores: Berserk rojo, Defense Shield azul.
+- **Pasivas** (`data/passives.ts`), una carta nueva para las dos clases. Tienen 5 rangos:
+  - **Boots:** +8% de velocidad por rango.
+  - **Magnet Amulet:** +30% de radio del imán de gemas por rango.
+  - Cuentan dentro de las 2 cartas de objeto. El panel C muestra su rango.
+- **Tecla de pruebas:** P suelta una poción, un imán y un cofre junto al jugador. Pueden caer en el agua: es solo para pruebas.
+- **Cómo probar:** `pnpm --dir survivors dev` → http://localhost:8090. Pulsa P y recoge los objetos; pulsa X para que salgan las cartas de Boots y Magnet Amulet.
+- **Comprobado con Playwright:**
+  - la poción cura un 30%;
+  - el imán atrae las gemas;
+  - el cofre da Berserk o Defense Shield con sus efectos y el contador;
+  - salen las cartas de pasivas;
+  - consola limpia.
+- **A vigilar:** con 2 pasivas siempre disponibles, las cartas de arma y armadura salen algo menos. Ajustable con `MAX_ITEM_CARDS`.
+
+**Bloque 6B: arsenal de la Maga** (probado y aprobado).
+- **Un solo hechizo "en la mano"**, como el arma del Guerrero (`data/spells.ts`, números propios, requisito de Int):
+  - **Energy:** Energy Bolt (inicial) → Triple Energy Bolt (Int 20, 3 bolas a 3 enemigos) → Energy Strike (Int 32, 8 descargas alrededor del enemigo).
+  - **Fire:** Fire Ball (Int 17) → Fire Strike (Int 24, 4 explosiones seguidas) → Mass Fire Strike (Int 36).
+  - **Previstas, sin datos de juego:** Lightning, Ice y Meteor (`PLANNED_SPELL_FAMILIES`).
+- **`weapons/SpellWeapon.ts`** sustituye a `EnergyBolt.ts`. Hay dos formas de apuntar:
+  - `targets`: un enemigo distinto por proyectil;
+  - `scatter`: caen alrededor del enemigo.
+  - Las explosiones con retraso las gestiona `WeaponSystem` con un pool. El daño se aplica una sola vez, al impactar.
+- **Visuales de sp-client:**
+  - la Fire Ball es direccional: `effect.spr` hoja 5, 8 direcciones × 4 frames (`framesPerDirection` en `config/effects.ts`);
+  - explosiones de `effect.spr` hoja 3, `effect3` hojas 1, 2 y 5, y `effect11` hoja 8;
+  - sonidos E4 (explosión) y C16 (lanzar).
+- **Animación de lanzar:**
+  - el estado Cast del original (hojas 64 / 8, 16 frames), acortado de 1,5 s a 0,48 s (`CAST_ANIMATION_MS`);
+  - la Maga se planta hasta que sale el hechizo (35%, unos 0,17 s) y luego vuelve a correr;
+  - la varita se oculta mientras lanza, como en el original.
+- **Ropa de la Maga** (`data/armor.ts`, juego `mage`; piden Mag): quita algo de daño y sube el daño mágico.
+  - **Túnica:** Robe (Mag 18) → Wizard Robe (Mag 30). Es el mismo sprite teñido "Tan", el color 11 del original.
+  - **Gorro:** Wizard Cap (22) → Wizard Hat (34).
+  - La Hero Robe queda reservada para otra cosa.
+- **La Maga empieza** con corpiño (Bodice), falda (Skirt), botas y varita. **La varita es fija** (solo estética).
+- **Cartas:** eslabón de hechizo, cambio de familia de hechizo y ropa de mago. Muestran daño, ritmo, número de proyectiles y área; la ropa también el daño mágico.
+- **Tecla de pruebas:** B da +10 de Int y +10 de Mag.
+- **Checkpoint 6B, 2026-10-16:** `tsc` y `build` sin errores. En Playwright la Maga lanza y mata, y la consola está limpia (solo el 404 de `favicon.ico`).
+- **A vigilar:** el sonido de lanzar C16 en cada hechizo puede cansar; el daño mágico crece mucho con Mag (ya anotado).
+- **Cómo probar:** `pnpm --dir survivors dev` → http://localhost:8090.
+  1. Elige Magician.
+  2. Pulsa X para subir de nivel y B varias veces para sumar Int y Mag.
+  3. Elige Fire Ball, Triple Energy Bolt, Robe y Wizard Cap.
+- **Comprobado con Playwright:**
+  - lanza con animación;
+  - Fire Strike con varias explosiones;
+  - Wizard Robe teñida y Wizard Hat visibles;
+  - salen todas las cartas nuevas;
+  - el Guerrero sigue igual;
+  - consola limpia.
+
+**Bloque 6A: arsenal del Guerrero** (probado y aprobado).
+La fase se parte en 3 bloques: **6A** Guerrero · **6B** Mago (hechizos por Int, eslabones de hechizo, animación de lanzar, túnicas) · **6C** pickups y pasivas.
+- **Una sola arma en la mano** (decidido por el propietario). Las cartas ofrecen el siguiente eslabón de tu familia o cambiar a la mejor arma de otra familia.
+- **Familias activas** (números propios, no los del original; `data/weapons.ts`):
+  - **Short Swords:** Dagger (arma inicial) → Short Sword (Str 17) → Falchion (24). Rápidas y de poco alcance.
+  - **Long Swords:** Long Sword (20) → Broad Sword (28) → Great Sword (36) → Flamberge (46). Lentas, arco ancho y más empuje.
+- **Desactivadas** (solo datos, `enabled: false`): Hammer, Fencing y Axe.
+- **Cómo ataca** (`weapons/MeleeWeapon.ts`):
+  - tajo en arco hacia el enemigo más cercano;
+  - el daño llega al 25% de la animación;
+  - estela blanca (`entities/Slash.ts`);
+  - sonidos C18 (tajo) y C6 (golpe).
+- **Animación de ataque:** el estado Melee del original (hojas 48 / 6, arma índice 4).
+- **Sin patinar al golpear** (pedido por el propietario): al empezar el tajo, el personaje se queda quieto hasta justo después del golpe (frames 0–2; `MELEE_ROOT_MOMENT`): Dagger ≈ 0,13 s, Long Sword ≈ 0,21 s. Después, si te mueves, se corta la animación y vuelve a correr. Quieto, el tajo se ve entero.
+- **Armaduras** (`data/armor.ts`, `entities/Equipment.ts`): cuerpo, casco y escudo.
+  - Cada pieza quita un % del daño recibido, con tope del 60%, y cambia el aspecto.
+  - Chain Mail y Plate Mail también cambian las piernas (y Plate Mail las mangas).
+- **El Guerrero empieza** con camisa, pantalón, botas y Dagger. Ya no usa el Energy Bolt.
+- **Cartas** (`systems/UpgradePool.ts`): stat, eslabón, cambio de familia y armadura.
+  - Como mucho 2 cartas de objeto; el resto, de stat.
+  - Las cartas de arma muestran daño, ritmo, alcance y anchura (antes → después).
+  - Las de armadura muestran el daño recibido.
+- **Panel C:** muestra el arma y el "Damage taken".
+- **Movimiento en 8 direcciones** (a prueba, pedido por el propietario): el stick y el ratón se ajustan a la dirección más cercana de las 8 del original. Sigue siendo libre en píxeles, no casilla a casilla. Para volver a cualquier ángulo: `MOVE_DIRECTIONS = 0` en `config/gameConfig.ts`.
+- **Sonido como en el original** (pedido por el propietario):
+  - el tajo C18 suena cuando cae el golpe, comprimido a 640 ms (la duración del ataque del original), y ya no a velocidad normal;
+  - pasos C10 en bucle mientras te mueves, dos por ciclo de carrera, con polvo bajo los pies cada 32 px (efecto `effect2` hoja 1).
+  - `AudioSystem.play(key, duración)` y `startLoop`/`stopLoop`. Los bucles se paran al pausar o al salir de la escena.
+- **Tecla de pruebas:** V da +10 de Str.
+- **Cómo probar:** `pnpm --dir survivors dev` → http://localhost:8090.
+  1. Elige Warrior.
+  2. Ataca solo al acercarse los enemigos.
+  3. Pulsa X para subir de nivel y V para sumar Str.
+  4. Mira cómo cambian el arma en la mano y la armadura.
+- **Checkpoint 6A, 2026-10-16:**
+  - `tsc` y `build` sin errores.
+  - Playwright: consola limpia (solo el 404 de `favicon.ico`) y cartas de armadura y stat en pantalla.
+  - Corriendo 4 s entre 50 enemigos, ningún frame de "golpe y movimiento a la vez".
+- **Falta de la fase:** 6B (hechizos del Mago por Int, eslabones de hechizo, animación de lanzar, túnicas y gorros) y 6C (poción, imán, cofre con buff aleatorio, Botas y Amuleto imán).
+- **Comprobado con Playwright:**
+  - golpea a varios enemigos a la vez;
+  - salen las cartas de Leather Armor, Long Sword, Targe Shield, Falchion y Scale Mail;
+  - el aspecto cambia;
+  - la Maga sigue con su Energy Bolt;
+  - consola sin errores.
+
+Anterior:
 **Pantalla de selección de personaje** (adelantada de la Fase 8, 2026-10-16; probada y aprobada por el propietario). Siguiente: `/fase 6`.
 - `scenes/CharacterSelectScene.ts` + `config/characterSelect.ts`: la pantalla original "Create New Character".
   - Fondo: `gamedialog86.spr`, hoja 9, ampliado de 640×480 a 800×600.
@@ -105,7 +220,7 @@ Fase 4 completada (2026-10-16), probada por el propietario. Siguiente: `/fase 5`
 - Con un solo Energy Bolt, 300 enemigos sobrepasan al jugador. Las cartas de stat ayudan, pero la progresión real llega con las armas de la Fase 6.
 - El daño mágico crece rápido (+2 Mag por nivel y +4% por punto). Vigilarlo al equilibrar.
 - Las flechas "→" de las cartas usan otra fuente: Comic Neue no tiene ese carácter. No molesta.
-- El navegador interno de la app, si el panel está en segundo plano, va a ~1 FPS y parece congelado. Para revisar el juego, usar Playwright o tener el panel visible.
+- El navegador interno de la app, si el panel está en segundo plano, va a ~1 FPS y parece congelado. Para revisar el juego, usar Playwright o tener el panel visible. A veces también le pasa a Playwright: `requestAnimationFrame` cae a 2 por segundo incluso sin el juego (visto el 16-oct-2026). No es un problema del juego.
 - En el navegador interno, `sp-client` muestra errores `Cannot suspend/resume a closed AudioContext`. Son del audio en una pestaña en segundo plano y no afectan.
 - `pnpm build` genera `dist/` sin assets (se resuelve en la Fase 9).
 - Algunos enemigos se quedan esperando en la orilla del río si el jugador está al otro lado. Sin búsqueda de caminos. Se recolocan si quedan lejos.

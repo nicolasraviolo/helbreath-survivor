@@ -7,6 +7,7 @@ import { Direction } from '../hb/directions';
 import {
     PLAYER_FRAMES_PER_DIRECTION,
     PlayerState,
+    framesPerDirection,
     getGearRenderOrder,
     getLayerFrame,
     type GearLayer,
@@ -20,18 +21,46 @@ export class CharacterSprite {
     public direction = Direction.South;
     /** Time in the current state, in milliseconds. */
     public stateTime = 0;
+    /** Length of the current melee swing or cast (its frames are spread over it). */
+    public actionDurationMs = 1;
     private readonly layers = new Map<GearSlot, { def: GearLayer; sprite: Phaser.GameObjects.Sprite }>();
     private shownFrame = -1;
     private orderKey = '';
+    private tint: number | undefined;
+    /** Additive copies of every layer (Berserk glow), drawn above them; empty while there is no glow. */
+    private readonly overlays = new Map<GearSlot, Phaser.GameObjects.Sprite>();
+    private overlayTint: number | undefined;
+    private overlayAlpha = 1;
 
-    constructor(scene: Phaser.Scene, private readonly def: CharacterDef, x = 0, y = 0) {
+    constructor(private readonly scene: Phaser.Scene, private readonly def: CharacterDef, x = 0, y = 0) {
         this.container = scene.add.container(x, y);
         for (const [slot, layer] of Object.entries(def.appearance) as [GearSlot, GearLayer][]) {
-            const sprite = scene.make.sprite({ x: 0, y: 0, key: '__DEFAULT' }, false);
+            this.setLayer(slot, layer, false);
+        }
+        this.refresh(true);
+    }
+
+    /** Puts on, swaps or (with undefined) takes off the piece drawn in a slot. */
+    public setLayer(slot: GearSlot, layer: GearLayer | undefined, redraw = true): void {
+        const current = this.layers.get(slot);
+        if (!layer) {
+            current?.sprite.destroy();
+            this.layers.delete(slot);
+            this.overlays.get(slot)?.destroy();
+            this.overlays.delete(slot);
+        } else if (current) {
+            current.def = layer;
+            this.applyTint(current.sprite, layer);
+        } else {
+            const sprite = this.scene.make.sprite({ x: 0, y: 0, key: '__DEFAULT' }, false);
+            this.applyTint(sprite, layer);
             this.container.add(sprite);
             this.layers.set(slot, { def: layer, sprite });
         }
-        this.refresh(true);
+        if (redraw) {
+            this.orderKey = '';
+            this.refresh(true);
+        }
     }
 
     /** Changes state and direction; a new state starts its animation from the first frame. */
@@ -48,11 +77,32 @@ export class CharacterSprite {
         this.refresh(false);
     }
 
+    /** Tints every layer (debug invincibility); undefined goes back to each layer's own colour. */
     public setTint(color: number | undefined): void {
-        for (const { sprite } of this.layers.values()) {
-            if (color === undefined) sprite.clearTint();
-            else sprite.setTint(color);
+        this.tint = color;
+        for (const { def, sprite } of this.layers.values()) this.applyTint(sprite, def);
+    }
+
+    /**
+     * Additive colour glow over the whole character (the original Berserk overlay: a copy of each layer in ADD mode);
+     * undefined removes it.
+     */
+    public setGlow(color: number | undefined, alpha = 1): void {
+        this.overlayTint = color;
+        this.overlayAlpha = alpha;
+        if (color === undefined) {
+            for (const overlay of this.overlays.values()) overlay.destroy();
+            this.overlays.clear();
+            return;
         }
+        this.orderKey = '';
+        this.refresh(true);
+    }
+
+    private applyTint(sprite: Phaser.GameObjects.Sprite, layer: GearLayer): void {
+        const color = this.tint ?? layer.tint;
+        if (color === undefined) sprite.clearTint();
+        else sprite.setTint(color);
     }
 
     private currentFrame(): number {
@@ -61,6 +111,11 @@ export class CharacterSprite {
             case PlayerState.Die:
                 // Played once, then stays on the last frame.
                 return Math.min(lastFrame, Math.floor((this.stateTime * this.def.dieFrameRate) / 1000));
+            case PlayerState.Melee:
+            case PlayerState.Cast: {
+                const frames = framesPerDirection(this.state);
+                return Math.min(frames - 1, Math.floor((this.stateTime / this.actionDurationMs) * frames));
+            }
             case PlayerState.Run:
                 return Math.floor((this.stateTime * this.def.runFrameRate) / 1000) % PLAYER_FRAMES_PER_DIRECTION;
             default:
@@ -79,6 +134,7 @@ export class CharacterSprite {
             const layerFrame = getLayerFrame(slot, def, this.state, this.direction, frame);
             sprite.setVisible(layerFrame !== undefined);
             if (layerFrame) sprite.setTexture(layerFrame.texture, layerFrame.frame);
+            if (this.overlayTint !== undefined) this.syncOverlay(slot, sprite);
         }
         this.applyRenderOrder();
     }
@@ -95,5 +151,22 @@ export class CharacterSprite {
             const layer = this.layers.get(slot);
             if (layer) this.container.bringToTop(layer.sprite);
         }
+        // The glow goes over every layer, in the same order.
+        for (const slot of getGearRenderOrder(this.direction, isRunning)) {
+            const overlay = this.overlays.get(slot);
+            if (overlay) this.container.bringToTop(overlay);
+        }
+    }
+
+    /** Copies a layer's frame onto its glow sprite (created the first time). */
+    private syncOverlay(slot: GearSlot, sprite: Phaser.GameObjects.Sprite): void {
+        let overlay = this.overlays.get(slot);
+        if (!overlay) {
+            overlay = this.scene.make.sprite({ x: 0, y: 0, key: '__DEFAULT' }, false).setBlendMode(Phaser.BlendModes.ADD);
+            this.container.add(overlay);
+            this.overlays.set(slot, overlay);
+        }
+        overlay.setTint(this.overlayTint ?? 0xffffff).setAlpha(this.overlayAlpha).setVisible(sprite.visible);
+        if (sprite.visible) overlay.setTexture(sprite.texture.key, sprite.frame.name);
     }
 }

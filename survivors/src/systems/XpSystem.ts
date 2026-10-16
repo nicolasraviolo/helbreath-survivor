@@ -9,6 +9,8 @@ import type { AudioSystem } from './AudioSystem';
 export class XpSystem {
     private readonly gems: Pool<XpGem>;
     private readonly collected: XpGem[] = [];
+    /** Multiplies the magnet radius (Magnet Amulet passive). */
+    public magnetMultiplier = 1;
 
     constructor(scene: Phaser.Scene, private readonly audio: AudioSystem) {
         this.gems = new Pool(() => new XpGem(scene));
@@ -28,10 +30,16 @@ export class XpSystem {
         this.gems.acquire().drop(x, y, value);
     }
 
+    /** Magnet pickup: every gem on the map starts flying to the player. */
+    public attractAll(): void {
+        for (const gem of this.gems.active) gem.flying = true;
+    }
+
     /** Moves the gems towards the player at (x, y) (feet) and returns the XP picked up this frame. */
     public update(deltaMs: number, x: number, y: number): number {
         const targetY = y - GEM_TARGET_OFFSET_Y;
-        const magnetSq = GEM_MAGNET_RADIUS * GEM_MAGNET_RADIUS;
+        const magnetRadius = GEM_MAGNET_RADIUS * this.magnetMultiplier;
+        const magnetSq = magnetRadius * magnetRadius;
         const pickupSq = GEM_PICKUP_RADIUS * GEM_PICKUP_RADIUS;
         let xp = 0;
         for (const gem of this.gems.active) {

@@ -1,4 +1,6 @@
 // Volumen y límites de sonidos simultáneos, para que 50 muertes a la vez no suenen como un estruendo.
+// También el ritmo de los sonidos que, como en el original, se ajustan a la duración de una animación
+// (sp-client SoundManager.calculatePlaybackRate: velocidad = duración del sonido / duración de la animación).
 
 export const AUDIO = {
     /** Master volume of sound effects (0..1). */
@@ -9,4 +11,18 @@ export const AUDIO = {
     minIntervalMs: 70,
     /** Sounds of any kind playing at once. */
     maxTotal: 14,
+    /** Playback speed never goes outside this range, so very fast or slow animations don't distort the sound. */
+    minRate: 0.5,
+    maxRate: 2,
 } as const;
+
+/**
+ * Melee swing sound (C18, 0.93 s) is squeezed into the original default attack: 8 frames at 12.5 fps = 640 ms.
+ * The original speeds it up further with faster weapons; we keep this one length so short swords don't squeak.
+ */
+export const SWING_SOUND_MS = 640;
+
+/** Footsteps (C10) repeat twice per run cycle, as in sp-client Player.getMovementConfig (run mode). */
+export const FOOTSTEPS_PER_RUN_CYCLE = 2;
+/** A puff of dust under the feet every this many pixels run (the original: one per tile reached). */
+export const FOOTSTEP_DUST_EVERY_PX = 32;

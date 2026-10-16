@@ -10,6 +10,10 @@ import { Direction } from './directions';
 export enum PlayerState {
     IdleCombat = 'idleCombat',
     Run = 'run',
+    /** Melee swing (MeleeAttack in the original). */
+    Melee = 'melee',
+    /** Casting a spell (16 frames; weapon and shield hidden, as in the original). */
+    Cast = 'cast',
     Die = 'die',
 }
 
@@ -19,6 +23,8 @@ export type GearSlot = 'human' | 'hair' | 'underwear' | 'hauberk' | 'leggings' |
 const HUMAN_SPRITESHEET_BASE: Record<PlayerState, number> = {
     [PlayerState.IdleCombat]: 8,
     [PlayerState.Run]: 32,
+    [PlayerState.Melee]: 48,
+    [PlayerState.Cast]: 64,
     [PlayerState.Die]: 88,
 };
 
@@ -26,6 +32,8 @@ const HUMAN_SPRITESHEET_BASE: Record<PlayerState, number> = {
 const ARMOUR_SPRITESHEET_BASE: Record<PlayerState, number> = {
     [PlayerState.IdleCombat]: 1,
     [PlayerState.Run]: 4,
+    [PlayerState.Melee]: 6,
+    [PlayerState.Cast]: 8,
     [PlayerState.Die]: 11,
 };
 
@@ -36,12 +44,16 @@ const ARMOUR_SPRITESHEET_BASE: Record<PlayerState, number> = {
 const ARMAMENT_STATE_INDEX: Record<PlayerState, number | undefined> = {
     [PlayerState.IdleCombat]: 1,
     [PlayerState.Run]: 6,
+    [PlayerState.Melee]: 4,
+    [PlayerState.Cast]: undefined,
     [PlayerState.Die]: undefined,
 };
 
 /** Hair and underwear files hold 12 sheets per style / colour. */
 const SHEETS_PER_STYLE = 12;
 export const PLAYER_FRAMES_PER_DIRECTION = 8;
+/** The Cast animation has 16 frames per direction instead of 8. */
+export const CAST_FRAMES_PER_DIRECTION = 16;
 
 const MANTLE_DRAWING_ORDER = [1, 1, 1, 0, 0, 0, 2, 2] as const;
 const MANTLE_DRAWING_ORDER_ON_RUN = [1, 1, 1, 1, 1, 1, 1, 1] as const;
@@ -81,6 +93,8 @@ export interface GearLayer {
     sprite: SpriteKey;
     variant?: number;
     startSheet?: number;
+    /** Colour multiplied over the layer (e.g. Wizard Robe = Robe in another colour). */
+    tint?: number;
 }
 
 export type Appearance = Partial<Record<GearSlot, GearLayer>>;
@@ -97,6 +111,7 @@ export interface LayerFrame {
  */
 export function getLayerFrame(slot: GearSlot, layer: GearLayer, state: PlayerState, direction: Direction, frameIndex: number): LayerFrame | undefined {
     const armament = ARMAMENT_STATE_INDEX[state];
+    const perDirection = framesPerDirection(state);
     switch (slot) {
         case 'human':
             return fullFrame(layer.sprite, HUMAN_SPRITESHEET_BASE[state] + direction, frameIndex);
@@ -105,15 +120,15 @@ export function getLayerFrame(slot: GearSlot, layer: GearLayer, state: PlayerSta
                 : fullFrame(layer.sprite, (layer.startSheet ?? 0) + armament * 8 + direction, frameIndex);
         case 'shield':
             return armament === undefined ? undefined
-                : subFrame(layer.sprite, (layer.startSheet ?? 0) + armament, direction, frameIndex);
+                : subFrame(layer.sprite, (layer.startSheet ?? 0) + armament, direction, frameIndex, perDirection);
         case 'hair':
         case 'underwear': {
             // Hair style 2 renders as style 0 in the original.
             const variant = slot === 'hair' && layer.variant === 2 ? 0 : (layer.variant ?? 0);
-            return subFrame(layer.sprite, variant * SHEETS_PER_STYLE + ARMOUR_SPRITESHEET_BASE[state], direction, frameIndex);
+            return subFrame(layer.sprite, variant * SHEETS_PER_STYLE + ARMOUR_SPRITESHEET_BASE[state], direction, frameIndex, perDirection);
         }
         default:
-            return subFrame(layer.sprite, ARMOUR_SPRITESHEET_BASE[state], direction, frameIndex);
+            return subFrame(layer.sprite, ARMOUR_SPRITESHEET_BASE[state], direction, frameIndex, perDirection);
     }
 }
 
@@ -121,6 +136,11 @@ function fullFrame(sprite: SpriteKey, sheet: number, frameIndex: number): LayerF
     return { texture: `${sprite}-${sheet}`, frame: String(frameIndex) };
 }
 
-function subFrame(sprite: SpriteKey, sheet: number, direction: Direction, frameIndex: number): LayerFrame {
-    return { texture: `${sprite}-${sheet}`, frame: String(direction * PLAYER_FRAMES_PER_DIRECTION + frameIndex) };
+function subFrame(sprite: SpriteKey, sheet: number, direction: Direction, frameIndex: number, perDirection: number): LayerFrame {
+    return { texture: `${sprite}-${sheet}`, frame: String(direction * perDirection + frameIndex) };
+}
+
+/** Frames of one direction in this state (16 while casting, 8 otherwise). */
+export function framesPerDirection(state: PlayerState): number {
+    return state === PlayerState.Cast ? CAST_FRAMES_PER_DIRECTION : PLAYER_FRAMES_PER_DIRECTION;
 }

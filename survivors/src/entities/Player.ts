@@ -1,11 +1,11 @@
 // El jugador: posición libre en píxeles (sus pies), movimiento con choque contra el mapa,
 // vida con invulnerabilidad tras un golpe. El dibujo por capas lo hace CharacterSprite.
 import Phaser from 'phaser';
-import { PLAYER_BLINK_MS } from '../config/gameConfig';
+import { MOVE_DIRECTIONS, PLAYER_BLINK_MS } from '../config/gameConfig';
 import type { CharacterDef } from '../data/characters';
 import type { HBMap } from '../hb/HBMap';
 import { Direction, directionFromVector } from '../hb/directions';
-import { PlayerState } from '../hb/playerAppearance';
+import { PlayerState, type GearLayer, type GearSlot } from '../hb/playerAppearance';
 import { canStandAt, moveAxis } from '../utils/collision';
 import { CharacterSprite } from './CharacterSprite';
 
@@ -35,6 +35,11 @@ export class Player {
     private readonly healthBar: Phaser.GameObjects.Graphics;
     private readonly bounds = new Phaser.Geom.Rectangle();
     private invulnerableMs = 0;
+    private readonly snapped = new Phaser.Math.Vector2();
+    /** Time left of the current melee swing animation. */
+    private swingLeftMs = 0;
+    /** Time left standing still at the start of a swing (until the blow lands), as in the original. */
+    private rootLeftMs = 0;
 
     constructor(
         scene: Phaser.Scene,
@@ -61,6 +66,11 @@ export class Player {
         return this.body.direction;
     }
 
+    /** True while standing still at the start of a swing. */
+    public get isRooted(): boolean {
+        return this.rootLeftMs > 0;
+    }
+
     public get isDead(): boolean {
         return this.state === PlayerState.Die;
     }
@@ -71,15 +81,22 @@ export class Player {
     }
 
     /** Moves with a 0..1 input vector, then updates animation, layer order and depth. */
-    public update(move: Readonly<Phaser.Math.Vector2>, deltaMs: number): void {
+    public update(input: Readonly<Phaser.Math.Vector2>, deltaMs: number): void {
+        const move = snapToDirections(input, this.snapped);
         this.body.update(deltaMs);
         if (this.isDead) {
             return;
         }
 
-        const moving = move.lengthSq() > 0;
-        const newState = moving ? PlayerState.Run : PlayerState.IdleCombat;
-        this.body.setPose(newState, directionFromVector(move.x, move.y) ?? this.direction);
+        this.swingLeftMs = Math.max(0, this.swingLeftMs - deltaMs);
+        this.rootLeftMs = Math.max(0, this.rootLeftMs - deltaMs);
+        const moving = move.lengthSq() > 0 && this.rootLeftMs === 0;
+        // Once the blow has landed, moving cuts the rest of the swing so the character runs instead of sliding.
+        if (moving && this.swingLeftMs > 0) this.swingLeftMs = 0;
+        if (this.swingLeftMs === 0) {
+            const newState = moving ? PlayerState.Run : PlayerState.IdleCombat;
+            this.body.setPose(newState, directionFromVector(move.x, move.y) ?? this.direction);
+        }
 
         if (moving) {
             const distance = (this.def.speed * this.speedMultiplier * deltaMs) / 1000;
@@ -90,6 +107,37 @@ export class Player {
 
         this.updateInvulnerability(deltaMs);
         this.container.setPosition(this.x, this.y).setDepth(this.y);
+    }
+
+    /**
+     * Plays a melee swing or a cast (`action`) towards a direction for `durationMs`. The player stands still for
+     * `rootMs` (until the blow lands or the spell leaves) and then may run again, which cuts the rest of the animation.
+     */
+    public act(action: PlayerState.Melee | PlayerState.Cast, direction: Direction, durationMs: number, rootMs: number): void {
+        if (this.isDead) return;
+        this.swingLeftMs = durationMs;
+        this.rootLeftMs = rootMs;
+        this.body.actionDurationMs = durationMs;
+        // Restart the animation even if the previous one was still showing.
+        this.body.setPose(PlayerState.IdleCombat, direction);
+        this.body.setPose(action, direction);
+    }
+
+    /** Additive colour glow over the player (Berserk); undefined removes it. */
+    public setGlow(color: number | undefined, alpha = 1): void {
+        this.body.setGlow(color, alpha);
+    }
+
+    /** Heals up to the maximum. */
+    public heal(amount: number): void {
+        if (this.isDead) return;
+        this.hp = Math.min(this.maxHp, this.hp + amount);
+        this.drawHealthBar();
+    }
+
+    /** Changes the weapon or a piece of armor drawn on the player (undefined takes it off). */
+    public setGear(slot: GearSlot, layer: GearLayer | undefined): void {
+        this.body.setLayer(slot, layer);
     }
 
     /** Applies damage unless invulnerable. Returns true if the hit landed. */
@@ -161,4 +209,13 @@ export class Player {
             .fillStyle(BAR_FILL_COLOR, 1)
             .fillRect(left, BAR_OFFSET_Y, BAR_WIDTH * ratio, BAR_HEIGHT);
     }
+}
+
+/** Keeps the input's strength but turns it to the nearest of MOVE_DIRECTIONS directions (0 = untouched). */
+function snapToDirections(input: Readonly<Phaser.Math.Vector2>, out: Phaser.Math.Vector2): Readonly<Phaser.Math.Vector2> {
+    const length = input.length();
+    if (MOVE_DIRECTIONS <= 0 || length === 0) return input;
+    const step = (Math.PI * 2) / MOVE_DIRECTIONS;
+    const angle = Math.round(Math.atan2(input.y, input.x) / step) * step;
+    return out.setTo(Math.cos(angle) * length, Math.sin(angle) * length);
 }

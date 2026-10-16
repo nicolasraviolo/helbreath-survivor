@@ -12,7 +12,7 @@ Datos de referencia del Helbreath (hechizos, armas, armaduras, combate, monstruo
 | Lenguaje / build | TypeScript estricto + Vite + pnpm | Igual que la base |
 | UI | Escenas de Phaser, **sin React** | Menos piezas; un Survivors tiene poca UI |
 | Física | Arcade Physics + pooling | Suficiente para 300+ enemigos. Si no llega, spatial hash (ver `sp-client/src/utils/SpatialGrid.ts`) |
-| Movimiento | Libre en píxeles; animación en 8 direcciones según el ángulo de la velocidad | La base es por casillas de 32 px; no reutilizar `Player.ts`/`Monster.ts` |
+| Movimiento | Libre en píxeles, **solo en las 8 direcciones del original** (16-oct-2026, a prueba; `MOVE_DIRECTIONS` en `gameConfig.ts`, 0 = cualquier ángulo); animación en 8 direcciones | La base es por casillas de 32 px; no reutilizar `Player.ts`/`Monster.ts` |
 | Controles | Teclado + **mando tipo Xbox** (Gamepad API estándar vía `input.gamepad` de Phaser) + táctil. `InputSystem` traduce todo a **acciones** (`move` como vector, `confirm`, `back`, `pause`, `navigate`); el resto del juego nunca lee teclas ni botones directamente | Añadir un dispositivo nuevo no obliga a tocar escenas ni entidades |
 | Reutilización | Portar `HBSprite.ts`, `HBMap.ts` y utilidades de animación/apariencia a `survivors/src/hb/` | Es la parte difícil y ya está resuelta |
 | Assets en dev | `publicDir: '../sp-client/public'` en `vite.config.ts` | No duplicar ~290 MB |
@@ -94,6 +94,10 @@ survivors/
 - 👉 Tras esta fase: `/nueva-skill añadir-mejora`.
 
 ## Fase 6 — Arsenal completo
+> Partida en 3 bloques el 16-oct-2026:
+> - **6A, Guerrero (hecho):** una sola arma en la mano; familias activas Short Swords y Long Swords, con números propios; Hammer, Fencing y Axe desactivadas. Armadura de cuerpo, casco y escudo.
+> - **6B, Mago (hecho, falta probarlo):** un solo hechizo en la mano; familias Energy (Bolt → Triple → Energy Strike) y Fire (Fire Ball → Fire Strike → Mass Fire Strike) por Int; animación de lanzar; Robe → Wizard Robe y Wizard Cap → Wizard Hat por Mag; la varita es fija.
+> - **6C (hecho, falta probarlo):** poción, imán (Crystal) y cofre (Gold Pocket, no desaparece) con Berserk o Defense Shield y sus efectos originales; pasivas Boots y Magnet Amulet con 5 rangos.
 > Actualizada el 16-oct-2026 según la sección **Guerrero** de `docs/DESIGN.md` y `docs/REQUISITOS_HB.md`.
 - **Armas por familia, sin niveles.** Cada familia es una cadena de eslabones reales de Helbreath, con su requisito de Str o Int (Guerrero primero: Espada, Esgrima, Hacha y Martillo; ver `docs/REQUISITOS_HB.md`). Las familias de los otros personajes se definen antes en `docs/DESIGN.md`.
 - **Nuevos tipos de carta:**

@@ -60,6 +60,12 @@ Seis stats de Helbreath: Str, Vit, Dex, Int, Mag y Chr. Efectos previstos (a equ
 Cada nivel da **+1 Str y +1 Vit automáticos**. Además hay cartas de stat: "+3 puntos a un stat a elegir" (son las pasivas Fuerza, Vitalidad, Destreza... de la sección Pasivas). Stats iniciales por definir (supuesto: Str ~12).
 
 ### Armas: sin niveles
+> Actualizado el 16-oct-2026 (bloque 6A):
+> - **El Guerrero lleva una sola arma en la mano.** Las cartas ofrecen el siguiente eslabón de su familia o cambiar de familia (por ejemplo, de Short Sword a Long Sword), mostrando qué se gana y qué se pierde.
+> - Familias activas: **Short Swords** (Dagger → Short Sword → Falchion; rápidas y de poco alcance) y **Long Swords** (Long → Broad → Great Sword → Flamberge; lentas, arco ancho y más empuje).
+> - Hammer, Fencing y Axe quedan desactivadas.
+> - Los requisitos y daños son **números propios**, no los del original.
+
 - Las armas **no tienen nivel**. Mejoran por los stats del personaje y por cambiar de eslabón; al sustituir un arma por otra solo cambia el daño base.
 - Cada **familia** es un arma automática con su comportamiento (borrador): Espada (tajo en arco), Esgrima (estocadas rápidas), Hacha (gira alrededor), Martillo (onda de choque en área). El escudo no ataca.
 - Cada familia es una cadena de **eslabones reales de Helbreath** (ejemplo Espada: Short Sword → Long Sword → Claymore → Flameberge).

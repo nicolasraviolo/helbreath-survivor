@@ -319,3 +319,81 @@ Tabla completa en `docs/REQUISITOS_HB.md`. Lo no obvio:
   - Magician 65, Warrior 67;
   - los frames 50–60 son botones anchos (Start, Create New Character...);
   - los frames 61–62 son retratos con "Name / Lev / Exp".
+
+## Ataque cuerpo a cuerpo del jugador (sp-client PlayerAppearanceManager.ts)
+- **MeleeAttack:**
+  - hoja del cuerpo 48 + dirección;
+  - hoja de armadura 6;
+  - `ARMAMENT_STATE_INDEX` 4 (el arma se ve: hoja = inicio + 4·8 + dirección; escudo = inicio + 4);
+  - 8 frames a 12,5 fps;
+  - el golpe cae en el frame 2.
+- **Cast:**
+  - hoja del cuerpo 64, de armadura 8;
+  - 16 frames;
+  - el arma se oculta.
+- **Sonidos:** tajo C18 (el mismo para todas las armas), golpe con filo en un monstruo C6, lanzar hechizo C16.
+- **`msw.spr`:** cada espada ocupa 56 hojas (7 estados × 8 direcciones):
+  - Dagger 0, Short Sword 56, Long Sword 112, Sabre 168, Scimitar 224, Falchion 280, Rapier 336;
+  - Broad 392, Bastard 448, Claymore 504, Great Sword 560, Flamberge 616;
+  - Giant Sword está en `msw2`.
+- **`msh.spr`:** 7 hojas por escudo:
+  - Leather 7, Targe 14, Scooterm 21, Blonde 28, Iron 35, Lagi 42, Knight 49, Tower 56;
+  - Wood Shield no tiene índice en Items.ts.
+- **Ropa básica:** Shirt `mshirt` (hueco hauberk), Trousers `mtrouser` (hueco leggings). No hay Main Gauche ni Esterk con sprite.
+- **Martillos de mujer:** sp-client usa el sprite de hombre, aunque existen `whammer`/`wbhammer`.
+- **Objetos en el suelo:** no hay sprites de imán ni de cofre. Alternativas: las bolsas de oro (`item-ground` hoja 5, frames 118–122) y las pociones (5/1, 5/2).
+
+## Sonidos ajustados a la animación (sp-client SoundManager.calculatePlaybackRate)
+- **Velocidad del sonido** = duración del sonido / duración de la animación.
+- **Tajo C18:** dura 0,93 s y se reproduce comprimido al ataque, que por defecto son 8 frames a 12,5 fps (640 ms), es decir a ×1,45. Suena en el frame 2. A velocidad normal suena lento y grave.
+- **Pasos:**
+  - al correr, C10 (0,34 s) en bucle, 2 veces por ciclo de carrera;
+  - al andar, C8;
+  - polvo: `effect2` hoja 1, frames 28–32, en cada casilla.
+- **Golpe con filo en un monstruo:** C6, que el original reproduce en el frame 4 de su animación de recibir daño.
+- **Ojo:** los sonidos de Phaser son del juego entero, no de la escena. Un bucle sigue sonando si la escena se pausa, así que hay que pararlo a mano.
+
+## Hechizos portados (sp-client game/spells, constants/Effects.ts)
+- **Fire Ball:**
+  - proyectil direccional `effect.spr` hoja 5, 4 frames por dirección (dir·4 … dir·4+3), 20 fps;
+  - explosión `effect.spr` hoja 3, 20 fps;
+  - sonido E4.
+- **Fire Strike:** 4 explosiones en (0,0,0 ms), (20,30,60), (35,−30,100) y (−30,−15,140). Su comentario dice "3", pero son 4.
+- **Mass Fire Strike:** `effect3` hoja 1 en el centro; luego `effect3` hoja 2 en (−30,−15,60), (35,−30,100) y (20,30,140).
+- **Triple Energy Bolt:** 3 Energy Bolts a la vez. En el original van a casillas desplazadas del objetivo; aquí, a 3 enemigos distintos.
+- **Energy Strike:**
+  - 8 proyectiles (`effect.spr` hoja 0 frame 0, sin animar), uno cada 80 ms, a casillas al azar a ±2 del objetivo;
+  - impacto: `effect3` hoja 5 + `effect11` hoja 8 (15 fps).
+- **Lanzar hechizo:** el original no tiene frame de "suelta": tras la animación Cast (1500 ms) espera un clic en CastReady. Para disparo automático elegimos nosotros el momento.
+- **Colores de objeto:** `reference/Client.cpp:702-729`, tabla m_wR/G/B.
+  - Se suma (color − color 0) a cada píxel. El color 0 es (100,100,100).
+  - Wizard Robe = Robe con color 11 "Tan" (105,90,70), es decir +5 −10 −30.
+  - Phaser tiñe multiplicando, así que es una aproximación (`WIZARD_ROBE_TINT`).
+- **Ropa básica femenina:** Bodice `wbodice1` y Skirt `wskirt`. Las usamos en los huecos hauberk y leggings, para que la túnica las tape.
+
+## Buffs y objetos (sp-client)
+- **Berserk:**
+  - al lanzarlo, `effect8` hoja 1 bajo los pies (depthOffset −1) y sonido E5;
+  - mientras dura, `GameAsset.setBerserkOverlay`: una copia de cada capa en modo ADD, con tinte 0xff4444 y 50% de opacidad.
+- **Defense Shield:**
+  - `effect8` hoja 6 al lanzarlo;
+  - "Defense Shield Buff" = `effect9` hoja 14, que sp-client define pero no usa en ningún sitio. Lo usamos como aura.
+  - **Ojo:** los pivotes de sus frames lo dibujan unos 95 px a la izquierda y 147 px por encima del punto de anclaje. Lo corregimos con `offsetX` 72 y `offsetY` 105 en `config/effects.ts`, para dejarlo centrado en los pies (pedido por el propietario). Los efectos de lanzar (`effect8` hojas 1 y 6) sí están centrados en los pies.
+- **Objetos en el suelo** (`item-ground.spr`):
+  - Red Potion 5/1 (al beber, C19);
+  - Gold Pocket 1–5: 5/118–122;
+  - Crystal 15/46;
+  - objeto que cae al suelo: E12.
+- No hay imán ni cofre en los gráficos del juego.
+
+## Fuente dibujada del original (`sprfonts.spr`)
+- **Hoja 0 (FONT1):**
+  - la letra caligráfica de los diálogos, del libro de hechizos y de mensajes como "Connection Lost!";
+  - un frame por carácter, de '!' (33) a 'z' (122): frame = código − 33;
+  - glifos negros con transparencia.
+- **Cómo la pinta el original** (`reference/Client.cpp`, `PutString_SprFont2` ~7880):
+  - el carácter sin color en (+1,0) y (+1,+1), que hace de sombra;
+  - encima, la versión coloreada (`PutSpriteRGB`);
+  - el avance de cada letra sale de la tabla `__cSpace`; el espacio son 5 px.
+  - Nosotros coloreamos con `setTintFill`, porque un tinte normal (multiplicar) sobre negro sigue siendo negro.
+- **Hoja 1 (FONT2):** otra variante, que no usamos.

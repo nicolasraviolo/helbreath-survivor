@@ -17,7 +17,18 @@ export const SPRITES = {
     'player.body.wm': { file: 'sprites/wm.spr', type: SpriteType.Human },
     'player.hair.mhr': { file: 'sprites/mhr.spr', type: SpriteType.HairAndUndies },
     'player.underwear.mpt': { file: 'sprites/mpt.spr', type: SpriteType.HairAndUndies },
+    // Ropa básica del Guerrero al empezar (Shirt y Trousers).
+    'gear.shirt.m': { file: 'sprites/mshirt.spr', type: SpriteType.EquipmentPack },
+    'gear.trousers.m': { file: 'sprites/mtrouser.spr', type: SpriteType.EquipmentPack },
+    // Armaduras del Guerrero (ver data/armor.ts).
     'gear.hauberk.m': { file: 'sprites/mhauberk.spr', type: SpriteType.EquipmentPack },
+    'gear.armor.leather.m': { file: 'sprites/mlarmor.spr', type: SpriteType.EquipmentPack },
+    'gear.armor.scale.m': { file: 'sprites/msmail.spr', type: SpriteType.EquipmentPack },
+    'gear.armor.chain.m': { file: 'sprites/mcmail.spr', type: SpriteType.EquipmentPack },
+    'gear.leggings.chain.m': { file: 'sprites/mchoses.spr', type: SpriteType.EquipmentPack },
+    'gear.helm.basic.m': { file: 'sprites/mhelm4.spr', type: SpriteType.EquipmentPack },
+    'gear.helm.winged.m': { file: 'sprites/nmhelm2.spr', type: SpriteType.EquipmentPack },
+    'gear.helm.horned.m': { file: 'sprites/nmhelm1.spr', type: SpriteType.EquipmentPack },
     'gear.leggings.plate.m': { file: 'sprites/mleggings.spr', type: SpriteType.EquipmentPack },
     'gear.boots.long.m': { file: 'sprites/mlboots.spr', type: SpriteType.EquipmentPack },
     'gear.helm.full.m': { file: 'sprites/mhelm1.spr', type: SpriteType.EquipmentPack },
@@ -36,14 +47,28 @@ export const SPRITES = {
     'gear.boots.long.w': { file: 'sprites/wlboots.spr', type: SpriteType.EquipmentPack },
     'gear.armor.robe.w': { file: 'sprites/wrobe1.spr', type: SpriteType.EquipmentPack },
     'gear.helm.wizardCap.w': { file: 'sprites/nwhelm3.spr', type: SpriteType.EquipmentPack },
+    'gear.helm.wizardHat.w': { file: 'sprites/nwhelm4.spr', type: SpriteType.EquipmentPack },
+    // Ropa básica de la Maga al empezar (Bodice y Skirt).
+    'gear.bodice.w': { file: 'sprites/wbodice1.spr', type: SpriteType.EquipmentPack },
+    'gear.skirt.w': { file: 'sprites/wskirt.spr', type: SpriteType.EquipmentPack },
     'gear.wand.w': { file: 'sprites/wstaff1.spr', type: SpriteType.Weapons },
 
     // Efectos de hechizos (ver config/effects.ts para qué hoja y frames usa cada uno).
     'fx.effect': { file: 'sprites/effect.spr', type: SpriteType.Effect },
+    // Hechizos de fuego y Energy Strike (ver config/effects.ts).
+    'fx.effect3': { file: 'sprites/effect3.spr', type: SpriteType.Effect },
+    'fx.effect11': { file: 'sprites/effect11.spr', type: SpriteType.Effect },
+    // Buffs del cofre: Berserk y Defense Shield (ver data/pickups.ts).
+    'fx.effect8': { file: 'sprites/effect8.spr', type: SpriteType.Effect },
+    'fx.effect9': { file: 'sprites/effect9.spr', type: SpriteType.Effect },
+    // Polvo de los pasos al correr (Footsteps dry: hoja 1, frames 28–32).
+    'fx.effect2': { file: 'sprites/effect2.spr', type: SpriteType.Effect },
 
     // Interfaz: barra inferior original 800x600 (hoja 6; ver config/hud.ts para frames y posiciones)
     // y fondo de "Create New Character" 640x480 (hoja 9; ver config/characterSelect.ts).
     'ui.panel': { file: 'sprites/gamedialog86.spr', type: SpriteType.Interface },
+    // Fuente dibujada del original (libro de hechizos, nombre del hechizo al lanzarlo): ver hb/SpriteText.ts.
+    'ui.font': { file: 'sprites/sprfonts.spr', type: SpriteType.Interface },
     // Botones con el texto ya dibujado (Warrior, Magician, Create, Cancel...), normal + iluminado.
     'ui.buttons': { file: 'sprites/dialogtext.spr', type: SpriteType.Interface },
 
@@ -68,6 +93,18 @@ export const SOUNDS = {
     'sfx.bunny.death': { file: 'sounds/M83.mp3' },
     'sfx.orc.hit': { file: 'sounds/M11.mp3' },
     'sfx.orc.death': { file: 'sounds/M12.mp3' },
+    // Armas cuerpo a cuerpo: tajo del jugador (PLAYER_MELEE_ATTACK) y golpe con filo en un monstruo (TAKE_DAMAGE_BLADE).
+    'sfx.melee.swing': { file: 'sounds/C18.mp3' },
+    'sfx.melee.hit': { file: 'sounds/C6.mp3' },
+    // Explosión de fuego (EFFECT_EXPLOSION) y lanzar hechizo (PLAYER_CAST).
+    'sfx.explosion': { file: 'sounds/E4.mp3' },
+    'sfx.cast': { file: 'sounds/C16.mp3' },
+    // Beber poción (Red Potion consumptionSound), objeto que cae al suelo (ITEM_DROPPED_SOUND) y buff (EFFECT_CAST).
+    'sfx.drink': { file: 'sounds/C19.mp3' },
+    'sfx.itemDrop': { file: 'sounds/E12.mp3' },
+    'sfx.buff': { file: 'sounds/E5.mp3' },
+    // Pasos al correr (PLAYER_RUNNING).
+    'sfx.footsteps': { file: 'sounds/C10.mp3' },
     // Recoger una gema: el sonido de "objeto añadido" del original (sp-client SoundFileNames.ts, ITEM_ADDED_SOUND).
     'sfx.pickup': { file: 'sounds/E20.mp3' },
 } as const satisfies Record<string, { file: string }>;
