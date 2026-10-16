@@ -319,3 +319,36 @@ Tabla completa en `docs/REQUISITOS_HB.md`. Lo no obvio:
   - Magician 65, Warrior 67;
   - los frames 50–60 son botones anchos (Start, Create New Character...);
   - los frames 61–62 son retratos con "Name / Lev / Exp".
+
+## Ataque cuerpo a cuerpo del jugador (sp-client PlayerAppearanceManager.ts)
+- **MeleeAttack:**
+  - hoja del cuerpo 48 + dirección;
+  - hoja de armadura 6;
+  - `ARMAMENT_STATE_INDEX` 4 (el arma se ve: hoja = inicio + 4·8 + dirección; escudo = inicio + 4);
+  - 8 frames a 12,5 fps;
+  - el golpe cae en el frame 2.
+- **Cast:**
+  - hoja del cuerpo 64, de armadura 8;
+  - 16 frames;
+  - el arma se oculta.
+- **Sonidos:** tajo C18 (el mismo para todas las armas), golpe con filo en un monstruo C6, lanzar hechizo C16.
+- **`msw.spr`:** cada espada ocupa 56 hojas (7 estados × 8 direcciones):
+  - Dagger 0, Short Sword 56, Long Sword 112, Sabre 168, Scimitar 224, Falchion 280, Rapier 336;
+  - Broad 392, Bastard 448, Claymore 504, Great Sword 560, Flamberge 616;
+  - Giant Sword está en `msw2`.
+- **`msh.spr`:** 7 hojas por escudo:
+  - Leather 7, Targe 14, Scooterm 21, Blonde 28, Iron 35, Lagi 42, Knight 49, Tower 56;
+  - Wood Shield no tiene índice en Items.ts.
+- **Ropa básica:** Shirt `mshirt` (hueco hauberk), Trousers `mtrouser` (hueco leggings). No hay Main Gauche ni Esterk con sprite.
+- **Martillos de mujer:** sp-client usa el sprite de hombre, aunque existen `whammer`/`wbhammer`.
+- **Objetos en el suelo:** no hay sprites de imán ni de cofre. Alternativas: las bolsas de oro (`item-ground` hoja 5, frames 118–122) y las pociones (5/1, 5/2).
+
+## Sonidos ajustados a la animación (sp-client SoundManager.calculatePlaybackRate)
+- **Velocidad del sonido** = duración del sonido / duración de la animación.
+- **Tajo C18:** dura 0,93 s y se reproduce comprimido al ataque, que por defecto son 8 frames a 12,5 fps (640 ms), es decir a ×1,45. Suena en el frame 2. A velocidad normal suena lento y grave.
+- **Pasos:**
+  - al correr, C10 (0,34 s) en bucle, 2 veces por ciclo de carrera;
+  - al andar, C8;
+  - polvo: `effect2` hoja 1, frames 28–32, en cada casilla.
+- **Golpe con filo en un monstruo:** C6, que el original reproduce en el frame 4 de su animación de recibir daño.
+- **Ojo:** los sonidos de Phaser son del juego entero, no de la escena. Un bucle sigue sonando si la escena se pausa, así que hay que pararlo a mano.

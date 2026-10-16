@@ -1,10 +1,14 @@
 // Armas del jugador: les da el contexto cada frame, mueve los proyectiles (con pool), detecta impactos
-// y lanza las explosiones, cuyo daño aplica CombatSystem.
-import type Phaser from 'phaser';
-import type { ProjectileWeaponDef } from '../data/weapons';
+// y lanza las explosiones, cuyo daño aplica CombatSystem. También los tajos cuerpo a cuerpo (animación, estela y daño).
+import Phaser from 'phaser';
+import { MELEE_ORIGIN_OFFSET_Y } from '../config/gameConfig';
+import { SWING_SOUND_MS } from '../data/audio';
+import type { EffectKey } from '../config/effects';
+import { MELEE_HIT_SOUND, MELEE_SWING_SOUND, type ProjectileWeaponDef } from '../data/weapons';
 import { Effect } from '../entities/Effect';
 import type { Enemy } from '../entities/Enemy';
 import { Projectile } from '../entities/Projectile';
+import { Slash } from '../entities/Slash';
 import { Pool } from '../utils/Pool';
 import type { Weapon, WeaponContext } from '../weapons/Weapon';
 import type { AudioSystem } from './AudioSystem';
@@ -18,6 +22,9 @@ export class WeaponSystem {
     private readonly finishedProjectiles: Projectile[] = [];
     private readonly finishedEffects: Effect[] = [];
     private readonly context: WeaponContext & { x: number; y: number; cooldownMultiplier: number };
+    private readonly slash: Slash;
+    /** Plays the owner's melee animation (set by the game scene). */
+    private onMeleeSwing: (angle: number, durationMs: number) => void = () => undefined;
 
     constructor(
         scene: Phaser.Scene,
@@ -27,6 +34,7 @@ export class WeaponSystem {
     ) {
         this.projectiles = new Pool(() => new Projectile(scene));
         this.effects = new Pool(() => new Effect(scene));
+        this.slash = new Slash(scene);
         this.context = {
             x: 0,
             y: 0,
@@ -35,6 +43,25 @@ export class WeaponSystem {
             findNearestEnemy: (maxDistance) => enemies.findNearest(this.context.x, this.context.y, maxDistance),
             launchProjectile: (def, fromX, fromY, toX, toY, maxDistance) => {
                 this.projectiles.acquire().launch(def, fromX, fromY, toX, toY, maxDistance);
+            },
+            swingMelee: (def, angle, durationMs) => {
+                this.onMeleeSwing(angle, durationMs);
+                this.slash.show(this.context.x, this.context.y - MELEE_ORIGIN_OFFSET_Y, def.range, angle, Phaser.Math.DegToRad(def.arcDegrees));
+            },
+            hitMelee: (def, angle) => {
+                // As in the original: the swing sound plays when the blow lands (frame 2), squeezed to the attack length.
+                audio.play(MELEE_SWING_SOUND, SWING_SOUND_MS);
+                const hits = combat.hitArc({
+                    damageType: 'physical',
+                    x: this.context.x,
+                    y: this.context.y - MELEE_ORIGIN_OFFSET_Y,
+                    radius: def.range,
+                    angle,
+                    arc: Phaser.Math.DegToRad(def.arcDegrees),
+                    damage: def.damage,
+                    knockback: def.knockback,
+                });
+                if (hits > 0) audio.play(MELEE_HIT_SOUND);
             },
         };
     }
@@ -45,6 +72,22 @@ export class WeaponSystem {
 
     public add(weapon: Weapon): void {
         this.weapons.push(weapon);
+    }
+
+    /** Swaps a weapon for another one in the same place (the melee weapon in hand). */
+    public replace(oldWeapon: Weapon, newWeapon: Weapon): void {
+        const index = this.weapons.indexOf(oldWeapon);
+        if (index >= 0) this.weapons[index] = newWeapon;
+        else this.weapons.push(newWeapon);
+    }
+
+    /** Plays a one-shot effect (also used for the footstep dust, so it shares the effect pool). */
+    public spawnEffect(key: EffectKey, x: number, y: number): void {
+        this.effects.acquire().play(key, x, y);
+    }
+
+    public setMeleeSwingHandler(handler: (angle: number, durationMs: number) => void): void {
+        this.onMeleeSwing = handler;
     }
 
     public setCooldownMultiplier(value: number): void {
@@ -68,6 +111,7 @@ export class WeaponSystem {
                 this.finishedProjectiles.push(projectile);
             }
         }
+        this.slash.update(deltaMs);
         for (const effect of this.effects.active) {
             if (!effect.update()) this.finishedEffects.push(effect);
         }

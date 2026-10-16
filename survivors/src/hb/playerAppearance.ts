@@ -10,6 +10,8 @@ import { Direction } from './directions';
 export enum PlayerState {
     IdleCombat = 'idleCombat',
     Run = 'run',
+    /** Melee swing (MeleeAttack in the original). */
+    Melee = 'melee',
     Die = 'die',
 }
 
@@ -19,6 +21,7 @@ export type GearSlot = 'human' | 'hair' | 'underwear' | 'hauberk' | 'leggings' |
 const HUMAN_SPRITESHEET_BASE: Record<PlayerState, number> = {
     [PlayerState.IdleCombat]: 8,
     [PlayerState.Run]: 32,
+    [PlayerState.Melee]: 48,
     [PlayerState.Die]: 88,
 };
 
@@ -26,6 +29,7 @@ const HUMAN_SPRITESHEET_BASE: Record<PlayerState, number> = {
 const ARMOUR_SPRITESHEET_BASE: Record<PlayerState, number> = {
     [PlayerState.IdleCombat]: 1,
     [PlayerState.Run]: 4,
+    [PlayerState.Melee]: 6,
     [PlayerState.Die]: 11,
 };
 
@@ -36,6 +40,7 @@ const ARMOUR_SPRITESHEET_BASE: Record<PlayerState, number> = {
 const ARMAMENT_STATE_INDEX: Record<PlayerState, number | undefined> = {
     [PlayerState.IdleCombat]: 1,
     [PlayerState.Run]: 6,
+    [PlayerState.Melee]: 4,
     [PlayerState.Die]: undefined,
 };
 

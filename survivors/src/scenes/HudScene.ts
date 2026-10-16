@@ -46,6 +46,10 @@ export interface HudState {
     pauseLocked: boolean;
     /** For the stats panel. */
     stats: Readonly<CharacterStats>;
+    /** Melee weapon in hand, if any. */
+    weaponName: string | undefined;
+    /** Share of damage removed by armor (0..1). */
+    defense: number;
 }
 
 export interface HudSceneData {
@@ -109,7 +113,7 @@ export class HudScene extends Phaser.Scene {
         const state = this.getState();
         this.handlePause(state.pauseLocked);
         if (this.inputSystem.justPressed(Action.ToggleStats)) this.toggleStats();
-        if (this.statsPanel.visible) this.refreshStats(state.stats);
+        if (this.statsPanel.visible) this.refreshStats(state);
         this.setGauge(this.hp, state.hp / state.maxHp);
         this.hpText.setText(`${Math.ceil(state.hp)} / ${state.maxHp}`);
         if (state.mana === undefined) {
@@ -186,7 +190,7 @@ export class HudScene extends Phaser.Scene {
         this.derivedLabels = this.add.text(padding, derivedTop, '', HUD_STATS_STYLE);
         this.derivedValues = this.add.text(width - padding, derivedTop, '', { ...HUD_STATS_STYLE, align: 'right' }).setOrigin(1, 0);
         // Filled once now so the panel height fits its rows at any font size.
-        this.refreshStats(this.getState().stats);
+        this.refreshStats(this.getState());
         const height = derivedTop + this.derivedLabels.height + padding;
         const back = this.add.rectangle(0, 0, width, height, 0x1c140c, 0.9).setOrigin(0).setStrokeStyle(2, 0x8a7038);
         this.statsPanel = this.add.container(x, HUD_TOP - height - marginY, [
@@ -194,10 +198,11 @@ export class HudScene extends Phaser.Scene {
         ]).setVisible(false);
     }
 
-    private refreshStats(stats: Readonly<CharacterStats>): void {
+    private refreshStats(state: HudState): void {
+        const stats = state.stats;
         this.statsTitle.setText(`${stats.def.name} · Level ${stats.level}`);
         STAT_IDS.forEach((id, i) => this.statCells[i]?.setText(`${STAT_INFO[id].short} ${stats.stats[id]}`));
-        const rows = describeDerived(stats);
+        const rows = describeDerived(state);
         this.derivedLabels.setText(rows.map(([label]) => label));
         this.derivedValues.setText(rows.map(([, value]) => value));
     }
@@ -244,9 +249,15 @@ export class HudScene extends Phaser.Scene {
 }
 
 /** Label / value rows under the stat grid. */
-function describeDerived(stats: Readonly<CharacterStats>): [string, string][] {
+function describeDerived(state: HudState): [string, string][] {
+    const stats = state.stats;
     const bonus = (multiplier: number) => `${multiplier >= 1 ? '+' : ''}${Math.round((multiplier - 1) * 100)}%`;
+    const gear: [string, string][] = [];
+    if (state.weaponName) gear.push(['Weapon', state.weaponName]);
+    // Always shown for classes with armor, so the panel keeps the height it was built with.
+    if (stats.def.canWearArmor) gear.push(['Damage taken', `−${Math.round(state.defense * 100)}%`]);
     return [
+        ...gear,
         ['Health', String(stats.maxHp)],
         ['Mana', String(stats.maxMana)],
         ['Magic damage', bonus(stats.damageMultiplier('magic'))],

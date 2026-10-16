@@ -1,5 +1,6 @@
-// Aplica el daño de las armas a los enemigos: lo escala con los stats del jugador (Str o Mag), tira el crítico (Chr),
+// Aplica el daño de las armas a los enemigos (explosiones en círculo y tajos en arco): lo escala con los stats del jugador (Str o Mag), tira el crítico (Chr),
 // resta vida, destello y retroceso (en Enemy), número de daño, sonido de golpe o de muerte, y cuenta las muertes.
+import Phaser from 'phaser';
 import { CRIT_DAMAGE_MULTIPLIER } from '../data/stats';
 import type { CharacterStats, DamageType } from '../entities/CharacterStats';
 import type { Enemy } from '../entities/Enemy';
@@ -19,6 +20,22 @@ export interface AreaHit {
     directDamage: number;
     knockback: number;
 }
+
+export interface ArcHit {
+    damageType: DamageType;
+    /** Centre of the swing. */
+    x: number;
+    y: number;
+    radius: number;
+    /** Direction of the swing in radians, and its full width. */
+    angle: number;
+    arc: number;
+    damage: number;
+    knockback: number;
+}
+
+/** Enemies this close to the centre are hit whatever the angle (they are on top of the player). */
+const ARC_ALWAYS_HIT_PX = 14;
 
 export class CombatSystem {
     private killCount = 0;
@@ -48,6 +65,22 @@ export class CombatSystem {
         if (direct && !directInArea) {
             this.hitEnemy(direct, hit.damageType, hit.directDamage, hit.x, hit.y, hit.knockback);
         }
+    }
+
+    /** Melee swing: every enemy inside the circle sector takes the damage. Returns how many were hit. */
+    public hitArc(hit: ArcHit): number {
+        const halfArc = hit.arc / 2;
+        let count = 0;
+        this.enemies.forEachInRadius(hit.x, hit.y, hit.radius, (enemy) => {
+            const dx = enemy.x - hit.x;
+            const dy = enemy.bodyY - hit.y;
+            const inside = dx * dx + dy * dy <= ARC_ALWAYS_HIT_PX * ARC_ALWAYS_HIT_PX
+                || Math.abs(Phaser.Math.Angle.Wrap(Math.atan2(dy, dx) - hit.angle)) <= halfArc;
+            if (!inside) return;
+            count++;
+            this.hitEnemy(enemy, hit.damageType, hit.damage, hit.x, hit.y, hit.knockback);
+        });
+        return count;
     }
 
     /** One hit on one enemy, pushed away from (fromX, fromY). `baseDamage` is scaled by the attacker's stats. */

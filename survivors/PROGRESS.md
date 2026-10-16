@@ -8,13 +8,60 @@
 | 3 — Enemigos | ✅ completada | 2026-10-16 |
 | 4 — Primera arma y combate | ✅ completada | 2026-10-16 |
 | 5 — Experiencia y subida de nivel | ✅ completada | 2026-10-16 |
-| 6 — Arsenal completo | ⬜ pendiente | |
+| 6 — Arsenal completo | 🟡 en curso (6A completado y probado; faltan 6B y 6C) | |
 | 7 — Oleadas, jefes y final | ⬜ pendiente | |
 | 8 — Menús y personajes | ⬜ pendiente | |
 | 9 — Web, móvil y publicación | ⬜ pendiente | |
 | 10 — Pulido (opcional) | ⬜ pendiente | |
 
 ## Fase actual
+**Fase 6, bloque 6A: arsenal del Guerrero** (2026-10-16, rama `fase-6`; probado y aprobado por el propietario). Siguiente: bloque **6B (Mago)**.
+La fase se parte en 3 bloques: **6A** Guerrero · **6B** Mago (hechizos por Int, eslabones de hechizo, animación de lanzar, túnicas) · **6C** pickups y pasivas.
+- **Una sola arma en la mano** (decidido por el propietario). Las cartas ofrecen el siguiente eslabón de tu familia o cambiar a la mejor arma de otra familia.
+- **Familias activas** (números propios, no los del original; `data/weapons.ts`):
+  - **Short Swords:** Dagger (arma inicial) → Short Sword (Str 17) → Falchion (24). Rápidas y de poco alcance.
+  - **Long Swords:** Long Sword (20) → Broad Sword (28) → Great Sword (36) → Flamberge (46). Lentas, arco ancho y más empuje.
+- **Desactivadas** (solo datos, `enabled: false`): Hammer, Fencing y Axe.
+- **Cómo ataca** (`weapons/MeleeWeapon.ts`):
+  - tajo en arco hacia el enemigo más cercano;
+  - el daño llega al 25% de la animación;
+  - estela blanca (`entities/Slash.ts`);
+  - sonidos C18 (tajo) y C6 (golpe).
+- **Animación de ataque:** el estado Melee del original (hojas 48 / 6, arma índice 4).
+- **Sin patinar al golpear** (pedido por el propietario): al empezar el tajo, el personaje se queda quieto hasta justo después del golpe (frames 0–2; `MELEE_ROOT_MOMENT`): Dagger ≈ 0,13 s, Long Sword ≈ 0,21 s. Después, si te mueves, se corta la animación y vuelve a correr. Quieto, el tajo se ve entero.
+- **Armaduras** (`data/armor.ts`, `entities/Equipment.ts`): cuerpo, casco y escudo.
+  - Cada pieza quita un % del daño recibido, con tope del 60%, y cambia el aspecto.
+  - Chain Mail y Plate Mail también cambian las piernas (y Plate Mail las mangas).
+- **El Guerrero empieza** con camisa, pantalón, botas y Dagger. Ya no usa el Energy Bolt.
+- **Cartas** (`systems/UpgradePool.ts`): stat, eslabón, cambio de familia y armadura.
+  - Como mucho 2 cartas de objeto; el resto, de stat.
+  - Las cartas de arma muestran daño, ritmo, alcance y anchura (antes → después).
+  - Las de armadura muestran el daño recibido.
+- **Panel C:** muestra el arma y el "Damage taken".
+- **Movimiento en 8 direcciones** (a prueba, pedido por el propietario): el stick y el ratón se ajustan a la dirección más cercana de las 8 del original. Sigue siendo libre en píxeles, no casilla a casilla. Para volver a cualquier ángulo: `MOVE_DIRECTIONS = 0` en `config/gameConfig.ts`.
+- **Sonido como en el original** (pedido por el propietario):
+  - el tajo C18 suena cuando cae el golpe, comprimido a 640 ms (la duración del ataque del original), y ya no a velocidad normal;
+  - pasos C10 en bucle mientras te mueves, dos por ciclo de carrera, con polvo bajo los pies cada 32 px (efecto `effect2` hoja 1).
+  - `AudioSystem.play(key, duración)` y `startLoop`/`stopLoop`. Los bucles se paran al pausar o al salir de la escena.
+- **Tecla de pruebas:** V da +10 de Str.
+- **Cómo probar:** `pnpm --dir survivors dev` → http://localhost:8090.
+  1. Elige Warrior.
+  2. Ataca solo al acercarse los enemigos.
+  3. Pulsa X para subir de nivel y V para sumar Str.
+  4. Mira cómo cambian el arma en la mano y la armadura.
+- **Checkpoint 6A, 2026-10-16:**
+  - `tsc` y `build` sin errores.
+  - Playwright: consola limpia (solo el 404 de `favicon.ico`) y cartas de armadura y stat en pantalla.
+  - Corriendo 4 s entre 50 enemigos, ningún frame de "golpe y movimiento a la vez".
+- **Falta de la fase:** 6B (hechizos del Mago por Int, eslabones de hechizo, animación de lanzar, túnicas y gorros) y 6C (poción, imán, cofre con buff aleatorio, Botas y Amuleto imán).
+- **Comprobado con Playwright:**
+  - golpea a varios enemigos a la vez;
+  - salen las cartas de Leather Armor, Long Sword, Targe Shield, Falchion y Scale Mail;
+  - el aspecto cambia;
+  - la Maga sigue con su Energy Bolt;
+  - consola sin errores.
+
+Anterior:
 **Pantalla de selección de personaje** (adelantada de la Fase 8, 2026-10-16; probada y aprobada por el propietario). Siguiente: `/fase 6`.
 - `scenes/CharacterSelectScene.ts` + `config/characterSelect.ts`: la pantalla original "Create New Character".
   - Fondo: `gamedialog86.spr`, hoja 9, ampliado de 640×480 a 800×600.

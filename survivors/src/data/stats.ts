@@ -69,3 +69,5 @@ export const REQ_SCALE = 0.4;
 /** Cartas al subir de nivel: cuántas se muestran y cuántos puntos da la carta de stat. */
 export const LEVEL_UP_CHOICES = 3;
 export const STAT_CARD_POINTS = 3;
+/** Most weapon / armor cards among the choices: the rest are always stat cards (Fase 6). */
+export const MAX_ITEM_CARDS = 2;

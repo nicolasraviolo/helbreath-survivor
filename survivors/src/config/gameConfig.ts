@@ -29,6 +29,12 @@ export const DEPTH_DEBUG = 1000000;
 export const DEPTH_EFFECT_OFFSET = 80;
 /** Spells start this many pixels above the caster's feet (sp-client ENERGY_BOLT_ORIGIN_OFFSET_Y = 50). */
 export const ENERGY_BOLT_ORIGIN_OFFSET_Y = 40;
+/** Melee swings are measured from this many pixels above the feet (the chest), like enemy bodies. */
+export const MELEE_ORIGIN_OFFSET_Y = 24;
+/** Melee slash drawing: how long it stays and its colour. */
+export const SLASH_LIFE_MS = 160;
+export const SLASH_COLOR = 0xf0ead8;
+export const SLASH_WIDTH = 5;
 /** Damage numbers float above every character and effect. */
 export const DEPTH_DAMAGE_NUMBERS = 500000;
 
@@ -50,6 +56,12 @@ export const MAP_OBJECT_MARGIN_TILES = 10;
 
 /** Smoothing of the camera follow (1 = rigid). */
 export const CAMERA_LERP = 0.15;
+
+/**
+ * Movement directions: 8 = only the 8 directions of the original (stick and mouse snap to the nearest one),
+ * 0 = free movement at any angle. 8 chosen by the owner on 16-oct-2026 to try it; still free in pixels, not tile by tile.
+ */
+export const MOVE_DIRECTIONS: number = 8;
 
 /** Gamepad left stick: inputs below this magnitude are ignored (stick drift). */
 export const GAMEPAD_DEADZONE = 0.2;

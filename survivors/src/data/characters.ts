@@ -1,8 +1,12 @@
 // Personajes jugables, elegidos en la pantalla "Create New Character" (scenes/CharacterSelectScene.ts).
-// De momento los dos disparan Energy Bolt; el Guerrero tendrá su arma en la Fase 6 (docs/DESIGN.md).
+// El Mago dispara Energy Bolt; el Guerrero lleva un arma cuerpo a cuerpo y armadura (Fase 6, data/weapons.ts y data/armor.ts).
 // Nombre, aspecto y stats iniciales son fijos por ahora (decidido por el propietario el 16-oct-2026).
 import type { Appearance } from '../hb/playerAppearance';
 import type { Stats } from './stats';
+import type { MeleeWeaponId, WeaponId } from './weapons';
+
+/** Weapon the class starts with: a spell that shoots projectiles, or a melee weapon held in the hand. */
+export type StartWeapon = { kind: 'spell'; id: WeaponId } | { kind: 'melee'; id: MeleeWeaponId };
 
 export interface CharacterDef {
     /** Class name. */
@@ -34,21 +38,22 @@ export interface CharacterDef {
     magicDamageMultiplier: number;
     /** Multiplies weapon cooldowns (0.9 = 10% shorter). */
     cooldownMultiplier: number;
+    /** Look at level 1. The melee weapon layer is replaced by the weapon in hand. */
     appearance: Appearance;
+    startWeapon: StartWeapon;
+    /** Armor cards (data/armor.ts) only show up for classes that can wear it. */
+    canWearArmor: boolean;
 }
 
-/** Guerrero: cota de malla + armadura de placas, perneras, botas altas, casco completo, espada larga y escudo de caballero (índices de sp-client/src/constants/Items.ts). */
+/** Guerrero al empezar: camisa, pantalón, botas altas y daga. La armadura se gana con las cartas (data/armor.ts). */
 export const WARRIOR_LOOK = {
     human: { sprite: 'player.body.wm' },
     hair: { sprite: 'player.hair.mhr', variant: 0 },
     underwear: { sprite: 'player.underwear.mpt', variant: 0 },
-    hauberk: { sprite: 'gear.hauberk.m' },
-    leggings: { sprite: 'gear.leggings.plate.m' },
+    hauberk: { sprite: 'gear.shirt.m' },
+    leggings: { sprite: 'gear.trousers.m' },
     boots: { sprite: 'gear.boots.long.m' },
-    helm: { sprite: 'gear.helm.full.m' },
-    armor: { sprite: 'gear.armor.plate.m' },
-    weapon: { sprite: 'gear.swords.m', startSheet: 112 },
-    shield: { sprite: 'gear.shields.m', startSheet: 49 },
+    weapon: { sprite: 'gear.swords.m', startSheet: 0 },
 } as const satisfies Appearance;
 
 /** Mago (versión masculina, sin uso ahora): túnica, sombrero de mago, botas altas y varita (cada varita tiene su propio archivo, así que empieza en la hoja 0). */
@@ -98,6 +103,8 @@ export const CHARACTERS = {
         magicDamageMultiplier: 1.15,
         cooldownMultiplier: 0.9,
         appearance: MAGE_FEMALE_LOOK,
+        startWeapon: { kind: 'spell', id: 'energyBolt' },
+        canWearArmor: false,
     },
     warrior: {
         ...COMMON,
@@ -112,6 +119,8 @@ export const CHARACTERS = {
         magicDamageMultiplier: 1,
         cooldownMultiplier: 1,
         appearance: WARRIOR_LOOK,
+        startWeapon: { kind: 'melee', id: 'dagger' },
+        canWearArmor: true,
     },
 } as const satisfies Record<string, CharacterDef>;
 

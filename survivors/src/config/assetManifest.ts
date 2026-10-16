@@ -17,7 +17,18 @@ export const SPRITES = {
     'player.body.wm': { file: 'sprites/wm.spr', type: SpriteType.Human },
     'player.hair.mhr': { file: 'sprites/mhr.spr', type: SpriteType.HairAndUndies },
     'player.underwear.mpt': { file: 'sprites/mpt.spr', type: SpriteType.HairAndUndies },
+    // Ropa básica del Guerrero al empezar (Shirt y Trousers).
+    'gear.shirt.m': { file: 'sprites/mshirt.spr', type: SpriteType.EquipmentPack },
+    'gear.trousers.m': { file: 'sprites/mtrouser.spr', type: SpriteType.EquipmentPack },
+    // Armaduras del Guerrero (ver data/armor.ts).
     'gear.hauberk.m': { file: 'sprites/mhauberk.spr', type: SpriteType.EquipmentPack },
+    'gear.armor.leather.m': { file: 'sprites/mlarmor.spr', type: SpriteType.EquipmentPack },
+    'gear.armor.scale.m': { file: 'sprites/msmail.spr', type: SpriteType.EquipmentPack },
+    'gear.armor.chain.m': { file: 'sprites/mcmail.spr', type: SpriteType.EquipmentPack },
+    'gear.leggings.chain.m': { file: 'sprites/mchoses.spr', type: SpriteType.EquipmentPack },
+    'gear.helm.basic.m': { file: 'sprites/mhelm4.spr', type: SpriteType.EquipmentPack },
+    'gear.helm.winged.m': { file: 'sprites/nmhelm2.spr', type: SpriteType.EquipmentPack },
+    'gear.helm.horned.m': { file: 'sprites/nmhelm1.spr', type: SpriteType.EquipmentPack },
     'gear.leggings.plate.m': { file: 'sprites/mleggings.spr', type: SpriteType.EquipmentPack },
     'gear.boots.long.m': { file: 'sprites/mlboots.spr', type: SpriteType.EquipmentPack },
     'gear.helm.full.m': { file: 'sprites/mhelm1.spr', type: SpriteType.EquipmentPack },
@@ -40,6 +51,8 @@ export const SPRITES = {
 
     // Efectos de hechizos (ver config/effects.ts para qué hoja y frames usa cada uno).
     'fx.effect': { file: 'sprites/effect.spr', type: SpriteType.Effect },
+    // Polvo de los pasos al correr (Footsteps dry: hoja 1, frames 28–32).
+    'fx.effect2': { file: 'sprites/effect2.spr', type: SpriteType.Effect },
 
     // Interfaz: barra inferior original 800x600 (hoja 6; ver config/hud.ts para frames y posiciones)
     // y fondo de "Create New Character" 640x480 (hoja 9; ver config/characterSelect.ts).
@@ -68,6 +81,11 @@ export const SOUNDS = {
     'sfx.bunny.death': { file: 'sounds/M83.mp3' },
     'sfx.orc.hit': { file: 'sounds/M11.mp3' },
     'sfx.orc.death': { file: 'sounds/M12.mp3' },
+    // Armas cuerpo a cuerpo: tajo del jugador (PLAYER_MELEE_ATTACK) y golpe con filo en un monstruo (TAKE_DAMAGE_BLADE).
+    'sfx.melee.swing': { file: 'sounds/C18.mp3' },
+    'sfx.melee.hit': { file: 'sounds/C6.mp3' },
+    // Pasos al correr (PLAYER_RUNNING).
+    'sfx.footsteps': { file: 'sounds/C10.mp3' },
     // Recoger una gema: el sonido de "objeto añadido" del original (sp-client SoundFileNames.ts, ITEM_ADDED_SOUND).
     'sfx.pickup': { file: 'sounds/E20.mp3' },
 } as const satisfies Record<string, { file: string }>;

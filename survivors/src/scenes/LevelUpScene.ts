@@ -1,27 +1,29 @@
-// Pantalla de subida de nivel: la partida se pausa y se elige 1 de 3 cartas.
-// Fase 5: solo cartas de stat ("+3 a un stat"); en la Fase 6 se añaden arma nueva, mejora de eslabón y armadura.
+// Pantalla de subida de nivel: la partida se pausa y se elige 1 de 3 cartas (las arma systems/UpgradePool.ts).
+// Tipos: stat ("+3 a un stat"), eslabón de arma, cambio de familia de arma y armadura.
 // Siempre hay una carta resaltada. Se elige con flechas/WASD, cruceta o stick + Enter/Espacio/A, o con el ratón.
 import Phaser from 'phaser';
 import { GAME_WIDTH, LEVEL_UP_INPUT_DELAY_MS } from '../config/gameConfig';
 import { HUD_TOP } from '../config/hud';
 import { px, UI_FONT, UI_FONT_SIZE } from '../config/ui';
+import { ARMOR_PIECES, ARMOR_SLOT_NAMES } from '../data/armor';
 import { STAT_INFO, type StatId } from '../data/stats';
+import { getMeleeWeapon, MELEE_FAMILIES, type MeleeWeaponDef } from '../data/weapons';
 import type { CharacterStats } from '../entities/CharacterStats';
+import type { Equipment } from '../entities/Equipment';
 import { Action, InputSystem } from '../systems/InputSystem';
+import type { LevelUpChoice } from '../systems/UpgradePool';
 
-export interface LevelUpChoice {
-    stat: StatId;
-    points: number;
-}
+export type { LevelUpChoice } from '../systems/UpgradePool';
 
 export interface LevelUpSceneData {
     stats: CharacterStats;
+    equipment: Equipment;
     choices: LevelUpChoice[];
     onChoose: (choice: LevelUpChoice) => void;
 }
 
 const CARD_WIDTH = 230;
-const CARD_HEIGHT = 230;
+const CARD_HEIGHT = 256;
 const CARD_GAP = 24;
 const CARD_Y = HUD_TOP / 2 + 30;
 const CARD_FILL = 0x1c140c;
@@ -30,6 +32,18 @@ const CARD_HIGHLIGHT = 0xffe080;
 const HIGHLIGHT_SCALE = 1.05;
 const BADGE_RADIUS = 26;
 const TEXT_COLOR = '#e8d9a8';
+/** Badge of the weapon and armor cards. */
+const WEAPON_BADGE = { text: 'Wpn', color: 0x9a9a9a } as const;
+const ARMOR_BADGE = { text: 'Arm', color: 0x6a5030 } as const;
+
+/** What a card shows: badge, title, one line of effect and the "before → after" lines. */
+interface CardText {
+    badge: string;
+    badgeColor: number;
+    title: string;
+    effect: string;
+    changes: string[];
+}
 
 interface Card {
     container: Phaser.GameObjects.Container;
@@ -94,20 +108,21 @@ export class LevelUpScene extends Phaser.Scene {
     }
 
     private createCard(choice: LevelUpChoice, x: number, index: number): Card {
-        const info = STAT_INFO[choice.stat];
+        const text = describeCard(this.params.stats, this.params.equipment, choice);
         const frame = this.add.rectangle(0, 0, CARD_WIDTH, CARD_HEIGHT, CARD_FILL, 0.95).setStrokeStyle(2, CARD_BORDER);
         const top = -CARD_HEIGHT / 2;
-        const badge = this.add.circle(0, top + 44, BADGE_RADIUS, info.color).setStrokeStyle(2, 0x000000);
-        const badgeText = this.add.text(0, top + 44, info.short, {
+        const badge = this.add.circle(0, top + 44, BADGE_RADIUS, text.badgeColor).setStrokeStyle(2, 0x000000);
+        const badgeText = this.add.text(0, top + 44, text.badge, {
             fontFamily: UI_FONT, fontSize: px(UI_FONT_SIZE.normal), fontStyle: 'bold', color: '#ffffff', stroke: '#000000', strokeThickness: 3,
         }).setOrigin(0.5);
-        const title = this.add.text(0, top + 92, `+${choice.points} ${info.name}`, {
+        const title = this.add.text(0, top + 92, text.title, {
             fontFamily: UI_FONT, fontSize: px(UI_FONT_SIZE.large), fontStyle: 'bold', color: '#ffe080',
         }).setOrigin(0.5);
-        const effect = this.add.text(0, top + 116, info.effect, {
+        const effect = this.add.text(0, top + 116, text.effect, {
             fontFamily: UI_FONT, fontSize: px(UI_FONT_SIZE.normal), color: '#a89870', align: 'center', wordWrap: { width: CARD_WIDTH - 24 },
         }).setOrigin(0.5, 0);
-        const changes = this.add.text(0, top + 158, describeChanges(this.params.stats, choice).join('\n'), {
+        // Below the effect line, which may wrap to two lines.
+        const changes = this.add.text(0, top + 116 + effect.height + 10, text.changes.join('\n'), {
             fontFamily: UI_FONT, fontSize: px(UI_FONT_SIZE.normal), color: TEXT_COLOR, align: 'center', lineSpacing: 2,
         }).setOrigin(0.5, 0);
 
@@ -143,10 +158,54 @@ export class LevelUpScene extends Phaser.Scene {
     }
 }
 
+function describeCard(stats: CharacterStats, equipment: Equipment, choice: LevelUpChoice): CardText {
+    switch (choice.kind) {
+        case 'stat': {
+            const info = STAT_INFO[choice.stat];
+            return {
+                badge: info.short, badgeColor: info.color, title: `+${choice.points} ${info.name}`, effect: info.effect,
+                changes: describeStatChanges(stats, choice.stat, choice.points),
+            };
+        }
+        case 'weaponLink':
+        case 'weaponSwitch': {
+            const weapon = getMeleeWeapon(choice.weapon);
+            const from = getMeleeWeapon(choice.from);
+            const family = MELEE_FAMILIES[weapon.family].name;
+            return {
+                badge: WEAPON_BADGE.text, badgeColor: WEAPON_BADGE.color, title: weapon.name,
+                effect: choice.kind === 'weaponLink' ? `${family} · stronger link` : `${family} · replaces ${from.name}`,
+                changes: describeWeaponChanges(stats, from, weapon),
+            };
+        }
+        case 'armor': {
+            const piece = ARMOR_PIECES[choice.piece];
+            const pct = (value: number) => `${Math.round(value * 100)}%`;
+            return {
+                badge: ARMOR_BADGE.text, badgeColor: ARMOR_BADGE.color, title: piece.name,
+                effect: choice.from ? `${ARMOR_SLOT_NAMES[piece.slot]} · replaces ${ARMOR_PIECES[choice.from].name}` : ARMOR_SLOT_NAMES[piece.slot],
+                changes: [`Damage taken −${pct(equipment.defense)} → −${pct(equipment.defenseWith(choice.piece))}`],
+            };
+        }
+    }
+}
+
+/** Damage (with the Str bonus), attack rhythm, reach and width of the weapon in hand → the new one. */
+function describeWeaponChanges(stats: CharacterStats, from: MeleeWeaponDef, to: MeleeWeaponDef): string[] {
+    const damage = (weapon: MeleeWeaponDef) => Math.round(weapon.damage * stats.damageMultiplier('physical'));
+    const every = (weapon: MeleeWeaponDef) => `${((weapon.cooldownMs * stats.cooldownMultiplier) / 1000).toFixed(2)}s`;
+    const lines = [
+        `Damage ${damage(from)} → ${damage(to)}`,
+        `Attack every ${every(from)} → ${every(to)}`,
+        `Reach ${from.range} → ${to.range}`,
+    ];
+    if (from.arcDegrees !== to.arcDegrees) lines.push(`Width ${from.arcDegrees}° → ${to.arcDegrees}°`);
+    return lines;
+}
+
 /** "Before → after" lines for the stat and what it changes in play. */
-function describeChanges(stats: CharacterStats, choice: LevelUpChoice): string[] {
-    const after = stats.previewWith(choice.stat, choice.points);
-    const s = choice.stat;
+function describeStatChanges(stats: CharacterStats, s: StatId, points: number): string[] {
+    const after = stats.previewWith(s, points);
     const lines = [`${STAT_INFO[s].short} ${stats.stats[s]} → ${after.stats[s]}`];
     const pct = (value: number) => `${Math.round(value * 100)}%`;
     const bonus = (multiplier: number) => `${multiplier >= 1 ? '+' : ''}${Math.round((multiplier - 1) * 100)}%`;

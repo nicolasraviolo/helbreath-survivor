@@ -1,5 +1,5 @@
 // Efectos visuales de hechizos: qué hoja y qué frames de un .spr de efectos usa cada uno.
-// Valores de sp-client/src/constants/Effects.ts (Energy Bolt Projectile / Explosion).
+// Valores de sp-client/src/constants/Effects.ts (Energy Bolt Projectile / Explosion, Footsteps dry).
 import type Phaser from 'phaser';
 import type { SpriteKey } from './assetManifest';
 import { getSheetKey } from '../hb/HBSprite';
@@ -13,11 +13,14 @@ export interface EffectDef {
     loop: boolean;
     /** Frame index from which the effect fades out (sp-client fadeOutStartAnimationIndex). */
     fadeFromFrame?: number;
+    /** Added to the Y depth. Default DEPTH_EFFECT_OFFSET (above characters); negative = under them. */
+    depthOffset?: number;
 }
 
 export const EFFECTS = {
     'fx.energyBolt.fly': { sprite: 'fx.effect', sheet: 0, frames: [2, 5], frameRate: 20, loop: true },
     'fx.energyBolt.explode': { sprite: 'fx.effect', sheet: 6, frameRate: 50, loop: false, fadeFromFrame: 6 },
+    'fx.footsteps': { sprite: 'fx.effect2', sheet: 1, frames: [28, 32], frameRate: 10, loop: false, depthOffset: -1 },
 } as const satisfies Record<string, EffectDef>;
 
 export type EffectKey = keyof typeof EFFECTS;

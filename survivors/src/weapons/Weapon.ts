@@ -1,7 +1,7 @@
 // Arma automática base: cuenta su recarga y, cuando está lista, intenta disparar.
-// Cada arma concreta (EnergyBolt, y la Espada y las familias en la Fase 6) decide cómo dispara.
+// Cada arma concreta (EnergyBolt, MeleeWeapon) decide cómo dispara.
 import type { Enemy } from '../entities/Enemy';
-import type { ProjectileWeaponDef } from '../data/weapons';
+import type { MeleeWeaponDef, ProjectileWeaponDef } from '../data/weapons';
 import type { AudioSystem } from '../systems/AudioSystem';
 
 /** What a weapon can see and do. Given by WeaponSystem every frame. */
@@ -11,6 +11,10 @@ export interface WeaponContext {
     readonly y: number;
     findNearestEnemy(maxDistance: number): Enemy | undefined;
     launchProjectile(def: ProjectileWeaponDef, fromX: number, fromY: number, toX: number, toY: number, maxDistance: number): void;
+    /** Melee: plays the owner's swing animation, the slash and the swing sound towards `angle` (radians). */
+    swingMelee(def: MeleeWeaponDef, angle: number, durationMs: number): void;
+    /** Melee: applies the damage of a swing towards `angle`. */
+    hitMelee(def: MeleeWeaponDef, angle: number): void;
     readonly audio: AudioSystem;
     /** Multiplies every cooldown (class bonus and Dex). */
     readonly cooldownMultiplier: number;

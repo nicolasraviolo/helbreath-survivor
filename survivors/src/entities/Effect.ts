@@ -15,8 +15,9 @@ export class Effect implements Poolable {
     }
 
     public play(key: EffectKey, x: number, y: number): void {
-        this.def = EFFECTS[key];
-        this.sprite.setPosition(x, y).setDepth(y + DEPTH_EFFECT_OFFSET).setAlpha(1).setActive(true).setVisible(true).play(key);
+        const def: EffectDef = EFFECTS[key];
+        this.def = def;
+        this.sprite.setPosition(x, y).setDepth(y + (def.depthOffset ?? DEPTH_EFFECT_OFFSET)).setAlpha(1).setActive(true).setVisible(true).play(key);
     }
 
     /** Returns false when the animation has finished (the effect must go back to the pool). */

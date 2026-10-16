@@ -11,8 +11,12 @@ import { HUD_TOP } from '../config/hud';
 import { px, UI_FONT, UI_FONT_SIZE } from '../config/ui';
 import { CHARACTERS, CHOSEN_CHARACTER_KEY, DEFAULT_CHARACTER, isCharacterId } from '../data/characters';
 import { DEFAULT_MAP, MAPS_DATA } from '../data/maps';
-import { LEVEL_UP_CHOICES, STAT_CARD_POINTS, STAT_IDS } from '../data/stats';
+import { MIN_DAMAGE_TAKEN } from '../data/armor';
+import { MELEE_ROOT_MOMENT } from '../data/weapons';
+import { FOOTSTEP_DUST_EVERY_PX, FOOTSTEPS_PER_RUN_CYCLE } from '../data/audio';
+import { PLAYER_FRAMES_PER_DIRECTION } from '../hb/playerAppearance';
 import { CharacterStats } from '../entities/CharacterStats';
+import { Equipment } from '../entities/Equipment';
 import type { EnemyWorld } from '../entities/Enemy';
 import { Player } from '../entities/Player';
 import { getMap, type HBMap } from '../hb/HBMap';
@@ -28,17 +32,22 @@ import { WeaponSystem } from '../systems/WeaponSystem';
 import { XpSystem } from '../systems/XpSystem';
 import { formatTime } from '../utils/format';
 import { EnergyBolt } from '../weapons/EnergyBolt';
+import { MeleeWeapon } from '../weapons/MeleeWeapon';
+import { directionFromVector } from '../hb/directions';
+import { buildLevelUpChoices } from '../systems/UpgradePool';
 import type { HudSceneData } from './HudScene';
 import type { LevelUpChoice, LevelUpSceneData } from './LevelUpScene';
 
 /** Enemies created by the debug "spawn many" key. */
 const DEBUG_SPAWN_COUNT = 100;
+/** Str added by the debug key (to see weapon links and armor show up quickly). */
+const DEBUG_STR_POINTS = 10;
 
 /**
  * Escena de partida con la clase elegida en CharacterSelectScene: mapa, jugador, enemigos que lo persiguen, un arma automática (Energy Bolt),
  * gemas de XP y subida de nivel con cartas (Fase 5).
  * Mover: WASD/flechas, stick/cruceta o mantener clic. Esc / Start: pausa. F1 / View: depuración · T: prueba del Orc.
- * Solo en desarrollo: N 100 enemigos · K matar los visibles · G invencible · X subir un nivel.
+ * Solo en desarrollo: N 100 enemigos · K matar los visibles · G invencible · X subir un nivel · V +10 Str.
  */
 export class GameScene extends Phaser.Scene {
     private inputSystem!: InputSystem;
@@ -57,7 +66,14 @@ export class GameScene extends Phaser.Scene {
     private godModeLabel!: Phaser.GameObjects.Text;
     private stats!: CharacterStats;
     private xp!: XpSystem;
+    private equipment!: Equipment;
+    /** Melee weapon in hand (Warrior); undefined for spell casters. */
+    private meleeWeapon: MeleeWeapon | undefined;
     private levelUpOpen = false;
+    /** Pixels run since the last puff of footstep dust, and where the player was last frame. */
+    private dustDistance = 0;
+    private lastX = 0;
+    private lastY = 0;
 
     constructor() {
         super('Game');
@@ -83,6 +99,9 @@ export class GameScene extends Phaser.Scene {
         this.player = new Player(this, (spawn.x + 0.5) * TILE_SIZE, (spawn.y + 0.5) * TILE_SIZE, character, map, areaPx);
         this.stats = new CharacterStats(character);
         this.levelUpOpen = false;
+        this.dustDistance = 0;
+        this.lastX = this.player.x;
+        this.lastY = this.player.y;
 
         // The bottom bar covers the last rows of the screen: the camera only draws above it, so the player stays centred in what is visible.
         const camera = this.cameras.main;
@@ -99,7 +118,20 @@ export class GameScene extends Phaser.Scene {
             this.xp.drop(enemy.x, enemy.y, enemy.def.xp);
         });
         this.weapons = new WeaponSystem(this, this.enemies, this.combat, this.audio);
-        this.weapons.add(new EnergyBolt());
+        this.equipment = new Equipment(character);
+        this.meleeWeapon = undefined;
+        if (character.startWeapon.kind === 'melee') {
+            this.meleeWeapon = new MeleeWeapon(character.startWeapon.id);
+            this.weapons.add(this.meleeWeapon);
+            this.player.setGear('weapon', this.equipment.weaponLayer());
+        } else {
+            this.weapons.add(new EnergyBolt());
+        }
+        this.weapons.setMeleeSwingHandler((angle, durationMs) => {
+            // Stands still until the blow lands (as in the original), then can run again.
+            const direction = directionFromVector(Math.cos(angle), Math.sin(angle)) ?? this.player.direction;
+            this.player.swing(direction, durationMs, durationMs * MELEE_ROOT_MOMENT);
+        });
         this.player.setMaxHp(this.stats.maxHp, true);
         this.applyStats();
         this.world = { map, area: areaPx, targetX: 0, targetY: 0, targetRadius: character.hitboxHalfSize };
@@ -134,21 +166,46 @@ export class GameScene extends Phaser.Scene {
     private openLevelUp(): void {
         this.levelUpOpen = true;
         const stats = this.stats;
-        const ids = Phaser.Utils.Array.Shuffle([...STAT_IDS]).slice(0, LEVEL_UP_CHOICES);
         const data: LevelUpSceneData = {
             stats,
-            choices: ids.map((stat): LevelUpChoice => ({ stat, points: STAT_CARD_POINTS })),
+            equipment: this.equipment,
+            choices: buildLevelUpChoices(stats, this.equipment),
             onChoose: (choice) => {
-                stats.addStat(choice.stat, choice.points);
+                this.applyChoice(choice);
                 stats.pendingLevelUps--;
                 this.applyStats();
                 this.levelUpOpen = false;
+        this.dustDistance = 0;
+        this.lastX = this.player.x;
+        this.lastY = this.player.y;
                 this.scene.stop('LevelUp');
                 this.scene.resume();
             },
         };
         this.scene.pause();
         this.scene.launch('LevelUp', data);
+    }
+
+    private applyChoice(choice: LevelUpChoice): void {
+        switch (choice.kind) {
+            case 'stat':
+                this.stats.addStat(choice.stat, choice.points);
+                break;
+            case 'weaponLink':
+            case 'weaponSwitch': {
+                // One weapon in hand: the new one takes the old one's place.
+                const weapon = new MeleeWeapon(choice.weapon);
+                if (this.meleeWeapon) this.weapons.replace(this.meleeWeapon, weapon);
+                else this.weapons.add(weapon);
+                this.meleeWeapon = weapon;
+                this.equipment.weapon = choice.weapon;
+                this.player.setGear('weapon', this.equipment.weaponLayer());
+                break;
+            }
+            case 'armor':
+                for (const [slot, layer] of this.equipment.wear(choice.piece)) this.player.setGear(slot, layer);
+                break;
+        }
     }
 
     /** Bottom bar in its own scene on top. It is stopped with this scene (restart, sprite test). */
@@ -167,6 +224,8 @@ export class GameScene extends Phaser.Scene {
                 kills: this.combat.kills,
                 pauseLocked: this.player.isDead || this.levelUpOpen,
                 stats: this.stats,
+                weaponName: this.meleeWeapon?.def.name,
+                defense: this.equipment.defense,
             }),
         };
         this.scene.launch('Hud', data);
@@ -192,6 +251,8 @@ export class GameScene extends Phaser.Scene {
 
         const player = this.player;
         player.update(player.isDead ? Phaser.Math.Vector2.ZERO : input.getMove(), delta);
+        // No steps while standing still for a swing.
+        this.updateFootsteps(!player.isDead && !player.isRooted && input.getMove().lengthSq() > 0);
         this.world.targetX = player.x;
         this.world.targetY = player.y;
         this.enemies.update(delta, this.world);
@@ -204,7 +265,7 @@ export class GameScene extends Phaser.Scene {
         this.spawner.update(delta);
 
         if (!player.isDead) {
-            player.takeDamage(this.enemies.getContactDamage(player.x, player.y, player.def.hitboxHalfSize));
+            player.takeDamage(this.reduceByArmor(this.enemies.getContactDamage(player.x, player.y, player.def.hitboxHalfSize)));
         } else if (player.deadForMs > GAME_OVER_DELAY_MS) {
             this.showGameOver();
             if (input.justPressed(Action.Confirm)) {
@@ -225,6 +286,31 @@ export class GameScene extends Phaser.Scene {
         }
     }
 
+    /** Running: footstep sound in a loop at the pace of the run animation, and a puff of dust every tile. */
+    private updateFootsteps(running: boolean): void {
+        const player = this.player;
+        const moved = Math.hypot(player.x - this.lastX, player.y - this.lastY);
+        this.lastX = player.x;
+        this.lastY = player.y;
+        if (!running) {
+            this.audio.stopLoop('sfx.footsteps');
+            return;
+        }
+        const runCycleMs = (PLAYER_FRAMES_PER_DIRECTION / player.def.runFrameRate) * 1000;
+        this.audio.startLoop('sfx.footsteps', runCycleMs / FOOTSTEPS_PER_RUN_CYCLE);
+        this.dustDistance += moved;
+        if (this.dustDistance >= FOOTSTEP_DUST_EVERY_PX) {
+            this.dustDistance = 0;
+            this.weapons.spawnEffect('fx.footsteps', player.x, player.y);
+        }
+    }
+
+    /** Armor removes part of each hit (0 stays 0: no enemy touching). */
+    private reduceByArmor(damage: number): number {
+        if (damage <= 0) return 0;
+        return Math.max(MIN_DAMAGE_TAKEN, Math.round(damage * (1 - this.equipment.defense)));
+    }
+
     private gainXp(amount: number): void {
         if (amount <= 0) return;
         const level = this.stats.level;
@@ -243,6 +329,10 @@ export class GameScene extends Phaser.Scene {
         }
         if (input.justPressed(Action.DebugGiveXp)) {
             this.gainXp(this.stats.xpToNext - this.stats.xp);
+        }
+        if (input.justPressed(Action.DebugAddStr)) {
+            this.stats.addStat('str', DEBUG_STR_POINTS);
+            this.applyStats();
         }
         if (input.justPressed(Action.DebugGodMode)) {
             this.player.setGodMode(!this.player.godMode);
