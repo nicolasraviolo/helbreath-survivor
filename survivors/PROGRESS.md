@@ -16,7 +16,7 @@
 
 ## Fase actual
 **Fase 6 completada (2026-10-16)**, probada por el propietario, en 3 bloques (6A Guerrero, 6B Maga, 6C objetos, buffs y pasivas).
-- Siguiente: `/nueva-skill añadir-arma` (indicado en `docs/PLAN.md`) y después `/fase 7` (oleadas, jefes y final).
+- Skill `/anadir-arma` creada (2026-10-17). Siguiente: `/fase 7` (oleadas, jefes y final).
 - **Checkpoint 2026-10-16:** `tsc` y `build` sin errores; Playwright: el cofre da su buff y la consola está limpia (solo el 404 de `favicon.ico`).
 
 **Bloque 6C: objetos en el suelo, buffs y pasivas** (probado y aprobado).
