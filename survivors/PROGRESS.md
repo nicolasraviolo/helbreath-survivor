@@ -15,6 +15,19 @@
 | 10 — Pulido (opcional) | ⬜ pendiente | |
 
 ## Fase actual
+Extra antes de la Fase 5 (2026-10-16): **barra inferior (HUD)** al estilo del original, pendiente de que la pruebe el propietario.
+- `scenes/HudScene.ts` + `config/hud.ts`:
+  - vida real con número;
+  - maná llena con "— / —" (el Guerrero aún no usa maná);
+  - XP vacía hasta la Fase 5;
+  - tiempo y bajas.
+- Los 6 botones se iluminan al pasar el ratón. El del disquete, Esc o Start del mando abren una pausa provisional (el menú real llega en la Fase 8).
+- La cámara solo dibuja por encima de la barra. Los clics sobre la barra no mueven al jugador.
+- Cómo probar: `pnpm --dir survivors dev` → http://localhost:8090.
+- **Aspecto provisional de mago** (solo estética, pedido por el propietario): túnica `mrobe1`, sombrero `nmhelm4`, botas altas y varita `mstaff1`. Es `MAGE_LOOK` en `data/characters.ts`; el aspecto de Guerrero sigue en `WARRIOR_LOOK`. Las estadísticas siguen siendo las del Guerrero.
+- La barra de vida sobre la cabeza se queda; en el futuro será opcional desde el menú de ajustes (Fase 8).
+- La animación de lanzar hechizo queda para la Fase 6 (anotada en `docs/PLAN.md`).
+
 Fase 4 completada (2026-10-16), probada por el propietario. Siguiente: `/fase 5`.
 - Más adelante el propietario quiere ajustar algunos detalles visuales; todavía no los ha concretado.
 - Hecho:

@@ -102,6 +102,7 @@ survivors/
   - *Armadura*: la mejor pieza que el Str permite en Cuerpo, Casco o Escudo; se equipa sola y cambia el aspecto.
 - **Evoluciones = eslabones.** Sustituyen a "arma nivel 8 + pasiva con cofre". Pasivas: las de `docs/DESIGN.md` que sigan vigentes (Botas, Amuleto imán...).
 - Reutilizar visuales de `sp-client/src/game/spells/` y `game/effects/` adaptados a disparo automático y pooling.
+- **Animación de lanzar hechizo** (pedida el 16-oct-2026): estado Cast del cuerpo (base 64) al disparar. En el original la varita se oculta mientras lanza (`ARMAMENT_STATE_INDEX` = -1). Hay que decidir cómo combinarla con correr.
 - Pickups: poción, imán, cofre. Por ahora el cofre da un buff ofensivo o defensivo temporal aleatorio.
 - **Aceptación:** una partida de 10 min permite builds distintas según los stats y eslabones elegidos; al llegar al Str requerido aparece la carta del eslabón y al elegirla cambia el arma; la armadura cambia el aspecto.
 - 👉 Tras esta fase: `/nueva-skill añadir-arma`.
@@ -117,6 +118,7 @@ survivors/
 ## Fase 8 — Menús y personajes
 - `MainMenuScene` (Jugar, Créditos, volumen), `CharacterSelectScene` (3 personajes), `PauseScene`.
 - Créditos con el aviso legal de `docs/DESIGN.md`.
+- Ajustes: opción para mostrar u ocultar la barra de vida sobre el personaje.
 - Todos los menús navegables sin ratón: cruceta/stick para moverse, **A** confirmar, **B** volver, **Start** pausa. Si se desconecta el mando en partida → pausa automática.
 - **Aceptación:** se juega con los 3 personajes y se vuelve al menú tras una partida; una partida completa (menú → juego → Game Over → menú) se puede hacer solo con el mando.
 
