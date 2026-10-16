@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
-import { ASSET_BASE_PATH, MAPS, SPRITES, type SpriteKey } from '../config/assetManifest';
+import { ASSET_BASE_PATH, MAPS, SOUNDS, SPRITES, type SpriteKey } from '../config/assetManifest';
+import { registerEffectAnimations } from '../config/effects';
 import { DEFAULT_ANIMATION_FRAME_RATE, GAME_HEIGHT, GAME_WIDTH } from '../config/gameConfig';
 import { DEFAULT_MAP, MAPS_DATA } from '../data/maps';
 import { getMap } from '../hb/HBMap';
@@ -37,6 +38,9 @@ export class PreloadScene extends Phaser.Scene {
         for (const [key, asset] of Object.entries(SPRITES)) {
             this.load.binary(key, asset.file);
         }
+        for (const [key, sound] of Object.entries(SOUNDS)) {
+            this.load.audio(key, sound.file);
+        }
         const mapAsset = MAPS_DATA[DEFAULT_MAP].asset;
         this.load.binary(mapAsset, MAPS[mapAsset].file);
     }
@@ -58,6 +62,7 @@ export class PreloadScene extends Phaser.Scene {
             await job.load(this);
             this.setProgress(DOWNLOAD_SHARE + ((i + 1) / jobs.length) * (1 - DOWNLOAD_SHARE));
         }
+        registerEffectAnimations(this.anims, this.textures);
         this.scene.start('Game');
     }
 
