@@ -5,7 +5,7 @@
 | 0 — Reconocimiento | ✅ completada | 2026-10-16 |
 | 1 — Esqueleto y primer sprite | ✅ completada | 2026-10-16 |
 | 2 — Mapa y jugador | ✅ completada | 2026-10-16 |
-| 3 — Enemigos | 🟨 en pruebas | 2026-10-16 |
+| 3 — Enemigos | ✅ completada | 2026-10-16 |
 | 4 — Primera arma y combate | ⬜ pendiente | |
 | 5 — Experiencia y subida de nivel | ⬜ pendiente | |
 | 6 — Arsenal completo | ⬜ pendiente | |
@@ -15,7 +15,7 @@
 | 10 — Pulido (opcional) | ⬜ pendiente | |
 
 ## Fase actual
-Fase 3 programada y probada por el propietario (2026-10-16), en la rama `fase-3`. Pendiente: confirmar el cierre de la fase.
+Fase 3 completada (2026-10-16), probada por el propietario. Siguiente: `/fase 4`.
 - Tras la prueba del propietario (2026-10-16): la G (invencible) no daba señales fuera del panel F1. Ahora el Guerrero se tiñe de dorado y aparece «INVENCIBLE (G)» arriba a la derecha.
 - Hecho:
   - `Pool.ts` y `SpatialGrid.ts` genéricos. `collision.ts` compartido entre jugador y enemigos.
