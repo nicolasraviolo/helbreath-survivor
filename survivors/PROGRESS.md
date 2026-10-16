@@ -2,7 +2,7 @@
 
 | Fase | Estado | Fecha |
 |---|---|---|
-| 0 — Reconocimiento | 🟡 en curso | 2026-10-16 |
+| 0 — Reconocimiento | ✅ completada | 2026-10-16 |
 | 1 — Esqueleto y primer sprite | ⬜ pendiente | |
 | 2 — Mapa y jugador | ⬜ pendiente | |
 | 3 — Enemigos | ⬜ pendiente | |
@@ -15,7 +15,7 @@
 | 10 — Pulido (opcional) | ⬜ pendiente | |
 
 ## Fase actual
-Fase 0 (rama `fase-0`), lista para cerrar.
+Fase 0 completada (2026-10-16). Siguiente: `/fase 1`.
 - Hecho (2026-10-16):
   - `sp-client` arranca en http://localhost:8080.
   - Documentación y código base resumidos en `NOTES.md` (formato `.spr`, frames por dirección, pivotes, capas del jugador, mapas, monstruos, hechizos).
