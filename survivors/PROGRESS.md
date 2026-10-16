@@ -6,7 +6,7 @@
 | 1 — Esqueleto y primer sprite | ✅ completada | 2026-10-16 |
 | 2 — Mapa y jugador | ✅ completada | 2026-10-16 |
 | 3 — Enemigos | ✅ completada | 2026-10-16 |
-| 4 — Primera arma y combate | 🟡 en curso (falta prueba del propietario) | |
+| 4 — Primera arma y combate | ✅ completada | 2026-10-16 |
 | 5 — Experiencia y subida de nivel | ⬜ pendiente | |
 | 6 — Arsenal completo | ⬜ pendiente | |
 | 7 — Oleadas, jefes y final | ⬜ pendiente | |
@@ -15,7 +15,7 @@
 | 10 — Pulido (opcional) | ⬜ pendiente | |
 
 ## Fase actual
-Fase 4 en curso (rama `fase-4`, 2026-10-16). El propietario la probó: funciona. Pendiente: marcarla como completada.
+Fase 4 completada (2026-10-16), probada por el propietario. Siguiente: `/fase 5`.
 - Más adelante el propietario quiere ajustar algunos detalles visuales; todavía no los ha concretado.
 - Hecho:
   - **Energy Bolt** (`weapons/EnergyBolt.ts`, datos en `data/weapons.ts`): dispara solo al enemigo más cercano a menos de 320 px, cada 1,1 s. Daño según la wiki: 10 directo + 7 en un área de 3×3 casillas, así que el enemigo alcanzado recibe 17.
