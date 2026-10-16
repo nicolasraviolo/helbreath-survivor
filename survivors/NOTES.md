@@ -352,3 +352,21 @@ Tabla completa en `docs/REQUISITOS_HB.md`. Lo no obvio:
   - polvo: `effect2` hoja 1, frames 28–32, en cada casilla.
 - **Golpe con filo en un monstruo:** C6, que el original reproduce en el frame 4 de su animación de recibir daño.
 - **Ojo:** los sonidos de Phaser son del juego entero, no de la escena. Un bucle sigue sonando si la escena se pausa, así que hay que pararlo a mano.
+
+## Hechizos portados (sp-client game/spells, constants/Effects.ts)
+- **Fire Ball:**
+  - proyectil direccional `effect.spr` hoja 5, 4 frames por dirección (dir·4 … dir·4+3), 20 fps;
+  - explosión `effect.spr` hoja 3, 20 fps;
+  - sonido E4.
+- **Fire Strike:** 4 explosiones en (0,0,0 ms), (20,30,60), (35,−30,100) y (−30,−15,140). Su comentario dice "3", pero son 4.
+- **Mass Fire Strike:** `effect3` hoja 1 en el centro; luego `effect3` hoja 2 en (−30,−15,60), (35,−30,100) y (20,30,140).
+- **Triple Energy Bolt:** 3 Energy Bolts a la vez. En el original van a casillas desplazadas del objetivo; aquí, a 3 enemigos distintos.
+- **Energy Strike:**
+  - 8 proyectiles (`effect.spr` hoja 0 frame 0, sin animar), uno cada 80 ms, a casillas al azar a ±2 del objetivo;
+  - impacto: `effect3` hoja 5 + `effect11` hoja 8 (15 fps).
+- **Lanzar hechizo:** el original no tiene frame de "suelta": tras la animación Cast (1500 ms) espera un clic en CastReady. Para disparo automático elegimos nosotros el momento.
+- **Colores de objeto:** `reference/Client.cpp:702-729`, tabla m_wR/G/B.
+  - Se suma (color − color 0) a cada píxel. El color 0 es (100,100,100).
+  - Wizard Robe = Robe con color 11 "Tan" (105,90,70), es decir +5 −10 −30.
+  - Phaser tiñe multiplicando, así que es una aproximación (`WIZARD_ROBE_TINT`).
+- **Ropa básica femenina:** Bodice `wbodice1` y Skirt `wskirt`. Las usamos en los huecos hauberk y leggings, para que la túnica las tape.

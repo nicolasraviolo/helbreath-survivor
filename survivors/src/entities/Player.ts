@@ -110,17 +110,17 @@ export class Player {
     }
 
     /**
-     * Plays the melee swing towards a direction for `durationMs`. The player stands still for `rootMs`
-     * (until the blow lands) and then may run again, which cuts the rest of the animation.
+     * Plays a melee swing or a cast (`action`) towards a direction for `durationMs`. The player stands still for
+     * `rootMs` (until the blow lands or the spell leaves) and then may run again, which cuts the rest of the animation.
      */
-    public swing(direction: Direction, durationMs: number, rootMs: number): void {
+    public act(action: PlayerState.Melee | PlayerState.Cast, direction: Direction, durationMs: number, rootMs: number): void {
         if (this.isDead) return;
         this.swingLeftMs = durationMs;
         this.rootLeftMs = rootMs;
-        this.body.meleeDurationMs = durationMs;
-        // Restart the animation even if the previous swing was still showing.
+        this.body.actionDurationMs = durationMs;
+        // Restart the animation even if the previous one was still showing.
         this.body.setPose(PlayerState.IdleCombat, direction);
-        this.body.setPose(PlayerState.Melee, direction);
+        this.body.setPose(action, direction);
     }
 
     /** Changes the weapon or a piece of armor drawn on the player (undefined takes it off). */

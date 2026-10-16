@@ -27,8 +27,6 @@ export const DEPTH_GEMS = 400000;
 export const DEPTH_DEBUG = 1000000;
 /** Spell effects are drawn this much above their Y depth (sp-client effects use +80). */
 export const DEPTH_EFFECT_OFFSET = 80;
-/** Spells start this many pixels above the caster's feet (sp-client ENERGY_BOLT_ORIGIN_OFFSET_Y = 50). */
-export const ENERGY_BOLT_ORIGIN_OFFSET_Y = 40;
 /** Melee swings are measured from this many pixels above the feet (the chest), like enemy bodies. */
 export const MELEE_ORIGIN_OFFSET_Y = 24;
 /** Melee slash drawing: how long it stays and its colour. */

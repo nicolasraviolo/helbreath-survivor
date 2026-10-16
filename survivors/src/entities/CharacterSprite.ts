@@ -7,6 +7,7 @@ import { Direction } from '../hb/directions';
 import {
     PLAYER_FRAMES_PER_DIRECTION,
     PlayerState,
+    framesPerDirection,
     getGearRenderOrder,
     getLayerFrame,
     type GearLayer,
@@ -20,8 +21,8 @@ export class CharacterSprite {
     public direction = Direction.South;
     /** Time in the current state, in milliseconds. */
     public stateTime = 0;
-    /** Length of the current melee swing (the 8 frames are spread over it). */
-    public meleeDurationMs = 1;
+    /** Length of the current melee swing or cast (its frames are spread over it). */
+    public actionDurationMs = 1;
     private readonly layers = new Map<GearSlot, { def: GearLayer; sprite: Phaser.GameObjects.Sprite }>();
     private shownFrame = -1;
     private orderKey = '';
@@ -43,9 +44,10 @@ export class CharacterSprite {
             this.layers.delete(slot);
         } else if (current) {
             current.def = layer;
+            this.applyTint(current.sprite, layer);
         } else {
             const sprite = this.scene.make.sprite({ x: 0, y: 0, key: '__DEFAULT' }, false);
-            if (this.tint !== undefined) sprite.setTint(this.tint);
+            this.applyTint(sprite, layer);
             this.container.add(sprite);
             this.layers.set(slot, { def: layer, sprite });
         }
@@ -69,12 +71,16 @@ export class CharacterSprite {
         this.refresh(false);
     }
 
+    /** Tints every layer (debug invincibility); undefined goes back to each layer's own colour. */
     public setTint(color: number | undefined): void {
         this.tint = color;
-        for (const { sprite } of this.layers.values()) {
-            if (color === undefined) sprite.clearTint();
-            else sprite.setTint(color);
-        }
+        for (const { def, sprite } of this.layers.values()) this.applyTint(sprite, def);
+    }
+
+    private applyTint(sprite: Phaser.GameObjects.Sprite, layer: GearLayer): void {
+        const color = this.tint ?? layer.tint;
+        if (color === undefined) sprite.clearTint();
+        else sprite.setTint(color);
     }
 
     private currentFrame(): number {
@@ -84,7 +90,10 @@ export class CharacterSprite {
                 // Played once, then stays on the last frame.
                 return Math.min(lastFrame, Math.floor((this.stateTime * this.def.dieFrameRate) / 1000));
             case PlayerState.Melee:
-                return Math.min(lastFrame, Math.floor((this.stateTime / this.meleeDurationMs) * PLAYER_FRAMES_PER_DIRECTION));
+            case PlayerState.Cast: {
+                const frames = framesPerDirection(this.state);
+                return Math.min(frames - 1, Math.floor((this.stateTime / this.actionDurationMs) * frames));
+            }
             case PlayerState.Run:
                 return Math.floor((this.stateTime * this.def.runFrameRate) / 1000) % PLAYER_FRAMES_PER_DIRECTION;
             default:

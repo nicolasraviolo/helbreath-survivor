@@ -46,7 +46,7 @@ export interface HudState {
     pauseLocked: boolean;
     /** For the stats panel. */
     stats: Readonly<CharacterStats>;
-    /** Melee weapon in hand, if any. */
+    /** Weapon or spell in hand. */
     weaponName: string | undefined;
     /** Share of damage removed by armor (0..1). */
     defense: number;
@@ -253,9 +253,9 @@ function describeDerived(state: HudState): [string, string][] {
     const stats = state.stats;
     const bonus = (multiplier: number) => `${multiplier >= 1 ? '+' : ''}${Math.round((multiplier - 1) * 100)}%`;
     const gear: [string, string][] = [];
-    if (state.weaponName) gear.push(['Weapon', state.weaponName]);
-    // Always shown for classes with armor, so the panel keeps the height it was built with.
-    if (stats.def.canWearArmor) gear.push(['Damage taken', `−${Math.round(state.defense * 100)}%`]);
+    if (state.weaponName) gear.push([stats.def.startWeapon.kind === 'spell' ? 'Spell' : 'Weapon', state.weaponName]);
+    // Always shown (every class can wear something), so the panel keeps the height it was built with.
+    gear.push(['Damage taken', `−${Math.round(state.defense * 100)}%`]);
     return [
         ...gear,
         ['Health', String(stats.maxHp)],

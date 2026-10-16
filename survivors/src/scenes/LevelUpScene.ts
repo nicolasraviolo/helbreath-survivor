@@ -5,8 +5,9 @@ import Phaser from 'phaser';
 import { GAME_WIDTH, LEVEL_UP_INPUT_DELAY_MS } from '../config/gameConfig';
 import { HUD_TOP } from '../config/hud';
 import { px, UI_FONT, UI_FONT_SIZE } from '../config/ui';
-import { ARMOR_PIECES, ARMOR_SLOT_NAMES } from '../data/armor';
+import { ARMOR_SLOT_NAMES, getArmorPiece } from '../data/armor';
 import { STAT_INFO, type StatId } from '../data/stats';
+import { getSpell, SPELL_FAMILIES, type SpellDef } from '../data/spells';
 import { getMeleeWeapon, MELEE_FAMILIES, type MeleeWeaponDef } from '../data/weapons';
 import type { CharacterStats } from '../entities/CharacterStats';
 import type { Equipment } from '../entities/Equipment';
@@ -35,6 +36,7 @@ const TEXT_COLOR = '#e8d9a8';
 /** Badge of the weapon and armor cards. */
 const WEAPON_BADGE = { text: 'Wpn', color: 0x9a9a9a } as const;
 const ARMOR_BADGE = { text: 'Arm', color: 0x6a5030 } as const;
+const SPELL_BADGE = { text: 'Spl', color: 0x3858b0 } as const;
 
 /** What a card shows: badge, title, one line of effect and the "before → after" lines. */
 interface CardText {
@@ -178,16 +180,43 @@ function describeCard(stats: CharacterStats, equipment: Equipment, choice: Level
                 changes: describeWeaponChanges(stats, from, weapon),
             };
         }
+        case 'spellLink':
+        case 'spellSwitch': {
+            const spell = getSpell(choice.spell);
+            const from = getSpell(choice.from);
+            const family = SPELL_FAMILIES[spell.family].name;
+            return {
+                badge: SPELL_BADGE.text, badgeColor: SPELL_BADGE.color, title: spell.name,
+                effect: choice.kind === 'spellLink' ? `${family} · stronger spell` : `${family} · replaces ${from.name}`,
+                changes: describeSpellChanges(stats, from, spell),
+            };
+        }
         case 'armor': {
-            const piece = ARMOR_PIECES[choice.piece];
+            const piece = getArmorPiece(choice.piece);
             const pct = (value: number) => `${Math.round(value * 100)}%`;
+            const changes = [`Damage taken −${pct(equipment.defense)} → −${pct(equipment.defenseWith(choice.piece))}`];
+            const magicAfter = equipment.magicDamageBonusWith(choice.piece);
+            if (magicAfter !== equipment.magicDamageBonus) changes.push(`Magic damage +${pct(equipment.magicDamageBonus)} → +${pct(magicAfter)}`);
             return {
                 badge: ARMOR_BADGE.text, badgeColor: ARMOR_BADGE.color, title: piece.name,
-                effect: choice.from ? `${ARMOR_SLOT_NAMES[piece.slot]} · replaces ${ARMOR_PIECES[choice.from].name}` : ARMOR_SLOT_NAMES[piece.slot],
-                changes: [`Damage taken −${pct(equipment.defense)} → −${pct(equipment.defenseWith(choice.piece))}`],
+                effect: choice.from ? `${ARMOR_SLOT_NAMES[piece.slot]} · replaces ${getArmorPiece(choice.from).name}` : ARMOR_SLOT_NAMES[piece.slot],
+                changes,
             };
         }
     }
+}
+
+/** Damage of one projectile on the enemy it hits (with the Mag bonus), rhythm, projectiles and area: spell in hand → new one. */
+function describeSpellChanges(stats: CharacterStats, from: SpellDef, to: SpellDef): string[] {
+    const damage = (spell: SpellDef) => Math.round((spell.directDamage + spell.areaDamage) * stats.damageMultiplier('magic'));
+    const every = (spell: SpellDef) => `${((spell.cooldownMs * stats.cooldownMultiplier) / 1000).toFixed(2)}s`;
+    const lines = [
+        `Damage ${damage(from)} → ${damage(to)}`,
+        `Cast every ${every(from)} → ${every(to)}`,
+    ];
+    if (from.shots !== to.shots) lines.push(`Projectiles ${from.shots} → ${to.shots}`);
+    if (from.areaRadius !== to.areaRadius) lines.push(`Area ${from.areaRadius} → ${to.areaRadius}`);
+    return lines;
 }
 
 /** Damage (with the Str bonus), attack rhythm, reach and width of the weapon in hand → the new one. */

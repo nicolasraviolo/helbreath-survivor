@@ -1,15 +1,16 @@
 // Proyectil reciclable: vuela en línea recta con su animación de efecto hasta chocar con un enemigo
 // o recorrer su distancia máxima. Lo crea, mueve y recicla WeaponSystem.
 import type Phaser from 'phaser';
+import { effectAnimationKey } from '../config/effects';
 import { DEPTH_EFFECT_OFFSET } from '../config/gameConfig';
-import type { ProjectileWeaponDef } from '../data/weapons';
+import type { SpellDef } from '../data/spells';
 import type { Poolable } from '../utils/Pool';
 
 export class Projectile implements Poolable {
     public poolIndex = -1;
     public x = 0;
     public y = 0;
-    public def!: ProjectileWeaponDef;
+    public def!: SpellDef;
     private vx = 0;
     private vy = 0;
     private remaining = 0;
@@ -20,7 +21,7 @@ export class Projectile implements Poolable {
     }
 
     /** Starts flying from (x, y) towards (targetX, targetY), up to `maxDistance` pixels. */
-    public launch(def: ProjectileWeaponDef, x: number, y: number, targetX: number, targetY: number, maxDistance: number): void {
+    public launch(def: SpellDef, x: number, y: number, targetX: number, targetY: number, maxDistance: number): void {
         this.def = def;
         this.x = x;
         this.y = y;
@@ -30,7 +31,8 @@ export class Projectile implements Poolable {
         this.vx = (dx / distance) * def.speed;
         this.vy = (dy / distance) * def.speed;
         this.remaining = maxDistance;
-        this.sprite.setActive(true).setVisible(true).play(def.flyEffect);
+        // Directional effects (Fire Ball) show the frames of the flight direction.
+        this.sprite.setActive(true).setVisible(true).play(effectAnimationKey(def.flyEffect, dx, dy));
         this.syncDisplay();
     }
 

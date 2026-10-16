@@ -3,10 +3,12 @@
 // Nombre, aspecto y stats iniciales son fijos por ahora (decidido por el propietario el 16-oct-2026).
 import type { Appearance } from '../hb/playerAppearance';
 import type { Stats } from './stats';
-import type { MeleeWeaponId, WeaponId } from './weapons';
+import type { ArmorSetId } from './armor';
+import type { SpellId } from './spells';
+import type { MeleeWeaponId } from './weapons';
 
 /** Weapon the class starts with: a spell that shoots projectiles, or a melee weapon held in the hand. */
-export type StartWeapon = { kind: 'spell'; id: WeaponId } | { kind: 'melee'; id: MeleeWeaponId };
+export type StartWeapon = { kind: 'spell'; id: SpellId } | { kind: 'melee'; id: MeleeWeaponId };
 
 export interface CharacterDef {
     /** Class name. */
@@ -41,8 +43,8 @@ export interface CharacterDef {
     /** Look at level 1. The melee weapon layer is replaced by the weapon in hand. */
     appearance: Appearance;
     startWeapon: StartWeapon;
-    /** Armor cards (data/armor.ts) only show up for classes that can wear it. */
-    canWearArmor: boolean;
+    /** Which pieces of data/armor.ts the class can wear (their cards only show up for it). */
+    armorSet: ArmorSetId;
 }
 
 /** Guerrero al empezar: camisa, pantalón, botas altas y daga. La armadura se gana con las cartas (data/armor.ts). */
@@ -67,14 +69,17 @@ export const MAGE_LOOK = {
     weapon: { sprite: 'gear.wand.m', startSheet: 0 },
 } as const satisfies Appearance;
 
-/** Maga (pedida por el propietario el 16-oct-2026): el mismo equipo en versión femenina, con Wizard Cap en vez de Wizard Hat. */
+/**
+ * Maga (pedida por el propietario el 16-oct-2026) al empezar: corpiño, falda, botas y varita.
+ * La túnica y el gorro se ganan con las cartas (data/armor.ts). La varita es fija: solo estética (no evoluciona).
+ */
 export const MAGE_FEMALE_LOOK = {
     human: { sprite: 'player.body.ww' },
     hair: { sprite: 'player.hair.whr', variant: 0 },
     underwear: { sprite: 'player.underwear.wpt', variant: 0 },
+    hauberk: { sprite: 'gear.bodice.w' },
+    leggings: { sprite: 'gear.skirt.w' },
     boots: { sprite: 'gear.boots.long.w' },
-    helm: { sprite: 'gear.helm.wizardCap.w' },
-    armor: { sprite: 'gear.armor.robe.w' },
     weapon: { sprite: 'gear.wand.w', startSheet: 0 },
 } as const satisfies Appearance;
 
@@ -104,7 +109,7 @@ export const CHARACTERS = {
         cooldownMultiplier: 0.9,
         appearance: MAGE_FEMALE_LOOK,
         startWeapon: { kind: 'spell', id: 'energyBolt' },
-        canWearArmor: false,
+        armorSet: 'mage',
     },
     warrior: {
         ...COMMON,
@@ -120,7 +125,7 @@ export const CHARACTERS = {
         cooldownMultiplier: 1,
         appearance: WARRIOR_LOOK,
         startWeapon: { kind: 'melee', id: 'dagger' },
-        canWearArmor: true,
+        armorSet: 'warrior',
     },
 } as const satisfies Record<string, CharacterDef>;
 

@@ -47,10 +47,17 @@ export const SPRITES = {
     'gear.boots.long.w': { file: 'sprites/wlboots.spr', type: SpriteType.EquipmentPack },
     'gear.armor.robe.w': { file: 'sprites/wrobe1.spr', type: SpriteType.EquipmentPack },
     'gear.helm.wizardCap.w': { file: 'sprites/nwhelm3.spr', type: SpriteType.EquipmentPack },
+    'gear.helm.wizardHat.w': { file: 'sprites/nwhelm4.spr', type: SpriteType.EquipmentPack },
+    // Ropa básica de la Maga al empezar (Bodice y Skirt).
+    'gear.bodice.w': { file: 'sprites/wbodice1.spr', type: SpriteType.EquipmentPack },
+    'gear.skirt.w': { file: 'sprites/wskirt.spr', type: SpriteType.EquipmentPack },
     'gear.wand.w': { file: 'sprites/wstaff1.spr', type: SpriteType.Weapons },
 
     // Efectos de hechizos (ver config/effects.ts para qué hoja y frames usa cada uno).
     'fx.effect': { file: 'sprites/effect.spr', type: SpriteType.Effect },
+    // Hechizos de fuego y Energy Strike (ver config/effects.ts).
+    'fx.effect3': { file: 'sprites/effect3.spr', type: SpriteType.Effect },
+    'fx.effect11': { file: 'sprites/effect11.spr', type: SpriteType.Effect },
     // Polvo de los pasos al correr (Footsteps dry: hoja 1, frames 28–32).
     'fx.effect2': { file: 'sprites/effect2.spr', type: SpriteType.Effect },
 
@@ -84,6 +91,9 @@ export const SOUNDS = {
     // Armas cuerpo a cuerpo: tajo del jugador (PLAYER_MELEE_ATTACK) y golpe con filo en un monstruo (TAKE_DAMAGE_BLADE).
     'sfx.melee.swing': { file: 'sounds/C18.mp3' },
     'sfx.melee.hit': { file: 'sounds/C6.mp3' },
+    // Explosión de fuego (EFFECT_EXPLOSION) y lanzar hechizo (PLAYER_CAST).
+    'sfx.explosion': { file: 'sounds/E4.mp3' },
+    'sfx.cast': { file: 'sounds/C16.mp3' },
     // Pasos al correr (PLAYER_RUNNING).
     'sfx.footsteps': { file: 'sounds/C10.mp3' },
     // Recoger una gema: el sonido de "objeto añadido" del original (sp-client SoundFileNames.ts, ITEM_ADDED_SOUND).

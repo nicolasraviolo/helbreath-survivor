@@ -1,13 +1,14 @@
 // Arma las cartas de subida de nivel (ver la skill anadir-mejora y docs/DESIGN.md → "Cartas al subir de nivel").
 // - Stat: +3 a un stat. Siempre disponible.
-// - Eslabón: el arma más fuerte de TU familia que el Str permite.
-// - Cambio de familia: la mejor arma de otra familia activa que el Str permite; sustituye a la de la mano.
-// - Armadura: la mejor pieza que el Str permite en cada hueco, si es mejor que la que llevas.
+// - Eslabón: el arma (Guerrero) o el hechizo (Maga) más fuerte de TU familia que el Str / Int permite.
+// - Cambio de familia: lo mejor de otra familia activa que el stat permite; sustituye a lo que llevas en la mano.
+// - Armadura / ropa: la mejor pieza de tu clase que el stat permite en cada hueco, si es mejor que la que llevas.
 // Como mucho MAX_ITEM_CARDS cartas de objeto; el resto son de stat, sin repetir.
 import Phaser from 'phaser';
-import { ARMOR_BY_SLOT, ARMOR_PIECES, ARMOR_SLOT_IDS, type ArmorPieceId } from '../data/armor';
+import { ARMOR_BY_SET, ARMOR_SLOT_IDS, getArmorPiece, type ArmorPieceId } from '../data/armor';
+import { getSpell, SPELL_FAMILIES, type SpellFamilyDef, type SpellId } from '../data/spells';
 import { LEVEL_UP_CHOICES, MAX_ITEM_CARDS, STAT_CARD_POINTS, STAT_IDS, type StatId } from '../data/stats';
-import { getMeleeWeapon, MELEE_FAMILIES, type MeleeFamilyDef, type MeleeFamilyId, type MeleeWeaponId } from '../data/weapons';
+import { getMeleeWeapon, MELEE_FAMILIES, type MeleeFamilyDef, type MeleeWeaponId } from '../data/weapons';
 import type { CharacterStats } from '../entities/CharacterStats';
 import type { Equipment } from '../entities/Equipment';
 
@@ -17,6 +18,10 @@ export type LevelUpChoice =
     | { kind: 'weaponLink'; weapon: MeleeWeaponId; from: MeleeWeaponId }
     /** Weapon of another family, replacing the one in hand. */
     | { kind: 'weaponSwitch'; weapon: MeleeWeaponId; from: MeleeWeaponId }
+    /** Next spell of the family in hand. */
+    | { kind: 'spellLink'; spell: SpellId; from: SpellId }
+    /** Spell of another family, replacing the one in hand. */
+    | { kind: 'spellSwitch'; spell: SpellId; from: SpellId }
     | { kind: 'armor'; piece: ArmorPieceId; from: ArmorPieceId | undefined };
 
 export function buildLevelUpChoices(stats: CharacterStats, equipment: Equipment): LevelUpChoice[] {
@@ -27,37 +32,64 @@ export function buildLevelUpChoices(stats: CharacterStats, equipment: Equipment)
 }
 
 function itemChoices(stats: CharacterStats, equipment: Equipment): LevelUpChoice[] {
-    const str = stats.stats.str;
     const choices: LevelUpChoice[] = [];
+    const { str, int } = stats.stats;
 
-    const inHand = equipment.weapon;
-    if (inHand) {
-        const ownFamily = getMeleeWeapon(inHand).family;
-        for (const [familyId, family] of Object.entries(MELEE_FAMILIES) as [MeleeFamilyId, MeleeFamilyDef][]) {
-            if (!family.enabled) continue;
-            const links = family.links;
-            const best = bestAllowed(links, (id) => getMeleeWeapon(id).strRequired <= str);
-            if (!best || best === inHand) continue;
-            if (familyId === ownFamily) {
-                // Only forward: a link stronger than the one in hand.
-                if (links.indexOf(best) > links.indexOf(inHand)) choices.push({ kind: 'weaponLink', weapon: best, from: inHand });
-            } else {
-                choices.push({ kind: 'weaponSwitch', weapon: best, from: inHand });
-            }
+    const weapon = equipment.weapon;
+    if (weapon) {
+        const families = Object.values(MELEE_FAMILIES) as MeleeFamilyDef[];
+        for (const offer of handOffers(families, weapon, getMeleeWeapon(weapon).family, (id) => getMeleeWeapon(id).family,
+            (id) => getMeleeWeapon(id).strRequired <= str)) {
+            choices.push(offer.link ? { kind: 'weaponLink', weapon: offer.id, from: weapon } : { kind: 'weaponSwitch', weapon: offer.id, from: weapon });
         }
     }
 
-    if (stats.def.canWearArmor) {
-        for (const slot of ARMOR_SLOT_IDS) {
-            const pieces = ARMOR_BY_SLOT[slot];
-            const best = bestAllowed(pieces, (id) => ARMOR_PIECES[id].strRequired <= str);
-            const worn = equipment.armor[slot];
-            if (best && (worn === undefined || pieces.indexOf(best) > pieces.indexOf(worn))) {
-                choices.push({ kind: 'armor', piece: best, from: worn });
-            }
+    const spell = equipment.spell;
+    if (spell) {
+        const families = Object.values(SPELL_FAMILIES) as SpellFamilyDef[];
+        for (const offer of handOffers(families, spell, getSpell(spell).family, (id) => getSpell(id).family,
+            (id) => getSpell(id).intRequired <= int)) {
+            choices.push(offer.link ? { kind: 'spellLink', spell: offer.id, from: spell } : { kind: 'spellSwitch', spell: offer.id, from: spell });
+        }
+    }
+
+    const pieces = ARMOR_BY_SET[stats.def.armorSet];
+    for (const slot of ARMOR_SLOT_IDS) {
+        const ordered = pieces[slot];
+        if (!ordered) continue;
+        const best = bestAllowed(ordered, (id) => {
+            const piece = getArmorPiece(id);
+            return piece.required <= stats.stats[piece.stat];
+        });
+        const worn = equipment.armor[slot];
+        if (best && (worn === undefined || ordered.indexOf(best) > ordered.indexOf(worn))) {
+            choices.push({ kind: 'armor', piece: best, from: worn });
         }
     }
     return choices;
+}
+
+/**
+ * Offers for the thing in hand (weapon or spell): in its own family only a stronger link; in every other
+ * enabled family, the best one allowed.
+ */
+function handOffers<Id, Family>(
+    families: ReadonlyArray<{ enabled: boolean; links: readonly Id[] }>,
+    inHand: Id,
+    ownFamily: Family,
+    familyOf: (id: Id) => Family,
+    allowed: (id: Id) => boolean,
+): Array<{ id: Id; link: boolean }> {
+    const offers: Array<{ id: Id; link: boolean }> = [];
+    for (const family of families) {
+        if (!family.enabled) continue;
+        const best = bestAllowed(family.links, allowed);
+        if (best === undefined || best === inHand) continue;
+        const isOwn = familyOf(best) === ownFamily;
+        if (isOwn && family.links.indexOf(best) <= family.links.indexOf(inHand)) continue;
+        offers.push({ id: best, link: isOwn });
+    }
+    return offers;
 }
 
 /** Last (strongest) entry of an ordered list that passes the test. */

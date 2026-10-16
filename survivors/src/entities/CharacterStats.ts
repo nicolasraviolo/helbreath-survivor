@@ -30,6 +30,8 @@ export class CharacterStats {
     /** Level ups waiting for the player to pick a card. */
     public pendingLevelUps = 0;
     public readonly stats: Stats;
+    /** Extra magic damage from the clothes worn (0.1 = +10%), set by the game when they change. */
+    public gearMagicBonus = 0;
 
     constructor(public readonly def: CharacterDef) {
         this.stats = { ...def.startStats };
@@ -75,7 +77,7 @@ export class CharacterStats {
         if (type === 'physical') {
             return this.def.physicalDamageMultiplier * (1 + PHYSICAL_DAMAGE_PER_STR * (this.stats.str - STAT_BASELINE));
         }
-        return this.def.magicDamageMultiplier * (1 + MAGIC_DAMAGE_PER_MAG * (this.stats.mag - STAT_BASELINE));
+        return this.def.magicDamageMultiplier * (1 + MAGIC_DAMAGE_PER_MAG * (this.stats.mag - STAT_BASELINE)) * (1 + this.gearMagicBonus);
     }
 
     public get moveSpeedMultiplier(): number {
@@ -96,6 +98,7 @@ export class CharacterStats {
     public previewWith(stat: StatId, points: number): CharacterStats {
         const copy = new CharacterStats(this.def);
         copy.level = this.level;
+        copy.gearMagicBonus = this.gearMagicBonus;
         for (const id of STAT_IDS) copy.stats[id] = this.stats[id];
         copy.stats[stat] += points;
         return copy;

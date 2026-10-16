@@ -113,6 +113,33 @@ export class EnemySystem {
         return best;
     }
 
+    /** Up to `count` living enemies within `maxDistance` of (x, y), nearest first, written into `out`. */
+    public findNearestSeveral(x: number, y: number, maxDistance: number, count: number, out: Enemy[]): Enemy[] {
+        out.length = 0;
+        const distances: number[] = [];
+        const maxSq = maxDistance * maxDistance;
+        for (const pool of this.pools.values()) {
+            for (const enemy of pool.active) {
+                if (!enemy.isAlive) continue;
+                const dx = enemy.x - x;
+                const dy = enemy.y - y;
+                const distSq = dx * dx + dy * dy;
+                if (distSq >= maxSq) continue;
+                // Insertion into a short sorted list (count is tiny: 3 for Triple Energy Bolt).
+                let i = distances.length;
+                while (i > 0 && (distances[i - 1] ?? 0) > distSq) i--;
+                if (i >= count) continue;
+                distances.splice(i, 0, distSq);
+                out.splice(i, 0, enemy);
+                if (out.length > count) {
+                    out.pop();
+                    distances.pop();
+                }
+            }
+        }
+        return out;
+    }
+
     /** First living enemy whose body (at its `bodyY`) touches the circle (x, y, radius), or undefined. */
     public findTouching(x: number, y: number, radius: number): Enemy | undefined {
         let found: Enemy | undefined;

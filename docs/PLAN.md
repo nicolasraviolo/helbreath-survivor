@@ -96,7 +96,7 @@ survivors/
 ## Fase 6 — Arsenal completo
 > Partida en 3 bloques el 16-oct-2026:
 > - **6A, Guerrero (hecho):** una sola arma en la mano; familias activas Short Swords y Long Swords, con números propios; Hammer, Fencing y Axe desactivadas. Armadura de cuerpo, casco y escudo.
-> - **6B, Mago:** hechizos por Int, eslabones de hechizo, animación de lanzar, túnicas y gorros.
+> - **6B, Mago (hecho, falta probarlo):** un solo hechizo en la mano; familias Energy (Bolt → Triple → Energy Strike) y Fire (Fire Ball → Fire Strike → Mass Fire Strike) por Int; animación de lanzar; Robe → Wizard Robe y Wizard Cap → Wizard Hat por Mag; la varita es fija.
 > - **6C:** pickups (poción, imán, cofre) y pasivas.
 > Actualizada el 16-oct-2026 según la sección **Guerrero** de `docs/DESIGN.md` y `docs/REQUISITOS_HB.md`.
 - **Armas por familia, sin niveles.** Cada familia es una cadena de eslabones reales de Helbreath, con su requisito de Str o Int (Guerrero primero: Espada, Esgrima, Hacha y Martillo; ver `docs/REQUISITOS_HB.md`). Las familias de los otros personajes se definen antes en `docs/DESIGN.md`.

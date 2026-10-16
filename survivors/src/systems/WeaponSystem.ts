@@ -1,19 +1,33 @@
-// Armas del jugador: les da el contexto cada frame, mueve los proyectiles (con pool), detecta impactos
-// y lanza las explosiones, cuyo daño aplica CombatSystem. También los tajos cuerpo a cuerpo (animación, estela y daño).
+// Armas del jugador: les da el contexto cada frame, mueve los proyectiles de los hechizos (con pool), detecta impactos
+// y lanza las explosiones (algunas con retraso, como Fire Strike), cuyo daño aplica CombatSystem una sola vez.
+// También los tajos cuerpo a cuerpo (animación, estela y daño).
 import Phaser from 'phaser';
 import { MELEE_ORIGIN_OFFSET_Y } from '../config/gameConfig';
 import { SWING_SOUND_MS } from '../data/audio';
 import type { EffectKey } from '../config/effects';
-import { MELEE_HIT_SOUND, MELEE_SWING_SOUND, type ProjectileWeaponDef } from '../data/weapons';
+import { CAST_SOUND, type SpellBurst, type SpellDef } from '../data/spells';
+import { MELEE_HIT_SOUND, MELEE_SWING_SOUND } from '../data/weapons';
 import { Effect } from '../entities/Effect';
 import type { Enemy } from '../entities/Enemy';
 import { Projectile } from '../entities/Projectile';
 import { Slash } from '../entities/Slash';
-import { Pool } from '../utils/Pool';
+import { Pool, type Poolable } from '../utils/Pool';
 import type { Weapon, WeaponContext } from '../weapons/Weapon';
 import type { AudioSystem } from './AudioSystem';
 import type { CombatSystem } from './CombatSystem';
 import type { EnemySystem } from './EnemySystem';
+
+/** Owner animation asked by a weapon: a melee swing or a cast. */
+export type OwnerAction = 'melee' | 'cast';
+
+/** An explosion waiting to be drawn (Fire Strike: 4 explosions 0–140 ms apart). */
+class PendingBurst implements Poolable {
+    public poolIndex = -1;
+    public burst!: SpellBurst;
+    public x = 0;
+    public y = 0;
+    public waitMs = 0;
+}
 
 export class WeaponSystem {
     private readonly weapons: Weapon[] = [];
@@ -23,8 +37,11 @@ export class WeaponSystem {
     private readonly finishedEffects: Effect[] = [];
     private readonly context: WeaponContext & { x: number; y: number; cooldownMultiplier: number };
     private readonly slash: Slash;
-    /** Plays the owner's melee animation (set by the game scene). */
-    private onMeleeSwing: (angle: number, durationMs: number) => void = () => undefined;
+    private readonly bursts = new Pool(() => new PendingBurst());
+    private readonly finishedBursts: PendingBurst[] = [];
+    private readonly nearest: Enemy[] = [];
+    /** Plays the owner's swing or cast animation (set by the game scene). */
+    private onOwnerAction: (action: OwnerAction, angle: number, durationMs: number) => void = () => undefined;
 
     constructor(
         scene: Phaser.Scene,
@@ -41,11 +58,16 @@ export class WeaponSystem {
             cooldownMultiplier: 1,
             audio,
             findNearestEnemy: (maxDistance) => enemies.findNearest(this.context.x, this.context.y, maxDistance),
+            findNearestEnemies: (maxDistance, count) => enemies.findNearestSeveral(this.context.x, this.context.y, maxDistance, count, this.nearest),
             launchProjectile: (def, fromX, fromY, toX, toY, maxDistance) => {
                 this.projectiles.acquire().launch(def, fromX, fromY, toX, toY, maxDistance);
             },
+            castSpell: (angle, durationMs) => {
+                this.onOwnerAction('cast', angle, durationMs);
+                audio.play(CAST_SOUND, durationMs);
+            },
             swingMelee: (def, angle, durationMs) => {
-                this.onMeleeSwing(angle, durationMs);
+                this.onOwnerAction('melee', angle, durationMs);
                 this.slash.show(this.context.x, this.context.y - MELEE_ORIGIN_OFFSET_Y, def.range, angle, Phaser.Math.DegToRad(def.arcDegrees));
             },
             hitMelee: (def, angle) => {
@@ -86,8 +108,8 @@ export class WeaponSystem {
         this.effects.acquire().play(key, x, y);
     }
 
-    public setMeleeSwingHandler(handler: (angle: number, durationMs: number) => void): void {
-        this.onMeleeSwing = handler;
+    public setOwnerActionHandler(handler: (action: OwnerAction, angle: number, durationMs: number) => void): void {
+        this.onOwnerAction = handler;
     }
 
     public setCooldownMultiplier(value: number): void {
@@ -112,6 +134,15 @@ export class WeaponSystem {
             }
         }
         this.slash.update(deltaMs);
+        for (const pending of this.bursts.active) {
+            pending.waitMs -= deltaMs;
+            if (pending.waitMs <= 0) {
+                this.drawBurst(pending.burst, pending.x, pending.y);
+                this.finishedBursts.push(pending);
+            }
+        }
+        for (const pending of this.finishedBursts) this.bursts.release(pending);
+        this.finishedBursts.length = 0;
         for (const effect of this.effects.active) {
             if (!effect.update()) this.finishedEffects.push(effect);
         }
@@ -122,11 +153,21 @@ export class WeaponSystem {
         this.finishedEffects.length = 0;
     }
 
-    private explode(def: ProjectileWeaponDef, x: number, y: number, direct: Enemy | undefined): void {
-        this.effects.acquire().play(def.explodeEffect, x, y);
-        this.audio.play(def.impactSound);
+    /** Impact: the damage lands once; the explosions are drawn now or after their delay. */
+    private explode(def: SpellDef, x: number, y: number, direct: Enemy | undefined): void {
+        for (const burst of def.bursts) {
+            if (burst.delayMs <= 0) {
+                this.drawBurst(burst, x, y);
+                continue;
+            }
+            const pending = this.bursts.acquire();
+            pending.burst = burst;
+            pending.x = x;
+            pending.y = y;
+            pending.waitMs = burst.delayMs;
+        }
         this.combat.hitArea({
-            damageType: def.damageType,
+            damageType: 'magic',
             x,
             y,
             radius: def.areaRadius,
@@ -135,5 +176,10 @@ export class WeaponSystem {
             directDamage: def.directDamage,
             knockback: def.knockback,
         });
+    }
+
+    private drawBurst(burst: SpellBurst, x: number, y: number): void {
+        this.effects.acquire().play(burst.effect, x + burst.dx, y + burst.dy);
+        if (burst.sound) this.audio.play(burst.sound);
     }
 }

@@ -13,6 +13,7 @@ import { CHARACTERS, CHOSEN_CHARACTER_KEY, DEFAULT_CHARACTER, isCharacterId } fr
 import { DEFAULT_MAP, MAPS_DATA } from '../data/maps';
 import { MIN_DAMAGE_TAKEN } from '../data/armor';
 import { MELEE_ROOT_MOMENT } from '../data/weapons';
+import { CAST_RELEASE_MOMENT } from '../data/spells';
 import { FOOTSTEP_DUST_EVERY_PX, FOOTSTEPS_PER_RUN_CYCLE } from '../data/audio';
 import { PLAYER_FRAMES_PER_DIRECTION } from '../hb/playerAppearance';
 import { CharacterStats } from '../entities/CharacterStats';
@@ -31,7 +32,8 @@ import { SpawnSystem } from '../systems/SpawnSystem';
 import { WeaponSystem } from '../systems/WeaponSystem';
 import { XpSystem } from '../systems/XpSystem';
 import { formatTime } from '../utils/format';
-import { EnergyBolt } from '../weapons/EnergyBolt';
+import { SpellWeapon } from '../weapons/SpellWeapon';
+import { PlayerState } from '../hb/playerAppearance';
 import { MeleeWeapon } from '../weapons/MeleeWeapon';
 import { directionFromVector } from '../hb/directions';
 import { buildLevelUpChoices } from '../systems/UpgradePool';
@@ -40,14 +42,14 @@ import type { LevelUpChoice, LevelUpSceneData } from './LevelUpScene';
 
 /** Enemies created by the debug "spawn many" key. */
 const DEBUG_SPAWN_COUNT = 100;
-/** Str added by the debug key (to see weapon links and armor show up quickly). */
+/** Points added by the debug keys V (Str) and B (Int and Mag), to see links and armor show up quickly. */
 const DEBUG_STR_POINTS = 10;
 
 /**
  * Escena de partida con la clase elegida en CharacterSelectScene: mapa, jugador, enemigos que lo persiguen, un arma automática (Energy Bolt),
  * gemas de XP y subida de nivel con cartas (Fase 5).
  * Mover: WASD/flechas, stick/cruceta o mantener clic. Esc / Start: pausa. F1 / View: depuración · T: prueba del Orc.
- * Solo en desarrollo: N 100 enemigos · K matar los visibles · G invencible · X subir un nivel · V +10 Str.
+ * Solo en desarrollo: N 100 enemigos · K matar los visibles · G invencible · X subir un nivel · V +10 Str · B +10 Int y Mag.
  */
 export class GameScene extends Phaser.Scene {
     private inputSystem!: InputSystem;
@@ -69,6 +71,8 @@ export class GameScene extends Phaser.Scene {
     private equipment!: Equipment;
     /** Melee weapon in hand (Warrior); undefined for spell casters. */
     private meleeWeapon: MeleeWeapon | undefined;
+    /** Spell in hand (Mage); undefined for melee classes. */
+    private spellWeapon: SpellWeapon | undefined;
     private levelUpOpen = false;
     /** Pixels run since the last puff of footstep dust, and where the player was last frame. */
     private dustDistance = 0;
@@ -120,17 +124,20 @@ export class GameScene extends Phaser.Scene {
         this.weapons = new WeaponSystem(this, this.enemies, this.combat, this.audio);
         this.equipment = new Equipment(character);
         this.meleeWeapon = undefined;
+        this.spellWeapon = undefined;
         if (character.startWeapon.kind === 'melee') {
             this.meleeWeapon = new MeleeWeapon(character.startWeapon.id);
             this.weapons.add(this.meleeWeapon);
             this.player.setGear('weapon', this.equipment.weaponLayer());
         } else {
-            this.weapons.add(new EnergyBolt());
+            this.spellWeapon = new SpellWeapon(character.startWeapon.id);
+            this.weapons.add(this.spellWeapon);
         }
-        this.weapons.setMeleeSwingHandler((angle, durationMs) => {
-            // Stands still until the blow lands (as in the original), then can run again.
+        this.weapons.setOwnerActionHandler((action, angle, durationMs) => {
+            // Stands still until the blow lands or the spell leaves (as in the original), then can run again.
             const direction = directionFromVector(Math.cos(angle), Math.sin(angle)) ?? this.player.direction;
-            this.player.swing(direction, durationMs, durationMs * MELEE_ROOT_MOMENT);
+            if (action === 'melee') this.player.act(PlayerState.Melee, direction, durationMs, durationMs * MELEE_ROOT_MOMENT);
+            else this.player.act(PlayerState.Cast, direction, durationMs, durationMs * CAST_RELEASE_MOMENT);
         });
         this.player.setMaxHp(this.stats.maxHp, true);
         this.applyStats();
@@ -160,6 +167,7 @@ export class GameScene extends Phaser.Scene {
         this.player.setMaxHp(stats.maxHp);
         this.player.speedMultiplier = stats.moveSpeedMultiplier;
         this.weapons.setCooldownMultiplier(stats.cooldownMultiplier);
+        stats.gearMagicBonus = this.equipment.magicDamageBonus;
     }
 
     /** Pauses the game and shows the cards. Picking one applies it and resumes. */
@@ -175,9 +183,6 @@ export class GameScene extends Phaser.Scene {
                 stats.pendingLevelUps--;
                 this.applyStats();
                 this.levelUpOpen = false;
-        this.dustDistance = 0;
-        this.lastX = this.player.x;
-        this.lastY = this.player.y;
                 this.scene.stop('LevelUp');
                 this.scene.resume();
             },
@@ -202,6 +207,16 @@ export class GameScene extends Phaser.Scene {
                 this.player.setGear('weapon', this.equipment.weaponLayer());
                 break;
             }
+            case 'spellLink':
+            case 'spellSwitch': {
+                // One spell in hand, like the Warrior's weapon. The wand stays: it is only for looks.
+                const spell = new SpellWeapon(choice.spell);
+                if (this.spellWeapon) this.weapons.replace(this.spellWeapon, spell);
+                else this.weapons.add(spell);
+                this.spellWeapon = spell;
+                this.equipment.spell = choice.spell;
+                break;
+            }
             case 'armor':
                 for (const [slot, layer] of this.equipment.wear(choice.piece)) this.player.setGear(slot, layer);
                 break;
@@ -224,7 +239,7 @@ export class GameScene extends Phaser.Scene {
                 kills: this.combat.kills,
                 pauseLocked: this.player.isDead || this.levelUpOpen,
                 stats: this.stats,
-                weaponName: this.meleeWeapon?.def.name,
+                weaponName: this.meleeWeapon?.def.name ?? this.spellWeapon?.def.name,
                 defense: this.equipment.defense,
             }),
         };
@@ -332,6 +347,11 @@ export class GameScene extends Phaser.Scene {
         }
         if (input.justPressed(Action.DebugAddStr)) {
             this.stats.addStat('str', DEBUG_STR_POINTS);
+            this.applyStats();
+        }
+        if (input.justPressed(Action.DebugAddMagic)) {
+            this.stats.addStat('int', DEBUG_STR_POINTS);
+            this.stats.addStat('mag', DEBUG_STR_POINTS);
             this.applyStats();
         }
         if (input.justPressed(Action.DebugGodMode)) {

@@ -25,6 +25,7 @@ export enum Action {
     DebugGodMode = 'debugGodMode',
     DebugGiveXp = 'debugGiveXp',
     DebugAddStr = 'debugAddStr',
+    DebugAddMagic = 'debugAddMagic',
 }
 
 export type InputDevice = 'keyboard' | 'mouse' | 'gamepad' | 'none';
@@ -45,6 +46,7 @@ const KEYBOARD_ACTIONS: Record<Action, number[]> = {
     [Action.DebugGodMode]: [KEY.G],
     [Action.DebugGiveXp]: [KEY.X],
     [Action.DebugAddStr]: [KEY.V],
+    [Action.DebugAddMagic]: [KEY.B],
 };
 
 /** Standard Gamepad API button indices (Xbox layout). */
