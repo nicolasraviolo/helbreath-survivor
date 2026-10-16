@@ -80,17 +80,28 @@ survivors/
 - **Aceptación:** el arma dispara sola, mata, se ven números de daño y suena bien.
 
 ## Fase 5 — Experiencia y subida de nivel
+> Actualizada el 16-oct-2026 según la sección **Guerrero** de `docs/DESIGN.md`: no hay "subir arma", porque las armas no tienen nivel.
 - `XpGem` con pooling, radio de imán, barra de XP.
-- Curva de nivel en `data/`. Al subir: pausa + `LevelUpScene` con 3 cartas (arma nueva, subir arma, pasiva) con icono, nombre y efecto.
-- `HudScene`: vida, XP, nivel, tiempo, kills.
+- Curva de nivel en `data/`.
+- **Stats del personaje** en `data/` (Str, Vit, Dex, Int, Mag, Chr), con valores iniciales por personaje. El Guerrero gana +1 Str y +1 Vit automáticos por nivel.
+- **Requisitos:** una función única (`meetsRequirement`) compara los stats con el requisito de cada objeto o hechizo. Los números son los originales de `docs/REQUISITOS_HB.md` multiplicados por `REQ_SCALE` (0.4 al inicio); todo vive en `data/`.
+- Al subir: pausa + `LevelUpScene` con 3 cartas sacadas de un pool por tipos, cada una con icono, nombre y efecto. En esta fase se implementa la carta **Stat** (+3 puntos a un stat a elegir, siempre disponible); los tipos Arma nueva, Mejora de eslabón y Armadura se enchufan en la Fase 6.
+- `HudScene`: vida, XP, nivel, tiempo, kills y stats principales.
 - Las cartas de `LevelUpScene` se eligen con flechas/cruceta/stick + Enter/**A**, además del ratón; siempre hay una carta resaltada.
-- **Aceptación:** se sube de nivel varias veces y las mejoras se notan; se puede elegir carta solo con el mando.
+- **Aceptación:** se sube de nivel varias veces, las cartas de stat suben los stats y se nota en la partida (vida, daño); se puede elegir carta solo con el mando.
 - 👉 Tras esta fase: `/nueva-skill añadir-mejora`.
 
 ## Fase 6 — Arsenal completo
-- Armas, pasivas y evoluciones de `docs/DESIGN.md`, reutilizando visuales de `sp-client/src/game/spells/` y `game/effects/` adaptados a disparo automático y pooling.
-- Pickups: poción, imán, cofre.
-- **Aceptación:** una partida de 10 min permite builds distintas; las evoluciones funcionan.
+> Actualizada el 16-oct-2026 según la sección **Guerrero** de `docs/DESIGN.md` y `docs/REQUISITOS_HB.md`.
+- **Armas por familia, sin niveles.** Cada familia es una cadena de eslabones reales de Helbreath, con su requisito de Str o Int (Guerrero primero: Espada, Esgrima, Hacha y Martillo; ver `docs/REQUISITOS_HB.md`). Las familias de los otros personajes se definen antes en `docs/DESIGN.md`.
+- **Nuevos tipos de carta:**
+  - *Arma nueva*: solo si se cumple el requisito.
+  - *Mejora de eslabón*: el arma más fuerte de esa familia que el stat permite; se equipa sola y solo cambia el daño base.
+  - *Armadura*: la mejor pieza que el Str permite en Cuerpo, Casco o Escudo; se equipa sola y cambia el aspecto.
+- **Evoluciones = eslabones.** Sustituyen a "arma nivel 8 + pasiva con cofre". Pasivas: las de `docs/DESIGN.md` que sigan vigentes (Botas, Amuleto imán...).
+- Reutilizar visuales de `sp-client/src/game/spells/` y `game/effects/` adaptados a disparo automático y pooling.
+- Pickups: poción, imán, cofre. Por ahora el cofre da un buff ofensivo o defensivo temporal aleatorio.
+- **Aceptación:** una partida de 10 min permite builds distintas según los stats y eslabones elegidos; al llegar al Str requerido aparece la carta del eslabón y al elegirla cambia el arma; la armadura cambia el aspecto.
 - 👉 Tras esta fase: `/nueva-skill añadir-arma`.
 
 ## Fase 7 — Oleadas, jefes y final
