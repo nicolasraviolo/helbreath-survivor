@@ -243,3 +243,26 @@ Los copiamos a `survivors/src/hb/` con la cabecera de licencia (regla 2 de CLAUD
   - Los navegadores solo muestran el mando **después de pulsar un botón** con la página enfocada.
 - **Mando sin mando físico:** basta con sobrescribir `navigator.getGamepads` y devolver un objeto con `axes`, `buttons`, `mapping: 'standard'` y `connected: true`.
 - **Ratón:** mientras se mantiene el clic izquierdo, el jugador corre hacia el cursor, con velocidad gradual hasta 64 px (`POINTER_*` en `gameConfig.ts`).
+
+## Aprendido en la Fase 3
+- **Rendimiento:** con 312 enemigos (un sprite más la sombra cada uno), el juego va a unos 138 FPS en el navegador interno. La lógica de todos los enemigos (rejilla, separación, persecución) cuesta **0,14 ms por frame**. Hay mucho margen antes de necesitar optimizaciones.
+- **Sombra de monstruo** (`MonsterShadow.BodyShadow` en sp-client):
+  - Es una copia del frame con tinte negro, `alpha 0,5`, rotación −45° y `scaleY 0,5`, con origen en el centro inferior del frame.
+  - Ojo: `setTexture` aplica el pivote propio del frame (customPivot), así que hay que llamar a `setOrigin(0.5, 1)` **después**.
+  - Slime, Ant y Scorpion no tienen sombra en el original.
+- **Velocidades del servidor** (`multiplayer/server/Config/Monsters.json`): están en **ms por casilla** (Slime 800, Orc 700, Ant/Bunny/Zombie 220). El resto de stats son por defecto (`Settings.json`: hp 100, daño 1–5). No hay campo de experiencia: el balance es nuestro.
+- **`temporalCoefficient`:** el original pone 0,5 en casi todos. Nosotros dejamos 1, porque con la regla `10 fps × frames/8` ya se ve bien (decidido en la Fase 1).
+- **El río de huntzone2 atasca enemigos:** persiguen en línea recta y, al chocar, se deslizan de lado.
+  - Los que quedan muy lejos (más de 1,8 × media diagonal de pantalla) se recolocan cada segundo en el anillo de aparición (`SPAWN.relocate*`).
+  - Los que se atascan en la orilla visible esperan hasta que el jugador se aleje.
+- **Monstruos junto al agua:** el sprite se dibuja hacia arriba desde los pies, así que uno en la orilla sur "parece" estar dentro del río. Es correcto.
+- **Muerte del jugador:** en el estado Die el original oculta arma y escudo. Lo replicamos devolviendo `undefined` en `getLayerFrame`.
+
+## Requisitos de equipo y hechizos (datos originales)
+Tabla completa en `docs/REQUISITOS_HB.md`. Lo no obvio:
+- **Los datos no están en `sp-client`:** `Items.ts` y `Spells.ts` solo tienen nombre y sprites. Los requisitos reales están en `reference/Item*.cfg` y `reference/Magic.cfg` (formato de columnas fijo, orden en `reference/Server.cpp`).
+- **Dos umbrales de Str en las armas:** equiparla pide `peso/100`; el *full swing* pide `velocidad × 13` (Flameberge: 60 y 130). En el survivors usamos solo el de full swing.
+- **Armaduras:** solo piden `peso/100` de Str, más un segundo stat en algunas piezas (`EffectValue4` = tipo, `EffectValue5` = mínimo).
+- **Robes y gorros de mago piden Mag**, no Int. Int solo gobierna los hechizos (`ReqInt`).
+- **Puntos de stat del original:** 70 al empezar, +3 por nivel, tope 200 por stat.
+- **Escala:** se guardan los números originales y se aplica un multiplicador global `REQ_SCALE` (inicial 0.4) al leerlos.

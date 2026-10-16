@@ -1,4 +1,4 @@
-// Panel de depuración (F1 o botón View del mando): FPS, posición, dispositivo de entrada,
+// Panel de depuración (F1 o botón View del mando): FPS, posición, dispositivo de entrada, datos de la escena,
 // caja de choque del jugador y casillas no transitables cercanas en rojo.
 import Phaser from 'phaser';
 import { DEPTH_DEBUG, TILE_SIZE } from '../config/gameConfig';
@@ -22,6 +22,8 @@ export class DebugSystem {
         private readonly map: HBMap,
         private readonly player: Player,
         private readonly input: InputSystem,
+        /** Extra lines provided by the scene (enemy count, health…). */
+        private readonly extraLines: () => string[] = () => [],
     ) {
         this.graphics = scene.add.graphics().setDepth(DEPTH_DEBUG);
         this.text = scene.add.text(8, 8, '', {
@@ -51,6 +53,7 @@ export class DebugSystem {
             `Mov: ${move.x.toFixed(2)}, ${move.y.toFixed(2)}  (${move.length().toFixed(2)})`,
             `Entrada: ${this.input.getLastDevice()}`,
             `Mando: ${this.input.getGamepadName() ?? 'no detectado (pulsa un botón)'}`,
+            ...this.extraLines(),
         ]);
 
         const g = this.graphics.clear();

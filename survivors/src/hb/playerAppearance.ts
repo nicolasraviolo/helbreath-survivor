@@ -10,6 +10,7 @@ import { Direction } from './directions';
 export enum PlayerState {
     IdleCombat = 'idleCombat',
     Run = 'run',
+    Die = 'die',
 }
 
 export type GearSlot = 'human' | 'hair' | 'underwear' | 'hauberk' | 'leggings' | 'boots' | 'helm' | 'armor' | 'weapon' | 'cape' | 'shield' | 'accessory';
@@ -18,18 +19,24 @@ export type GearSlot = 'human' | 'hair' | 'underwear' | 'hauberk' | 'leggings' |
 const HUMAN_SPRITESHEET_BASE: Record<PlayerState, number> = {
     [PlayerState.IdleCombat]: 8,
     [PlayerState.Run]: 32,
+    [PlayerState.Die]: 88,
 };
 
 /** Hair, underwear and equipment: one sheet per state with 8 frames per direction inside. */
 const ARMOUR_SPRITESHEET_BASE: Record<PlayerState, number> = {
     [PlayerState.IdleCombat]: 1,
     [PlayerState.Run]: 4,
+    [PlayerState.Die]: 11,
 };
 
-/** Weapons: sheet = start + index * 8 + direction. Shields: sheet = start + index. */
-const ARMAMENT_STATE_INDEX: Record<PlayerState, number> = {
+/**
+ * Weapons: sheet = start + index * 8 + direction. Shields: sheet = start + index.
+ * Undefined = the original hides weapon and shield in that state (Die, Cast…).
+ */
+const ARMAMENT_STATE_INDEX: Record<PlayerState, number | undefined> = {
     [PlayerState.IdleCombat]: 1,
     [PlayerState.Run]: 6,
+    [PlayerState.Die]: undefined,
 };
 
 /** Hair and underwear files hold 12 sheets per style / colour. */
@@ -84,15 +91,21 @@ export interface LayerFrame {
     frame: string;
 }
 
-/** Which texture/frame a layer shows for a state, direction and animation frame (0..7). */
-export function getLayerFrame(slot: GearSlot, layer: GearLayer, state: PlayerState, direction: Direction, frameIndex: number): LayerFrame {
+/**
+ * Which texture/frame a layer shows for a state, direction and animation frame (0..7).
+ * Undefined when the layer is hidden in that state.
+ */
+export function getLayerFrame(slot: GearSlot, layer: GearLayer, state: PlayerState, direction: Direction, frameIndex: number): LayerFrame | undefined {
+    const armament = ARMAMENT_STATE_INDEX[state];
     switch (slot) {
         case 'human':
             return fullFrame(layer.sprite, HUMAN_SPRITESHEET_BASE[state] + direction, frameIndex);
         case 'weapon':
-            return fullFrame(layer.sprite, (layer.startSheet ?? 0) + ARMAMENT_STATE_INDEX[state] * 8 + direction, frameIndex);
+            return armament === undefined ? undefined
+                : fullFrame(layer.sprite, (layer.startSheet ?? 0) + armament * 8 + direction, frameIndex);
         case 'shield':
-            return subFrame(layer.sprite, (layer.startSheet ?? 0) + ARMAMENT_STATE_INDEX[state], direction, frameIndex);
+            return armament === undefined ? undefined
+                : subFrame(layer.sprite, (layer.startSheet ?? 0) + armament, direction, frameIndex);
         case 'hair':
         case 'underwear': {
             // Hair style 2 renders as style 0 in the original.

@@ -1,6 +1,8 @@
-// El jugador: posición libre en píxeles (sus pies), movimiento con choque contra el mapa y
-// dibujo por capas. Todas las capas avanzan con un único reloj para que nunca se desincronicen.
+// El jugador: posición libre en píxeles (sus pies), movimiento con choque contra el mapa,
+// vida con invulnerabilidad tras un golpe y dibujo por capas. Todas las capas avanzan con un
+// único reloj para que nunca se desincronicen.
 import Phaser from 'phaser';
+import { PLAYER_BLINK_MS } from '../config/gameConfig';
 import type { CharacterDef } from '../data/characters';
 import type { HBMap } from '../hb/HBMap';
 import { Direction, directionFromVector } from '../hb/directions';
@@ -12,18 +14,33 @@ import {
     type GearLayer,
     type GearSlot,
 } from '../hb/playerAppearance';
+import { canStandAt, moveAxis } from '../utils/collision';
 
 /** Approximate size of the drawn character, used to fade map objects that cover it. */
 const VISUAL_WIDTH = 32;
 const VISUAL_HEIGHT = 80;
 
+/** Health bar over the head. */
+const BAR_WIDTH = 30;
+const BAR_HEIGHT = 4;
+const BAR_OFFSET_Y = -74;
+const BAR_BACK_COLOR = 0x200808;
+const BAR_FILL_COLOR = 0xd83030;
+/** Debug invincibility tint. */
+const GOD_MODE_TINT = 0xffd860;
+
 export class Player {
     public readonly container: Phaser.GameObjects.Container;
     public state = PlayerState.IdleCombat;
     public direction = Direction.South;
+    public hp: number;
+    /** Debug: ignores all damage. Change it with setGodMode so the player shows it. */
+    public godMode = false;
     private readonly layers = new Map<GearSlot, { def: GearLayer; sprite: Phaser.GameObjects.Sprite }>();
+    private readonly healthBar: Phaser.GameObjects.Graphics;
     private readonly bounds = new Phaser.Geom.Rectangle();
     private animTime = 0;
+    private invulnerableMs = 0;
     private shownFrame = -1;
     private orderKey = '';
 
@@ -36,17 +53,36 @@ export class Player {
         /** Playable rectangle in pixels; the feet never leave it. */
         private readonly area: Phaser.Geom.Rectangle,
     ) {
+        this.hp = def.maxHp;
         this.container = scene.add.container(x, y);
         for (const [slot, layer] of Object.entries(def.appearance) as [GearSlot, GearLayer][]) {
             const sprite = scene.make.sprite({ x: 0, y: 0, key: '__DEFAULT' }, false);
             this.container.add(sprite);
             this.layers.set(slot, { def: layer, sprite });
         }
+        this.healthBar = scene.make.graphics({}, false);
+        this.container.add(this.healthBar);
+        this.drawHealthBar();
         this.refresh(true);
+    }
+
+    public get isDead(): boolean {
+        return this.state === PlayerState.Die;
+    }
+
+    /** Time since death in milliseconds (0 while alive). */
+    public get deadForMs(): number {
+        return this.isDead ? this.animTime : 0;
     }
 
     /** Moves with a 0..1 input vector, then updates animation, layer order and depth. */
     public update(move: Readonly<Phaser.Math.Vector2>, deltaMs: number): void {
+        this.animTime += deltaMs;
+        if (this.isDead) {
+            this.refresh(false);
+            return;
+        }
+
         const moving = move.lengthSq() > 0;
         const newState = moving ? PlayerState.Run : PlayerState.IdleCombat;
         const newDirection = directionFromVector(move.x, move.y) ?? this.direction;
@@ -59,24 +95,41 @@ export class Player {
 
         if (moving) {
             const distance = (this.def.speed * deltaMs) / 1000;
-            this.tryMove(move.x * distance, 0);
-            this.tryMove(0, move.y * distance);
+            const half = this.def.hitboxHalfSize;
+            moveAxis(this, move.x * distance, 0, this.map, this.area, half, true);
+            moveAxis(this, 0, move.y * distance, this.map, this.area, half, true);
         }
 
-        this.animTime += deltaMs;
+        this.updateInvulnerability(deltaMs);
         this.container.setPosition(this.x, this.y).setDepth(this.y);
         this.refresh(changed);
     }
 
-    /** True when the whole hitbox (a square around the feet) is on walkable tiles inside the play area. */
-    public canStandAt(x: number, y: number): boolean {
-        const h = this.def.hitboxHalfSize;
-        const { area, map } = this;
-        if (x - h < area.left || x + h >= area.right || y - h < area.top || y + h >= area.bottom) {
+    /** Applies damage unless invulnerable. Returns true if the hit landed. */
+    public takeDamage(amount: number): boolean {
+        if (amount <= 0 || this.isDead || this.godMode || this.invulnerableMs > 0) {
             return false;
         }
-        return map.isWalkableAtPixel(x - h, y - h) && map.isWalkableAtPixel(x + h, y - h)
-            && map.isWalkableAtPixel(x - h, y + h) && map.isWalkableAtPixel(x + h, y + h);
+        this.hp = Math.max(0, this.hp - amount);
+        this.invulnerableMs = this.def.invulnerabilityMs;
+        this.drawHealthBar();
+        if (this.hp === 0) {
+            this.die();
+        }
+        return true;
+    }
+
+    /** Debug invincibility, shown as a golden tint on every layer. */
+    public setGodMode(enabled: boolean): void {
+        this.godMode = enabled;
+        for (const { sprite } of this.layers.values()) {
+            if (enabled) sprite.setTint(GOD_MODE_TINT);
+            else sprite.clearTint();
+        }
+    }
+
+    public canStandAt(x: number, y: number): boolean {
+        return canStandAt(this.map, this.area, x, y, this.def.hitboxHalfSize);
     }
 
     public getHitbox(out: Phaser.Geom.Rectangle): Phaser.Geom.Rectangle {
@@ -89,36 +142,57 @@ export class Player {
         return this.bounds.setTo(this.x - VISUAL_WIDTH / 2, this.y - VISUAL_HEIGHT, VISUAL_WIDTH, VISUAL_HEIGHT);
     }
 
-    /**
-     * Moves along one axis. When blocked, steps as far as possible so the player ends up touching
-     * the wall; moving the axes separately makes diagonal movement slide along walls.
-     */
-    private tryMove(dx: number, dy: number): void {
-        if (this.canStandAt(this.x + dx, this.y + dy)) {
-            this.x += dx;
-            this.y += dy;
-            return;
-        }
-        const steps = Math.ceil(Math.abs(dx + dy));
-        const stepX = Math.sign(dx);
-        const stepY = Math.sign(dy);
-        for (let i = 0; i < steps && this.canStandAt(this.x + stepX, this.y + stepY); i++) {
-            this.x += stepX;
-            this.y += stepY;
+    private die(): void {
+        this.state = PlayerState.Die;
+        this.animTime = 0;
+        this.invulnerableMs = 0;
+        this.container.setAlpha(1);
+        this.healthBar.setVisible(false);
+        this.refresh(true);
+    }
+
+    /** Blinks while invulnerable after a hit. */
+    private updateInvulnerability(deltaMs: number): void {
+        if (this.invulnerableMs <= 0) return;
+        this.invulnerableMs = Math.max(0, this.invulnerableMs - deltaMs);
+        const visible = this.invulnerableMs === 0 || Math.floor(this.invulnerableMs / PLAYER_BLINK_MS) % 2 === 0;
+        this.container.setAlpha(visible ? 1 : 0.35);
+    }
+
+    private drawHealthBar(): void {
+        const ratio = this.hp / this.def.maxHp;
+        const left = -BAR_WIDTH / 2;
+        this.healthBar.clear()
+            .fillStyle(BAR_BACK_COLOR, 0.8)
+            .fillRect(left - 1, BAR_OFFSET_Y - 1, BAR_WIDTH + 2, BAR_HEIGHT + 2)
+            .fillStyle(BAR_FILL_COLOR, 1)
+            .fillRect(left, BAR_OFFSET_Y, BAR_WIDTH * ratio, BAR_HEIGHT);
+    }
+
+    private currentFrame(): number {
+        const lastFrame = PLAYER_FRAMES_PER_DIRECTION - 1;
+        switch (this.state) {
+            case PlayerState.Die:
+                // Played once, then stays on the last frame.
+                return Math.min(lastFrame, Math.floor((this.animTime * this.def.dieFrameRate) / 1000));
+            case PlayerState.Run:
+                return Math.floor((this.animTime * this.def.runFrameRate) / 1000) % PLAYER_FRAMES_PER_DIRECTION;
+            default:
+                return Math.floor((this.animTime * this.def.idleFrameRate) / 1000) % PLAYER_FRAMES_PER_DIRECTION;
         }
     }
 
     private refresh(force: boolean): void {
-        const frameRate = this.state === PlayerState.Run ? this.def.runFrameRate : this.def.idleFrameRate;
-        const frame = Math.floor((this.animTime * frameRate) / 1000) % PLAYER_FRAMES_PER_DIRECTION;
+        const frame = this.currentFrame();
         if (!force && frame === this.shownFrame) {
             return;
         }
         this.shownFrame = frame;
 
         for (const [slot, { def, sprite }] of this.layers) {
-            const { texture, frame: frameName } = getLayerFrame(slot, def, this.state, this.direction, frame);
-            sprite.setTexture(texture, frameName);
+            const layerFrame = getLayerFrame(slot, def, this.state, this.direction, frame);
+            sprite.setVisible(layerFrame !== undefined);
+            if (layerFrame) sprite.setTexture(layerFrame.texture, layerFrame.frame);
         }
         this.applyRenderOrder();
     }
@@ -136,5 +210,6 @@ export class Player {
             const layer = this.layers.get(slot);
             if (layer) this.container.bringToTop(layer.sprite);
         }
+        this.container.bringToTop(this.healthBar);
     }
 }

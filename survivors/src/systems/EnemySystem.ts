@@ -1,0 +1,157 @@
+// Gestiona todos los enemigos: un pool por tipo, la rejilla de vecinos, la separación entre ellos
+// y el contacto con el jugador.
+import Phaser from 'phaser';
+import { ENEMY_SEPARATION_MAX, ENEMY_SEPARATION_PER_PX, SPATIAL_CELL_SIZE } from '../config/gameConfig';
+import { ENEMIES, type EnemyId } from '../data/enemies';
+import { Enemy, type EnemyWorld } from '../entities/Enemy';
+import { Pool } from '../utils/Pool';
+import { SpatialGrid } from '../utils/SpatialGrid';
+
+export class EnemySystem {
+    private readonly pools = new Map<EnemyId, Pool<Enemy>>();
+    private readonly grid = new SpatialGrid<Enemy>(SPATIAL_CELL_SIZE);
+    private readonly finished: Enemy[] = [];
+    private aliveCount = 0;
+
+    constructor(scene: Phaser.Scene) {
+        for (const id of Object.keys(ENEMIES) as EnemyId[]) {
+            this.pools.set(id, new Pool(() => new Enemy(scene, ENEMIES[id])));
+        }
+    }
+
+    public spawn(id: EnemyId, x: number, y: number): Enemy {
+        const enemy = this.getPool(id).acquire();
+        enemy.spawn(x, y);
+        return enemy;
+    }
+
+    /** Enemies still chasing (not dying or fading). Counted during the last update. */
+    public get alive(): number {
+        return this.aliveCount;
+    }
+
+    /** Enemy objects created so far, active or waiting in the pools. */
+    public get pooled(): number {
+        let total = 0;
+        for (const pool of this.pools.values()) total += pool.size;
+        return total;
+    }
+
+    public update(deltaMs: number, world: EnemyWorld): void {
+        this.rebuildGrid();
+        this.applySeparation();
+
+        this.aliveCount = 0;
+        for (const pool of this.pools.values()) {
+            for (const enemy of pool.active) {
+                if (enemy.update(deltaMs, world)) {
+                    this.finished.push(enemy);
+                } else if (enemy.isAlive) {
+                    this.aliveCount++;
+                }
+            }
+            // Released after the loop: releasing reorders `active` while we iterate it.
+            for (const enemy of this.finished) pool.release(enemy);
+            this.finished.length = 0;
+        }
+    }
+
+    /** Highest contact damage among living enemies touching a circle (the player), or 0. */
+    public getContactDamage(x: number, y: number, radius: number): number {
+        let damage = 0;
+        this.grid.forEachNear(x, y, radius + SPATIAL_CELL_SIZE, (enemy) => {
+            if (!enemy.isAlive) return;
+            const reach = radius + enemy.def.radius;
+            const dx = enemy.x - x;
+            const dy = enemy.y - y;
+            if (dx * dx + dy * dy <= reach * reach) {
+                damage = Math.max(damage, enemy.def.contactDamage);
+            }
+        });
+        return damage;
+    }
+
+    /**
+     * Moves living enemies farther than `maxDistance` from (x, y) to a new point (usually stuck
+     * behind the river or left behind). Returns how many were moved.
+     */
+    public relocateFarAway(x: number, y: number, maxDistance: number, findPoint: () => { x: number; y: number } | undefined): number {
+        let moved = 0;
+        const maxSq = maxDistance * maxDistance;
+        for (const pool of this.pools.values()) {
+            for (const enemy of pool.active) {
+                if (!enemy.isAlive) continue;
+                const dx = enemy.x - x;
+                const dy = enemy.y - y;
+                if (dx * dx + dy * dy <= maxSq) continue;
+                const point = findPoint();
+                if (!point) return moved;
+                enemy.x = point.x;
+                enemy.y = point.y;
+                moved++;
+            }
+        }
+        return moved;
+    }
+
+    /** Kills every living enemy inside a rectangle (debug). Returns how many died. */
+    public killInside(rect: Phaser.Geom.Rectangle): number {
+        let killed = 0;
+        for (const pool of this.pools.values()) {
+            for (const enemy of pool.active) {
+                if (rect.contains(enemy.x, enemy.y) && enemy.kill()) killed++;
+            }
+        }
+        return killed;
+    }
+
+    private getPool(id: EnemyId): Pool<Enemy> {
+        const pool = this.pools.get(id);
+        if (!pool) throw new Error(`No pool for enemy ${id}`);
+        return pool;
+    }
+
+    private rebuildGrid(): void {
+        this.grid.clear();
+        for (const pool of this.pools.values()) {
+            for (const enemy of pool.active) {
+                if (enemy.isAlive) this.grid.insert(enemy);
+            }
+        }
+    }
+
+    /** Pushes overlapping enemies apart so they surround the player instead of stacking. */
+    private applySeparation(): void {
+        for (const pool of this.pools.values()) {
+            for (const enemy of pool.active) {
+                enemy.pushX = 0;
+                enemy.pushY = 0;
+                if (!enemy.isAlive) continue;
+                const r = enemy.def.radius;
+                this.grid.forEachNear(enemy.x, enemy.y, r * 2, (other) => {
+                    if (other === enemy) return;
+                    const minDistance = r + other.def.radius;
+                    let dx = enemy.x - other.x;
+                    let dy = enemy.y - other.y;
+                    let distSq = dx * dx + dy * dy;
+                    if (distSq >= minDistance * minDistance) return;
+                    if (distSq === 0) {
+                        // Exactly on top of each other: pick a stable direction from the pool index.
+                        dx = enemy.poolIndex % 2 === 0 ? 1 : -1;
+                        dy = 0;
+                        distSq = 1;
+                    }
+                    const distance = Math.sqrt(distSq);
+                    const strength = (minDistance - distance) * ENEMY_SEPARATION_PER_PX;
+                    enemy.pushX += (dx / distance) * strength;
+                    enemy.pushY += (dy / distance) * strength;
+                });
+                const length = Math.hypot(enemy.pushX, enemy.pushY);
+                if (length > ENEMY_SEPARATION_MAX) {
+                    enemy.pushX = (enemy.pushX / length) * ENEMY_SEPARATION_MAX;
+                    enemy.pushY = (enemy.pushY / length) * ENEMY_SEPARATION_MAX;
+                }
+            }
+        }
+    }
+}

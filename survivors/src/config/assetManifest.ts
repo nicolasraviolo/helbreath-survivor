@@ -9,6 +9,9 @@ export interface SpriteAsset {
 
 export const SPRITES = {
     'enemy.orc': { file: 'sprites/orc.spr', type: SpriteType.Monster },
+    'enemy.slime': { file: 'sprites/slm.spr', type: SpriteType.Monster },
+    'enemy.bunny': { file: 'sprites/bunny.spr', type: SpriteType.Monster },
+    'enemy.ant': { file: 'sprites/ant.spr', type: SpriteType.Monster },
 
     // Capas del jugador (hombre). Ver hb/playerAppearance.ts para cómo se indexan las hojas.
     'player.body.wm': { file: 'sprites/wm.spr', type: SpriteType.Human },
