@@ -116,7 +116,8 @@ survivors/
 - 👉 Tras esta fase: `/nueva-skill añadir-enemigo`.
 
 ## Fase 8 — Menús y personajes
-- `MainMenuScene` (Jugar, Créditos, volumen), `CharacterSelectScene` (3 personajes), `PauseScene`.
+- `MainMenuScene` (Jugar, Créditos, volumen), `PauseScene`.
+- `CharacterSelectScene` **ya existe** (adelantada el 16-oct-2026, con Warrior y Magician). Aquí falta: el tercer personaje, conectar Cancel al menú principal y, si se quiere, sexo, piel, pelo y ropa interior con las flechas.
 - Créditos con el aviso legal de `docs/DESIGN.md` (en inglés, como todo el juego).
 - Ajustes: opción para mostrar u ocultar la barra de vida sobre el personaje.
 - Todos los menús navegables sin ratón: cruceta/stick para moverse, **A** confirmar, **B** volver, **Start** pausa. Si se desconecta el mando en partida → pausa automática.

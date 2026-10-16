@@ -9,7 +9,7 @@ import {
 } from '../config/gameConfig';
 import { HUD_TOP } from '../config/hud';
 import { px, UI_FONT, UI_FONT_SIZE } from '../config/ui';
-import { CHARACTERS, DEFAULT_CHARACTER } from '../data/characters';
+import { CHARACTERS, CHOSEN_CHARACTER_KEY, DEFAULT_CHARACTER, isCharacterId } from '../data/characters';
 import { DEFAULT_MAP, MAPS_DATA } from '../data/maps';
 import { LEVEL_UP_CHOICES, STAT_CARD_POINTS, STAT_IDS } from '../data/stats';
 import { CharacterStats } from '../entities/CharacterStats';
@@ -35,7 +35,7 @@ import type { LevelUpChoice, LevelUpSceneData } from './LevelUpScene';
 const DEBUG_SPAWN_COUNT = 100;
 
 /**
- * Escena de partida: mapa, jugador, enemigos que lo persiguen, un arma automática (Energy Bolt),
+ * Escena de partida con la clase elegida en CharacterSelectScene: mapa, jugador, enemigos que lo persiguen, un arma automática (Energy Bolt),
  * gemas de XP y subida de nivel con cartas (Fase 5).
  * Mover: WASD/flechas, stick/cruceta o mantener clic. Esc / Start: pausa. F1 / View: depuración · T: prueba del Orc.
  * Solo en desarrollo: N 100 enemigos · K matar los visibles · G invencible · X subir un nivel.
@@ -77,7 +77,9 @@ export class GameScene extends Phaser.Scene {
 
         const areaPx = new Phaser.Geom.Rectangle(area.x * TILE_SIZE, area.y * TILE_SIZE, area.width * TILE_SIZE, area.height * TILE_SIZE);
         const spawn = findSpawnTile(map, area.x + Math.floor(area.width / 2), area.y + Math.floor(area.height / 2));
-        const character = CHARACTERS[DEFAULT_CHARACTER];
+        // Class chosen on the selection screen (the debug sprite test returns here without choosing).
+        const chosen: unknown = this.registry.get(CHOSEN_CHARACTER_KEY);
+        const character = CHARACTERS[isCharacterId(chosen) ? chosen : DEFAULT_CHARACTER];
         this.player = new Player(this, (spawn.x + 0.5) * TILE_SIZE, (spawn.y + 0.5) * TILE_SIZE, character, map, areaPx);
         this.stats = new CharacterStats(character);
         this.levelUpOpen = false;
@@ -209,6 +211,10 @@ export class GameScene extends Phaser.Scene {
                 this.scene.restart();
                 return;
             }
+            if (input.justPressed(Action.Pause)) {
+                this.scene.start('CharacterSelect');
+                return;
+            }
         }
 
         this.mapView.updateFading(player.y, player.getVisualBounds());
@@ -265,6 +271,7 @@ export class GameScene extends Phaser.Scene {
             `You survived ${formatTime(this.spawner.elapsed)}`,
             '',
             'Enter, A or click to try again',
+            'Esc or Start to choose another class',
         ]);
         this.gameOver.setVisible(true);
     }

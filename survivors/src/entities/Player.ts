@@ -1,20 +1,13 @@
 // El jugador: posición libre en píxeles (sus pies), movimiento con choque contra el mapa,
-// vida con invulnerabilidad tras un golpe y dibujo por capas. Todas las capas avanzan con un
-// único reloj para que nunca se desincronicen.
+// vida con invulnerabilidad tras un golpe. El dibujo por capas lo hace CharacterSprite.
 import Phaser from 'phaser';
 import { PLAYER_BLINK_MS } from '../config/gameConfig';
 import type { CharacterDef } from '../data/characters';
 import type { HBMap } from '../hb/HBMap';
 import { Direction, directionFromVector } from '../hb/directions';
-import {
-    PLAYER_FRAMES_PER_DIRECTION,
-    PlayerState,
-    getGearRenderOrder,
-    getLayerFrame,
-    type GearLayer,
-    type GearSlot,
-} from '../hb/playerAppearance';
+import { PlayerState } from '../hb/playerAppearance';
 import { canStandAt, moveAxis } from '../utils/collision';
+import { CharacterSprite } from './CharacterSprite';
 
 /** Approximate size of the drawn character, used to fade map objects that cover it. */
 const VISUAL_WIDTH = 32;
@@ -31,8 +24,6 @@ const GOD_MODE_TINT = 0xffd860;
 
 export class Player {
     public readonly container: Phaser.GameObjects.Container;
-    public state = PlayerState.IdleCombat;
-    public direction = Direction.South;
     public hp: number;
     /** Changes with Vit and level: use setMaxHp. */
     public maxHp: number;
@@ -40,13 +31,10 @@ export class Player {
     public speedMultiplier = 1;
     /** Debug: ignores all damage. Change it with setGodMode so the player shows it. */
     public godMode = false;
-    private readonly layers = new Map<GearSlot, { def: GearLayer; sprite: Phaser.GameObjects.Sprite }>();
+    private readonly body: CharacterSprite;
     private readonly healthBar: Phaser.GameObjects.Graphics;
     private readonly bounds = new Phaser.Geom.Rectangle();
-    private animTime = 0;
     private invulnerableMs = 0;
-    private shownFrame = -1;
-    private orderKey = '';
 
     constructor(
         scene: Phaser.Scene,
@@ -59,16 +47,18 @@ export class Player {
     ) {
         this.maxHp = def.baseHp;
         this.hp = this.maxHp;
-        this.container = scene.add.container(x, y);
-        for (const [slot, layer] of Object.entries(def.appearance) as [GearSlot, GearLayer][]) {
-            const sprite = scene.make.sprite({ x: 0, y: 0, key: '__DEFAULT' }, false);
-            this.container.add(sprite);
-            this.layers.set(slot, { def: layer, sprite });
-        }
+        this.body = new CharacterSprite(scene, def);
         this.healthBar = scene.make.graphics({}, false);
-        this.container.add(this.healthBar);
+        this.container = scene.add.container(x, y, [this.body.container, this.healthBar]);
         this.drawHealthBar();
-        this.refresh(true);
+    }
+
+    public get state(): PlayerState {
+        return this.body.state;
+    }
+
+    public get direction(): Direction {
+        return this.body.direction;
     }
 
     public get isDead(): boolean {
@@ -77,26 +67,19 @@ export class Player {
 
     /** Time since death in milliseconds (0 while alive). */
     public get deadForMs(): number {
-        return this.isDead ? this.animTime : 0;
+        return this.isDead ? this.body.stateTime : 0;
     }
 
     /** Moves with a 0..1 input vector, then updates animation, layer order and depth. */
     public update(move: Readonly<Phaser.Math.Vector2>, deltaMs: number): void {
-        this.animTime += deltaMs;
+        this.body.update(deltaMs);
         if (this.isDead) {
-            this.refresh(false);
             return;
         }
 
         const moving = move.lengthSq() > 0;
         const newState = moving ? PlayerState.Run : PlayerState.IdleCombat;
-        const newDirection = directionFromVector(move.x, move.y) ?? this.direction;
-        const changed = newState !== this.state || newDirection !== this.direction;
-        if (newState !== this.state) {
-            this.animTime = 0;
-        }
-        this.state = newState;
-        this.direction = newDirection;
+        this.body.setPose(newState, directionFromVector(move.x, move.y) ?? this.direction);
 
         if (moving) {
             const distance = (this.def.speed * this.speedMultiplier * deltaMs) / 1000;
@@ -107,7 +90,6 @@ export class Player {
 
         this.updateInvulnerability(deltaMs);
         this.container.setPosition(this.x, this.y).setDepth(this.y);
-        this.refresh(changed);
     }
 
     /** Applies damage unless invulnerable. Returns true if the hit landed. */
@@ -138,10 +120,7 @@ export class Player {
     /** Debug invincibility, shown as a golden tint on every layer. */
     public setGodMode(enabled: boolean): void {
         this.godMode = enabled;
-        for (const { sprite } of this.layers.values()) {
-            if (enabled) sprite.setTint(GOD_MODE_TINT);
-            else sprite.clearTint();
-        }
+        this.body.setTint(enabled ? GOD_MODE_TINT : undefined);
     }
 
     public canStandAt(x: number, y: number): boolean {
@@ -159,12 +138,10 @@ export class Player {
     }
 
     private die(): void {
-        this.state = PlayerState.Die;
-        this.animTime = 0;
+        this.body.setPose(PlayerState.Die, this.direction);
         this.invulnerableMs = 0;
         this.container.setAlpha(1);
         this.healthBar.setVisible(false);
-        this.refresh(true);
     }
 
     /** Blinks while invulnerable after a hit. */
@@ -183,49 +160,5 @@ export class Player {
             .fillRect(left - 1, BAR_OFFSET_Y - 1, BAR_WIDTH + 2, BAR_HEIGHT + 2)
             .fillStyle(BAR_FILL_COLOR, 1)
             .fillRect(left, BAR_OFFSET_Y, BAR_WIDTH * ratio, BAR_HEIGHT);
-    }
-
-    private currentFrame(): number {
-        const lastFrame = PLAYER_FRAMES_PER_DIRECTION - 1;
-        switch (this.state) {
-            case PlayerState.Die:
-                // Played once, then stays on the last frame.
-                return Math.min(lastFrame, Math.floor((this.animTime * this.def.dieFrameRate) / 1000));
-            case PlayerState.Run:
-                return Math.floor((this.animTime * this.def.runFrameRate) / 1000) % PLAYER_FRAMES_PER_DIRECTION;
-            default:
-                return Math.floor((this.animTime * this.def.idleFrameRate) / 1000) % PLAYER_FRAMES_PER_DIRECTION;
-        }
-    }
-
-    private refresh(force: boolean): void {
-        const frame = this.currentFrame();
-        if (!force && frame === this.shownFrame) {
-            return;
-        }
-        this.shownFrame = frame;
-
-        for (const [slot, { def, sprite }] of this.layers) {
-            const layerFrame = getLayerFrame(slot, def, this.state, this.direction, frame);
-            sprite.setVisible(layerFrame !== undefined);
-            if (layerFrame) sprite.setTexture(layerFrame.texture, layerFrame.frame);
-        }
-        this.applyRenderOrder();
-    }
-
-    /** Re-stacks the layers when direction or state changes the drawing order. */
-    private applyRenderOrder(): void {
-        const isRunning = this.state === PlayerState.Run;
-        const key = `${this.direction}-${isRunning}`;
-        if (key === this.orderKey) {
-            return;
-        }
-        this.orderKey = key;
-        const order = getGearRenderOrder(this.direction, isRunning);
-        for (const slot of order) {
-            const layer = this.layers.get(slot);
-            if (layer) this.container.bringToTop(layer.sprite);
-        }
-        this.container.bringToTop(this.healthBar);
     }
 }

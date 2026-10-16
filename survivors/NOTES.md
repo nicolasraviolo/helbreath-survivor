@@ -308,3 +308,14 @@ Tabla completa en `docs/REQUISITOS_HB.md`. Lo no obvio:
 - Phaser dibuja cada texto una sola vez en un canvas. Si la fuente web aún no ha cargado, se queda con la de respaldo.
   Por eso `main.ts` espera `document.fonts.load()` antes de crear el juego (`config/ui.ts`, `loadUiFont`).
 - "MS Sans Serif" es una fuente de mapa de bits que Chrome no dibuja. Windows la cambia por "Microsoft Sans Serif" (TrueType).
+
+## Pantalla "Create New Character" (sp-client no la tiene)
+- **Fondo:** `gamedialog.spr` hoja 9 (640×480), idéntica en `gamedialog86.spr` hoja 9.
+  - Trae ya dibujados el título, las flechas ←→ y los botones +/−.
+  - Todos los textos los pintaba el cliente.
+  - La hoja 8 es la pantalla de elegir personaje (4 huecos).
+- **`dialogtext.spr` hoja 1:** 70 botones de 74×20 con el texto dibujado; el frame siguiente es la versión iluminada. Índices útiles:
+  - Ok 0, Master 8, Disagree 14, Cancel 16, Create 24;
+  - Magician 65, Warrior 67;
+  - los frames 50–60 son botones anchos (Start, Create New Character...);
+  - los frames 61–62 son retratos con "Name / Lev / Exp".

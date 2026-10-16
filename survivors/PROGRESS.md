@@ -15,6 +15,34 @@
 | 10 — Pulido (opcional) | ⬜ pendiente | |
 
 ## Fase actual
+**Pantalla de selección de personaje** (adelantada de la Fase 8, 2026-10-16; probada y aprobada por el propietario). Siguiente: `/fase 6`.
+- `scenes/CharacterSelectScene.ts` + `config/characterSelect.ts`: la pantalla original "Create New Character".
+  - Fondo: `gamedialog86.spr`, hoja 9, ampliado de 640×480 a 800×600.
+  - Botones: `dialogtext.spr`, hoja 1, con el texto ya dibujado y su versión iluminada.
+- Solo se elige la clase: **Warrior** o **Magician** (Master no se incluye).
+  - El nombre es fijo: "NMs" para el Mago y "NkII" para el Guerrero.
+  - Aspecto y stats fijos. Las flechas de aspecto y los +/- se ven apagados.
+- **Panel derecho:**
+  - el personaje animado y su reflejo girando en el espejo ovalado;
+  - Hit Point, Mana Point y Critical, calculados con las reglas reales;
+  - una descripción de la clase.
+- **Controles:**
+  - ←/→ o la cruceta cambian de clase;
+  - Enter o A: Create;
+  - Esc o Start: Cancel (vuelve al Mago, porque aún no hay menú principal);
+  - ratón en los botones.
+- La partida usa la clase elegida (`registry` → `CHOSEN_CHARACTER_KEY`). En el Game Over, Esc o Start vuelven a la selección.
+- **El Mago es mujer** (pedido por el propietario): `MAGE_FEMALE_LOOK` con `ww`, `whr`, `wpt`, `wrobe1`, `nwhelm3` (Wizard Cap), `wlboots` y `wstaff1`. El aspecto masculino sigue en `MAGE_LOOK` para cuando haya selección de sexo.
+- **El Guerrero dispara Energy Bolt de forma provisional** (decidido por el propietario); su arma llega en la Fase 6.
+- `entities/CharacterSprite.ts`: el dibujo por capas del personaje, separado de `Player.ts`. Lo usan el jugador y la vista previa.
+- **Cómo probar:** `pnpm --dir survivors dev` → http://localhost:8090. Aparece la pantalla de creación: elige clase y pulsa Create.
+- **Checkpoint 2026-10-16:**
+  - `tsc` y `build` sin errores.
+  - Playwright carga la pantalla de selección con la consola limpia.
+  - Comprobado: la partida arranca con la clase elegida y Esc en el Game Over vuelve a la selección.
+- **Nota de pruebas:** Playwright pulsa y suelta las teclas en el mismo fotograma y Phaser no lo detecta. Una pulsación real sí funciona.
+
+Anterior:
 Fase 5 completada (2026-10-16), probada por el propietario. Siguiente: `/nueva-skill añadir-mejora` y después `/fase 6`.
 - **Stats** (`data/stats.ts`, `entities/CharacterStats.ts`):
   - Str: daño físico y requisito de armas/armaduras.
@@ -23,7 +51,7 @@ Fase 5 completada (2026-10-16), probada por el propietario. Siguiente: `/nueva-s
   - Int: requisito de hechizos y de equipo de mago; un poco de maná.
   - Mag: daño mágico y maná.
   - Chr: crítico (daño doble, número amarillo con "!").
-- **Personajes:** se juega con el **Mago** (Str 12, Vit 10, Dex 10, Int 14, Mag 14, Chr 10; +1 Int +2 Mag por nivel, decidido por el propietario; se ajustará si es demasiado). El Guerrero (Str 14, Vit 12, Dex 14, Int 10, Mag 10, Chr 10; +1 Str +1 Vit por nivel) queda listo para la Fase 8.
+- **Personajes:** (antes de la pantalla de selección) se jugaba con el **Mago** (Str 12, Vit 10, Dex 10, Int 14, Mag 14, Chr 10; +1 Int +2 Mag por nivel, decidido por el propietario; se ajustará si es demasiado). El Guerrero (Str 14, Vit 12, Dex 14, Int 10, Mag 10, Chr 10; +1 Str +1 Vit por nivel) queda listo para la Fase 8.
 - **Requisitos:** `utils/requirements.ts` (`meetsRequirement`, `REQ_SCALE` 0.4). Aún no se usa; es para la Fase 6.
 - **Gemas de XP** (`entities/XpGem.ts`, `systems/XpSystem.ts`):
   - esmeralda, zafiro y rubí de `item-ground.spr`;

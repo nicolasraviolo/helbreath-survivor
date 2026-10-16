@@ -29,11 +29,23 @@ export const SPRITES = {
     'gear.helm.wizard.m': { file: 'sprites/nmhelm4.spr', type: SpriteType.EquipmentPack },
     'gear.wand.m': { file: 'sprites/mstaff1.spr', type: SpriteType.Weapons },
 
+    // Capas de mujer (la Maga): mismas tablas de hojas que las de hombre.
+    'player.body.ww': { file: 'sprites/ww.spr', type: SpriteType.Human },
+    'player.hair.whr': { file: 'sprites/whr.spr', type: SpriteType.HairAndUndies },
+    'player.underwear.wpt': { file: 'sprites/wpt.spr', type: SpriteType.HairAndUndies },
+    'gear.boots.long.w': { file: 'sprites/wlboots.spr', type: SpriteType.EquipmentPack },
+    'gear.armor.robe.w': { file: 'sprites/wrobe1.spr', type: SpriteType.EquipmentPack },
+    'gear.helm.wizardCap.w': { file: 'sprites/nwhelm3.spr', type: SpriteType.EquipmentPack },
+    'gear.wand.w': { file: 'sprites/wstaff1.spr', type: SpriteType.Weapons },
+
     // Efectos de hechizos (ver config/effects.ts para qué hoja y frames usa cada uno).
     'fx.effect': { file: 'sprites/effect.spr', type: SpriteType.Effect },
 
-    // Interfaz: barra inferior original 800x600 (hoja 6; ver config/hud.ts para frames y posiciones).
+    // Interfaz: barra inferior original 800x600 (hoja 6; ver config/hud.ts para frames y posiciones)
+    // y fondo de "Create New Character" 640x480 (hoja 9; ver config/characterSelect.ts).
     'ui.panel': { file: 'sprites/gamedialog86.spr', type: SpriteType.Interface },
+    // Botones con el texto ya dibujado (Warrior, Magician, Create, Cancel...), normal + iluminado.
+    'ui.buttons': { file: 'sprites/dialogtext.spr', type: SpriteType.Interface },
 
     // Objetos en el suelo (gemas de XP: hoja 15, ver data/leveling.ts).
     'item.ground': { file: 'sprites/item-ground.spr', type: SpriteType.ItemGround },
