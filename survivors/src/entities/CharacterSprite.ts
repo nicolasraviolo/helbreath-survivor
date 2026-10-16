@@ -27,6 +27,10 @@ export class CharacterSprite {
     private shownFrame = -1;
     private orderKey = '';
     private tint: number | undefined;
+    /** Additive copies of every layer (Berserk glow), drawn above them; empty while there is no glow. */
+    private readonly overlays = new Map<GearSlot, Phaser.GameObjects.Sprite>();
+    private overlayTint: number | undefined;
+    private overlayAlpha = 1;
 
     constructor(private readonly scene: Phaser.Scene, private readonly def: CharacterDef, x = 0, y = 0) {
         this.container = scene.add.container(x, y);
@@ -42,6 +46,8 @@ export class CharacterSprite {
         if (!layer) {
             current?.sprite.destroy();
             this.layers.delete(slot);
+            this.overlays.get(slot)?.destroy();
+            this.overlays.delete(slot);
         } else if (current) {
             current.def = layer;
             this.applyTint(current.sprite, layer);
@@ -75,6 +81,22 @@ export class CharacterSprite {
     public setTint(color: number | undefined): void {
         this.tint = color;
         for (const { def, sprite } of this.layers.values()) this.applyTint(sprite, def);
+    }
+
+    /**
+     * Additive colour glow over the whole character (the original Berserk overlay: a copy of each layer in ADD mode);
+     * undefined removes it.
+     */
+    public setGlow(color: number | undefined, alpha = 1): void {
+        this.overlayTint = color;
+        this.overlayAlpha = alpha;
+        if (color === undefined) {
+            for (const overlay of this.overlays.values()) overlay.destroy();
+            this.overlays.clear();
+            return;
+        }
+        this.orderKey = '';
+        this.refresh(true);
     }
 
     private applyTint(sprite: Phaser.GameObjects.Sprite, layer: GearLayer): void {
@@ -112,6 +134,7 @@ export class CharacterSprite {
             const layerFrame = getLayerFrame(slot, def, this.state, this.direction, frame);
             sprite.setVisible(layerFrame !== undefined);
             if (layerFrame) sprite.setTexture(layerFrame.texture, layerFrame.frame);
+            if (this.overlayTint !== undefined) this.syncOverlay(slot, sprite);
         }
         this.applyRenderOrder();
     }
@@ -128,5 +151,22 @@ export class CharacterSprite {
             const layer = this.layers.get(slot);
             if (layer) this.container.bringToTop(layer.sprite);
         }
+        // The glow goes over every layer, in the same order.
+        for (const slot of getGearRenderOrder(this.direction, isRunning)) {
+            const overlay = this.overlays.get(slot);
+            if (overlay) this.container.bringToTop(overlay);
+        }
+    }
+
+    /** Copies a layer's frame onto its glow sprite (created the first time). */
+    private syncOverlay(slot: GearSlot, sprite: Phaser.GameObjects.Sprite): void {
+        let overlay = this.overlays.get(slot);
+        if (!overlay) {
+            overlay = this.scene.make.sprite({ x: 0, y: 0, key: '__DEFAULT' }, false).setBlendMode(Phaser.BlendModes.ADD);
+            this.container.add(overlay);
+            this.overlays.set(slot, overlay);
+        }
+        overlay.setTint(this.overlayTint ?? 0xffffff).setAlpha(this.overlayAlpha).setVisible(sprite.visible);
+        if (sprite.visible) overlay.setTexture(sprite.texture.key, sprite.frame.name);
     }
 }

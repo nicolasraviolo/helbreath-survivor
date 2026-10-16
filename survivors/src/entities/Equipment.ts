@@ -2,6 +2,7 @@
 // Calcula la defensa total, el bonus de daño mágico de la ropa y qué capas hay que dibujar al cambiar una pieza.
 import { ARMOR_PIECES, getArmorPiece, MAX_DEFENSE, type ArmorPieceId, type ArmorSlotId } from '../data/armor';
 import type { CharacterDef } from '../data/characters';
+import { getPassive, type PassiveId } from '../data/passives';
 import type { SpellId } from '../data/spells';
 import { getMeleeWeapon, type MeleeWeaponId } from '../data/weapons';
 import type { GearLayer, GearSlot } from '../hb/playerAppearance';
@@ -10,11 +11,18 @@ export class Equipment {
     public weapon: MeleeWeaponId | undefined;
     public spell: SpellId | undefined;
     public readonly armor: Partial<Record<ArmorSlotId, ArmorPieceId>> = {};
+    /** Rank of each passive (0 = not taken). */
+    public readonly passives: Record<PassiveId, number> = { boots: 0, magnetAmulet: 0 };
 
     constructor(private readonly def: CharacterDef) {
         const start = def.startWeapon;
         this.weapon = start.kind === 'melee' ? start.id : undefined;
         this.spell = start.kind === 'spell' ? start.id : undefined;
+    }
+
+    /** Total bonus of a passive at its current rank (or at `rank`), e.g. 0.16 = +16%. */
+    public passiveBonus(id: PassiveId, rank = this.passives[id]): number {
+        return getPassive(id).perRank * rank;
     }
 
     /** Extra magic damage from the clothes worn (0.1 = +10%). */

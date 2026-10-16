@@ -123,6 +123,18 @@ export class Player {
         this.body.setPose(action, direction);
     }
 
+    /** Additive colour glow over the player (Berserk); undefined removes it. */
+    public setGlow(color: number | undefined, alpha = 1): void {
+        this.body.setGlow(color, alpha);
+    }
+
+    /** Heals up to the maximum. */
+    public heal(amount: number): void {
+        if (this.isDead) return;
+        this.hp = Math.min(this.maxHp, this.hp + amount);
+        this.drawHealthBar();
+    }
+
     /** Changes the weapon or a piece of armor drawn on the player (undefined takes it off). */
     public setGear(slot: GearSlot, layer: GearLayer | undefined): void {
         this.body.setLayer(slot, layer);

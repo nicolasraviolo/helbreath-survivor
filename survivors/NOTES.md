@@ -370,3 +370,30 @@ Tabla completa en `docs/REQUISITOS_HB.md`. Lo no obvio:
   - Wizard Robe = Robe con color 11 "Tan" (105,90,70), es decir +5 −10 −30.
   - Phaser tiñe multiplicando, así que es una aproximación (`WIZARD_ROBE_TINT`).
 - **Ropa básica femenina:** Bodice `wbodice1` y Skirt `wskirt`. Las usamos en los huecos hauberk y leggings, para que la túnica las tape.
+
+## Buffs y objetos (sp-client)
+- **Berserk:**
+  - al lanzarlo, `effect8` hoja 1 bajo los pies (depthOffset −1) y sonido E5;
+  - mientras dura, `GameAsset.setBerserkOverlay`: una copia de cada capa en modo ADD, con tinte 0xff4444 y 50% de opacidad.
+- **Defense Shield:**
+  - `effect8` hoja 6 al lanzarlo;
+  - "Defense Shield Buff" = `effect9` hoja 14, que sp-client define pero no usa en ningún sitio. Lo usamos como aura.
+  - **Ojo:** los pivotes de sus frames lo dibujan unos 95 px a la izquierda y 147 px por encima del punto de anclaje. Lo corregimos con `offsetX` 72 y `offsetY` 105 en `config/effects.ts`, para dejarlo centrado en los pies (pedido por el propietario). Los efectos de lanzar (`effect8` hojas 1 y 6) sí están centrados en los pies.
+- **Objetos en el suelo** (`item-ground.spr`):
+  - Red Potion 5/1 (al beber, C19);
+  - Gold Pocket 1–5: 5/118–122;
+  - Crystal 15/46;
+  - objeto que cae al suelo: E12.
+- No hay imán ni cofre en los gráficos del juego.
+
+## Fuente dibujada del original (`sprfonts.spr`)
+- **Hoja 0 (FONT1):**
+  - la letra caligráfica de los diálogos, del libro de hechizos y de mensajes como "Connection Lost!";
+  - un frame por carácter, de '!' (33) a 'z' (122): frame = código − 33;
+  - glifos negros con transparencia.
+- **Cómo la pinta el original** (`reference/Client.cpp`, `PutString_SprFont2` ~7880):
+  - el carácter sin color en (+1,0) y (+1,+1), que hace de sombra;
+  - encima, la versión coloreada (`PutSpriteRGB`);
+  - el avance de cada letra sale de la tabla `__cSpace`; el espacio son 5 px.
+  - Nosotros coloreamos con `setTintFill`, porque un tinte normal (multiplicar) sobre negro sigue siendo negro.
+- **Hoja 1 (FONT2):** otra variante, que no usamos.

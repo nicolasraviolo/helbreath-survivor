@@ -7,6 +7,7 @@ import { HUD_TOP } from '../config/hud';
 import { px, UI_FONT, UI_FONT_SIZE } from '../config/ui';
 import { ARMOR_SLOT_NAMES, getArmorPiece } from '../data/armor';
 import { STAT_INFO, type StatId } from '../data/stats';
+import { getPassive } from '../data/passives';
 import { getSpell, SPELL_FAMILIES, type SpellDef } from '../data/spells';
 import { getMeleeWeapon, MELEE_FAMILIES, type MeleeWeaponDef } from '../data/weapons';
 import type { CharacterStats } from '../entities/CharacterStats';
@@ -37,6 +38,7 @@ const TEXT_COLOR = '#e8d9a8';
 const WEAPON_BADGE = { text: 'Wpn', color: 0x9a9a9a } as const;
 const ARMOR_BADGE = { text: 'Arm', color: 0x6a5030 } as const;
 const SPELL_BADGE = { text: 'Spl', color: 0x3858b0 } as const;
+const PASSIVE_BADGE = { text: 'Pas', color: 0x508050 } as const;
 
 /** What a card shows: badge, title, one line of effect and the "before → after" lines. */
 interface CardText {
@@ -189,6 +191,15 @@ function describeCard(stats: CharacterStats, equipment: Equipment, choice: Level
                 badge: SPELL_BADGE.text, badgeColor: SPELL_BADGE.color, title: spell.name,
                 effect: choice.kind === 'spellLink' ? `${family} · stronger spell` : `${family} · replaces ${from.name}`,
                 changes: describeSpellChanges(stats, from, spell),
+            };
+        }
+        case 'passive': {
+            const passive = getPassive(choice.passive);
+            const pct = (rank: number) => `+${Math.round(equipment.passiveBonus(choice.passive, rank) * 100)}%`;
+            return {
+                badge: PASSIVE_BADGE.text, badgeColor: PASSIVE_BADGE.color, title: `${passive.name} ${choice.rank}/${passive.maxRank}`,
+                effect: passive.effect,
+                changes: [`${passive.statLabel} ${pct(choice.rank - 1)} → ${pct(choice.rank)}`],
             };
         }
         case 'armor': {

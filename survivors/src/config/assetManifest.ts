@@ -58,12 +58,17 @@ export const SPRITES = {
     // Hechizos de fuego y Energy Strike (ver config/effects.ts).
     'fx.effect3': { file: 'sprites/effect3.spr', type: SpriteType.Effect },
     'fx.effect11': { file: 'sprites/effect11.spr', type: SpriteType.Effect },
+    // Buffs del cofre: Berserk y Defense Shield (ver data/pickups.ts).
+    'fx.effect8': { file: 'sprites/effect8.spr', type: SpriteType.Effect },
+    'fx.effect9': { file: 'sprites/effect9.spr', type: SpriteType.Effect },
     // Polvo de los pasos al correr (Footsteps dry: hoja 1, frames 28–32).
     'fx.effect2': { file: 'sprites/effect2.spr', type: SpriteType.Effect },
 
     // Interfaz: barra inferior original 800x600 (hoja 6; ver config/hud.ts para frames y posiciones)
     // y fondo de "Create New Character" 640x480 (hoja 9; ver config/characterSelect.ts).
     'ui.panel': { file: 'sprites/gamedialog86.spr', type: SpriteType.Interface },
+    // Fuente dibujada del original (libro de hechizos, nombre del hechizo al lanzarlo): ver hb/SpriteText.ts.
+    'ui.font': { file: 'sprites/sprfonts.spr', type: SpriteType.Interface },
     // Botones con el texto ya dibujado (Warrior, Magician, Create, Cancel...), normal + iluminado.
     'ui.buttons': { file: 'sprites/dialogtext.spr', type: SpriteType.Interface },
 
@@ -94,6 +99,10 @@ export const SOUNDS = {
     // Explosión de fuego (EFFECT_EXPLOSION) y lanzar hechizo (PLAYER_CAST).
     'sfx.explosion': { file: 'sounds/E4.mp3' },
     'sfx.cast': { file: 'sounds/C16.mp3' },
+    // Beber poción (Red Potion consumptionSound), objeto que cae al suelo (ITEM_DROPPED_SOUND) y buff (EFFECT_CAST).
+    'sfx.drink': { file: 'sounds/C19.mp3' },
+    'sfx.itemDrop': { file: 'sounds/E12.mp3' },
+    'sfx.buff': { file: 'sounds/E5.mp3' },
     // Pasos al correr (PLAYER_RUNNING).
     'sfx.footsteps': { file: 'sounds/C10.mp3' },
     // Recoger una gema: el sonido de "objeto añadido" del original (sp-client SoundFileNames.ts, ITEM_ADDED_SOUND).

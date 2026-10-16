@@ -8,14 +8,44 @@
 | 3 — Enemigos | ✅ completada | 2026-10-16 |
 | 4 — Primera arma y combate | ✅ completada | 2026-10-16 |
 | 5 — Experiencia y subida de nivel | ✅ completada | 2026-10-16 |
-| 6 — Arsenal completo | 🟡 en curso (6A y 6B probados; falta 6C) | |
+| 6 — Arsenal completo | ✅ completada | 2026-10-16 |
 | 7 — Oleadas, jefes y final | ⬜ pendiente | |
 | 8 — Menús y personajes | ⬜ pendiente | |
 | 9 — Web, móvil y publicación | ⬜ pendiente | |
 | 10 — Pulido (opcional) | ⬜ pendiente | |
 
 ## Fase actual
-**Fase 6, bloque 6B: arsenal de la Maga** (2026-10-16, rama `fase-6`; probado y aprobado por el propietario). Siguiente: bloque **6C** (poción, imán, cofre con buff aleatorio, Botas y Amuleto imán).
+**Fase 6 completada (2026-10-16)**, probada por el propietario, en 3 bloques (6A Guerrero, 6B Maga, 6C objetos, buffs y pasivas).
+- Siguiente: `/nueva-skill añadir-arma` (indicado en `docs/PLAN.md`) y después `/fase 7` (oleadas, jefes y final).
+- **Checkpoint 2026-10-16:** `tsc` y `build` sin errores; Playwright: el cofre da su buff y la consola está limpia (solo el 404 de `favicon.ico`).
+
+**Bloque 6C: objetos en el suelo, buffs y pasivas** (probado y aprobado).
+- **Objetos** (`data/pickups.ts`, `entities/Pickup.ts` con pool, `systems/PickupSystem.ts`):
+  - **Red Potion** (item-ground 5/1): cura el 30% de la vida y suena C19. Cae con un 1,5% de probabilidad.
+  - **Imán**, dibujado con el Crystal (15/46) porque no hay sprite de imán: atrae todas las gemas del mapa. Cae con un 0,5%.
+  - **Cofre**, dibujado con la Gold Pocket (5/120): aparece cada 150 bajas (los minijefes llegan en la Fase 7) y suena E12 al caer.
+  - Poción e imán desaparecen a los 60 s, parpadeando antes. **Los cofres no desaparecen** (pedido por el propietario).
+- **Buffs del cofre** (`systems/BuffSystem.ts`): uno ofensivo o uno defensivo al azar, 20 s. **Se combinan** (pedido por el propietario): puedes tener los dos a la vez, cada uno con su contador. Coger uno que ya tienes renueva su tiempo.
+  - **Berserk:** +40% de daño. Círculo mágico al activarse (`effect8` hoja 1) y brillo rojo aditivo sobre el personaje, como en el original (`CharacterSprite.setGlow`).
+  - **Defense Shield:** −40% de daño recibido. `effect8` hoja 6 al activarse y aura `effect9` hoja 14 mientras dura. El aura venía desplazada de fábrica; ahora está centrada a los pies (corregido tras la prueba del propietario).
+  - Al coger un buff, su nombre ("Berserk!", "Defense Shield!") sube sobre el jugador y se desvanece en 2 s, como al lanzar un hechizo en el original.
+  - **Abajo a la derecha**, encima de la barra, una línea por buff activo con su nombre y los segundos que le quedan (pedido por el propietario).
+  - Los dos textos usan la **fuente dibujada del original** (`sprfonts.spr`, la del libro de hechizos) con `hb/SpriteText.ts`: tabla de anchos y sombra negra copiadas de `reference/Client.cpp`. Colores: Berserk rojo, Defense Shield azul.
+- **Pasivas** (`data/passives.ts`), una carta nueva para las dos clases. Tienen 5 rangos:
+  - **Boots:** +8% de velocidad por rango.
+  - **Magnet Amulet:** +30% de radio del imán de gemas por rango.
+  - Cuentan dentro de las 2 cartas de objeto. El panel C muestra su rango.
+- **Tecla de pruebas:** P suelta una poción, un imán y un cofre junto al jugador. Pueden caer en el agua: es solo para pruebas.
+- **Cómo probar:** `pnpm --dir survivors dev` → http://localhost:8090. Pulsa P y recoge los objetos; pulsa X para que salgan las cartas de Boots y Magnet Amulet.
+- **Comprobado con Playwright:**
+  - la poción cura un 30%;
+  - el imán atrae las gemas;
+  - el cofre da Berserk o Defense Shield con sus efectos y el contador;
+  - salen las cartas de pasivas;
+  - consola limpia.
+- **A vigilar:** con 2 pasivas siempre disponibles, las cartas de arma y armadura salen algo menos. Ajustable con `MAX_ITEM_CARDS`.
+
+**Bloque 6B: arsenal de la Maga** (probado y aprobado).
 - **Un solo hechizo "en la mano"**, como el arma del Guerrero (`data/spells.ts`, números propios, requisito de Int):
   - **Energy:** Energy Bolt (inicial) → Triple Energy Bolt (Int 20, 3 bolas a 3 enemigos) → Energy Strike (Int 32, 8 descargas alrededor del enemigo).
   - **Fire:** Fire Ball (Int 17) → Fire Strike (Int 24, 4 explosiones seguidas) → Mass Fire Strike (Int 36).
@@ -190,7 +220,7 @@ Fase 4 completada (2026-10-16), probada por el propietario. Siguiente: `/fase 5`
 - Con un solo Energy Bolt, 300 enemigos sobrepasan al jugador. Las cartas de stat ayudan, pero la progresión real llega con las armas de la Fase 6.
 - El daño mágico crece rápido (+2 Mag por nivel y +4% por punto). Vigilarlo al equilibrar.
 - Las flechas "→" de las cartas usan otra fuente: Comic Neue no tiene ese carácter. No molesta.
-- El navegador interno de la app, si el panel está en segundo plano, va a ~1 FPS y parece congelado. Para revisar el juego, usar Playwright o tener el panel visible.
+- El navegador interno de la app, si el panel está en segundo plano, va a ~1 FPS y parece congelado. Para revisar el juego, usar Playwright o tener el panel visible. A veces también le pasa a Playwright: `requestAnimationFrame` cae a 2 por segundo incluso sin el juego (visto el 16-oct-2026). No es un problema del juego.
 - En el navegador interno, `sp-client` muestra errores `Cannot suspend/resume a closed AudioContext`. Son del audio en una pestaña en segundo plano y no afectan.
 - `pnpm build` genera `dist/` sin assets (se resuelve en la Fase 9).
 - Algunos enemigos se quedan esperando en la orilla del río si el jugador está al otro lado. Sin búsqueda de caminos. Se recolocan si quedan lejos.

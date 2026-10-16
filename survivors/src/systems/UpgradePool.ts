@@ -3,9 +3,11 @@
 // - Eslabón: el arma (Guerrero) o el hechizo (Maga) más fuerte de TU familia que el Str / Int permite.
 // - Cambio de familia: lo mejor de otra familia activa que el stat permite; sustituye a lo que llevas en la mano.
 // - Armadura / ropa: la mejor pieza de tu clase que el stat permite en cada hueco, si es mejor que la que llevas.
+// - Pasiva (Boots, Magnet Amulet): sube un rango, hasta el máximo. Para las dos clases.
 // Como mucho MAX_ITEM_CARDS cartas de objeto; el resto son de stat, sin repetir.
 import Phaser from 'phaser';
 import { ARMOR_BY_SET, ARMOR_SLOT_IDS, getArmorPiece, type ArmorPieceId } from '../data/armor';
+import { getPassive, PASSIVE_IDS, type PassiveId } from '../data/passives';
 import { getSpell, SPELL_FAMILIES, type SpellFamilyDef, type SpellId } from '../data/spells';
 import { LEVEL_UP_CHOICES, MAX_ITEM_CARDS, STAT_CARD_POINTS, STAT_IDS, type StatId } from '../data/stats';
 import { getMeleeWeapon, MELEE_FAMILIES, type MeleeFamilyDef, type MeleeWeaponId } from '../data/weapons';
@@ -22,7 +24,9 @@ export type LevelUpChoice =
     | { kind: 'spellLink'; spell: SpellId; from: SpellId }
     /** Spell of another family, replacing the one in hand. */
     | { kind: 'spellSwitch'; spell: SpellId; from: SpellId }
-    | { kind: 'armor'; piece: ArmorPieceId; from: ArmorPieceId | undefined };
+    | { kind: 'armor'; piece: ArmorPieceId; from: ArmorPieceId | undefined }
+    /** One more rank of a passive. */
+    | { kind: 'passive'; passive: PassiveId; rank: number };
 
 export function buildLevelUpChoices(stats: CharacterStats, equipment: Equipment): LevelUpChoice[] {
     const items = Phaser.Utils.Array.Shuffle(itemChoices(stats, equipment)).slice(0, MAX_ITEM_CARDS);
@@ -65,6 +69,10 @@ function itemChoices(stats: CharacterStats, equipment: Equipment): LevelUpChoice
         if (best && (worn === undefined || ordered.indexOf(best) > ordered.indexOf(worn))) {
             choices.push({ kind: 'armor', piece: best, from: worn });
         }
+    }
+    for (const passive of PASSIVE_IDS) {
+        const rank = equipment.passives[passive];
+        if (rank < getPassive(passive).maxRank) choices.push({ kind: 'passive', passive, rank: rank + 1 });
     }
     return choices;
 }

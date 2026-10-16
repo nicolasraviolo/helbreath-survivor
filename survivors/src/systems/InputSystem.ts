@@ -26,6 +26,7 @@ export enum Action {
     DebugGiveXp = 'debugGiveXp',
     DebugAddStr = 'debugAddStr',
     DebugAddMagic = 'debugAddMagic',
+    DebugDropPickups = 'debugDropPickups',
 }
 
 export type InputDevice = 'keyboard' | 'mouse' | 'gamepad' | 'none';
@@ -47,6 +48,7 @@ const KEYBOARD_ACTIONS: Record<Action, number[]> = {
     [Action.DebugGiveXp]: [KEY.X],
     [Action.DebugAddStr]: [KEY.V],
     [Action.DebugAddMagic]: [KEY.B],
+    [Action.DebugDropPickups]: [KEY.P],
 };
 
 /** Standard Gamepad API button indices (Xbox layout). */

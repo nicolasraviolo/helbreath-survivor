@@ -22,6 +22,9 @@ export interface EffectDef {
      * One animation per direction is registered, keyed `{effect}.{dir}` (see effectAnimationKey).
      */
     framesPerDirection?: number;
+    /** Moves the effect from the point it is drawn at, for sheets whose pivots point elsewhere (sp-client offsetX/Y). */
+    offsetX?: number;
+    offsetY?: number;
 }
 
 export const EFFECTS = {
@@ -35,6 +38,11 @@ export const EFFECTS = {
     'fx.explosion2': { sprite: 'fx.effect3', sheet: 2, frameRate: 20, loop: false },
     'fx.explosion3': { sprite: 'fx.effect3', sheet: 5, frameRate: 20, loop: false },
     'fx.explosion4': { sprite: 'fx.effect11', sheet: 8, frameRate: 15, loop: false },
+    // Buffs del cofre (sp-client Berserk / Defense Shield / Defense Shield Buff).
+    'fx.berserk.cast': { sprite: 'fx.effect8', sheet: 1, frameRate: 10, loop: false, depthOffset: -1 },
+    'fx.defenseShield.cast': { sprite: 'fx.effect8', sheet: 6, frameRate: 10, loop: false, depthOffset: -1 },
+    // Its frame pivots point ~95 px left and ~147 px above the anchor (measured in effect9.spr): moved back to the feet.
+    'fx.defenseShield.aura': { sprite: 'fx.effect9', sheet: 14, frameRate: 15, loop: true, offsetX: 72, offsetY: 105 },
     'fx.footsteps': { sprite: 'fx.effect2', sheet: 1, frames: [28, 32], frameRate: 10, loop: false, depthOffset: -1 },
 } as const satisfies Record<string, EffectDef>;
 

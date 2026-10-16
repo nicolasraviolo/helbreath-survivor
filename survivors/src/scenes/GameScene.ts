@@ -17,6 +17,9 @@ import { CAST_RELEASE_MOMENT } from '../data/spells';
 import { FOOTSTEP_DUST_EVERY_PX, FOOTSTEPS_PER_RUN_CYCLE } from '../data/audio';
 import { PLAYER_FRAMES_PER_DIRECTION } from '../hb/playerAppearance';
 import { CharacterStats } from '../entities/CharacterStats';
+import { BuffSystem } from '../systems/BuffSystem';
+import { PickupSystem } from '../systems/PickupSystem';
+import { POTION_HEAL_SHARE, type PickupId } from '../data/pickups';
 import { Equipment } from '../entities/Equipment';
 import type { EnemyWorld } from '../entities/Enemy';
 import { Player } from '../entities/Player';
@@ -44,12 +47,14 @@ import type { LevelUpChoice, LevelUpSceneData } from './LevelUpScene';
 const DEBUG_SPAWN_COUNT = 100;
 /** Points added by the debug keys V (Str) and B (Int and Mag), to see links and armor show up quickly. */
 const DEBUG_STR_POINTS = 10;
+/** Distance from the player of the pickups dropped by the debug key P. */
+const DEBUG_PICKUP_SPACING = 48;
 
 /**
  * Escena de partida con la clase elegida en CharacterSelectScene: mapa, jugador, enemigos que lo persiguen, un arma automática (Energy Bolt),
  * gemas de XP y subida de nivel con cartas (Fase 5).
  * Mover: WASD/flechas, stick/cruceta o mantener clic. Esc / Start: pausa. F1 / View: depuración · T: prueba del Orc.
- * Solo en desarrollo: N 100 enemigos · K matar los visibles · G invencible · X subir un nivel · V +10 Str · B +10 Int y Mag.
+ * Solo en desarrollo: N 100 enemigos · K matar los visibles · G invencible · X subir un nivel · V +10 Str · B +10 Int y Mag · P poción, imán y cofre.
  */
 export class GameScene extends Phaser.Scene {
     private inputSystem!: InputSystem;
@@ -68,6 +73,8 @@ export class GameScene extends Phaser.Scene {
     private godModeLabel!: Phaser.GameObjects.Text;
     private stats!: CharacterStats;
     private xp!: XpSystem;
+    private pickups!: PickupSystem;
+    private buffs!: BuffSystem;
     private equipment!: Equipment;
     /** Melee weapon in hand (Warrior); undefined for spell casters. */
     private meleeWeapon: MeleeWeapon | undefined;
@@ -118,10 +125,13 @@ export class GameScene extends Phaser.Scene {
         this.damageNumbers = new DamageNumbers(this);
         this.audio = new AudioSystem(this);
         this.xp = new XpSystem(this, this.audio);
+        this.pickups = new PickupSystem(this, this.audio, (id) => this.collectPickup(id));
         this.combat = new CombatSystem(this.enemies, this.damageNumbers, this.audio, this.stats, (enemy) => {
             this.xp.drop(enemy.x, enemy.y, enemy.def.xp);
+            this.pickups.onKill(enemy.x, enemy.y);
         });
         this.weapons = new WeaponSystem(this, this.enemies, this.combat, this.audio);
+        this.buffs = new BuffSystem(this, this.player, this.audio, (key, x, y) => this.weapons.spawnEffect(key, x, y));
         this.equipment = new Equipment(character);
         this.meleeWeapon = undefined;
         this.spellWeapon = undefined;
@@ -151,7 +161,7 @@ export class GameScene extends Phaser.Scene {
             `Health: ${this.player.hp}/${this.player.maxHp}${this.player.godMode ? '  [INVINCIBLE]' : ''}`,
             `Level ${this.stats.level} · XP ${this.stats.xp}/${this.stats.xpToNext} · gems ${this.xp.active}`,
             `Time: ${formatTime(this.spawner.elapsed)}  spawn every ${this.spawner.currentInterval().toFixed(2)} s`,
-            `Kills: ${this.combat.kills} · projectiles ${this.weapons.activeProjectiles} · numbers ${this.damageNumbers.active}`,
+            `Kills: ${this.combat.kills} · projectiles ${this.weapons.activeProjectiles} · numbers ${this.damageNumbers.active} · pickups ${this.pickups.active}`,
             `Sounds: ${this.audio.playingCount} playing · ${this.audio.skippedCount} skipped`,
         ]);
         this.createGameOver();
@@ -165,9 +175,25 @@ export class GameScene extends Phaser.Scene {
     private applyStats(): void {
         const stats = this.stats;
         this.player.setMaxHp(stats.maxHp);
-        this.player.speedMultiplier = stats.moveSpeedMultiplier;
+        this.player.speedMultiplier = stats.moveSpeedMultiplier * (1 + this.equipment.passiveBonus('boots'));
+        this.xp.magnetMultiplier = 1 + this.equipment.passiveBonus('magnetAmulet');
         this.weapons.setCooldownMultiplier(stats.cooldownMultiplier);
         stats.gearMagicBonus = this.equipment.magicDamageBonus;
+    }
+
+    /** The player touched a pickup on the ground. */
+    private collectPickup(id: PickupId): void {
+        switch (id) {
+            case 'potion':
+                this.player.heal(Math.round(this.player.maxHp * POTION_HEAL_SHARE));
+                break;
+            case 'magnet':
+                this.xp.attractAll();
+                break;
+            case 'chest':
+                this.buffs.startRandom();
+                break;
+        }
     }
 
     /** Pauses the game and shows the cards. Picking one applies it and resumes. */
@@ -217,6 +243,9 @@ export class GameScene extends Phaser.Scene {
                 this.equipment.spell = choice.spell;
                 break;
             }
+            case 'passive':
+                this.equipment.passives[choice.passive] = choice.rank;
+                break;
             case 'armor':
                 for (const [slot, layer] of this.equipment.wear(choice.piece)) this.player.setGear(slot, layer);
                 break;
@@ -241,6 +270,8 @@ export class GameScene extends Phaser.Scene {
                 stats: this.stats,
                 weaponName: this.meleeWeapon?.def.name ?? this.spellWeapon?.def.name,
                 defense: this.equipment.defense,
+                passiveRanks: this.equipment.passives,
+                buffs: this.buffs.active.map(({ def, secondsLeft }) => ({ name: def.name, secondsLeft, color: def.color })),
             }),
         };
         this.scene.launch('Hud', data);
@@ -276,6 +307,9 @@ export class GameScene extends Phaser.Scene {
         if (!player.isDead) {
             this.gainXp(this.xp.update(delta, player.x, player.y));
         }
+        this.pickups.update(delta, player.x, player.y, !player.isDead);
+        this.buffs.update(delta);
+        this.stats.buffDamageMultiplier = this.buffs.damageMultiplier;
         this.spawner.enabled = !player.isDead;
         this.spawner.update(delta);
 
@@ -320,10 +354,10 @@ export class GameScene extends Phaser.Scene {
         }
     }
 
-    /** Armor removes part of each hit (0 stays 0: no enemy touching). */
+    /** Armor and a Defense Shield remove part of each hit (0 stays 0: no enemy touching). */
     private reduceByArmor(damage: number): number {
         if (damage <= 0) return 0;
-        return Math.max(MIN_DAMAGE_TAKEN, Math.round(damage * (1 - this.equipment.defense)));
+        return Math.max(MIN_DAMAGE_TAKEN, Math.round(damage * (1 - this.equipment.defense) * this.buffs.damageTakenMultiplier));
     }
 
     private gainXp(amount: number): void {
@@ -353,6 +387,12 @@ export class GameScene extends Phaser.Scene {
             this.stats.addStat('int', DEBUG_STR_POINTS);
             this.stats.addStat('mag', DEBUG_STR_POINTS);
             this.applyStats();
+        }
+        if (input.justPressed(Action.DebugDropPickups)) {
+            const { x, y } = this.player;
+            this.pickups.drop('potion', x - DEBUG_PICKUP_SPACING, y + DEBUG_PICKUP_SPACING);
+            this.pickups.drop('magnet', x, y + DEBUG_PICKUP_SPACING * 1.5);
+            this.pickups.drop('chest', x + DEBUG_PICKUP_SPACING, y + DEBUG_PICKUP_SPACING);
         }
         if (input.justPressed(Action.DebugGodMode)) {
             this.player.setGodMode(!this.player.godMode);
