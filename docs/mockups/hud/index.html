@@ -1,0 +1,42 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+body{margin:0;background:#222;font-family:sans-serif;color:#eee;padding:16px}
+.s{background:url(sheet.png) no-repeat;position:absolute;image-rendering:pixelated}
+#game{position:relative;width:800px;height:600px;background:#3d6b2a;overflow:hidden;outline:1px solid #000}
+#game .field{position:absolute;inset:0 0 51px 0;background:repeating-linear-gradient(45deg,#3f6e2c 0 16px,#3a6828 16px 32px)}
+.n{position:absolute;font:bold 12px monospace;color:#fff;text-shadow:1px 1px 0 #000;text-align:center}
+.tag{position:absolute;font:11px sans-serif;background:#ffd400;color:#000;padding:1px 4px;border-radius:3px;white-space:nowrap}
+.box{position:absolute;outline:2px dashed #ffd400}
+h2{font-size:16px;margin:18px 0 6px}
+</style></head><body>
+<h2>Boceto de la barra inferior — 800×600 (pantalla de juego + barra)</h2>
+<div id="game"><div class="field"></div>
+ <div style="position:absolute;left:390px;top:260px;width:20px;height:40px;background:#ddd;border-radius:6px"></div>
+ <div class="s" style="left:0;top:549px;width:800px;height:51px;background-position:0 -66px"></div>
+ <!-- HP 70% -->
+ <div id="hpEmpty" class="s"></div><div id="mpEmpty" class="s"></div><div id="xpEmpty" class="s"></div>
+ <div id="hpTxt" class="n">70 / 100</div><div id="mpTxt" class="n">— / —</div>
+ <div id="loc" class="n" style="color:#e8d9a8">02:35 · 120 bajas</div>
+ <div class="s" id="menuHover" style="width:36px;height:44px;background-position:-677px -14px"></div>
+</div>
+<h2>Piezas disponibles (gamedialog86.spr, hoja 6)</h2>
+<div style="position:relative;width:800px;height:152px;background:#555 url(sheet.png) no-repeat;image-rendering:pixelated" id="cat"></div>
+<script>
+const P=549;
+function place(id,x,y,w,h,bx,by){const e=document.getElementById(id);Object.assign(e.style,{left:x+'px',top:(P+y)+'px',width:w+'px',height:h+'px',backgroundPosition:`-${bx}px -${by}px`});return e}
+const Q=new URLSearchParams(location.search);
+const hp={x:+(Q.get('hx')||92),y:+(Q.get('hy')||10),w:+(Q.get('hw')||104)};
+const mp={x:hp.x,y:+(Q.get('my')||32)};
+const xp={x:+(Q.get('xx')||227),y:+(Q.get('xy')||8),w:170};
+const hpPct=.7, xpPct=.35;
+const hw=Math.round(hp.w*(1-hpPct));
+place('hpEmpty',hp.x+hp.w-hw,hp.y,hw,16,1+104-hw,49);
+place('mpEmpty',mp.x,mp.y,0,16,1,49);
+const xw=Math.round(xp.w*(1-xpPct));
+place('xpEmpty',xp.x+xp.w-xw,xp.y,xw,11,108+170-xw,52);
+place('hpTxt',hp.x,hp.y,hp.w,16,0,0).style.background='none';
+place('mpTxt',mp.x,mp.y,hp.w,16,0,0).style.background='none';
+place('loc',227,26,170,20,0,0).style.background='none';document.getElementById('loc').style.lineHeight='20px';
+const mb=document.getElementById('menuHover');mb.style.left=(+(Q.get('bx')||677))+'px';mb.style.top=(P+(+(Q.get('by')||4)))+'px';
+const fr=[[3,3,36,44],[41,3,36,44],[79,3,36,44],[119,10,32,32],[158,11,30,30],[195,11,30,30],[492,14,36,44],[529,14,36,44],[566,14,36,44],[603,14,36,44],[640,14,36,44],[677,14,36,44],[1,49,104,16],[108,52,170,11],[0,66,800,51],[233,3,36,44],[273,4,43,42],[1,124,23,24],[24,124,25,24],[50,124,25,24],[75,124,25,24],[100,124,23,24],[123,124,24,24],[321,5,14,18]];
+const c=document.getElementById('cat');fr.forEach((f,i)=>{const b=document.createElement('div');b.className='box';Object.assign(b.style,{left:f[0]+'px',top:f[1]+'px',width:f[2]+'px',height:f[3]+'px'});const t=document.createElement('div');t.className='tag';t.textContent=i;t.style.left='0';t.style.top='-2px';t.style.transform='translate(-40%,-40%)';b.appendChild(t);c.appendChild(b)});
+</script></body></html>

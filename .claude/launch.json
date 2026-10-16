@@ -4,14 +4,30 @@
     {
       "name": "sp-client",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["--dir", "sp-client", "dev"],
+      "runtimeArgs": [
+        "--dir",
+        "sp-client",
+        "dev"
+      ],
       "port": 8080
     },
     {
       "name": "survivors",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["--dir", "survivors", "dev"],
+      "runtimeArgs": [
+        "--dir",
+        "survivors",
+        "dev"
+      ],
       "port": 8090
+    },
+    {
+      "name": "mockups",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "docs/mockups/serve.cjs"
+      ],
+      "port": 8095
     }
   ]
 }

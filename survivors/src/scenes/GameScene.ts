@@ -2,12 +2,12 @@ import Phaser from 'phaser';
 import {
     CAMERA_LERP,
     DEPTH_DEBUG,
-    GAME_HEIGHT,
     GAME_OVER_DELAY_MS,
     GAME_WIDTH,
     MAP_OBJECT_MARGIN_TILES,
     TILE_SIZE,
 } from '../config/gameConfig';
+import { HUD_TOP } from '../config/hud';
 import { CHARACTERS, DEFAULT_CHARACTER } from '../data/characters';
 import { DEFAULT_MAP, MAPS_DATA } from '../data/maps';
 import type { EnemyWorld } from '../entities/Enemy';
@@ -22,14 +22,16 @@ import { EnemySystem } from '../systems/EnemySystem';
 import { Action, InputSystem } from '../systems/InputSystem';
 import { SpawnSystem } from '../systems/SpawnSystem';
 import { WeaponSystem } from '../systems/WeaponSystem';
+import { formatTime } from '../utils/format';
 import { EnergyBolt } from '../weapons/EnergyBolt';
+import type { HudSceneData } from './HudScene';
 
 /** Enemies created by the debug "spawn many" key. */
 const DEBUG_SPAWN_COUNT = 100;
 
 /**
  * Escena de partida. Fase 4: mapa, jugador, enemigos que lo persiguen y un arma automática (Energy Bolt).
- * Mover: WASD/flechas, stick/cruceta o mantener clic. F1 / View: depuración · T: prueba del Orc.
+ * Mover: WASD/flechas, stick/cruceta o mantener clic. Esc / Start: pausa. F1 / View: depuración · T: prueba del Orc.
  * Solo en desarrollo: N 100 enemigos · K matar los visibles · G invencible.
  */
 export class GameScene extends Phaser.Scene {
@@ -69,7 +71,9 @@ export class GameScene extends Phaser.Scene {
         const character = CHARACTERS[DEFAULT_CHARACTER];
         this.player = new Player(this, (spawn.x + 0.5) * TILE_SIZE, (spawn.y + 0.5) * TILE_SIZE, character, map, areaPx);
 
+        // The bottom bar covers the last rows of the screen: the camera only draws above it, so the player stays centred in what is visible.
         const camera = this.cameras.main;
+        camera.setViewport(0, 0, GAME_WIDTH, HUD_TOP);
         camera.setBounds(areaPx.x, areaPx.y, areaPx.width, areaPx.height);
         camera.startFollow(this.player.container, true, CAMERA_LERP, CAMERA_LERP);
 
@@ -84,6 +88,7 @@ export class GameScene extends Phaser.Scene {
 
         this.inputSystem = new InputSystem(this);
         this.inputSystem.setPointerAnchor(() => this.player);
+        this.inputSystem.setPointerMaxY(HUD_TOP);
         this.debug = new DebugSystem(this, map, this.player, this.inputSystem, () => [
             `Enemigos: ${this.enemies.alive} vivos · ${this.enemies.pooled} en pool`,
             `Vida: ${this.player.hp}/${character.maxHp}${this.player.godMode ? '  [INVENCIBLE]' : ''}`,
@@ -95,6 +100,26 @@ export class GameScene extends Phaser.Scene {
         this.godModeLabel = this.add.text(GAME_WIDTH - 10, 10, 'INVENCIBLE (G)', {
             fontFamily: 'monospace', fontSize: '14px', color: '#ffd860', backgroundColor: '#000000a0', padding: { x: 6, y: 3 },
         }).setOrigin(1, 0).setScrollFactor(0).setDepth(DEPTH_DEBUG).setVisible(false);
+        this.launchHud(character.maxHp);
+    }
+
+    /** Bottom bar in its own scene on top. It is stopped with this scene (restart, sprite test). */
+    private launchHud(maxHp: number): void {
+        const data: HudSceneData = {
+            gameSceneKey: this.scene.key,
+            getState: () => ({
+                hp: this.player.hp,
+                maxHp,
+                mana: undefined,
+                maxMana: 0,
+                xpRatio: 0,
+                elapsedMs: this.spawner.elapsed,
+                kills: this.combat.kills,
+                isGameOver: this.player.isDead,
+            }),
+        };
+        this.scene.launch('Hud', data);
+        this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.scene.stop('Hud'));
     }
 
     override update(_time: number, delta: number): void {
@@ -151,11 +176,11 @@ export class GameScene extends Phaser.Scene {
 
     /** Provisional Game Over (Phase 8 replaces it with a proper GameOverScene). */
     private createGameOver(): void {
-        const shade = this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.6).setOrigin(0);
-        const title = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 40, 'HAS CAÍDO', {
+        const shade = this.add.rectangle(0, 0, GAME_WIDTH, HUD_TOP, 0x000000, 0.6).setOrigin(0);
+        const title = this.add.text(GAME_WIDTH / 2, HUD_TOP / 2 - 40, 'HAS CAÍDO', {
             fontFamily: 'Georgia, serif', fontSize: '48px', color: '#d83030',
         }).setOrigin(0.5);
-        this.gameOverText = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 30, '', {
+        this.gameOverText = this.add.text(GAME_WIDTH / 2, HUD_TOP / 2 + 30, '', {
             fontFamily: 'Georgia, serif', fontSize: '18px', color: '#e0d090', align: 'center',
         }).setOrigin(0.5);
         this.gameOver = this.add.container(0, 0, [shade, title, this.gameOverText])
@@ -175,12 +200,6 @@ export class GameScene extends Phaser.Scene {
     }
 }
 
-function formatTime(ms: number): string {
-    const totalSeconds = Math.floor(ms / 1000);
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = totalSeconds % 60;
-    return `${minutes}:${String(seconds).padStart(2, '0')}`;
-}
 
 /** The walkable tile closest to (tx, ty), searching in growing squares. */
 function findSpawnTile(map: HBMap, tx: number, ty: number): { x: number; y: number } {

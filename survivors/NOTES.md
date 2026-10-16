@@ -278,3 +278,16 @@ Tabla completa en `docs/REQUISITOS_HB.md`. Lo no obvio:
 - En el original, un monstruo golpeado no se tiñe: solo reproduce la animación TakeDamage (hojas 24–31). El destello blanco (`setTintFill`) es nuestro.
 - Wiki (`docs/hb-wiki/`): el área del hechizo también golpea al objetivo directo, por eso el Energy Bolt hace 10 + 7 al enemigo alcanzado.
 
+
+## Barra inferior (HUD) original
+- `sp-client` **no dibuja** la barra inferior (su interfaz son diálogos React), pero el arte está en `sprites/gamedialog86.spr`, **hoja 6** (versión 800×600; `gamedialog*.spr` sin 86 son la de 640×480).
+- Frames de la hoja 6:
+  - 14: barra completa 800×51, con vida, maná y XP dibujadas **llenas**.
+  - 12: barra gris vacía 104×16 (vida y maná).
+  - 13: barra gris vacía 170×11 (XP).
+  - 6–11: los 6 botones iluminados (personaje, inventario, magia, habilidades, mensajes, sistema).
+  - 0–5, 15, 16, 23: cruces, esferas e iconos sin uso conocido; 17–22: iconos de hechizos 24×24.
+- Para mostrar la vida se pinta la barra llena y se tapa la parte que falta con el frame gris recortado (`setCrop`).
+- Posiciones medidas por correlación de imagen sobre el frame 14 (relativas a su esquina): vida (102,10), maná (102,32), XP (226,8), botones desde x=492 cada 37 px con y=7. Están en `config/hud.ts`.
+- Boceto y catálogo numerado de las piezas: `docs/mockups/hud/` (se ve con `mockups` de `.claude/launch.json` → http://localhost:8095/hud/).
+- Playwright: `keyboard.press` y `mouse.click` sueltan en el mismo frame y Phaser no ve el `JustDown`. En pruebas, mantener la tecla o el clic ~80 ms.

@@ -11,6 +11,8 @@ import { GAMEPAD_DEADZONE, POINTER_DEADZONE_PX, POINTER_FULL_SPEED_PX } from '..
 export enum Action {
     /** Accept / continue: Enter, Space, gamepad A or a mouse click. */
     Confirm = 'confirm',
+    /** Open / close the pause menu: Esc or gamepad Start. */
+    Pause = 'pause',
     ToggleDebug = 'toggleDebug',
     OpenSpriteTest = 'openSpriteTest',
     DebugSpawnMany = 'debugSpawnMany',
@@ -25,6 +27,7 @@ const KEY = Phaser.Input.Keyboard.KeyCodes;
 /** Keys per action. F1 is captured so the browser does not open its help page. */
 const KEYBOARD_ACTIONS: Record<Action, number[]> = {
     [Action.Confirm]: [KEY.ENTER, KEY.SPACE],
+    [Action.Pause]: [KEY.ESC],
     [Action.ToggleDebug]: [KEY.F1],
     [Action.OpenSpriteTest]: [KEY.T],
     [Action.DebugSpawnMany]: [KEY.N],
@@ -33,11 +36,12 @@ const KEYBOARD_ACTIONS: Record<Action, number[]> = {
 };
 
 /** Standard Gamepad API button indices (Xbox layout). */
-const GAMEPAD_BUTTON = { A: 0, View: 8, DpadUp: 12, DpadDown: 13, DpadLeft: 14, DpadRight: 15 } as const;
+const GAMEPAD_BUTTON = { A: 0, View: 8, Start: 9, DpadUp: 12, DpadDown: 13, DpadLeft: 14, DpadRight: 15 } as const;
 const GAMEPAD_AXIS = { LeftX: 0, LeftY: 1 } as const;
 
 const GAMEPAD_ACTIONS: Partial<Record<Action, number[]>> = {
     [Action.Confirm]: [GAMEPAD_BUTTON.A],
+    [Action.Pause]: [GAMEPAD_BUTTON.Start],
     [Action.ToggleDebug]: [GAMEPAD_BUTTON.View],
 };
 
@@ -58,6 +62,7 @@ export class InputSystem {
     private readonly padJustPressed = new Set<number>();
     private pad: Gamepad | undefined;
     private pointerAnchor: PointerAnchor | undefined;
+    private pointerMaxY = Number.POSITIVE_INFINITY;
     private pointerWasDown = false;
     private pointerJustPressed = false;
     private lastDevice: InputDevice = 'none';
@@ -80,6 +85,11 @@ export class InputSystem {
         this.pointerAnchor = anchor;
     }
 
+    /** Ignores mouse presses that start at or below this screen Y (over the HUD bar), for movement and Confirm. */
+    public setPointerMaxY(y: number): void {
+        this.pointerMaxY = y;
+    }
+
     /** Call once per frame before reading actions. */
     public update(): void {
         this.pad = readGamepad();
@@ -94,7 +104,8 @@ export class InputSystem {
         this.padButtonsDown.clear();
         pressedNow.forEach((index) => this.padButtonsDown.add(index));
 
-        const pointerDown = this.scene.input.activePointer.isDown;
+        const pointer = this.scene.input.activePointer;
+        const pointerDown = pointer.isDown && pointer.downY < this.pointerMaxY;
         this.pointerJustPressed = pointerDown && !this.pointerWasDown;
         this.pointerWasDown = pointerDown;
 
@@ -175,7 +186,7 @@ export class InputSystem {
     /** While the left mouse button is held: towards the cursor, slower when it is close. */
     private readPointerMove(): { x: number; y: number } | undefined {
         const pointer = this.scene.input.activePointer;
-        if (!this.pointerAnchor || !pointer.isDown || pointer.wasTouch) return undefined;
+        if (!this.pointerAnchor || !pointer.isDown || pointer.wasTouch || pointer.downY >= this.pointerMaxY) return undefined;
         const anchor = this.pointerAnchor();
         const target = pointer.positionToCamera(this.scene.cameras.main) as Phaser.Math.Vector2;
         const dx = target.x - anchor.x;

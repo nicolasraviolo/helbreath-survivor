@@ -24,9 +24,16 @@ export const SPRITES = {
     'gear.armor.plate.m': { file: 'sprites/mpmail.spr', type: SpriteType.EquipmentPack },
     'gear.swords.m': { file: 'sprites/msw.spr', type: SpriteType.Weapons },
     'gear.shields.m': { file: 'sprites/msh.spr', type: SpriteType.Shields },
+    // Mago: túnica, sombrero de mago (Wizard Hat) y varita (Magic Wand 2).
+    'gear.armor.robe.m': { file: 'sprites/mrobe1.spr', type: SpriteType.EquipmentPack },
+    'gear.helm.wizard.m': { file: 'sprites/nmhelm4.spr', type: SpriteType.EquipmentPack },
+    'gear.wand.m': { file: 'sprites/mstaff1.spr', type: SpriteType.Weapons },
 
     // Efectos de hechizos (ver config/effects.ts para qué hoja y frames usa cada uno).
     'fx.effect': { file: 'sprites/effect.spr', type: SpriteType.Effect },
+
+    // Interfaz: barra inferior original 800x600 (hoja 6; ver config/hud.ts para frames y posiciones).
+    'ui.panel': { file: 'sprites/gamedialog86.spr', type: SpriteType.Interface },
 } as const satisfies Record<string, SpriteAsset>;
 
 export type SpriteKey = keyof typeof SPRITES;

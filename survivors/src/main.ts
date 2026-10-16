@@ -3,6 +3,7 @@ import { BACKGROUND_COLOR, GAME_HEIGHT, GAME_WIDTH } from './config/gameConfig';
 import { BootScene } from './scenes/BootScene';
 import { PreloadScene } from './scenes/PreloadScene';
 import { GameScene } from './scenes/GameScene';
+import { HudScene } from './scenes/HudScene';
 import { SpriteTestScene } from './scenes/SpriteTestScene';
 
 const game = new Phaser.Game({
@@ -14,7 +15,8 @@ const game = new Phaser.Game({
     backgroundColor: BACKGROUND_COLOR,
     pixelArt: true,
     scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
-    scene: [BootScene, PreloadScene, GameScene, SpriteTestScene],
+    // HudScene va después de GameScene para dibujarse encima.
+    scene: [BootScene, PreloadScene, GameScene, HudScene, SpriteTestScene],
 });
 
 // Solo en desarrollo: acceso desde la consola del navegador para depurar (p. ej. __game.scene.getScene('Game')).
