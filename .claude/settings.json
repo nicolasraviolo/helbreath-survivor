@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(./sp-client/public/assets/sprites/**/*)",
+      "Read(./sp-client/public/assets/maps/**/*)",
+      "Read(./sp-client/public/assets/music/**/*)",
+      "Read(./sp-client/public/assets/sounds/**/*)",
+      "Read(./multiplayer/mp-client/**/*)",
+      "Read(./multiplayer/server/**/*.cs)",
+      "Read(./multiplayer/StressTestReport*.html)",
+      "Read(./**/*.mp4)",
+      "Read(./**/pnpm-lock.yaml)",
+      "Read(./**/package-lock.json)",
+      "Read(./.env)",
+      "Read(./.env.*)"
+    ]
+  }
+}
