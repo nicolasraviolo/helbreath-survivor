@@ -7,7 +7,7 @@
 | 2 — Mapa y jugador | ✅ completada | 2026-10-16 |
 | 3 — Enemigos | ✅ completada | 2026-10-16 |
 | 4 — Primera arma y combate | ✅ completada | 2026-10-16 |
-| 5 — Experiencia y subida de nivel | ⬜ pendiente | |
+| 5 — Experiencia y subida de nivel | ✅ completada | 2026-10-16 |
 | 6 — Arsenal completo | ⬜ pendiente | |
 | 7 — Oleadas, jefes y final | ⬜ pendiente | |
 | 8 — Menús y personajes | ⬜ pendiente | |
@@ -15,7 +15,7 @@
 | 10 — Pulido (opcional) | ⬜ pendiente | |
 
 ## Fase actual
-Fase 5 hecha (rama `fase-5`, 2026-10-16), a falta de que el propietario la dé por terminada.
+Fase 5 completada (2026-10-16), probada por el propietario. Siguiente: `/nueva-skill añadir-mejora` y después `/fase 6`.
 - **Stats** (`data/stats.ts`, `entities/CharacterStats.ts`):
   - Str: daño físico y requisito de armas/armaduras.
   - Vit: vida.
