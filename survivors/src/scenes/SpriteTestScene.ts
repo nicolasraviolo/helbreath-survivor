@@ -19,7 +19,7 @@ const MARKER_SIZE = 6;
 /**
  * Escena de prueba de la Fase 1: un Orc grande controlable en el centro y
  * un anillo de 8 Orcs, cada uno mirando hacia fuera en su dirección.
- * ← → giran · ↑ ↓ cambian de animación · Espacio pausa.
+ * ← → giran · ↑ ↓ cambian de animación · Espacio pausa · Esc vuelve a la partida.
  */
 export class SpriteTestScene extends Phaser.Scene {
     private readonly enemy: EnemyDef = ENEMIES.orc;
@@ -51,7 +51,7 @@ export class SpriteTestScene extends Phaser.Scene {
         this.main = this.add.existing(new HBAsset(this, cx, cy, this.enemy.sprite)).setScale(MAIN_SCALE);
 
         this.info = this.add.text(12, 10, '', { fontFamily: 'monospace', fontSize: '14px', color: '#e0d090' });
-        this.add.text(12, GAME_HEIGHT - 26, '← → girar   ↑ ↓ animación   Espacio pausa', {
+        this.add.text(12, GAME_HEIGHT - 26, '← → girar   ↑ ↓ animación   Espacio pausa   Esc volver', {
             fontFamily: 'monospace', fontSize: '13px', color: '#aaa',
         });
 
@@ -62,6 +62,7 @@ export class SpriteTestScene extends Phaser.Scene {
             keys.on('keydown-UP', () => this.changeState(-1));
             keys.on('keydown-DOWN', () => this.changeState(1));
             keys.on('keydown-SPACE', () => this.togglePause());
+            keys.on('keydown-ESC', () => this.scene.start('Game'));
         }
 
         this.playAll(true);

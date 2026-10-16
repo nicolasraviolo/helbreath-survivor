@@ -222,3 +222,24 @@ Los copiamos a `survivors/src/hb/` con la cabecera de licencia (regla 2 de CLAUD
   - Vite usa `publicDir: '../sp-client/public'` en dev, y en build `copyPublicDir: false`. Así `dist/` todavía **no incluye assets**: se resolverá en la Fase 9 con `sync-assets`.
   - Phaser ocupa ~1,5 MB sin comprimir (~340 KB gzip).
 - **Pendiente fuera de `survivors/`:** el `.gitignore` de la raíz tiene en su última línea, como texto literal, el comando `echo ".claude/settings.local.json" >> .gitignore`, así que esa regla no funciona. No lo toco sin permiso.
+
+## Aprendido en la Fase 2
+- **Anclaje (importante):** los pivotes de personajes, monstruos y objetos de mapa apuntan desde **los pies / la base**. En el cliente original ese punto es el **centro** de la casilla; el suelo se pinta desde la esquina.
+  - `sp-client` coloca todo en la esquina (`x*32`), con lo que árboles y personajes quedan desplazados 16 px respecto a sus casillas bloqueadas.
+  - Nosotros: el suelo va desde la esquina, los objetos en `x*32 + 16` (`TILE_ANCHOR_OFFSET`) y las entidades se dibujan en su posición tal cual (x/y = pies).
+  - Con esto, los troncos coinciden con las casillas rojas del modo depuración.
+- **huntzone2 usa pocos paquetes:** suelo `maptiles1`, `maptiles2` (301) y `maptiles4` (320); objetos solo árboles (100–122), más sus sombras (`treeshadows`). Los objetos 6 y 9 aparecen en el `.amd`, pero se ignoran como en el original.
+- Las casillas de suelo tienen pivote 0 y miden 32×32: se copian tal cual al tileset.
+- **Jugador por capas:**
+  - Es un `Container` con 10 sprites. Un único reloj elige el frame de todas las capas, así que nunca se desincronizan.
+  - El orden de capas se recalcula solo al cambiar dirección o estado (`getGearRenderOrder`).
+  - Los frames de cada estado están en las notas de la Fase 0. Correr = estado Run (hoja humano 32+dir, armadura hoja 4, arma `start + 6*8 + dir`, escudo `start + 6`).
+- **Choque:** cuadrado de 16 px centrado en los pies. Se mueve primero en X y luego en Y, y así se desliza a lo largo de los muros en diagonal.
+- **Navegador interno:** con el panel oculto, `requestAnimationFrame` se para: la carga tarda o se queda "congelada" y la cámara se retrasa. Para probar, mostrar el panel.
+  - El personaje se ve pequeño en capturas reducidas. Para comprobar detalles, usar `__game` (solo en dev, ver `main.ts`) y `cameras.main.setZoom(4)`.
+- **El plugin de mando de Phaser 3.90 no es fiable:**
+  - `Gamepad.update` descarta el mando si `pad.timestamp < _created`.
+  - Con un mando real el propietario no consiguió moverse. Por eso `InputSystem` lee `navigator.getGamepads()` directamente cada frame, sin `input.gamepad` en la config.
+  - Los navegadores solo muestran el mando **después de pulsar un botón** con la página enfocada.
+- **Mando sin mando físico:** basta con sobrescribir `navigator.getGamepads` y devolver un objeto con `axes`, `buttons`, `mapping: 'standard'` y `connected: true`.
+- **Ratón:** mientras se mantiene el clic izquierdo, el jugador corre hacia el cursor, con velocidad gradual hasta 64 px (`POINTER_*` en `gameConfig.ts`).
