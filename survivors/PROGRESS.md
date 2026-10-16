@@ -3,7 +3,7 @@
 | Fase | Estado | Fecha |
 |---|---|---|
 | 0 — Reconocimiento | ✅ completada | 2026-10-16 |
-| 1 — Esqueleto y primer sprite | 🟡 en curso | 2026-10-16 |
+| 1 — Esqueleto y primer sprite | ✅ completada | 2026-10-16 |
 | 2 — Mapa y jugador | ⬜ pendiente | |
 | 3 — Enemigos | ⬜ pendiente | |
 | 4 — Primera arma y combate | ⬜ pendiente | |
@@ -15,7 +15,7 @@
 | 10 — Pulido (opcional) | ⬜ pendiente | |
 
 ## Fase actual
-Fase 1 (rama `fase-1`), pendiente de que el propietario la pruebe.
+Fase 1 completada (2026-10-16), probada por el propietario. Siguiente: `/fase 2`.
 - Hecho (2026-10-16):
   - Proyecto `survivors/` (Vite 6 + TS estricto + Phaser 3.90, sin React), en el puerto 8090.
   - Assets servidos desde `sp-client/public`.
