@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
-import { ASSET_BASE_PATH, MAPS, SOUNDS, SPRITES, type SpriteKey } from '../config/assetManifest';
+import { ASSET_BASE_PATH, MAPS, PHONE_ONLY_SPRITES, SOUNDS, SPRITES, type SpriteKey } from '../config/assetManifest';
+import { COMPACT_UI } from '../config/device';
 import { registerEffectAnimations } from '../config/effects';
 import { DEFAULT_ANIMATION_FRAME_RATE, GAME_HEIGHT, GAME_WIDTH } from '../config/gameConfig';
 import { px, UI_TEXT, UI_FONT_SIZE } from '../config/ui';
@@ -10,7 +11,8 @@ import { getTilePacksForIndices } from '../hb/mapAssets';
 import { STREAMED_SPRITES } from '../systems/AssetStreamer';
 
 /** Sprites loaded here: all but the monsters that come later (systems/AssetStreamer.ts loads those in the background). */
-const UPFRONT_SPRITES = (Object.keys(SPRITES) as SpriteKey[]).filter((key) => !STREAMED_SPRITES.has(key));
+const UPFRONT_SPRITES = (Object.keys(SPRITES) as SpriteKey[])
+    .filter((key) => !STREAMED_SPRITES.has(key) && (COMPACT_UI || !PHONE_ONLY_SPRITES.has(key)));
 
 const BAR_WIDTH = 400;
 const BAR_HEIGHT = 16;

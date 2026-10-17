@@ -1,58 +1,42 @@
-// Barra inferior al estilo del Helbreath original: vida, maná, experiencia, tiempo y bajas, y 6 botones.
+// Interfaz de la partida: la barra (clásica abajo, o compacta arriba en el móvil: ui/ClassicHud.ts, ui/CompactHud.ts),
+// el panel de stats, la barra del jefe, los avisos y las mejoras activas de los cofres.
 // Corre como escena aparte por encima de la partida, así que no se mueve con la cámara.
-// Las barras usan la imagen original llena y tapan la parte que falta con la pieza gris "vacía".
-// Botones con función: el casco (o C / Y del mando) muestra el panel de stats, y el disquete (o Esc / Start) abre
-// la pausa (PauseScene). Si se desconecta el mando en plena partida, la pausa se abre sola.
+// El casco (o C / Y del mando) muestra el panel de stats, y el disquete o Esc / Start abren la pausa (PauseScene).
+// Si se desconecta el mando en plena partida, la pausa se abre sola.
 // En pantallas táctiles hay además un botón de pausa arriba a la derecha, y la pausa se abre sola al poner el móvil
 // en vertical (el juego es apaisado y queda tapado por el aviso de girarlo).
-// Los demás botones se iluminan pero aún no hacen nada.
+// Si se cambia el estilo de la barra en los ajustes (desde la pausa), la barra se cambia al momento.
 import Phaser from 'phaser';
+import { COMPACT_UI } from '../config/device';
 import { GAME_WIDTH } from '../config/gameConfig';
 import {
     ANNOUNCE_EVENT,
     HUD_ANNOUNCE,
     HUD_BOSS,
     HUD_BUFF,
-    HUD_BUTTONS,
-    HUD_CHARACTER_BUTTON,
+    HUD_COMPACT,
     HUD_DEPTH_TEXT,
-    HUD_FRAME,
-    HUD_HP,
-    HUD_INFO,
-    HUD_INFO_STYLE,
-    HUD_MENU_BUTTON,
-    HUD_MP,
-    HUD_SCALE,
-    HUD_TEXT_STYLE,
-    HUD_TEXTURE,
     HUD_STATS_PANEL,
     HUD_STATS_STYLE,
     HUD_STATS_TITLE_STYLE,
     HUD_TOP,
-    HUD_XP,
 } from '../config/hud';
+import type { HudStyle } from '../config/settings';
 import { TOUCH_PAUSE_BUTTON } from '../config/touch';
 import { PASSIVE_IDS, PASSIVES } from '../data/passives';
 import { STAT_IDS, STAT_INFO } from '../data/stats';
 import type { CharacterStats } from '../entities/CharacterStats';
 import { Action, InputSystem } from '../systems/InputSystem';
-import { formatTime } from '../utils/format';
+import { SETTINGS_CHANGED, settings } from '../systems/Settings';
 import { SpriteText } from '../hb/SpriteText';
+import { ClassicHud } from '../ui/ClassicHud';
+import { CompactHud } from '../ui/CompactHud';
+import { activeHudStyle, playAreaBottom, type HudBar, type HudBarState } from '../ui/hudLayout';
 import { openOverlay } from './MenuOverlayScene';
 import type { PauseSceneData } from './PauseScene';
 
-/** What the bar shows, read every frame from the game. */
-export interface HudState {
-    hp: number;
-    maxHp: number;
-    /** Undefined while the character has no mana: the gauge stays full and shows "— / —". */
-    mana: number | undefined;
-    maxMana: number;
-    /** 0..1 progress towards the next level. */
-    xpRatio: number;
-    level: number;
-    elapsedMs: number;
-    kills: number;
+/** What the HUD shows, read every frame from the game. */
+export interface HudState extends HudBarState {
     /** True while the pause menu can't open (Game Over or level-up cards showing). */
     pauseLocked: boolean;
     /** For the stats panel. */
@@ -75,24 +59,12 @@ export interface HudSceneData {
     gameSceneKey: string;
 }
 
-interface Gauge {
-    empty: Phaser.GameObjects.Image;
-    width: number;
-    shownRatio: number;
-}
-
 export class HudScene extends Phaser.Scene {
     private getState!: () => HudState;
     private gameSceneKey!: string;
     private inputSystem!: InputSystem;
-    /** The bottom bar and everything on it, in the bar's own pixels (scaled up on phones). */
-    private bar!: Phaser.GameObjects.Container;
-    private hp!: Gauge;
-    private mp!: Gauge;
-    private xp!: Gauge;
-    private hpText!: Phaser.GameObjects.Text;
-    private mpText!: Phaser.GameObjects.Text;
-    private infoText!: Phaser.GameObjects.Text;
+    private bar!: HudBar;
+    private barStyle!: HudStyle;
     private bossName!: SpriteText;
     private bossBar!: Phaser.GameObjects.Graphics;
     private shownBossRatio = -1;
@@ -105,6 +77,7 @@ export class HudScene extends Phaser.Scene {
     private statCells: Phaser.GameObjects.Text[] = [];
     private derivedLabels!: Phaser.GameObjects.Text;
     private derivedValues!: Phaser.GameObjects.Text;
+    private statsPanelHeight = 0;
 
     constructor() {
         super('Hud');
@@ -116,15 +89,7 @@ export class HudScene extends Phaser.Scene {
     }
 
     create(): void {
-        // Scaled around the bottom centre of the screen, so a bigger bar stays centred and on the bottom edge.
-        this.bar = this.add.container(GAME_WIDTH / 2 * (1 - HUD_SCALE), HUD_TOP).setScale(HUD_SCALE);
-        this.bar.add(this.add.image(0, 0, HUD_TEXTURE, HUD_FRAME.panel).setOrigin(0));
-        this.hp = this.createGauge(HUD_HP, HUD_FRAME.gaugeEmpty);
-        this.mp = this.createGauge(HUD_MP, HUD_FRAME.gaugeEmpty);
-        this.xp = this.createGauge(HUD_XP, HUD_FRAME.xpEmpty);
-        this.hpText = this.createCenteredText(HUD_HP, HUD_TEXT_STYLE);
-        this.mpText = this.createCenteredText(HUD_MP, HUD_TEXT_STYLE);
-        this.infoText = this.createCenteredText(HUD_INFO, HUD_INFO_STYLE);
+        this.buildBar();
         this.createStatsPanel();
         this.createBossBar();
         this.announce = new SpriteText(this, GAME_WIDTH / 2, HUD_ANNOUNCE.y, '', HUD_ANNOUNCE.color, 'center');
@@ -133,7 +98,6 @@ export class HudScene extends Phaser.Scene {
         const onAnnounce = (message: string) => this.showAnnouncement(message);
         game.events.on(ANNOUNCE_EVENT, onAnnounce);
         this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => game.events.off(ANNOUNCE_EVENT, onAnnounce));
-        this.createButtons();
         this.inputSystem = new InputSystem(this);
         // Gamepad unplugged (or out of battery) mid-run: pause so the player doesn't die without controls.
         const onPadLost = () => this.openPause();
@@ -143,11 +107,18 @@ export class HudScene extends Phaser.Scene {
             if (isPortraitTouch()) this.openPause();
         };
         window.addEventListener('resize', onResize);
+        // Settings → HUD changed (from the pause menu): swap the bar right away.
+        const onSettings = () => {
+            if (activeHudStyle() !== this.barStyle) this.rebuildBar();
+        };
+        settings.on(SETTINGS_CHANGED, onSettings);
         this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
             window.removeEventListener('gamepaddisconnected', onPadLost);
             window.removeEventListener('resize', onResize);
+            settings.off(SETTINGS_CHANGED, onSettings);
         });
-        if (this.sys.game.device.input.touch) this.createTouchPauseButton();
+        // The compact HUD has no floppy disk button: it needs the round one (also when forced with ?ui=compact on a PC).
+        if (this.sys.game.device.input.touch || COMPACT_UI) this.createTouchPauseButton();
     }
 
     override update(_time: number, delta: number): void {
@@ -158,18 +129,26 @@ export class HudScene extends Phaser.Scene {
         if (this.inputSystem.justPressed(Action.Pause)) this.openPause();
         if (this.inputSystem.justPressed(Action.ToggleStats)) this.toggleStats();
         if (this.statsPanel.visible) this.refreshStats(state);
-        this.setGauge(this.hp, state.hp / state.maxHp);
-        this.hpText.setText(`${Math.ceil(state.hp)} / ${state.maxHp}`);
-        if (state.mana === undefined) {
-            this.setGauge(this.mp, 1);
-            this.mpText.setText('— / —');
-        } else {
-            this.setGauge(this.mp, state.mana / state.maxMana);
-            this.mpText.setText(`${Math.ceil(state.mana)} / ${state.maxMana}`);
-        }
-        this.setGauge(this.xp, state.xpRatio);
-        this.infoText.setText(`Lv ${state.level}  ${formatTime(state.elapsedMs)}  ${state.kills} kills`);
+        this.bar.update(state);
         this.showBuffs(state.buffs);
+    }
+
+    /** The bar of the style chosen in the settings (the PC always gets the classic one). */
+    private buildBar(): void {
+        this.barStyle = activeHudStyle();
+        const actions = { toggleStats: () => this.toggleStats(), openPause: () => this.openPause() };
+        this.bar = this.barStyle === 'classic' ? new ClassicHud(this, actions) : new CompactHud(this, actions);
+    }
+
+    /** Swaps the bar and moves what depends on it (stats panel, buffs, boss bar). */
+    private rebuildBar(): void {
+        this.bar.destroy();
+        this.buildBar();
+        this.placeStatsPanel();
+        this.buffTexts.forEach((text, i) => {
+            text.container.y = this.buffY(i);
+        });
+        this.shownBossRatio = -1;
     }
 
     private createBossBar(): void {
@@ -190,10 +169,14 @@ export class HudScene extends Phaser.Scene {
         const ratio = Phaser.Math.Clamp(boss.hp / boss.maxHp, 0, 1);
         if (ratio === this.shownBossRatio) return;
         this.shownBossRatio = ratio;
-        const { y, width, height } = HUD_BOSS;
-        const left = (GAME_WIDTH - width) / 2;
+        // The compact HUD has its block at the top left and buttons at the top right: the bar goes between them.
+        const compact = this.barStyle === 'compact';
+        const centerX = compact ? HUD_COMPACT.bossCenterX : GAME_WIDTH / 2;
+        const width = compact ? HUD_COMPACT.bossWidth : HUD_BOSS.width;
+        const { y, height } = HUD_BOSS;
+        const left = centerX - width / 2;
         this.bossName.setText(boss.name);
-        this.bossName.container.setPosition(GAME_WIDTH / 2, HUD_BOSS.nameY);
+        this.bossName.container.setPosition(centerX, HUD_BOSS.nameY);
         this.bossBar.clear()
             .fillStyle(HUD_BOSS.backColor, 0.85).fillRect(left, y, width, height)
             .fillStyle(HUD_BOSS.fillColor, 1).fillRect(left, y, width * ratio, height)
@@ -216,11 +199,15 @@ export class HudScene extends Phaser.Scene {
         this.announce.container.setAlpha(Math.min(1, this.announceLeftMs / HUD_ANNOUNCE.fadeMs));
     }
 
-    /** One line per active buff at the top of the screen: name and seconds left, in its colour. */
+    /** Line `index` of the buffs, from the bottom of the game area up. */
+    private buffY(index: number): number {
+        return playAreaBottom() - HUD_BUFF.bottomGap - index * HUD_BUFF.lineHeight;
+    }
+
+    /** One line per active buff, bottom right: name and seconds left, in its colour. */
     private showBuffs(buffs: HudState['buffs']): void {
         while (this.buffTexts.length < buffs.length) {
-            const y = HUD_TOP - HUD_BUFF.bottomGap - this.buffTexts.length * HUD_BUFF.lineHeight;
-            const text = new SpriteText(this, GAME_WIDTH - HUD_BUFF.right, y, '', 0xffffff, 'right');
+            const text = new SpriteText(this, GAME_WIDTH - HUD_BUFF.right, this.buffY(this.buffTexts.length), '', 0xffffff, 'right');
             text.container.setScale(HUD_BUFF.scale).setDepth(HUD_DEPTH_TEXT);
             this.buffTexts.push(text);
         }
@@ -231,56 +218,10 @@ export class HudScene extends Phaser.Scene {
         });
     }
 
-    private createGauge(rect: { x: number; y: number; width: number }, emptyFrame: number): Gauge {
-        const empty = this.add.image(rect.x, rect.y, HUD_TEXTURE, emptyFrame).setOrigin(0);
-        this.bar.add(empty);
-        const gauge = { empty, width: rect.width, shownRatio: -1 };
-        this.setGauge(gauge, 1);
-        return gauge;
-    }
-
-    /** Shows the grey "empty" piece only over the missing part (right side) of the gauge. */
-    private setGauge(gauge: Gauge, ratio: number): void {
-        const clamped = Phaser.Math.Clamp(ratio, 0, 1);
-        if (clamped === gauge.shownRatio) return;
-        gauge.shownRatio = clamped;
-        const filled = Math.round(gauge.width * clamped);
-        gauge.empty.setVisible(filled < gauge.width);
-        gauge.empty.setCrop(filled, 0, gauge.width - filled, gauge.empty.height);
-    }
-
-    private createCenteredText(
-        rect: { x: number; y: number; width: number; height: number },
-        style: Phaser.Types.GameObjects.Text.TextStyle,
-    ): Phaser.GameObjects.Text {
-        const text = this.add.text(rect.x + rect.width / 2, rect.y + rect.height / 2, '', style).setOrigin(0.5);
-        this.bar.add(text);
-        return text;
-    }
-
-    /** The lit version of each button appears on hover; the system button opens the pause menu. */
-    private createButtons(): void {
-        for (let i = 0; i < HUD_BUTTONS.count; i++) {
-            const x = HUD_BUTTONS.x + i * HUD_BUTTONS.step;
-            const y = HUD_BUTTONS.y;
-            const lit = this.add.image(x, y, HUD_TEXTURE, HUD_FRAME.firstButtonLit + i).setOrigin(0).setVisible(false);
-            const zone = this.add.zone(x, y, HUD_BUTTONS.width, HUD_BUTTONS.height).setOrigin(0).setInteractive({ useHandCursor: true });
-            this.bar.add([lit, zone]);
-            zone.on(Phaser.Input.Events.POINTER_OVER, () => lit.setVisible(true));
-            zone.on(Phaser.Input.Events.POINTER_OUT, () => lit.setVisible(false));
-            if (i === HUD_MENU_BUTTON) {
-                zone.on(Phaser.Input.Events.POINTER_DOWN, () => this.openPause());
-            }
-            if (i === HUD_CHARACTER_BUTTON) {
-                zone.on(Phaser.Input.Events.POINTER_DOWN, () => this.toggleStats());
-            }
-        }
-    }
-
-    /** Small panel above the bar with level, the six stats and what they give. Hidden until asked for. */
+    /** Small panel (above the classic bar or under the compact block) with level, the six stats and what they give. Hidden until asked for. */
     // The UI font is not monospaced, so the stats are laid out in fixed columns instead of padded strings.
     private createStatsPanel(): void {
-        const { x, width, padding, marginY, columnWidth, gap } = HUD_STATS_PANEL;
+        const { x, width, padding, columnWidth, gap } = HUD_STATS_PANEL;
         this.statsTitle = this.add.text(padding, padding, ' ', HUD_STATS_TITLE_STYLE);
         const lineHeight = this.statsTitle.height;
         const gridTop = padding + lineHeight + gap;
@@ -297,9 +238,18 @@ export class HudScene extends Phaser.Scene {
         this.refreshStats(this.getState());
         const height = derivedTop + this.derivedLabels.height + padding;
         const back = this.add.rectangle(0, 0, width, height, 0x1c140c, 0.9).setOrigin(0).setStrokeStyle(2, 0x8a7038);
-        this.statsPanel = this.add.container(x, HUD_TOP - height - marginY, [
+        this.statsPanelHeight = height;
+        this.statsPanel = this.add.container(x, 0, [
             back, this.statsTitle, ...this.statCells, this.derivedLabels, this.derivedValues,
         ]).setVisible(false);
+        this.placeStatsPanel();
+    }
+
+    /** Above the classic bar, or under the compact block. */
+    private placeStatsPanel(): void {
+        this.statsPanel.y = this.barStyle === 'classic'
+            ? HUD_TOP - this.statsPanelHeight - HUD_STATS_PANEL.marginY
+            : HUD_COMPACT.statsPanelY;
     }
 
     private refreshStats(state: HudState): void {

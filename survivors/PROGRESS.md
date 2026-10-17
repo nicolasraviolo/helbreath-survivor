@@ -12,9 +12,21 @@
 | 7 — Oleadas, jefes y final | ✅ completada | 2026-10-17 |
 | 8 — Menús y personajes | ✅ completada (solo menús; Arquero aplazado) | 2026-10-17 |
 | 9 — Web, móvil y publicación | ✅ completada | 2026-10-17 |
-| 10 — Pulido (opcional) | 🟡 en curso (10A: móvil) | |
+| 10 — Pulido (opcional) | 🟡 en curso (10A y 10B: móvil) | |
 
 ## Fase actual
+**Fase 10, bloque 10B: interfaz de partida elegible en el móvil (2026-10-17, falta que lo pruebe el propietario).**
+- **Nueva opción en Settings → HUD: Classic / Compact.** Solo sale en el móvil; en el PC siempre está la barra clásica y la opción no aparece. Se guarda para la próxima vez.
+- **Compact (la que sale por defecto en el móvil):** no hay barra abajo y se ve más mapa.
+  - Arriba a la izquierda: barras de vida, maná y experiencia con piezas de la interfaz "V2" del original (`dialogsv2.spr`), y debajo nivel, tiempo y bajas.
+  - Arriba a la derecha: botón de stats (casco) junto al de pausa.
+  - La barra del jefe se coloca entre los dos. Los buffs siguen abajo a la derecha, más pegados al borde.
+- **Classic:** la barra de abajo del bloque 10A.
+- **Cambiar en plena partida:** desde la pausa (Pause → Settings → HUD). Al volver al juego, la barra y la zona de juego ya han cambiado.
+- **Código:** `ui/ClassicHud.ts` y `ui/CompactHud.ts`. La elección vive en `ui/hudLayout.ts` y las medidas en `config/hud.ts` (`HUD_COMPACT`). `dialogsv2.spr` (2,3 MB) solo se descarga en el móvil.
+- **Comprobado** con Chrome sin ventana simulando un móvil (844×390, táctil): partida, stats, jefe, buffs, cartas, ajustes y cambio de barra en plena partida. En PC, igual que antes. Sin errores en la consola; `tsc` y `build` sin errores.
+- **Cómo probarlo:** en el móvil, abre `http://192.168.1.42:8090` y empieza una partida, que sale con la barra compacta. Pulsa II → Settings → HUD → Classic → Back → Resume: debería verse la barra de abajo.
+
 **Fase 10, bloque 10A: que todo se lea bien en el móvil (2026-10-17, falta que lo pruebe el propietario).**
 - **Modo móvil** (`src/config/device.ts`): se activa solo en pantallas táctiles pequeñas (lado corto ≤ 600 px). En el PC no cambia nada.
   - Para verlo en el PC: añade `?ui=compact` a la dirección. Para ver la versión de PC en el móvil: `?ui=normal`.

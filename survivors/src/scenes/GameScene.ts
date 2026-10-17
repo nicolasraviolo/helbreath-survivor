@@ -12,7 +12,7 @@ import {
     TILE_SIZE,
     VICTORY_DELAY_MS,
 } from '../config/gameConfig';
-import { ANNOUNCE_EVENT, HUD_TOP } from '../config/hud';
+import { ANNOUNCE_EVENT } from '../config/hud';
 import { getArmorPiece } from '../data/armor';
 import { MUSIC } from '../data/audio';
 import type { WaveEventDef } from '../data/waves';
@@ -44,6 +44,8 @@ import { DebugSystem } from '../systems/DebugSystem';
 import { EnemySystem } from '../systems/EnemySystem';
 import { assetStreamer } from '../systems/AssetStreamer';
 import { Action, InputSystem } from '../systems/InputSystem';
+import { SETTINGS_CHANGED, settings } from '../systems/Settings';
+import { playAreaBottom } from '../ui/hudLayout';
 import { TouchJoystick } from '../ui/TouchJoystick';
 import { SpawnSystem } from '../systems/SpawnSystem';
 import { WeaponSystem } from '../systems/WeaponSystem';
@@ -76,6 +78,8 @@ const DEBUG_LEVELS = 5;
  */
 export class GameScene extends Phaser.Scene {
     private inputSystem!: InputSystem;
+    /** Only on touch screens. */
+    private joystick: TouchJoystick | undefined;
     private player!: Player;
     private mapView!: MapView;
     private enemies!: EnemySystem;
@@ -137,9 +141,9 @@ export class GameScene extends Phaser.Scene {
         this.lastX = this.player.x;
         this.lastY = this.player.y;
 
-        // The bottom bar covers the last rows of the screen: the camera only draws above it, so the player stays centred in what is visible.
+        // The classic bottom bar covers the last rows of the screen: the camera only draws above it, so the player stays
+        // centred in what is visible (with the compact HUD of phones it draws down to the bottom; see fitPlayArea).
         const camera = this.cameras.main;
-        camera.setViewport(0, 0, GAME_WIDTH, HUD_TOP);
         camera.setBounds(areaPx.x, areaPx.y, areaPx.width, areaPx.height);
         camera.startFollow(this.player.container, true, CAMERA_LERP, CAMERA_LERP);
 
@@ -195,10 +199,12 @@ export class GameScene extends Phaser.Scene {
 
         this.inputSystem = new InputSystem(this);
         this.inputSystem.setPointerAnchor(() => this.player);
-        this.inputSystem.setPointerMaxY(HUD_TOP);
-        if (this.sys.game.device.input.touch) {
-            this.inputSystem.setTouchJoystick(new TouchJoystick(this, HUD_TOP, DEPTH_DEBUG - 2));
-        }
+        this.joystick = this.sys.game.device.input.touch ? new TouchJoystick(this, playAreaBottom(), DEPTH_DEBUG - 2) : undefined;
+        if (this.joystick) this.inputSystem.setTouchJoystick(this.joystick);
+        this.fitPlayArea();
+        const onSettings = () => this.fitPlayArea();
+        settings.on(SETTINGS_CHANGED, onSettings);
+        this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => settings.off(SETTINGS_CHANGED, onSettings));
         this.debug = new DebugSystem(this, map, this.player, this.inputSystem, () => [
             `Enemies: ${this.enemies.alive} alive · ${this.enemies.pooled} pooled`,
             `Health: ${this.player.hp}/${this.player.maxHp}${this.player.godMode ? '  [INVINCIBLE]' : ''}`,
@@ -325,6 +331,14 @@ export class GameScene extends Phaser.Scene {
             this.scene.stop('Pause');
             this.scene.stop('Settings');
         });
+    }
+
+    /** Game area down to the HUD bar, or the whole screen with the compact HUD (it can change from the pause menu). */
+    private fitPlayArea(): void {
+        const bottom = playAreaBottom();
+        this.cameras.main.setViewport(0, 0, GAME_WIDTH, bottom);
+        this.inputSystem.setPointerMaxY(bottom);
+        this.joystick?.setMaxY(bottom);
     }
 
     override update(_time: number, delta: number): void {

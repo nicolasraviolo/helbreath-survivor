@@ -15,6 +15,7 @@ import type { CharacterStats } from '../entities/CharacterStats';
 import type { Equipment } from '../entities/Equipment';
 import { Action, InputSystem } from '../systems/InputSystem';
 import type { LevelUpChoice } from '../systems/UpgradePool';
+import { playAreaBottom } from '../ui/hudLayout';
 
 export type { LevelUpChoice } from '../systems/UpgradePool';
 
@@ -27,17 +28,19 @@ export interface LevelUpSceneData {
 
 // Phones (config/device.ts): bigger cards for the bigger text, nearly as wide as the screen.
 const CARD_WIDTH = byDevice(230, 252);
-const CARD_HEIGHT = byDevice(256, 300);
+const CARD_HEIGHT = byDevice(256, 335);
 const CARD_GAP = byDevice(24, 12);
-const CARD_Y = byDevice(HUD_TOP / 2 + 30, 318);
 /** From the card's top edge: centre of the badge and of the title, and top of the effect line. */
 const CARD_BADGE_Y = byDevice(44, 46);
 const CARD_TITLE_Y = byDevice(92, 102);
 const CARD_EFFECT_Y = byDevice(116, 128);
 /** Space left free at each side of the card's text. */
 const CARD_TEXT_MARGIN = byDevice(12, 10);
-const TITLE_Y = byDevice(70, 62);
-const SUBTITLE_Y = byDevice(108, 104);
+// Phones: below the boss bar (a boss can be alive while choosing).
+const TITLE_Y = byDevice(70, 80);
+const SUBTITLE_Y = byDevice(108, 120);
+/** From the bottom of the game area (the HUD bar's top, or the bottom of the screen). */
+const HINT_BOTTOM_GAP = 24;
 const HINT = byDevice('← →  and  Enter   ·   D-pad or stick  and  A   ·   Click', 'Tap a card');
 const CARD_FILL = 0x1c140c;
 const CARD_BORDER = 0x8a7038;
@@ -90,18 +93,21 @@ export class LevelUpScene extends Phaser.Scene {
     create(): void {
         const { stats, choices } = this.params;
         this.openedAt = this.time.now;
-        this.add.rectangle(0, 0, GAME_WIDTH, HUD_TOP, 0x000000, 0.6).setOrigin(0);
+        const bottom = playAreaBottom();
+        this.add.rectangle(0, 0, GAME_WIDTH, bottom, 0x000000, 0.6).setOrigin(0);
         this.add.text(GAME_WIDTH / 2, TITLE_Y, `Level ${stats.level}!`, {
             ...UI_TEXT, fontSize: px(UI_FONT_SIZE.title), fontStyle: 'bold', color: '#ffe080', stroke: '#000000', strokeThickness: 4,
         }).setOrigin(0.5);
         this.add.text(GAME_WIDTH / 2, SUBTITLE_Y, 'Choose an upgrade', { ...UI_TEXT, fontSize: px(UI_FONT_SIZE.normal), color: TEXT_COLOR }).setOrigin(0.5);
-        this.add.text(GAME_WIDTH / 2, HUD_TOP - 24, HINT, {
+        this.add.text(GAME_WIDTH / 2, bottom - HINT_BOTTOM_GAP, HINT, {
             ...UI_TEXT, fontSize: px(UI_FONT_SIZE.small), color: '#a89870',
         }).setOrigin(0.5);
 
+        // PC: as always. Phones: centred between the subtitle and the hint, which moves down with the compact HUD.
+        const cardY = byDevice(HUD_TOP / 2 + 30, (SUBTITLE_Y + bottom - HINT_BOTTOM_GAP) / 2);
         const totalWidth = choices.length * CARD_WIDTH + (choices.length - 1) * CARD_GAP;
         const firstX = (GAME_WIDTH - totalWidth) / 2 + CARD_WIDTH / 2;
-        choices.forEach((choice, i) => this.cards.push(this.createCard(choice, firstX + i * (CARD_WIDTH + CARD_GAP), i)));
+        choices.forEach((choice, i) => this.cards.push(this.createCard(choice, firstX + i * (CARD_WIDTH + CARD_GAP), cardY, i)));
         this.highlight(0);
 
         this.inputSystem = new InputSystem(this);
@@ -122,7 +128,7 @@ export class LevelUpScene extends Phaser.Scene {
         return !this.chosen && this.time.now - this.openedAt >= LEVEL_UP_INPUT_DELAY_MS;
     }
 
-    private createCard(choice: LevelUpChoice, x: number, index: number): Card {
+    private createCard(choice: LevelUpChoice, x: number, y: number, index: number): Card {
         const text = describeCard(this.params.stats, this.params.equipment, choice);
         const frame = this.add.rectangle(0, 0, CARD_WIDTH, CARD_HEIGHT, CARD_FILL, 0.95).setStrokeStyle(2, CARD_BORDER);
         const top = -CARD_HEIGHT / 2;
@@ -142,7 +148,7 @@ export class LevelUpScene extends Phaser.Scene {
             ...UI_TEXT, fontSize: px(UI_FONT_SIZE.normal), color: TEXT_COLOR, align: 'center', lineSpacing: 2, wordWrap: { width: textWidth },
         }).setOrigin(0.5, 0);
 
-        const container = this.add.container(x, CARD_Y, [frame, badge, badgeText, title, effect, changes]);
+        const container = this.add.container(x, y, [frame, badge, badgeText, title, effect, changes]);
         frame.setInteractive({ useHandCursor: true });
         frame.on(Phaser.Input.Events.POINTER_OVER, () => this.highlight(index));
         frame.on(Phaser.Input.Events.POINTER_DOWN, () => {

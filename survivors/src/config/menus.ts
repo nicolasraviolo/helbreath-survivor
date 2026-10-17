@@ -42,7 +42,7 @@ export const MENU_OVERLAY = {
     contentOffsetY: byDevice(100, 104),
     itemSpacing: byDevice(40, 50),
     /** Options with a value (Settings): label at the left, value at the right, this far from the centre. */
-    valueColumnHalfWidth: byDevice(215, 262),
+    valueColumnHalfWidth: byDevice(215, 270),
 } as const;
 
 /** Options in the sprite font. Bigger on phones, with bigger areas for fingers. */
@@ -54,7 +54,7 @@ export const MENU_ITEM = {
     /** Height of the clickable area of each option (screen pixels). */
     hitHeight: byDevice(34, 46),
     /** Rows with a value: from the left edge of "◄" to the right edge of "►" (screen pixels). */
-    valueBoxWidth: byDevice(120, 150),
+    valueBoxWidth: byDevice(120, 170),
     /** Clickable width of each arrow, a bit wider than the arrow itself so it's easy to hit. */
     arrowHitWidth: byDevice(34, 50),
 } as const;

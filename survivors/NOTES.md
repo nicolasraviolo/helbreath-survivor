@@ -498,3 +498,12 @@ Tabla completa en `docs/REQUISITOS_HB.md`. Lo no obvio:
 - La barra inferior (800x51) se puede escalar ×1,25 centrada: el dibujo original solo tiene madera vacía en sus primeros y últimos ~85 px.
 - Pruebas con el navegador integrado: si el panel está oculto, el juego no avanza y las capturas salen viejas. Para capturar el lienzo tal cual sirve `__game.renderer.snapshot(...)`.
 
+
+## Capturas y sprites para la guía (17-oct-2026)
+- Playwright va a ~2 FPS: avanzar el juego con `game.step(t, 16.67)` en bucle. Con el escalado de Windows al 125 %, `screenshot` sale recortado: usar `game.renderer.snapshot`.
+- Las texturas `.spr` se suben a la GPU y su `ImageBitmap` se cierra: `textures.getBase64` falla. Para exportar un frame hay que dibujarlo en un `RenderTexture` nuevo (redimensionarlo no cambia su tamaño real) y llamar a `rt.render()` antes de `snapshot`.
+- La página del servidor de desarrollo se recarga cuando se escribe un archivo dentro del repo.
+- Detalles y recetas: `docs/guia/README.md`.
+- `dialogsv2.spr` hoja 0 (interfaz "V2" del original): 0 = hueco grande 176x35, 2 = marco de barra vacío 171x12 (el hueco interior, 167x9, empieza en (2, 1)), 3 / 4 = relleno rojo / azul 106x11 (hay que estirarlo), 5 = relleno verde 167x9. De 6 a 23, 26, 27 y 29: botones de icono de 40x47 o 49x47, normal + iluminado (el casco es 6/7). 28 = panel con adornos de 160x50. La hoja 5 tiene más paneles y barras de 63x7.
+- Pruebas sin depender del panel del navegador: Chrome sin ventana con Playwright (está en la caché de npx). Con `isMobile` + `hasTouch` y 844x390, el juego detecta un móvil de verdad (`pointer: coarse`).
+

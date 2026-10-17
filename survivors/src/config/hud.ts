@@ -86,6 +86,36 @@ export const HUD_BOSS = {
     nameScale: byDevice(1, 1.3),
 } as const;
 
+/**
+ * Compact HUD (phones only, Settings → HUD → Compact): no bottom bar; a small block at the top left with the gauges of
+ * the original "V2" interface (dialogsv2.spr sheet 0) and, at the top right, a stats button next to the pause one.
+ * Frames: 2 = empty gauge 171x12 (its inside, 167x9 from (2, 1), is where the fill goes), 3 / 4 = red / blue fill
+ * 106x11 (stretched to the gauge), 5 = green fill 167x9, 7 = helmet button 40x47 (6 = lit).
+ */
+export const HUD_COMPACT = {
+    texture: getSheetKey('ui.v2', 0),
+    gaugeFrame: 2,
+    hpFillFrame: 3,
+    mpFillFrame: 4,
+    xpFillFrame: 5,
+    /** Inside of the gauge frame, where the fill is drawn (gauge pixels). */
+    fill: { x: 2, y: 1, width: 167, height: 9 },
+    x: 10,
+    y: 10,
+    /** The gauges are drawn this much bigger. */
+    gaugeScale: 1.5,
+    /** From the top of one gauge to the next (screen pixels). */
+    gaugeStep: 22,
+    /** Level, time and kills, under the gauges. */
+    infoGap: 4,
+    statsButton: { x: 700, y: 40, frame: 7, litFrame: 6, scale: 1.2 },
+    /** Stats panel: under the block. */
+    statsPanelY: 112,
+    /** Boss bar: between the block and the buttons. */
+    bossCenterX: 470,
+    bossWidth: 360,
+} as const;
+
 /** Event of GameScene that the HUD listens to, to show a warning in the middle of the screen. */
 export const ANNOUNCE_EVENT = 'announce';
 
