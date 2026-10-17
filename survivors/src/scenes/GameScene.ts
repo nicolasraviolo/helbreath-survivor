@@ -58,6 +58,7 @@ import { directionFromVector } from '../hb/directions';
 import { buildLevelUpChoices } from '../systems/UpgradePool';
 import type { HudSceneData, HudState } from './HudScene';
 import type { LevelUpChoice, LevelUpSceneData } from './LevelUpScene';
+import { DEBUG_START, type DebugAction } from '../config/debugStart';
 
 /** Enemies created by the debug "spawn many" key. */
 const DEBUG_SPAWN_COUNT = 100;
@@ -69,6 +70,8 @@ const DEBUG_PICKUP_SPACING = 48;
 const DEBUG_SKIP_MS = 60000;
 /** Levels given by the debug key L (one card per level). */
 const DEBUG_LEVELS = 5;
+/** Wait after the run starts before the ?debug= actions (debugStart.ts). */
+const DEBUG_START_DELAY_MS = 500;
 
 /**
  * Escena de partida con la clase elegida en CharacterSelectScene: mapa, jugador, oleadas de enemigos con minijefes y jefe
@@ -89,6 +92,10 @@ export class GameScene extends Phaser.Scene {
     private combat!: CombatSystem;
     private weapons!: WeaponSystem;
     private debug!: DebugSystem;
+    /** The ?debug= actions still have to run (only on the first run after loading the page). */
+    private debugStartPending = DEBUG_START.actions.length > 0;
+    /** Run time left before those actions (counted with the frames: the scene clock is not ready in create()). */
+    private debugStartWaitMs = DEBUG_START_DELAY_MS;
     private world!: EnemyWorld;
     private bosses!: BossSystem;
     private enemyShots!: EnemyProjectileSystem;
@@ -353,7 +360,7 @@ export class GameScene extends Phaser.Scene {
             return;
         }
         if (import.meta.env.DEV) {
-            this.handleDebugKeys();
+            this.handleDebugKeys(delta);
         }
 
         const player = this.player;
@@ -442,44 +449,71 @@ export class GameScene extends Phaser.Scene {
         if (this.stats.level !== level) this.applyStats();
     }
 
-    private handleDebugKeys(): void {
+    /** Debug keys (development only). The same actions can run at the start from the address: ?debug= (debugStart.ts). */
+    private handleDebugKeys(delta: number): void {
         const input = this.inputSystem;
-        if (input.justPressed(Action.DebugSpawnMany)) {
-            this.spawner.spawnMany(DEBUG_SPAWN_COUNT);
+        const keys: Array<[Action, DebugAction]> = [
+            [Action.DebugSpawnMany, 'horde'],
+            [Action.DebugKillVisible, 'kill'],
+            [Action.DebugGiveXp, 'levelup'],
+            [Action.DebugGiveLevels, 'levels'],
+            [Action.DebugAddStr, 'str'],
+            [Action.DebugAddMagic, 'magic'],
+            [Action.DebugDropPickups, 'pickups'],
+            [Action.DebugSkipMinute, 'minute'],
+            [Action.DebugNextBoss, 'boss'],
+            [Action.DebugGodMode, 'god'],
+        ];
+        for (const [action, debugAction] of keys) {
+            if (input.justPressed(action)) this.runDebugAction(debugAction);
         }
-        if (input.justPressed(Action.DebugKillVisible)) {
-            this.enemies.killInside(this.cameras.main.worldView);
+        // Not on the first frame: the camera has not placed its view yet and the horde would find no room around it.
+        if (this.debugStartPending && (this.debugStartWaitMs -= delta) <= 0) {
+            this.debugStartPending = false;
+            for (const action of DEBUG_START.actions) this.runDebugAction(action);
         }
-        if (input.justPressed(Action.DebugGiveXp)) {
-            this.gainXp(this.stats.xpToNext - this.stats.xp);
-        }
-        if (input.justPressed(Action.DebugGiveLevels)) {
-            for (let i = 0; i < DEBUG_LEVELS; i++) this.gainXp(this.stats.xpToNext - this.stats.xp);
-        }
-        if (input.justPressed(Action.DebugAddStr)) {
-            this.stats.addStat('str', DEBUG_STR_POINTS);
-            this.applyStats();
-        }
-        if (input.justPressed(Action.DebugAddMagic)) {
-            this.stats.addStat('int', DEBUG_STR_POINTS);
-            this.stats.addStat('mag', DEBUG_STR_POINTS);
-            this.applyStats();
-        }
-        if (input.justPressed(Action.DebugDropPickups)) {
-            const { x, y } = this.player;
-            this.pickups.drop('potion', x - DEBUG_PICKUP_SPACING, y + DEBUG_PICKUP_SPACING);
-            this.pickups.drop('magnet', x, y + DEBUG_PICKUP_SPACING * 1.5);
-            this.pickups.drop('chest', x + DEBUG_PICKUP_SPACING, y + DEBUG_PICKUP_SPACING);
-        }
-        if (input.justPressed(Action.DebugSkipMinute)) {
-            this.spawner.skip(DEBUG_SKIP_MS);
-        }
-        if (input.justPressed(Action.DebugNextBoss)) {
-            this.spawner.skipToNextBoss();
-        }
-        if (input.justPressed(Action.DebugGodMode)) {
-            this.player.setGodMode(!this.player.godMode);
-            this.godModeLabel.setVisible(this.player.godMode);
+    }
+
+    private runDebugAction(action: DebugAction): void {
+        switch (action) {
+            case 'horde':
+                this.spawner.spawnMany(DEBUG_SPAWN_COUNT);
+                break;
+            case 'kill':
+                this.enemies.killInside(this.cameras.main.worldView);
+                break;
+            case 'levelup':
+                this.gainXp(this.stats.xpToNext - this.stats.xp);
+                break;
+            case 'levels':
+                for (let i = 0; i < DEBUG_LEVELS; i++) this.gainXp(this.stats.xpToNext - this.stats.xp);
+                break;
+            case 'str':
+                this.stats.addStat('str', DEBUG_STR_POINTS);
+                this.applyStats();
+                break;
+            case 'magic':
+                this.stats.addStat('int', DEBUG_STR_POINTS);
+                this.stats.addStat('mag', DEBUG_STR_POINTS);
+                this.applyStats();
+                break;
+            case 'pickups': {
+                const { x, y } = this.player;
+                this.pickups.drop('potion', x - DEBUG_PICKUP_SPACING, y + DEBUG_PICKUP_SPACING);
+                this.pickups.drop('magnet', x, y + DEBUG_PICKUP_SPACING * 1.5);
+                this.pickups.drop('chest', x + DEBUG_PICKUP_SPACING, y + DEBUG_PICKUP_SPACING);
+                break;
+            }
+            case 'minute':
+                this.spawner.skip(DEBUG_SKIP_MS);
+                break;
+            case 'boss':
+                this.spawner.skipToNextBoss();
+                break;
+            case 'god':
+                this.player.setGodMode(!this.player.godMode);
+                this.godModeLabel.setVisible(this.player.godMode);
+                break;
         }
     }
 

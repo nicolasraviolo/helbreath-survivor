@@ -1,9 +1,11 @@
 import Phaser from 'phaser';
 import { ASSET_BASE_PATH, MAPS, PHONE_ONLY_SPRITES, SOUNDS, SPRITES, type SpriteKey } from '../config/assetManifest';
+import { DEBUG_START } from '../config/debugStart';
 import { COMPACT_UI } from '../config/device';
 import { registerEffectAnimations } from '../config/effects';
 import { DEFAULT_ANIMATION_FRAME_RATE, GAME_HEIGHT, GAME_WIDTH } from '../config/gameConfig';
 import { px, UI_TEXT, UI_FONT_SIZE } from '../config/ui';
+import { CHOSEN_CHARACTER_KEY } from '../data/characters';
 import { DEFAULT_MAP, MAPS_DATA } from '../data/maps';
 import { getMap } from '../hb/HBMap';
 import { HBSpriteFile, SpriteType } from '../hb/HBSprite';
@@ -70,7 +72,9 @@ export class PreloadScene extends Phaser.Scene {
             this.setProgress(DOWNLOAD_SHARE + ((i + 1) / jobs.length) * (1 - DOWNLOAD_SHARE));
         }
         registerEffectAnimations(this.anims, this.textures);
-        this.scene.start('MainMenu');
+        // ?play / ?debug= (solo en desarrollo, config/debugStart.ts): directo a la partida.
+        if (DEBUG_START.character) this.registry.set(CHOSEN_CHARACTER_KEY, DEBUG_START.character);
+        this.scene.start(DEBUG_START.play ? 'Game' : 'MainMenu');
     }
 
     private loadBinaries(files: Array<{ key: string; file: string }>): Promise<void> {

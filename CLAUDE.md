@@ -11,7 +11,7 @@ No sabe programar. Explica lo que haces en español sencillo, dile siempre **có
 - `sp-client/docs/` y `sp-client/.cursor/rules/` → documentación técnica del formato `.spr`, mapas `.amd`, animaciones, hechizos.
 - `multiplayer/`, `tools/`, `reference/` → ignorar salvo que se pida.
 - `docs/PLAN.md` → fases del proyecto. `docs/DESIGN.md` → diseño del juego (personajes, armas, enemigos, oleadas).
-- `survivors/PROGRESS.md` → estado actual. **Léelo al empezar cada sesión.**
+- `survivors/PROGRESS.md` → estado actual y cómo probar. **Léelo al empezar cada sesión.** El historial de lo ya hecho está en `PROGRESS-historial.md` (no leerlo entero; buscar con grep).
 
 ## Reglas
 1. No modificar nada fuera de `survivors/`, `docs/` y `.claude/` sin permiso explícito.
@@ -25,13 +25,16 @@ No sabe programar. Explica lo que haces en español sencillo, dile siempre **có
 9. Idioma del juego: **solo inglés** (decidido el 16-oct-2026). Textos en pantalla, nombres de stats, cartas, menús y créditos, en inglés. Más idiomas quizá en el futuro: no montar un sistema de traducciones hasta que se pida.
 
 ## Forma de trabajar
-- Una fase por sesión (`/fase N`). Antes de programar, presenta un plan corto y espera el OK.
+- **Un bloque por sesión** (`/fase N`). Antes de programar, presenta un plan corto y espera el OK. Al cerrar el bloque, `/checkpoint` y sesión nueva: las sesiones largas gastan muchísimos tokens.
 - Para investigar `sp-client` usa un **subagente** y trae solo un resumen; no vuelques archivos grandes a la conversación.
 - Cambios pequeños. Tras cada bloque: `pnpm --dir survivors exec tsc --noEmit` y corregir errores.
-- Si hay MCP de Playwright disponible, abre el juego, revisa la consola y haz capturas tú mismo antes de pedir al propietario que pruebe.
-- Al cerrar una fase: `/checkpoint`.
+- **Comprobar el juego:** `pnpm --dir survivors check <situaciones> [--mobile]` (ver "Cómo probar" en PROGRESS.md). Da escenas, FPS, estado y errores de consola en texto, y guarda capturas pequeñas en `survivors/.check/`. Hazlo tú antes de pedir al propietario que pruebe.
+  - Mira capturas solo cuando el cambio sea visual, y pocas: cada imagen se queda en la conversación y se relee en cada respuesta.
+  - Para llegar a una situación usa los atajos `?play`, `?debug=...` y `?ui=compact` (`src/config/debugStart.ts`); si falta uno, añádelo ahí en vez de improvisar JavaScript en el navegador.
+  - Playwright MCP a mano solo para lo que el script no cubra (interacciones, menús). No uses el navegador interno para el juego: en segundo plano va a ~1 FPS.
+- Al cerrar un bloque: `/checkpoint` (ligero). Al cerrar una fase: `/checkpoint fase` (incluye la guía y la publicación).
 - Si descubres algo no obvio de los assets o del código base, anótalo en `survivors/NOTES.md`.
 
 ## Comandos
-- Juego: `cd survivors && pnpm dev` · build: `pnpm build` · tipos: `pnpm exec tsc --noEmit`
+- Juego: `cd survivors && pnpm dev` · build: `pnpm build` · tipos: `pnpm exec tsc --noEmit` · comprobar: `pnpm check`
 - Base original: `cd sp-client && pnpm dev` → http://localhost:8080
