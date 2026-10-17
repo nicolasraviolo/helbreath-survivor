@@ -16,16 +16,16 @@
 
 ## Fase actual
 **Para retomar (17-oct-2026): la primera etapa (Fases 0–10) está terminada, publicada y etiquetada (`fase-10`).** Lo siguiente es la segunda etapa, en `docs/PLAN-2.md`.
-- **Antes de empezar la Fase 11:** revisar `docs/PLAN-2.md` con el propietario, que sigue siendo un borrador: el orden y las decisiones del final están pendientes.
+- **PLAN-2 reordenado (17-oct-2026)** con las ideas nuevas del propietario: Fases 11–25 (11 Pulido de interfaz, 12 Móvil sin pérdidas, 13 Jefe final y equilibrio, 14 Métricas y logros, 15 Apuntado híbrido, 16 Crits, 17 Zem, 18 Minimapa y tótems, 19 Mapas + Icebound, 20 La ciudad, 21 Equipo y baúl, 22 Más mapas, 23 Bandos, 24 Raids, 25 Ranking online). Orden aprobado por el propietario; las decisiones se preguntan al empezar cada fase. **Siguiente: `/fase 11`.**
 - **Assets propios** (los que no están en sp-client, como las voces de subir de nivel): `survivors/custom-assets/`, con la misma estructura de carpetas.
 - **Ajustes posibles del temblor**, si el propietario los pide (`data/feedback.ts`): acortar la pausa entre explosiones críticas (2,5 s), contar cualquier crítico de la explosión, o añadir temblor a los críticos cuerpo a cuerpo.
 - **Lo demás de la Fase 10 queda para la segunda etapa** (`docs/PLAN-2.md`, tabla "Traído de la Fase 10"):
-  - mando (vibración, iconos de Xbox, reasignar controles) → Fase 11;
-  - sombras → Fase 14;
-  - más mapas → Fases 14–15;
-  - récords y progresión entre partidas → Fase 18;
-  - límite de enemigos en el móvil → Fase 17, o antes si va lento;
-  - equilibrio → al cerrar cada fase de combate.
+  - iconos de Xbox → Fase 11 (solo en How to play); vibración y reasignar controles → Fase 16;
+  - sombras → Fase 19;
+  - más mapas → Fases 19 y 22;
+  - récords locales → Fase 19; progresión entre partidas → Fase 21;
+  - límite de enemigos en el móvil → Fase 24, o antes si va lento;
+  - equilibrio → Fase 13 y al cerrar cada fase de combate.
 
 ## Cómo probar
 - Jugar: `pnpm --dir survivors dev` → http://localhost:8090
