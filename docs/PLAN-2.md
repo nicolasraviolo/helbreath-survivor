@@ -1,7 +1,8 @@
 # Plan de desarrollo — Segunda etapa (Fases 11+)
 
 > Borrador del 17-oct-2026, **pendiente de revisión del propietario**. Nada de esto está aprobado todavía.
-> Continúa `docs/PLAN.md` (Fases 0–10). Las fases 9 y 10 siguen abiertas; este plan no las sustituye.
+> Continúa `docs/PLAN.md` (Fases 0–10). La Fase 9 está cerrada y la 10 termina con el bloque 10C (temblor y partículas).
+> Lo demás que estaba en la Fase 10 se ha repartido aquí (17-oct-2026); ver "Traído de la Fase 10" en cada fase y la tabla de abajo.
 > Mismas reglas que antes: una fase por sesión (`/fase N`), plan corto → OK → código → `/checkpoint`.
 
 Fuentes de la investigación (17-oct-2026):
@@ -24,6 +25,19 @@ Fuentes de la investigación (17-oct-2026):
 | 6 | Minimapa | Mapa pequeño en una esquina con jefes, cofres, pociones y Zem | Pequeño | ✅ Hay miniaturas originales de cada mapa |
 | 7 | Leaderboard por mapa | Primero récords locales (en tu navegador); online como opción aparte | Pequeño (local) / Medio (online) | 🟨 No hay arte de "ranking"; se reusan paneles |
 | 8 | Inventario | Versión ligera: una bolsa pequeña de consumibles. **No** el inventario completo de Helbreath | Medio | ✅ Bolsa original e iconos |
+
+### Traído de la Fase 10 (17-oct-2026)
+Pulido que estaba en la Fase 10 y que el propietario dejó para más adelante. Cada cosa va en la fase donde mejor encaja:
+
+| Qué | Dónde | Por qué ahí |
+|---|---|---|
+| Mando: vibración al recibir daño, iconos de botones de Xbox en pantalla, reasignar controles | **Fase 11** (Crits) | El crit añade un botón nuevo: es el momento de enseñar qué botón es cada cosa y de poder cambiarlos. |
+| Sombras bajo personajes y monstruos | **Fase 14** (sistema de mapas) | Cada mapa tiene otro suelo; se ajustan a la vez y se mide el rendimiento con el mapa nuevo. |
+| Más mapas | **Fases 14 y 15** | Ya estaba. |
+| Récords locales | **Fase 18** (paso 1) | Ya estaba; puede adelantarse a la 14. |
+| Progresión entre partidas (guardada en el navegador) | **Fase 18** | Usa el mismo guardado que los récords. El "baúl" de la Fase 19 y los objetos Hero de la 16 (opción B) se apoyan en ella. |
+| Límite de enemigos en el móvil | **Fase 17** (Raids), o antes si el móvil va lento | Las Raids son lo más pesado; ahí se mide. |
+| Equilibrio (dificultad, jefes, curva de XP) | **Varias fases** (ver "Cosas que afectan a varias fases") | Cambia con cada fase de combate. |
 
 **Orden que propongo** (lo decidimos juntos): 11 Crits → 12 Zem → 13 Minimapa → 14 Sistema de mapas + Icebound → 15 Más mapas → 16 Bandos → 17 Raids → 18 Leaderboard → 19 Bolsa.
 Motivo: primero lo pequeño y divertido que mejora la partida actual; después el sistema de mapas, que es la base de casi todo lo demás (leaderboard por mapa, minimapa por mapa, raids en la granja...).
@@ -69,6 +83,11 @@ Todo existe: sonidos C23/C24 (y C18 del tajo), `effect.spr` hoja 8, icono GameDi
 
 ### Aceptación
 Con el Guerrero, pulsar Espacio/X lanza un tajo crítico con grito y número de daño grande. El contador baja y se recarga solo. Al nivel 10 hay 2 cargas. En el móvil, el botón táctil funciona mientras mueves con el otro dedo.
+
+### Traído de la Fase 10: mando
+- **Vibración** al recibir daño (más fuerte con golpes grandes) y al lanzar el crit. Con opción en Settings para quitarla.
+- **Iconos de botones de Xbox** en pantalla cuando el último control usado es el mando ("Ⓐ Choose", el botón del crit...). Con teclado se ven las teclas; en el móvil, nada.
+- **Reasignar controles** en Settings: teclado y mando, con "Reset to default".
 
 ---
 
@@ -220,6 +239,9 @@ Farm → Eternal Field (actual) → Dungeon L4 → Icebound → Druncian City (�
 - huntzone2 sigue igual que antes.
 - La descarga extra se nota poco.
 
+### Traído de la Fase 10: sombras
+- Sombra bajo personajes y monstruos (el original las dibuja; mirar cómo en `sp-client`). Se ajusta con cada suelo y se mide el rendimiento, sobre todo en el móvil.
+
 ---
 
 ## 5. Aresden y Elvine — Fase 16
@@ -316,6 +338,10 @@ No hay arte de "ranking" en el original. Se reutilizan los paneles de GameDialog
 ### Aceptación (paso 1)
 Tras dos partidas en Icebound, la pantalla Records muestra ambas ordenadas, y la mejor sale en Select Map.
 
+### Traído de la Fase 10: progresión entre partidas
+- Guardar en el navegador cosas que se mantienen de una partida a otra (mismo guardado que los récords): por ejemplo, oro o puntos al terminar y mejoras pequeñas permanentes para elegir en el menú.
+- Se diseña aquí. El "baúl" de la Fase 19 y los objetos Hero de la Fase 16 (opción B) se apoyan en esto.
+
 ---
 
 ## 8. Inventario — Fase 19 (opcional)
@@ -343,6 +369,8 @@ Recojo 2 pociones, las guardo y me curo con la tecla 1 cuando quiero. El Zem se 
   - cada mapa añade 1–8 MB y cada monstruo grande 0,5–3,6 MB (el Wyvern pesa 3,6 MB);
   - se descargan **solo al elegir el mapa**, con `AssetStreamer`;
   - la descarga inicial no debe crecer.
+- **Equilibrio** (traído de la Fase 10): dificultad de cada tramo, vida de los jefes y curva de XP (objetivo: 25–30 niveles en 12–15 minutos). Repasarlo al cerrar cada fase que cambie el combate (11, 12, 14 y 17), jugando partidas completas.
+- **Límite de enemigos en el móvil** (traído de la Fase 10): de momento no hace falta (el propietario no nota tirones). Se mide en la Fase 17, o antes si va lento.
 - **Logros (Achievements, pendientes):** casi todo esto da logros naturales: "Win Icebound", "Kill 50 raiders", "Revive with a Zem", "10 Critical Strikes in one run".
 - **El Arquero (aplazado):** encajaría muy bien con las Raids (Raider Archer) y con los crits a distancia del original.
 

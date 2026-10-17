@@ -12,9 +12,21 @@
 | 7 — Oleadas, jefes y final | ✅ completada | 2026-10-17 |
 | 8 — Menús y personajes | ✅ completada (solo menús; Arquero aplazado) | 2026-10-17 |
 | 9 — Web, móvil y publicación | ✅ completada | 2026-10-17 |
-| 10 — Pulido (opcional) | 🟡 en curso (10A y 10B: móvil) | |
+| 10 — Pulido (opcional) | 🟡 en curso: 10A y 10B hechos y publicados; falta 10C | |
 
 ## Fase actual
+**Para retomar (17-oct-2026): `/fase 10`, bloque 10C — sensación de impacto.** Es lo último de la Fase 10; al terminarlo, se cierra la fase.
+- **Qué entra en 10C** (decidido por el propietario): **temblor de cámara** al recibir daño y con golpes muy fuertes, y **partículas de golpe** al impactar y al morir los monstruos. Detalle en `docs/PLAN.md` → Fase 10.
+- **Lo demás de la Fase 10 queda para la segunda etapa** (`docs/PLAN-2.md`, tabla "Traído de la Fase 10"):
+  - mando (vibración, iconos de Xbox, reasignar controles) → Fase 11;
+  - sombras → Fase 14;
+  - más mapas → Fases 14–15;
+  - récords y progresión entre partidas → Fase 18;
+  - límite de enemigos en el móvil → Fase 17 (o antes si va lento);
+  - equilibrio → al cerrar cada fase de combate.
+- **Publicado:** 10A y 10B están en `master` y en el enlace público (fusionados el 17-oct-2026, sin etiqueta: la fase sigue abierta). La rama `fase-10` sigue para 10C.
+- `docs/PLAN-2.md` sigue siendo un borrador: el orden y las decisiones del final están pendientes de revisar con el propietario.
+
 **Fase 10, bloque 10B: interfaz de partida elegible en el móvil (2026-10-17, probado por el propietario en su móvil: OK).**
 - **Nueva opción en Settings → HUD: Classic / Compact.** Solo sale en el móvil; en el PC siempre está la barra clásica y la opción no aparece. Se guarda para la próxima vez.
 - **Compact (la que sale por defecto en el móvil):** no hay barra abajo y se ve más mapa.
