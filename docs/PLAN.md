@@ -131,6 +131,11 @@ survivors/
 - **Aceptación:** se juega con los personajes disponibles (2; el Arquero queda aplazado) y se vuelve al menú tras una partida; una partida completa (menú → juego → Game Over → menú) se puede hacer solo con el mando.
 
 ## Fase 9 — Web, móvil y publicación
+> Completada el 17-oct-2026.
+> - Juego en el móvil: joystick táctil (también en las franjas negras), botón de pausa, aviso de girar y pantalla completa.
+> - Build con solo los assets necesarios; los monstruos se cargan por oleada (descarga inicial de 50 a 35 MB).
+> - Publicado en GitHub Pages (https://nicolasraviolo.github.io/helbreath-survivor/) y en Cloudflare Pages (bloqueado en España los días de partido).
+> - Ver `docs/PUBLICAR.md`.
 - Joystick virtual táctil (aparece donde se toca), botón de pausa táctil.
 - `Phaser.Scale.FIT`, probar vertical/horizontal; límite de enemigos menor en móvil si hace falta.
 - `scripts/sync-assets.mjs`: objetivo de descarga inicial < 30–50 MB, cargar monstruos por oleada si es posible.
