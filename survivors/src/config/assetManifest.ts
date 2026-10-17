@@ -214,6 +214,7 @@ export type SoundKey = keyof typeof SOUNDS;
 
 export const MAPS = {
     'map.huntzone2': { file: 'maps/huntzone2.amd' },
+    'map.bisle': { file: 'maps/bisle.amd' },
 } as const satisfies Record<string, { file: string }>;
 
 export type MapKey = keyof typeof MAPS;

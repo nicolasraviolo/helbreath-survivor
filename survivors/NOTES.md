@@ -185,6 +185,7 @@ Medido con un script sobre los `.amd`. "Ventana" = cuadrado de N×N casillas con
 | middled1n / 1x | 220 / 200 | 23–24% | 16×16 | Mazmorras: estrecho |
 | 2ndmiddle | 250×250 | 55% | 100×100 al 90% | Variado, con agua dispersa |
 | middleland | 524×524 | 62% | 100×100 al 99% en (364,340) | Pradera casi vacía; era la propuesta técnica, pero algo monótona |
+| **bisle** (Bleeding Isle) | 274×250 | 51% | 100×100 al 99% en (46,78) · **150×150 al 95% en (66,52)** (zona usada) · 200×200 al 81% (entra la costa) | Todo lo transitable está conectado (una sola región). **Mapa del juego desde el 18-oct-2026** |
 
 ### Decisión: `huntzone2` (elegido por el propietario el 2026-10-16)
 - Mapa entero de 200×200 casillas (6400×6400 px) con un único bloque transitable: no hay zonas aisladas.

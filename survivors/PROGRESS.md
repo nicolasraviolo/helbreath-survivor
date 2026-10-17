@@ -17,7 +17,7 @@
 | 12 — Móvil sin pérdidas | ✅ completada (12A, 12B y 12C) | 2026-10-18 |
 
 ## Fase actual
-**Para retomar (18-oct-2026): Fase 12 completada y fusionada en `master`** (app instalable, 3 partidas guardadas con Continue, Settings táctil); resumen en `PROGRESS-historial.md`. **Siguiente: Fase 13, Jefe final y equilibrio** (`docs/PLAN-2.md`). Antes del plan, preguntar al propietario la decisión pendiente 2: ¿cuántos niveles en una partida completa?
+**Para retomar (18-oct-2026): Fase 12 completada y fusionada en `master`** (app instalable, 3 partidas guardadas con Continue, Settings táctil); resumen en `PROGRESS-historial.md`. Después se cambió el mapa a **Bleeding Isle** (150×150 casillas, ver Decisiones). **Siguiente: Fase 13, Jefe final y equilibrio** (`docs/PLAN-2.md`). Antes del plan, preguntar al propietario la decisión pendiente 2: ¿cuántos niveles en una partida completa?
 - **Partidas guardadas:** `systems/SaveStore.ts` (formato con versión; ver NOTES.md, "Partidas guardadas"). Logros, récords y baúl (Fases 14, 19 y 21) irán en otras claves, reutilizando la idea.
 - **App instalable:** solo en el build (`survivors/pwa/`); en `pnpm dev` no existe. Para probarla en el PC: `pnpm build` y `pnpm preview` → http://localhost:4173.
 - **Controles:** todo control nuevo se explica en How to Play (`data/howToPlay.ts`), nunca en pantalla.
@@ -47,7 +47,7 @@
 - Las flechas "→" de las cartas usan otra fuente: Comic Neue no tiene ese carácter. No molesta.
 - El navegador interno de la app, si el panel está en segundo plano, va a ~1 FPS y parece congelado. Para revisar el juego, usar Playwright o tener el panel visible. A veces también le pasa a Playwright: `requestAnimationFrame` cae a 2 por segundo incluso sin el juego (visto el 16-oct-2026). No es un problema del juego.
 - En el navegador interno, `sp-client` muestra errores `Cannot suspend/resume a closed AudioContext`. Son del audio en una pestaña en segundo plano y no afectan.
-- Algunos enemigos se quedan esperando en la orilla del río si el jugador está al otro lado. Sin búsqueda de caminos. Se recolocan si quedan lejos.
+- Algunos enemigos se quedan atascados tras un obstáculo si el jugador está al otro lado (con Bleeding Isle pasa mucho menos). Sin búsqueda de caminos. Se recolocan si quedan lejos.
 - El personaje se ve pequeño a 800×600 (tamaño original de Helbreath). Si se quiere, se ajusta el zoom de la cámara más adelante.
 
 ## Decisiones tomadas
@@ -59,3 +59,4 @@
 - 2026-10-18 · Settings: casillas para sí/no; volumen con flechas y número (se probaron barras y no gustaron). Large Trees solo On/Off. Fullscreen: icono arriba a la derecha del menú principal, casilla en Settings y opción en la Pausa.
 - 2026-10-18 · Partidas guardadas: **hasta 3**; Continue abre la lista; con las 3 llenas, Play pide cuál borrar (con confirmación). El formato lleva versión para poder crecer.
 - 2026-10-16 · Mapa: **huntzone2** (elegido por el propietario frente a middleland). Zona de juego ~100×100 casillas desde (72,70). Riesgos y detalles en `NOTES.md`.
+- 2026-10-18 · Mapa cambiado a **Bleeding Isle** (`bisle`) para el MVP, por tener menos colisiones: zona de 150×150 desde (66,52), 95% libre (el propietario prefirió 150 a 100 o 200). huntzone2 queda comentado en `data/maps.ts` para la Fase 19 (varios mapas). Las partidas guardadas en huntzone2 continúan en Bleeding Isle.

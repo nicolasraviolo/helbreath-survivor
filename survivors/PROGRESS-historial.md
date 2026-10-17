@@ -2,6 +2,14 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
+**Cambio de mapa a Bleeding Isle (2026-10-18, entre las Fases 12 y 13; el propietario lo probó y le gusta).**
+- **Motivo:** huntzone2 tenía muchas colisiones (río, ruinas, acantilados). Se adelanta solo el cambio de mapa; la Fase 19 (varios mapas, Select Map) sigue pendiente.
+- **Bleeding Isle** (`bisle.amd`, registrado como `map.bisle`): zona de juego **150×150 casillas desde (66,52), 95% libre**, todo conectado. Se midieron 100 (99%), 150 (95%) y 200 (81%, entra la costa); el propietario eligió 150.
+- `data/maps.ts`: `DEFAULT_MAP = 'bisle'`; huntzone2 queda comentado. Las partidas guardadas en huntzone2 continúan en Bleeding Isle (SaveStore usa `DEFAULT_MAP` si el mapa ya no existe; no se guarda la posición).
+- Las fightzones (arenas) se descartaron: 6% libre o pasillos estrechos (NOTES.md).
+- **Comprobado:** `build` sin errores; `check menu game debug=resume` en PC y horda + jefe en móvil, sin errores (~124 FPS).
+- **Cómo probarlo:** `pnpm --dir survivors dev` → http://localhost:8090/?play
+
 **Fase 12 completada (2026-10-18)**: fusionada en `master`, etiqueta `fase-12`. Siguiente: Fase 13 (Jefe final y equilibrio).
 
 **Fase 12, bloque 12C: Settings táctil (2026-10-18, el propietario lo probó y le gusta).**
