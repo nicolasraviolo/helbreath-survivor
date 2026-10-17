@@ -64,12 +64,13 @@ export abstract class MenuOverlayScene extends Phaser.Scene {
     }
 
     /** Adds the options, starting at the content row. */
-    protected addList(items: readonly MenuItem[], firstRowOffset = 0): MenuList {
+    protected addList(items: readonly MenuItem[], firstRowOffset = 0, valueBoxWidth?: number): MenuList {
         this.list = new MenuList(this, items, {
             x: MENU_OVERLAY.panelX,
             y: this.contentTop + firstRowOffset,
             spacing: MENU_OVERLAY.itemSpacing,
             valueHalfWidth: MENU_OVERLAY.valueColumnHalfWidth,
+            valueBoxWidth,
         });
         this.list.setReadyCheck(() => this.ready());
         return this.list;

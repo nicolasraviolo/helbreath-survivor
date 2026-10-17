@@ -20,13 +20,14 @@ export const MAIN_MENU = {
     panelX: byDevice(585, 575),
     panelY: byDevice(318, 330),
     panelScale: byDevice(1.1, 1.3),
-    itemSpacing: byDevice(42, 50),
+    /** Six options (with How to Play and Fullscreen) must fit inside the panel's frame. */
+    itemSpacing: byDevice(32, 37),
     /** Black strip over the original's "Multiplayer Online Game…" line, with our own footer. */
     footerHeight: 42,
     footerText: 'Unofficial fan project  ·  free and non-profit',
 } as const;
 
-/** Pause, Settings, Credits and Achievements: a big panel in the middle of the screen. */
+/** Pause, Settings, Credits, Achievements and How to play: a big panel in the middle of the screen. */
 export const MENU_OVERLAY = {
     /** Darkens whatever is underneath (the paused game or the main menu). */
     shadeAlpha: 0.6,
@@ -78,9 +79,33 @@ export const MENU_TEXT_STYLE = {
     stroke: '#000000', strokeThickness: 3,
 } as const;
 export const MENU_FOOTER_STYLE = { ...UI_TEXT, fontSize: px(UI_FONT_SIZE.normal), color: '#c8b88a' } as const;
-/** Controls reminder under the main menu; on phones only fingers are used. */
-export const MENU_HINT = byDevice('↑ ↓  and  Enter   ·   D-pad and A   ·   Click', 'Tap an option');
-export const MENU_HINT_STYLE = { ...UI_TEXT, fontSize: px(UI_FONT_SIZE.small), color: '#c8b88a' } as const;
 
 /** Bottom of the main menu screen. */
 export const MAIN_MENU_FOOTER_Y = GAME_HEIGHT - MAIN_MENU.footerHeight / 2;
+
+/** How to play (scenes/HowToPlayScene.ts): the Credits-size panel, a page selector, text or two columns, and Back. */
+export const HOW_TO_PLAY = {
+    /** Space between the page selector row and the first line of content. */
+    contentGap: byDevice(34, 40),
+    lineSpacing: byDevice(29, 34),
+    /** Paragraph lines wrap at this width. */
+    wrapWidth: byDevice(560, 640),
+    /** Left edge of the control column and of the action column, from the panel's centre. */
+    controlX: byDevice(-240, -290),
+    actionX: byDevice(-20, -10),
+    /** "◄ Keyboard ►" needs a wider box than the Settings values. */
+    pageBoxWidth: byDevice(200, 250),
+    controlColor: '#ffd860',
+    actionColor: '#f0e6c8',
+} as const;
+
+/** Xbox-style gamepad icons drawn on How to play (letters in the Xbox colours). */
+export const PAD_ICON = {
+    radius: byDevice(11, 14),
+    gap: byDevice(8, 10),
+    fill: 0x202020,
+    outline: 0xc8b88a,
+    letterColor: { A: '#6cc04a', B: '#e04a3a', Y: '#f0c030' },
+    /** Start, stick and d-pad are drawn in this colour. */
+    shapeColor: 0xe8dcc0,
+} as const;

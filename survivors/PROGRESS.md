@@ -13,14 +13,15 @@
 | 8 — Menús y personajes | ✅ completada (solo menús; Arquero aplazado) | 2026-10-17 |
 | 9 — Web, móvil y publicación | ✅ completada | 2026-10-17 |
 | 10 — Pulido (opcional) | ✅ completada (10A, 10B y 10C) | 2026-10-17 |
+| 11 — Pulido de interfaz | 🟡 hecha, pendiente de cerrar | 2026-10-18 |
 
 ## Fase actual
-**Para retomar (17-oct-2026): la primera etapa (Fases 0–10) está terminada, publicada y etiquetada (`fase-10`).** Lo siguiente es la segunda etapa, en `docs/PLAN-2.md`.
-- **PLAN-2 reordenado (17-oct-2026)** con las ideas nuevas del propietario: Fases 11–25 (11 Pulido de interfaz, 12 Móvil sin pérdidas, 13 Jefe final y equilibrio, 14 Métricas y logros, 15 Apuntado híbrido, 16 Crits, 17 Zem, 18 Minimapa y tótems, 19 Mapas + Icebound, 20 La ciudad, 21 Equipo y baúl, 22 Más mapas, 23 Bandos, 24 Raids, 25 Ranking online). Orden aprobado por el propietario; las decisiones se preguntan al empezar cada fase. **Siguiente: `/fase 11`.**
+**Para retomar (18-oct-2026): Fase 11 hecha** (Large Trees, How to Play, sin textos de controles, selección de personaje en el móvil); resumen en `PROGRESS-historial.md`. Segunda etapa en `docs/PLAN-2.md` (Fases 11–25). **Siguiente: `/fase 12` (Móvil sin pérdidas).**
+- **Controles:** todo control nuevo se explica en How to Play (`data/howToPlay.ts`), nunca en pantalla.
 - **Assets propios** (los que no están en sp-client, como las voces de subir de nivel): `survivors/custom-assets/`, con la misma estructura de carpetas.
 - **Ajustes posibles del temblor**, si el propietario los pide (`data/feedback.ts`): acortar la pausa entre explosiones críticas (2,5 s), contar cualquier crítico de la explosión, o añadir temblor a los críticos cuerpo a cuerpo.
 - **Lo demás de la Fase 10 queda para la segunda etapa** (`docs/PLAN-2.md`, tabla "Traído de la Fase 10"):
-  - iconos de Xbox → Fase 11 (solo en How to play); vibración y reasignar controles → Fase 16;
+  - vibración y reasignar controles → Fase 16;
   - sombras → Fase 19;
   - más mapas → Fases 19 y 22;
   - récords locales → Fase 19; progresión entre partidas → Fase 21;
@@ -30,7 +31,7 @@
 ## Cómo probar
 - Jugar: `pnpm --dir survivors dev` → http://localhost:8090
 - Comprobación automática: `pnpm --dir survivors check [situaciones] [--mobile]` → escenas, FPS, estado de la partida, errores de consola y una captura pequeña en `survivors/.check/`. Situaciones: `menu`, `game`, `levelup`, `boss`, `horde`, `pickups` o atajos a mano (`"play=warrior&debug=str,levels"`). `--eval="g.enemies.alive"` escribe cualquier dato de la partida (g = escena Game); `--wait=5000` la deja correr más. Si la expresión devuelve una promesa, se espera (útil para vigilar unos segundos).
-- Atajos en la dirección (solo en desarrollo, `src/config/debugStart.ts`): `?play`, `?play=warrior`, `?debug=boss,god` (acciones: horde, kill, levelup, levels, str, magic, pickups, minute, boss, god), `?ui=compact` (interfaz de móvil).
+- Atajos en la dirección (solo en desarrollo, `src/config/debugStart.ts`): `?play`, `?play=warrior`, `?debug=boss,god` (acciones: horde, kill, levelup, levels, str, magic, pickups, minute, boss, god), `?ui=compact` (interfaz de móvil), `?trees=off` (árboles, solo esa partida), `?open=howtoplay` (también settings, credits, select).
 - Teclas de depuración en partida: F1 panel · G invencible · N enemigos · L niveles · J +1 minuto, entre otras (`systems/InputSystem.ts`).
 - Datos de referencia de Helbreath: `docs/hb-wiki/` (índice en `README.md`).
 
@@ -50,4 +51,5 @@
 - 2026-10-16 · Idioma del juego: **solo inglés** (regla 9 de CLAUDE.md). Documentación y explicaciones siguen en español.
 - 2026-10-16 · Las gemas de XP se dibujan por encima de enemigos y objetos, para que nunca queden tapadas.
 - 2026-10-17 · Temblor de cámara: suave con cualquier golpe, fuerte con golpes de jefe, y en las explosiones grandes solo con crítico (como mucho una vez cada 2,5 s). Se puede quitar en Settings.
+- 2026-10-18 · Ningún texto de controles en partida ni en menús: se explican en **How to Play**. Árboles grandes: On por defecto; Transparent = todos transparentes.
 - 2026-10-16 · Mapa: **huntzone2** (elegido por el propietario frente a middleland). Zona de juego ~100×100 casillas desde (72,70). Riesgos y detalles en `NOTES.md`.

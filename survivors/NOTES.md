@@ -40,6 +40,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Capturas y sprites para la guía (17-oct-2026)
 - Pruebas automáticas (`pnpm check`, 17-oct-2026)
 - Sensación de impacto (Fase 10, bloque 10C)
+- Interfaz (Fase 11)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -559,3 +560,9 @@ Tabla completa en `docs/REQUISITOS_HB.md`. Lo no obvio:
 - **Golpe crítico en el original** (cuerpo a cuerpo): `CriticalStrikeProjectile`, effect.spr hoja 8 viajando del atacante al objetivo, con sonido C23 (hombre) o C24 (mujer). Aún no lo usamos.
 - **Sonidos:** muerte del jugador C14 (hombre) y C15 (mujer). sp-client **no** tiene sonido de subir de nivel. El propietario aportó las voces originales (hombre y mujer), que están en `survivors/custom-assets/sounds/`.
 - **Assets propios** (`survivors/custom-assets/`, con la misma estructura que `sp-client/public/assets`): en desarrollo los sirve un plugin de `vite.config.ts` y en el build los copia `scripts/sync-assets.mjs`, que los busca antes que en sp-client. Se registran en el manifest como cualquier otro (`sounds/level-up-male.mp3`).
+
+## Interfaz (Fase 11)
+- La fuente dibujada de los menús (`SpriteText`) no tiene "&" (y quizá otros signos): en títulos y valores de menú, solo letras. Por eso la página es "Keyboard" y no "Keyboard & Mouse".
+- Los árboles del mapa son imágenes sueltas (una por objeto, `MapView.trees`), con su sombra aparte: se pueden ocultar o volver transparentes sin redibujar el mapa.
+- La selección de personaje es la imagen original de 640×480 ampliada: las cajas son fijas y en el móvil los textos no caben por encima de 17–18 px. Para botones fáciles de tocar, agrandar la zona de toque (`hitArea`) en vez de la imagen.
+- Un menú en pausa (debajo de otro) no cuenta como activo en `scene.isActive`: `pnpm check` espera a la escena de encima (`?open=`).

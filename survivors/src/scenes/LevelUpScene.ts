@@ -40,8 +40,8 @@ const CARD_TEXT_MARGIN = byDevice(12, 10);
 const TITLE_Y = byDevice(70, 80);
 const SUBTITLE_Y = byDevice(108, 120);
 /** From the bottom of the game area (the HUD bar's top, or the bottom of the screen). */
-const HINT_BOTTOM_GAP = 24;
-const HINT = byDevice('← →  and  Enter   ·   D-pad or stick  and  A   ·   Click', 'Tap a card');
+/** Phones: space kept free under the cards, above the bottom of the overlay. */
+const CARDS_BOTTOM_GAP = 24;
 const CARD_FILL = 0x1c140c;
 const CARD_BORDER = 0x8a7038;
 const CARD_HIGHLIGHT = 0xffe080;
@@ -95,18 +95,16 @@ export class LevelUpScene extends Phaser.Scene {
         this.openedAt = this.time.now;
         const bottom = playAreaBottom();
         // Above the compact gauges when they run along the bottom.
-        const hintBottom = overlayBottom();
+        const cardsBottom = overlayBottom() - CARDS_BOTTOM_GAP;
         this.add.rectangle(0, 0, GAME_WIDTH, bottom, 0x000000, 0.6).setOrigin(0);
         this.add.text(GAME_WIDTH / 2, TITLE_Y, `Level ${stats.level}!`, {
             ...UI_TEXT, fontSize: px(UI_FONT_SIZE.title), fontStyle: 'bold', color: '#ffe080', stroke: '#000000', strokeThickness: 4,
         }).setOrigin(0.5);
         this.add.text(GAME_WIDTH / 2, SUBTITLE_Y, 'Choose an upgrade', { ...UI_TEXT, fontSize: px(UI_FONT_SIZE.normal), color: TEXT_COLOR }).setOrigin(0.5);
-        this.add.text(GAME_WIDTH / 2, hintBottom - HINT_BOTTOM_GAP, HINT, {
-            ...UI_TEXT, fontSize: px(UI_FONT_SIZE.small), color: '#a89870',
-        }).setOrigin(0.5);
 
-        // PC: as always. Phones: centred between the subtitle and the hint, which moves down with the compact HUD.
-        const cardY = byDevice(HUD_TOP / 2 + 30, (SUBTITLE_Y + hintBottom - HINT_BOTTOM_GAP) / 2);
+        // PC: as always. Phones: centred between the subtitle and the bottom, which moves down with the compact HUD.
+        // (Fase 11: no controls text here; they are explained in How to play.)
+        const cardY = byDevice(HUD_TOP / 2 + 30, (SUBTITLE_Y + cardsBottom) / 2);
         const totalWidth = choices.length * CARD_WIDTH + (choices.length - 1) * CARD_GAP;
         const firstX = (GAME_WIDTH - totalWidth) / 2 + CARD_WIDTH / 2;
         choices.forEach((choice, i) => this.cards.push(this.createCard(choice, firstX + i * (CARD_WIDTH + CARD_GAP), cardY, i)));

@@ -74,7 +74,7 @@ export class PreloadScene extends Phaser.Scene {
         registerEffectAnimations(this.anims, this.textures);
         // ?play / ?debug= (solo en desarrollo, config/debugStart.ts): directo a la partida.
         if (DEBUG_START.character) this.registry.set(CHOSEN_CHARACTER_KEY, DEBUG_START.character);
-        this.scene.start(DEBUG_START.play ? 'Game' : 'MainMenu');
+        this.scene.start(DEBUG_START.play ? 'Game' : DEBUG_START.open === 'CharacterSelect' ? 'CharacterSelect' : 'MainMenu');
     }
 
     private loadBinaries(files: Array<{ key: string; file: string }>): Promise<void> {

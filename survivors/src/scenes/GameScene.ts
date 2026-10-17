@@ -215,7 +215,11 @@ export class GameScene extends Phaser.Scene {
         this.joystick = this.sys.game.device.input.touch ? new TouchJoystick(this, playAreaBottom(), DEPTH_DEBUG - 2) : undefined;
         if (this.joystick) this.inputSystem.setTouchJoystick(this.joystick);
         this.fitPlayArea();
-        const onSettings = () => this.fitPlayArea();
+        this.mapView.setTreeMode(DEBUG_START.trees ?? settings.current.largeTrees);
+        const onSettings = () => {
+            this.fitPlayArea();
+            this.mapView.setTreeMode(settings.current.largeTrees);
+        };
         settings.on(SETTINGS_CHANGED, onSettings);
         this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => settings.off(SETTINGS_CHANGED, onSettings));
         this.debug = new DebugSystem(this, map, this.player, this.inputSystem, () => [

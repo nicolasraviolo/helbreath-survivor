@@ -1,6 +1,7 @@
 // Pantalla "Create New Character" del Helbreath original, usada para elegir clase antes de la partida.
 // De momento solo se elige la clase (Warrior o Magician): nombre, aspecto y stats son fijos, así que
 // las flechas de aspecto y los botones +/- se ven apagados. Master no se incluye.
+// Fase 11: en el móvil, textos algo más grandes y zonas de toque mucho más altas en los botones.
 // Controles: ←/→ o cruceta/stick cambian de clase; Enter/A crea el personaje; Esc/B = Cancel (menú principal); ratón.
 import Phaser from 'phaser';
 import {
@@ -9,8 +10,10 @@ import {
     SELECT_CANCEL_BUTTON,
     SELECT_CLASS_BUTTONS,
     SELECT_BUTTON_FRAME,
+    SELECT_BUTTON_HIT_PAD,
     SELECT_CREATE_BUTTON,
     SELECT_DESCRIPTION,
+    SELECT_DESCRIPTION_STYLE,
     SELECT_DISABLED_ARROWS,
     SELECT_DISABLED_STYLE,
     SELECT_FOOTER_Y,
@@ -89,7 +92,7 @@ export class CharacterSelectScene extends Phaser.Scene {
         this.createPreviews();
         this.createValues();
         this.descriptionText = this.add.text(s(SELECT_DESCRIPTION.x), s(SELECT_DESCRIPTION.y), '', {
-            ...SELECT_TEXT_STYLE, align: 'center', lineSpacing: 2, wordWrap: { width: s(SELECT_DESCRIPTION.width) },
+            ...SELECT_DESCRIPTION_STYLE, align: 'center', lineSpacing: 2, wordWrap: { width: s(SELECT_DESCRIPTION.width) },
         }).setOrigin(0.5);
         this.createButtons();
 
@@ -177,7 +180,10 @@ export class CharacterSelectScene extends Phaser.Scene {
     private addButton(x: number, y: number, frame: number, onClick: () => void): Button {
         const image = this.add.image(s(x), s(y), SELECT_BUTTON_TEXTURE, frame).setOrigin(0).setScale(SELECT_SCALE);
         const button: Button = { image, frame, hovered: false };
-        image.setInteractive({ useHandCursor: true });
+        // Phones: a touch area bigger than the image (the button keeps its original size).
+        const pad = SELECT_BUTTON_HIT_PAD;
+        const hitArea = new Phaser.Geom.Rectangle(-pad.x, -pad.y, image.width + pad.x * 2, image.height + pad.y * 2);
+        image.setInteractive({ hitArea, hitAreaCallback: Phaser.Geom.Rectangle.Contains, useHandCursor: true });
         image.on(Phaser.Input.Events.POINTER_OVER, () => {
             button.hovered = true;
             this.refreshButtons();

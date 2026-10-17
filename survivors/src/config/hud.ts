@@ -140,8 +140,6 @@ export const GAME_OVER = {
     restartFrame: 36,
     changeFrame: 20,
     logOutFrame: 8,
-    hintY: 500,
-    hint: byDevice('← →  and  Enter   ·   D-pad and A   ·   Click', 'Tap a button'),
     /** Ignore input for a moment, so the key or click that killed the boss doesn't choose a button. */
     inputDelayMs: 800,
 } as const;
