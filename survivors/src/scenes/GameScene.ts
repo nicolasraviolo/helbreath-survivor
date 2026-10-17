@@ -5,10 +5,22 @@ import {
     GAME_OVER_DELAY_MS,
     GAME_WIDTH,
     MAP_OBJECT_MARGIN_TILES,
+    PLAYER_BODY_OFFSET_Y,
+    PLAYER_BODY_RADIUS,
+    PLAYER_HURT_MS,
+    PLAYER_HURT_STUN_MS,
     TILE_SIZE,
+    VICTORY_DELAY_MS,
 } from '../config/gameConfig';
-import { HUD_TOP } from '../config/hud';
-import { px, UI_FONT, UI_FONT_SIZE } from '../config/ui';
+import { ANNOUNCE_EVENT, HUD_TOP } from '../config/hud';
+import { getArmorPiece } from '../data/armor';
+import { MUSIC } from '../data/audio';
+import type { WaveEventDef } from '../data/waves';
+import type { Enemy } from '../entities/Enemy';
+import { BossSystem } from '../systems/BossSystem';
+import { EnemyProjectileSystem } from '../systems/EnemyProjectileSystem';
+import { MusicSystem } from '../systems/MusicSystem';
+import type { GameOverSceneData } from './GameOverScene';
 import { CHARACTERS, CHOSEN_CHARACTER_KEY, DEFAULT_CHARACTER, isCharacterId } from '../data/characters';
 import { DEFAULT_MAP, MAPS_DATA } from '../data/maps';
 import { MIN_DAMAGE_TAKEN } from '../data/armor';
@@ -40,7 +52,7 @@ import { PlayerState } from '../hb/playerAppearance';
 import { MeleeWeapon } from '../weapons/MeleeWeapon';
 import { directionFromVector } from '../hb/directions';
 import { buildLevelUpChoices } from '../systems/UpgradePool';
-import type { HudSceneData } from './HudScene';
+import type { HudSceneData, HudState } from './HudScene';
 import type { LevelUpChoice, LevelUpSceneData } from './LevelUpScene';
 
 /** Enemies created by the debug "spawn many" key. */
@@ -49,12 +61,16 @@ const DEBUG_SPAWN_COUNT = 100;
 const DEBUG_STR_POINTS = 10;
 /** Distance from the player of the pickups dropped by the debug key P. */
 const DEBUG_PICKUP_SPACING = 48;
+/** Time skipped by the debug key J. */
+const DEBUG_SKIP_MS = 60000;
+/** Levels given by the debug key L (one card per level). */
+const DEBUG_LEVELS = 5;
 
 /**
- * Escena de partida con la clase elegida en CharacterSelectScene: mapa, jugador, enemigos que lo persiguen, un arma automática (Energy Bolt),
- * gemas de XP y subida de nivel con cartas (Fase 5).
+ * Escena de partida con la clase elegida en CharacterSelectScene: mapa, jugador, oleadas de enemigos con minijefes y jefe
+ * final (Fase 7), arma o hechizo automático, gemas de XP, cartas al subir de nivel, objetos y buffs. Al final, GameOverScene.
  * Mover: WASD/flechas, stick/cruceta o mantener clic. Esc / Start: pausa. F1 / View: depuración · T: prueba del Orc.
- * Solo en desarrollo: N 100 enemigos · K matar los visibles · G invencible · X subir un nivel · V +10 Str · B +10 Int y Mag · P poción, imán y cofre.
+ * Solo en desarrollo: N 100 enemigos · K matar los visibles · G invencible · X subir un nivel · V +10 Str · B +10 Int y Mag · P poción, imán y cofre · J +1 minuto · M siguiente jefe · L +5 niveles.
  */
 export class GameScene extends Phaser.Scene {
     private inputSystem!: InputSystem;
@@ -68,8 +84,13 @@ export class GameScene extends Phaser.Scene {
     private weapons!: WeaponSystem;
     private debug!: DebugSystem;
     private world!: EnemyWorld;
-    private gameOver!: Phaser.GameObjects.Container;
-    private gameOverText!: Phaser.GameObjects.Text;
+    private bosses!: BossSystem;
+    private enemyShots!: EnemyProjectileSystem;
+    private music!: MusicSystem;
+    /** Counts down to the victory screen once the final boss is dead; negative = not won yet. */
+    private victoryInMs = -1;
+    /** The end screen is open (victory or defeat). */
+    private runOver = false;
     private godModeLabel!: Phaser.GameObjects.Text;
     private stats!: CharacterStats;
     private xp!: XpSystem;
@@ -120,18 +141,30 @@ export class GameScene extends Phaser.Scene {
         camera.setBounds(areaPx.x, areaPx.y, areaPx.width, areaPx.height);
         camera.startFollow(this.player.container, true, CAMERA_LERP, CAMERA_LERP);
 
-        this.enemies = new EnemySystem(this);
-        this.spawner = new SpawnSystem(camera, this.enemies, map, areaPx);
-        this.damageNumbers = new DamageNumbers(this);
         this.audio = new AudioSystem(this);
+        this.enemies = new EnemySystem(this, this.audio);
+        this.spawner = new SpawnSystem(camera, this.enemies, map, areaPx, (event, spawned) => this.onWaveEvent(event, spawned));
+        this.damageNumbers = new DamageNumbers(this);
         this.xp = new XpSystem(this, this.audio);
         this.pickups = new PickupSystem(this, this.audio, (id) => this.collectPickup(id));
         this.combat = new CombatSystem(this.enemies, this.damageNumbers, this.audio, this.stats, (enemy) => {
             this.xp.drop(enemy.x, enemy.y, enemy.def.xp);
             this.pickups.onKill(enemy.x, enemy.y);
+            this.onEnemyKilled(enemy);
         });
         this.weapons = new WeaponSystem(this, this.enemies, this.combat, this.audio);
         this.buffs = new BuffSystem(this, this.player, this.audio, (key, x, y) => this.weapons.spawnEffect(key, x, y));
+        this.enemyShots = new EnemyProjectileSystem(this, this.audio, (key, x, y) => this.weapons.spawnEffect(key, x, y));
+        this.bosses = new BossSystem(this.enemyShots);
+        // Archers (Dark Elf) shoot arrows at the player's body instead of hitting directly.
+        this.enemies.setShootHandler((enemy, damage) => {
+            const ranged = enemy.def.attackProjectile;
+            if (ranged) this.enemyShots.throwAt(ranged, enemy.x, enemy.bodyY, this.player.x, this.player.y - PLAYER_BODY_OFFSET_Y, damage);
+        });
+        this.music = new MusicSystem(this);
+        this.music.play(MUSIC.normal);
+        this.victoryInMs = -1;
+        this.runOver = false;
         this.equipment = new Equipment(character);
         this.meleeWeapon = undefined;
         this.spellWeapon = undefined;
@@ -160,11 +193,10 @@ export class GameScene extends Phaser.Scene {
             `Enemies: ${this.enemies.alive} alive · ${this.enemies.pooled} pooled`,
             `Health: ${this.player.hp}/${this.player.maxHp}${this.player.godMode ? '  [INVINCIBLE]' : ''}`,
             `Level ${this.stats.level} · XP ${this.stats.xp}/${this.stats.xpToNext} · gems ${this.xp.active}`,
-            `Time: ${formatTime(this.spawner.elapsed)}  spawn every ${this.spawner.currentInterval().toFixed(2)} s`,
+            `Time: ${formatTime(this.spawner.elapsed)}  wave ${this.spawner.waveNumber}  spawn every ${this.spawner.currentInterval().toFixed(2)} s`,
             `Kills: ${this.combat.kills} · projectiles ${this.weapons.activeProjectiles} · numbers ${this.damageNumbers.active} · pickups ${this.pickups.active}`,
             `Sounds: ${this.audio.playingCount} playing · ${this.audio.skippedCount} skipped`,
         ]);
-        this.createGameOver();
         this.godModeLabel = this.add.text(GAME_WIDTH - 10, 10, 'INVINCIBLE (G)', {
             fontFamily: 'monospace', fontSize: '14px', color: '#ffd860', backgroundColor: '#000000a0', padding: { x: 6, y: 3 },
         }).setOrigin(1, 0).setScrollFactor(0).setDepth(DEPTH_DEBUG).setVisible(false);
@@ -266,7 +298,8 @@ export class GameScene extends Phaser.Scene {
                 level: this.stats.level,
                 elapsedMs: this.spawner.elapsed,
                 kills: this.combat.kills,
-                pauseLocked: this.player.isDead || this.levelUpOpen,
+                pauseLocked: this.player.isDead || this.levelUpOpen || this.runOver,
+                boss: this.bossInfo(),
                 stats: this.stats,
                 weaponName: this.meleeWeapon?.def.name ?? this.spellWeapon?.def.name,
                 defense: this.equipment.defense,
@@ -278,6 +311,7 @@ export class GameScene extends Phaser.Scene {
         this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
             this.scene.stop('Hud');
             this.scene.stop('LevelUp');
+            this.scene.stop('GameOver');
         });
     }
 
@@ -310,19 +344,23 @@ export class GameScene extends Phaser.Scene {
         this.pickups.update(delta, player.x, player.y, !player.isDead);
         this.buffs.update(delta);
         this.stats.buffDamageMultiplier = this.buffs.damageMultiplier;
-        this.spawner.enabled = !player.isDead;
+        this.spawner.enabled = !player.isDead && this.victoryInMs < 0;
         this.spawner.update(delta);
+        const bodyY = player.y - PLAYER_BODY_OFFSET_Y;
+        this.bosses.update(delta, player.x, bodyY, !player.isDead);
+        const shotDamage = this.enemyShots.update(delta, player.x, bodyY, PLAYER_BODY_RADIUS);
+        this.updateMusic();
 
         if (!player.isDead) {
-            player.takeDamage(this.reduceByArmor(this.enemies.getContactDamage(player.x, player.y, player.def.hitboxHalfSize)));
+            this.hurtPlayer(this.enemies.landedDamage + shotDamage);
         } else if (player.deadForMs > GAME_OVER_DELAY_MS) {
-            this.showGameOver();
-            if (input.justPressed(Action.Confirm)) {
-                this.scene.restart();
-                return;
-            }
-            if (input.justPressed(Action.Pause)) {
-                this.scene.start('CharacterSelect');
+            this.endRun(false);
+            return;
+        }
+        if (this.victoryInMs >= 0) {
+            this.victoryInMs -= delta;
+            if (this.victoryInMs < 0) {
+                this.endRun(true);
                 return;
             }
         }
@@ -354,6 +392,15 @@ export class GameScene extends Phaser.Scene {
         }
     }
 
+    /** A monster blow or a fireball: armor reduces it; if it lands, the original hit spark, cry and animation. */
+    private hurtPlayer(damage: number): void {
+        const player = this.player;
+        if (!player.takeDamage(this.reduceByArmor(damage)) || player.isDead) return;
+        this.weapons.spawnEffect('fx.hit', player.x, player.y - PLAYER_BODY_OFFSET_Y);
+        this.audio.play('sfx.player.hurt');
+        player.act(PlayerState.Hurt, player.direction, PLAYER_HURT_MS, PLAYER_HURT_STUN_MS);
+    }
+
     /** Armor and a Defense Shield remove part of each hit (0 stays 0: no enemy touching). */
     private reduceByArmor(damage: number): number {
         if (damage <= 0) return 0;
@@ -379,6 +426,9 @@ export class GameScene extends Phaser.Scene {
         if (input.justPressed(Action.DebugGiveXp)) {
             this.gainXp(this.stats.xpToNext - this.stats.xp);
         }
+        if (input.justPressed(Action.DebugGiveLevels)) {
+            for (let i = 0; i < DEBUG_LEVELS; i++) this.gainXp(this.stats.xpToNext - this.stats.xp);
+        }
         if (input.justPressed(Action.DebugAddStr)) {
             this.stats.addStat('str', DEBUG_STR_POINTS);
             this.applyStats();
@@ -394,36 +444,68 @@ export class GameScene extends Phaser.Scene {
             this.pickups.drop('magnet', x, y + DEBUG_PICKUP_SPACING * 1.5);
             this.pickups.drop('chest', x + DEBUG_PICKUP_SPACING, y + DEBUG_PICKUP_SPACING);
         }
+        if (input.justPressed(Action.DebugSkipMinute)) {
+            this.spawner.skip(DEBUG_SKIP_MS);
+        }
+        if (input.justPressed(Action.DebugNextBoss)) {
+            this.spawner.skipToNextBoss();
+        }
         if (input.justPressed(Action.DebugGodMode)) {
             this.player.setGodMode(!this.player.godMode);
             this.godModeLabel.setVisible(this.player.godMode);
         }
     }
 
-    /** Provisional Game Over (Phase 8 replaces it with a proper GameOverScene). */
-    private createGameOver(): void {
-        const shade = this.add.rectangle(0, 0, GAME_WIDTH, HUD_TOP, 0x000000, 0.6).setOrigin(0);
-        const title = this.add.text(GAME_WIDTH / 2, HUD_TOP / 2 - 40, 'YOU HAVE FALLEN', {
-            fontFamily: UI_FONT, fontSize: px(UI_FONT_SIZE.title), fontStyle: 'bold', color: '#d83030', stroke: '#000000', strokeThickness: 4,
-        }).setOrigin(0.5);
-        this.gameOverText = this.add.text(GAME_WIDTH / 2, HUD_TOP / 2 + 30, '', {
-            fontFamily: UI_FONT, fontSize: px(UI_FONT_SIZE.normal), color: '#e0d090', align: 'center',
-        }).setOrigin(0.5);
-        this.gameOver = this.add.container(0, 0, [shade, title, this.gameOverText])
-            .setScrollFactor(0)
-            .setDepth(DEPTH_DEBUG - 1)
-            .setVisible(false);
+    /** A moment of the timeline: shows its warning and remembers the bosses. */
+    private onWaveEvent(event: WaveEventDef, spawned: readonly Enemy[]): void {
+        this.events.emit(ANNOUNCE_EVENT, event.message);
+        for (const enemy of spawned) this.bosses.track(enemy);
     }
 
-    private showGameOver(): void {
-        if (this.gameOver.visible) return;
-        this.gameOverText.setText([
-            `You survived ${formatTime(this.spawner.elapsed)}`,
-            '',
-            'Enter, A or click to try again',
-            'Esc or Start to choose another class',
-        ]);
-        this.gameOver.setVisible(true);
+    /** Mini-bosses drop a chest; the final boss wins the game once its death animation has played. */
+    private onEnemyKilled(enemy: Enemy): void {
+        const boss = enemy.def.boss;
+        if (!boss) return;
+        if (boss.dropsChest) this.pickups.drop('chest', enemy.x, enemy.y);
+        if (boss.final && this.victoryInMs < 0) this.victoryInMs = VICTORY_DELAY_MS;
+    }
+
+    private updateMusic(): void {
+        const moment = this.bosses.music;
+        this.music.play(moment === 'finalBoss' ? MUSIC.finalBoss : moment === 'miniBoss' ? MUSIC.miniBoss : MUSIC.normal);
+    }
+
+    /** Boss for the big health bar at the top, if any. */
+    private bossInfo(): HudState['boss'] {
+        const boss = this.bosses.shown;
+        return boss?.def.boss ? { name: boss.def.boss.title, hp: Math.max(0, boss.hp), maxHp: boss.def.maxHp } : undefined;
+    }
+
+    /** Opens the end screen over the paused game. */
+    private endRun(victory: boolean): void {
+        if (this.runOver) return;
+        this.runOver = true;
+        const armor = Object.values(this.equipment.armor).map((id) => getArmorPiece(id).name);
+        const data: GameOverSceneData = {
+            victory,
+            elapsedMs: this.spawner.elapsed,
+            level: this.stats.level,
+            kills: this.combat.kills,
+            className: this.stats.def.name,
+            weaponName: this.meleeWeapon?.def.name ?? this.spellWeapon?.def.name ?? '',
+            armorNames: armor,
+            onRestart: () => {
+                this.scene.stop('GameOver');
+                this.scene.restart();
+            },
+            onChangeClass: () => {
+                this.scene.stop('GameOver');
+                this.scene.start('CharacterSelect');
+            },
+        };
+        this.audio.stopLoop('sfx.footsteps');
+        this.scene.pause();
+        this.scene.launch('GameOver', data);
     }
 }
 

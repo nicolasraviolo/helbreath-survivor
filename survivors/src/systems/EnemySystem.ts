@@ -1,10 +1,11 @@
 // Gestiona todos los enemigos: un pool por tipo, la rejilla de vecinos, la separación entre ellos
-// y el contacto con el jugador.
+// y los golpes que dan al jugador.
 import Phaser from 'phaser';
 import { ENEMY_SEPARATION_MAX, ENEMY_SEPARATION_PER_PX, SPATIAL_CELL_SIZE } from '../config/gameConfig';
 import { ENEMIES, type EnemyId } from '../data/enemies';
 import { Enemy, type EnemyWorld } from '../entities/Enemy';
 import { Pool } from '../utils/Pool';
+import type { AudioSystem } from './AudioSystem';
 import { SpatialGrid } from '../utils/SpatialGrid';
 
 export class EnemySystem {
@@ -13,10 +14,24 @@ export class EnemySystem {
     private readonly finished: Enemy[] = [];
     private aliveCount = 0;
 
-    constructor(scene: Phaser.Scene) {
+    /** Damage of the monster blows that landed on the player during the last update. */
+    private landed = 0;
+    /** Shoots an archer's arrow at the player (set by the game scene). */
+    private onShoot: (enemy: Enemy, damage: number) => void = () => undefined;
+
+    constructor(scene: Phaser.Scene, audio: AudioSystem) {
         for (const id of Object.keys(ENEMIES) as EnemyId[]) {
-            this.pools.set(id, new Pool(() => new Enemy(scene, ENEMIES[id])));
+            this.pools.set(id, new Pool(() => new Enemy(scene, ENEMIES[id], audio)));
         }
+    }
+
+    public setShootHandler(handler: (enemy: Enemy, damage: number) => void): void {
+        this.onShoot = handler;
+    }
+
+    /** Strongest blow that landed on the player this frame (monster attacks), or 0. */
+    public get landedDamage(): number {
+        return this.landed;
     }
 
     public spawn(id: EnemyId, x: number, y: number): Enemy {
@@ -42,9 +57,18 @@ export class EnemySystem {
         this.applySeparation();
 
         this.aliveCount = 0;
+        this.landed = 0;
         for (const pool of this.pools.values()) {
             for (const enemy of pool.active) {
-                if (enemy.update(deltaMs, world)) {
+                const finished = enemy.update(deltaMs, world);
+                // Several blows in the same frame count as the strongest (the player is then briefly invulnerable).
+                this.landed = Math.max(this.landed, enemy.landedDamage);
+                enemy.landedDamage = 0;
+                if (enemy.shotDamage > 0) {
+                    this.onShoot(enemy, enemy.shotDamage);
+                    enemy.shotDamage = 0;
+                }
+                if (finished) {
                     this.finished.push(enemy);
                 } else if (enemy.isAlive) {
                     this.aliveCount++;
@@ -54,21 +78,6 @@ export class EnemySystem {
             for (const enemy of this.finished) pool.release(enemy);
             this.finished.length = 0;
         }
-    }
-
-    /** Highest contact damage among living enemies touching a circle (the player), or 0. */
-    public getContactDamage(x: number, y: number, radius: number): number {
-        let damage = 0;
-        this.grid.forEachNear(x, y, radius + SPATIAL_CELL_SIZE, (enemy) => {
-            if (!enemy.isAlive) return;
-            const reach = radius + enemy.def.radius;
-            const dx = enemy.x - x;
-            const dy = enemy.y - y;
-            if (dx * dx + dy * dy <= reach * reach) {
-                damage = Math.max(damage, enemy.def.contactDamage);
-            }
-        });
-        return damage;
     }
 
     /**

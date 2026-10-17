@@ -2,7 +2,7 @@
 // - Red Potion: cura. Imán (dibujado con el Crystal: no hay sprite de imán): atrae todas las gemas de XP.
 // - Cofre (dibujado con la bolsa de oro): da un buff aleatorio, ofensivo o defensivo. Los cofres NO desaparecen.
 //   Los buffs se combinan; coger uno que ya tienes renueva su tiempo (systems/BuffSystem.ts).
-// - Hasta que haya minijefes (Fase 7), el cofre aparece cada CHEST_EVERY_KILLS bajas.
+// - Los cofres los sueltan los minijefes (Fase 7, data/enemies.ts → boss.dropsChest).
 // Sprites: item-ground.spr (sp-client Items.ts). Buffs: efectos y sonido de sp-client Effects.ts (Berserk, Defense Shield).
 import type { SoundKey } from '../config/assetManifest';
 import type { EffectKey } from '../config/effects';
@@ -33,8 +33,6 @@ export const PICKUPS = {
 
 /** Health healed by a potion, as a share of maximum health. */
 export const POTION_HEAL_SHARE = 0.3;
-/** A chest appears every this many kills (until mini-bosses drop them in Phase 7). */
-export const CHEST_EVERY_KILLS = 150;
 /** Picked up when the player's feet are this close (px). */
 export const PICKUP_RADIUS = 22;
 /** Blinks during the last part of its life, so the player knows it is about to go. */

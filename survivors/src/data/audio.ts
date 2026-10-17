@@ -1,6 +1,7 @@
 // Volumen y límites de sonidos simultáneos, para que 50 muertes a la vez no suenen como un estruendo.
 // También el ritmo de los sonidos que, como en el original, se ajustan a la duración de una animación
 // (sp-client SoundManager.calculatePlaybackRate: velocidad = duración del sonido / duración de la animación).
+import type { SoundKey } from '../config/assetManifest';
 
 export const AUDIO = {
     /** Master volume of sound effects (0..1). */
@@ -26,3 +27,15 @@ export const SWING_SOUND_MS = 640;
 export const FOOTSTEPS_PER_RUN_CYCLE = 2;
 /** A puff of dust under the feet every this many pixels run (the original: one per tile reached). */
 export const FOOTSTEP_DUST_EVERY_PX = 32;
+
+/**
+ * Music by moment of the run (docs/DESIGN.md → Audio): middleland while playing, dungeon while a mini-boss is alive,
+ * abaddon for the final boss. Volume 0..1 and cross-fade length.
+ */
+export const MUSIC = {
+    normal: 'music.middleland',
+    miniBoss: 'music.dungeon',
+    finalBoss: 'music.abaddon',
+    volume: 0.35,
+    fadeMs: 1500,
+} as const satisfies { normal: SoundKey; miniBoss: SoundKey; finalBoss: SoundKey; volume: number; fadeMs: number };

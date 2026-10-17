@@ -82,7 +82,7 @@ export class WeaponSystem {
                     arc: Phaser.Math.DegToRad(def.arcDegrees),
                     damage: def.damage,
                     knockback: def.knockback,
-                });
+                }, (enemy) => this.spawnEffect('fx.hit', enemy.x, enemy.bodyY));
                 if (hits > 0) audio.play(MELEE_HIT_SOUND);
             },
         };

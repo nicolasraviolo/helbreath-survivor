@@ -6,6 +6,9 @@
 import Phaser from 'phaser';
 import { GAME_WIDTH } from '../config/gameConfig';
 import {
+    ANNOUNCE_EVENT,
+    HUD_ANNOUNCE,
+    HUD_BOSS,
     HUD_BUFF,
     HUD_BUTTONS,
     HUD_CHARACTER_BUTTON,
@@ -55,6 +58,8 @@ export interface HudState {
     defense: number;
     /** Rank of each passive. */
     passiveRanks: Readonly<Record<keyof typeof PASSIVES, number>>;
+    /** Boss shown on the big bar at the top, if one is alive. */
+    boss: { name: string; hp: number; maxHp: number } | undefined;
     /** Buffs from chests that are on (they can be combined), with their seconds left. */
     buffs: ReadonlyArray<{ name: string; secondsLeft: number; color: number }>;
 }
@@ -81,6 +86,11 @@ export class HudScene extends Phaser.Scene {
     private hpText!: Phaser.GameObjects.Text;
     private mpText!: Phaser.GameObjects.Text;
     private infoText!: Phaser.GameObjects.Text;
+    private bossName!: SpriteText;
+    private bossBar!: Phaser.GameObjects.Graphics;
+    private shownBossRatio = -1;
+    private announce!: SpriteText;
+    private announceLeftMs = 0;
     /** One line per active buff, created when first needed. */
     private readonly buffTexts: SpriteText[] = [];
     private pauseOverlay!: Phaser.GameObjects.Container;
@@ -112,14 +122,23 @@ export class HudScene extends Phaser.Scene {
         this.mpText = this.createCenteredText(HUD_MP, HUD_TEXT_STYLE);
         this.infoText = this.createCenteredText(HUD_INFO, HUD_INFO_STYLE);
         this.createStatsPanel();
+        this.createBossBar();
+        this.announce = new SpriteText(this, GAME_WIDTH / 2, HUD_ANNOUNCE.y, '', HUD_ANNOUNCE.color, 'center');
+        this.announce.container.setScale(HUD_ANNOUNCE.scale).setDepth(HUD_DEPTH_TEXT).setVisible(false);
+        const game = this.scene.get(this.gameSceneKey);
+        const onAnnounce = (message: string) => this.showAnnouncement(message);
+        game.events.on(ANNOUNCE_EVENT, onAnnounce);
+        this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => game.events.off(ANNOUNCE_EVENT, onAnnounce));
         this.createButtons();
         this.createPauseOverlay();
         this.inputSystem = new InputSystem(this);
     }
 
-    override update(): void {
+    override update(_time: number, delta: number): void {
         this.inputSystem.update();
         const state = this.getState();
+        this.showBoss(state.boss);
+        this.updateAnnouncement(delta);
         this.handlePause(state.pauseLocked);
         if (this.inputSystem.justPressed(Action.ToggleStats)) this.toggleStats();
         if (this.statsPanel.visible) this.refreshStats(state);
@@ -135,6 +154,50 @@ export class HudScene extends Phaser.Scene {
         this.setGauge(this.xp, state.xpRatio);
         this.infoText.setText(`Lv ${state.level}  ${formatTime(state.elapsedMs)}  ${state.kills} kills`);
         this.showBuffs(state.buffs);
+    }
+
+    private createBossBar(): void {
+        this.bossName = new SpriteText(this, GAME_WIDTH / 2, 0, '', HUD_BOSS.nameColor, 'center');
+        this.bossName.container.setDepth(HUD_DEPTH_TEXT).setVisible(false);
+        this.bossBar = this.add.graphics().setDepth(HUD_DEPTH_TEXT).setVisible(false);
+    }
+
+    /** Name and health of the boss; hidden when there is none. Redrawn only when its health changes. */
+    private showBoss(boss: HudState['boss']): void {
+        const visible = boss !== undefined;
+        this.bossName.container.setVisible(visible);
+        this.bossBar.setVisible(visible);
+        if (!boss) {
+            this.shownBossRatio = -1;
+            return;
+        }
+        const ratio = Phaser.Math.Clamp(boss.hp / boss.maxHp, 0, 1);
+        if (ratio === this.shownBossRatio) return;
+        this.shownBossRatio = ratio;
+        const { y, width, height } = HUD_BOSS;
+        const left = (GAME_WIDTH - width) / 2;
+        this.bossName.setText(boss.name);
+        this.bossName.container.setPosition(GAME_WIDTH / 2, HUD_BOSS.nameY);
+        this.bossBar.clear()
+            .fillStyle(HUD_BOSS.backColor, 0.85).fillRect(left, y, width, height)
+            .fillStyle(HUD_BOSS.fillColor, 1).fillRect(left, y, width * ratio, height)
+            .lineStyle(2, HUD_BOSS.borderColor, 1).strokeRect(left - 1, y - 1, width + 2, height + 2);
+    }
+
+    private showAnnouncement(message: string): void {
+        this.announce.setText(message);
+        this.announce.container.setVisible(true).setAlpha(1);
+        this.announceLeftMs = HUD_ANNOUNCE.showMs;
+    }
+
+    private updateAnnouncement(deltaMs: number): void {
+        if (this.announceLeftMs <= 0) return;
+        this.announceLeftMs -= deltaMs;
+        if (this.announceLeftMs <= 0) {
+            this.announce.container.setVisible(false);
+            return;
+        }
+        this.announce.container.setAlpha(Math.min(1, this.announceLeftMs / HUD_ANNOUNCE.fadeMs));
     }
 
     /** One line per active buff at the top of the screen: name and seconds left, in its colour. */

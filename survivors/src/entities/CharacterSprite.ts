@@ -112,7 +112,8 @@ export class CharacterSprite {
                 // Played once, then stays on the last frame.
                 return Math.min(lastFrame, Math.floor((this.stateTime * this.def.dieFrameRate) / 1000));
             case PlayerState.Melee:
-            case PlayerState.Cast: {
+            case PlayerState.Cast:
+            case PlayerState.Hurt: {
                 const frames = framesPerDirection(this.state);
                 return Math.min(frames - 1, Math.floor((this.stateTime / this.actionDurationMs) * frames));
             }

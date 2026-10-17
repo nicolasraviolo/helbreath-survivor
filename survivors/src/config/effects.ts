@@ -15,6 +15,8 @@ export interface EffectDef {
     loop: boolean;
     /** Frame index from which the effect fades out (sp-client fadeOutStartAnimationIndex). */
     fadeFromFrame?: number;
+    /** Drawn additively (light: sparks, glows), like the original PutTransSprite_NoColorKey. */
+    additive?: boolean;
     /** Added to the Y depth. Default DEPTH_EFFECT_OFFSET (above characters); negative = under them. */
     depthOffset?: number;
     /**
@@ -43,6 +45,11 @@ export const EFFECTS = {
     'fx.defenseShield.cast': { sprite: 'fx.effect8', sheet: 6, frameRate: 10, loop: false, depthOffset: -1 },
     // Its frame pivots point ~95 px left and ~147 px above the anchor (measured in effect9.spr): moved back to the feet.
     'fx.defenseShield.aura': { sprite: 'fx.effect9', sheet: 14, frameRate: 15, loop: true, offsetX: 72, offsetY: 105 },
+    // Golpe normal del original (Client.cpp, efecto tipo 1 "coup normal"): effect.spr hoja 8, 3 frames, aditivo,
+    // a la altura del cuerpo de quien recibe el golpe. Es el destello de impacto; el original no tiene sangre.
+    'fx.hit': { sprite: 'fx.effect', sheet: 8, frameRate: 20, loop: false, additive: true },
+    // Flecha del Dark Elf (sp-client ArrowProjectile): effect.spr hoja 7, 2 frames por dirección.
+    'fx.arrow': { sprite: 'fx.effect', sheet: 7, frameRate: 10, loop: true, framesPerDirection: 2 },
     'fx.footsteps': { sprite: 'fx.effect2', sheet: 1, frames: [28, 32], frameRate: 10, loop: false, depthOffset: -1 },
 } as const satisfies Record<string, EffectDef>;
 
