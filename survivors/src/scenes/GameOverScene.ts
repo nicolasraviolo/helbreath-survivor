@@ -1,6 +1,7 @@
 // Pantalla de final de partida (Fase 7): victoria al matar al jefe final o derrota al morir. Se abre encima de la
 // partida, que queda pausada. Muestra tiempo, nivel, bajas, el arma o hechizo y la armadura que llevabas.
-// Botones originales (dialogtext.spr): Restart = otra partida con la misma clase; Change = volver a elegir clase.
+// Botones originales (dialogtext.spr): Restart = otra partida con la misma clase; Change = volver a elegir clase;
+// Log Out = volver al menú principal.
 // Se maneja con ←/→ o cruceta + Enter/A, o con el ratón.
 import Phaser from 'phaser';
 import { GAME_HEIGHT, GAME_WIDTH } from '../config/gameConfig';
@@ -22,6 +23,7 @@ export interface GameOverSceneData {
     armorNames: readonly string[];
     onRestart: () => void;
     onChangeClass: () => void;
+    onMainMenu: () => void;
 }
 
 interface Button {
@@ -69,7 +71,8 @@ export class GameOverScene extends Phaser.Scene {
         }).setOrigin(0.5, 0);
 
         this.addButton(GAME_OVER.restartFrame, -1, p.onRestart);
-        this.addButton(GAME_OVER.changeFrame, 1, p.onChangeClass);
+        this.addButton(GAME_OVER.changeFrame, 0, p.onChangeClass);
+        this.addButton(GAME_OVER.logOutFrame, 1, p.onMainMenu);
         this.highlight(0);
         this.add.text(GAME_WIDTH / 2, GAME_OVER.hintY, '← →  and  Enter   ·   D-pad and A   ·   Click', {
             fontFamily: UI_FONT, fontSize: px(UI_FONT_SIZE.small), color: '#a89870',
@@ -83,7 +86,9 @@ export class GameOverScene extends Phaser.Scene {
         const input = this.inputSystem;
         input.update();
         if (!this.ready()) return;
-        if (input.justPressed(Action.MenuLeft) || input.justPressed(Action.MenuRight)) this.highlight(1 - this.selected);
+        const count = this.buttons.length;
+        if (input.justPressed(Action.MenuLeft)) this.highlight((this.selected - 1 + count) % count);
+        if (input.justPressed(Action.MenuRight)) this.highlight((this.selected + 1) % count);
         if (input.justPressed(Action.Confirm)) this.choose(this.selected);
     }
 
@@ -91,7 +96,7 @@ export class GameOverScene extends Phaser.Scene {
         return !this.chosen && this.time.now - this.openedAt >= GAME_OVER.inputDelayMs;
     }
 
-    /** `side` −1 = left of centre, +1 = right. */
+    /** `side` −1 = left, 0 = centre, +1 = right. */
     private addButton(frame: number, side: number, action: () => void): void {
         const index = this.buttons.length;
         const x = GAME_WIDTH / 2 + side * GAME_OVER.buttonGap;

@@ -64,8 +64,6 @@ export const HUD_INFO_STYLE = { ...HUD_TEXT_STYLE, color: '#e8d9a8' } as const;
  */
 export const HUD_BUFF = { right: 12, bottomGap: 26, lineHeight: 22 } as const;
 
-/** Pause overlay. */
-export const PAUSE_SHADE_ALPHA = 0.55;
 
 /** Big health bar of the boss at the top of the screen: its name (sprite font) over a wide bar. */
 export const HUD_BOSS = {
@@ -95,11 +93,13 @@ export const GAME_OVER = {
     defeatColor: 0xd83030,
     statsY: 220,
     buttonsY: 440,
-    buttonGap: 90,
+    /** Distance between the centres of two buttons. */
+    buttonGap: 140,
     buttonScale: 1.6,
     buttonTexture: getSheetKey('ui.buttons', 1),
     restartFrame: 36,
     changeFrame: 20,
+    logOutFrame: 8,
     hintY: 500,
     /** Ignore input for a moment, so the key or click that killed the boss doesn't choose a button. */
     inputDelayMs: 800,

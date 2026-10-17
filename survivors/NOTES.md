@@ -435,3 +435,28 @@ Tabla completa en `docs/REQUISITOS_HB.md`. Lo no obvio:
   - animación TakeDamage: hoja de cuerpo 80, de armadura 10, arma índice 5, 4 frames por dirección, 267 ms;
   - aturdimiento de 100 ms.
 - **Velocidad real de ataque de cada monstruo:** encontrada el 17-oct-2026 en el `NPC.cfg` de [centuu/HelbreathServer](https://github.com/centuu/HelbreathServer) (y de Helbreath/server, HBX). Ver `docs/hb-wiki/monstruos-comportamiento.md`, que tiene la tabla completa y las estrategias de ataque.
+
+## Arte de menús del original (Fase 8)
+- `new-dialog.spr`: 3 hojas, cada una con un fondo de 640×480 en el frame 0.
+  - Hoja 0: "Loading Data", con la maga y "Helbreath Apocalypse".
+  - Hoja 1: el título "Helbreath The Heldenian". Trae dibujados los botones Log In / New Account / Exit y la línea "PlayHelbreath.com". Sus frames 1–3 son esos botones iluminados.
+  - Hoja 2: "Thank you for playing".
+- `hb_lgn.spr`: el mismo fondo con el formulario de crear cuenta dibujado.
+- `logindialog.spr`: el login con sus campos.
+- **Paneles en `gamedialog86.spr`:**
+  - hoja 0: frame 1, la piedra con hexagrama (258×328); frame 2, panel pequeño (270×104);
+  - hoja 1: frames 5–6, paneles redondeados;
+  - hoja 3: frame 3, el castillo con esquinas de plata (338×202; el que usamos), y frame 1, "Spells".
+- **Botoncitos de `gamedialog86.spr` hoja 1:**
+  - 7: flecha ◄ naranja de 15×15 (no hay ►: se voltea);
+  - 8: flecha ▼;
+  - 17–20: + y − naranjas de 12×12;
+  - 9–16 y 21–23: flechas y círculos sueltos.
+- **`dialogtext.spr` hoja 1, fila de arriba:** Ok 0, No 2, Quest 4, Continue 6, **Log Out 8**.
+- No hay botones con texto de Play, Settings o Credits: los menús usan la fuente dibujada (`SpriteText`).
+- Para ver las hojas sin `sharp`, el PNG de cada hoja está tal cual dentro del `.spr`. Formato:
+  - cabecera: número de hojas (u16);
+  - por cada hoja: frames (u16), longitud (i32), ancho (i32), alto (i32), 1 byte, y 12 bytes por frame;
+  - después, por cada hoja: 4 bytes y el PNG.
+- **Phaser:** `keyboard.addKey` devuelve el mismo objeto para la misma tecla. Esc está en `Pause` y en `Back`: si se comprueba `Pause` primero, gasta el `JustDown` y `Back` ya no lo ve. Comprobar las dos con `||`.
+- **Navegador integrado:** si su panel está oculto, el juego va a ~1 FPS y los scripts tardan muchísimo. Abrir el panel antes de probar.

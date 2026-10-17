@@ -94,6 +94,8 @@ export const SPRITES = {
     'ui.font': { file: 'sprites/sprfonts.spr', type: SpriteType.Interface },
     // Botones con el texto ya dibujado (Warrior, Magician, Create, Cancel...), normal + iluminado.
     'ui.buttons': { file: 'sprites/dialogtext.spr', type: SpriteType.Interface },
+    // Pantallas de título del original 640x480 (hoja 1 = "Helbreath The Heldenian", la del login; ver config/menus.ts).
+    'ui.title': { file: 'sprites/new-dialog.spr', type: SpriteType.Interface },
 
     // Objetos en el suelo (gemas de XP: hoja 15, ver data/leveling.ts).
     'item.ground': { file: 'sprites/item-ground.spr', type: SpriteType.ItemGround },
@@ -179,6 +181,8 @@ export const SOUNDS = {
     'sfx.wyvern.death': { file: 'sounds/M105.mp3' },
     // Música (sp-client public/assets/music; ver systems/MusicSystem.ts).
     'music.middleland': { file: 'music/middleland.mp3' },
+    // Música del menú principal: la pista por defecto de sp-client (la de los mapas sin música propia).
+    'music.menu': { file: 'music/default.mp3' },
     'music.dungeon': { file: 'music/dungeon.mp3' },
     'music.abaddon': { file: 'music/abaddon.mp3' },
     // Armas cuerpo a cuerpo: tajo del jugador (PLAYER_MELEE_ATTACK) y golpe con filo en un monstruo (TAKE_DAMAGE_BLADE).

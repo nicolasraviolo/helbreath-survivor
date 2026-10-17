@@ -6,11 +6,16 @@ import { BACKGROUND_COLOR, GAME_HEIGHT, GAME_WIDTH } from './config/gameConfig';
 import { loadUiFont } from './config/ui';
 import { BootScene } from './scenes/BootScene';
 import { PreloadScene } from './scenes/PreloadScene';
+import { MainMenuScene } from './scenes/MainMenuScene';
 import { CharacterSelectScene } from './scenes/CharacterSelectScene';
 import { GameScene } from './scenes/GameScene';
 import { HudScene } from './scenes/HudScene';
 import { LevelUpScene } from './scenes/LevelUpScene';
 import { GameOverScene } from './scenes/GameOverScene';
+import { PauseScene } from './scenes/PauseScene';
+import { SettingsScene } from './scenes/SettingsScene';
+import { CreditsScene } from './scenes/CreditsScene';
+import { AchievementsScene } from './scenes/AchievementsScene';
 import { SpriteTestScene } from './scenes/SpriteTestScene';
 
 function startGame(): void {
@@ -23,8 +28,11 @@ function startGame(): void {
         backgroundColor: BACKGROUND_COLOR,
         pixelArt: true,
         scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
-        // HudScene y LevelUpScene van después de GameScene para dibujarse encima.
-        scene: [BootScene, PreloadScene, CharacterSelectScene, GameScene, HudScene, LevelUpScene, GameOverScene, SpriteTestScene],
+        // HudScene, LevelUpScene y los menús que se abren encima (pausa, ajustes...) van después para dibujarse encima.
+        scene: [
+            BootScene, PreloadScene, MainMenuScene, CharacterSelectScene, GameScene, HudScene, LevelUpScene, GameOverScene,
+            PauseScene, SettingsScene, CreditsScene, AchievementsScene, SpriteTestScene,
+        ],
     });
 
     // Solo en desarrollo: acceso desde la consola del navegador para depurar (p. ej. __game.scene.getScene('Game')).

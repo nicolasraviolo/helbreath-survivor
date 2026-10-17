@@ -64,7 +64,7 @@ export class PreloadScene extends Phaser.Scene {
             this.setProgress(DOWNLOAD_SHARE + ((i + 1) / jobs.length) * (1 - DOWNLOAD_SHARE));
         }
         registerEffectAnimations(this.anims, this.textures);
-        this.scene.start('CharacterSelect');
+        this.scene.start('MainMenu');
     }
 
     private loadBinaries(files: Array<{ key: string; file: string }>): Promise<void> {

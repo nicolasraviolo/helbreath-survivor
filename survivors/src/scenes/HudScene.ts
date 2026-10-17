@@ -1,8 +1,9 @@
 // Barra inferior al estilo del Helbreath original: vida, maná, experiencia, tiempo y bajas, y 6 botones.
 // Corre como escena aparte por encima de la partida, así que no se mueve con la cámara.
 // Las barras usan la imagen original llena y tapan la parte que falta con la pieza gris "vacía".
-// Botones con función: el casco (o C / Y del mando) muestra el panel de stats, y el disquete abre una pausa
-// sencilla (el menú real llega en la Fase 8). Los demás se iluminan pero aún no hacen nada.
+// Botones con función: el casco (o C / Y del mando) muestra el panel de stats, y el disquete (o Esc / Start) abre
+// la pausa (PauseScene). Si se desconecta el mando en plena partida, la pausa se abre sola.
+// Los demás botones se iluminan pero aún no hacen nada.
 import Phaser from 'phaser';
 import { GAME_WIDTH } from '../config/gameConfig';
 import {
@@ -26,15 +27,15 @@ import {
     HUD_STATS_TITLE_STYLE,
     HUD_TOP,
     HUD_XP,
-    PAUSE_SHADE_ALPHA,
 } from '../config/hud';
-import { px, UI_FONT, UI_FONT_SIZE } from '../config/ui';
 import { PASSIVE_IDS, PASSIVES } from '../data/passives';
 import { STAT_IDS, STAT_INFO } from '../data/stats';
 import type { CharacterStats } from '../entities/CharacterStats';
 import { Action, InputSystem } from '../systems/InputSystem';
 import { formatTime } from '../utils/format';
 import { SpriteText } from '../hb/SpriteText';
+import { openOverlay } from './MenuOverlayScene';
+import type { PauseSceneData } from './PauseScene';
 
 /** What the bar shows, read every frame from the game. */
 export interface HudState {
@@ -93,15 +94,11 @@ export class HudScene extends Phaser.Scene {
     private announceLeftMs = 0;
     /** One line per active buff, created when first needed. */
     private readonly buffTexts: SpriteText[] = [];
-    private pauseOverlay!: Phaser.GameObjects.Container;
     private statsPanel!: Phaser.GameObjects.Container;
     private statsTitle!: Phaser.GameObjects.Text;
     private statCells: Phaser.GameObjects.Text[] = [];
     private derivedLabels!: Phaser.GameObjects.Text;
     private derivedValues!: Phaser.GameObjects.Text;
-    private paused = false;
-    /** The pause opened this frame: ignore the same click / key as "continue". */
-    private pauseJustOpened = false;
 
     constructor() {
         super('Hud');
@@ -110,7 +107,6 @@ export class HudScene extends Phaser.Scene {
     init(data: HudSceneData): void {
         this.getState = data.getState;
         this.gameSceneKey = data.gameSceneKey;
-        this.paused = false;
     }
 
     create(): void {
@@ -130,8 +126,11 @@ export class HudScene extends Phaser.Scene {
         game.events.on(ANNOUNCE_EVENT, onAnnounce);
         this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => game.events.off(ANNOUNCE_EVENT, onAnnounce));
         this.createButtons();
-        this.createPauseOverlay();
         this.inputSystem = new InputSystem(this);
+        // Gamepad unplugged (or out of battery) mid-run: pause so the player doesn't die without controls.
+        const onPadLost = () => this.openPause();
+        window.addEventListener('gamepaddisconnected', onPadLost);
+        this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => window.removeEventListener('gamepaddisconnected', onPadLost));
     }
 
     override update(_time: number, delta: number): void {
@@ -139,7 +138,7 @@ export class HudScene extends Phaser.Scene {
         const state = this.getState();
         this.showBoss(state.boss);
         this.updateAnnouncement(delta);
-        this.handlePause(state.pauseLocked);
+        if (this.inputSystem.justPressed(Action.Pause)) this.openPause();
         if (this.inputSystem.justPressed(Action.ToggleStats)) this.toggleStats();
         if (this.statsPanel.visible) this.refreshStats(state);
         this.setGauge(this.hp, state.hp / state.maxHp);
@@ -251,9 +250,7 @@ export class HudScene extends Phaser.Scene {
             zone.on(Phaser.Input.Events.POINTER_OVER, () => lit.setVisible(true));
             zone.on(Phaser.Input.Events.POINTER_OUT, () => lit.setVisible(false));
             if (i === HUD_MENU_BUTTON) {
-                zone.on(Phaser.Input.Events.POINTER_DOWN, () => {
-                    if (!this.getState().pauseLocked) this.setPaused(!this.paused);
-                });
+                zone.on(Phaser.Input.Events.POINTER_DOWN, () => this.openPause());
             }
             if (i === HUD_CHARACTER_BUTTON) {
                 zone.on(Phaser.Input.Events.POINTER_DOWN, () => this.toggleStats());
@@ -299,40 +296,12 @@ export class HudScene extends Phaser.Scene {
         this.statsPanel.setVisible(!this.statsPanel.visible);
     }
 
-    /** Provisional pause: darkens the game and waits for "continue" (Phase 8 brings the real menu). */
-    private createPauseOverlay(): void {
-        const shade = this.add.rectangle(0, 0, GAME_WIDTH, HUD_TOP, 0x000000, PAUSE_SHADE_ALPHA).setOrigin(0);
-        const title = this.add.text(GAME_WIDTH / 2, HUD_TOP / 2 - 30, 'PAUSED', {
-            fontFamily: UI_FONT, fontSize: px(UI_FONT_SIZE.title), fontStyle: 'bold', color: '#e0d090', stroke: '#000000', strokeThickness: 4,
-        }).setOrigin(0.5);
-        const hint = this.add.text(GAME_WIDTH / 2, HUD_TOP / 2 + 25, 'Resume: Enter, Esc, A, Start or click', {
-            fontFamily: UI_FONT, fontSize: px(UI_FONT_SIZE.normal), color: '#e0d090',
-        }).setOrigin(0.5);
-        this.pauseOverlay = this.add.container(0, 0, [shade, title, hint]).setVisible(false);
-    }
-
-    private handlePause(locked: boolean): void {
-        const input = this.inputSystem;
-        if (locked) {
-            this.setPaused(false);
-        } else if (input.justPressed(Action.Pause)) {
-            this.setPaused(!this.paused);
-        } else if (this.paused && !this.pauseJustOpened && input.justPressed(Action.Confirm)) {
-            this.setPaused(false);
-        }
-        this.pauseJustOpened = false;
-    }
-
-    private setPaused(paused: boolean): void {
-        if (paused === this.paused) return;
-        this.paused = paused;
-        this.pauseJustOpened = paused;
-        this.pauseOverlay.setVisible(paused);
-        if (paused) {
-            this.scene.pause(this.gameSceneKey);
-        } else {
-            this.scene.resume(this.gameSceneKey);
-        }
+    /** Freezes the game and this bar and opens the pause menu on top (not while cards or the end screen show). */
+    private openPause(): void {
+        if (!this.scene.isActive() || this.getState().pauseLocked) return;
+        this.scene.pause(this.gameSceneKey);
+        const data: Omit<PauseSceneData, 'returnTo'> = { gameSceneKey: this.gameSceneKey };
+        openOverlay(this, 'Pause', data);
     }
 }
 
