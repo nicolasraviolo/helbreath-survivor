@@ -3,6 +3,7 @@
 //   ?play            → empieza la partida directamente (con la clase por defecto)
 //   ?play=warrior    → con esa clase
 //   ?debug=boss,god  → acciones al empezar, separadas por comas (se pueden repetir: minute,minute)
+//                      resume = guardar y volver a cargar la partida, como con Continue (Fase 12)
 //   ?trees=off       → árboles grandes en ese modo solo en esta partida (on, transparent, off), sin guardarlo
 //   ?open=howtoplay  → abre esa pantalla de los menús (howtoplay, settings, credits, select = selección de personaje)
 //   Se combina con ?ui=compact (interfaz de móvil).
@@ -19,7 +20,7 @@ function isDebugScreen(value: string | null): value is DebugScreen {
 }
 
 /** Actions that ?debug= can run at the start of a run (the same ones as the debug keys of GameScene). */
-export const DEBUG_ACTIONS = ['horde', 'kill', 'levelup', 'levels', 'str', 'magic', 'pickups', 'minute', 'boss', 'god'] as const;
+export const DEBUG_ACTIONS = ['horde', 'kill', 'levelup', 'levels', 'str', 'magic', 'pickups', 'minute', 'boss', 'god', 'resume'] as const;
 export type DebugAction = (typeof DEBUG_ACTIONS)[number];
 
 function isDebugAction(value: string): value is DebugAction {

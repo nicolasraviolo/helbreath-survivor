@@ -64,6 +64,21 @@ export class BuffSystem {
         return multiplier;
     }
 
+    /** Milliseconds left of each active buff (for the saved run). */
+    public get remaining(): Partial<Record<BuffId, number>> {
+        return Object.fromEntries(this.left);
+    }
+
+    /** Continue (saved run): turns the buffs back on with the time they had left, without the cast effect or sound. */
+    public restore(remaining: Partial<Record<BuffId, number>>): void {
+        for (const [id, ms] of Object.entries(remaining) as [BuffId, number][]) {
+            this.left.set(id, ms);
+            const aura = getBuff(id).auraEffect;
+            if (aura) this.auras.get(id)?.setVisible(true).play(aura);
+        }
+        this.refreshGlow();
+    }
+
     /** Chest: an offensive or a defensive buff, chosen at random. */
     public startRandom(): void {
         const kind = Math.random() < 0.5 ? 'offense' : 'defense';

@@ -171,6 +171,12 @@ export class Player {
         this.drawHealthBar();
     }
 
+    /** Continue (saved run): the health it had, within 1..maxHp. */
+    public restoreHp(value: number): void {
+        this.hp = Phaser.Math.Clamp(Math.round(value), 1, this.maxHp);
+        this.drawHealthBar();
+    }
+
     /** Debug invincibility, shown as a golden tint on every layer. */
     public setGodMode(enabled: boolean): void {
         this.godMode = enabled;

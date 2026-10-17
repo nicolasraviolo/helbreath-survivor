@@ -21,6 +21,8 @@ export class SpawnSystem {
     private relocateTimerMs = 0;
     /** Index of the next event of WAVE_EVENTS still to happen. */
     private nextEvent = 0;
+    /** Continue: bosses that were alive, brought back when the calm ends. */
+    private bossesToReturn: EnemyId[] = [];
     public enabled = true;
 
     constructor(
@@ -63,6 +65,7 @@ export class SpawnSystem {
         this.relocateStragglers(deltaMs);
         this.timerMs -= deltaMs;
         if (this.timerMs > 0) return;
+        this.returnBosses();
         const wave = this.wave;
         this.timerMs = this.currentInterval() * 1000;
         if (this.enemies.alive < wave.maxAlive) {
@@ -90,6 +93,42 @@ export class SpawnSystem {
             spawned++;
         }
         return spawned;
+    }
+
+    /**
+     * Continue (saved run): the clock goes on from `elapsedMs`; the events before it already happened, and nothing
+     * appears for `calmMs`. Then the bosses that were alive come back (with their warning) and the wave goes on.
+     */
+    public resumeAt(elapsedMs: number, calmMs: number, bosses: readonly EnemyId[]): void {
+        this.elapsedMs = elapsedMs;
+        const minutes = elapsedMs / MS_PER_MINUTE;
+        this.nextEvent = WAVE_EVENTS.findIndex((event) => event.atMinute > minutes);
+        if (this.nextEvent < 0) this.nextEvent = WAVE_EVENTS.length;
+        this.timerMs = calmMs;
+        this.bossesToReturn = [...bosses];
+    }
+
+    /** Continue: bosses still waiting for the calm to end (they count as alive when saving again). */
+    public get bossesWaiting(): readonly EnemyId[] {
+        return this.bossesToReturn;
+    }
+
+    private returnBosses(): void {
+        const minutes = this.elapsedMs / MS_PER_MINUTE;
+        const waiting: EnemyId[] = [];
+        for (const id of this.bossesToReturn) {
+            // Its sprite may still be downloading right after loading the game: it comes with a later spawn.
+            if (!this.isReady(id)) {
+                this.hurry(id);
+                waiting.push(id);
+                continue;
+            }
+            // Its own event, for the warning (the last one with this monster that already happened).
+            const event = [...WAVE_EVENTS].reverse().find((e) => e.enemy === id && e.kind !== 'surround' && e.atMinute <= minutes);
+            const point = this.findSpawnPoint();
+            if (event && point) this.onEvent(event, [this.enemies.spawn(id, point.x, point.y)]);
+        }
+        this.bossesToReturn = waiting;
     }
 
     /** Debug: moves the clock forward (the events in between happen right away). */

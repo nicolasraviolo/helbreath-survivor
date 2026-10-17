@@ -21,8 +21,13 @@ import { BossSystem } from '../systems/BossSystem';
 import { EnemyProjectileSystem } from '../systems/EnemyProjectileSystem';
 import { MusicSystem } from '../systems/MusicSystem';
 import type { GameOverSceneData } from './GameOverScene';
-import { CHARACTERS, CHOSEN_CHARACTER_KEY, DEFAULT_CHARACTER, isCharacterId } from '../data/characters';
-import { DEFAULT_MAP, MAPS_DATA } from '../data/maps';
+import { CHARACTERS, CHOSEN_CHARACTER_KEY, DEFAULT_CHARACTER, isCharacterId, type CharacterId } from '../data/characters';
+import { DEFAULT_MAP, MAPS_DATA, type MapId } from '../data/maps';
+import { AUTOSAVE_EVERY_MS, RESUME_CALM_MS } from '../data/saves';
+import { STAT_IDS } from '../data/stats';
+import type { MeleeWeaponId } from '../data/weapons';
+import type { SpellId } from '../data/spells';
+import { RESUME_SLOT_KEY, saveStore, type RunSnapshot } from '../systems/SaveStore';
 import { MIN_DAMAGE_TAKEN } from '../data/armor';
 import { MELEE_ROOT_MOMENT } from '../data/weapons';
 import { CAST_RELEASE_MOMENT } from '../data/spells';
@@ -78,6 +83,8 @@ const DEBUG_START_DELAY_MS = 500;
 /**
  * Escena de partida con la clase elegida en CharacterSelectScene: mapa, jugador, oleadas de enemigos con minijefes y jefe
  * final (Fase 7), arma o hechizo automático, gemas de XP, cartas al subir de nivel, objetos y buffs. Al final, GameOverScene.
+ * Fase 12: la partida se guarda (SaveStore) cada pocos segundos, al minimizar y al salir al menú; con Continue
+ * (registry RESUME_SLOT_KEY) se reconstruye desde esa foto. Al ganar o morir, su ranura se libera.
  * Mover: WASD/flechas, stick/cruceta o mantener clic. Esc / Start: pausa. F1 / View: depuración · T: prueba del Orc.
  * Solo en desarrollo: N 100 enemigos · K matar los visibles · G invencible · X subir un nivel · V +10 Str · B +10 Int y Mag · P poción, imán y cofre · J +1 minuto · M siguiente jefe · L +5 niveles.
  */
@@ -121,6 +128,11 @@ export class GameScene extends Phaser.Scene {
     private levelUpOpen = false;
     /** Pixels run since the last puff of footstep dust, and where the player was last frame. */
     private dustDistance = 0;
+    private mapId: MapId = DEFAULT_MAP;
+    private characterId: CharacterId = DEFAULT_CHARACTER;
+    /** Save slot of this run (SaveStore). */
+    private saveSlot = 0;
+    private autosaveInMs = AUTOSAVE_EVERY_MS;
     private lastX = 0;
     private lastY = 0;
 
@@ -129,7 +141,14 @@ export class GameScene extends Phaser.Scene {
     }
 
     create(): void {
-        const mapDef = MAPS_DATA[DEFAULT_MAP];
+        // Continue: the slot chosen in SaveSlotsScene. Read once, so Restart (game over) starts a new run.
+        const resumeSlot: unknown = this.registry.get(RESUME_SLOT_KEY);
+        this.registry.remove(RESUME_SLOT_KEY);
+        const resume = typeof resumeSlot === 'number' ? saveStore.get(resumeSlot) : undefined;
+        this.saveSlot = resume && typeof resumeSlot === 'number' ? resumeSlot : saveStore.slotForNewRun();
+        this.autosaveInMs = AUTOSAVE_EVERY_MS;
+        this.mapId = resume?.map ?? DEFAULT_MAP;
+        const mapDef = MAPS_DATA[this.mapId];
         const map = getMap(this, mapDef.asset);
         const area = mapDef.playArea;
         const margin = MAP_OBJECT_MARGIN_TILES;
@@ -144,7 +163,8 @@ export class GameScene extends Phaser.Scene {
         const spawn = findSpawnTile(map, area.x + Math.floor(area.width / 2), area.y + Math.floor(area.height / 2));
         // Class chosen on the selection screen (the debug sprite test returns here without choosing).
         const chosen: unknown = this.registry.get(CHOSEN_CHARACTER_KEY);
-        const character = CHARACTERS[isCharacterId(chosen) ? chosen : DEFAULT_CHARACTER];
+        this.characterId = resume?.character ?? (isCharacterId(chosen) ? chosen : DEFAULT_CHARACTER);
+        const character = CHARACTERS[this.characterId];
         this.player = new Player(this, (spawn.x + 0.5) * TILE_SIZE, (spawn.y + 0.5) * TILE_SIZE, character, map, areaPx);
         this.stats = new CharacterStats(character);
         this.levelUpOpen = false;
@@ -209,6 +229,8 @@ export class GameScene extends Phaser.Scene {
         this.player.setMaxHp(this.stats.maxHp, true);
         this.applyStats();
         this.world = { map, area: areaPx, targetX: 0, targetY: 0, targetRadius: character.hitboxHalfSize };
+        if (resume) this.restore(resume);
+        this.watchForSaving();
 
         this.inputSystem = new InputSystem(this);
         this.inputSystem.setPointerAnchor(() => this.player);
@@ -274,6 +296,7 @@ export class GameScene extends Phaser.Scene {
                 this.applyChoice(choice);
                 stats.pendingLevelUps--;
                 this.applyStats();
+                this.saveRun();
                 this.levelUpOpen = false;
                 this.scene.stop('LevelUp');
                 this.scene.resume();
@@ -289,26 +312,13 @@ export class GameScene extends Phaser.Scene {
                 this.stats.addStat(choice.stat, choice.points);
                 break;
             case 'weaponLink':
-            case 'weaponSwitch': {
-                // One weapon in hand: the new one takes the old one's place.
-                const weapon = new MeleeWeapon(choice.weapon);
-                if (this.meleeWeapon) this.weapons.replace(this.meleeWeapon, weapon);
-                else this.weapons.add(weapon);
-                this.meleeWeapon = weapon;
-                this.equipment.weapon = choice.weapon;
-                this.player.setGear('weapon', this.equipment.weaponLayer());
+            case 'weaponSwitch':
+                this.equipMelee(choice.weapon);
                 break;
-            }
             case 'spellLink':
-            case 'spellSwitch': {
-                // One spell in hand, like the Warrior's weapon. The wand stays: it is only for looks.
-                const spell = new SpellWeapon(choice.spell);
-                if (this.spellWeapon) this.weapons.replace(this.spellWeapon, spell);
-                else this.weapons.add(spell);
-                this.spellWeapon = spell;
-                this.equipment.spell = choice.spell;
+            case 'spellSwitch':
+                this.equipSpell(choice.spell);
                 break;
-            }
             case 'passive':
                 this.equipment.passives[choice.passive] = choice.rank;
                 break;
@@ -316,6 +326,90 @@ export class GameScene extends Phaser.Scene {
                 for (const [slot, layer] of this.equipment.wear(choice.piece)) this.player.setGear(slot, layer);
                 break;
         }
+    }
+
+    /** One weapon in hand: the new one takes the old one's place. */
+    private equipMelee(id: MeleeWeaponId): void {
+        const weapon = new MeleeWeapon(id);
+        if (this.meleeWeapon) this.weapons.replace(this.meleeWeapon, weapon);
+        else this.weapons.add(weapon);
+        this.meleeWeapon = weapon;
+        this.equipment.weapon = id;
+        this.player.setGear('weapon', this.equipment.weaponLayer());
+    }
+
+    /** One spell in hand, like the Warrior's weapon. The wand stays: it is only for looks. */
+    private equipSpell(id: SpellId): void {
+        const spell = new SpellWeapon(id);
+        if (this.spellWeapon) this.weapons.replace(this.spellWeapon, spell);
+        else this.weapons.add(spell);
+        this.spellWeapon = spell;
+        this.equipment.spell = id;
+    }
+
+    /** Continue: puts back what the saved run had. The monsters start again with the wave of that minute. */
+    private restore(run: Readonly<RunSnapshot>): void {
+        const stats = this.stats;
+        stats.level = run.level;
+        stats.xp = run.xp;
+        stats.pendingLevelUps = run.pendingLevelUps;
+        for (const id of STAT_IDS) stats.stats[id] = run.stats[id];
+        if (run.weapon && run.weapon !== this.equipment.weapon) this.equipMelee(run.weapon);
+        if (run.spell && run.spell !== this.equipment.spell) this.equipSpell(run.spell);
+        for (const piece of Object.values(run.armor)) {
+            for (const [slot, layer] of this.equipment.wear(piece)) this.player.setGear(slot, layer);
+        }
+        Object.assign(this.equipment.passives, run.passives);
+        this.player.setMaxHp(stats.maxHp, true);
+        this.applyStats();
+        this.player.restoreHp(run.hp);
+        this.combat.restoreKills(run.kills);
+        this.buffs.restore(run.buffs);
+        this.spawner.resumeAt(run.elapsedMs, RESUME_CALM_MS, run.bosses);
+    }
+
+    /** What SaveStore keeps of this run. */
+    private snapshot(): RunSnapshot {
+        const { stats, equipment } = this;
+        return {
+            savedAt: Date.now(),
+            map: this.mapId,
+            character: this.characterId,
+            elapsedMs: this.spawner.elapsed,
+            level: stats.level,
+            xp: stats.xp,
+            pendingLevelUps: stats.pendingLevelUps,
+            stats: { ...stats.stats },
+            hp: this.player.hp,
+            kills: this.combat.kills,
+            weapon: equipment.weapon,
+            spell: equipment.spell,
+            armor: { ...equipment.armor },
+            passives: { ...equipment.passives },
+            buffs: this.buffs.remaining,
+            bosses: [...this.bosses.aliveIds, ...this.spawner.bossesWaiting],
+        };
+    }
+
+    /** Saves the run, unless it is already decided (dead, or the final boss beaten). */
+    private saveRun(): void {
+        if (this.runOver || this.player.isDead || this.victoryInMs >= 0) return;
+        saveStore.save(this.saveSlot, this.snapshot());
+    }
+
+    /** Saves when the tab goes to the background (the phone may close it there) and when leaving the run. */
+    private watchForSaving(): void {
+        const onVisibility = () => {
+            if (document.visibilityState === 'hidden') this.saveRun();
+        };
+        const onPageHide = () => this.saveRun();
+        document.addEventListener('visibilitychange', onVisibility);
+        window.addEventListener('pagehide', onPageHide);
+        this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+            this.saveRun();
+            document.removeEventListener('visibilitychange', onVisibility);
+            window.removeEventListener('pagehide', onPageHide);
+        });
     }
 
     /** Bottom bar in its own scene on top. It is stopped with this scene (restart, sprite test). */
@@ -413,6 +507,10 @@ export class GameScene extends Phaser.Scene {
 
         this.mapView.updateFading(player.y, player.getVisualBounds());
         this.debug.update();
+        if ((this.autosaveInMs -= delta) <= 0) {
+            this.autosaveInMs = AUTOSAVE_EVERY_MS;
+            this.saveRun();
+        }
 
         if (this.stats.pendingLevelUps > 0 && !this.levelUpOpen && !player.isDead) {
             this.openLevelUp();
@@ -531,13 +629,19 @@ export class GameScene extends Phaser.Scene {
                 this.player.setGodMode(!this.player.godMode);
                 this.godModeLabel.setVisible(this.player.godMode);
                 break;
+            case 'resume':
+                // As if the phone had closed the tab and the player chose Continue.
+                this.saveRun();
+                this.registry.set(RESUME_SLOT_KEY, this.saveSlot);
+                this.scene.restart();
+                break;
         }
     }
 
     /** A moment of the timeline: shows its warning and remembers the bosses. */
     private onWaveEvent(event: WaveEventDef, spawned: readonly Enemy[]): void {
         this.events.emit(ANNOUNCE_EVENT, event.message);
-        for (const enemy of spawned) this.bosses.track(enemy);
+        for (const enemy of spawned) this.bosses.track(enemy, event.enemy);
     }
 
     /** Mini-bosses drop a chest; the final boss wins the game once its death animation has played. */
@@ -563,6 +667,7 @@ export class GameScene extends Phaser.Scene {
     private endRun(victory: boolean): void {
         if (this.runOver) return;
         this.runOver = true;
+        saveStore.clear(this.saveSlot);
         const armor = Object.values(this.equipment.armor).map((id) => getArmorPiece(id).name);
         const data: GameOverSceneData = {
             victory,

@@ -82,6 +82,11 @@ export abstract class MenuOverlayScene extends Phaser.Scene {
         this.scene.resume(this.returnTo);
     }
 
+    /** Scene paused underneath (resumed on close). */
+    protected get returnScene(): string {
+        return this.returnTo;
+    }
+
     protected get panelTop(): number {
         return MENU_OVERLAY.panelY - (MENU_PANEL.height * this.panelScale) / 2;
     }

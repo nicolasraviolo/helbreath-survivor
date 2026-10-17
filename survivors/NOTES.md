@@ -42,6 +42,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Sensación de impacto (Fase 10, bloque 10C)
 - Interfaz (Fase 11)
 - App instalable (Fase 12, bloque 12A)
+- Partidas guardadas (Fase 12, bloque 12B)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -574,3 +575,10 @@ Tabla completa en `docs/REQUISITOS_HB.md`. Lo no obvio:
 - El service worker solo intercepta la página (`mode === 'navigate'`), siempre primero a internet con `cache: 'no-cache'`. El JS lleva hash en el nombre, así que una versión publicada nueva llega sola. No guarda sprites: el juego no funciona sin conexión.
 - Comprobar si Chrome lo ve instalable: `pnpm build`, `pnpm exec vite preview`, y en Playwright con **perfil persistente** (`launchPersistentContext`; con `launch` normal da `in-incognito`) la orden CDP `Page.getInstallabilityErrors` debe devolver `[]`. El evento `beforeinstallprompt` no salta en Chrome sin ventana: para ver la opción Install se simula con un `Event('beforeinstallprompt')` que tenga `prompt()`.
 - `beforeinstallprompt` puede llegar con el menú ya abierto: `MainMenuScene` rehace la lista (`MenuList.destroy()`). Con más de 6 opciones las filas se juntan (`MAIN_MENU.itemsAtFullSpacing`); con 8 (Continue en 12B) quedarían a ~23 px y se tocarían.
+
+## Partidas guardadas (Fase 12, bloque 12B)
+- Clave `hb-survivors.runs` en localStorage: `{ version, slots: [RunSnapshot | null] × 3 }`. `SaveStore.readSnapshot` valida cada campo: ids desconocidos se descartan (no rompen la partida); si falta clase, nivel, minuto o un stat, la ranura se da por vacía.
+- Al cambiar `RunSnapshot` de forma incompatible: subir `SAVE_VERSION` y convertir en `migrate()`. Una versión **más nueva** que la del código (copia vieja en caché) se ignora sin borrarla... hasta que se guarde encima.
+- `BossSystem.track(enemy, id)`: los `EnemyDef` no llevan su id, así que el jefe recuerda su nombre al registrarse (lo da el evento de oleada).
+- Continue: `registry` `RESUME_SLOT_KEY` → `GameScene.create` lo lee y lo borra (así Restart del fin de partida empieza una nueva). `SpawnSystem.resumeAt` salta los eventos ya pasados y devuelve los jefes al acabar la calma; si se guarda durante la calma, esos jefes cuentan (`bossesWaiting`).
+- Para probar la pausa automática en Playwright: redefinir `document.visibilityState` a `'hidden'` y lanzar `visibilitychange`. Las teclas en Playwright hay que mantenerlas pulsadas ~100 ms (`keyboard.down`/`up`): un `press` corto a veces no llega al juego.
