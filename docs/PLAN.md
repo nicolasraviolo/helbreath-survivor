@@ -146,7 +146,7 @@ survivors/
 ## Fase 10 — Pulido (opcional)
 - ✅ **10A — Todo más grande en el móvil** (pedido por el propietario, 17-oct-2026): letras, menús, cartas y barra inferior; textos nítidos.
 - ✅ **10B — HUD elegible en el móvil**: Settings → HUD (Classic / Compact). La compacta lleva las barras en fila abajo, algo transparentes.
-- ⬜ **10C — Sensación de impacto** (lo último de la fase; decidido el 17-oct-2026):
+- ✅ **10C — Sensación de impacto** (lo último de la fase; decidido el 17-oct-2026):
   - **Temblor de cámara** al recibir daño y con golpes muy fuertes (jefes, explosiones grandes). Suave, para no marear; quizá con opción para quitarlo en Settings.
   - **Partículas de golpe**: chispas o salpicaduras al impactar y algo al morir los monstruos, con efectos del original si los hay. Con pooling (regla 5) y un límite para el móvil.
 - El resto que estaba aquí se ha movido a la segunda etapa (`docs/PLAN-2.md`, "Traído de la Fase 10"): sombras, vibración e iconos del mando, reasignar controles, progresión entre partidas, récords, más mapas, límite de enemigos en el móvil y equilibrio.

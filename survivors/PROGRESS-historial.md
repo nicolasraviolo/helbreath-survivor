@@ -2,6 +2,8 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
+**Fase 10 completada (2026-10-17)**: bloques 10A (todo más grande en el móvil), 10B (HUD elegible) y 10C (temblor, partículas y sonidos). Fusionada en `master`, etiqueta `fase-10` y publicada en https://nicolasraviolo.github.io/helbreath-survivor/. Siguiente: la segunda etapa (`docs/PLAN-2.md`).
+
 **Fase 10, bloque 10C: sensación de impacto (2026-10-17, el propietario probó el temblor y pidió ajustarlo).**
 - **Temblor de cámara** (`systems/ScreenShake.ts`, números en `data/feedback.ts`). Reglas decididas por el propietario:
   - cualquier golpe o flecha: temblor suave (2 px);

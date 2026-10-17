@@ -12,13 +12,13 @@
 | 7 — Oleadas, jefes y final | ✅ completada | 2026-10-17 |
 | 8 — Menús y personajes | ✅ completada (solo menús; Arquero aplazado) | 2026-10-17 |
 | 9 — Web, móvil y publicación | ✅ completada | 2026-10-17 |
-| 10 — Pulido (opcional) | 🟡 bloques 10A, 10B y 10C hechos; falta cerrar la fase | |
+| 10 — Pulido (opcional) | ✅ completada (10A, 10B y 10C) | 2026-10-17 |
 
 ## Fase actual
-**Para retomar (17-oct-2026): 10C (temblor de cámara, partículas y sonidos de muerte y subida de nivel) está terminado en la rama `fase-10`.** Ya no quedan bloques en la Fase 10.
-- **Siguiente paso:** que el propietario lo pruebe y, si da el OK, `/checkpoint fase` para cerrar la Fase 10: fusionar `fase-10` en `master`, poner la etiqueta y publicar. Quizá antes `/revisar`.
-- **Sonidos de subir de nivel:** las voces originales que aportó el propietario (hombre y mujer), en `survivors/custom-assets/sounds/`. Ahí van los assets propios que no están en sp-client.
-- **Ajustes posibles del temblor**, si el propietario los pide (`data/feedback.ts`): acortar la pausa entre explosiones críticas (2,5 s), contar cualquier crítico de la explosión y no solo el golpe principal, o añadir temblor a los críticos cuerpo a cuerpo.
+**Para retomar (17-oct-2026): la primera etapa (Fases 0–10) está terminada, publicada y etiquetada (`fase-10`).** Lo siguiente es la segunda etapa, en `docs/PLAN-2.md`.
+- **Antes de empezar la Fase 11:** revisar `docs/PLAN-2.md` con el propietario, que sigue siendo un borrador: el orden y las decisiones del final están pendientes.
+- **Assets propios** (los que no están en sp-client, como las voces de subir de nivel): `survivors/custom-assets/`, con la misma estructura de carpetas.
+- **Ajustes posibles del temblor**, si el propietario los pide (`data/feedback.ts`): acortar la pausa entre explosiones críticas (2,5 s), contar cualquier crítico de la explosión, o añadir temblor a los críticos cuerpo a cuerpo.
 - **Lo demás de la Fase 10 queda para la segunda etapa** (`docs/PLAN-2.md`, tabla "Traído de la Fase 10"):
   - mando (vibración, iconos de Xbox, reasignar controles) → Fase 11;
   - sombras → Fase 14;
@@ -26,8 +26,6 @@
   - récords y progresión entre partidas → Fase 18;
   - límite de enemigos en el móvil → Fase 17, o antes si va lento;
   - equilibrio → al cerrar cada fase de combate.
-- **Publicado:** 10A y 10B están en `master` y en el enlace público. 10C todavía no.
-- `docs/PLAN-2.md` sigue siendo un borrador: el orden y las decisiones del final están pendientes de revisar con el propietario.
 
 ## Cómo probar
 - Jugar: `pnpm --dir survivors dev` → http://localhost:8090
