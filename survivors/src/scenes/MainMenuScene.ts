@@ -1,6 +1,6 @@
 // Menú principal (Fase 8): la pantalla de título del Helbreath original con un panel de opciones a la derecha.
-// Continue (Fase 12, si hay partidas guardadas) → SaveSlotsScene; Play → elegir personaje; How to Play (Fase 11), Achievements, Settings y Credits se abren encima; Fullscreen e Install
-// (Fase 12), si el navegador lo permite. Suena la música por defecto del original.
+// Continue (Fase 12, si hay partidas guardadas) → SaveSlotsScene; Play → elegir personaje; How to Play (Fase 11), Achievements, Settings y Credits se abren encima; Install
+// (Fase 12), si el navegador lo permite. Pantalla completa: icono pequeño arriba a la derecha (Fase 12C). Suena la música por defecto del original.
 // Se maneja con ↑/↓ (cruceta o stick) + Enter/A, o con el ratón.
 import Phaser from 'phaser';
 import { DEBUG_START } from '../config/debugStart';
@@ -18,7 +18,7 @@ import { MUSIC } from '../data/audio';
 import { assetStreamer } from '../systems/AssetStreamer';
 import { InputSystem } from '../systems/InputSystem';
 import { MusicSystem } from '../systems/MusicSystem';
-import { fullscreenItem } from '../ui/fullscreen';
+import { addFullscreenButton } from '../ui/fullscreen';
 import { INSTALL_CHANGED, installEvents, installItem } from '../ui/install';
 import { MenuList } from '../ui/MenuList';
 import { openOverlay } from './MenuOverlayScene';
@@ -48,6 +48,7 @@ export class MainMenuScene extends Phaser.Scene {
         // The old list (from the last time the menu was shown) went away with the scene.
         this.list = undefined;
         this.buildList();
+        addFullscreenButton(this, () => this.ready());
         // Chrome can offer installing (or stop offering it) while the menu is open: the options are built again.
         const onInstallChanged = () => this.buildList();
         installEvents.on(INSTALL_CHANGED, onInstallChanged);
@@ -90,7 +91,6 @@ export class MainMenuScene extends Phaser.Scene {
             { label: 'Achievements', onConfirm: () => openOverlay(this, 'Achievements') },
             { label: 'Settings', onConfirm: () => openOverlay(this, 'Settings') },
             { label: 'Credits', onConfirm: () => openOverlay(this, 'Credits') },
-            ...fullscreenItem(this),
             ...installItem(),
         ];
         const maxSpan = (MAIN_MENU.itemsAtFullSpacing - 1) * MAIN_MENU.itemSpacing;

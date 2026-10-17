@@ -1,7 +1,8 @@
 // Ajustes del jugador (Fase 8): volumen de música, volumen de efectos y barra de vida sobre el personaje.
 // Fase 10: en el móvil, además, el estilo de la interfaz de la partida (barra clásica abajo o compacta arriba),
 // y en todos, el temblor de cámara (bloque 10C).
-// Fase 11: los árboles grandes se pueden dejar, volver transparentes o quitar, para ver mejor.
+// Fase 11: los árboles grandes se pueden quitar, para ver mejor (Fase 12C: ya no hay modo "siempre transparentes";
+// con On se vuelven transparentes al pasar por detrás, y un 'transparent' guardado pasa a On al cargar).
 // Se guardan en el navegador (localStorage), así que siguen ahí la próxima vez que se abre el juego.
 
 /** In-game HUD on phones: the original bottom bar, or a small block at the top (more of the map visible). */
@@ -9,10 +10,10 @@ export type HudStyle = 'classic' | 'compact';
 export const HUD_STYLES: readonly HudStyle[] = ['classic', 'compact'];
 export const HUD_STYLE_NAMES: Readonly<Record<HudStyle, string>> = { classic: 'Classic', compact: 'Compact' };
 
-/** Large map trees: drawn as in the original, always see-through, or hidden (with their shadows). */
-export type TreeMode = 'on' | 'transparent' | 'off';
-export const TREE_MODES: readonly TreeMode[] = ['on', 'transparent', 'off'];
-export const TREE_MODE_NAMES: Readonly<Record<TreeMode, string>> = { on: 'On', transparent: 'Transparent', off: 'Off' };
+/** Large map trees: drawn as in the original (see-through while the player is behind), or hidden (with their shadows). */
+export type TreeMode = 'on' | 'off';
+export const TREE_MODES: readonly TreeMode[] = ['on', 'off'];
+export const TREE_MODE_NAMES: Readonly<Record<TreeMode, string>> = { on: 'On', off: 'Off' };
 
 export interface GameSettings {
     /** 0..1, multiplies the music volume of data/audio.ts. */

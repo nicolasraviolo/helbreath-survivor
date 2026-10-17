@@ -2,8 +2,9 @@
 // ↑/↓ (cruceta o stick) cambian de opción, ←/→ cambian su valor (volumen, sí/no), Enter/A la elige.
 // Con el ratón: pasar por encima la ilumina; clic la elige. En las de valor ("< 80% >"), clic en la flecha < baja y en
 // la flecha > sube.
+// Fase 12C (Settings táctil): filas con casilla (sí/no): un toque en la fila la cambia; con teclado o mando, Enter.
 import Phaser from 'phaser';
-import { MENU_ARROW, MENU_ITEM } from '../config/menus';
+import { MENU_ARROW, MENU_CHECKBOX, MENU_ITEM } from '../config/menus';
 import { SpriteText } from '../hb/SpriteText';
 import { Action, type InputSystem } from '../systems/InputSystem';
 
@@ -14,6 +15,8 @@ export interface MenuItem {
     onConfirm?: () => void;
     onLeft?: () => void;
     onRight?: () => void;
+    /** Yes/no row: a checkbox in the value column, ticked while this returns true. Use onConfirm to toggle it. */
+    checked?: () => boolean;
 }
 
 export interface MenuListLayout {
@@ -32,6 +35,9 @@ interface Row {
     label: SpriteText;
     value: SpriteText | undefined;
     arrows: Phaser.GameObjects.Image[];
+    /** Checkbox, redrawn on refresh(). */
+    widget: Phaser.GameObjects.Graphics | undefined;
+    drawWidget: ((selected: boolean) => void) | undefined;
 }
 
 export class MenuList {
@@ -46,20 +52,23 @@ export class MenuList {
         const half = layout.valueHalfWidth ?? 0;
         items.forEach((item, index) => {
             const y = layout.y + index * layout.spacing;
-            const twoColumns = item.value !== undefined && half > 0;
+            const twoColumns = (item.value !== undefined || item.checked !== undefined) && half > 0;
             const label = this.addText(twoColumns ? layout.x - half : layout.x, y, item.label, twoColumns ? 'left' : 'center');
-            const row: Row = { item, label, value: undefined, arrows: [] };
+            const row: Row = { item, label, value: undefined, arrows: [], widget: undefined, drawWidget: undefined };
             this.rows.push(row);
 
             // The whole row lights up on hover; a click on it confirms (rows with a value change only on the arrows).
             const width = twoColumns ? half * 2 : Math.max(label.width * MENU_ITEM.scale, MENU_ITEM.hitHeight * 4);
             this.addZone(layout.x, y, width, index, item.onConfirm);
 
-            if (twoColumns) {
+            const boxWidth = layout.valueBoxWidth ?? MENU_ITEM.valueBoxWidth;
+            if (twoColumns && item.checked) {
+                this.addCheckbox(row, layout.x + half - boxWidth / 2, y, item.checked);
+            } else if (twoColumns) {
                 // "◄  value  ►": the value centred between the original's arrow buttons, each with its own click area on top.
                 const arrowHalf = (MENU_ARROW.size * MENU_ARROW.scale) / 2;
                 const rightX = layout.x + half - arrowHalf;
-                const leftX = rightX - (layout.valueBoxWidth ?? MENU_ITEM.valueBoxWidth) + arrowHalf * 2;
+                const leftX = rightX - boxWidth + arrowHalf * 2;
                 row.value = this.addText((leftX + rightX) / 2, y, '', 'center');
                 row.value.container.y = label.container.y;
                 row.arrows.push(this.addArrow(leftX, y, false), this.addArrow(rightX, y, true));
@@ -93,6 +102,7 @@ export class MenuList {
             row.label.setColor(color);
             row.value?.setText(row.item.value?.() ?? '').setColor(color);
             for (const arrow of row.arrows) arrow.setAlpha(i === this.selected ? 1 : MENU_ARROW.idleAlpha);
+            row.drawWidget?.(i === this.selected);
         });
     }
 
@@ -102,6 +112,7 @@ export class MenuList {
             row.label.container.destroy();
             row.value?.container.destroy();
             for (const arrow of row.arrows) arrow.destroy();
+            row.widget?.destroy();
         }
         for (const zone of this.zones) zone.destroy();
         this.rows.length = 0;
@@ -125,6 +136,25 @@ export class MenuList {
             onClick?.();
             this.refresh();
         });
+    }
+
+    /** Yes/no box centred on (x, y): dark inside, the menu colour around it and a tick when on. Clicks go to the row's zone. */
+    private addCheckbox(row: Row, x: number, y: number, checked: () => boolean): void {
+        const g = this.scene.add.graphics();
+        const s = MENU_CHECKBOX.size;
+        row.widget = g;
+        row.drawWidget = (selected) => {
+            g.clear();
+            g.fillStyle(MENU_CHECKBOX.fill, MENU_CHECKBOX.fillAlpha).fillRect(x - s / 2, y - s / 2, s, s);
+            g.lineStyle(MENU_CHECKBOX.border, selected ? MENU_ITEM.selectedColor : MENU_ITEM.color).strokeRect(x - s / 2, y - s / 2, s, s);
+            if (!checked()) return;
+            // Tick: a short stroke down, then a long one up to the top-right corner.
+            g.lineStyle(MENU_CHECKBOX.tickWidth, MENU_ITEM.selectedColor).beginPath();
+            g.moveTo(x - s * 0.3, y);
+            g.lineTo(x - s * 0.08, y + s * 0.25);
+            g.lineTo(x + s * 0.32, y - s * 0.28);
+            g.strokePath();
+        };
     }
 
     /** Orange arrow button of the original, pointing right when flipped. */

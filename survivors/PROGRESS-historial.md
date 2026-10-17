@@ -2,6 +2,17 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
+**Fase 12 completada (2026-10-18)**: fusionada en `master`, etiqueta `fase-12`. Siguiente: Fase 13 (Jefe final y equilibrio).
+
+**Fase 12, bloque 12C: Settings táctil (2026-10-18, el propietario lo probó y le gusta).**
+- **Settings más grande** (el panel de Credits) y filas más juntas (`SETTINGS_MENU` en `config/menus.ts`): todo cabe dentro del marco, también en el móvil con HUD y Fullscreen (antes HUD y Back se salían y "Compact" pisaba las flechas).
+- **Casillas** para Health Bar on Character, Screen Shake y Fullscreen (`MenuList`, propiedad `checked`; dibujadas con `Graphics`, el original no tiene sprite de casilla). Un toque en la fila la cambia; con teclado/mando, Enter o ←/→.
+- **Volumen:** se probó una barra deslizante; el propietario prefirió **las flechas con el número**, como antes.
+- **Large Trees: solo On / Off.** On = el árbol se vuelve transparente al pasar por detrás (como siempre). Se quitó el modo Transparent; un valor guardado así se carga como On.
+- **Fullscreen:** casilla en Settings, opción en la Pausa (se queda) y **icono pequeño arriba a la derecha** del menú principal (sale de la lista). En la app instalada no aparece en ningún sitio (`ui/fullscreen.ts`). How to Play actualizado.
+- **Comprobado:** `build` sin errores; `check menu game open=settings` en PC y móvil sin errores; en Playwright: clic en casilla, teclado (↑/↓, Enter, ←/→) e icono de pantalla completa (entra y sale).
+- **Cómo probarlo:** `pnpm --dir survivors dev` → http://localhost:8090/?open=settings (en el móvil, `&ui=compact`).
+
 **Fase 12, bloque 12B: guardar la partida, pausa automática y Continue (2026-10-18).**
 - **Hasta 3 partidas guardadas** en el navegador (`systems/SaveStore.ts`, números en `data/saves.ts`). Guardan nombres (clase, mapa, arma, hechizo, armadura, pasivas, buffs, jefes vivos), stats, nivel, XP, cartas pendientes, vida, bajas y minuto. Llevan número de versión y `migrate()` para cambiar el formato sin borrar nada (decisión del propietario: debe poder crecer con más armas, niveles e inventario).
 - **Cuándo se guarda:** cada 5 s de juego, al elegir carta, al pasar la pestaña a segundo plano (`visibilitychange` / `pagehide`) y al salir al menú. **Se borra** al ganar o morir.

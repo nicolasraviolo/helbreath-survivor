@@ -43,6 +43,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Interfaz (Fase 11)
 - App instalable (Fase 12, bloque 12A)
 - Partidas guardadas (Fase 12, bloque 12B)
+- Settings táctil (Fase 12C)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -582,3 +583,9 @@ Tabla completa en `docs/REQUISITOS_HB.md`. Lo no obvio:
 - `BossSystem.track(enemy, id)`: los `EnemyDef` no llevan su id, así que el jefe recuerda su nombre al registrarse (lo da el evento de oleada).
 - Continue: `registry` `RESUME_SLOT_KEY` → `GameScene.create` lo lee y lo borra (así Restart del fin de partida empieza una nueva). `SpawnSystem.resumeAt` salta los eventos ya pasados y devuelve los jefes al acabar la calma; si se guarda durante la calma, esos jefes cuentan (`bossesWaiting`).
 - Para probar la pausa automática en Playwright: redefinir `document.visibilityState` a `'hidden'` y lanzar `visibilitychange`. Las teclas en Playwright hay que mantenerlas pulsadas ~100 ms (`keyboard.down`/`up`): un `press` corto a veces no llega al juego.
+
+## Settings táctil (Fase 12C)
+- `MenuList` tiene filas con casilla (`checked`), dibujadas con `Graphics`: el original no tiene sprite de casilla (sp-client la hace en React). Se probó una barra deslizante para el volumen y el propietario prefirió las flechas con el número (18-oct-2026).
+- App instalada: `(display-mode: fullscreen)` también se cumple en una pestaña normal puesta a pantalla completa. Por eso `ui/fullscreen.ts` lo lee **una sola vez al arrancar** para saber si se abrió desde el icono (y entonces no ofrece Fullscreen).
+- Large Trees solo On/Off: un `'transparent'` guardado (Fase 11) no está en `TREE_MODES` y se carga como el valor por defecto (On), sin migración.
+- En Playwright, esperar a que la escena exista (`waitForFunction`) antes de pulsar teclas: con `?open=` la pantalla tarda algo más de 1,5 s.

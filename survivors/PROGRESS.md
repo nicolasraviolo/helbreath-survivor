@@ -14,13 +14,14 @@
 | 9 — Web, móvil y publicación | ✅ completada | 2026-10-17 |
 | 10 — Pulido (opcional) | ✅ completada (10A, 10B y 10C) | 2026-10-17 |
 | 11 — Pulido de interfaz | ✅ completada | 2026-10-18 |
-| 12 — Móvil sin pérdidas | 🔨 en curso (12A y 12B hechos) | 2026-10-18 |
+| 12 — Móvil sin pérdidas | ✅ completada (12A, 12B y 12C) | 2026-10-18 |
 
 ## Fase actual
-**Para retomar (18-oct-2026): Fase 12, bloques 12A (app instalable) y 12B (3 partidas guardadas, pausa automática, Continue) hechos en la rama `fase-12`**; resumen en `PROGRESS-historial.md`. **Siguiente: bloque 12C, Settings táctil** (pedido por el propietario): casillas para lo que es sí/no y barras para el volumen, menos espacio vacío, y **Fullscreen pasa del menú principal a Settings** (con Continue + Install el menú llega a 8 opciones y se aprieta). Después, `/checkpoint fase`.
+**Para retomar (18-oct-2026): Fase 12 completada y fusionada en `master`** (app instalable, 3 partidas guardadas con Continue, Settings táctil); resumen en `PROGRESS-historial.md`. **Siguiente: Fase 13, Jefe final y equilibrio** (`docs/PLAN-2.md`). Antes del plan, preguntar al propietario la decisión pendiente 2: ¿cuántos niveles en una partida completa?
 - **Partidas guardadas:** `systems/SaveStore.ts` (formato con versión; ver NOTES.md, "Partidas guardadas"). Logros, récords y baúl (Fases 14, 19 y 21) irán en otras claves, reutilizando la idea.
 - **App instalable:** solo en el build (`survivors/pwa/`); en `pnpm dev` no existe. Para probarla en el PC: `pnpm build` y `pnpm preview` → http://localhost:4173.
 - **Controles:** todo control nuevo se explica en How to Play (`data/howToPlay.ts`), nunca en pantalla.
+- **Settings:** lo que es sí/no va con casilla (`MenuList`, `checked`); volumen y opciones de varios valores, con flechas ◄ ►.
 - **Assets propios** (los que no están en sp-client, como las voces de subir de nivel): `survivors/custom-assets/`, con la misma estructura de carpetas.
 - **Ajustes posibles del temblor**, si el propietario los pide (`data/feedback.ts`): acortar la pausa entre explosiones críticas (2,5 s), contar cualquier crítico de la explosión, o añadir temblor a los críticos cuerpo a cuerpo.
 - **Lo demás de la Fase 10 queda para la segunda etapa** (`docs/PLAN-2.md`, tabla "Traído de la Fase 10"):
@@ -54,6 +55,7 @@
 - 2026-10-16 · Idioma del juego: **solo inglés** (regla 9 de CLAUDE.md). Documentación y explicaciones siguen en español.
 - 2026-10-16 · Las gemas de XP se dibujan por encima de enemigos y objetos, para que nunca queden tapadas.
 - 2026-10-17 · Temblor de cámara: suave con cualquier golpe, fuerte con golpes de jefe, y en las explosiones grandes solo con crítico (como mucho una vez cada 2,5 s). Se puede quitar en Settings.
-- 2026-10-18 · Ningún texto de controles en partida ni en menús: se explican en **How to Play**. Árboles grandes: On por defecto; Transparent = todos transparentes.
+- 2026-10-18 · Ningún texto de controles en partida ni en menús: se explican en **How to Play**. Árboles grandes: On por defecto (desde la 12C, solo On/Off).
+- 2026-10-18 · Settings: casillas para sí/no; volumen con flechas y número (se probaron barras y no gustaron). Large Trees solo On/Off. Fullscreen: icono arriba a la derecha del menú principal, casilla en Settings y opción en la Pausa.
 - 2026-10-18 · Partidas guardadas: **hasta 3**; Continue abre la lista; con las 3 llenas, Play pide cuál borrar (con confirmación). El formato lleva versión para poder crecer.
 - 2026-10-16 · Mapa: **huntzone2** (elegido por el propietario frente a middleland). Zona de juego ~100×100 casillas desde (72,70). Riesgos y detalles en `NOTES.md`.

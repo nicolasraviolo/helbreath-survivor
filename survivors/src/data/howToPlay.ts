@@ -61,7 +61,7 @@ export const HOW_TO_PLAY_PAGES: readonly HowToPlayPage[] = [
             { control: 'Stats button', action: 'Show or hide your stats' },
             { control: 'Pause button', action: 'Pause' },
             { control: 'Tap a card or option', action: 'Choose it' },
-            { control: 'Fullscreen (main menu)', action: 'Hide the browser bar' },
+            { control: 'Fullscreen (top-right icon or Settings)', action: 'Hide the browser bar' },
         ],
     },
 ];

@@ -4,7 +4,7 @@
 //   ?play=warrior    → con esa clase
 //   ?debug=boss,god  → acciones al empezar, separadas por comas (se pueden repetir: minute,minute)
 //                      resume = guardar y volver a cargar la partida, como con Continue (Fase 12)
-//   ?trees=off       → árboles grandes en ese modo solo en esta partida (on, transparent, off), sin guardarlo
+//   ?trees=off       → árboles grandes en ese modo solo en esta partida (on, off), sin guardarlo
 //   ?open=howtoplay  → abre esa pantalla de los menús (howtoplay, settings, credits, select = selección de personaje)
 //   Se combina con ?ui=compact (interfaz de móvil).
 // En el build publicado no hace nada.
