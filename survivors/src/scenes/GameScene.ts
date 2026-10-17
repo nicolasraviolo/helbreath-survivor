@@ -260,7 +260,7 @@ export class GameScene extends Phaser.Scene {
     /** Pauses the game and shows the cards. Picking one applies it and resumes. */
     private openLevelUp(): void {
         this.levelUpOpen = true;
-        this.audio.play('sfx.levelUp');
+        this.audio.play(this.player.def.levelUpSound);
         const stats = this.stats;
         const data: LevelUpSceneData = {
             stats,

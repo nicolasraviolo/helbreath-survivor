@@ -48,6 +48,8 @@ export interface CharacterDef {
     armorSet: ArmorSetId;
     /** Cry when the character dies: the original has one for men and one for women. */
     deathSound: SoundKey;
+    /** Voice when the level-up cards open, also one for men and one for women. */
+    levelUpSound: SoundKey;
 }
 
 /** Guerrero al empezar: camisa, pantalón, botas altas y daga. La armadura se gana con las cartas (data/armor.ts). */
@@ -114,6 +116,7 @@ export const CHARACTERS = {
         startWeapon: { kind: 'spell', id: 'energyBolt' },
         armorSet: 'mage',
         deathSound: 'sfx.player.death.w',
+        levelUpSound: 'sfx.levelUp.w',
     },
     warrior: {
         ...COMMON,
@@ -131,6 +134,7 @@ export const CHARACTERS = {
         startWeapon: { kind: 'melee', id: 'dagger' },
         armorSet: 'warrior',
         deathSound: 'sfx.player.death.m',
+        levelUpSound: 'sfx.levelUp.m',
     },
 } as const satisfies Record<string, CharacterDef>;
 

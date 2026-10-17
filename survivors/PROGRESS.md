@@ -17,7 +17,7 @@
 ## Fase actual
 **Para retomar (17-oct-2026): 10C (temblor de cámara, partículas y sonidos de muerte y subida de nivel) está terminado en la rama `fase-10`.** Ya no quedan bloques en la Fase 10.
 - **Siguiente paso:** que el propietario lo pruebe y, si da el OK, `/checkpoint fase` para cerrar la Fase 10: fusionar `fase-10` en `master`, poner la etiqueta y publicar. Quizá antes `/revisar`.
-- **Pendiente de confirmar a oído:** el sonido de subida de nivel (E21). sp-client no tiene ninguno; si no gusta, se cambia en `config/assetManifest.ts` (`sfx.levelUp`).
+- **Sonidos de subir de nivel:** las voces originales que aportó el propietario (hombre y mujer), en `survivors/custom-assets/sounds/`. Ahí van los assets propios que no están en sp-client.
 - **Ajustes posibles del temblor**, si el propietario los pide (`data/feedback.ts`): acortar la pausa entre explosiones críticas (2,5 s), contar cualquier crítico de la explosión y no solo el golpe principal, o añadir temblor a los críticos cuerpo a cuerpo.
 - **Lo demás de la Fase 10 queda para la segunda etapa** (`docs/PLAN-2.md`, tabla "Traído de la Fase 10"):
   - mando (vibración, iconos de Xbox, reasignar controles) → Fase 11;
