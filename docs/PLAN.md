@@ -1,6 +1,6 @@
 # Plan de desarrollo
 
-Leer solo la sección de la fase en curso. Cada fase: plan corto → OK del propietario → código → `/checkpoint`. No avanzar sin que el propietario haya probado la fase.
+Leer solo la sección de la fase en curso. Cada fase: plan corto → OK del propietario → código → `/checkpoint` (que también actualiza la guía del juego, `docs/guia/`). No avanzar sin que el propietario haya probado la fase.
 
 Datos de referencia del Helbreath (hechizos, armas, armaduras, combate, monstruos): `docs/hb-wiki/README.md` dice qué archivo y qué sección leer en cada fase.
 
