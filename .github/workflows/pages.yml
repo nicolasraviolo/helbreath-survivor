@@ -1,0 +1,54 @@
+# Publica el juego en GitHub Pages (https://nicolasraviolo.github.io/helbreath-survivor/) cada vez que se sube a master.
+# Es una copia de la versión de Cloudflare Pages, para cuando las IPs de Cloudflare están bloqueadas (LaLiga en España).
+# Hace lo mismo que Cloudflare: instala, ejecuta `pnpm build` en survivors/ (que copia los assets) y publica dist/.
+# También se puede lanzar a mano: pestaña Actions → "Deploy to GitHub Pages" → Run workflow.
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Only one deployment at a time; a newer push replaces one still waiting.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: survivors
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          # Uses the "packageManager" version from survivors/package.json.
+          package_json_file: survivors/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.18.0
+          cache: pnpm
+          cache-dependency-path: survivors/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: survivors/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

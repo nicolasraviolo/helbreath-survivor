@@ -15,7 +15,10 @@
 | 10 — Pulido (opcional) | ⬜ pendiente | |
 
 ## Fase actual
-**Fase 9, bloque 9B: descarga y publicación (2026-10-17).** Falta que el propietario cree la cuenta de Cloudflare y conecte GitHub (guía en `docs/PUBLICAR.md`), y probar el enlace en PC y móvil.
+**Fase 9, bloque 9B: descarga y publicación (2026-10-17).**
+- **Publicado en Cloudflare Pages:** https://helbreath-survivor.pages.dev. El despliegue sale bien, pero la red del propietario (wifi y datos móviles) bloquea esas IPs de Cloudflare, seguramente por LaLiga. Comprobado: con otra IP de Cloudflare el juego responde bien.
+- **Copia en GitHub Pages** (`.github/workflows/pages.yml`, creada con permiso del propietario): https://nicolasraviolo.github.io/helbreath-survivor/. Probada en local desde una subcarpeta (`survivors-preview-subpath`, puerto 8092).
+- **Falta:** que el propietario active Pages en GitHub (guía en `docs/PUBLICAR.md`) y pruebe el enlace en PC y móvil.
 - **`scripts/sync-assets.mjs`:** copia a `survivors/public/assets` solo los archivos de `assetManifest.ts` (185 archivos, 87,6 MB con todas las casillas). Si falta alguno, falla.
   - `pnpm build` lo ejecuta solo. En el build, Vite usa `public/` y lo mete en `dist/`; en desarrollo sigue sirviendo `sp-client/public`.
 - **Monstruos por oleada** (`systems/AssetStreamer.ts`):
