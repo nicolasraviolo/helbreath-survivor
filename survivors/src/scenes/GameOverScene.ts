@@ -74,9 +74,6 @@ export class GameOverScene extends Phaser.Scene {
         this.addButton(GAME_OVER.changeFrame, 0, p.onChangeClass);
         this.addButton(GAME_OVER.logOutFrame, 1, p.onMainMenu);
         this.highlight(0);
-        this.add.text(GAME_WIDTH / 2, GAME_OVER.hintY, GAME_OVER.hint, {
-            ...UI_TEXT, fontSize: px(UI_FONT_SIZE.small), color: '#a89870',
-        }).setOrigin(0.5);
 
         this.inputSystem = new InputSystem(this);
         this.inputSystem.setPointerMaxY(-1);

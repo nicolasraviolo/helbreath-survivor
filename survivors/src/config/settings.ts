@@ -1,12 +1,18 @@
 // Ajustes del jugador (Fase 8): volumen de música, volumen de efectos y barra de vida sobre el personaje.
 // Fase 10: en el móvil, además, el estilo de la interfaz de la partida (barra clásica abajo o compacta arriba),
 // y en todos, el temblor de cámara (bloque 10C).
+// Fase 11: los árboles grandes se pueden dejar, volver transparentes o quitar, para ver mejor.
 // Se guardan en el navegador (localStorage), así que siguen ahí la próxima vez que se abre el juego.
 
 /** In-game HUD on phones: the original bottom bar, or a small block at the top (more of the map visible). */
 export type HudStyle = 'classic' | 'compact';
 export const HUD_STYLES: readonly HudStyle[] = ['classic', 'compact'];
 export const HUD_STYLE_NAMES: Readonly<Record<HudStyle, string>> = { classic: 'Classic', compact: 'Compact' };
+
+/** Large map trees: drawn as in the original, always see-through, or hidden (with their shadows). */
+export type TreeMode = 'on' | 'transparent' | 'off';
+export const TREE_MODES: readonly TreeMode[] = ['on', 'transparent', 'off'];
+export const TREE_MODE_NAMES: Readonly<Record<TreeMode, string>> = { on: 'On', transparent: 'Transparent', off: 'Off' };
 
 export interface GameSettings {
     /** 0..1, multiplies the music volume of data/audio.ts. */
@@ -19,6 +25,8 @@ export interface GameSettings {
     hudStyle: HudStyle;
     /** Camera shake when hurt and with big explosions (the original also lets you turn it off). */
     screenShake: boolean;
+    /** Large trees of the map (walls and houses never change). */
+    largeTrees: TreeMode;
 }
 
 export const DEFAULT_SETTINGS: Readonly<GameSettings> = {
@@ -27,6 +35,7 @@ export const DEFAULT_SETTINGS: Readonly<GameSettings> = {
     showPlayerHealthBar: true,
     hudStyle: 'compact',
     screenShake: true,
+    largeTrees: 'on',
 };
 
 /** Each press of ← / → changes a volume by this much. */

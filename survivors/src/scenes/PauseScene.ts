@@ -26,6 +26,7 @@ export class PauseScene extends MenuOverlayScene {
         this.addList([
             { label: 'Resume', onConfirm: () => this.close() },
             { label: 'Settings', onConfirm: () => openOverlay(this, 'Settings') },
+            { label: 'How to Play', onConfirm: () => openOverlay(this, 'HowToPlay') },
             ...fullscreenItem(this),
             { label: 'Quit to menu', onConfirm: () => this.quit() },
         ]);

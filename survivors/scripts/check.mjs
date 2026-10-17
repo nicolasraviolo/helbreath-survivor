@@ -106,7 +106,9 @@ async function runScenario(browser, name) {
     });
     page.on('pageerror', (err) => errors.push(`${err.name}: ${err.message}`));
 
-    const target = query ? 'Game' : 'MainMenu';
+    // ?open= (debugStart.ts) shows a menu screen: wait for it instead of the game.
+    const openKey = { howtoplay: 'HowToPlay', settings: 'Settings', credits: 'Credits', select: 'CharacterSelect' }[params.get('open') ?? ''];
+    const target = openKey ?? (query ? 'Game' : 'MainMenu');
     await page.goto(url);
     const t0 = Date.now();
     await page.waitForFunction((key) => window.__game?.scene.isActive(key), target, { timeout: LOAD_TIMEOUT_MS });

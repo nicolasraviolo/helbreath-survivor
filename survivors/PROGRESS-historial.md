@@ -2,6 +2,18 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
+**Fase 11 completada (2026-10-18)**: fusionada en `master`, etiqueta `fase-11`. Siguiente: Fase 12 (Móvil sin pérdidas).
+
+**Fase 11: pulido de interfaz (2026-10-18, el propietario la probó y le gusta).**
+- **Settings → Large Trees: On / Transparent / Off** (`config/settings.ts`, `hb/mapRenderer.ts` → `MapView.setTreeMode`). On = como antes (el árbol que tapa al jugador ya se volvía medio transparente, como en el original). Transparent = todos los árboles grandes a alfa 0,35 (`TREE_TRANSPARENT_ALPHA` en `config/gameConfig.ts`). Off = sin árboles ni sombras. Muros y casas no cambian. Se aplica al momento, también desde la pausa.
+- **Fuera los textos de controles** de las cartas de nivel, el menú principal y el fin de partida.
+- **How to Play** (`scenes/HowToPlayScene.ts`, textos en `data/howToPlay.ts`), en el menú principal y en la pausa: páginas Basics, Keyboard, Gamepad (iconos de Xbox dibujados con código) y Touch, que se cambian con ◄ ►. Todo control nuevo se explica aquí. La letra de los menús no tiene "&": nombres de página solo con letras. `MenuList` admite `valueBoxWidth` para valores largos.
+- **Menú principal:** filas más juntas (32 / 37 px) para que quepan 6 opciones en el panel.
+- **Selección de personaje en el móvil:** zonas de toque de 60 px de alto en los botones (`SELECT_BUTTON_HIT_PAD`) y textos de 17–18 px. Es la imagen original de 640×480: los textos no pueden crecer más sin rehacer la pantalla.
+- **Atajos nuevos** (`config/debugStart.ts`): `?trees=off|transparent|on` (solo esa partida, sin guardar) y `?open=howtoplay|settings|credits|select`. `pnpm check` espera a la pantalla abierta.
+- **Comprobado:** `build` sin errores; `check menu levelup trees=off open=howtoplay` en PC y `open=select levelup --mobile`, sin errores de consola. Capturas revisadas de árboles, How to Play (todas las páginas), menú y selección en móvil.
+- **Cómo probarlo:** `pnpm --dir survivors dev` → http://localhost:8090/?open=howtoplay, http://localhost:8090/?trees=off o Esc → Settings → Large Trees.
+
 **Fase 10 completada (2026-10-17)**: bloques 10A (todo más grande en el móvil), 10B (HUD elegible) y 10C (temblor, partículas y sonidos). Fusionada en `master`, etiqueta `fase-10` y publicada en https://nicolasraviolo.github.io/helbreath-survivor/. Siguiente: la segunda etapa (`docs/PLAN-2.md`).
 
 **Fase 10, bloque 10C: sensación de impacto (2026-10-17, el propietario probó el temblor y pidió ajustarlo).**

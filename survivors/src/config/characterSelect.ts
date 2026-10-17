@@ -26,6 +26,11 @@ export const SELECT_CLASS_BUTTONS: ReadonlyArray<{ id: CharacterId; frame: numbe
     { id: 'warrior', frame: SELECT_BUTTON_FRAME.warrior, x: 50, y: 449 },
     { id: 'mage', frame: SELECT_BUTTON_FRAME.magician, x: 136, y: 449 },
 ];
+/**
+ * Extra touch area around each button, in 640x480 pixels (Fase 11). On phones the 74x20 buttons are tiny:
+ * the area grows a lot upwards and downwards and only a little sideways (Warrior and Magician are 12 px apart).
+ */
+export const SELECT_BUTTON_HIT_PAD = byDevice({ x: 0, y: 0 }, { x: 5, y: 14 });
 export const SELECT_CREATE_BUTTON = { x: 378, y: 449 } as const;
 export const SELECT_CANCEL_BUTTON = { x: 494, y: 449 } as const;
 
@@ -50,9 +55,11 @@ export const SELECT_DESCRIPTION = { x: 478, y: 380, width: 200 } as const;
 export const SELECT_INPUT_DELAY_MS = 250;
 
 /** Text sizes are in screen pixels (after scaling). The original's boxes are small: on phones they grow only a little. */
-export const SELECT_TEXT_STYLE = { ...UI_TEXT, fontSize: byDevice('15px', '17px'), color: '#1e1408' } as const;
+export const SELECT_TEXT_STYLE = { ...UI_TEXT, fontSize: byDevice('15px', '18px'), color: '#1e1408' } as const;
+/** Class description: a long last line ("+1 Int and +2 Mag every level") must fit the bottom-right box. */
+export const SELECT_DESCRIPTION_STYLE = { ...SELECT_TEXT_STYLE, fontSize: byDevice('15px', '17px') } as const;
 export const SELECT_DISABLED_STYLE = { ...SELECT_TEXT_STYLE, color: '#54452e' } as const;
-export const SELECT_VALUE_STYLE = { ...UI_TEXT, fontSize: byDevice('14px', '16px'), fontStyle: 'bold', color: '#1e1408' } as const;
+export const SELECT_VALUE_STYLE = { ...UI_TEXT, fontSize: byDevice('14px', '17px'), fontStyle: 'bold', color: '#1e1408' } as const;
 export const SELECT_NAME_STYLE = { ...UI_TEXT, fontSize: byDevice('15px', '17px'), fontStyle: 'bold', color: '#ffffff' } as const;
 /** Greys out the look arrows, which don't work yet. */
 export const SELECT_DISABLED_ARROWS = { x: 235, width: 44, alpha: 0.45, color: 0x8a7a60 } as const;

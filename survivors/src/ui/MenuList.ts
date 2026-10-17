@@ -23,6 +23,8 @@ export interface MenuListLayout {
     spacing: number;
     /** Rows with a value: label starts at x − this and the ">" arrow ends at x + this. */
     valueHalfWidth?: number;
+    /** Width of "◄ value ►" for longer values (default MENU_ITEM.valueBoxWidth). */
+    valueBoxWidth?: number;
 }
 
 interface Row {
@@ -55,7 +57,7 @@ export class MenuList {
                 // "◄  value  ►": the value centred between the original's arrow buttons, each with its own click area on top.
                 const arrowHalf = (MENU_ARROW.size * MENU_ARROW.scale) / 2;
                 const rightX = layout.x + half - arrowHalf;
-                const leftX = rightX - MENU_ITEM.valueBoxWidth + arrowHalf * 2;
+                const leftX = rightX - (layout.valueBoxWidth ?? MENU_ITEM.valueBoxWidth) + arrowHalf * 2;
                 row.value = this.addText((leftX + rightX) / 2, y, '', 'center');
                 row.value.container.y = label.container.y;
                 row.arrows.push(this.addArrow(leftX, y, false), this.addArrow(rightX, y, true));

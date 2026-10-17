@@ -3,9 +3,20 @@
 //   ?play            → empieza la partida directamente (con la clase por defecto)
 //   ?play=warrior    → con esa clase
 //   ?debug=boss,god  → acciones al empezar, separadas por comas (se pueden repetir: minute,minute)
+//   ?trees=off       → árboles grandes en ese modo solo en esta partida (on, transparent, off), sin guardarlo
+//   ?open=howtoplay  → abre esa pantalla de los menús (howtoplay, settings, credits, select = selección de personaje)
 //   Se combina con ?ui=compact (interfaz de móvil).
 // En el build publicado no hace nada.
 import { isCharacterId, type CharacterId } from '../data/characters';
+import { TREE_MODES, type TreeMode } from './settings';
+
+/** Menu screens that ?open= shows straight away, and the scene of each one. */
+const DEBUG_SCREENS = { howtoplay: 'HowToPlay', settings: 'Settings', credits: 'Credits', select: 'CharacterSelect' } as const;
+type DebugScreen = keyof typeof DEBUG_SCREENS;
+
+function isDebugScreen(value: string | null): value is DebugScreen {
+    return value !== null && Object.prototype.hasOwnProperty.call(DEBUG_SCREENS, value);
+}
 
 /** Actions that ?debug= can run at the start of a run (the same ones as the debug keys of GameScene). */
 export const DEBUG_ACTIONS = ['horde', 'kill', 'levelup', 'levels', 'str', 'magic', 'pickups', 'minute', 'boss', 'god'] as const;
@@ -22,18 +33,26 @@ interface DebugStart {
     character: CharacterId | undefined;
     /** Actions run once the run has started, in order. */
     actions: DebugAction[];
+    /** Large-tree mode for this run only (Settings is not changed). */
+    trees: TreeMode | undefined;
+    /** Scene key of the menu screen to open (an overlay over the main menu, or CharacterSelect). */
+    open: (typeof DEBUG_SCREENS)[DebugScreen] | undefined;
 }
 
 function readDebugStart(): DebugStart {
-    const none: DebugStart = { play: false, character: undefined, actions: [] };
+    const none: DebugStart = { play: false, character: undefined, actions: [], trees: undefined, open: undefined };
     if (!import.meta.env.DEV) return none;
     const params = new URLSearchParams(window.location.search);
     const play = params.get('play');
+    const open = params.get('open');
+    const trees = TREE_MODES.find((mode) => mode === params.get('trees'));
     const actions = (params.get('debug') ?? '').split(',').map((a) => a.trim()).filter(isDebugAction);
     return {
-        play: play !== null || actions.length > 0,
+        play: play !== null || actions.length > 0 || trees !== undefined,
         character: isCharacterId(play) ? play : undefined,
         actions,
+        trees,
+        open: isDebugScreen(open) ? DEBUG_SCREENS[open] : undefined,
     };
 }
 

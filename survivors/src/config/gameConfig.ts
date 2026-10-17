@@ -48,6 +48,8 @@ export const DAMAGE_NUMBER_MAX = 120;
 /** Alpha of a map object while it hides the player (sp-client MAP_OBJECT_COLLISION_ALPHA). */
 export const MAP_OBJECT_FADE_ALPHA = 0.5;
 export const TREE_SHADOW_ALPHA = 0.5;
+/** Alpha of every large tree with Settings → Large trees: Transparent (and of its shadow, relative to the normal one). */
+export const TREE_TRANSPARENT_ALPHA = 0.35;
 
 /** Extra tiles of map objects drawn around the play area, so tall trees just outside still show. */
 export const MAP_OBJECT_MARGIN_TILES = 10;

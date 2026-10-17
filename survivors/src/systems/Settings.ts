@@ -2,7 +2,7 @@
 // (evento SETTINGS_CHANGED) para que la música, los efectos y la barra de vida se actualicen al momento.
 // Si el navegador no deja guardar (modo privado, almacenamiento bloqueado), funcionan igual durante la sesión.
 import Phaser from 'phaser';
-import { DEFAULT_SETTINGS, HUD_STYLES, SETTINGS_STORAGE_KEY, type GameSettings, type HudStyle } from '../config/settings';
+import { DEFAULT_SETTINGS, HUD_STYLES, SETTINGS_STORAGE_KEY, TREE_MODES, type GameSettings, type HudStyle, type TreeMode } from '../config/settings';
 
 export const SETTINGS_CHANGED = 'settings-changed';
 
@@ -35,6 +35,7 @@ function load(): GameSettings {
                 ? stored.showPlayerHealthBar : DEFAULT_SETTINGS.showPlayerHealthBar,
             hudStyle: HUD_STYLES.find((style: HudStyle) => style === stored.hudStyle) ?? DEFAULT_SETTINGS.hudStyle,
             screenShake: typeof stored.screenShake === 'boolean' ? stored.screenShake : DEFAULT_SETTINGS.screenShake,
+            largeTrees: TREE_MODES.find((mode: TreeMode) => mode === stored.largeTrees) ?? DEFAULT_SETTINGS.largeTrees,
         };
     } catch {
         return { ...DEFAULT_SETTINGS };
