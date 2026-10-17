@@ -17,8 +17,8 @@
 ## Fase actual
 **Fase 9 completada (2026-10-17)**: el juego está publicado y el propietario lo ha probado en PC y móvil. Siguiente: `/fase 10` (pulido, opcional), empezando por agrandar letras y menús en el móvil.
 - **Enlace principal:** https://nicolasraviolo.github.io/helbreath-survivor/ (GitHub Pages).
-- **Copia en Cloudflare:** https://helbreath-survivor.pages.dev. Funciona, pero los proveedores españoles bloquean sus IPs los días de partido.
-- Los dos se actualizan solos al subir a `master`.
+- **Se actualiza solo** al subir a `master` (`.github/workflows/pages.yml`).
+- **Cloudflare Pages: despublicado** el 17-oct-2026 por decisión del propietario, para mantener el proyecto discreto (*low profile*). La guía sigue en `docs/PUBLICAR.md` por si se quiere volver a usar.
 - **Checkpoint 2026-10-17:** `tsc` y `build` sin errores. En el juego publicado, ningún archivo da error y la consola está limpia.
 
 **Fase 9, bloque 9B: descarga y publicación (2026-10-17).**

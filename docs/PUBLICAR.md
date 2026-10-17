@@ -1,5 +1,9 @@
 # Publicar el juego en Cloudflare Pages
 
+> **17-oct-2026: Cloudflare Pages está despublicado.** El propietario prefiere mantener el proyecto discreto (*low profile*).
+> El juego solo se publica en **GitHub Pages**: ver más abajo "Copia en GitHub Pages".
+> Esta guía queda por si algún día se quiere volver a usar Cloudflare.
+
 Cloudflare Pages es gratis. Te da un enlace propio (por ejemplo `https://helbreath-survivors.pages.dev`). Cada vez que se sube a `master` en GitHub, **vuelve a construir y publicar el juego solo**, en un par de minutos.
 
 Esto se hace **una sola vez**. Lo tienes que hacer tú, porque hay que crear una cuenta y dar permiso a GitHub (Claude no puede crear cuentas).
