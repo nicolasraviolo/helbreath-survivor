@@ -11,14 +11,20 @@
 | 6 — Arsenal completo | ✅ completada | 2026-10-16 |
 | 7 — Oleadas, jefes y final | ✅ completada | 2026-10-17 |
 | 8 — Menús y personajes | ✅ completada (solo menús; Arquero aplazado) | 2026-10-17 |
-| 9 — Web, móvil y publicación | 🟨 en curso (9A probado; 9B hecho, falta publicar) | |
+| 9 — Web, móvil y publicación | ✅ completada | 2026-10-17 |
 | 10 — Pulido (opcional) | ⬜ pendiente | |
 
 ## Fase actual
+**Fase 9 completada (2026-10-17)**: el juego está publicado y el propietario lo ha probado en PC y móvil. Siguiente: `/fase 10` (pulido, opcional), empezando por agrandar letras y menús en el móvil.
+- **Enlace principal:** https://nicolasraviolo.github.io/helbreath-survivor/ (GitHub Pages).
+- **Copia en Cloudflare:** https://helbreath-survivor.pages.dev. Funciona, pero los proveedores españoles bloquean sus IPs los días de partido.
+- Los dos se actualizan solos al subir a `master`.
+- **Checkpoint 2026-10-17:** `tsc` y `build` sin errores. En el juego publicado, ningún archivo da error y la consola está limpia.
+
 **Fase 9, bloque 9B: descarga y publicación (2026-10-17).**
 - **Publicado en Cloudflare Pages:** https://helbreath-survivor.pages.dev. El despliegue sale bien, pero la red del propietario (wifi y datos móviles) bloquea esas IPs de Cloudflare, seguramente por LaLiga. Comprobado: con otra IP de Cloudflare el juego responde bien.
 - **Copia en GitHub Pages** (`.github/workflows/pages.yml`, creada con permiso del propietario): https://nicolasraviolo.github.io/helbreath-survivor/. Probada en local desde una subcarpeta (`survivors-preview-subpath`, puerto 8092).
-- **Falta:** que el propietario active Pages en GitHub (guía en `docs/PUBLICAR.md`) y pruebe el enlace en PC y móvil.
+- El propietario activó Pages en GitHub y probó el enlace en PC y móvil: funciona.
 - **`scripts/sync-assets.mjs`:** copia a `survivors/public/assets` solo los archivos de `assetManifest.ts` (185 archivos, 87,6 MB con todas las casillas). Si falta alguno, falla.
   - `pnpm build` lo ejecuta solo. En el build, Vite usa `public/` y lo mete en `dist/`; en desarrollo sigue sirviendo `sp-client/public`.
 - **Monstruos por oleada** (`systems/AssetStreamer.ts`):
