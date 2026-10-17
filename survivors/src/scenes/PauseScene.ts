@@ -1,6 +1,7 @@
 // Pausa de la partida (Fase 8): Esc o Start del mando, el botón del disquete de la barra, o sola si se desconecta
 // el mando. La partida y la barra quedan congeladas debajo. Resume vuelve a jugar; Settings abre los ajustes;
-// Quit to menu abandona la partida y vuelve al menú principal.
+// Fullscreen (si el navegador lo permite); Quit to menu abandona la partida y vuelve al menú principal.
+import { fullscreenItem } from '../ui/fullscreen';
 import { openOverlay, MenuOverlayScene, type MenuOverlayData } from './MenuOverlayScene';
 
 export interface PauseSceneData {
@@ -25,6 +26,7 @@ export class PauseScene extends MenuOverlayScene {
         this.addList([
             { label: 'Resume', onConfirm: () => this.close() },
             { label: 'Settings', onConfirm: () => openOverlay(this, 'Settings') },
+            ...fullscreenItem(this),
             { label: 'Quit to menu', onConfirm: () => this.quit() },
         ]);
     }

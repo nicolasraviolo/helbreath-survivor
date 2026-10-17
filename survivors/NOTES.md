@@ -460,3 +460,14 @@ Tabla completa en `docs/REQUISITOS_HB.md`. Lo no obvio:
   - después, por cada hoja: 4 bytes y el PNG.
 - **Phaser:** `keyboard.addKey` devuelve el mismo objeto para la misma tecla. Esc está en `Pause` y en `Back`: si se comprueba `Pause` primero, gasta el `JustDown` y `Back` ya no lo ve. Comprobar las dos con `||`.
 - **Navegador integrado:** si su panel está oculto, el juego va a ~1 FPS y los scripts tardan muchísimo. Abrir el panel antes de probar.
+
+## Táctil y móvil (Fase 9)
+- Phaser lee `pageX`/`pageY` de cada toque. Para simular toques en pruebas, crea `new Touch({... clientX, clientY, pageX, pageY})`: sin `pageX` el toque cae en x = −left.
+- **Navegador integrado:** la vista "mobile" (o cualquier ancho < 768) simula un móvil táctil (`maxTouchPoints` 5), pero el tamaño se aplica a cada pestaña por separado. Al recargar con otro tamaño, Phaser vuelve a detectar si es táctil (`device.input.touch`).
+- `scale.startFullscreen()` solo funciona dentro de un gesto del usuario. Phaser procesa los clics y toques al momento, así que funciona desde la opción del menú.
+- **Toques fuera del dibujo del juego (franjas negras):**
+  - Phaser sí avisa del dedo apoyado (`POINTER_DOWN_OUTSIDE`, por su escucha en `window`).
+  - Pero **ignora los movimientos** mientras el dedo no esté sobre el canvas (`InputManager.onTouchMove` comprueba `isOver`).
+  - Por eso el joystick lee `touchmove`/`touchend` del navegador y los pasa a coordenadas del juego con `scale.transformX/Y(pageX/pageY)`.
+  - Cambiar `input.touch.target` al div no sirve: los toques llegarían dos veces (div y `window`).
+- Una escena en pausa no ve el dedo levantarse. Por eso el joystick se suelta solo cuando la partida se pausa.

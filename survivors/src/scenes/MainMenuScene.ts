@@ -1,5 +1,5 @@
 // Menú principal (Fase 8): la pantalla de título del Helbreath original con un panel de opciones a la derecha.
-// Play → elegir personaje; Achievements, Settings y Credits se abren encima. Suena la música por defecto del original.
+// Play → elegir personaje; Achievements, Settings y Credits se abren encima; Fullscreen, si el navegador lo permite. Suena la música por defecto del original.
 // Se maneja con ↑/↓ (cruceta o stick) + Enter/A, o con el ratón.
 import Phaser from 'phaser';
 import { GAME_HEIGHT, GAME_WIDTH } from '../config/gameConfig';
@@ -16,6 +16,7 @@ import {
 import { MUSIC } from '../data/audio';
 import { InputSystem } from '../systems/InputSystem';
 import { MusicSystem } from '../systems/MusicSystem';
+import { fullscreenItem } from '../ui/fullscreen';
 import { MenuList } from '../ui/MenuList';
 import { openOverlay } from './MenuOverlayScene';
 
@@ -41,6 +42,7 @@ export class MainMenuScene extends Phaser.Scene {
             { label: 'Achievements', onConfirm: () => openOverlay(this, 'Achievements') },
             { label: 'Settings', onConfirm: () => openOverlay(this, 'Settings') },
             { label: 'Credits', onConfirm: () => openOverlay(this, 'Credits') },
+            ...fullscreenItem(this),
         ];
         const firstY = MAIN_MENU.panelY - ((items.length - 1) * MAIN_MENU.itemSpacing) / 2;
         this.list = new MenuList(this, items, { x: MAIN_MENU.panelX, y: firstY, spacing: MAIN_MENU.itemSpacing });

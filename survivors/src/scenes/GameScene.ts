@@ -43,6 +43,7 @@ import { DamageNumbers } from '../systems/DamageNumbers';
 import { DebugSystem } from '../systems/DebugSystem';
 import { EnemySystem } from '../systems/EnemySystem';
 import { Action, InputSystem } from '../systems/InputSystem';
+import { TouchJoystick } from '../ui/TouchJoystick';
 import { SpawnSystem } from '../systems/SpawnSystem';
 import { WeaponSystem } from '../systems/WeaponSystem';
 import { XpSystem } from '../systems/XpSystem';
@@ -189,6 +190,9 @@ export class GameScene extends Phaser.Scene {
         this.inputSystem = new InputSystem(this);
         this.inputSystem.setPointerAnchor(() => this.player);
         this.inputSystem.setPointerMaxY(HUD_TOP);
+        if (this.sys.game.device.input.touch) {
+            this.inputSystem.setTouchJoystick(new TouchJoystick(this, HUD_TOP, DEPTH_DEBUG - 2));
+        }
         this.debug = new DebugSystem(this, map, this.player, this.inputSystem, () => [
             `Enemies: ${this.enemies.alive} alive · ${this.enemies.pooled} pooled`,
             `Health: ${this.player.hp}/${this.player.maxHp}${this.player.godMode ? '  [INVINCIBLE]' : ''}`,

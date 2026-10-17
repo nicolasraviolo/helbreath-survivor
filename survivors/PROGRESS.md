@@ -11,10 +11,38 @@
 | 6 — Arsenal completo | ✅ completada | 2026-10-16 |
 | 7 — Oleadas, jefes y final | ✅ completada | 2026-10-17 |
 | 8 — Menús y personajes | ✅ completada (solo menús; Arquero aplazado) | 2026-10-17 |
-| 9 — Web, móvil y publicación | ⬜ pendiente | |
+| 9 — Web, móvil y publicación | 🟨 en curso (9A hecho, a falta de tu prueba; falta 9B) | |
 | 10 — Pulido (opcional) | ⬜ pendiente | |
 
 ## Fase actual
+**Fase 9, bloque 9A: jugar en el móvil (2026-10-17, a falta de la prueba del propietario).** Falta el 9B: descarga más ligera (`sync-assets`, monstruos por oleada) y publicar en Cloudflare Pages.
+- **Joystick táctil flotante** (`ui/TouchJoystick.ts`, `config/touch.ts`):
+  - aparece donde pones el dedo en la zona de juego y desaparece al soltarlo;
+  - si el dedo se aleja mucho, la base lo sigue;
+  - fuerza de 0 a 1, como el stick del mando;
+  - `InputSystem.setTouchJoystick` lo usa para moverse.
+  - **También funciona en las franjas negras de los lados** (pedido por el propietario tras probarlo en su móvil). Allí no se puede dibujar, así que la base se ve pegada al borde del juego.
+  - Solo en pantallas táctiles.
+- **Botón de pausa táctil** (círculo "II" arriba a la derecha, en `HudScene`). Funciona con otro dedo mientras mueves: el juego sigue 2 dedos a la vez (`TOUCH_POINTERS`).
+- **Móvil en vertical:** aviso "Rotate your device to play" (HTML/CSS en `index.html`) y la partida se pausa sola.
+- **Opción Fullscreen** en el menú principal y en la pausa (`ui/fullscreen.ts`). En Android también deja el móvil fijo en horizontal. En iPhone no sale, porque Safari no lo permite.
+- `index.html`: el navegador no hace zoom ni desplaza la página al arrastrar el dedo. El juego está en inglés (`lang="en"`).
+- **Servidor accesible desde el móvil** en la misma wifi (`host: true` en `vite.config.ts`).
+- **Comprobado** en el navegador integrado, simulando un móvil:
+  - en vertical sale el aviso;
+  - en horizontal, el joystick mueve al jugador, tocando dentro del juego y también en la franja negra;
+  - el botón de pausa funciona con un segundo dedo;
+  - Resume se pulsa tocando;
+  - girar a vertical pausa la partida;
+  - en PC no se ve nada táctil;
+  - consola limpia y `tsc` sin errores.
+- **Sin hacer todavía:** bajar el límite de enemigos en el móvil. Primero hay que ver cómo va en tu móvil.
+- **Cómo probar:**
+  1. `pnpm --dir survivors dev`.
+  2. En el móvil, con la misma wifi, abre **http://192.168.1.42:8090**.
+  3. Pon el móvil en horizontal.
+  4. Prueba Fullscreen, mueve con el dedo, pausa con el botón "II" y gira el móvil.
+
 **Fase 8 completada (2026-10-17)**: menús, probada por el propietario. El Arquero queda para el futuro (decidido por el propietario). Siguiente: `/fase 9` (web, móvil y publicación).
 - **Checkpoint 2026-10-17:** `tsc` y `build` sin errores; consola limpia en el navegador integrado (Playwright estaba ocupado por otra sesión).
 - **Pendiente para el futuro:** el Arquero (tercer personaje, con arcos `mbo`/`wbo`), los logros de verdad y elegir sexo, piel y pelo en la selección de personaje.

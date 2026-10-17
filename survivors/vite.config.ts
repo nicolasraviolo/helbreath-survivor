@@ -5,7 +5,8 @@ import { defineConfig } from 'vite';
 export default defineConfig({
     base: './',
     publicDir: '../sp-client/public',
-    server: { port: 8090, strictPort: true },
+    // host: true → también se puede abrir desde el móvil en la misma wifi (http://IP-del-PC:8090).
+    server: { port: 8090, strictPort: true, host: true },
     build: {
         // En Fase 1 no copiamos los assets al build; se resolverá en Fase 9.
         copyPublicDir: false,
