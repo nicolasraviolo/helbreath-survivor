@@ -2,6 +2,20 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
+**Fase 10, bloque 10C: sensación de impacto (2026-10-17, el propietario probó el temblor y pidió ajustarlo).**
+- **Temblor de cámara** (`systems/ScreenShake.ts`, números en `data/feedback.ts`). Reglas decididas por el propietario:
+  - cualquier golpe o flecha: temblor suave (2 px);
+  - golpe o bola de fuego de un jefe: más fuerte (6 px);
+  - explosiones grandes de tus hechizos (Fire Ball, Fire Strike, Mass Fire Strike y Energy Strike, campo `impactShakePx`): solo si el golpe principal es crítico, y como mucho una vez cada 2,5 s.
+  - Con la primera versión (todas las explosiones cercanas) el temblor era constante y molesto.
+- **Settings → Screen Shake: On / Off**, en PC y móvil. Se guarda en el navegador y viene encendido.
+- **Partículas** (`systems/HitParticles.ts`): chispas que saltan del monstruo al golpearlo, en dirección contraria al golpe. Al morir, una nube de polvo a sus pies y unas chispas. Las texturas se dibujan en el código (el original no tiene nada parecido). Phaser recicla las partículas; máximo 220 vivas por tipo en PC y 90 en el móvil.
+- **Destello original (`fx.hit`) también con los hechizos**, sobre el monstruo alcanzado (antes solo con los tajos).
+- **Sonidos nuevos (pedidos por el propietario):** muerte del jugador (C14 Guerrero, C15 Maga, como en el original) y subida de nivel (E21, al abrir las cartas). El de subida de nivel no existe en sp-client: E21 está sin confirmar.
+- **`pnpm check --eval`** ahora espera si la expresión devuelve una promesa, así se puede vigilar la partida unos segundos.
+- **Comprobado:** `build` sin errores; `check menu levelup horde boss` en PC y `horde --mobile`, a ~116 FPS y sin errores de consola. Partículas vistas (hasta 43 a la vez). Temblor medido: 2 px con golpe normal y 6 px con golpe de jefe; la pausa de 2,5 s entre explosiones funciona; los sonidos de muerte y de subida de nivel suenan.
+- **Cómo probarlo:** `pnpm --dir survivors dev` → http://localhost:8090/?play=warrior&debug=horde. Deberías ver chispas al golpear y polvo al matar, y la pantalla debería temblar un poco al recibir golpes. Con `?debug=boss` el temblor del jefe es más fuerte. Settings → Screen Shake → Off lo quita.
+
 **Fase 10, bloque 10B: interfaz de partida elegible en el móvil (2026-10-17, probado por el propietario en su móvil: OK).**
 - **Nueva opción en Settings → HUD: Classic / Compact.** Solo sale en el móvil; en el PC siempre está la barra clásica y la opción no aparece. Se guarda para la próxima vez.
 - **Compact (la que sale por defecto en el móvil):** no hay barra abajo y se ve más mapa.

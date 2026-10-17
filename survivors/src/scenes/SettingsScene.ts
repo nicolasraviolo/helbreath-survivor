@@ -1,6 +1,6 @@
 // Ajustes (Fase 8): volumen de música y de efectos, y la barra de vida sobre el personaje.
 // Se abre desde el menú principal o desde la pausa. Cada cambio se aplica y se guarda al momento.
-// Fase 10: solo en el móvil, el estilo de la interfaz de la partida (HUD: Classic / Compact).
+// Fase 10: solo en el móvil, el estilo de la interfaz de la partida (HUD: Classic / Compact); en todos, el temblor de cámara.
 import { COMPACT_UI } from '../config/device';
 import { HUD_STYLE_NAMES, VOLUME_STEP } from '../config/settings';
 import { settings } from '../systems/Settings';
@@ -20,6 +20,7 @@ export class SettingsScene extends MenuOverlayScene {
             onRight: () => settings.set(key, stepVolume(settings.current[key], 1)),
         });
         const toggleBar = () => settings.set('showPlayerHealthBar', !settings.current.showPlayerHealthBar);
+        const toggleShake = () => settings.set('screenShake', !settings.current.screenShake);
         const toggleHud = () => settings.set('hudStyle', settings.current.hudStyle === 'classic' ? 'compact' : 'classic');
         const hudRow = COMPACT_UI
             ? [{ label: 'HUD', value: () => HUD_STYLE_NAMES[settings.current.hudStyle], onLeft: toggleHud, onRight: toggleHud }]
@@ -32,6 +33,12 @@ export class SettingsScene extends MenuOverlayScene {
                 value: () => (settings.current.showPlayerHealthBar ? 'On' : 'Off'),
                 onLeft: toggleBar,
                 onRight: toggleBar,
+            },
+            {
+                label: 'Screen Shake',
+                value: () => (settings.current.screenShake ? 'On' : 'Off'),
+                onLeft: toggleShake,
+                onRight: toggleShake,
             },
             ...hudRow,
             { label: 'Back', onConfirm: () => this.close() },

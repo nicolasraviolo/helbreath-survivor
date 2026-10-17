@@ -59,6 +59,11 @@ export interface SpellDef {
     castSound?: SoundKey;
     /** Pixels above the caster's feet where projectiles start. */
     originOffsetY: number;
+    /**
+     * Camera shake, in pixels, when an impact is a critical hit (data/feedback.ts).
+     * Only the big explosions, as in the original (Fire Ball, Fire Strike, Mass Fire Strike, Energy Strike).
+     */
+    impactShakePx?: number;
 }
 
 export interface SpellFamilyDef {
@@ -119,7 +124,7 @@ export const SPELLS = {
             { effect: 'fx.explosion3', dx: 0, dy: 0, delayMs: 0, sound: 'sfx.energyBolt.impact' },
             { effect: 'fx.explosion4', dx: 0, dy: 0, delayMs: 0 },
         ],
-        castSound: 'sfx.energyBolt.cast', originOffsetY: ENERGY_ORIGIN_Y,
+        castSound: 'sfx.energyBolt.cast', originOffsetY: ENERGY_ORIGIN_Y, impactShakePx: 3,
     },
     // Fire: lento, en área.
     fireBall: {
@@ -129,7 +134,7 @@ export const SPELLS = {
         shots: 1, shotIntervalMs: 0, aim: 'targets',
         flyEffect: 'fx.fireBall.fly',
         bursts: [{ effect: 'fx.fireBall.explode', dx: 0, dy: 0, delayMs: 0, sound: 'sfx.explosion' }],
-        originOffsetY: FIRE_ORIGIN_Y,
+        originOffsetY: FIRE_ORIGIN_Y, impactShakePx: 3,
     },
     fireStrike: {
         // wiki: 8 directo + 13 en área 5×5.
@@ -137,7 +142,7 @@ export const SPELLS = {
         directDamage: 8, areaDamage: 20, areaRadius: 80, cooldownMs: 1600,
         range: 320, maxDistance: 480, speed: 380, projectileRadius: 10, knockback: 220,
         shots: 1, shotIntervalMs: 0, aim: 'targets',
-        flyEffect: 'fx.fireBall.fly', bursts: FIRE_STRIKE_BURSTS, originOffsetY: FIRE_ORIGIN_Y,
+        flyEffect: 'fx.fireBall.fly', bursts: FIRE_STRIKE_BURSTS, originOffsetY: FIRE_ORIGIN_Y, impactShakePx: 4,
     },
     massFireStrike: {
         // wiki: 11 directo + 43 en área 5×5.
@@ -145,7 +150,7 @@ export const SPELLS = {
         directDamage: 11, areaDamage: 32, areaRadius: 96, cooldownMs: 1800,
         range: 340, maxDistance: 500, speed: 380, projectileRadius: 10, knockback: 240,
         shots: 1, shotIntervalMs: 0, aim: 'targets',
-        flyEffect: 'fx.fireBall.fly', bursts: MASS_FIRE_STRIKE_BURSTS, originOffsetY: FIRE_ORIGIN_Y,
+        flyEffect: 'fx.fireBall.fly', bursts: MASS_FIRE_STRIKE_BURSTS, originOffsetY: FIRE_ORIGIN_Y, impactShakePx: 6,
     },
 } as const satisfies Record<string, SpellDef>;
 

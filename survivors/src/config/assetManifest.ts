@@ -180,6 +180,11 @@ export const SOUNDS = {
     'sfx.wyvern.attack': { file: 'sounds/M107.mp3' },
     // El jugador recibe un golpe (PLAYER_TAKE_UNARMED_DAMAGE).
     'sfx.player.hurt': { file: 'sounds/C5.mp3' },
+    // Muerte del jugador (MALE_DEATH / FEMALE_DEATH, sp-client Player.ts estado Die).
+    'sfx.player.death.m': { file: 'sounds/C14.mp3' },
+    'sfx.player.death.w': { file: 'sounds/C15.mp3' },
+    // Subir de nivel. sp-client no tiene; E21 es el que (según recordamos) usa el cliente C++ original. Pendiente de confirmar a oído.
+    'sfx.levelUp': { file: 'sounds/E21.mp3' },
     // Muerte del Fire Wyvern (no tiene sonido de golpe en sp-client).
     'sfx.wyvern.death': { file: 'sounds/M105.mp3' },
     // Música (sp-client public/assets/music; ver systems/MusicSystem.ts).

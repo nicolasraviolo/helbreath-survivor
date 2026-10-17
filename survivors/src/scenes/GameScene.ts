@@ -40,6 +40,8 @@ import { MapView } from '../hb/mapRenderer';
 import { AudioSystem } from '../systems/AudioSystem';
 import { CombatSystem } from '../systems/CombatSystem';
 import { DamageNumbers } from '../systems/DamageNumbers';
+import { HitParticles } from '../systems/HitParticles';
+import { ScreenShake } from '../systems/ScreenShake';
 import { DebugSystem } from '../systems/DebugSystem';
 import { EnemySystem } from '../systems/EnemySystem';
 import { assetStreamer } from '../systems/AssetStreamer';
@@ -90,6 +92,8 @@ export class GameScene extends Phaser.Scene {
     private damageNumbers!: DamageNumbers;
     private audio!: AudioSystem;
     private combat!: CombatSystem;
+    private particles!: HitParticles;
+    private screenShake!: ScreenShake;
     private weapons!: WeaponSystem;
     private debug!: DebugSystem;
     /** The ?debug= actions still have to run (only on the first run after loading the page). */
@@ -165,12 +169,14 @@ export class GameScene extends Phaser.Scene {
         this.damageNumbers = new DamageNumbers(this);
         this.xp = new XpSystem(this, this.audio);
         this.pickups = new PickupSystem(this, this.audio, (id) => this.collectPickup(id));
-        this.combat = new CombatSystem(this.enemies, this.damageNumbers, this.audio, this.stats, (enemy) => {
+        this.particles = new HitParticles(this);
+        this.screenShake = new ScreenShake(camera);
+        this.combat = new CombatSystem(this.enemies, this.damageNumbers, this.audio, this.particles, this.stats, (enemy) => {
             this.xp.drop(enemy.x, enemy.y, enemy.def.xp);
             this.pickups.onKill(enemy.x, enemy.y);
             this.onEnemyKilled(enemy);
         });
-        this.weapons = new WeaponSystem(this, this.enemies, this.combat, this.audio);
+        this.weapons = new WeaponSystem(this, this.enemies, this.combat, this.audio, this.screenShake);
         this.buffs = new BuffSystem(this, this.player, this.audio, (key, x, y) => this.weapons.spawnEffect(key, x, y));
         this.enemyShots = new EnemyProjectileSystem(this, this.audio, (key, x, y) => this.weapons.spawnEffect(key, x, y));
         this.bosses = new BossSystem(this.enemyShots);
@@ -217,7 +223,7 @@ export class GameScene extends Phaser.Scene {
             `Health: ${this.player.hp}/${this.player.maxHp}${this.player.godMode ? '  [INVINCIBLE]' : ''}`,
             `Level ${this.stats.level} · XP ${this.stats.xp}/${this.stats.xpToNext} · gems ${this.xp.active}`,
             `Time: ${formatTime(this.spawner.elapsed)}  wave ${this.spawner.waveNumber}  spawn every ${this.spawner.currentInterval().toFixed(2)} s`,
-            `Kills: ${this.combat.kills} · projectiles ${this.weapons.activeProjectiles} · numbers ${this.damageNumbers.active} · pickups ${this.pickups.active}`,
+            `Kills: ${this.combat.kills} · projectiles ${this.weapons.activeProjectiles} · numbers ${this.damageNumbers.active} · pickups ${this.pickups.active} · particles ${this.particles.active}`,
             `Sounds: ${this.audio.playingCount} playing · ${this.audio.skippedCount} skipped`,
         ]);
         this.godModeLabel = this.add.text(GAME_WIDTH - 10, 10, 'INVINCIBLE (G)', {
@@ -254,6 +260,7 @@ export class GameScene extends Phaser.Scene {
     /** Pauses the game and shows the cards. Picking one applies it and resumes. */
     private openLevelUp(): void {
         this.levelUpOpen = true;
+        this.audio.play('sfx.levelUp');
         const stats = this.stats;
         const data: LevelUpSceneData = {
             stats,
@@ -372,6 +379,7 @@ export class GameScene extends Phaser.Scene {
         this.enemies.update(delta, this.world);
         this.weapons.update(delta, player.x, player.y, !player.isDead);
         this.damageNumbers.update(delta);
+        this.screenShake.update(delta);
         if (!player.isDead) {
             this.gainXp(this.xp.update(delta, player.x, player.y));
         }
@@ -386,7 +394,7 @@ export class GameScene extends Phaser.Scene {
         this.updateMusic();
 
         if (!player.isDead) {
-            this.hurtPlayer(this.enemies.landedDamage + shotDamage);
+            this.hurtPlayer(this.enemies.landedDamage + shotDamage, this.enemies.landedFromBoss || this.enemyShots.hitFromBoss);
         } else if (player.deadForMs > GAME_OVER_DELAY_MS) {
             this.endRun(false);
             return;
@@ -426,10 +434,15 @@ export class GameScene extends Phaser.Scene {
         }
     }
 
-    /** A monster blow or a fireball: armor reduces it; if it lands, the original hit spark, cry and animation. */
-    private hurtPlayer(damage: number): void {
+    /** A monster blow or a fireball: armor reduces it; if it lands, the original hit spark, cry and animation, and a shake. */
+    private hurtPlayer(damage: number, byBoss: boolean): void {
         const player = this.player;
-        if (!player.takeDamage(this.reduceByArmor(damage)) || player.isDead) return;
+        if (!player.takeDamage(this.reduceByArmor(damage))) return;
+        this.screenShake.hurt(byBoss);
+        if (player.isDead) {
+            this.audio.play(player.def.deathSound);
+            return;
+        }
         this.weapons.spawnEffect('fx.hit', player.x, player.y - PLAYER_BODY_OFFSET_Y);
         this.audio.play('sfx.player.hurt');
         player.act(PlayerState.Hurt, player.direction, PLAYER_HURT_MS, PLAYER_HURT_STUN_MS);

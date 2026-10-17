@@ -39,6 +39,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Interfaz en el móvil (Fase 10)
 - Capturas y sprites para la guía (17-oct-2026)
 - Pruebas automáticas (`pnpm check`, 17-oct-2026)
+- Sensación de impacto (Fase 10, bloque 10C)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -549,3 +550,11 @@ Tabla completa en `docs/REQUISITOS_HB.md`. Lo no obvio:
 - `scripts/check.mjs` usa `playwright-core` con el Chrome instalado (`channel: 'chrome'`): no descarga navegadores. Si el puerto 8090 está libre, arranca Vite y lo para al terminar.
 - Lee el estado con `window.__game` (solo existe en desarrollo). Los campos privados de TypeScript se pueden leer desde la página (`g.enemies.alive`, `g.spawner`...).
 - En `create()` el reloj de la escena (`this.time.now`) todavía no está al día en la primera partida: para esperar "X ms desde el inicio" hay que sumar `delta` en `update()`. Además, en el primer fotograma la cámara aún no ha colocado su vista, así que `spawnMany` no encuentra sitio: los atajos `?debug=` esperan 500 ms.
+
+## Sensación de impacto (Fase 10, bloque 10C)
+- **Temblor de cámara del original:** `sp-client/src/utils/CameraManager.ts` (`setCameraShake`). Fuerza = (5 − casillas de distancia) × 2, a veces con un multiplicador. Se ignora si es ≤ 2 y baja 1 por frame. Se puede quitar en las opciones (CameraDialog).
+  - Lo usan las explosiones de Fire Ball, Fire Strike, Mass Fire Strike, Energy Strike, Earth Shock Wave, Meteor, Lightning Blast, Blizzard e Ice Strike.
+  - Nosotros: `systems/ScreenShake.ts`, con los números en `data/feedback.ts`. Recibir daño: temblor suave; si pega un jefe (golpe o bola de fuego), más fuerte. Explosiones grandes de tus hechizos (`impactShakePx`): solo con golpe crítico y como mucho una vez cada 2,5 s (el propietario vio que, si no, el temblor era constante y molesto).
+- **Muerte de un monstruo en el original:** solo el sonido, la animación Dead (hojas 32–39) y el cadáver desvaneciéndose. Ni humo ni sangre: el polvo y las chispas de `systems/HitParticles.ts` son nuestros.
+- **Golpe crítico en el original** (cuerpo a cuerpo): `CriticalStrikeProjectile`, effect.spr hoja 8 viajando del atacante al objetivo, con sonido C23 (hombre) o C24 (mujer). Aún no lo usamos.
+- **Sonidos:** muerte del jugador C14 (hombre) y C15 (mujer). sp-client **no** tiene sonido de subir de nivel; usamos E21, que creemos que es el del cliente C++ original. Sin confirmar: el propietario debe escucharlo.

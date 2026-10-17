@@ -7,7 +7,7 @@
 //       pnpm check boss --mobile       → simulando un móvil en horizontal (táctil, ?ui=compact)
 //       pnpm check "play=warrior&debug=str,levels"   → cualquier combinación de atajos (ver src/config/debugStart.ts)
 //       --wait=5000                    → milisegundos que se deja correr la partida antes de medir (por defecto 3000)
-//       --eval="g.enemies.alive"       → además, evalúa esa expresión en la página y escribe el resultado
+//       --eval="g.enemies.alive"       → además, evalúa esa expresión en la página y escribe el resultado (si es una promesa, la espera)
 //                                        (g = escena Game, game = window.__game)
 // Si el servidor de desarrollo (puerto 8090) no está en marcha, lo arranca y lo para al terminar.
 import { spawn } from 'node:child_process';
@@ -113,11 +113,12 @@ async function runScenario(browser, name) {
     const loadS = ((Date.now() - t0) / 1000).toFixed(1);
     await page.waitForTimeout(waitMs);
     const state = await page.evaluate(readState);
-    const evalResult = evalArg === undefined ? undefined : await page.evaluate((code) => {
+    const evalResult = evalArg === undefined ? undefined : await page.evaluate(async (code) => {
         const game = window.__game;
         const g = game?.scene.getScene('Game');
         try {
-            return JSON.stringify(new Function('game', 'g', `return (${code});`)(game, g));
+            // A promise is awaited, so an expression can watch the game for a while (e.g. the most particles in 3 s).
+            return JSON.stringify(await new Function('game', 'g', `return (${code});`)(game, g));
         } catch (err) {
             return `error: ${err.message}`;
         }

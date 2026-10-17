@@ -12,24 +12,26 @@
 | 7 — Oleadas, jefes y final | ✅ completada | 2026-10-17 |
 | 8 — Menús y personajes | ✅ completada (solo menús; Arquero aplazado) | 2026-10-17 |
 | 9 — Web, móvil y publicación | ✅ completada | 2026-10-17 |
-| 10 — Pulido (opcional) | 🟡 en curso: 10A y 10B hechos y publicados; falta 10C | |
+| 10 — Pulido (opcional) | 🟡 bloques 10A, 10B y 10C hechos; falta cerrar la fase | |
 
 ## Fase actual
-**Para retomar (17-oct-2026): `/fase 10`, bloque 10C — sensación de impacto.** Es lo último de la Fase 10; al terminarlo, se cierra la fase.
-- **Qué entra en 10C** (decidido por el propietario): **temblor de cámara** al recibir daño y con golpes muy fuertes, y **partículas de golpe** al impactar y al morir los monstruos. Detalle en `docs/PLAN.md` → Fase 10.
+**Para retomar (17-oct-2026): 10C (temblor de cámara, partículas y sonidos de muerte y subida de nivel) está terminado en la rama `fase-10`.** Ya no quedan bloques en la Fase 10.
+- **Siguiente paso:** que el propietario lo pruebe y, si da el OK, `/checkpoint fase` para cerrar la Fase 10: fusionar `fase-10` en `master`, poner la etiqueta y publicar. Quizá antes `/revisar`.
+- **Pendiente de confirmar a oído:** el sonido de subida de nivel (E21). sp-client no tiene ninguno; si no gusta, se cambia en `config/assetManifest.ts` (`sfx.levelUp`).
+- **Ajustes posibles del temblor**, si el propietario los pide (`data/feedback.ts`): acortar la pausa entre explosiones críticas (2,5 s), contar cualquier crítico de la explosión y no solo el golpe principal, o añadir temblor a los críticos cuerpo a cuerpo.
 - **Lo demás de la Fase 10 queda para la segunda etapa** (`docs/PLAN-2.md`, tabla "Traído de la Fase 10"):
   - mando (vibración, iconos de Xbox, reasignar controles) → Fase 11;
   - sombras → Fase 14;
   - más mapas → Fases 14–15;
   - récords y progresión entre partidas → Fase 18;
-  - límite de enemigos en el móvil → Fase 17 (o antes si va lento);
+  - límite de enemigos en el móvil → Fase 17, o antes si va lento;
   - equilibrio → al cerrar cada fase de combate.
-- **Publicado:** 10A y 10B están en `master` y en el enlace público (fusionados el 17-oct-2026, sin etiqueta: la fase sigue abierta). La rama `fase-10` sigue para 10C.
+- **Publicado:** 10A y 10B están en `master` y en el enlace público. 10C todavía no.
 - `docs/PLAN-2.md` sigue siendo un borrador: el orden y las decisiones del final están pendientes de revisar con el propietario.
 
 ## Cómo probar
 - Jugar: `pnpm --dir survivors dev` → http://localhost:8090
-- Comprobación automática: `pnpm --dir survivors check [situaciones] [--mobile]` → escenas, FPS, estado de la partida, errores de consola y una captura pequeña en `survivors/.check/`. Situaciones: `menu`, `game`, `levelup`, `boss`, `horde`, `pickups` o atajos a mano (`"play=warrior&debug=str,levels"`). `--eval="g.enemies.alive"` escribe cualquier dato de la partida (g = escena Game); `--wait=5000` la deja correr más.
+- Comprobación automática: `pnpm --dir survivors check [situaciones] [--mobile]` → escenas, FPS, estado de la partida, errores de consola y una captura pequeña en `survivors/.check/`. Situaciones: `menu`, `game`, `levelup`, `boss`, `horde`, `pickups` o atajos a mano (`"play=warrior&debug=str,levels"`). `--eval="g.enemies.alive"` escribe cualquier dato de la partida (g = escena Game); `--wait=5000` la deja correr más. Si la expresión devuelve una promesa, se espera (útil para vigilar unos segundos).
 - Atajos en la dirección (solo en desarrollo, `src/config/debugStart.ts`): `?play`, `?play=warrior`, `?debug=boss,god` (acciones: horde, kill, levelup, levels, str, magic, pickups, minute, boss, god), `?ui=compact` (interfaz de móvil).
 - Teclas de depuración en partida: F1 panel · G invencible · N enemigos · L niveles · J +1 minuto, entre otras (`systems/InputSystem.ts`).
 - Datos de referencia de Helbreath: `docs/hb-wiki/` (índice en `README.md`).
@@ -37,7 +39,6 @@
 **Historial de bloques y fases terminados:** `survivors/PROGRESS-historial.md` (más reciente arriba). Leer solo si hace falta un detalle concreto; buscar con grep en vez de leerlo entero.
 
 ## Problemas conocidos
-- En el móvil todo se ve muy pequeño (letras, menús, cartas). Anotado para la Fase 10.
 - Con un solo Energy Bolt, 300 enemigos sobrepasan al jugador. Las cartas de stat ayudan, pero la progresión real llega con las armas de la Fase 6.
 - El daño mágico crece rápido (+2 Mag por nivel y +4% por punto). Vigilarlo al equilibrar.
 - Las flechas "→" de las cartas usan otra fuente: Comic Neue no tiene ese carácter. No molesta.
@@ -50,4 +51,5 @@
 - 2026-10-16 · Fuente de la interfaz: **Comic Neue**, copia libre (OFL) de Comic Sans MS, la letra de los diálogos del original. Va incluida en el juego (`@fontsource/comic-neue`, `config/ui.ts`) y se espera a que cargue antes de arrancar. Tamaño normal 15; en las cajas de la barra inferior, 12 (confirmado por el propietario). Los números de daño siguen en Georgia, como en sp-client, y los paneles de pruebas en monospace.
 - 2026-10-16 · Idioma del juego: **solo inglés** (regla 9 de CLAUDE.md). Documentación y explicaciones siguen en español.
 - 2026-10-16 · Las gemas de XP se dibujan por encima de enemigos y objetos, para que nunca queden tapadas.
+- 2026-10-17 · Temblor de cámara: suave con cualquier golpe, fuerte con golpes de jefe, y en las explosiones grandes solo con crítico (como mucho una vez cada 2,5 s). Se puede quitar en Settings.
 - 2026-10-16 · Mapa: **huntzone2** (elegido por el propietario frente a middleland). Zona de juego ~100×100 casillas desde (72,70). Riesgos y detalles en `NOTES.md`.
