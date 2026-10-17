@@ -34,6 +34,7 @@ function load(): GameSettings {
             showPlayerHealthBar: typeof stored.showPlayerHealthBar === 'boolean'
                 ? stored.showPlayerHealthBar : DEFAULT_SETTINGS.showPlayerHealthBar,
             hudStyle: HUD_STYLES.find((style: HudStyle) => style === stored.hudStyle) ?? DEFAULT_SETTINGS.hudStyle,
+            screenShake: typeof stored.screenShake === 'boolean' ? stored.screenShake : DEFAULT_SETTINGS.screenShake,
         };
     } catch {
         return { ...DEFAULT_SETTINGS };

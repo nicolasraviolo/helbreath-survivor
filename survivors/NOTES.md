@@ -3,6 +3,44 @@
 Lo que hemos aprendido de `sp-client` y de los assets. Resumen para no tener que releer el código base.
 Rutas de código relativas a `sp-client/src/` salvo que se indique.
 
+> **No leer entero** (más de 40 KB). Buscar el tema en este índice y leer solo esa sección: `grep -n "^## " survivors/NOTES.md` da la línea donde empieza, y luego se lee desde ahí. Al añadir una sección nueva, añadirla también al índice.
+
+**Índice**
+- Sprites (`.spr`): formato y carga
+- Animaciones: frames por estado y dirección
+- Pivotes y desajustes
+- Apariencia del jugador (capas)
+- Monstruos útiles y a evitar
+- Hechizos y efectos
+- Profundidad y rendimiento
+- Mapas (`.amd`)
+- Archivos a portar
+- Cómo arranca la base
+- Aprendido en la Fase 1
+- Aprendido en la Fase 2
+- Aprendido en la Fase 3
+- Requisitos de equipo y hechizos (datos originales)
+- Efectos y sonidos (Fase 4)
+- Barra inferior (HUD) original
+- Objetos en el suelo y gemas de XP
+- Texto y fuentes en Phaser
+- Pantalla "Create New Character" (sp-client no la tiene)
+- Ataque cuerpo a cuerpo del jugador (sp-client PlayerAppearanceManager.ts)
+- Sonidos ajustados a la animación (sp-client SoundManager.calculatePlaybackRate)
+- Hechizos portados (sp-client game/spells, constants/Effects.ts)
+- Buffs y objetos (sp-client)
+- Fuente dibujada del original (`sprfonts.spr`)
+- Monstruos de las oleadas (sp-client Monsters.ts)
+- Ataques de monstruos y golpe (original)
+- Arte de menús del original (Fase 8)
+- Táctil y móvil (Fase 9)
+- Build y publicación (Fase 9)
+- Assets para la segunda etapa (investigado el 17-oct-2026, ver `docs/PLAN-2.md`)
+- Interfaz en el móvil (Fase 10)
+- Capturas y sprites para la guía (17-oct-2026)
+- Pruebas automáticas (`pnpm check`, 17-oct-2026)
+- Sensación de impacto (Fase 10, bloque 10C)
+
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
   - Cabecera `int16 spriteCount`. "Sprite" aquí significa una hoja (sheet).
@@ -507,3 +545,17 @@ Tabla completa en `docs/REQUISITOS_HB.md`. Lo no obvio:
 - `dialogsv2.spr` hoja 0 (interfaz "V2" del original): 0 = hueco grande 176x35, 2 = marco de barra vacío 171x12 (el hueco interior, 167x9, empieza en (2, 1)), 3 / 4 = relleno rojo / azul 106x11 (hay que estirarlo), 5 = relleno verde 167x9. De 6 a 23, 26, 27 y 29: botones de icono de 40x47 o 49x47, normal + iluminado (el casco es 6/7). 28 = panel con adornos de 160x50. La hoja 5 tiene más paneles y barras de 63x7.
 - Pruebas sin depender del panel del navegador: Chrome sin ventana con Playwright (está en la caché de npx). Con `isMobile` + `hasTouch` y 844x390, el juego detecta un móvil de verdad (`pointer: coarse`).
 
+
+## Pruebas automáticas (`pnpm check`, 17-oct-2026)
+- `scripts/check.mjs` usa `playwright-core` con el Chrome instalado (`channel: 'chrome'`): no descarga navegadores. Si el puerto 8090 está libre, arranca Vite y lo para al terminar.
+- Lee el estado con `window.__game` (solo existe en desarrollo). Los campos privados de TypeScript se pueden leer desde la página (`g.enemies.alive`, `g.spawner`...).
+- En `create()` el reloj de la escena (`this.time.now`) todavía no está al día en la primera partida: para esperar "X ms desde el inicio" hay que sumar `delta` en `update()`. Además, en el primer fotograma la cámara aún no ha colocado su vista, así que `spawnMany` no encuentra sitio: los atajos `?debug=` esperan 500 ms.
+
+## Sensación de impacto (Fase 10, bloque 10C)
+- **Temblor de cámara del original:** `sp-client/src/utils/CameraManager.ts` (`setCameraShake`). Fuerza = (5 − casillas de distancia) × 2, a veces con un multiplicador. Se ignora si es ≤ 2 y baja 1 por frame. Se puede quitar en las opciones (CameraDialog).
+  - Lo usan las explosiones de Fire Ball, Fire Strike, Mass Fire Strike, Energy Strike, Earth Shock Wave, Meteor, Lightning Blast, Blizzard e Ice Strike.
+  - Nosotros: `systems/ScreenShake.ts`, con los números en `data/feedback.ts`. Recibir daño: temblor suave; si pega un jefe (golpe o bola de fuego), más fuerte. Explosiones grandes de tus hechizos (`impactShakePx`): solo con golpe crítico y como mucho una vez cada 2,5 s (el propietario vio que, si no, el temblor era constante y molesto).
+- **Muerte de un monstruo en el original:** solo el sonido, la animación Dead (hojas 32–39) y el cadáver desvaneciéndose. Ni humo ni sangre: el polvo y las chispas de `systems/HitParticles.ts` son nuestros.
+- **Golpe crítico en el original** (cuerpo a cuerpo): `CriticalStrikeProjectile`, effect.spr hoja 8 viajando del atacante al objetivo, con sonido C23 (hombre) o C24 (mujer). Aún no lo usamos.
+- **Sonidos:** muerte del jugador C14 (hombre) y C15 (mujer). sp-client **no** tiene sonido de subir de nivel. El propietario aportó las voces originales (hombre y mujer), que están en `survivors/custom-assets/sounds/`.
+- **Assets propios** (`survivors/custom-assets/`, con la misma estructura que `sp-client/public/assets`): en desarrollo los sirve un plugin de `vite.config.ts` y en el build los copia `scripts/sync-assets.mjs`, que los busca antes que en sp-client. Se registran en el manifest como cualquier otro (`sounds/level-up-male.mp3`).

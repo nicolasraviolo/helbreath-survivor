@@ -1,6 +1,7 @@
 // Personajes jugables, elegidos en la pantalla "Create New Character" (scenes/CharacterSelectScene.ts).
 // El Mago dispara Energy Bolt; el Guerrero lleva un arma cuerpo a cuerpo y armadura (Fase 6, data/weapons.ts y data/armor.ts).
 // Nombre, aspecto y stats iniciales son fijos por ahora (decidido por el propietario el 16-oct-2026).
+import type { SoundKey } from '../config/assetManifest';
 import type { Appearance } from '../hb/playerAppearance';
 import type { Stats } from './stats';
 import type { ArmorSetId } from './armor';
@@ -45,6 +46,10 @@ export interface CharacterDef {
     startWeapon: StartWeapon;
     /** Which pieces of data/armor.ts the class can wear (their cards only show up for it). */
     armorSet: ArmorSetId;
+    /** Cry when the character dies: the original has one for men and one for women. */
+    deathSound: SoundKey;
+    /** Voice when the level-up cards open, also one for men and one for women. */
+    levelUpSound: SoundKey;
 }
 
 /** Guerrero al empezar: camisa, pantalón, botas altas y daga. La armadura se gana con las cartas (data/armor.ts). */
@@ -110,6 +115,8 @@ export const CHARACTERS = {
         appearance: MAGE_FEMALE_LOOK,
         startWeapon: { kind: 'spell', id: 'energyBolt' },
         armorSet: 'mage',
+        deathSound: 'sfx.player.death.w',
+        levelUpSound: 'sfx.levelUp.w',
     },
     warrior: {
         ...COMMON,
@@ -126,6 +133,8 @@ export const CHARACTERS = {
         appearance: WARRIOR_LOOK,
         startWeapon: { kind: 'melee', id: 'dagger' },
         armorSet: 'warrior',
+        deathSound: 'sfx.player.death.m',
+        levelUpSound: 'sfx.levelUp.m',
     },
 } as const satisfies Record<string, CharacterDef>;
 

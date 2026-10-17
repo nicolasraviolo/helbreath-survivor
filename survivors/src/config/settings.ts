@@ -1,5 +1,6 @@
 // Ajustes del jugador (Fase 8): volumen de música, volumen de efectos y barra de vida sobre el personaje.
-// Fase 10: en el móvil, además, el estilo de la interfaz de la partida (barra clásica abajo o compacta arriba).
+// Fase 10: en el móvil, además, el estilo de la interfaz de la partida (barra clásica abajo o compacta arriba),
+// y en todos, el temblor de cámara (bloque 10C).
 // Se guardan en el navegador (localStorage), así que siguen ahí la próxima vez que se abre el juego.
 
 /** In-game HUD on phones: the original bottom bar, or a small block at the top (more of the map visible). */
@@ -16,6 +17,8 @@ export interface GameSettings {
     showPlayerHealthBar: boolean;
     /** Only used on phones (config/device.ts); the PC always shows the classic bar. */
     hudStyle: HudStyle;
+    /** Camera shake when hurt and with big explosions (the original also lets you turn it off). */
+    screenShake: boolean;
 }
 
 export const DEFAULT_SETTINGS: Readonly<GameSettings> = {
@@ -23,6 +26,7 @@ export const DEFAULT_SETTINGS: Readonly<GameSettings> = {
     sfxVolume: 0.8,
     showPlayerHealthBar: true,
     hudStyle: 'compact',
+    screenShake: true,
 };
 
 /** Each press of ← / → changes a volume by this much. */

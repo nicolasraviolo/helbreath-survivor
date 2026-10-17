@@ -14,6 +14,8 @@ class EnemyProjectile implements Poolable {
     public y = 0;
     public attack!: EnemyRangedAttack;
     public damage = 0;
+    /** Thrown by a boss (the screen shakes harder when it hits). */
+    public fromBoss = false;
     private vx = 0;
     private vy = 0;
     private remaining = 0;
@@ -23,9 +25,10 @@ class EnemyProjectile implements Poolable {
         this.sprite = scene.add.sprite(0, 0, '__DEFAULT').setActive(false).setVisible(false);
     }
 
-    public launch(attack: EnemyRangedAttack, damage: number, x: number, y: number, angle: number): void {
+    public launch(attack: EnemyRangedAttack, damage: number, fromBoss: boolean, x: number, y: number, angle: number): void {
         this.attack = attack;
         this.damage = damage;
+        this.fromBoss = fromBoss;
         this.x = x;
         this.y = y;
         const dx = Math.cos(angle);
@@ -59,6 +62,7 @@ class EnemyProjectile implements Poolable {
 export class EnemyProjectileSystem {
     private readonly projectiles: Pool<EnemyProjectile>;
     private readonly finished: EnemyProjectile[] = [];
+    private bossHit = false;
 
     constructor(
         scene: Phaser.Scene,
@@ -73,16 +77,21 @@ export class EnemyProjectileSystem {
         return this.projectiles.active.length;
     }
 
+    /** True if a boss projectile hit the player during the last update. */
+    public get hitFromBoss(): boolean {
+        return this.bossHit;
+    }
+
     /**
      * Throws `attack.shots` projectiles from (x, y) towards (targetX, targetY), fanned over its spread.
      * `damage` is used when the attack has no fixed damage of its own (arrows use the archer's dice).
      */
-    public throwAt(attack: EnemyRangedAttack, x: number, y: number, targetX: number, targetY: number, damage = 0): void {
+    public throwAt(attack: EnemyRangedAttack, x: number, y: number, targetX: number, targetY: number, damage = 0, fromBoss = false): void {
         const centre = Math.atan2(targetY - y, targetX - x);
         const spread = (attack.spreadDegrees * Math.PI) / 180;
         for (let i = 0; i < attack.shots; i++) {
             const offset = attack.shots > 1 ? (i / (attack.shots - 1) - 0.5) * spread : 0;
-            this.projectiles.acquire().launch(attack, attack.damage ?? damage, x, y, centre + offset);
+            this.projectiles.acquire().launch(attack, attack.damage ?? damage, fromBoss, x, y, centre + offset);
         }
     }
 
@@ -92,13 +101,17 @@ export class EnemyProjectileSystem {
      */
     public update(deltaMs: number, bodyX: number, bodyY: number, bodyRadius: number): number {
         let damage = 0;
+        this.bossHit = false;
         for (const projectile of this.projectiles.active) {
             const flying = projectile.update(deltaMs);
             const reach = projectile.attack.radius + bodyRadius;
             const dx = projectile.x - bodyX;
             const dy = projectile.y - bodyY;
             const hit = dx * dx + dy * dy <= reach * reach;
-            if (hit) damage += projectile.damage;
+            if (hit) {
+                damage += projectile.damage;
+                this.bossHit ||= projectile.fromBoss;
+            }
             if (hit || !flying) {
                 const { explodeEffect, sound } = projectile.attack;
                 if (explodeEffect) this.spawnEffect(explodeEffect, projectile.x, projectile.y);

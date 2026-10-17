@@ -16,6 +16,7 @@ import type { Weapon, WeaponContext } from '../weapons/Weapon';
 import type { AudioSystem } from './AudioSystem';
 import type { CombatSystem } from './CombatSystem';
 import type { EnemySystem } from './EnemySystem';
+import type { ScreenShake } from './ScreenShake';
 
 /** Owner animation asked by a weapon: a melee swing or a cast. */
 export type OwnerAction = 'melee' | 'cast';
@@ -48,6 +49,7 @@ export class WeaponSystem {
         private readonly enemies: EnemySystem,
         private readonly combat: CombatSystem,
         private readonly audio: AudioSystem,
+        private readonly screenShake: ScreenShake,
     ) {
         this.projectiles = new Pool(() => new Projectile(scene));
         this.effects = new Pool(() => new Effect(scene));
@@ -155,6 +157,8 @@ export class WeaponSystem {
 
     /** Impact: the damage lands once; the explosions are drawn now or after their delay. */
     private explode(def: SpellDef, x: number, y: number, direct: Enemy | undefined): void {
+        // The original hit spark on the enemy the spell hits, as with the melee blows.
+        if (direct?.isAlive) this.spawnEffect('fx.hit', direct.x, direct.bodyY);
         for (const burst of def.bursts) {
             if (burst.delayMs <= 0) {
                 this.drawBurst(burst, x, y);
@@ -166,7 +170,7 @@ export class WeaponSystem {
             pending.y = y;
             pending.waitMs = burst.delayMs;
         }
-        this.combat.hitArea({
+        const critical = this.combat.hitArea({
             damageType: 'magic',
             x,
             y,
@@ -176,6 +180,7 @@ export class WeaponSystem {
             directDamage: def.directDamage,
             knockback: def.knockback,
         });
+        if (critical && def.impactShakePx) this.screenShake.criticalExplosion(def.impactShakePx);
     }
 
     private drawBurst(burst: SpellBurst, x: number, y: number): void {

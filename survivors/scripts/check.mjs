@@ -1,0 +1,162 @@
+// Comprobación automática del juego con Chrome sin ventana (Playwright).
+// Abre una o varias situaciones, espera, y por cada una dice en pocas líneas: escenas activas, FPS, estado de la partida
+// y errores de consola. Guarda una captura pequeña en survivors/.check/ (solo hay que mirarla si hace falta).
+//
+// Uso:  pnpm check                     → menú principal en PC
+//       pnpm check game levelup boss   → varias situaciones seguidas
+//       pnpm check boss --mobile       → simulando un móvil en horizontal (táctil, ?ui=compact)
+//       pnpm check "play=warrior&debug=str,levels"   → cualquier combinación de atajos (ver src/config/debugStart.ts)
+//       --wait=5000                    → milisegundos que se deja correr la partida antes de medir (por defecto 3000)
+//       --eval="g.enemies.alive"       → además, evalúa esa expresión en la página y escribe el resultado (si es una promesa, la espera)
+//                                        (g = escena Game, game = window.__game)
+// Si el servidor de desarrollo (puerto 8090) no está en marcha, lo arranca y lo para al terminar.
+import { spawn } from 'node:child_process';
+import { mkdirSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { chromium } from 'playwright-core';
+
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
+const BASE_URL = 'http://localhost:8090/';
+const OUT_DIR = join(ROOT, '.check');
+const LOAD_TIMEOUT_MS = 90000;
+const PHONE = { width: 844, height: 390 };
+const DESKTOP = { width: 1000, height: 750 };
+/** Console messages that are known and harmless. */
+const IGNORED_ERRORS = [/favicon\.ico/];
+
+/** Named situations; anything else is used as the address query as it is. */
+const PRESETS = {
+    menu: '',
+    game: 'play',
+    levelup: 'debug=levelup',
+    boss: 'debug=god,boss',
+    horde: 'debug=god,horde,horde,horde',
+    pickups: 'debug=god,pickups',
+};
+
+const args = process.argv.slice(2);
+const mobile = args.includes('--mobile');
+const waitArg = args.find((a) => a.startsWith('--wait='));
+const waitMs = waitArg ? Number(waitArg.slice('--wait='.length)) : 3000;
+const evalArg = args.find((a) => a.startsWith('--eval='))?.slice('--eval='.length);
+const scenarios = args.filter((a) => !a.startsWith('--'));
+if (scenarios.length === 0) scenarios.push('menu');
+
+async function serverUp() {
+    try {
+        return (await fetch(BASE_URL)).ok;
+    } catch {
+        return false;
+    }
+}
+
+async function ensureServer() {
+    if (await serverUp()) return undefined;
+    const child = spawn('pnpm', ['exec', 'vite'], { cwd: ROOT, shell: true, stdio: 'ignore' });
+    for (let i = 0; i < 60; i++) {
+        await new Promise((r) => setTimeout(r, 500));
+        if (await serverUp()) return child;
+    }
+    child.kill();
+    throw new Error('The dev server did not start on port 8090');
+}
+
+function stopServer(child) {
+    if (!child) return;
+    // En Windows hay que matar el árbol entero (pnpm → node → vite).
+    if (process.platform === 'win32') spawn('taskkill', ['/pid', String(child.pid), '/T', '/F'], { stdio: 'ignore' });
+    else child.kill();
+}
+
+/** Reads the state of the game from the page (window.__game exists only in development). */
+function readState() {
+    const game = window.__game;
+    if (!game) return { error: 'window.__game not found' };
+    const scenes = game.scene.getScenes(true).map((s) => s.scene.key);
+    const state = { scenes, fps: Math.round(game.loop.actualFps) };
+    const g = game.scene.getScene('Game');
+    if (g && (game.scene.isActive('Game') || game.scene.isPaused('Game')) && g.player) {
+        state.run = {
+            hp: `${g.player.hp}/${g.player.maxHp}`,
+            level: g.stats.level,
+            time: Math.round(g.spawner.elapsed / 1000) + 's',
+            enemies: g.enemies.alive,
+            kills: g.combat.kills,
+            boss: g.bossInfo?.()?.name ?? null,
+        };
+    }
+    return state;
+}
+
+async function runScenario(browser, name) {
+    const query = PRESETS[name] ?? name;
+    const params = new URLSearchParams(query);
+    if (mobile) params.set('ui', 'compact');
+    const url = BASE_URL + (params.toString() ? `?${params.toString().replace(/=(&|$)/g, '$1').replace(/%2C/g, ',')}` : '');
+    const context = await browser.newContext({
+        viewport: mobile ? PHONE : DESKTOP,
+        hasTouch: mobile,
+        isMobile: mobile,
+    });
+    const page = await context.newPage();
+    const errors = [];
+    page.on('console', (msg) => {
+        if (msg.type() === 'error' && !IGNORED_ERRORS.some((re) => re.test(msg.text()))) errors.push(msg.text());
+    });
+    page.on('pageerror', (err) => errors.push(`${err.name}: ${err.message}`));
+
+    const target = query ? 'Game' : 'MainMenu';
+    await page.goto(url);
+    const t0 = Date.now();
+    await page.waitForFunction((key) => window.__game?.scene.isActive(key), target, { timeout: LOAD_TIMEOUT_MS });
+    const loadS = ((Date.now() - t0) / 1000).toFixed(1);
+    await page.waitForTimeout(waitMs);
+    const state = await page.evaluate(readState);
+    const evalResult = evalArg === undefined ? undefined : await page.evaluate(async (code) => {
+        const game = window.__game;
+        const g = game?.scene.getScene('Game');
+        try {
+            // A promise is awaited, so an expression can watch the game for a while (e.g. the most particles in 3 s).
+            return JSON.stringify(await new Function('game', 'g', `return (${code});`)(game, g));
+        } catch (err) {
+            return `error: ${err.message}`;
+        }
+    }, evalArg);
+
+    mkdirSync(OUT_DIR, { recursive: true });
+    const file = join(OUT_DIR, `${name.replace(/[^a-z0-9]+/gi, '_')}${mobile ? '-mobile' : ''}.jpg`);
+    await page.screenshot({ path: file, type: 'jpeg', quality: 60 });
+    await context.close();
+
+    console.log(`\n■ ${name}${mobile ? ' (mobile)' : ''}  →  ${url}`);
+    console.log(`  loaded in ${loadS}s · scenes: ${state.scenes?.join(', ')} · ${state.fps} FPS`);
+    if (state.run) console.log(`  run: ${Object.entries(state.run).map(([k, v]) => `${k} ${v}`).join(' · ')}`);
+    if (state.error) console.log(`  ${state.error}`);
+    if (evalResult !== undefined) console.log(`  eval: ${evalResult}`);
+    console.log(errors.length ? `  ✗ ${errors.length} console error(s):\n    ${errors.slice(0, 10).join('\n    ')}` : '  ✓ no console errors');
+    console.log(`  screenshot: ${file}`);
+    return errors.length === 0 && !state.error;
+}
+
+const server = await ensureServer();
+let ok = true;
+const browser = await chromium.launch({
+    channel: 'chrome',
+    args: ['--autoplay-policy=no-user-gesture-required', '--mute-audio'],
+});
+try {
+    for (const name of scenarios) {
+        try {
+            ok = (await runScenario(browser, name)) && ok;
+        } catch (err) {
+            ok = false;
+            console.log(`\n■ ${name}: ✗ ${err.message.split('\n')[0]}`);
+        }
+    }
+} finally {
+    await browser.close();
+    stopServer(server);
+}
+console.log(ok ? '\nALL OK' : '\nPROBLEMS FOUND');
+process.exit(ok ? 0 : 1);

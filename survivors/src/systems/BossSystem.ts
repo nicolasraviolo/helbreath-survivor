@@ -57,7 +57,7 @@ export class BossSystem {
             this.cooldowns.set(boss, 0);
             return;
         }
-        this.projectiles.throwAt(ranged, boss.x, boss.bodyY, targetX, targetY);
+        this.projectiles.throwAt(ranged, boss.x, boss.bodyY, targetX, targetY, 0, true);
         this.cooldowns.set(boss, ranged.cooldownMs);
     }
 }
