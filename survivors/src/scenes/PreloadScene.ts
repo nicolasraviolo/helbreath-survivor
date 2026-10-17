@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { ASSET_BASE_PATH, MAPS, SOUNDS, SPRITES, type SpriteKey } from '../config/assetManifest';
 import { registerEffectAnimations } from '../config/effects';
 import { DEFAULT_ANIMATION_FRAME_RATE, GAME_HEIGHT, GAME_WIDTH } from '../config/gameConfig';
-import { px, UI_FONT, UI_FONT_SIZE } from '../config/ui';
+import { px, UI_TEXT, UI_FONT_SIZE } from '../config/ui';
 import { DEFAULT_MAP, MAPS_DATA } from '../data/maps';
 import { getMap } from '../hb/HBMap';
 import { HBSpriteFile, SpriteType } from '../hb/HBSprite';
@@ -36,7 +36,7 @@ export class PreloadScene extends Phaser.Scene {
         const cy = GAME_HEIGHT / 2;
         this.add.rectangle(cx, cy, BAR_WIDTH + 4, BAR_HEIGHT + 4).setStrokeStyle(1, 0xc8a85a);
         this.bar = this.add.rectangle(cx - BAR_WIDTH / 2, cy, 0, BAR_HEIGHT, 0xc8a85a).setOrigin(0, 0.5);
-        this.label = this.add.text(cx, cy + 24, 'Loading…', { fontFamily: UI_FONT, fontSize: px(UI_FONT_SIZE.normal), color: '#c8a85a' })
+        this.label = this.add.text(cx, cy + 24, 'Loading…', { ...UI_TEXT, fontSize: px(UI_FONT_SIZE.normal), color: '#c8a85a' })
             .setOrigin(0.5, 0);
 
         this.load.setPath(ASSET_BASE_PATH);

@@ -9,6 +9,7 @@ import {
     MENU_BACKGROUND,
     MENU_BACKGROUND_SCALE,
     MENU_FOOTER_STYLE,
+    MENU_HINT,
     MENU_HINT_STYLE,
     MENU_INPUT_DELAY_MS,
     MENU_PANEL,
@@ -49,7 +50,7 @@ export class MainMenuScene extends Phaser.Scene {
         this.list = new MenuList(this, items, { x: MAIN_MENU.panelX, y: firstY, spacing: MAIN_MENU.itemSpacing });
         this.list.setReadyCheck(() => this.ready());
         const panelBottom = MAIN_MENU.panelY + (MENU_PANEL.height * MAIN_MENU.panelScale) / 2;
-        this.add.text(MAIN_MENU.panelX, panelBottom + 14, '↑ ↓  and  Enter   ·   D-pad and A   ·   Click', MENU_HINT_STYLE).setOrigin(0.5, 0);
+        this.add.text(MAIN_MENU.panelX, panelBottom + 14, MENU_HINT, MENU_HINT_STYLE).setOrigin(0.5, 0);
 
         this.menuInput = new InputSystem(this);
         this.menuInput.setPointerMaxY(-1);

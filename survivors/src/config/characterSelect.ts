@@ -4,8 +4,9 @@
 // Las posiciones se midieron sobre la imagen original de 640x480; la escena las amplía a 800x600.
 import { getSheetKey } from '../hb/HBSprite';
 import type { CharacterId } from '../data/characters';
+import { byDevice } from './device';
 import { GAME_WIDTH } from './gameConfig';
-import { UI_FONT } from './ui';
+import { UI_TEXT } from './ui';
 
 export const SELECT_BACKGROUND = { texture: getSheetKey('ui.panel', 9), frame: '0', width: 640, height: 480 } as const;
 /** The 640x480 background is drawn at this scale to fill the 800x600 screen. */
@@ -48,10 +49,10 @@ export const SELECT_DESCRIPTION = { x: 478, y: 380, width: 200 } as const;
 /** Ignore input for a moment so a key held from the previous screen does nothing. */
 export const SELECT_INPUT_DELAY_MS = 250;
 
-/** Text sizes are in screen pixels (after scaling). */
-export const SELECT_TEXT_STYLE = { fontFamily: UI_FONT, fontSize: '15px', color: '#1e1408' } as const;
+/** Text sizes are in screen pixels (after scaling). The original's boxes are small: on phones they grow only a little. */
+export const SELECT_TEXT_STYLE = { ...UI_TEXT, fontSize: byDevice('15px', '17px'), color: '#1e1408' } as const;
 export const SELECT_DISABLED_STYLE = { ...SELECT_TEXT_STYLE, color: '#54452e' } as const;
-export const SELECT_VALUE_STYLE = { fontFamily: UI_FONT, fontSize: '14px', fontStyle: 'bold', color: '#1e1408' } as const;
-export const SELECT_NAME_STYLE = { fontFamily: UI_FONT, fontSize: '15px', fontStyle: 'bold', color: '#ffffff' } as const;
+export const SELECT_VALUE_STYLE = { ...UI_TEXT, fontSize: byDevice('14px', '16px'), fontStyle: 'bold', color: '#1e1408' } as const;
+export const SELECT_NAME_STYLE = { ...UI_TEXT, fontSize: byDevice('15px', '17px'), fontStyle: 'bold', color: '#ffffff' } as const;
 /** Greys out the look arrows, which don't work yet. */
 export const SELECT_DISABLED_ARROWS = { x: 235, width: 44, alpha: 0.45, color: 0x8a7a60 } as const;

@@ -491,3 +491,10 @@ Tabla completa en `docs/REQUISITOS_HB.md`. Lo no obvio:
   - Su DNS daba 188.114.96.5 / 188.114.97.5 y la conexión se quedaba colgada.
   - Forzando otra IP de Cloudflare (172.66.44.100) respondía 200 con el juego y los `.spr`.
   - Es un bloqueo de IPs de Cloudflare del proveedor (típico en España con LaLiga), no un problema del juego.
+
+## Interfaz en el móvil (Fase 10)
+- El juego es 800x600 con `Scale.FIT`: en un móvil en horizontal (p. ej. 844x390) se dibuja a ~520x390, al 65 %. Por eso hay un modo "compacto" (`config/device.ts`, `byDevice(pc, móvil)`), que se puede forzar con `?ui=compact` / `?ui=normal`.
+- Phaser 3.90 dibuja cada `Text` a resolución 1 si el estilo no dice otra cosa (no hay ajuste global). Por eso todos los estilos de la interfaz parten de `UI_TEXT`, que lleva `resolution`.
+- La barra inferior (800x51) se puede escalar ×1,25 centrada: el dibujo original solo tiene madera vacía en sus primeros y últimos ~85 px.
+- Pruebas con el navegador integrado: si el panel está oculto, el juego no avanza y las capturas salen viejas. Para capturar el lienzo tal cual sirve `__game.renderer.snapshot(...)`.
+

@@ -3,16 +3,19 @@
 // Va incluida en el juego (paquete @fontsource/comic-neue, importado en main.ts), así que se ve igual en
 // Windows, Mac y móviles. Si por lo que sea no carga, se usa Comic Sans MS del sistema.
 
+import { byDevice, TEXT_RESOLUTION } from './device';
+
 export const UI_FONT_NAME = 'Comic Neue';
 export const UI_FONT = `"${UI_FONT_NAME}", "Comic Sans MS", sans-serif`;
 
-/** Font sizes in px. `small` is for the tight boxes of the bottom bar. */
-export const UI_FONT_SIZE = {
-    small: 12,
-    normal: 15,
-    large: 20,
-    title: 36,
-} as const;
+/** Font sizes in px. `small` is for the tight boxes of the bottom bar. Bigger on phones (config/device.ts). */
+export const UI_FONT_SIZE = byDevice(
+    { small: 12, normal: 15, large: 20, title: 36 },
+    { small: 16, normal: 20, large: 26, title: 44 },
+);
+
+/** Base of every UI text style: the font, drawn sharp at the screen's real pixel density. */
+export const UI_TEXT = { fontFamily: UI_FONT, resolution: TEXT_RESOLUTION } as const;
 
 /** Weights included in the game (main.ts imports exactly these). */
 const UI_FONT_WEIGHTS = [400, 700] as const;

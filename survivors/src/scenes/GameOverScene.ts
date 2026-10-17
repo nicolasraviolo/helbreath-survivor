@@ -6,7 +6,7 @@
 import Phaser from 'phaser';
 import { GAME_HEIGHT, GAME_WIDTH } from '../config/gameConfig';
 import { GAME_OVER } from '../config/hud';
-import { px, UI_FONT, UI_FONT_SIZE } from '../config/ui';
+import { px, UI_TEXT, UI_FONT_SIZE } from '../config/ui';
 import { SpriteText } from '../hb/SpriteText';
 import { Action, InputSystem } from '../systems/InputSystem';
 import { formatTime } from '../utils/format';
@@ -67,15 +67,15 @@ export class GameOverScene extends Phaser.Scene {
             p.armorNames.length > 0 ? p.armorNames.join(', ') : 'No armor',
         ];
         this.add.text(GAME_WIDTH / 2, GAME_OVER.statsY, lines, {
-            fontFamily: UI_FONT, fontSize: px(UI_FONT_SIZE.large), color: '#e8d9a8', align: 'center', lineSpacing: 6,
+            ...UI_TEXT, fontSize: px(UI_FONT_SIZE.large), color: '#e8d9a8', align: 'center', lineSpacing: 6,
         }).setOrigin(0.5, 0);
 
         this.addButton(GAME_OVER.restartFrame, -1, p.onRestart);
         this.addButton(GAME_OVER.changeFrame, 0, p.onChangeClass);
         this.addButton(GAME_OVER.logOutFrame, 1, p.onMainMenu);
         this.highlight(0);
-        this.add.text(GAME_WIDTH / 2, GAME_OVER.hintY, '← →  and  Enter   ·   D-pad and A   ·   Click', {
-            fontFamily: UI_FONT, fontSize: px(UI_FONT_SIZE.small), color: '#a89870',
+        this.add.text(GAME_WIDTH / 2, GAME_OVER.hintY, GAME_OVER.hint, {
+            ...UI_TEXT, fontSize: px(UI_FONT_SIZE.small), color: '#a89870',
         }).setOrigin(0.5);
 
         this.inputSystem = new InputSystem(this);

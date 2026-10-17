@@ -1,8 +1,9 @@
 // Barra inferior (HUD) con las piezas originales de gamedialog86.spr, hoja 6.
 // Las posiciones se midieron sobre la propia imagen (ver docs/mockups/hud/ y NOTES.md).
 import { getSheetKey } from '../hb/HBSprite';
+import { byDevice } from './device';
 import { GAME_HEIGHT } from './gameConfig';
-import { px, UI_FONT, UI_FONT_SIZE } from './ui';
+import { px, UI_TEXT, UI_FONT_SIZE } from './ui';
 
 /** Texture with every piece of the bottom bar. */
 export const HUD_TEXTURE = getSheetKey('ui.panel', 6);
@@ -20,7 +21,13 @@ export const HUD_FRAME = {
 } as const;
 
 export const HUD_HEIGHT = 51;
-export const HUD_TOP = GAME_HEIGHT - HUD_HEIGHT;
+/**
+ * On phones the whole bar is drawn bigger, centred at the bottom of the screen. It still fits: the original image has
+ * only empty wood in its first and last ~85 px. Everything inside the bar is laid out in the bar's own pixels.
+ */
+export const HUD_SCALE = byDevice(1, 1.25);
+/** Top of the bar on screen: the game is drawn above it. */
+export const HUD_TOP = GAME_HEIGHT - HUD_HEIGHT * HUD_SCALE;
 
 /** Gauges, relative to the bar's top-left corner. */
 export const HUD_HP = { x: 102, y: 10, width: 104, height: 16 } as const;
@@ -37,9 +44,9 @@ export const HUD_MENU_BUTTON = 5;
 export const HUD_CHARACTER_BUTTON = 0;
 
 /** Stats panel, above the bar on the left. */
-export const HUD_STATS_PANEL = { x: 8, width: 250, padding: 10, marginY: 8, columnWidth: 78, gap: 6 } as const;
+export const HUD_STATS_PANEL = { x: 8, width: byDevice(250, 330), padding: 10, marginY: 8, columnWidth: byDevice(78, 100), gap: 6 } as const;
 export const HUD_STATS_STYLE = {
-    fontFamily: UI_FONT,
+    ...UI_TEXT,
     fontSize: px(UI_FONT_SIZE.normal),
     color: '#e8d9a8',
     lineSpacing: 2,
@@ -49,7 +56,7 @@ export const HUD_STATS_TITLE_STYLE = { ...HUD_STATS_STYLE, color: '#ffe080' } as
 export const HUD_DEPTH_TEXT = 10;
 /** Numbers on the gauges: the boxes are 16 px tall, so the small size. */
 export const HUD_TEXT_STYLE = {
-    fontFamily: UI_FONT,
+    ...UI_TEXT,
     fontSize: px(UI_FONT_SIZE.small),
     fontStyle: 'bold',
     color: '#ffffff',
@@ -62,12 +69,12 @@ export const HUD_INFO_STYLE = { ...HUD_TEXT_STYLE, color: '#e8d9a8' } as const;
  * Active buffs (chests): bottom right, just above the bar, one line each with name and seconds left, in the game's
  * own sprite font (the spell book letters). The first buff taken is the lowest line.
  */
-export const HUD_BUFF = { right: 12, bottomGap: 26, lineHeight: 22 } as const;
+export const HUD_BUFF = { right: 12, bottomGap: byDevice(26, 32), lineHeight: byDevice(22, 28), scale: byDevice(1, 1.3) } as const;
 
 
 /** Big health bar of the boss at the top of the screen: its name (sprite font) over a wide bar. */
 export const HUD_BOSS = {
-    y: 34,
+    y: byDevice(34, 38),
     width: 420,
     height: 12,
     backColor: 0x200808,
@@ -76,13 +83,14 @@ export const HUD_BOSS = {
     nameColor: 0xffd860,
     /** Gap between the name and the bar. */
     nameY: 8,
+    nameScale: byDevice(1, 1.3),
 } as const;
 
 /** Event of GameScene that the HUD listens to, to show a warning in the middle of the screen. */
 export const ANNOUNCE_EVENT = 'announce';
 
 /** Warnings of the timeline ("The Ettin approaches!"): sprite font, big, in the middle; fade out at the end. */
-export const HUD_ANNOUNCE = { y: 150, scale: 2, color: 0xff5040, showMs: 3500, fadeMs: 1000 } as const;
+export const HUD_ANNOUNCE = { y: 150, scale: byDevice(2, 2.4), color: 0xff5040, showMs: 3500, fadeMs: 1000 } as const;
 
 /** End-of-run screen (scenes/GameOverScene.ts). Buttons from dialogtext.spr sheet 1: normal frame, lit = next frame. */
 export const GAME_OVER = {
@@ -101,6 +109,7 @@ export const GAME_OVER = {
     changeFrame: 20,
     logOutFrame: 8,
     hintY: 500,
+    hint: byDevice('← →  and  Enter   ·   D-pad and A   ·   Click', 'Tap a button'),
     /** Ignore input for a moment, so the key or click that killed the boss doesn't choose a button. */
     inputDelayMs: 800,
 } as const;

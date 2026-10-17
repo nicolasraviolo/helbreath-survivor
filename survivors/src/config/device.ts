@@ -1,0 +1,35 @@
+// Interfaz "compacta" para móviles (Fase 10): el juego se dibuja a 800x600 y se encoge para caber en la pantalla.
+// En un móvil en horizontal queda al ~65 %, así que letras, menús, cartas y barra inferior se agrandan.
+// Se decide una vez al arrancar: pantalla táctil y pequeña. En el PC (o una tablet grande) todo queda como antes.
+// Para probarlo en el PC: añade ?ui=compact a la dirección (o ?ui=normal en el móvil para ver la versión de PC).
+import { GAME_HEIGHT, GAME_WIDTH } from './gameConfig';
+
+/** Screens whose short side is at most this many CSS pixels count as phones. */
+const COMPACT_MAX_SHORT_SIDE = 600;
+/** Text is never drawn sharper than this (memory: a text texture grows with the square of it). */
+const MAX_TEXT_RESOLUTION = 3;
+
+function detectCompactUi(): boolean {
+    const forced = new URLSearchParams(window.location.search).get('ui');
+    if (forced === 'compact') return true;
+    if (forced === 'normal') return false;
+    const touch = window.matchMedia('(pointer: coarse)').matches;
+    return touch && Math.min(window.screen.width, window.screen.height) <= COMPACT_MAX_SHORT_SIDE;
+}
+
+/** True on phones: bigger text and UI. */
+export const COMPACT_UI = detectCompactUi();
+
+/** The desktop value, or the phone one when the compact UI is on. */
+export function byDevice<T>(desktop: T, compact: T): T {
+    return COMPACT_UI ? compact : desktop;
+}
+
+/**
+ * Phaser draws each text once into its own canvas at 1 pixel per game pixel, so when the game is scaled the text
+ * looks blurry. This draws it at the real pixel density of the screen at its biggest (fullscreen) size.
+ */
+export const TEXT_RESOLUTION = Math.min(
+    MAX_TEXT_RESOLUTION,
+    Math.max(1, Math.ceil(window.devicePixelRatio * Math.min(window.screen.width / GAME_WIDTH, window.screen.height / GAME_HEIGHT))),
+);

@@ -22,6 +22,7 @@ import {
     HUD_INFO_STYLE,
     HUD_MENU_BUTTON,
     HUD_MP,
+    HUD_SCALE,
     HUD_TEXT_STYLE,
     HUD_TEXTURE,
     HUD_STATS_PANEL,
@@ -84,6 +85,8 @@ export class HudScene extends Phaser.Scene {
     private getState!: () => HudState;
     private gameSceneKey!: string;
     private inputSystem!: InputSystem;
+    /** The bottom bar and everything on it, in the bar's own pixels (scaled up on phones). */
+    private bar!: Phaser.GameObjects.Container;
     private hp!: Gauge;
     private mp!: Gauge;
     private xp!: Gauge;
@@ -113,7 +116,9 @@ export class HudScene extends Phaser.Scene {
     }
 
     create(): void {
-        this.add.image(0, HUD_TOP, HUD_TEXTURE, HUD_FRAME.panel).setOrigin(0);
+        // Scaled around the bottom centre of the screen, so a bigger bar stays centred and on the bottom edge.
+        this.bar = this.add.container(GAME_WIDTH / 2 * (1 - HUD_SCALE), HUD_TOP).setScale(HUD_SCALE);
+        this.bar.add(this.add.image(0, 0, HUD_TEXTURE, HUD_FRAME.panel).setOrigin(0));
         this.hp = this.createGauge(HUD_HP, HUD_FRAME.gaugeEmpty);
         this.mp = this.createGauge(HUD_MP, HUD_FRAME.gaugeEmpty);
         this.xp = this.createGauge(HUD_XP, HUD_FRAME.xpEmpty);
@@ -169,7 +174,7 @@ export class HudScene extends Phaser.Scene {
 
     private createBossBar(): void {
         this.bossName = new SpriteText(this, GAME_WIDTH / 2, 0, '', HUD_BOSS.nameColor, 'center');
-        this.bossName.container.setDepth(HUD_DEPTH_TEXT).setVisible(false);
+        this.bossName.container.setScale(HUD_BOSS.nameScale).setDepth(HUD_DEPTH_TEXT).setVisible(false);
         this.bossBar = this.add.graphics().setDepth(HUD_DEPTH_TEXT).setVisible(false);
     }
 
@@ -216,7 +221,7 @@ export class HudScene extends Phaser.Scene {
         while (this.buffTexts.length < buffs.length) {
             const y = HUD_TOP - HUD_BUFF.bottomGap - this.buffTexts.length * HUD_BUFF.lineHeight;
             const text = new SpriteText(this, GAME_WIDTH - HUD_BUFF.right, y, '', 0xffffff, 'right');
-            text.container.setDepth(HUD_DEPTH_TEXT);
+            text.container.setScale(HUD_BUFF.scale).setDepth(HUD_DEPTH_TEXT);
             this.buffTexts.push(text);
         }
         this.buffTexts.forEach((text, i) => {
@@ -227,7 +232,8 @@ export class HudScene extends Phaser.Scene {
     }
 
     private createGauge(rect: { x: number; y: number; width: number }, emptyFrame: number): Gauge {
-        const empty = this.add.image(rect.x, HUD_TOP + rect.y, HUD_TEXTURE, emptyFrame).setOrigin(0);
+        const empty = this.add.image(rect.x, rect.y, HUD_TEXTURE, emptyFrame).setOrigin(0);
+        this.bar.add(empty);
         const gauge = { empty, width: rect.width, shownRatio: -1 };
         this.setGauge(gauge, 1);
         return gauge;
@@ -247,18 +253,19 @@ export class HudScene extends Phaser.Scene {
         rect: { x: number; y: number; width: number; height: number },
         style: Phaser.Types.GameObjects.Text.TextStyle,
     ): Phaser.GameObjects.Text {
-        return this.add.text(rect.x + rect.width / 2, HUD_TOP + rect.y + rect.height / 2, '', style)
-            .setOrigin(0.5)
-            .setDepth(HUD_DEPTH_TEXT);
+        const text = this.add.text(rect.x + rect.width / 2, rect.y + rect.height / 2, '', style).setOrigin(0.5);
+        this.bar.add(text);
+        return text;
     }
 
     /** The lit version of each button appears on hover; the system button opens the pause menu. */
     private createButtons(): void {
         for (let i = 0; i < HUD_BUTTONS.count; i++) {
             const x = HUD_BUTTONS.x + i * HUD_BUTTONS.step;
-            const y = HUD_TOP + HUD_BUTTONS.y;
+            const y = HUD_BUTTONS.y;
             const lit = this.add.image(x, y, HUD_TEXTURE, HUD_FRAME.firstButtonLit + i).setOrigin(0).setVisible(false);
             const zone = this.add.zone(x, y, HUD_BUTTONS.width, HUD_BUTTONS.height).setOrigin(0).setInteractive({ useHandCursor: true });
+            this.bar.add([lit, zone]);
             zone.on(Phaser.Input.Events.POINTER_OVER, () => lit.setVisible(true));
             zone.on(Phaser.Input.Events.POINTER_OUT, () => lit.setVisible(false));
             if (i === HUD_MENU_BUTTON) {
