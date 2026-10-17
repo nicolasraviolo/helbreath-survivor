@@ -15,11 +15,11 @@ import {
     HUD_BOSS,
     HUD_BUFF,
     HUD_COMPACT,
+    HUD_COMPACT_LAYOUT,
     HUD_DEPTH_TEXT,
     HUD_STATS_PANEL,
     HUD_STATS_STYLE,
     HUD_STATS_TITLE_STYLE,
-    HUD_TOP,
 } from '../config/hud';
 import type { HudStyle } from '../config/settings';
 import { TOUCH_PAUSE_BUTTON } from '../config/touch';
@@ -31,7 +31,7 @@ import { SETTINGS_CHANGED, settings } from '../systems/Settings';
 import { SpriteText } from '../hb/SpriteText';
 import { ClassicHud } from '../ui/ClassicHud';
 import { CompactHud } from '../ui/CompactHud';
-import { activeHudStyle, playAreaBottom, type HudBar, type HudBarState } from '../ui/hudLayout';
+import { activeHudStyle, overlayBottom, type HudBar, type HudBarState } from '../ui/hudLayout';
 import { openOverlay } from './MenuOverlayScene';
 import type { PauseSceneData } from './PauseScene';
 
@@ -169,10 +169,10 @@ export class HudScene extends Phaser.Scene {
         const ratio = Phaser.Math.Clamp(boss.hp / boss.maxHp, 0, 1);
         if (ratio === this.shownBossRatio) return;
         this.shownBossRatio = ratio;
-        // The compact HUD has its block at the top left and buttons at the top right: the bar goes between them.
-        const compact = this.barStyle === 'compact';
-        const centerX = compact ? HUD_COMPACT.bossCenterX : GAME_WIDTH / 2;
-        const width = compact ? HUD_COMPACT.bossWidth : HUD_BOSS.width;
+        // The compact HUD with its column at the top left (and buttons at the top right): the bar goes between them.
+        const between = this.barStyle === 'compact' && HUD_COMPACT_LAYOUT === 'top';
+        const centerX = between ? HUD_COMPACT.top.bossCenterX : GAME_WIDTH / 2;
+        const width = between ? HUD_COMPACT.top.bossWidth : HUD_BOSS.width;
         const { y, height } = HUD_BOSS;
         const left = centerX - width / 2;
         this.bossName.setText(boss.name);
@@ -201,7 +201,7 @@ export class HudScene extends Phaser.Scene {
 
     /** Line `index` of the buffs, from the bottom of the game area up. */
     private buffY(index: number): number {
-        return playAreaBottom() - HUD_BUFF.bottomGap - index * HUD_BUFF.lineHeight;
+        return overlayBottom() - HUD_BUFF.bottomGap - index * HUD_BUFF.lineHeight;
     }
 
     /** One line per active buff, bottom right: name and seconds left, in its colour. */
@@ -245,11 +245,11 @@ export class HudScene extends Phaser.Scene {
         this.placeStatsPanel();
     }
 
-    /** Above the classic bar, or under the compact block. */
+    /** Under the compact column at the top, or above the bar / row of gauges at the bottom. */
     private placeStatsPanel(): void {
-        this.statsPanel.y = this.barStyle === 'classic'
-            ? HUD_TOP - this.statsPanelHeight - HUD_STATS_PANEL.marginY
-            : HUD_COMPACT.statsPanelY;
+        this.statsPanel.y = this.barStyle === 'compact' && HUD_COMPACT_LAYOUT === 'top'
+            ? HUD_COMPACT.top.statsPanelY
+            : overlayBottom() - this.statsPanelHeight - HUD_STATS_PANEL.marginY;
     }
 
     private refreshStats(state: HudState): void {

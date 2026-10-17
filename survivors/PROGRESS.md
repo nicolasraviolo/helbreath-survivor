@@ -21,6 +21,7 @@
   - Arriba a la izquierda: barras de vida, maná y experiencia con piezas de la interfaz "V2" del original (`dialogsv2.spr`), y debajo nivel, tiempo y bajas.
   - Arriba a la derecha: botón de stats (casco) junto al de pausa.
   - La barra del jefe se coloca entre los dos. Los buffs siguen abajo a la derecha, más pegados al borde.
+- **Ajuste del 17-oct (pedido del propietario):** las barras compactas pasan a estar **abajo, en fila** (vida, maná y experiencia una al lado de otra), con un 25 % de transparencia. Nivel, tiempo y bajas, justo encima. Buffs, panel de stats y el texto "Tap a card" se colocan por encima de la fila. Si se quiere volver a ponerlas arriba a la izquierda, basta con cambiar `HUD_COMPACT_LAYOUT` en `config/hud.ts`.
 - **Classic:** la barra de abajo del bloque 10A.
 - **Cambiar en plena partida:** desde la pausa (Pause → Settings → HUD). Al volver al juego, la barra y la zona de juego ya han cambiado.
 - **Código:** `ui/ClassicHud.ts` y `ui/CompactHud.ts`. La elección vive en `ui/hudLayout.ts` y las medidas en `config/hud.ts` (`HUD_COMPACT`). `dialogsv2.spr` (2,3 MB) solo se descarga en el móvil.

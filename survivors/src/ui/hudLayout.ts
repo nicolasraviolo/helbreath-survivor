@@ -2,7 +2,7 @@
 // en Settings → HUD. De ella depende hasta dónde llega la zona de juego (con la compacta, hasta abajo del todo).
 import { COMPACT_UI } from '../config/device';
 import { GAME_HEIGHT } from '../config/gameConfig';
-import { HUD_TOP } from '../config/hud';
+import { HUD_COMPACT, HUD_COMPACT_LAYOUT, HUD_TOP } from '../config/hud';
 import type { HudStyle } from '../config/settings';
 import { settings } from '../systems/Settings';
 
@@ -13,6 +13,15 @@ export function activeHudStyle(): HudStyle {
 /** Bottom of the game area on screen: the top of the classic bar, or the bottom of the screen. */
 export function playAreaBottom(): number {
     return activeHudStyle() === 'classic' ? HUD_TOP : GAME_HEIGHT;
+}
+
+/**
+ * Lowest Y free for things drawn over the game (buffs, stats panel, level-up hint): the play area, minus the strip of
+ * the compact gauges when they run along the bottom (they are see-through, so the map still goes under them).
+ */
+export function overlayBottom(): number {
+    if (activeHudStyle() === 'compact' && HUD_COMPACT_LAYOUT === 'bottom') return GAME_HEIGHT - HUD_COMPACT.bottom.reserve;
+    return playAreaBottom();
 }
 
 /** The part of the HUD that changes with the style: the classic bottom bar or the compact block (ui/ClassicHud.ts, ui/CompactHud.ts). */
