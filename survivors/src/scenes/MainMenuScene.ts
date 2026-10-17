@@ -14,6 +14,7 @@ import {
     MENU_PANEL,
 } from '../config/menus';
 import { MUSIC } from '../data/audio';
+import { assetStreamer } from '../systems/AssetStreamer';
 import { InputSystem } from '../systems/InputSystem';
 import { MusicSystem } from '../systems/MusicSystem';
 import { fullscreenItem } from '../ui/fullscreen';
@@ -56,6 +57,8 @@ export class MainMenuScene extends Phaser.Scene {
             this.openedAt = this.time.now;
         });
         new MusicSystem(this).play(MUSIC.menu);
+        // The monsters of later waves start downloading already, while the player is in the menus.
+        assetStreamer.start(this);
     }
 
     override update(): void {

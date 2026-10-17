@@ -471,3 +471,10 @@ Tabla completa en `docs/REQUISITOS_HB.md`. Lo no obvio:
   - Por eso el joystick lee `touchmove`/`touchend` del navegador y los pasa a coordenadas del juego con `scale.transformX/Y(pageX/pageY)`.
   - Cambiar `input.touch.target` al div no sirve: los toques llegarían dos veces (div y `window`).
 - Una escena en pausa no ve el dedo levantarse. Por eso el joystick se suelta solo cuando la partida se pausa.
+
+## Build y publicación (Fase 9)
+- `HBSpriteFile.load(scene)` solo usa cosas comunes a todo el juego (caché, texturas, animaciones). Por eso se pueden cargar sprites desde cualquier escena y en mitad de la partida: `fetch` → `game.cache.binary.add(key, buffer)` → `new HBSpriteFile(...).load(scene)`. Así lo hace `AssetStreamer`.
+- Para saber si un sprite está listo: `textures.exists(getSheetKey(key, 0))`.
+- `window.__game` solo existe en desarrollo. En `pnpm preview` no está.
+- Los `.spr` llevan PNG dentro (ya comprimido): la compresión del servidor apenas reduce su tamaño.
+- Cloudflare Pages: 25 MiB máximo por archivo (el mayor es `tile489-522.spr`, 5,2 MB) y 20 000 archivos por despliegue.

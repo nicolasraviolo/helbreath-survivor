@@ -42,6 +42,7 @@ import { CombatSystem } from '../systems/CombatSystem';
 import { DamageNumbers } from '../systems/DamageNumbers';
 import { DebugSystem } from '../systems/DebugSystem';
 import { EnemySystem } from '../systems/EnemySystem';
+import { assetStreamer } from '../systems/AssetStreamer';
 import { Action, InputSystem } from '../systems/InputSystem';
 import { TouchJoystick } from '../ui/TouchJoystick';
 import { SpawnSystem } from '../systems/SpawnSystem';
@@ -144,7 +145,12 @@ export class GameScene extends Phaser.Scene {
 
         this.audio = new AudioSystem(this);
         this.enemies = new EnemySystem(this, this.audio);
-        this.spawner = new SpawnSystem(camera, this.enemies, map, areaPx, (event, spawned) => this.onWaveEvent(event, spawned));
+        this.spawner = new SpawnSystem(
+            camera, this.enemies, map, areaPx, (event, spawned) => this.onWaveEvent(event, spawned),
+            (id) => assetStreamer.isReady(id), (id) => assetStreamer.hurry(id),
+        );
+        // Normally already running since the main menu; this covers starting a run any other way.
+        assetStreamer.start(this);
         this.damageNumbers = new DamageNumbers(this);
         this.xp = new XpSystem(this, this.audio);
         this.pickups = new PickupSystem(this, this.audio, (id) => this.collectPickup(id));
@@ -327,7 +333,8 @@ export class GameScene extends Phaser.Scene {
         if (input.justPressed(Action.ToggleDebug)) {
             this.debug.toggle();
         }
-        if (input.justPressed(Action.OpenSpriteTest)) {
+        // The sprite test shows the Orc, which arrives with a later wave: only once it has loaded.
+        if (input.justPressed(Action.OpenSpriteTest) && assetStreamer.isReady('orc')) {
             this.scene.start('SpriteTest');
             return;
         }
