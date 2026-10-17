@@ -10,8 +10,8 @@ Esto se hace **una sola vez**. Lo tienes que hacer tú, porque hay que crear una
 3. Confirma el email.
 
 ## 2. Conectar el repositorio de GitHub
-1. En el panel de Cloudflare, menú de la izquierda: **Workers & Pages**.
-2. Pulsa **Create** → pestaña **Pages** → **Connect to Git**.
+1. En el panel de Cloudflare, menú de la izquierda: **Compute (Workers)** → **Workers & Pages**.
+2. Pulsa el botón azul **Create** (o "Create application"). **No crees un Worker**: elige la pestaña **Pages**, o el texto pequeño de abajo "Looking to deploy Pages? Get started". Después, **Import an existing Git repository** (o "Connect to Git").
 3. Elige **GitHub** y autoriza a Cloudflare.
    - Cuando GitHub pregunte a qué repositorios puede entrar, basta con **solo `helbreath-survivor`**.
 4. Elige el repositorio `nicolasraviolo/helbreath-survivor` y pulsa **Begin setup**.
@@ -21,7 +21,7 @@ Esto se hace **una sola vez**. Lo tienes que hacer tú, porque hay que crear una
 |---|---|
 | Project name | `helbreath-survivors` (será parte del enlace) |
 | Production branch | `master` |
-| Framework preset | `None` |
+| Framework preset | `None` (si no aparece, déjalo en blanco) |
 | Build command | `pnpm build` |
 | Build output directory | `dist` |
 | Root directory (en *Advanced*) | `survivors` |
@@ -40,6 +40,11 @@ Pulsa **Save and Deploy**. El primer despliegue tarda unos minutos.
 - En la página del proyecto, pestaña **Deployments**, abre el despliegue fallido y copia el registro (*build log*). Pásaselo a Claude.
 - **Error típico:** "No asset paths found" o "missing in sp-client". El build no encuentra los assets: revisa que *Root directory* sea `survivors`.
 
+- **El despliegue sale en verde pero el enlace "no se puede conectar":** puede que tu proveedor de internet esté bloqueando parte de las IPs de Cloudflare (pasó el 17-oct-2026). En España ocurre a menudo durante los partidos de LaLiga. El juego está bien publicado. Prueba:
+  - más tarde;
+  - con datos móviles de otra compañía;
+  - con una VPN.
+
 ## Cómo funciona por dentro
 - `pnpm build` hace tres cosas:
   1. comprueba los tipos;
@@ -52,6 +57,19 @@ Pulsa **Save and Deploy**. El primer despliegue tarda unos minutos.
   1. `pnpm --dir survivors build`
   2. `pnpm --dir survivors preview --port 8091`
   3. Abre http://localhost:8091.
+
+## Copia en GitHub Pages (sin Cloudflare)
+Por si las IPs de Cloudflare están bloqueadas, por ejemplo en España durante los partidos de LaLiga.
+- **Enlace:** https://nicolasraviolo.github.io/helbreath-survivor/
+- **Actualización:** se publica sola en cada subida a `master`, con `.github/workflows/pages.yml`. Hace el mismo `pnpm build` y publica `survivors/dist`.
+
+**Activarlo (una sola vez):**
+1. En GitHub, abre el repositorio → **Settings** → **Pages** (menú de la izquierda).
+2. En **Build and deployment** → **Source**, elige **GitHub Actions**. Nada más: no hay que pulsar "Save".
+3. En la pestaña **Actions** sale "Deploy to GitHub Pages". Si no se ha lanzado solo, ábrelo y pulsa **Run workflow**.
+4. Al terminar (unos 3–5 minutos, con marca verde), abre el enlace.
+
+Si falla, abre el despliegue en rojo de la pestaña **Actions**, copia el paso que falló y pásaselo a Claude.
 
 ## Alternativa: itch.io (a mano)
 1. Ejecuta `pnpm --dir survivors build`.

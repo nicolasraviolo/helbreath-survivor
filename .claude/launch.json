@@ -41,6 +41,21 @@
         "--strictPort"
       ],
       "port": 8091
+    },
+    {
+      "name": "survivors-preview-subpath",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "--dir",
+        "survivors",
+        "preview",
+        "--port",
+        "8092",
+        "--strictPort",
+        "--base",
+        "/helbreath-survivor/"
+      ],
+      "port": 8092
     }
   ]
 }

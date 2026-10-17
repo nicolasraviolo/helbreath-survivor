@@ -478,3 +478,16 @@ Tabla completa en `docs/REQUISITOS_HB.md`. Lo no obvio:
 - `window.__game` solo existe en desarrollo. En `pnpm preview` no está.
 - Los `.spr` llevan PNG dentro (ya comprimido): la compresión del servidor apenas reduce su tamaño.
 - Cloudflare Pages: 25 MiB máximo por archivo (el mayor es `tile489-522.spr`, 5,2 MB) y 20 000 archivos por despliegue.
+
+## Assets para la segunda etapa (investigado el 17-oct-2026, ver `docs/PLAN-2.md`)
+- **Crítico del original:** se lanza con Alt; cargas = nivel/10, +1 cada ~13 s (S:4117). Grito `C23` (hombre) / `C24` (mujer). Icono del HUD al mantener Alt: GameDialog hoja 6 frame 3.
+- **Zem** (Zemstone of Sacrifice): `item-ground`/`item-pack` hoja 15 frame 39. Efecto Resurrection: `effect11` hoja 10 (21 frames; el código pide 30).
+- **Minimapa original:** `telescope.spr` hoja 0, miniaturas de 128×128. Frame por mapa: huntzone2 9, middleland 4, arefarm 6, elvfarm 5, dglv4 14, icebound 24, druncncity 25. Punto del jugador: GameDialog hoja 4 frame 37. También hay `images/minimaps/<mapa>.jpg` (1500×1500).
+- **Bolsa original:** GameDialog hoja 7 frame 0 (226×188); objetos dibujados en (32+x, 44+y).
+- **Objetos Hero por bando:** Aresden = sufijo 2 en armaduras y `mantle01`/`04` en capas; Elvine = sufijo 1 y `mantle02`/`05`. Banderas en el suelo: 5/56 Aresden, 5/57 Elvine.
+- **Monstruos sin usar con sprite:** Frost, Ice Golem, Wyvern (el "de hielo", 3,6 MB), Dragon (`barlog`), Beholder, Stone/Clay Golem, Claw Turtle, Nizie, Tentocle, Giant Crayfish, Giant Lizard, Master Mage Orc, Centaurus, Sorceress, Cat, Rudolph, Mountain Giant, Unicorn, Guard. **No existen:** Yeti, Ice Lizard, otros dragones.
+- **Mapas medidos** (mejor 100×100 libre / descarga completa): icebound 91% / 9,2 MB; dglv4 63% (99% en 60×60) / 4,9 MB; druncncity 86% / 8,5 MB; arefarm/elvfarm 93–95% / 16,2 MB; aresden/elvine 92–96% / 22,2 MB.
+- **17-oct-2026:** `helbreath-survivor.pages.dev` publicado bien, pero desde la red del propietario no conectaba.
+  - Su DNS daba 188.114.96.5 / 188.114.97.5 y la conexión se quedaba colgada.
+  - Forzando otra IP de Cloudflare (172.66.44.100) respondía 200 con el juego y los `.spr`.
+  - Es un bloqueo de IPs de Cloudflare del proveedor (típico en España con LaLiga), no un problema del juego.
