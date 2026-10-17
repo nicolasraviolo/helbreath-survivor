@@ -32,7 +32,7 @@ No sabe programar. Explica lo que haces en español sencillo, dile siempre **có
   - Mira capturas solo cuando el cambio sea visual, y pocas: cada imagen se queda en la conversación y se relee en cada respuesta.
   - Para llegar a una situación usa los atajos `?play`, `?debug=...` y `?ui=compact` (`src/config/debugStart.ts`); si falta uno, añádelo ahí en vez de improvisar JavaScript en el navegador.
   - Playwright MCP a mano solo para lo que el script no cubra (interacciones, menús). No uses el navegador interno para el juego: en segundo plano va a ~1 FPS.
-- Al cerrar un bloque: `/checkpoint` (ligero). Al cerrar una fase: `/checkpoint fase` (incluye la guía y la publicación).
+- Al cerrar un bloque: `/checkpoint` (ligero). Al cerrar una fase: `/checkpoint fase` (fusiona, etiqueta y publica). La guía del juego solo se actualiza cuando el propietario lanza `/guia`.
 - Si descubres algo no obvio de los assets o del código base, anótalo en `survivors/NOTES.md`.
 
 ## Comandos
