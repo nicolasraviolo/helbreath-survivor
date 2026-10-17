@@ -1,5 +1,6 @@
 // Menú principal (Fase 8): la pantalla de título del Helbreath original con un panel de opciones a la derecha.
-// Play → elegir personaje; How to Play (Fase 11), Achievements, Settings y Credits se abren encima; Fullscreen, si el navegador lo permite. Suena la música por defecto del original.
+// Continue (Fase 12, si hay partidas guardadas) → SaveSlotsScene; Play → elegir personaje; How to Play (Fase 11), Achievements, Settings y Credits se abren encima; Install
+// (Fase 12), si el navegador lo permite. Pantalla completa: icono pequeño arriba a la derecha (Fase 12C). Suena la música por defecto del original.
 // Se maneja con ↑/↓ (cruceta o stick) + Enter/A, o con el ratón.
 import Phaser from 'phaser';
 import { DEBUG_START } from '../config/debugStart';
@@ -17,16 +18,19 @@ import { MUSIC } from '../data/audio';
 import { assetStreamer } from '../systems/AssetStreamer';
 import { InputSystem } from '../systems/InputSystem';
 import { MusicSystem } from '../systems/MusicSystem';
-import { fullscreenItem } from '../ui/fullscreen';
+import { addFullscreenButton } from '../ui/fullscreen';
+import { INSTALL_CHANGED, installEvents, installItem } from '../ui/install';
 import { MenuList } from '../ui/MenuList';
 import { openOverlay } from './MenuOverlayScene';
+import type { SaveSlotsSceneData } from './SaveSlotsScene';
+import { saveStore } from '../systems/SaveStore';
 
 /** ?open= only applies the first time the menu is shown. */
 let debugScreenOpened = false;
 
 export class MainMenuScene extends Phaser.Scene {
     private menuInput!: InputSystem;
-    private list!: MenuList;
+    private list: MenuList | undefined;
     private openedAt = 0;
 
     constructor() {
@@ -41,17 +45,14 @@ export class MainMenuScene extends Phaser.Scene {
 
         this.add.image(MAIN_MENU.panelX, MAIN_MENU.panelY, MENU_PANEL.texture, MENU_PANEL.frame)
             .setOrigin(0.5).setScale(MAIN_MENU.panelScale);
-        const items = [
-            { label: 'Play', onConfirm: () => this.scene.start('CharacterSelect') },
-            { label: 'How to Play', onConfirm: () => openOverlay(this, 'HowToPlay') },
-            { label: 'Achievements', onConfirm: () => openOverlay(this, 'Achievements') },
-            { label: 'Settings', onConfirm: () => openOverlay(this, 'Settings') },
-            { label: 'Credits', onConfirm: () => openOverlay(this, 'Credits') },
-            ...fullscreenItem(this),
-        ];
-        const firstY = MAIN_MENU.panelY - ((items.length - 1) * MAIN_MENU.itemSpacing) / 2;
-        this.list = new MenuList(this, items, { x: MAIN_MENU.panelX, y: firstY, spacing: MAIN_MENU.itemSpacing });
-        this.list.setReadyCheck(() => this.ready());
+        // The old list (from the last time the menu was shown) went away with the scene.
+        this.list = undefined;
+        this.buildList();
+        addFullscreenButton(this, () => this.ready());
+        // Chrome can offer installing (or stop offering it) while the menu is open: the options are built again.
+        const onInstallChanged = () => this.buildList();
+        installEvents.on(INSTALL_CHANGED, onInstallChanged);
+        this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => installEvents.off(INSTALL_CHANGED, onInstallChanged));
 
         this.menuInput = new InputSystem(this);
         this.menuInput.setPointerMaxY(-1);
@@ -70,7 +71,33 @@ export class MainMenuScene extends Phaser.Scene {
 
     override update(): void {
         this.menuInput.update();
-        if (this.ready()) this.list.handleInput(this.menuInput);
+        if (this.ready()) this.list?.handleInput(this.menuInput);
+    }
+
+    private buildList(): void {
+        this.list?.destroy();
+        // Fase 12: Continue only with a saved run; Play with every slot in use first asks which run to delete.
+        const continueItem = saveStore.hasAny
+            ? [{ label: 'Continue', onConfirm: () => openOverlay(this, 'SaveSlots', { mode: 'continue' } satisfies SaveSlotsSceneData) }]
+            : [];
+        const play = () => {
+            if (saveStore.hasFree) this.scene.start('CharacterSelect');
+            else openOverlay(this, 'SaveSlots', { mode: 'replace' } satisfies SaveSlotsSceneData);
+        };
+        const items = [
+            ...continueItem,
+            { label: 'Play', onConfirm: play },
+            { label: 'How to Play', onConfirm: () => openOverlay(this, 'HowToPlay') },
+            { label: 'Achievements', onConfirm: () => openOverlay(this, 'Achievements') },
+            { label: 'Settings', onConfirm: () => openOverlay(this, 'Settings') },
+            { label: 'Credits', onConfirm: () => openOverlay(this, 'Credits') },
+            ...installItem(),
+        ];
+        const maxSpan = (MAIN_MENU.itemsAtFullSpacing - 1) * MAIN_MENU.itemSpacing;
+        const spacing = Math.min(MAIN_MENU.itemSpacing, maxSpan / Math.max(1, items.length - 1));
+        const firstY = MAIN_MENU.panelY - ((items.length - 1) * spacing) / 2;
+        this.list = new MenuList(this, items, { x: MAIN_MENU.panelX, y: firstY, spacing });
+        this.list.setReadyCheck(() => this.ready());
     }
 
     private ready(): boolean {

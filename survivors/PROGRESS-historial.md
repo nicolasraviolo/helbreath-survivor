@@ -2,6 +2,34 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
+**Fase 12 completada (2026-10-18)**: fusionada en `master`, etiqueta `fase-12`. Siguiente: Fase 13 (Jefe final y equilibrio).
+
+**Fase 12, bloque 12C: Settings táctil (2026-10-18, el propietario lo probó y le gusta).**
+- **Settings más grande** (el panel de Credits) y filas más juntas (`SETTINGS_MENU` en `config/menus.ts`): todo cabe dentro del marco, también en el móvil con HUD y Fullscreen (antes HUD y Back se salían y "Compact" pisaba las flechas).
+- **Casillas** para Health Bar on Character, Screen Shake y Fullscreen (`MenuList`, propiedad `checked`; dibujadas con `Graphics`, el original no tiene sprite de casilla). Un toque en la fila la cambia; con teclado/mando, Enter o ←/→.
+- **Volumen:** se probó una barra deslizante; el propietario prefirió **las flechas con el número**, como antes.
+- **Large Trees: solo On / Off.** On = el árbol se vuelve transparente al pasar por detrás (como siempre). Se quitó el modo Transparent; un valor guardado así se carga como On.
+- **Fullscreen:** casilla en Settings, opción en la Pausa (se queda) y **icono pequeño arriba a la derecha** del menú principal (sale de la lista). En la app instalada no aparece en ningún sitio (`ui/fullscreen.ts`). How to Play actualizado.
+- **Comprobado:** `build` sin errores; `check menu game open=settings` en PC y móvil sin errores; en Playwright: clic en casilla, teclado (↑/↓, Enter, ←/→) e icono de pantalla completa (entra y sale).
+- **Cómo probarlo:** `pnpm --dir survivors dev` → http://localhost:8090/?open=settings (en el móvil, `&ui=compact`).
+
+**Fase 12, bloque 12B: guardar la partida, pausa automática y Continue (2026-10-18).**
+- **Hasta 3 partidas guardadas** en el navegador (`systems/SaveStore.ts`, números en `data/saves.ts`). Guardan nombres (clase, mapa, arma, hechizo, armadura, pasivas, buffs, jefes vivos), stats, nivel, XP, cartas pendientes, vida, bajas y minuto. Llevan número de versión y `migrate()` para cambiar el formato sin borrar nada (decisión del propietario: debe poder crecer con más armas, niveles e inventario).
+- **Cuándo se guarda:** cada 5 s de juego, al elegir carta, al pasar la pestaña a segundo plano (`visibilitychange` / `pagehide`) y al salir al menú. **Se borra** al ganar o morir.
+- **Pausa automática** (`HudScene`) al pasar la pestaña a segundo plano: al volver, el menú de pausa está abierto.
+- **Continue** arriba del todo del menú principal si hay alguna partida: abre `SaveSlotsScene` con la lista ("Warrior   Lv 14   8:32"). **Play con las 3 ranuras llenas** pide elegir cuál borrar y confirmar ("Yes, delete it" / "No").
+- **Al continuar:** el reloj sigue en ese minuto, los eventos ya pasados no se repiten, 5 s sin monstruos y después vuelven los jefes que estaban vivos (con su aviso). No se guardan monstruos, gemas ni objetos del suelo (límite aceptado).
+- **Atajo nuevo:** `?debug=...,resume` guarda y recarga la partida como con Continue.
+- **Comprobado:** `build` sin errores; ida y vuelta con `resume` (nivel, stats, vida, arma, armadura, pasivas, buff con su tiempo, Ettin vuelve tras la calma); en Playwright: Continue en el menú, lista, elegir con teclado carga la partida, pausa y guardado al ocultar la pestaña, Play con 3 ranuras → confirmar → borra y abre la selección; al terminar la partida la ranura se libera; `check menu game levelup boss` y `menu game --mobile` sin errores.
+- **Cómo probarlo:** `pnpm --dir survivors dev` → http://localhost:8090, jugar un poco, cerrar la pestaña y volver a abrirla → **Continue**. Cambiar de pestaña y volver → el juego está en pausa.
+
+**Fase 12, bloque 12A: instalar como app (2026-10-18).**
+- **Manifiesto, service worker e iconos** en `survivors/pwa/` (solo en el build, vía el plugin `installableApp` de `vite.config.ts`). Pantalla completa, horizontal, fondo negro, icono con la "H" dorada (`scripts/make-icons.mjs` lo dibuja desde `pwa/icon.svg`).
+- **Actualización sola:** el service worker pide siempre la página a internet primero; el código lleva hash en el nombre. Sin conexión solo queda la última página guardada (el juego no funciona offline).
+- **Opción "Install"** al final del menú principal (`ui/install.ts`), solo cuando Chrome lo ofrece (`beforeinstallprompt`); desaparece al usarla o al instalar. El menú se rehace si el aviso llega con él abierto (`MenuList.destroy()`), y con 7 opciones las filas se juntan para caber en el marco.
+- **Comprobado:** `build` sin errores; `check menu` en PC y móvil sin errores; con `vite preview` + Chrome, `Page.getInstallabilityErrors` = sin errores y el manifiesto sin errores; captura del menú con Install revisada.
+- **Cómo probarlo:** solo en la web publicada (https) o en `pnpm --dir survivors build` + `pnpm --dir survivors preview` → http://localhost:4173 en el PC. En el móvil con Chrome: sale "Install" en el menú (o ⋮ → "Añadir a pantalla de inicio"); abrir desde el icono → pantalla completa y en horizontal.
+
 **Fase 11 completada (2026-10-18)**: fusionada en `master`, etiqueta `fase-11`. Siguiente: Fase 12 (Móvil sin pérdidas).
 
 **Fase 11: pulido de interfaz (2026-10-18, el propietario la probó y le gusta).**

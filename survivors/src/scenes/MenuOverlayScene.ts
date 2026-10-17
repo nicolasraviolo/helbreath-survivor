@@ -29,6 +29,8 @@ export abstract class MenuOverlayScene extends Phaser.Scene {
     protected abstract readonly title: string;
     /** Size of the panel; a screen with more content can make it bigger. */
     protected readonly panelScale: number = MENU_OVERLAY.panelScale;
+    /** Space between options; a screen with many of them can bring them closer. */
+    protected readonly itemSpacing: number = MENU_OVERLAY.itemSpacing;
 
     init(data: MenuOverlayData): void {
         this.returnTo = data.returnTo;
@@ -68,7 +70,7 @@ export abstract class MenuOverlayScene extends Phaser.Scene {
         this.list = new MenuList(this, items, {
             x: MENU_OVERLAY.panelX,
             y: this.contentTop + firstRowOffset,
-            spacing: MENU_OVERLAY.itemSpacing,
+            spacing: this.itemSpacing,
             valueHalfWidth: MENU_OVERLAY.valueColumnHalfWidth,
             valueBoxWidth,
         });
@@ -80,6 +82,11 @@ export abstract class MenuOverlayScene extends Phaser.Scene {
     protected close(): void {
         this.scene.stop();
         this.scene.resume(this.returnTo);
+    }
+
+    /** Scene paused underneath (resumed on close). */
+    protected get returnScene(): string {
+        return this.returnTo;
     }
 
     protected get panelTop(): number {

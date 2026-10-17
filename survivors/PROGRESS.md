@@ -14,10 +14,14 @@
 | 9 — Web, móvil y publicación | ✅ completada | 2026-10-17 |
 | 10 — Pulido (opcional) | ✅ completada (10A, 10B y 10C) | 2026-10-17 |
 | 11 — Pulido de interfaz | ✅ completada | 2026-10-18 |
+| 12 — Móvil sin pérdidas | ✅ completada (12A, 12B y 12C) | 2026-10-18 |
 
 ## Fase actual
-**Para retomar (18-oct-2026): Fase 11 completada, fusionada y etiquetada (`fase-11`)** (Large Trees, How to Play, sin textos de controles, selección de personaje en el móvil); resumen en `PROGRESS-historial.md`. Segunda etapa en `docs/PLAN-2.md` (Fases 11–25). **Siguiente: `/fase 12` (Móvil sin pérdidas).**
+**Para retomar (18-oct-2026): Fase 12 completada y fusionada en `master`** (app instalable, 3 partidas guardadas con Continue, Settings táctil); resumen en `PROGRESS-historial.md`. **Siguiente: Fase 13, Jefe final y equilibrio** (`docs/PLAN-2.md`). Antes del plan, preguntar al propietario la decisión pendiente 2: ¿cuántos niveles en una partida completa?
+- **Partidas guardadas:** `systems/SaveStore.ts` (formato con versión; ver NOTES.md, "Partidas guardadas"). Logros, récords y baúl (Fases 14, 19 y 21) irán en otras claves, reutilizando la idea.
+- **App instalable:** solo en el build (`survivors/pwa/`); en `pnpm dev` no existe. Para probarla en el PC: `pnpm build` y `pnpm preview` → http://localhost:4173.
 - **Controles:** todo control nuevo se explica en How to Play (`data/howToPlay.ts`), nunca en pantalla.
+- **Settings:** lo que es sí/no va con casilla (`MenuList`, `checked`); volumen y opciones de varios valores, con flechas ◄ ►.
 - **Assets propios** (los que no están en sp-client, como las voces de subir de nivel): `survivors/custom-assets/`, con la misma estructura de carpetas.
 - **Ajustes posibles del temblor**, si el propietario los pide (`data/feedback.ts`): acortar la pausa entre explosiones críticas (2,5 s), contar cualquier crítico de la explosión, o añadir temblor a los críticos cuerpo a cuerpo.
 - **Lo demás de la Fase 10 queda para la segunda etapa** (`docs/PLAN-2.md`, tabla "Traído de la Fase 10"):
@@ -31,7 +35,7 @@
 ## Cómo probar
 - Jugar: `pnpm --dir survivors dev` → http://localhost:8090
 - Comprobación automática: `pnpm --dir survivors check [situaciones] [--mobile]` → escenas, FPS, estado de la partida, errores de consola y una captura pequeña en `survivors/.check/`. Situaciones: `menu`, `game`, `levelup`, `boss`, `horde`, `pickups` o atajos a mano (`"play=warrior&debug=str,levels"`). `--eval="g.enemies.alive"` escribe cualquier dato de la partida (g = escena Game); `--wait=5000` la deja correr más. Si la expresión devuelve una promesa, se espera (útil para vigilar unos segundos).
-- Atajos en la dirección (solo en desarrollo, `src/config/debugStart.ts`): `?play`, `?play=warrior`, `?debug=boss,god` (acciones: horde, kill, levelup, levels, str, magic, pickups, minute, boss, god), `?ui=compact` (interfaz de móvil), `?trees=off` (árboles, solo esa partida), `?open=howtoplay` (también settings, credits, select).
+- Atajos en la dirección (solo en desarrollo, `src/config/debugStart.ts`): `?play`, `?play=warrior`, `?debug=boss,god` (acciones: horde, kill, levelup, levels, str, magic, pickups, minute, boss, god, resume = guardar y recargar como con Continue), `?ui=compact` (interfaz de móvil), `?trees=off` (árboles, solo esa partida), `?open=howtoplay` (también settings, credits, select).
 - Teclas de depuración en partida: F1 panel · G invencible · N enemigos · L niveles · J +1 minuto, entre otras (`systems/InputSystem.ts`).
 - Datos de referencia de Helbreath: `docs/hb-wiki/` (índice en `README.md`).
 
@@ -51,5 +55,7 @@
 - 2026-10-16 · Idioma del juego: **solo inglés** (regla 9 de CLAUDE.md). Documentación y explicaciones siguen en español.
 - 2026-10-16 · Las gemas de XP se dibujan por encima de enemigos y objetos, para que nunca queden tapadas.
 - 2026-10-17 · Temblor de cámara: suave con cualquier golpe, fuerte con golpes de jefe, y en las explosiones grandes solo con crítico (como mucho una vez cada 2,5 s). Se puede quitar en Settings.
-- 2026-10-18 · Ningún texto de controles en partida ni en menús: se explican en **How to Play**. Árboles grandes: On por defecto; Transparent = todos transparentes.
+- 2026-10-18 · Ningún texto de controles en partida ni en menús: se explican en **How to Play**. Árboles grandes: On por defecto (desde la 12C, solo On/Off).
+- 2026-10-18 · Settings: casillas para sí/no; volumen con flechas y número (se probaron barras y no gustaron). Large Trees solo On/Off. Fullscreen: icono arriba a la derecha del menú principal, casilla en Settings y opción en la Pausa.
+- 2026-10-18 · Partidas guardadas: **hasta 3**; Continue abre la lista; con las 3 llenas, Play pide cuál borrar (con confirmación). El formato lleva versión para poder crecer.
 - 2026-10-16 · Mapa: **huntzone2** (elegido por el propietario frente a middleland). Zona de juego ~100×100 casillas desde (72,70). Riesgos y detalles en `NOTES.md`.

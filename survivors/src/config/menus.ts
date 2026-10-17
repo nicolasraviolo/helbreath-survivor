@@ -20,8 +20,10 @@ export const MAIN_MENU = {
     panelX: byDevice(585, 575),
     panelY: byDevice(318, 330),
     panelScale: byDevice(1.1, 1.3),
-    /** Six options (with How to Play and Fullscreen) must fit inside the panel's frame. */
+    /** Space between options. Six fit inside the panel's frame like this. */
     itemSpacing: byDevice(32, 37),
+    /** Most options that fit at itemSpacing; with more (Continue and Install, Fase 12) they get closer to stay inside the frame. */
+    itemsAtFullSpacing: 6,
     /** Black strip over the original's "Multiplayer Online Game…" line, with our own footer. */
     footerHeight: 42,
     footerText: 'Unofficial fan project  ·  free and non-profit',
@@ -68,6 +70,38 @@ export const MENU_ARROW = {
     scale: byDevice(1.6, 2),
     /** Arrows of the rows that aren't highlighted are a bit faded. */
     idleAlpha: 0.7,
+} as const;
+
+/** Yes/no box of Settings (Fase 12C). The original has none: drawn in the colours of the menu options. */
+export const MENU_CHECKBOX = {
+    size: byDevice(22, 30),
+    border: byDevice(2, 3),
+    tickWidth: byDevice(3, 4),
+    fill: 0x000000,
+    fillAlpha: 0.45,
+} as const;
+
+/** Settings (Fase 12C): the big panel, rows a bit closer so all of them fit inside its frame. */
+export const SETTINGS_MENU = {
+    /** First row, from the usual content row. */
+    firstRowOffset: byDevice(-10, -22),
+    itemSpacing: byDevice(38, 40),
+    /** Width of the value column (checkbox or "◄ Compact ►"). */
+    valueBoxWidth: byDevice(150, 210),
+} as const;
+
+/** Small fullscreen button in a corner of the main menu (Fase 12C; before, it was an option of the list). */
+export const FULLSCREEN_BUTTON = {
+    /** Centre, from the top-right corner of the screen. */
+    margin: byDevice(28, 40),
+    size: byDevice(26, 40),
+    /** Length of each corner bracket, as a share of the size. */
+    corner: 0.35,
+    lineWidth: byDevice(3, 4),
+    color: 0xe8dcc0,
+    hoverColor: 0xffd860,
+    /** Dark square behind it, so it shows over the background picture. */
+    backAlpha: 0.5,
 } as const;
 
 /** Ignore input for a moment so the key / button that opened a menu does nothing in it. */

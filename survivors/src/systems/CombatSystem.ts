@@ -55,6 +55,11 @@ export class CombatSystem {
         return this.killCount;
     }
 
+    /** Continue (saved run): the count goes on from there. */
+    public restoreKills(count: number): void {
+        this.killCount = count;
+    }
+
     /**
      * Explosion: every enemy in the circle takes the area damage, the direct target also the direct damage.
      * Returns true if the main hit (the direct target, or else the first enemy hit) was critical.

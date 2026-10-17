@@ -15,10 +15,12 @@ import { LevelUpScene } from './scenes/LevelUpScene';
 import { GameOverScene } from './scenes/GameOverScene';
 import { PauseScene } from './scenes/PauseScene';
 import { SettingsScene } from './scenes/SettingsScene';
+import { SaveSlotsScene } from './scenes/SaveSlotsScene';
 import { CreditsScene } from './scenes/CreditsScene';
 import { HowToPlayScene } from './scenes/HowToPlayScene';
 import { AchievementsScene } from './scenes/AchievementsScene';
 import { SpriteTestScene } from './scenes/SpriteTestScene';
+import { initInstall } from './ui/install';
 
 function startGame(): void {
     const game = new Phaser.Game({
@@ -35,7 +37,7 @@ function startGame(): void {
         // HudScene, LevelUpScene y los menús que se abren encima (pausa, ajustes...) van después para dibujarse encima.
         scene: [
             BootScene, PreloadScene, MainMenuScene, CharacterSelectScene, GameScene, HudScene, LevelUpScene, GameOverScene,
-            PauseScene, SettingsScene, CreditsScene, AchievementsScene, HowToPlayScene, SpriteTestScene,
+            PauseScene, SettingsScene, CreditsScene, AchievementsScene, HowToPlayScene, SaveSlotsScene, SpriteTestScene,
         ],
     });
 
@@ -44,6 +46,9 @@ function startGame(): void {
         (window as unknown as { __game: Phaser.Game }).__game = game;
     }
 }
+
+// App instalable (Fase 12): hay que escuchar el aviso de Chrome desde el principio.
+initInstall();
 
 // Phaser draws text once into a canvas: if the font isn't loaded yet it keeps the fallback, so wait for it first.
 void loadUiFont().finally(startGame);

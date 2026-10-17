@@ -6,7 +6,7 @@
 // - Objetos (árboles…): una imagen por objeto, ordenada por su Y en píxeles para que el jugador
 //   pase por delante o por detrás. Las sombras de los árboles van pegadas al suelo.
 // - Si un objeto tapa al jugador, se vuelve semitransparente.
-// - Fase 11: los árboles grandes se pueden volver siempre transparentes o quitar (Settings → Large Trees).
+// - Fase 11: los árboles grandes se pueden quitar (Settings → Large Trees).
 import Phaser from 'phaser';
 import {
     DEPTH_GROUND,
@@ -15,7 +15,6 @@ import {
     TILE_ANCHOR_OFFSET,
     TILE_SIZE,
     TREE_SHADOW_ALPHA,
-    TREE_TRANSPARENT_ALPHA,
 } from '../config/gameConfig';
 import type { TreeMode } from '../config/settings';
 import type { TileRect } from '../data/maps';
@@ -48,18 +47,13 @@ export class MapView {
         this.renderObjects(clampToMap(objectArea, map));
     }
 
-    /** Shows large trees (and their shadows) as drawn, always see-through, or not at all. */
+    /** Shows large trees (and their shadows) as drawn, or not at all. */
     public setTreeMode(mode: TreeMode): void {
         if (mode === this.treeMode) return;
         this.treeMode = mode;
         const visible = mode !== 'off';
-        const alpha = mode === 'transparent' ? TREE_TRANSPARENT_ALPHA : 1;
-        for (const tree of this.trees) {
-            tree.setVisible(visible).setAlpha(this.faded.has(tree) ? Math.min(alpha, MAP_OBJECT_FADE_ALPHA) : alpha);
-        }
-        for (const shadow of this.treeShadows) {
-            shadow.setVisible(visible).setAlpha(TREE_SHADOW_ALPHA * alpha);
-        }
+        for (const tree of this.trees) tree.setVisible(visible);
+        for (const shadow of this.treeShadows) shadow.setVisible(visible);
     }
 
     /** Fades objects drawn in front of the player whose image overlaps the player's bounds. */
@@ -80,18 +74,11 @@ export class MapView {
         }
 
         for (const object of this.faded) {
-            if (!nowFaded.has(object)) object.setAlpha(this.restingAlpha(object));
+            if (!nowFaded.has(object)) object.setAlpha(1);
         }
-        for (const object of nowFaded) {
-            object.setAlpha(Math.min(this.restingAlpha(object), MAP_OBJECT_FADE_ALPHA));
-        }
+        for (const object of nowFaded) object.setAlpha(MAP_OBJECT_FADE_ALPHA);
         this.faded.clear();
         nowFaded.forEach((object) => this.faded.add(object));
-    }
-
-    /** Alpha of an object while it doesn't hide the player. */
-    private restingAlpha(object: Phaser.GameObjects.Image): number {
-        return this.treeMode === 'transparent' && this.trees.has(object) ? TREE_TRANSPARENT_ALPHA : 1;
     }
 
     private renderGround(area: TileRect): void {

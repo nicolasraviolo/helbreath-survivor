@@ -107,6 +107,11 @@ export class HudScene extends Phaser.Scene {
             if (isPortraitTouch()) this.openPause();
         };
         window.addEventListener('resize', onResize);
+        // Tab in the background (phone locked, another app, minimised): paused when the player comes back (Fase 12).
+        const onVisibility = () => {
+            if (document.visibilityState === 'hidden') this.openPause();
+        };
+        document.addEventListener('visibilitychange', onVisibility);
         // Settings → HUD changed (from the pause menu): swap the bar right away.
         const onSettings = () => {
             if (activeHudStyle() !== this.barStyle) this.rebuildBar();
@@ -115,6 +120,7 @@ export class HudScene extends Phaser.Scene {
         this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
             window.removeEventListener('gamepaddisconnected', onPadLost);
             window.removeEventListener('resize', onResize);
+            document.removeEventListener('visibilitychange', onVisibility);
             settings.off(SETTINGS_CHANGED, onSettings);
         });
         // The compact HUD has no floppy disk button: it needs the round one (also when forced with ?ui=compact on a PC).
