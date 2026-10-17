@@ -15,7 +15,7 @@
 | 10 — Pulido (opcional) | ⬜ pendiente | |
 
 ## Fase actual
-**Fase 7 completada (2026-10-17)**: oleadas, jefes y final, probada por el propietario. Siguiente: `/nueva-skill añadir-enemigo` (indicado en `docs/PLAN.md`) y después `/fase 8` (menús y personajes).
+**Fase 7 completada (2026-10-17)**: oleadas, jefes y final, probada por el propietario. Skill `/anadir-enemigo` creada (2026-10-17). Siguiente: `/fase 8` (menús y personajes).
 - **Checkpoint 2026-10-17:** `tsc` y `build` sin errores; Playwright: consola limpia (solo el 404 de `favicon.ico`).
 - **21 monstruos nuevos** (`data/enemies.ts`, sprites y sonidos de `sp-client` Monsters.ts).
   - Vida, daño y XP siguen el orden de los tiers de la wiki, comprimido para 12 minutos.
