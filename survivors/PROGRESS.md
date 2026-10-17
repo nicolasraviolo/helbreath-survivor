@@ -11,10 +11,53 @@
 | 6 — Arsenal completo | ✅ completada | 2026-10-16 |
 | 7 — Oleadas, jefes y final | ✅ completada | 2026-10-17 |
 | 8 — Menús y personajes | ✅ completada (solo menús; Arquero aplazado) | 2026-10-17 |
-| 9 — Web, móvil y publicación | ⬜ pendiente | |
+| 9 — Web, móvil y publicación | 🟨 en curso (9A probado; 9B hecho, falta publicar) | |
 | 10 — Pulido (opcional) | ⬜ pendiente | |
 
 ## Fase actual
+**Fase 9, bloque 9B: descarga y publicación (2026-10-17).** Falta que el propietario cree la cuenta de Cloudflare y conecte GitHub (guía en `docs/PUBLICAR.md`), y probar el enlace en PC y móvil.
+- **`scripts/sync-assets.mjs`:** copia a `survivors/public/assets` solo los archivos de `assetManifest.ts` (185 archivos, 87,6 MB con todas las casillas). Si falta alguno, falla.
+  - `pnpm build` lo ejecuta solo. En el build, Vite usa `public/` y lo mete en `dist/`; en desarrollo sigue sirviendo `sp-client/public`.
+- **Monstruos por oleada** (`systems/AssetStreamer.ts`):
+  - antes del menú solo se cargan los de la primera oleada (Slime, Bunny, Ant);
+  - el resto se descarga uno a uno en segundo plano desde el menú principal, en el orden en que aparecen;
+  - un monstruo que no está listo no sale, y un evento (jefe, "te rodean") espera a su monstruo y le hace pasar delante en la cola.
+  - **Descarga antes del menú: de 50 a 35 MB.** El resto (15 MB) tardó unos 4 s en el PC.
+  - Comprobado saltando al minuto 12 nada más empezar: los eventos esperan al Wyvern y salen en orden.
+- **La tecla T** (prueba de sprites) solo abre la escena cuando el Orc ya está cargado.
+- **Icono de la pestaña:** una "H" dorada dibujada dentro de `index.html`. Ya no hay 404 de `favicon.ico`.
+- `package.json` fija `pnpm@12.14.0` (lo necesita Cloudflare).
+- **Comprobado con `pnpm build` + `pnpm preview`** (`survivors-preview` en `.claude/launch.json`, puerto 8091): el juego publicado carga, ningún archivo da error y la consola está limpia.
+- **Para bajar más la descarga** (opcional): cargar más tarde también armas y armaduras del jugador (10,5 MB) y efectos (5 MB).
+
+**Fase 9, bloque 9A: jugar en el móvil (2026-10-17, probado por el propietario en su móvil).**
+- **Joystick táctil flotante** (`ui/TouchJoystick.ts`, `config/touch.ts`):
+  - aparece donde pones el dedo en la zona de juego y desaparece al soltarlo;
+  - si el dedo se aleja mucho, la base lo sigue;
+  - fuerza de 0 a 1, como el stick del mando;
+  - `InputSystem.setTouchJoystick` lo usa para moverse.
+  - **También funciona en las franjas negras de los lados** (pedido por el propietario tras probarlo en su móvil). Allí no se puede dibujar, así que la base se ve pegada al borde del juego.
+  - Solo en pantallas táctiles.
+- **Botón de pausa táctil** (círculo "II" arriba a la derecha, en `HudScene`). Funciona con otro dedo mientras mueves: el juego sigue 2 dedos a la vez (`TOUCH_POINTERS`).
+- **Móvil en vertical:** aviso "Rotate your device to play" (HTML/CSS en `index.html`) y la partida se pausa sola.
+- **Opción Fullscreen** en el menú principal y en la pausa (`ui/fullscreen.ts`). En Android también deja el móvil fijo en horizontal. En iPhone no sale, porque Safari no lo permite.
+- `index.html`: el navegador no hace zoom ni desplaza la página al arrastrar el dedo. El juego está en inglés (`lang="en"`).
+- **Servidor accesible desde el móvil** en la misma wifi (`host: true` en `vite.config.ts`).
+- **Comprobado** en el navegador integrado, simulando un móvil:
+  - en vertical sale el aviso;
+  - en horizontal, el joystick mueve al jugador, tocando dentro del juego y también en la franja negra;
+  - el botón de pausa funciona con un segundo dedo;
+  - Resume se pulsa tocando;
+  - girar a vertical pausa la partida;
+  - en PC no se ve nada táctil;
+  - consola limpia y `tsc` sin errores.
+- **Sin hacer todavía:** bajar el límite de enemigos en el móvil. Primero hay que ver cómo va en tu móvil.
+- **Cómo probar:**
+  1. `pnpm --dir survivors dev`.
+  2. En el móvil, con la misma wifi, abre **http://192.168.1.42:8090**.
+  3. Pon el móvil en horizontal.
+  4. Prueba Fullscreen, mueve con el dedo, pausa con el botón "II" y gira el móvil.
+
 **Fase 8 completada (2026-10-17)**: menús, probada por el propietario. El Arquero queda para el futuro (decidido por el propietario). Siguiente: `/fase 9` (web, móvil y publicación).
 - **Checkpoint 2026-10-17:** `tsc` y `build` sin errores; consola limpia en el navegador integrado (Playwright estaba ocupado por otra sesión).
 - **Pendiente para el futuro:** el Arquero (tercer personaje, con arcos `mbo`/`wbo`), los logros de verdad y elegir sexo, piel y pelo en la selección de personaje.
@@ -313,15 +356,13 @@ Fase 4 completada (2026-10-16), probada por el propietario. Siguiente: `/fase 5`
 - Datos de referencia de Helbreath: `docs/hb-wiki/` (índice en `README.md`).
 
 ## Problemas conocidos
+- En el móvil todo se ve muy pequeño (letras, menús, cartas). Anotado para la Fase 10.
 - Con un solo Energy Bolt, 300 enemigos sobrepasan al jugador. Las cartas de stat ayudan, pero la progresión real llega con las armas de la Fase 6.
 - El daño mágico crece rápido (+2 Mag por nivel y +4% por punto). Vigilarlo al equilibrar.
 - Las flechas "→" de las cartas usan otra fuente: Comic Neue no tiene ese carácter. No molesta.
 - El navegador interno de la app, si el panel está en segundo plano, va a ~1 FPS y parece congelado. Para revisar el juego, usar Playwright o tener el panel visible. A veces también le pasa a Playwright: `requestAnimationFrame` cae a 2 por segundo incluso sin el juego (visto el 16-oct-2026). No es un problema del juego.
 - En el navegador interno, `sp-client` muestra errores `Cannot suspend/resume a closed AudioContext`. Son del audio en una pestaña en segundo plano y no afectan.
-- `pnpm build` genera `dist/` sin assets (se resuelve en la Fase 9).
-- Al empezar se cargan todos los monstruos (unos 18 MB más desde la Fase 7: los Wyverns pesan 3,6 MB cada uno). Cargarlos por oleada queda para la Fase 9.
 - Algunos enemigos se quedan esperando en la orilla del río si el jugador está al otro lado. Sin búsqueda de caminos. Se recolocan si quedan lejos.
-- Falta `favicon.ico` (404 en consola, inofensivo; se añadirá en la Fase 9).
 - El personaje se ve pequeño a 800×600 (tamaño original de Helbreath). Si se quiere, se ajusta el zoom de la cámara más adelante.
 
 ## Decisiones tomadas

@@ -3,6 +3,7 @@ import Phaser from 'phaser';
 import '@fontsource/comic-neue/latin-400.css';
 import '@fontsource/comic-neue/latin-700.css';
 import { BACKGROUND_COLOR, GAME_HEIGHT, GAME_WIDTH } from './config/gameConfig';
+import { TOUCH_POINTERS } from './config/touch';
 import { loadUiFont } from './config/ui';
 import { BootScene } from './scenes/BootScene';
 import { PreloadScene } from './scenes/PreloadScene';
@@ -27,7 +28,9 @@ function startGame(): void {
         height: GAME_HEIGHT,
         backgroundColor: BACKGROUND_COLOR,
         pixelArt: true,
-        scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
+        scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, fullscreenTarget: 'game' },
+        // Móvil: un dedo en el joystick y otro para la pausa o las cartas.
+        input: { activePointers: TOUCH_POINTERS },
         // HudScene, LevelUpScene y los menús que se abren encima (pausa, ajustes...) van después para dibujarse encima.
         scene: [
             BootScene, PreloadScene, MainMenuScene, CharacterSelectScene, GameScene, HudScene, LevelUpScene, GameOverScene,

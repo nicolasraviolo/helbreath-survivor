@@ -3,9 +3,11 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
+  "packageManager": "pnpm@12.14.0",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "sync-assets": "node scripts/sync-assets.mjs",
+    "build": "tsc --noEmit && node scripts/sync-assets.mjs && vite build",
     "preview": "vite preview"
   },
   "dependencies": {

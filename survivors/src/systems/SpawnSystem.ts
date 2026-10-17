@@ -1,6 +1,8 @@
 // Hace aparecer enemigos siguiendo la línea de tiempo de data/waves.ts: en cada tramo, los suyos, justo fuera
 // del borde de la pantalla y cada vez más rápido; y en su minuto, los eventos (minijefes, jefe final, "te rodean").
 // Descarta puntos sobre muros, agua o fuera de la zona de juego.
+// Los monstruos se descargan por oleadas (AssetStreamer): uno que aún no está listo no aparece, y un evento cuyo
+// monstruo no está listo espera (normalmente unos segundos como mucho) a que lo esté.
 import Phaser from 'phaser';
 import { ENEMY_WALL_HALF_SIZE } from '../config/gameConfig';
 import type { EnemyId } from '../data/enemies';
@@ -28,6 +30,10 @@ export class SpawnSystem {
         private readonly area: Phaser.Geom.Rectangle,
         /** Called when an event happens, with the enemies it created (the boss first). */
         private readonly onEvent: (event: WaveEventDef, spawned: readonly Enemy[]) => void,
+        /** False while a monster's sprite is still downloading. */
+        private readonly isReady: (id: EnemyId) => boolean,
+        /** Asks for a monster to be loaded first (its event is due). */
+        private readonly hurry: (id: EnemyId) => void,
     ) {}
 
     /** Run time in milliseconds. */
@@ -77,9 +83,10 @@ export class SpawnSystem {
     public spawnMany(count: number): number {
         let spawned = 0;
         for (let i = 0; i < count; i++) {
-            const point = this.findSpawnPoint();
-            if (!point) continue;
-            this.enemies.spawn(pickEnemy(this.wave), point.x, point.y);
+            const enemy = pickEnemy(this.wave, this.isReady);
+            const point = enemy && this.findSpawnPoint();
+            if (!enemy || !point) continue;
+            this.enemies.spawn(enemy, point.x, point.y);
             spawned++;
         }
         return spawned;
@@ -101,6 +108,10 @@ export class SpawnSystem {
         const minutes = this.elapsedMs / MS_PER_MINUTE;
         let event = WAVE_EVENTS[this.nextEvent];
         while (event && event.atMinute <= minutes) {
+            if (!this.isReady(event.enemy)) {
+                this.hurry(event.enemy);
+                return;
+            }
             this.nextEvent++;
             this.onEvent(event, this.runEvent(event));
             event = WAVE_EVENTS[this.nextEvent];
@@ -173,14 +184,14 @@ export class SpawnSystem {
     }
 }
 
-function pickEnemy(wave: WaveDef): EnemyId {
-    const total = wave.enemies.reduce((sum, entry) => sum + entry.weight, 0);
+/** A random enemy of the wave by weight, among those already loaded; undefined if none is ready yet. */
+function pickEnemy(wave: WaveDef, isReady: (id: EnemyId) => boolean): EnemyId | undefined {
+    const ready = wave.enemies.filter((entry) => isReady(entry.enemy));
+    const total = ready.reduce((sum, entry) => sum + entry.weight, 0);
     let roll = Math.random() * total;
-    for (const entry of wave.enemies) {
+    for (const entry of ready) {
         roll -= entry.weight;
         if (roll < 0) return entry.enemy;
     }
-    const first = wave.enemies[0];
-    if (!first) throw new Error('A wave in data/waves.ts has no enemies');
-    return first.enemy;
+    return ready[0]?.enemy;
 }

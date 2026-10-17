@@ -7,6 +7,10 @@ import { DEFAULT_MAP, MAPS_DATA } from '../data/maps';
 import { getMap } from '../hb/HBMap';
 import { HBSpriteFile, SpriteType } from '../hb/HBSprite';
 import { getTilePacksForIndices } from '../hb/mapAssets';
+import { STREAMED_SPRITES } from '../systems/AssetStreamer';
+
+/** Sprites loaded here: all but the monsters that come later (systems/AssetStreamer.ts loads those in the background). */
+const UPFRONT_SPRITES = (Object.keys(SPRITES) as SpriteKey[]).filter((key) => !STREAMED_SPRITES.has(key));
 
 const BAR_WIDTH = 400;
 const BAR_HEIGHT = 16;
@@ -15,7 +19,7 @@ const DOWNLOAD_SHARE = 0.5;
 
 /**
  * Carga en dos fases (como LoadingScreen.ts del original):
- * 1. Descarga los .spr del manifest y el mapa como binarios.
+ * 1. Descarga los .spr del manifest y el mapa como binarios (los monstruos de oleadas posteriores, no: ver AssetStreamer).
  * 2. Lee el mapa, descarga solo los paquetes de casillas que usa y decodifica todo
  *    (PNG → texturas, pivotes y animaciones).
  */
@@ -36,8 +40,8 @@ export class PreloadScene extends Phaser.Scene {
             .setOrigin(0.5, 0);
 
         this.load.setPath(ASSET_BASE_PATH);
-        for (const [key, asset] of Object.entries(SPRITES)) {
-            this.load.binary(key, asset.file);
+        for (const key of UPFRONT_SPRITES) {
+            this.load.binary(key, SPRITES[key].file);
         }
         for (const [key, sound] of Object.entries(SOUNDS)) {
             this.load.audio(key, sound.file);
@@ -53,7 +57,7 @@ export class PreloadScene extends Phaser.Scene {
         this.label.setText('Loading map…');
         await this.loadBinaries(tilePacks.map((pack) => ({ key: pack.key, file: pack.file })));
 
-        const spriteKeys = Object.keys(SPRITES) as SpriteKey[];
+        const spriteKeys = UPFRONT_SPRITES;
         const jobs = [
             ...tilePacks.map((pack) => new HBSpriteFile(pack.key, SpriteType.Tiles, DEFAULT_ANIMATION_FRAME_RATE, pack.start)),
             ...spriteKeys.map((key) => new HBSpriteFile(key, SPRITES[key].type, DEFAULT_ANIMATION_FRAME_RATE)),

@@ -1,12 +1,13 @@
 // Traduce teclado, ratón y mando a acciones. El resto del juego nunca lee teclas ni botones
-// directamente: pide `getMove()` o `justPressed(Action.X)`. Añadir un dispositivo nuevo
-// (táctil en la Fase 9) solo toca este archivo.
+// directamente: pide `getMove()` o `justPressed(Action.X)`. El táctil (Fase 9) llega por el joystick flotante
+// (ui/TouchJoystick.ts), que la partida conecta con `setTouchJoystick`.
 //
 // El mando se lee directamente de la Gamepad API del navegador en lugar del plugin de Phaser:
 // el plugin descarta el mando si su `timestamp` es anterior al momento en que lo detectó, y en
 // algunos navegadores/mandos ese reloj no coincide, así que nunca se movía.
 import Phaser from 'phaser';
 import { GAMEPAD_DEADZONE, POINTER_DEADZONE_PX, POINTER_FULL_SPEED_PX } from '../config/gameConfig';
+import type { TouchJoystick } from '../ui/TouchJoystick';
 
 export enum Action {
     /** Accept / continue: Enter, Space, gamepad A or a mouse click. */
@@ -36,7 +37,7 @@ export enum Action {
     DebugNextBoss = 'debugNextBoss',
 }
 
-export type InputDevice = 'keyboard' | 'mouse' | 'gamepad' | 'none';
+export type InputDevice = 'keyboard' | 'mouse' | 'gamepad' | 'touch' | 'none';
 
 const KEY = Phaser.Input.Keyboard.KeyCodes;
 
@@ -101,6 +102,7 @@ export class InputSystem {
     private readonly padJustPressed = new Set<number>();
     private pad: Gamepad | undefined;
     private pointerAnchor: PointerAnchor | undefined;
+    private joystick: TouchJoystick | undefined;
     private pointerMaxY = Number.POSITIVE_INFINITY;
     private pointerWasDown = false;
     private pointerJustPressed = false;
@@ -138,6 +140,11 @@ export class InputSystem {
         this.pointerAnchor = anchor;
     }
 
+    /** Movement from the on-screen touch joystick. */
+    public setTouchJoystick(joystick: TouchJoystick): void {
+        this.joystick = joystick;
+    }
+
     /** Ignores mouse presses that start at or below this screen Y (over the HUD bar), for movement and Confirm. */
     public setPointerMaxY(y: number): void {
         this.pointerMaxY = y;
@@ -164,7 +171,8 @@ export class InputSystem {
         pressedNow.forEach((index) => this.padButtonsDown.add(index));
 
         const pointer = this.scene.input.activePointer;
-        const pointerDown = pointer.isDown && pointer.downY < this.pointerMaxY;
+        // A finger on the joystick is not a click / tap.
+        const pointerDown = pointer.isDown && pointer.downY < this.pointerMaxY && !(pointer.wasTouch && this.joystick?.active);
         this.pointerJustPressed = pointerDown && !this.pointerWasDown && !this.syncHeldOnly;
         this.pointerWasDown = pointerDown;
         this.syncHeldOnly = false;
@@ -217,6 +225,10 @@ export class InputSystem {
         let y = Number(isDown(this.down)) - Number(isDown(this.up));
         if (x !== 0 || y !== 0) {
             this.lastDevice = 'keyboard';
+        } else if (this.joystick?.active) {
+            x = this.joystick.vector.x;
+            y = this.joystick.vector.y;
+            this.lastDevice = 'touch';
         } else {
             const padMove = this.readPadMove();
             const mouseMove = padMove ? undefined : this.readPointerMove();

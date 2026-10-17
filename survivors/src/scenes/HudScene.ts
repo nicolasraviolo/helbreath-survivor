@@ -3,6 +3,8 @@
 // Las barras usan la imagen original llena y tapan la parte que falta con la pieza gris "vacía".
 // Botones con función: el casco (o C / Y del mando) muestra el panel de stats, y el disquete (o Esc / Start) abre
 // la pausa (PauseScene). Si se desconecta el mando en plena partida, la pausa se abre sola.
+// En pantallas táctiles hay además un botón de pausa arriba a la derecha, y la pausa se abre sola al poner el móvil
+// en vertical (el juego es apaisado y queda tapado por el aviso de girarlo).
 // Los demás botones se iluminan pero aún no hacen nada.
 import Phaser from 'phaser';
 import { GAME_WIDTH } from '../config/gameConfig';
@@ -28,6 +30,7 @@ import {
     HUD_TOP,
     HUD_XP,
 } from '../config/hud';
+import { TOUCH_PAUSE_BUTTON } from '../config/touch';
 import { PASSIVE_IDS, PASSIVES } from '../data/passives';
 import { STAT_IDS, STAT_INFO } from '../data/stats';
 import type { CharacterStats } from '../entities/CharacterStats';
@@ -130,7 +133,16 @@ export class HudScene extends Phaser.Scene {
         // Gamepad unplugged (or out of battery) mid-run: pause so the player doesn't die without controls.
         const onPadLost = () => this.openPause();
         window.addEventListener('gamepaddisconnected', onPadLost);
-        this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => window.removeEventListener('gamepaddisconnected', onPadLost));
+        // Phone turned upright: the "rotate" notice covers the game, so pause it.
+        const onResize = () => {
+            if (isPortraitTouch()) this.openPause();
+        };
+        window.addEventListener('resize', onResize);
+        this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+            window.removeEventListener('gamepaddisconnected', onPadLost);
+            window.removeEventListener('resize', onResize);
+        });
+        if (this.sys.game.device.input.touch) this.createTouchPauseButton();
     }
 
     override update(_time: number, delta: number): void {
@@ -296,6 +308,21 @@ export class HudScene extends Phaser.Scene {
         this.statsPanel.setVisible(!this.statsPanel.visible);
     }
 
+    /** Round "II" button for fingers (touch screens only). */
+    private createTouchPauseButton(): void {
+        const b = TOUCH_PAUSE_BUTTON;
+        this.add.graphics({ x: b.x, y: b.y })
+            .fillStyle(b.color, b.alpha).fillCircle(0, 0, b.radius)
+            .lineStyle(2, b.ringColor, 0.6).strokeCircle(0, 0, b.radius)
+            .fillStyle(b.barColor, 1)
+            .fillRect(-b.barGap / 2 - b.barWidth, -b.barHeight / 2, b.barWidth, b.barHeight)
+            .fillRect(b.barGap / 2, -b.barHeight / 2, b.barWidth, b.barHeight)
+            .setDepth(HUD_DEPTH_TEXT);
+        const zone = this.add.zone(b.x, b.y, b.hitRadius * 2, b.hitRadius * 2)
+            .setInteractive(new Phaser.Geom.Circle(b.hitRadius, b.hitRadius, b.hitRadius), Phaser.Geom.Circle.Contains);
+        zone.on(Phaser.Input.Events.POINTER_DOWN, () => this.openPause());
+    }
+
     /** Freezes the game and this bar and opens the pause menu on top (not while cards or the end screen show). */
     private openPause(): void {
         if (!this.scene.isActive() || this.getState().pauseLocked) return;
@@ -325,4 +352,9 @@ function describeDerived(state: HudState): [string, string][] {
         ['Speed', bonus(stats.moveSpeedMultiplier)],
         ['Cooldown', `${Math.round(stats.cooldownMultiplier * 100)}%`],
     ];
+}
+
+/** True on a touch screen held upright (the game needs landscape). */
+export function isPortraitTouch(): boolean {
+    return window.matchMedia('(pointer: coarse) and (orientation: portrait)').matches;
 }

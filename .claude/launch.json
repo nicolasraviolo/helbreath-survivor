@@ -28,6 +28,19 @@
         "docs/mockups/serve.cjs"
       ],
       "port": 8095
+    },
+    {
+      "name": "survivors-preview",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "--dir",
+        "survivors",
+        "preview",
+        "--port",
+        "8091",
+        "--strictPort"
+      ],
+      "port": 8091
     }
   ]
 }

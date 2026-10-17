@@ -1,16 +1,35 @@
 <!doctype html>
-<html lang="es">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Móvil: sin zoom con dos dedos ni doble toque, y usando toda la pantalla (también junto a la "muesca"). -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="theme-color" content="#000000" />
     <title>Helbreath Survivors</title>
+    <!-- Icono de la pestaña: una "H" dorada (dibujada aquí mismo, sin archivo aparte). -->
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='10' fill='%231a1208'/%3E%3Ctext x='32' y='47' font-family='Georgia,serif' font-size='44' font-weight='bold' fill='%23e0c060' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E" />
     <style>
-      html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
-      #game { width: 100%; height: 100%; }
+      html, body { margin: 0; height: 100%; background: #000; overflow: hidden; overscroll-behavior: none; }
+      /* touch-action: none → el navegador no desplaza ni hace zoom al arrastrar el dedo sobre el juego. */
+      #game { width: 100%; height: 100%; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+      /* Aviso "gira el móvil": el juego es apaisado (800x600). Solo en pantallas táctiles en vertical. */
+      #rotate {
+        display: none; position: fixed; inset: 0; z-index: 10; background: #000; color: #e0d090;
+        font: 20px "Comic Sans MS", "Comic Neue", sans-serif; text-align: center;
+        flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 16px;
+      }
+      #rotate .icon { font-size: 56px; display: inline-block; animation: turn 2s ease-in-out infinite; }
+      @keyframes turn { 0%, 30% { transform: rotate(0deg); } 60%, 100% { transform: rotate(90deg); } }
+      @media (pointer: coarse) and (orientation: portrait) {
+        #rotate { display: flex; }
+      }
     </style>
   </head>
   <body>
     <div id="game"></div>
+    <div id="rotate"><span class="icon">📱</span><span>Rotate your device to play</span></div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

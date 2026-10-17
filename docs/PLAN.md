@@ -138,4 +138,5 @@ survivors/
 - **Aceptación:** enlace público que funciona en PC y en el móvil del propietario.
 
 ## Fase 10 — Pulido (opcional)
+- **Móvil (pedido por el propietario, 17-oct-2026):** en el móvil todo se ve muy pequeño. Agrandar fuentes, menús, cartas y barra inferior en pantallas pequeñas.
 Temblor de cámara, partículas, sombras, progresión entre partidas con `localStorage`, más mapas, récords locales. Mando: vibración al recibir daño, iconos de botones Xbox en pantalla cuando se usa mando, reasignar controles.
