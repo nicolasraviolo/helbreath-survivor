@@ -4,13 +4,23 @@
 import Phaser from 'phaser';
 import type { SoundKey } from '../config/assetManifest';
 import { MUSIC } from '../data/audio';
+import { settings, SETTINGS_CHANGED } from './Settings';
 
 export class MusicSystem {
     private current: Phaser.Sound.WebAudioSound | Phaser.Sound.HTML5AudioSound | undefined;
     private currentKey: SoundKey | undefined;
 
     constructor(private readonly scene: Phaser.Scene) {
-        scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.stopNow());
+        // The volume slider in Settings applies at once, even while the game is paused.
+        const onSettings = () => {
+            this.scene.tweens.killTweensOf(this.current ?? {});
+            this.current?.setVolume(targetVolume());
+        };
+        settings.on(SETTINGS_CHANGED, onSettings);
+        scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+            settings.off(SETTINGS_CHANGED, onSettings);
+            this.stopNow();
+        });
     }
 
     /** Switches to a track (fading the old one out and the new one in). Calling it with the same track does nothing. */
@@ -25,7 +35,7 @@ export class MusicSystem {
             return;
         }
         sound.play();
-        this.scene.tweens.add({ targets: sound, volume: MUSIC.volume, duration: MUSIC.fadeMs });
+        this.scene.tweens.add({ targets: sound, volume: targetVolume(), duration: MUSIC.fadeMs });
         this.current = sound;
     }
 
@@ -46,4 +56,9 @@ export class MusicSystem {
         this.current = undefined;
         this.currentKey = undefined;
     }
+}
+
+/** Track volume from data/audio.ts times the player's music setting. */
+function targetVolume(): number {
+    return MUSIC.volume * settings.current.musicVolume;
 }

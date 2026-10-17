@@ -5,6 +5,7 @@
 import Phaser from 'phaser';
 import type { SoundKey } from '../config/assetManifest';
 import { AUDIO } from '../data/audio';
+import { settings, SETTINGS_CHANGED } from './Settings';
 
 export class AudioSystem {
     /** End time (ms, scene clock) of every sound still playing, per key. */
@@ -19,10 +20,17 @@ export class AudioSystem {
         const stopLoops = () => {
             for (const key of [...this.loops.keys()]) this.stopLoop(key);
         };
+        const onSettings = () => {
+            for (const loop of this.loops.values()) {
+                if (loop instanceof Phaser.Sound.WebAudioSound || loop instanceof Phaser.Sound.HTML5AudioSound) loop.setVolume(sfxVolume());
+            }
+        };
         scene.events.on(Phaser.Scenes.Events.PAUSE, stopLoops);
+        settings.on(SETTINGS_CHANGED, onSettings);
         scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
             stopLoops();
             scene.events.off(Phaser.Scenes.Events.PAUSE, stopLoops);
+            settings.off(SETTINGS_CHANGED, onSettings);
         });
     }
 
@@ -46,7 +54,7 @@ export class AudioSystem {
             this.skipped++;
             return;
         }
-        const sound = this.scene.sound.add(key, { volume: AUDIO.sfxVolume, rate: this.rateFor(key, durationMs) });
+        const sound = this.scene.sound.add(key, { volume: sfxVolume(), rate: this.rateFor(key, durationMs) });
         sound.once('complete', () => sound.destroy());
         if (!sound.play()) {
             sound.destroy();
@@ -61,7 +69,7 @@ export class AudioSystem {
     /** Keeps a sound looping, each repetition lasting `durationMs`. Calling it again while it plays does nothing. */
     public startLoop(key: SoundKey, durationMs: number): void {
         if (this.loops.has(key)) return;
-        const sound = this.scene.sound.add(key, { volume: AUDIO.sfxVolume, loop: true, rate: this.rateFor(key, durationMs) });
+        const sound = this.scene.sound.add(key, { volume: sfxVolume(), loop: true, rate: this.rateFor(key, durationMs) });
         sound.play();
         this.loops.set(key, sound);
     }
@@ -91,4 +99,9 @@ export class AudioSystem {
         }
         this.total = total;
     }
+}
+
+/** Effect volume from data/audio.ts times the player's sound setting. */
+function sfxVolume(): number {
+    return AUDIO.sfxVolume * settings.current.sfxVolume;
 }

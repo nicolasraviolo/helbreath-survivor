@@ -121,12 +121,14 @@ survivors/
 - 👉 Tras esta fase: `/nueva-skill añadir-enemigo`.
 
 ## Fase 8 — Menús y personajes
-- `MainMenuScene` (Jugar, Créditos, volumen), `PauseScene`.
-- `CharacterSelectScene` **ya existe** (adelantada el 16-oct-2026, con Warrior y Magician). Aquí falta: el tercer personaje, conectar Cancel al menú principal y, si se quiere, sexo, piel, pelo y ropa interior con las flechas.
+> Completada el 17-oct-2026: menú principal, Settings (volúmenes y barra de vida, guardados), Credits, Achievements ("Coming soon") y pausa real, también al desconectar el mando. Ver `survivors/PROGRESS.md`.
+> 17-oct-2026: la fase se hace **solo con el bloque 8A (menús)**. El **Arquero** (tercer personaje, con los arcos `mbo`/`wbo` del original) queda **para el futuro**, decidido por el propietario. El menú principal lleva también **Achievements**, de momento solo con un aviso de "Coming soon": los logros se diseñarán más adelante.
+- `MainMenuScene` (Play, Achievements, Settings, Credits), `PauseScene`.
+- `CharacterSelectScene` **ya existe** (adelantada el 16-oct-2026, con Warrior y Magician). Aquí falta: conectar Cancel al menú principal y, si se quiere, sexo, piel, pelo y ropa interior con las flechas. (El tercer personaje queda aplazado.)
 - Créditos con el aviso legal de `docs/DESIGN.md` (en inglés, como todo el juego).
 - Ajustes: opción para mostrar u ocultar la barra de vida sobre el personaje.
 - Todos los menús navegables sin ratón: cruceta/stick para moverse, **A** confirmar, **B** volver, **Start** pausa. Si se desconecta el mando en partida → pausa automática.
-- **Aceptación:** se juega con los 3 personajes y se vuelve al menú tras una partida; una partida completa (menú → juego → Game Over → menú) se puede hacer solo con el mando.
+- **Aceptación:** se juega con los personajes disponibles (2; el Arquero queda aplazado) y se vuelve al menú tras una partida; una partida completa (menú → juego → Game Over → menú) se puede hacer solo con el mando.
 
 ## Fase 9 — Web, móvil y publicación
 - Joystick virtual táctil (aparece donde se toca), botón de pausa táctil.

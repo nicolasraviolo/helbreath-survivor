@@ -312,6 +312,8 @@ export class GameScene extends Phaser.Scene {
             this.scene.stop('Hud');
             this.scene.stop('LevelUp');
             this.scene.stop('GameOver');
+            this.scene.stop('Pause');
+            this.scene.stop('Settings');
         });
     }
 
@@ -501,6 +503,10 @@ export class GameScene extends Phaser.Scene {
             onChangeClass: () => {
                 this.scene.stop('GameOver');
                 this.scene.start('CharacterSelect');
+            },
+            onMainMenu: () => {
+                this.scene.stop('GameOver');
+                this.scene.start('MainMenu');
             },
         };
         this.audio.stopLoop('sfx.footsteps');

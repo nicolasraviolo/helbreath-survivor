@@ -1,7 +1,7 @@
 // Pantalla "Create New Character" del Helbreath original, usada para elegir clase antes de la partida.
 // De momento solo se elige la clase (Warrior o Magician): nombre, aspecto y stats son fijos, así que
 // las flechas de aspecto y los botones +/- se ven apagados. Master no se incluye.
-// Controles: ←/→ o cruceta/stick cambian de clase; Enter/A crea el personaje; Esc/Start = Cancel; ratón en los botones.
+// Controles: ←/→ o cruceta/stick cambian de clase; Enter/A crea el personaje; Esc/B = Cancel (menú principal); ratón.
 import Phaser from 'phaser';
 import {
     SELECT_BACKGROUND,
@@ -108,7 +108,7 @@ export class CharacterSelectScene extends Phaser.Scene {
         if (this.time.now - this.openedAt < SELECT_INPUT_DELAY_MS) return;
         if (input.justPressed(Action.MenuLeft) || input.justPressed(Action.MenuRight)) this.selectNext();
         if (input.justPressed(Action.Confirm)) this.startGame();
-        if (input.justPressed(Action.Pause)) this.cancel();
+        if (input.justPressed(Action.Back)) this.cancel();
     }
 
     private createLeftPanel(): void {
@@ -241,8 +241,8 @@ export class CharacterSelectScene extends Phaser.Scene {
         this.scene.start('Game');
     }
 
-    /** "Cancel": there is no main menu yet (Phase 8), so it goes back to the default class. */
+    /** "Cancel": back to the main menu. */
     private cancel(): void {
-        this.select(DEFAULT_CHARACTER);
+        this.scene.start('MainMenu');
     }
 }

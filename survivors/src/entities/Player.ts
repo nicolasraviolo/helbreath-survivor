@@ -6,6 +6,7 @@ import type { CharacterDef } from '../data/characters';
 import type { HBMap } from '../hb/HBMap';
 import { Direction, directionFromVector } from '../hb/directions';
 import { PlayerState, type GearLayer, type GearSlot } from '../hb/playerAppearance';
+import { settings, SETTINGS_CHANGED } from '../systems/Settings';
 import { canStandAt, moveAxis } from '../utils/collision';
 import { CharacterSprite } from './CharacterSprite';
 
@@ -56,6 +57,11 @@ export class Player {
         this.healthBar = scene.make.graphics({}, false);
         this.container = scene.add.container(x, y, [this.body.container, this.healthBar]);
         this.drawHealthBar();
+        // Settings → "Health bar over player": shows or hides it at once.
+        const onSettings = () => this.healthBar.setVisible(settings.current.showPlayerHealthBar && !this.isDead);
+        onSettings();
+        settings.on(SETTINGS_CHANGED, onSettings);
+        scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => settings.off(SETTINGS_CHANGED, onSettings));
     }
 
     public get state(): PlayerState {

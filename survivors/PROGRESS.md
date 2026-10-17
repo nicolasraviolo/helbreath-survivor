@@ -10,11 +10,45 @@
 | 5 — Experiencia y subida de nivel | ✅ completada | 2026-10-16 |
 | 6 — Arsenal completo | ✅ completada | 2026-10-16 |
 | 7 — Oleadas, jefes y final | ✅ completada | 2026-10-17 |
-| 8 — Menús y personajes | ⬜ pendiente | |
+| 8 — Menús y personajes | ✅ completada (solo menús; Arquero aplazado) | 2026-10-17 |
 | 9 — Web, móvil y publicación | ⬜ pendiente | |
 | 10 — Pulido (opcional) | ⬜ pendiente | |
 
 ## Fase actual
+**Fase 8 completada (2026-10-17)**: menús, probada por el propietario. El Arquero queda para el futuro (decidido por el propietario). Siguiente: `/fase 9` (web, móvil y publicación).
+- **Checkpoint 2026-10-17:** `tsc` y `build` sin errores; consola limpia en el navegador integrado (Playwright estaba ocupado por otra sesión).
+- **Pendiente para el futuro:** el Arquero (tercer personaje, con arcos `mbo`/`wbo`), los logros de verdad y elegir sexo, piel y pelo en la selección de personaje.
+- **Menú principal** (`scenes/MainMenuScene.ts`, `config/menus.ts`): es lo primero que sale tras cargar.
+  - Fondo: la pantalla de título original (`new-dialog.spr` hoja 1).
+  - Un panel del original tapa sus botones dibujados. Una franja negra abajo tapa la línea "PlayHelbreath.com" y lleva nuestro pie.
+  - Opciones: **Play**, **Achievements**, **Settings** y **Credits**, con la fuente dibujada del original.
+  - Música: `default.mp3`.
+- **Base común** (`scenes/MenuOverlayScene.ts`, `ui/MenuList.ts`): para las pantallas que se abren encima.
+  - Oscurece lo de debajo y pone el panel `gamedialog86` hoja 3, frame 3, con el título.
+  - Controles: ↑/↓ o cruceta/stick para moverse, ←/→ para cambiar un valor, Enter/A para elegir, Esc/B para volver. Con el ratón: pasar por encima y clic.
+- **Settings** (`scenes/SettingsScene.ts`, `config/settings.ts`, `systems/Settings.ts`):
+  - volumen de música y de efectos, de 10 en 10 %;
+  - **Health Bar on Character**, On/Off (renombrada tras la prueba del propietario).
+  - Los valores se cambian con los botones ◄ ► del original (`gamedialog86` hoja 1, frame 7; el ► es el mismo, volteado). El clic funciona justo sobre cada flecha: antes la zona era media fila y había que hacer clic muy lejos (corregido tras la prueba del propietario).
+  - Se aplican al momento, también con la partida en pausa, y se guardan en el navegador (`localStorage`).
+- **Credits**: el aviso legal de DESIGN.md (`data/credits.ts`).
+- **Achievements**: solo "Coming soon!" de momento (pedido por el propietario para el futuro).
+- **Pausa de verdad** (`scenes/PauseScene.ts`), que sustituye a la provisional de la barra.
+  - Se abre con Esc, Start o el disquete. **Se abre sola si se desconecta el mando** en plena partida.
+  - Opciones: Resume, Settings y Quit to menu.
+- **Conexiones:**
+  - Cancel o Esc/B en la selección de personaje vuelven al menú.
+  - En el Game Over hay un tercer botón original, **Log Out**, que lleva al menú.
+- **Entrada:** acciones nuevas `Back` (Esc, Retroceso, B), `MenuUp` y `MenuDown` (también con el stick).
+  - Un botón que sigue pulsado al cambiar de pantalla, o al volver de una pausa, ya no cuenta como pulsación nueva.
+- **Comprobado** con el navegador integrado (Playwright estaba ocupado por otra sesión):
+  - menú → Settings (los cambios se guardan) → Credits → Achievements;
+  - Play → Create → partida → pausa → Settings desde la pausa (la barra de vida se oculta y se muestra al momento) → Resume;
+  - pausa por mando desconectado → Quit to menu;
+  - Game Over → Log Out;
+  - consola sin errores; `tsc` y `build` sin errores.
+- **Cómo probar:** `pnpm --dir survivors dev` → http://localhost:8090.
+
 **Fase 7 completada (2026-10-17)**: oleadas, jefes y final, probada por el propietario. Skill `/anadir-enemigo` creada (2026-10-17). Siguiente: `/fase 8` (menús y personajes).
 - **Checkpoint 2026-10-17:** `tsc` y `build` sin errores; Playwright: consola limpia (solo el 404 de `favicon.ico`).
 - **21 monstruos nuevos** (`data/enemies.ts`, sprites y sonidos de `sp-client` Monsters.ts).
