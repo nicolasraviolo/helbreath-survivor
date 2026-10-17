@@ -1,0 +1,437 @@
+<title>Helbreath Survivors</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya+SC:wght@500;700&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: guía de juego. Índice fijo a la izquierda en escritorio; una columna en el móvil. Secciones como capítulos de un manual. */
+:root {
+  --bg: #eef0f2;
+  --surface: #f8f9fa;
+  --fg: #1d2530;
+  --muted: #59636f;
+  --line: #d3d8de;
+  --accent: #9a6a12;
+  --accent-soft: #f3e6c8;
+  --ok: #2f7a4b;
+  --warn: #a8641a;
+  --todo: #6b7480;
+  --band1: #cfe3d2; --band2: #d9e6c4; --band3: #ecdfb8; --band4: #f0cfae; --band5: #ecbaa8; --band6: #dca9b6;
+  --display: "Alegreya SC", Georgia, serif;
+  --body: "Alegreya Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #12161d; --surface: #1a2029; --fg: #e3e6ea; --muted: #9aa4b0; --line: #2c3440;
+  --accent: #e0b25a; --accent-soft: #3a2f1a; --ok: #6cc28c; --warn: #e3a158; --todo: #8a94a1;
+  --band1: #24402c; --band2: #34421f; --band3: #4a4120; --band4: #52361e; --band5: #552b23; --band6: #4a2433;
+  color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #12161d; --surface: #1a2029; --fg: #e3e6ea; --muted: #9aa4b0; --line: #2c3440;
+  --accent: #e0b25a; --accent-soft: #3a2f1a; --ok: #6cc28c; --warn: #e3a158; --todo: #8a94a1;
+  --band1: #24402c; --band2: #34421f; --band3: #4a4120; --band4: #52361e; --band5: #552b23; --band6: #4a2433;
+  color-scheme: dark; }
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 17px; line-height: 1.6; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-block: 40px 80px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; grid-template-columns: 210px minmax(0, 1fr); gap: 56px; }
+nav.toc { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 24px); align-self: start; font-size: 15px; }
+nav.toc .label { font-family: var(--display); color: var(--muted); letter-spacing: .08em; font-size: 13px; }
+nav.toc ol { list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 2px; }
+nav.toc a { color: var(--fg); text-decoration: none; display: block; padding: 3px 10px; border-left: 2px solid var(--line); }
+nav.toc a:hover, nav.toc a:focus-visible { border-left-color: var(--accent); color: var(--accent); outline: none; }
+main { min-width: 0; }
+header.hero { padding-bottom: 28px; border-bottom: 1px solid var(--line); margin-bottom: 8px; }
+.eyebrow { font-family: var(--display); color: var(--accent); letter-spacing: .1em; font-size: 14px; }
+h1 { font-family: var(--display); font-weight: 700; font-size: clamp(38px, 6vw, 60px); line-height: 1.05; margin: 6px 0 14px; text-wrap: balance; }
+.lede { font-size: 20px; max-width: 62ch; color: var(--fg); margin: 0; }
+.facts { display: flex; flex-wrap: wrap; gap: 10px 28px; margin-top: 22px; font-size: 15px; color: var(--muted); }
+.facts b { color: var(--fg); font-weight: 700; }
+section { padding-block: 36px 8px; scroll-margin-top: 16px; }
+h2 { font-family: var(--display); font-size: 30px; font-weight: 700; margin: 0 0 6px; text-wrap: balance; }
+h2 small { font-family: var(--body); font-size: 15px; color: var(--muted); font-weight: 400; margin-left: 8px; }
+h3 { font-family: var(--display); font-size: 21px; margin: 26px 0 6px; }
+p, li { max-width: 68ch; }
+p { margin: 8px 0; }
+ul { padding-left: 20px; margin: 8px 0; }
+li { margin: 3px 0; }
+a { color: var(--accent); }
+kbd { font-family: var(--mono); font-size: 13px; background: var(--surface); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 1px 6px; white-space: nowrap; }
+.muted { color: var(--muted); }
+.note { background: var(--accent-soft); padding: 12px 16px; border-radius: 6px; max-width: 68ch; margin: 14px 0; }
+
+.table-wrap { overflow-x: auto; margin: 12px 0; }
+table { border-collapse: collapse; width: 100%; font-size: 15.5px; }
+th, td { text-align: left; padding: 8px 12px 8px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-family: var(--display); font-weight: 500; color: var(--muted); font-size: 14px; letter-spacing: .04em; }
+td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+.cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; margin-top: 12px; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 16px 18px; min-width: 0; }
+.panel h3 { margin-top: 0; }
+
+.chain { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 6px 0 12px; font-size: 15px; }
+.chain span { background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 2px 8px; }
+.chain span em { font-style: normal; color: var(--muted); font-size: 13px; margin-left: 4px; }
+.chain i { color: var(--muted); font-style: normal; }
+
+/* Línea de tiempo de 12 minutos, a escala */
+.timeline { margin: 18px 0 6px; overflow-x: auto; }
+.tl-inner { min-width: 640px; position: relative; padding-top: 34px; }
+.bands { display: grid; grid-template-columns: repeat(6, 1fr); border-radius: 6px; overflow: hidden; }
+.band { padding: 10px 10px 12px; font-size: 13.5px; line-height: 1.35; min-height: 96px; }
+.band b { display: block; font-family: var(--mono); font-size: 12px; margin-bottom: 4px; color: var(--fg); }
+.b1{background:var(--band1)} .b2{background:var(--band2)} .b3{background:var(--band3)} .b4{background:var(--band4)} .b5{background:var(--band5)} .b6{background:var(--band6)}
+.event { position: absolute; top: 0; transform: translateX(-50%); font-size: 12px; white-space: nowrap; text-align: center; }
+.event::after { content: ""; display: block; width: 2px; height: 10px; background: var(--fg); margin: 2px auto 0; }
+.event.boss { font-weight: 700; color: var(--accent); }
+.event.boss::after { background: var(--accent); }
+.axis { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 12px; color: var(--muted); margin-top: 6px; font-variant-numeric: tabular-nums; }
+
+.phases { list-style: none; padding: 0; display: grid; gap: 0; max-width: none; }
+.phases li { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 12px; align-items: baseline; padding: 9px 0; border-bottom: 1px solid var(--line); max-width: none; }
+.phases .n { font-family: var(--mono); color: var(--muted); font-size: 14px; }
+.pill { font-size: 12.5px; padding: 1px 10px; border-radius: 99px; border: 1px solid currentColor; white-space: nowrap; }
+.pill.ok { color: var(--ok); } .pill.warn { color: var(--warn); } .pill.todo { color: var(--todo); }
+
+.ideas { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-top: 14px; }
+.idea { border-top: 3px solid var(--accent); background: var(--surface); padding: 14px 16px 16px; border-radius: 0 0 8px 8px; min-width: 0; }
+.idea h3 { margin: 0 0 4px; font-size: 19px; }
+.idea p { font-size: 15.5px; margin: 6px 0; }
+.idea .meta { font-size: 13px; color: var(--muted); display: flex; gap: 12px; flex-wrap: wrap; }
+.idea.small { border-top-color: var(--ok); }
+.idea.big { border-top-color: var(--warn); }
+.legend { display: flex; gap: 18px; flex-wrap: wrap; font-size: 14px; color: var(--muted); }
+.legend span::before { content: ""; display: inline-block; width: 14px; height: 3px; margin-right: 6px; vertical-align: middle; }
+.legend .s::before { background: var(--ok); } .legend .m::before { background: var(--accent); } .legend .l::before { background: var(--warn); }
+
+footer { margin-top: 48px; padding-top: 20px; border-top: 1px solid var(--line); font-size: 14px; color: var(--muted); }
+
+@media (max-width: 860px) {
+  .wrap { grid-template-columns: minmax(0, 1fr); gap: 20px; padding-block: 24px 60px; }
+  nav.toc { position: static; }
+  nav.toc ol { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+  body { font-size: 16px; }
+}
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+</style>
+
+<div class="wrap">
+  <nav class="toc" aria-label="Índice">
+    <div class="label">CONTENIDO</div>
+    <ol>
+      <li><a href="#que-es">Qué es</a></li>
+      <li><a href="#partida">Una partida</a></li>
+      <li><a href="#controles">Controles</a></li>
+      <li><a href="#personajes">Personajes</a></li>
+      <li><a href="#stats">Stats</a></li>
+      <li><a href="#arsenal">Armas y hechizos</a></li>
+      <li><a href="#armaduras">Armaduras</a></li>
+      <li><a href="#cartas">Subir de nivel</a></li>
+      <li><a href="#objetos">Objetos y buffs</a></li>
+      <li><a href="#enemigos">Enemigos</a></li>
+      <li><a href="#oleadas">Oleadas y jefes</a></li>
+      <li><a href="#menus">Menús y móvil</a></li>
+      <li><a href="#tecnica">Por dentro</a></li>
+      <li><a href="#estado">Estado</a></li>
+      <li><a href="#problemas">Problemas conocidos</a></li>
+      <li><a href="#mejoras">Mejoras posibles</a></li>
+      <li><a href="#trucos">Trucos de prueba</a></li>
+      <li><a href="#creditos">Créditos</a></li>
+    </ol>
+  </nav>
+
+  <main>
+    <header class="hero">
+      <div class="eyebrow">PROYECTO FAN · DEMO WEB · OCTUBRE 2026</div>
+      <h1>Helbreath Survivors</h1>
+      <p class="lede">Un juego de supervivencia contra hordas, al estilo de <i>Vampire Survivors</i>, hecho con los gráficos, sonidos y monstruos del MMORPG coreano <b>Helbreath</b> (2000). Se juega en el navegador, en PC y en el móvil.</p>
+      <div class="facts">
+        <div><b>12 min</b> hasta el jefe final</div>
+        <div><b>2</b> clases jugables</div>
+        <div><b>24</b> monstruos, <b>3</b> jefes</div>
+        <div><b>1</b> mapa (Eternal Field)</div>
+        <div>Fase <b>9 de 10</b></div>
+      </div>
+    </header>
+
+    <section id="que-es">
+      <h2>Qué es</h2>
+      <p>En un <i>Survivors</i> el jugador solo mueve a su personaje. Las armas atacan solas. Cada vez llegan más monstruos, que sueltan gemas de experiencia al morir. Al subir de nivel eliges una mejora entre tres cartas, y la partida termina cuando mueres o cuando matas al jefe final.</p>
+      <p>Lo especial de este proyecto es que todo sale de Helbreath: el mapa, los personajes compuestos por capas (cuerpo, pelo, armadura, arma), las animaciones, las explosiones de los hechizos, los sonidos, la música y hasta la fuente dibujada del libro de hechizos. Los monstruos copian el comportamiento del servidor original: su ritmo de ataque, su alcance, su velocidad y su tendencia a huir.</p>
+      <p class="muted">El juego está solo en inglés. Esta guía está en español.</p>
+    </section>
+
+    <section id="partida">
+      <h2>Cómo es una partida</h2>
+      <ul>
+        <li><b>Menú principal</b> con la pantalla de título original → <b>Play</b>.</li>
+        <li><b>Create New Character</b>, la pantalla original de creación: eliges <b>Warrior</b> o <b>Magician</b>.</li>
+        <li>Apareces en <b>Eternal Field</b> (el mapa <code>huntzone2</code>), una zona de unas 100×100 casillas con río y bosque.</li>
+        <li>Te mueves. Tu arma o hechizo ataca sola al enemigo más cercano.</li>
+        <li>Recoges las <b>gemas</b> (esmeralda, zafiro, rubí). Al subir de nivel, el juego se para y eliges <b>1 de 3 cartas</b>.</li>
+        <li>Cada 2 minutos cambia la oleada. En los minutos 5 y 8 llegan minijefes; en el 12, el <b>Fire Wyvern</b>.</li>
+        <li>Si matas al Wyvern, <b>ganas</b>. Si mueres, <b>Game Over</b>, con un resumen: clase, nivel, tiempo, bajas, arma y armadura.</li>
+      </ul>
+    </section>
+
+    <section id="controles">
+      <h2>Controles</h2>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Acción</th><th>Teclado / ratón</th><th>Mando</th><th>Móvil</th></tr></thead>
+        <tbody>
+          <tr><td>Moverse (8 direcciones)</td><td><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>, flechas o ratón</td><td>Stick izquierdo</td><td>Joystick que aparece donde pones el dedo</td></tr>
+          <tr><td>Atacar</td><td colspan="3">Automático</td></tr>
+          <tr><td>Elegir carta / confirmar</td><td><kbd>Enter</kbd> <kbd>Espacio</kbd> o clic</td><td>A</td><td>Tocar</td></tr>
+          <tr><td>Panel de stats</td><td><kbd>C</kbd></td><td>Y</td><td>—</td></tr>
+          <tr><td>Pausa</td><td><kbd>Esc</kbd> o el icono del disquete</td><td>Start</td><td>Botón "II" arriba a la derecha</td></tr>
+          <tr><td>Volver</td><td><kbd>Esc</kbd> <kbd>Retroceso</kbd></td><td>B</td><td>Tocar</td></tr>
+        </tbody>
+      </table></div>
+      <p class="muted">Si se desconecta el mando, la partida se pausa sola. En el móvil, el juego pide girar a horizontal y ofrece pantalla completa (salvo en iPhone, donde Safari no lo permite).</p>
+    </section>
+
+    <section id="personajes">
+      <h2>Personajes</h2>
+      <div class="cols">
+        <div class="panel">
+          <h3>Warrior</h3>
+          <p>Cuerpo a cuerpo. Tajo en arco hacia el enemigo más cercano; golpea a varios a la vez. Mejora con <b>Str</b>.</p>
+          <p class="muted">Empieza con: Dagger, camisa, pantalón y botas.<br>Stats: Str 14 · Vit 12 · Dex 14 · Int 10 · Mag 10 · Chr 10.<br>Cada nivel: +1 Str, +1 Vit.</p>
+        </div>
+        <div class="panel">
+          <h3>Magician</h3>
+          <p>A distancia. Lanza hechizos al enemigo más cercano. Desbloquea hechizos con <b>Int</b> y les sube el daño con <b>Mag</b>.</p>
+          <p class="muted">Empieza con: Energy Bolt, corpiño, falda, botas y varita (solo estética).<br>Stats: Str 12 · Vit 10 · Dex 10 · Int 14 · Mag 14 · Chr 10.<br>Cada nivel: +1 Int, +2 Mag.</p>
+        </div>
+      </div>
+      <p>El aspecto es fijo por ahora: el nombre del Guerrero es "NkII" y el de la Maga, "NMs". Hay un tercer personaje previsto, el <b>Archer</b>, aplazado.</p>
+    </section>
+
+    <section id="stats">
+      <h2>Stats</h2>
+      <p>Los seis stats de Helbreath. Suben solos con cada nivel y con las cartas "+3".</p>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Stat</th><th>Qué hace en el juego</th></tr></thead>
+        <tbody>
+          <tr><td><b>Str</b></td><td>Daño físico. Es el requisito de armas y armaduras del Guerrero.</td></tr>
+          <tr><td><b>Vit</b></td><td>Vida máxima.</td></tr>
+          <tr><td><b>Dex</b></td><td>Velocidad de movimiento y de ataque.</td></tr>
+          <tr><td><b>Int</b></td><td>Requisito de hechizos y de ropa de mago; algo de maná.</td></tr>
+          <tr><td><b>Mag</b></td><td>Daño mágico y maná.</td></tr>
+          <tr><td><b>Chr</b></td><td>Probabilidad de crítico: daño doble, número amarillo con "!".</td></tr>
+        </tbody>
+      </table></div>
+      <p class="muted">Los requisitos son los del original multiplicados por 0,4, para que quepan en una partida de 12 minutos.</p>
+    </section>
+
+    <section id="arsenal">
+      <h2>Armas y hechizos</h2>
+      <p>Llevas <b>una sola arma o hechizo a la vez</b>. Las armas no tienen nivel: mejoran cuando tus stats crecen y cuando cambias al siguiente <i>eslabón</i> de su familia. Una carta te ofrece el siguiente eslabón o cambiar a otra familia, mostrando qué ganas y qué pierdes. Entre paréntesis, el stat que pide cada uno.</p>
+      <h3>Warrior</h3>
+      <p><b>Short Swords</b>: rápidas y de poco alcance.</p>
+      <div class="chain"><span>Dagger<em>inicial</em></span><i>→</i><span>Short Sword<em>Str 17</em></span><i>→</i><span>Falchion<em>Str 24</em></span></div>
+      <p><b>Long Swords</b>: lentas, arco ancho y más empuje.</p>
+      <div class="chain"><span>Long Sword<em>Str 20</em></span><i>→</i><span>Broad Sword<em>28</em></span><i>→</i><span>Great Sword<em>36</em></span><i>→</i><span>Flamberge<em>46</em></span></div>
+      <p class="muted">Ya existen en datos, pero apagadas: Hammer, Axe y Fencing.</p>
+      <h3>Magician</h3>
+      <p><b>Energy</b></p>
+      <div class="chain"><span>Energy Bolt<em>inicial</em></span><i>→</i><span>Triple Energy Bolt<em>Int 20 · 3 bolas a 3 enemigos</em></span><i>→</i><span>Energy Strike<em>Int 32 · 8 descargas</em></span></div>
+      <p><b>Fire</b></p>
+      <div class="chain"><span>Fire Ball<em>Int 17</em></span><i>→</i><span>Fire Strike<em>Int 24 · 4 explosiones</em></span><i>→</i><span>Mass Fire Strike<em>Int 36</em></span></div>
+      <p class="muted">Previstas sin datos todavía: Lightning, Ice y Meteor.</p>
+      <p>Detalles que imitan al original: el personaje se planta un instante al golpear o lanzar (no "patina"), el tajo suena justo cuando cae el golpe, y al correr se oyen pasos y sale polvo bajo los pies.</p>
+    </section>
+
+    <section id="armaduras">
+      <h2>Armaduras</h2>
+      <p>Cada pieza quita un porcentaje del daño recibido (hasta un máximo del 60 %) y cambia el aspecto del personaje al momento.</p>
+      <ul>
+        <li><b>Warrior</b>, con requisito de Str: cuerpo (Leather, Scale, Chain y Plate Mail), casco y escudo.</li>
+        <li><b>Magician</b>, con requisito de Mag: túnica (Robe → Wizard Robe) y gorro (Wizard Cap → Wizard Hat). Además suben el daño mágico.</li>
+      </ul>
+    </section>
+
+    <section id="cartas">
+      <h2>Subir de nivel</h2>
+      <p>Al subir de nivel salen 3 cartas. Como mucho 2 son de objeto; el resto, de stat. Cada carta muestra los números de antes y después.</p>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Carta</th><th>Qué da</th></tr></thead>
+        <tbody>
+          <tr><td>Stat</td><td>+3 puntos a un stat. Siempre disponible.</td></tr>
+          <tr><td>Eslabón</td><td>El siguiente arma o hechizo de tu familia, si cumples el requisito.</td></tr>
+          <tr><td>Cambio de familia</td><td>Lo mejor que puedes llevar de otra familia (por ejemplo, de Short a Long Swords).</td></tr>
+          <tr><td>Armadura o ropa</td><td>La mejor pieza que permite tu stat. Se equipa sola.</td></tr>
+          <tr><td>Pasiva</td><td><b>Boots</b>: +8 % de velocidad por rango. <b>Magnet Amulet</b>: +30 % de radio para atraer gemas. 5 rangos cada una.</td></tr>
+        </tbody>
+      </table></div>
+    </section>
+
+    <section id="objetos">
+      <h2>Objetos y buffs</h2>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Objeto</th><th>Cómo sale</th><th>Efecto</th></tr></thead>
+        <tbody>
+          <tr><td><b>Red Potion</b></td><td class="num">1,5 % por monstruo</td><td>Cura el 30 % de la vida.</td></tr>
+          <tr><td><b>Magnet</b></td><td class="num">0,5 % por monstruo</td><td>Atrae todas las gemas del mapa.</td></tr>
+          <tr><td><b>Chest</b></td><td>Lo sueltan los minijefes</td><td>Un buff al azar durante 20 s. No desaparece del suelo.</td></tr>
+        </tbody>
+      </table></div>
+      <p><b>Berserk</b> (+40 % de daño, brillo rojo) y <b>Defense Shield</b> (−40 % de daño recibido, aura azul). Se pueden tener los dos a la vez; abajo a la derecha se ve cuánto le queda a cada uno.</p>
+    </section>
+
+    <section id="enemigos">
+      <h2>Enemigos</h2>
+      <p>21 monstruos normales y 3 jefes, todos con sus sprites y sonidos originales. Su comportamiento sale del código del servidor original:</p>
+      <ul>
+        <li><b>Ritmo de ataque real.</b> Atacan con animación y sonido; el golpe solo hace daño si sigues a su alcance cuando cae.</li>
+        <li><b>Alcance real.</b> El Ettin, el Ogre y el Cyclops pegan desde 3 casillas; el Wyvern, desde 7. El <b>Dark Elf dispara flechas</b> desde 8.</li>
+        <li><b>Pega y huye.</b> Un 20 % pega una o dos veces y se aleja. Con muy poca vida, los pequeños suelen huir; los grandes casi nunca.</li>
+        <li><b>Velocidad real</b>, algo acelerada para que lleguen antes. El jugador es unas 2 veces más rápido que ellos.</li>
+        <li>Aparecen justo fuera del borde de la pantalla.</li>
+      </ul>
+      <p class="muted">La vida va de 8 (Bunny) a 760 (Tigerworm). Jefes: Ettin 2.600, Demon 6.500, Fire Wyvern 32.000.</p>
+    </section>
+
+    <section id="oleadas">
+      <h2>Oleadas y jefes <small>línea de tiempo a escala</small></h2>
+      <div class="timeline" role="img" aria-label="Línea de tiempo de 12 minutos con seis tramos de monstruos y seis eventos">
+        <div class="tl-inner">
+          <div class="event" style="left:25%">Snakes surround you</div>
+          <div class="event boss" style="left:41.67%">Ettin</div>
+          <div class="event" style="left:58.33%">Werewolves</div>
+          <div class="event boss" style="left:66.67%">Demon</div>
+          <div class="event" style="left:87.5%">Hellhounds</div>
+          <div class="event boss" style="left:99%">Fire Wyvern</div>
+          <div class="bands">
+            <div class="band b1"><b>0–2</b>Slime, Bunny, Ant</div>
+            <div class="band b2"><b>2–4</b>Orc, Snake, Scorpion, Giant Frog</div>
+            <div class="band b3"><b>4–6</b>Skeleton, Zombie, Dire Boar</div>
+            <div class="band b4"><b>6–8</b>Troll, Ogre, Stalker, Werewolf</div>
+            <div class="band b5"><b>8–10</b>Cyclops, Lich, Hellhound, Dark Elf</div>
+            <div class="band b6"><b>10–12</b>Gargoyle, Hellclaw, Tigerworm, Minotaur</div>
+          </div>
+          <div class="axis"><span>0</span><span>2</span><span>4</span><span>6</span><span>8</span><span>10</span><span>12 min</span></div>
+        </div>
+      </div>
+      <ul>
+        <li>Un aviso grande anuncia cada evento ("The Ettin approaches!", "You are surrounded!").</li>
+        <li>Los jefes son más grandes, casi no retroceden y tienen una barra de vida arriba con su nombre.</li>
+        <li><b>Ettin</b> (min 5) y <b>Demon</b> (min 8) sueltan un cofre al morir.</li>
+        <li>El <b>Fire Wyvern</b> (min 12) lanza 3 bolas de fuego en abanico. Matarlo es la victoria.</li>
+        <li>La música cambia sola: <i>middleland</i> en la partida, <i>dungeon</i> con un minijefe, <i>abaddon</i> con el jefe final.</li>
+      </ul>
+    </section>
+
+    <section id="menus">
+      <h2>Menús y móvil</h2>
+      <ul>
+        <li><b>Main Menu</b>: Play, Achievements (todavía "Coming soon!"), Settings y Credits.</li>
+        <li><b>Settings</b>: volumen de música y de efectos, y la barra de vida sobre el personaje (On/Off). Se guarda en el navegador.</li>
+        <li><b>Pause</b>: Resume, Settings y Quit to menu.</li>
+        <li><b>Game Over</b>: Restart, Change (otra clase) y Log Out (al menú).</li>
+        <li><b>Móvil</b>: joystick táctil (también en las franjas negras de los lados), botón de pausa que funciona con un segundo dedo, aviso para girar el móvil y pantalla completa.</li>
+      </ul>
+    </section>
+
+    <section id="tecnica">
+      <h2>Por dentro</h2>
+      <ul>
+        <li><b>Tecnología</b>: Phaser 3 y TypeScript, sobre <i>helbreath-base-game</i>, una base libre (licencia MIT) que ya sabía leer los gráficos <code>.spr</code> y los mapas <code>.amd</code> de Helbreath.</li>
+        <li><b>Datos separados de la lógica</b>: vida, daño, oleadas y requisitos viven en archivos de datos. El equilibrio se ajusta sin tocar el código.</li>
+        <li><b>Rendimiento</b>: enemigos, proyectiles, gemas y números de daño se reutilizan en lugar de crearse y destruirse. Probado a 144 FPS con 371 monstruos en pantalla.</li>
+        <li><b>Descarga</b>: unos 35 MB antes del menú. Los monstruos de las oleadas siguientes (otros 15 MB) se bajan en segundo plano mientras estás en el menú.</li>
+        <li><b>Assets registrados</b>: cada gráfico y sonido tiene un nombre propio (<code>enemy.orc</code>, <code>fx.fireball</code>), así que podrían cambiarse por arte original sin tocar el resto.</li>
+        <li><b>Publicación</b>: preparado para Cloudflare Pages, con despliegue automático desde GitHub.</li>
+      </ul>
+    </section>
+
+    <section id="estado">
+      <h2>Estado del proyecto</h2>
+      <ol class="phases">
+        <li><span class="n">0</span><span>Reconocimiento del código y los assets</span><span class="pill ok">hecha</span></li>
+        <li><span class="n">1</span><span>Esqueleto y primer sprite</span><span class="pill ok">hecha</span></li>
+        <li><span class="n">2</span><span>Mapa y jugador</span><span class="pill ok">hecha</span></li>
+        <li><span class="n">3</span><span>Enemigos</span><span class="pill ok">hecha</span></li>
+        <li><span class="n">4</span><span>Primera arma y combate</span><span class="pill ok">hecha</span></li>
+        <li><span class="n">5</span><span>Experiencia y subida de nivel</span><span class="pill ok">hecha</span></li>
+        <li><span class="n">6</span><span>Arsenal completo, objetos y pasivas</span><span class="pill ok">hecha</span></li>
+        <li><span class="n">7</span><span>Oleadas, jefes y final</span><span class="pill ok">hecha</span></li>
+        <li><span class="n">8</span><span>Menús (el Archer queda aplazado)</span><span class="pill ok">hecha</span></li>
+        <li><span class="n">9</span><span>Web, móvil y publicación: móvil probado; falta publicar el enlace</span><span class="pill warn">en curso</span></li>
+        <li><span class="n">10</span><span>Pulido (opcional)</span><span class="pill todo">pendiente</span></li>
+      </ol>
+    </section>
+
+    <section id="problemas">
+      <h2>Problemas conocidos</h2>
+      <ul>
+        <li>En el móvil todo se ve muy pequeño: letras, menús y cartas.</li>
+        <li>El equilibrio está sin afinar: dificultad de cada tramo, vida de los jefes y curva de XP (objetivo: 25–30 niveles en 12–15 minutos).</li>
+        <li>El daño mágico de la Maga crece rápido.</li>
+        <li>No hay búsqueda de caminos: algunos monstruos se quedan en la orilla del río si estás al otro lado.</li>
+        <li>A 800×600 (el tamaño original de Helbreath) el personaje se ve pequeño.</li>
+      </ul>
+    </section>
+
+    <section id="mejoras">
+      <h2>Mejoras posibles</h2>
+      <p>Ideas en estudio. Ninguna está aprobada todavía. Casi todas tienen ya los gráficos y sonidos necesarios en los archivos de Helbreath.</p>
+      <div class="legend"><span class="s">Pequeña</span><span class="m">Mediana</span><span class="l">Grande</span></div>
+
+      <h3>Pulido (Fase 10)</h3>
+      <div class="ideas">
+        <div class="idea small"><h3>Interfaz grande en el móvil</h3><p>Letras, menús, cartas y barra inferior más grandes en pantallas pequeñas.</p></div>
+        <div class="idea small"><h3>Sensación de impacto</h3><p>Temblor de cámara, partículas, sombras y vibración del mando al recibir daño.</p></div>
+        <div class="idea small"><h3>Mando más completo</h3><p>Iconos de botones de Xbox en pantalla al usar mando, y reasignar controles.</p></div>
+        <div class="idea"><h3>Equilibrio</h3><p>Ajustar dificultad, jefes y curva de XP jugando partidas completas.</p></div>
+      </div>
+
+      <h3>Segunda etapa (Fases 11+)</h3>
+      <div class="ideas">
+        <div class="idea small"><h3>Critical Strike</h3><p>Un botón para lanzar el "crit" de Helbreath, con grito incluido. Cargas que crecen con el nivel y se recargan con el tiempo.</p><div class="meta"><span>Fase 11</span><span>Assets: todos</span></div></div>
+        <div class="idea small"><h3>Zemstone of Sacrifice</h3><p>Una vida extra: si mueres llevando el Zem, revives con media vida. Solo se puede llevar uno.</p><div class="meta"><span>Fase 12</span><span>Assets: todos</span></div></div>
+        <div class="idea small"><h3>Minimapa</h3><p>Miniatura original del mapa en una esquina, con jefes, cofres y pociones.</p><div class="meta"><span>Fase 13</span><span>Assets: todos</span></div></div>
+        <div class="idea big"><h3>Más mapas</h3><p>Cada mapa con sus monstruos, jefe y música, y una pantalla para elegirlo. Primero Icebound (con el Wyvern de hielo); después Dungeon L4, Farm y Druncian City.</p><div class="meta"><span>Fases 14–15</span><span>Assets: casi todos</span></div></div>
+        <div class="idea"><h3>Aresden y Elvine</h3><p>Elegir bando al empezar: capa, colores, música y quién te ataca en las Raids. Quizá desbloquear objetos Hero entre partidas.</p><div class="meta"><span>Fase 16</span><span>Faltan escudos de ciudad</span></div></div>
+        <div class="idea big"><h3>Raids</h3><p>"Jugadores" enemigos del otro bando, dibujados como el jugador: guerreros que lanzan crits y magos que te frenan con hielo.</p><div class="meta"><span>Fase 17</span><span>Assets: todos</span></div></div>
+        <div class="idea small"><h3>Récords</h3><p>Top 10 por mapa y clase guardado en el navegador. Un ranking online sería un paso aparte.</p><div class="meta"><span>Fase 18</span><span>Se reutilizan paneles</span></div></div>
+        <div class="idea"><h3>Bolsa ligera</h3><p>3–4 casillas de consumibles (pociones, pergaminos, Zem) con su tecla. No el inventario completo de Helbreath.</p><div class="meta"><span>Fase 19</span><span>Assets: todos</span></div></div>
+      </div>
+
+      <h3>Pendiente de antes</h3>
+      <ul>
+        <li><b>Archer</b>, el tercer personaje, con arco.</li>
+        <li><b>Achievements</b> de verdad: "Win Icebound", "Revive with a Zem"…</li>
+        <li>Elegir sexo, piel y pelo en la creación de personaje.</li>
+        <li>Activar las familias apagadas: Hammer, Axe, Fencing, y los hechizos Lightning, Ice y Meteor.</li>
+      </ul>
+    </section>
+
+    <section id="trucos">
+      <h2>Trucos de prueba</h2>
+      <p>Solo funcionan en la versión de desarrollo (en local), durante una partida.</p>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Tecla</th><th>Efecto</th></tr></thead>
+        <tbody>
+          <tr><td><kbd>G</kbd></td><td>Modo dios: no recibes daño (personaje dorado)</td></tr>
+          <tr><td><kbd>X</kbd> / <kbd>L</kbd></td><td>Sube 1 nivel / sube 5 niveles</td></tr>
+          <tr><td><kbd>K</kbd></td><td>Mata a los enemigos visibles</td></tr>
+          <tr><td><kbd>N</kbd></td><td>Hace aparecer 100 enemigos</td></tr>
+          <tr><td><kbd>J</kbd> / <kbd>M</kbd></td><td>Adelanta 1 minuto / salta al siguiente jefe</td></tr>
+          <tr><td><kbd>V</kbd> / <kbd>B</kbd></td><td>+10 Str / +10 Int y Mag</td></tr>
+          <tr><td><kbd>P</kbd></td><td>Suelta una poción, un imán y un cofre</td></tr>
+          <tr><td><kbd>F1</kbd></td><td>Panel de depuración (también en la versión publicada)</td></tr>
+        </tbody>
+      </table></div>
+    </section>
+
+    <section id="creditos">
+      <h2>Créditos y aviso legal</h2>
+      <p>Helbreath © Siementech Co. Ltd. Base técnica: <i>helbreath-base-game</i> (MIT), de Erko Knoll. Fuente de la interfaz: Comic Neue (SIL Open Font License).</p>
+      <p>Proyecto fan no oficial, gratuito y sin ánimo de lucro: sin anuncios, sin pagos y sin publicar en tiendas comerciales. Los gráficos y sonidos de Helbreath pertenecen a sus dueños.</p>
+    </section>
+
+    <footer>Estado a 17 de octubre de 2026, durante la Fase 9.</footer>
+  </main>
+</div>
