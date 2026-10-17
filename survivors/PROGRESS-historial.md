@@ -2,6 +2,8 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
+**Fase 11 completada (2026-10-18)**: fusionada en `master`, etiqueta `fase-11`. Siguiente: Fase 12 (Móvil sin pérdidas).
+
 **Fase 11: pulido de interfaz (2026-10-18, el propietario la probó y le gusta).**
 - **Settings → Large Trees: On / Transparent / Off** (`config/settings.ts`, `hb/mapRenderer.ts` → `MapView.setTreeMode`). On = como antes (el árbol que tapa al jugador ya se volvía medio transparente, como en el original). Transparent = todos los árboles grandes a alfa 0,35 (`TREE_TRANSPARENT_ALPHA` en `config/gameConfig.ts`). Off = sin árboles ni sombras. Muros y casas no cambian. Se aplica al momento, también desde la pausa.
 - **Fuera los textos de controles** de las cartas de nivel, el menú principal y el fin de partida.

@@ -13,10 +13,10 @@
 | 8 — Menús y personajes | ✅ completada (solo menús; Arquero aplazado) | 2026-10-17 |
 | 9 — Web, móvil y publicación | ✅ completada | 2026-10-17 |
 | 10 — Pulido (opcional) | ✅ completada (10A, 10B y 10C) | 2026-10-17 |
-| 11 — Pulido de interfaz | 🟡 hecha, pendiente de cerrar | 2026-10-18 |
+| 11 — Pulido de interfaz | ✅ completada | 2026-10-18 |
 
 ## Fase actual
-**Para retomar (18-oct-2026): Fase 11 hecha** (Large Trees, How to Play, sin textos de controles, selección de personaje en el móvil); resumen en `PROGRESS-historial.md`. Segunda etapa en `docs/PLAN-2.md` (Fases 11–25). **Siguiente: `/fase 12` (Móvil sin pérdidas).**
+**Para retomar (18-oct-2026): Fase 11 completada, fusionada y etiquetada (`fase-11`)** (Large Trees, How to Play, sin textos de controles, selección de personaje en el móvil); resumen en `PROGRESS-historial.md`. Segunda etapa en `docs/PLAN-2.md` (Fases 11–25). **Siguiente: `/fase 12` (Móvil sin pérdidas).**
 - **Controles:** todo control nuevo se explica en How to Play (`data/howToPlay.ts`), nunca en pantalla.
 - **Assets propios** (los que no están en sp-client, como las voces de subir de nivel): `survivors/custom-assets/`, con la misma estructura de carpetas.
 - **Ajustes posibles del temblor**, si el propietario los pide (`data/feedback.ts`): acortar la pausa entre explosiones críticas (2,5 s), contar cualquier crítico de la explosión, o añadir temblor a los críticos cuerpo a cuerpo.
