@@ -96,6 +96,9 @@ export const SPRITES = {
     'ui.buttons': { file: 'sprites/dialogtext.spr', type: SpriteType.Interface },
     // Pantallas de título del original 640x480 (hoja 1 = "Helbreath The Heldenian", la del login; ver config/menus.ts).
     'ui.title': { file: 'sprites/new-dialog.spr', type: SpriteType.Interface },
+    // Interfaz "V2" del original (piedra oscura, por piezas): barras y botones de la interfaz compacta del móvil
+    // (hoja 0; ver config/hud.ts → HUD_COMPACT).
+    'ui.v2': { file: 'sprites/dialogsv2.spr', type: SpriteType.Interface },
 
     // Objetos en el suelo (gemas de XP: hoja 15, ver data/leveling.ts).
     'item.ground': { file: 'sprites/item-ground.spr', type: SpriteType.ItemGround },
@@ -256,3 +259,6 @@ export const TILE_PACKS = [
 export type TilePack = (typeof TILE_PACKS)[number];
 
 export const ASSET_BASE_PATH = 'assets/';
+
+/** Only downloaded on phones (config/device.ts): the PC never shows them. */
+export const PHONE_ONLY_SPRITES: ReadonlySet<SpriteKey> = new Set<SpriteKey>(['ui.v2']);

@@ -12,9 +12,34 @@
 | 7 — Oleadas, jefes y final | ✅ completada | 2026-10-17 |
 | 8 — Menús y personajes | ✅ completada (solo menús; Arquero aplazado) | 2026-10-17 |
 | 9 — Web, móvil y publicación | ✅ completada | 2026-10-17 |
-| 10 — Pulido (opcional) | ⬜ pendiente | |
+| 10 — Pulido (opcional) | 🟡 en curso (10A y 10B: móvil) | |
 
 ## Fase actual
+**Fase 10, bloque 10B: interfaz de partida elegible en el móvil (2026-10-17, probado por el propietario en su móvil: OK).**
+- **Nueva opción en Settings → HUD: Classic / Compact.** Solo sale en el móvil; en el PC siempre está la barra clásica y la opción no aparece. Se guarda para la próxima vez.
+- **Compact (la que sale por defecto en el móvil):** no hay barra abajo y se ve más mapa.
+  - Arriba a la izquierda: barras de vida, maná y experiencia con piezas de la interfaz "V2" del original (`dialogsv2.spr`), y debajo nivel, tiempo y bajas.
+  - Arriba a la derecha: botón de stats (casco) junto al de pausa.
+  - La barra del jefe se coloca entre los dos. Los buffs siguen abajo a la derecha, más pegados al borde.
+- **Ajuste del 17-oct (pedido del propietario):** las barras compactas pasan a estar **abajo, en fila** (vida, maná y experiencia una al lado de otra), con un 25 % de transparencia. Nivel, tiempo y bajas, justo encima. Buffs, panel de stats y el texto "Tap a card" se colocan por encima de la fila. Si se quiere volver a ponerlas arriba a la izquierda, basta con cambiar `HUD_COMPACT_LAYOUT` en `config/hud.ts`.
+- **Classic:** la barra de abajo del bloque 10A.
+- **Cambiar en plena partida:** desde la pausa (Pause → Settings → HUD). Al volver al juego, la barra y la zona de juego ya han cambiado.
+- **Código:** `ui/ClassicHud.ts` y `ui/CompactHud.ts`. La elección vive en `ui/hudLayout.ts` y las medidas en `config/hud.ts` (`HUD_COMPACT`). `dialogsv2.spr` (2,3 MB) solo se descarga en el móvil.
+- **Comprobado** con Chrome sin ventana simulando un móvil (844×390, táctil): partida, stats, jefe, buffs, cartas, ajustes y cambio de barra en plena partida. En PC, igual que antes. Sin errores en la consola; `tsc` y `build` sin errores.
+- **Cómo probarlo:** en el móvil, abre `http://192.168.1.42:8090` y empieza una partida, que sale con la barra compacta. Pulsa II → Settings → HUD → Classic → Back → Resume: debería verse la barra de abajo.
+
+**Fase 10, bloque 10A: que todo se lea bien en el móvil (2026-10-17, probado por el propietario en su móvil: OK).**
+- **Modo móvil** (`src/config/device.ts`): se activa solo en pantallas táctiles pequeñas (lado corto ≤ 600 px). En el PC no cambia nada.
+  - Para verlo en el PC: añade `?ui=compact` a la dirección. Para ver la versión de PC en el móvil: `?ui=normal`.
+- **Letras:** un 30–35 % más grandes en el móvil (`UI_FONT_SIZE` en `config/ui.ts`). En todos los dispositivos se dibujan a la resolución real de la pantalla, así que se ven más nítidas.
+- **Menús:** opciones más grandes y con más sitio para el dedo. El panel de pausa y ajustes es más ancho. Bajo el menú pone "Tap an option" en lugar de las teclas.
+- **Barra inferior:** un 25 % más grande en el móvil (cabe porque el dibujo original tiene madera vacía en los lados). Los botones siguen funcionando al tocarlos.
+- **Cartas de subida de nivel:** más anchas y con texto más grande. Abajo pone "Tap a card".
+- **Game Over** ("Tap a button"), panel de stats, avisos de jefe y mejoras activas: también más grandes.
+- **Selección de personaje:** solo un poco más grande, porque las cajas del dibujo original son pequeñas.
+- **Comprobado** en el navegador integrado simulando un móvil (menú, ajustes, créditos, pausa, partida, stats, cartas, Game Over) y en PC (igual que antes). Consola limpia; `tsc` y `build` sin errores.
+- **Cómo probarlo:** con el ordenador encendido, abre en el móvil `http://192.168.1.42:8090`, con la misma wifi y el móvil en horizontal.
+
 **Fase 9 completada (2026-10-17)**: el juego está publicado y el propietario lo ha probado en PC y móvil. Siguiente: `/fase 10` (pulido, opcional), empezando por agrandar letras y menús en el móvil.
 - **Enlace principal:** https://nicolasraviolo.github.io/helbreath-survivor/ (GitHub Pages).
 - **Se actualiza solo** al subir a `master` (`.github/workflows/pages.yml`).

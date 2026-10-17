@@ -21,7 +21,7 @@ export class TouchJoystick {
     constructor(
         private readonly scene: Phaser.Scene,
         /** The joystick only starts on touches above this screen Y (not on the HUD bar), or on the side margins. */
-        private readonly maxY: number,
+        private maxY: number,
         depth: number,
     ) {
         const j = TOUCH_JOYSTICK;
@@ -63,6 +63,11 @@ export class TouchJoystick {
         return this.touchId !== undefined;
     }
 
+
+    /** The game area grew or shrank (the HUD style changed in the settings). */
+    public setMaxY(maxY: number): void {
+        this.maxY = maxY;
+    }
     private onDown(pointer: Phaser.Input.Pointer): void {
         const inMargin = pointer.x < 0 || pointer.x > GAME_WIDTH;
         if (!pointer.wasTouch || this.touchId !== undefined || (pointer.y >= this.maxY && !inMargin)) return;

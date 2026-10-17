@@ -1,117 +1,180 @@
 <title>Helbreath Survivors</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya+SC:wght@500;700&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&family=JetBrains+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya+SC:wght@500;700&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Comic+Neue:wght@400;700&family=JetBrains+Mono:wght@500&display=swap">
 <style>
-/* Layout: guía de juego. Índice fijo a la izquierda en escritorio; una columna en el móvil. Secciones como capítulos de un manual. */
+/* Layout: manual de juego nocturno. Índice fijo a la izquierda; capítulos con capturas y sprites del juego.
+   Tema oscuro único, a propósito: los sprites y capturas de Helbreath están pensados para fondo oscuro. */
 :root {
-  --bg: #eef0f2;
-  --surface: #f8f9fa;
-  --fg: #1d2530;
-  --muted: #59636f;
-  --line: #d3d8de;
-  --accent: #9a6a12;
-  --accent-soft: #f3e6c8;
-  --ok: #2f7a4b;
-  --warn: #a8641a;
-  --todo: #6b7480;
-  --band1: #cfe3d2; --band2: #d9e6c4; --band3: #ecdfb8; --band4: #f0cfae; --band5: #ecbaa8; --band6: #dca9b6;
+  color-scheme: dark;
+  --bg: #15120e;          /* noche, madera quemada */
+  --surface: #1f1a14;     /* panel */
+  --surface-2: #2a231a;
+  --wood: #5a4630;        /* borde de los paneles del original */
+  --fg: #ebe1cd;          /* pergamino */
+  --muted: #a99c85;
+  --gold: #ffd860;        /* color de los títulos dibujados del juego */
+  --red: #ff6a52;         /* avisos ("The Ettin approaches!") */
+  --blue: #7fb2ff;        /* Defense Shield */
+  --ok: #7cc98f;
+  --warn: #e8a65a;
+  --todo: #8d8574;
+  --band1: #233a26; --band2: #2f3a1c; --band3: #423a1c; --band4: #4a301b; --band5: #4c2620; --band6: #43202d;
   --display: "Alegreya SC", Georgia, serif;
   --body: "Alegreya Sans", "Segoe UI", system-ui, sans-serif;
+  --game: "Comic Neue", "Comic Sans MS", "Segoe UI", sans-serif; /* la letra de los diálogos del original */
   --mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
 }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
-  --bg: #12161d; --surface: #1a2029; --fg: #e3e6ea; --muted: #9aa4b0; --line: #2c3440;
-  --accent: #e0b25a; --accent-soft: #3a2f1a; --ok: #6cc28c; --warn: #e3a158; --todo: #8a94a1;
-  --band1: #24402c; --band2: #34421f; --band3: #4a4120; --band4: #52361e; --band5: #552b23; --band6: #4a2433;
-  color-scheme: dark; } }
-:root[data-theme="dark"] {
-  --bg: #12161d; --surface: #1a2029; --fg: #e3e6ea; --muted: #9aa4b0; --line: #2c3440;
-  --accent: #e0b25a; --accent-soft: #3a2f1a; --ok: #6cc28c; --warn: #e3a158; --todo: #8a94a1;
-  --band1: #24402c; --band2: #34421f; --band3: #4a4120; --band4: #52361e; --band5: #552b23; --band6: #4a2433;
-  color-scheme: dark; }
 
 * { box-sizing: border-box; }
 body { background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 17px; line-height: 1.6; }
-.wrap { max-width: 1180px; margin: 0 auto; padding-block: 40px 80px;
+.wrap { max-width: 1200px; margin: 0 auto; padding-block: 36px 80px;
   padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
-  display: grid; grid-template-columns: 210px minmax(0, 1fr); gap: 56px; }
+  display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 52px; }
 nav.toc { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 24px); align-self: start; font-size: 15px; }
-nav.toc .label { font-family: var(--display); color: var(--muted); letter-spacing: .08em; font-size: 13px; }
-nav.toc ol { list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 2px; }
-nav.toc a { color: var(--fg); text-decoration: none; display: block; padding: 3px 10px; border-left: 2px solid var(--line); }
-nav.toc a:hover, nav.toc a:focus-visible { border-left-color: var(--accent); color: var(--accent); outline: none; }
+nav.toc .label { font-family: var(--display); color: var(--muted); letter-spacing: .1em; font-size: 13px; }
+nav.toc ol { list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 1px; }
+nav.toc a { color: var(--fg); text-decoration: none; display: block; padding: 3px 10px; border-left: 2px solid var(--wood); }
+nav.toc a:hover, nav.toc a:focus-visible { border-left-color: var(--gold); color: var(--gold); outline: none; }
 main { min-width: 0; }
-header.hero { padding-bottom: 28px; border-bottom: 1px solid var(--line); margin-bottom: 8px; }
-.eyebrow { font-family: var(--display); color: var(--accent); letter-spacing: .1em; font-size: 14px; }
-h1 { font-family: var(--display); font-weight: 700; font-size: clamp(38px, 6vw, 60px); line-height: 1.05; margin: 6px 0 14px; text-wrap: balance; }
-.lede { font-size: 20px; max-width: 62ch; color: var(--fg); margin: 0; }
-.facts { display: flex; flex-wrap: wrap; gap: 10px 28px; margin-top: 22px; font-size: 15px; color: var(--muted); }
-.facts b { color: var(--fg); font-weight: 700; }
-section { padding-block: 36px 8px; scroll-margin-top: 16px; }
-h2 { font-family: var(--display); font-size: 30px; font-weight: 700; margin: 0 0 6px; text-wrap: balance; }
+
+img.px { image-rendering: pixelated; image-rendering: crisp-edges; }
+.drawn { display: block; height: auto; max-width: 100%; image-rendering: pixelated; }
+
+header.hero { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 32px; align-items: center; padding-bottom: 32px; border-bottom: 1px solid var(--wood); }
+.hero .eyebrow { font-family: var(--game); color: var(--muted); font-size: 14px; letter-spacing: .04em; }
+.hero h1 { margin: 10px 0 16px; line-height: 0; }
+.hero h1 img { width: min(100%, 520px); }
+.hero h1 span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.lede { font-size: 19px; margin: 0; }
+.facts { display: flex; flex-wrap: wrap; gap: 8px 22px; margin-top: 18px; font-size: 15px; color: var(--muted); }
+.facts b { color: var(--gold); font-weight: 700; }
+
+figure { margin: 16px 0; }
+figure.shot img { display: block; width: 100%; max-width: 800px; height: auto; border: 3px solid var(--wood); border-radius: 4px; box-shadow: 0 0 0 1px #0008; }
+figcaption { font-family: var(--game); font-size: 14.5px; color: var(--muted); margin-top: 6px; max-width: 70ch; }
+.shots-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.shots-2 figure { margin: 0; }
+
+section { padding-block: 40px 6px; scroll-margin-top: 16px; }
+h2 { font-family: var(--display); font-size: 31px; font-weight: 700; color: var(--gold); margin: 0 0 6px; text-wrap: balance; }
 h2 small { font-family: var(--body); font-size: 15px; color: var(--muted); font-weight: 400; margin-left: 8px; }
-h3 { font-family: var(--display); font-size: 21px; margin: 26px 0 6px; }
+h3 { font-family: var(--display); font-size: 21px; margin: 26px 0 6px; color: var(--fg); }
 p, li { max-width: 68ch; }
 p { margin: 8px 0; }
 ul { padding-left: 20px; margin: 8px 0; }
 li { margin: 3px 0; }
-a { color: var(--accent); }
-kbd { font-family: var(--mono); font-size: 13px; background: var(--surface); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 1px 6px; white-space: nowrap; }
+a { color: var(--gold); }
+code { font-family: var(--mono); font-size: 14px; color: var(--muted); }
+kbd { font-family: var(--mono); font-size: 13px; background: var(--surface-2); color: var(--fg); border: 1px solid var(--wood); border-bottom-width: 2px; border-radius: 4px; padding: 1px 6px; white-space: nowrap; }
 .muted { color: var(--muted); }
-.note { background: var(--accent-soft); padding: 12px 16px; border-radius: 6px; max-width: 68ch; margin: 14px 0; }
 
 .table-wrap { overflow-x: auto; margin: 12px 0; }
 table { border-collapse: collapse; width: 100%; font-size: 15.5px; }
-th, td { text-align: left; padding: 8px 12px 8px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+th, td { text-align: left; padding: 8px 12px 8px 0; border-bottom: 1px solid #3a3024; vertical-align: middle; }
 th { font-family: var(--display); font-weight: 500; color: var(--muted); font-size: 14px; letter-spacing: .04em; }
 td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+td.icon { width: 56px; text-align: center; }
+td.icon img { max-height: 40px; vertical-align: middle; }
 
-.cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; margin-top: 12px; }
-.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 16px 18px; min-width: 0; }
-.panel h3 { margin-top: 0; }
+/* Paneles con borde de madera, como los cuadros de diálogo del original */
+.panel { background: var(--surface); border: 2px solid var(--wood); border-radius: 6px; padding: 18px 20px; min-width: 0; }
+.heroes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; margin-top: 14px; }
+.hero-card { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 18px; align-items: start; }
+.hero-card .fig { background: radial-gradient(circle at 50% 70%, #3a3122 0, transparent 70%); display: grid; place-items: end center; min-height: 170px; }
+.hero-card .fig img { width: 84px; height: auto; }
+.hero-card .name img { height: 28px; width: auto; }
+.hero-card p { font-size: 15.5px; }
+.statline { font-family: var(--game); font-size: 14px; color: var(--muted); }
 
 .chain { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 6px 0 12px; font-size: 15px; }
-.chain span { background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 2px 8px; }
+.chain span { background: var(--surface-2); border: 1px solid var(--wood); border-radius: 4px; padding: 2px 9px; }
 .chain span em { font-style: normal; color: var(--muted); font-size: 13px; margin-left: 4px; }
 .chain i { color: var(--muted); font-style: normal; }
 
+/* Efectos: fondo negro, como en el juego (se dibujan con mezcla aditiva) */
+.fx-row { display: flex; flex-wrap: wrap; gap: 12px; margin: 14px 0; }
+.fx { background: #050403; border: 1px solid var(--wood); border-radius: 6px; width: 120px; padding: 10px 8px 8px; text-align: center; }
+.fx .box { height: 84px; display: grid; place-items: center; }
+.fx img { max-width: 100px; max-height: 80px; mix-blend-mode: screen; }
+.fx span { display: block; font-family: var(--game); font-size: 12.5px; color: var(--muted); margin-top: 6px; line-height: 1.25; }
+
+.items { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; margin: 14px 0; }
+.item { background: var(--surface); border: 1px solid var(--wood); border-radius: 6px; padding: 12px; display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 10px; align-items: center; }
+.item .ic { height: 40px; display: grid; place-items: center; }
+.item .ic img { max-height: 40px; max-width: 44px; }
+.item b { display: block; font-size: 15px; }
+.item span { font-size: 13.5px; color: var(--muted); line-height: 1.3; display: block; }
+.buffs { display: flex; flex-wrap: wrap; gap: 20px; align-items: center; margin: 12px 0; }
+.buffs img { height: 26px; width: auto; }
+
+/* Bestiario */
+.bestiary { display: grid; gap: 22px; margin-top: 14px; }
+.tier h3 { margin: 0 0 8px; font-size: 17px; color: var(--muted); font-family: var(--game); font-weight: 700; }
+.mons { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 10px; }
+.mon { background: var(--surface); border: 1px solid #3a3024; border-radius: 6px; padding: 8px 6px 8px; text-align: center; min-width: 0; }
+.mon .box { height: 96px; display: grid; place-items: end center; }
+.mon img { max-height: 92px; max-width: 108px; }
+.mon b { display: block; font-size: 14.5px; margin-top: 4px; }
+.mon span { font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.bosses { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 10px; }
+.boss { background: linear-gradient(#2a1b14, var(--surface)); border: 2px solid var(--wood); border-radius: 6px; padding: 12px; text-align: center; min-width: 0; }
+.boss .box { height: 190px; display: grid; place-items: end center; }
+.boss .box img { max-height: 186px; max-width: 100%; }
+.boss .title { height: 30px; display: grid; place-items: center; margin-top: 8px; }
+.boss .title img { max-height: 26px; max-width: 100%; }
+.boss span { font-size: 13.5px; color: var(--muted); display: block; margin-top: 4px; }
+
 /* Línea de tiempo de 12 minutos, a escala */
 .timeline { margin: 18px 0 6px; overflow-x: auto; }
-.tl-inner { min-width: 640px; position: relative; padding-top: 34px; }
-.bands { display: grid; grid-template-columns: repeat(6, 1fr); border-radius: 6px; overflow: hidden; }
-.band { padding: 10px 10px 12px; font-size: 13.5px; line-height: 1.35; min-height: 96px; }
-.band b { display: block; font-family: var(--mono); font-size: 12px; margin-bottom: 4px; color: var(--fg); }
+.tl-inner { min-width: 680px; position: relative; padding-top: 34px; }
+.bands { display: grid; grid-template-columns: repeat(6, 1fr); border-radius: 6px; overflow: hidden; border: 1px solid var(--wood); }
+.band { padding: 8px 8px 10px; font-size: 13px; line-height: 1.35; min-height: 128px; }
+.band b { display: block; font-family: var(--mono); font-size: 12px; margin-bottom: 4px; }
+.band .sp { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 2px; height: 46px; margin-bottom: 4px; }
+.band .sp img { max-height: 44px; max-width: 40px; }
 .b1{background:var(--band1)} .b2{background:var(--band2)} .b3{background:var(--band3)} .b4{background:var(--band4)} .b5{background:var(--band5)} .b6{background:var(--band6)}
-.event { position: absolute; top: 0; transform: translateX(-50%); font-size: 12px; white-space: nowrap; text-align: center; }
+.event { position: absolute; top: 0; transform: translateX(-50%); font-size: 12px; white-space: nowrap; text-align: center; font-family: var(--game); }
 .event::after { content: ""; display: block; width: 2px; height: 10px; background: var(--fg); margin: 2px auto 0; }
-.event.boss { font-weight: 700; color: var(--accent); }
-.event.boss::after { background: var(--accent); }
+.event.boss-ev { font-weight: 700; color: var(--gold); }
+.event.boss-ev::after { background: var(--gold); }
+.event.last { transform: translateX(-100%); text-align: right; }
+.event.last::after { margin-right: 0; }
 .axis { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 12px; color: var(--muted); margin-top: 6px; font-variant-numeric: tabular-nums; }
 
-.phases { list-style: none; padding: 0; display: grid; gap: 0; max-width: none; }
-.phases li { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 12px; align-items: baseline; padding: 9px 0; border-bottom: 1px solid var(--line); max-width: none; }
+.endings { display: flex; flex-wrap: wrap; gap: 24px; align-items: center; margin: 10px 0; }
+.endings img { height: 30px; width: auto; }
+
+.phases { list-style: none; padding: 0; display: grid; max-width: none; }
+.phases li { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 12px; align-items: baseline; padding: 9px 0; border-bottom: 1px solid #3a3024; max-width: none; }
 .phases .n { font-family: var(--mono); color: var(--muted); font-size: 14px; }
-.pill { font-size: 12.5px; padding: 1px 10px; border-radius: 99px; border: 1px solid currentColor; white-space: nowrap; }
+.pill { font-size: 12.5px; padding: 1px 10px; border-radius: 99px; border: 1px solid currentColor; white-space: nowrap; font-family: var(--game); }
 .pill.ok { color: var(--ok); } .pill.warn { color: var(--warn); } .pill.todo { color: var(--todo); }
 
-.ideas { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-top: 14px; }
-.idea { border-top: 3px solid var(--accent); background: var(--surface); padding: 14px 16px 16px; border-radius: 0 0 8px 8px; min-width: 0; }
+.ideas { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 14px; margin-top: 14px; }
+.idea { border-top: 3px solid var(--gold); background: var(--surface); padding: 14px 16px 16px; border-radius: 0 0 6px 6px; min-width: 0; }
 .idea h3 { margin: 0 0 4px; font-size: 19px; }
 .idea p { font-size: 15.5px; margin: 6px 0; }
-.idea .meta { font-size: 13px; color: var(--muted); display: flex; gap: 12px; flex-wrap: wrap; }
+.idea .meta { font-size: 13px; color: var(--muted); display: flex; gap: 12px; flex-wrap: wrap; font-family: var(--game); }
 .idea.small { border-top-color: var(--ok); }
 .idea.big { border-top-color: var(--warn); }
 .legend { display: flex; gap: 18px; flex-wrap: wrap; font-size: 14px; color: var(--muted); }
 .legend span::before { content: ""; display: inline-block; width: 14px; height: 3px; margin-right: 6px; vertical-align: middle; }
-.legend .s::before { background: var(--ok); } .legend .m::before { background: var(--accent); } .legend .l::before { background: var(--warn); }
+.legend .s::before { background: var(--ok); } .legend .m::before { background: var(--gold); } .legend .l::before { background: var(--warn); }
 
-footer { margin-top: 48px; padding-top: 20px; border-top: 1px solid var(--line); font-size: 14px; color: var(--muted); }
+footer { margin-top: 48px; padding-top: 20px; border-top: 1px solid var(--wood); font-size: 14px; color: var(--muted); font-family: var(--game); }
 
-@media (max-width: 860px) {
+@media (max-width: 900px) {
   .wrap { grid-template-columns: minmax(0, 1fr); gap: 20px; padding-block: 24px 60px; }
   nav.toc { position: static; }
   nav.toc ol { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+  header.hero { grid-template-columns: minmax(0, 1fr); }
+  .heroes, .bosses { grid-template-columns: minmax(0, 1fr); }
   body { font-size: 16px; }
+}
+@media (max-width: 560px) {
+  .shots-2 { grid-template-columns: minmax(0, 1fr); }
+  .hero-card { grid-template-columns: 72px minmax(0, 1fr); }
+  .hero-card .fig img { width: 66px; }
 }
 @media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
 </style>
@@ -129,8 +192,9 @@ footer { margin-top: 48px; padding-top: 20px; border-top: 1px solid var(--line);
       <li><a href="#armaduras">Armaduras</a></li>
       <li><a href="#cartas">Subir de nivel</a></li>
       <li><a href="#objetos">Objetos y buffs</a></li>
-      <li><a href="#enemigos">Enemigos</a></li>
+      <li><a href="#enemigos">Bestiario</a></li>
       <li><a href="#oleadas">Oleadas y jefes</a></li>
+      <li><a href="#final">Victoria y derrota</a></li>
       <li><a href="#menus">Menús y móvil</a></li>
       <li><a href="#tecnica">Por dentro</a></li>
       <li><a href="#estado">Estado</a></li>
@@ -143,35 +207,44 @@ footer { margin-top: 48px; padding-top: 20px; border-top: 1px solid var(--line);
 
   <main>
     <header class="hero">
-      <div class="eyebrow">PROYECTO FAN · DEMO WEB · OCTUBRE 2026</div>
-      <h1>Helbreath Survivors</h1>
-      <p class="lede">Un juego de supervivencia contra hordas, al estilo de <i>Vampire Survivors</i>, hecho con los gráficos, sonidos y monstruos del MMORPG coreano <b>Helbreath</b> (2000). Se juega en el navegador, en PC y en el móvil.</p>
-      <div class="facts">
-        <div><b>12 min</b> hasta el jefe final</div>
-        <div><b>2</b> clases jugables</div>
-        <div><b>24</b> monstruos, <b>3</b> jefes</div>
-        <div><b>1</b> mapa (Eternal Field)</div>
-        <div>Fase <b>9 de 10</b></div>
+      <div>
+        <div class="eyebrow">Proyecto fan · demo web · octubre 2026</div>
+        <h1><img class="drawn" src="img/sprites/txt-title.png" alt=""><span>Helbreath Survivors</span></h1>
+        <p class="lede">Un juego de supervivencia contra hordas, al estilo de <i>Vampire Survivors</i>, hecho con los gráficos, sonidos y monstruos del MMORPG coreano <b>Helbreath</b> (2000). Se juega en el navegador, en PC y en el móvil.</p>
+        <div class="facts">
+          <div><b>12 min</b> hasta el jefe final</div>
+          <div><b>2</b> clases</div>
+          <div><b>24</b> monstruos, <b>3</b> jefes</div>
+          <div>Fase <b>10 de 10</b></div>
+        </div>
       </div>
+      <figure class="shot" style="margin:0">
+        <img src="img/menu.png" alt="Menú principal con la pantalla de título original de Helbreath y las opciones Play, Achievements, Settings, Credits y Fullscreen" width="800" height="600">
+        <figcaption>El menú principal usa la pantalla de título original del juego.</figcaption>
+      </figure>
     </header>
 
     <section id="que-es">
       <h2>Qué es</h2>
       <p>En un <i>Survivors</i> el jugador solo mueve a su personaje. Las armas atacan solas. Cada vez llegan más monstruos, que sueltan gemas de experiencia al morir. Al subir de nivel eliges una mejora entre tres cartas, y la partida termina cuando mueres o cuando matas al jefe final.</p>
-      <p>Lo especial de este proyecto es que todo sale de Helbreath: el mapa, los personajes compuestos por capas (cuerpo, pelo, armadura, arma), las animaciones, las explosiones de los hechizos, los sonidos, la música y hasta la fuente dibujada del libro de hechizos. Los monstruos copian el comportamiento del servidor original: su ritmo de ataque, su alcance, su velocidad y su tendencia a huir.</p>
-      <p class="muted">El juego está solo en inglés. Esta guía está en español.</p>
+      <p>Lo especial de este proyecto es que todo sale de Helbreath: el mapa, los personajes compuestos por capas (cuerpo, pelo, armadura, arma), las animaciones, las explosiones de los hechizos, los sonidos, la música y la fuente dibujada que ves en los títulos de esta guía. Los monstruos copian el comportamiento del servidor original: su ritmo de ataque, su alcance, su velocidad y su tendencia a huir.</p>
+      <p class="muted">El juego está solo en inglés. Esta guía está en español. Todas las imágenes salen del juego en marcha.</p>
     </section>
 
     <section id="partida">
       <h2>Cómo es una partida</h2>
+      <figure class="shot">
+        <img src="img/play-warrior.jpg" alt="El Guerrero en el centro del mapa Eternal Field, rodeado de orcos y escorpiones junto a un río, con la barra inferior original" width="800" height="600" loading="lazy">
+        <figcaption>Minuto 3 con el Guerrero. Abajo, la barra original de Helbreath con vida, maná, experiencia, nivel, tiempo y bajas.</figcaption>
+      </figure>
       <ul>
-        <li><b>Menú principal</b> con la pantalla de título original → <b>Play</b>.</li>
+        <li><b>Menú principal</b> → <b>Play</b>.</li>
         <li><b>Create New Character</b>, la pantalla original de creación: eliges <b>Warrior</b> o <b>Magician</b>.</li>
         <li>Apareces en <b>Eternal Field</b> (el mapa <code>huntzone2</code>), una zona de unas 100×100 casillas con río y bosque.</li>
         <li>Te mueves. Tu arma o hechizo ataca sola al enemigo más cercano.</li>
-        <li>Recoges las <b>gemas</b> (esmeralda, zafiro, rubí). Al subir de nivel, el juego se para y eliges <b>1 de 3 cartas</b>.</li>
+        <li>Recoges las <b>gemas</b>. Al subir de nivel, el juego se para y eliges <b>1 de 3 cartas</b>.</li>
         <li>Cada 2 minutos cambia la oleada. En los minutos 5 y 8 llegan minijefes; en el 12, el <b>Fire Wyvern</b>.</li>
-        <li>Si matas al Wyvern, <b>ganas</b>. Si mueres, <b>Game Over</b>, con un resumen: clase, nivel, tiempo, bajas, arma y armadura.</li>
+        <li>Si matas al Wyvern, <b>ganas</b>. Si mueres, <b>Game Over</b>.</li>
       </ul>
     </section>
 
@@ -183,7 +256,7 @@ footer { margin-top: 48px; padding-top: 20px; border-top: 1px solid var(--line);
           <tr><td>Moverse (8 direcciones)</td><td><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>, flechas o ratón</td><td>Stick izquierdo</td><td>Joystick que aparece donde pones el dedo</td></tr>
           <tr><td>Atacar</td><td colspan="3">Automático</td></tr>
           <tr><td>Elegir carta / confirmar</td><td><kbd>Enter</kbd> <kbd>Espacio</kbd> o clic</td><td>A</td><td>Tocar</td></tr>
-          <tr><td>Panel de stats</td><td><kbd>C</kbd></td><td>Y</td><td>—</td></tr>
+          <tr><td>Panel de stats</td><td><kbd>C</kbd> o el icono del casco</td><td>Y</td><td>Botón del casco</td></tr>
           <tr><td>Pausa</td><td><kbd>Esc</kbd> o el icono del disquete</td><td>Start</td><td>Botón "II" arriba a la derecha</td></tr>
           <tr><td>Volver</td><td><kbd>Esc</kbd> <kbd>Retroceso</kbd></td><td>B</td><td>Tocar</td></tr>
         </tbody>
@@ -193,35 +266,48 @@ footer { margin-top: 48px; padding-top: 20px; border-top: 1px solid var(--line);
 
     <section id="personajes">
       <h2>Personajes</h2>
-      <div class="cols">
-        <div class="panel">
-          <h3>Warrior</h3>
-          <p>Cuerpo a cuerpo. Tajo en arco hacia el enemigo más cercano; golpea a varios a la vez. Mejora con <b>Str</b>.</p>
-          <p class="muted">Empieza con: Dagger, camisa, pantalón y botas.<br>Stats: Str 14 · Vit 12 · Dex 14 · Int 10 · Mag 10 · Chr 10.<br>Cada nivel: +1 Str, +1 Vit.</p>
+      <div class="heroes">
+        <div class="panel hero-card">
+          <div class="fig"><img class="px" src="img/sprites/char-warrior.png" alt="Guerrero con Plate Mail, casco con cuernos, escudo y espada"></div>
+          <div>
+            <div class="name"><img class="drawn" src="img/sprites/txt-warrior.png" alt="Warrior"></div>
+            <p>Cuerpo a cuerpo. Tajo en arco hacia el enemigo más cercano; golpea a varios a la vez. Mejora con <b>Str</b>.</p>
+            <p class="statline">Empieza con Dagger, camisa, pantalón y botas.<br>Str 14 · Vit 12 · Dex 14 · Int 10 · Mag 10 · Chr 10<br>Cada nivel: +1 Str, +1 Vit</p>
+          </div>
         </div>
-        <div class="panel">
-          <h3>Magician</h3>
-          <p>A distancia. Lanza hechizos al enemigo más cercano. Desbloquea hechizos con <b>Int</b> y les sube el daño con <b>Mag</b>.</p>
-          <p class="muted">Empieza con: Energy Bolt, corpiño, falda, botas y varita (solo estética).<br>Stats: Str 12 · Vit 10 · Dex 10 · Int 14 · Mag 14 · Chr 10.<br>Cada nivel: +1 Int, +2 Mag.</p>
+        <div class="panel hero-card">
+          <div class="fig"><img class="px" src="img/sprites/char-mage.png" alt="Maga con Wizard Robe, sombrero de mago y varita"></div>
+          <div>
+            <div class="name"><img class="drawn" src="img/sprites/txt-magician.png" alt="Magician"></div>
+            <p>A distancia. Lanza hechizos al enemigo más cercano. Desbloquea hechizos con <b>Int</b> y les sube el daño con <b>Mag</b>.</p>
+            <p class="statline">Empieza con Energy Bolt, corpiño, falda, botas y varita.<br>Str 12 · Vit 10 · Dex 10 · Int 14 · Mag 14 · Chr 10<br>Cada nivel: +1 Int, +2 Mag</p>
+          </div>
         </div>
       </div>
-      <p>El aspecto es fijo por ahora: el nombre del Guerrero es "NkII" y el de la Maga, "NMs". Hay un tercer personaje previsto, el <b>Archer</b>, aplazado.</p>
+      <div class="shots-2" style="margin-top:18px">
+        <figure class="shot"><img src="img/select-warrior.jpg" alt="Pantalla Create New Character con el Guerrero elegido" width="800" height="600" loading="lazy"><figcaption>La pantalla original de creación, con el Guerrero.</figcaption></figure>
+        <figure class="shot"><img src="img/select-mage.jpg" alt="Pantalla Create New Character con la Maga elegida" width="800" height="600" loading="lazy"><figcaption>La misma pantalla con la Maga. El aspecto aún no se puede cambiar.</figcaption></figure>
+      </div>
+      <p>Los personajes de arriba llevan equipo conseguido en partida; cada pieza cambia el dibujo. El nombre es fijo por ahora: "NkII" para el Guerrero y "NMs" para la Maga. Hay un tercer personaje previsto, el <b>Archer</b>, aplazado.</p>
     </section>
 
     <section id="stats">
       <h2>Stats</h2>
       <p>Los seis stats de Helbreath. Suben solos con cada nivel y con las cartas "+3".</p>
-      <div class="table-wrap"><table>
-        <thead><tr><th>Stat</th><th>Qué hace en el juego</th></tr></thead>
-        <tbody>
-          <tr><td><b>Str</b></td><td>Daño físico. Es el requisito de armas y armaduras del Guerrero.</td></tr>
-          <tr><td><b>Vit</b></td><td>Vida máxima.</td></tr>
-          <tr><td><b>Dex</b></td><td>Velocidad de movimiento y de ataque.</td></tr>
-          <tr><td><b>Int</b></td><td>Requisito de hechizos y de ropa de mago; algo de maná.</td></tr>
-          <tr><td><b>Mag</b></td><td>Daño mágico y maná.</td></tr>
-          <tr><td><b>Chr</b></td><td>Probabilidad de crítico: daño doble, número amarillo con "!".</td></tr>
-        </tbody>
-      </table></div>
+      <div class="shots-2">
+        <div class="table-wrap" style="margin:0"><table>
+          <thead><tr><th>Stat</th><th>Qué hace en el juego</th></tr></thead>
+          <tbody>
+            <tr><td><b>Str</b></td><td>Daño físico. Requisito de armas y armaduras del Guerrero.</td></tr>
+            <tr><td><b>Vit</b></td><td>Vida máxima.</td></tr>
+            <tr><td><b>Dex</b></td><td>Velocidad de movimiento y de ataque.</td></tr>
+            <tr><td><b>Int</b></td><td>Requisito de hechizos y de ropa de mago; algo de maná.</td></tr>
+            <tr><td><b>Mag</b></td><td>Daño mágico y maná.</td></tr>
+            <tr><td><b>Chr</b></td><td>Crítico: daño doble, número amarillo con "!".</td></tr>
+          </tbody>
+        </table></div>
+        <figure class="shot" style="margin:0"><img src="img/stats-panel.jpg" alt="Panel de stats abierto con la tecla C: nivel, stats, arma, daño recibido y pasivas" width="800" height="600" loading="lazy"><figcaption>El panel de stats (tecla <kbd>C</kbd>) a mitad de partida.</figcaption></figure>
+      </div>
       <p class="muted">Los requisitos son los del original multiplicados por 0,4, para que quepan en una partida de 12 minutos.</p>
     </section>
 
@@ -240,6 +326,17 @@ footer { margin-top: 48px; padding-top: 20px; border-top: 1px solid var(--line);
       <p><b>Fire</b></p>
       <div class="chain"><span>Fire Ball<em>Int 17</em></span><i>→</i><span>Fire Strike<em>Int 24 · 4 explosiones</em></span><i>→</i><span>Mass Fire Strike<em>Int 36</em></span></div>
       <p class="muted">Previstas sin datos todavía: Lightning, Ice y Meteor.</p>
+      <div class="fx-row" aria-label="Efectos originales usados por los hechizos">
+        <div class="fx"><div class="box"><img class="px" src="img/sprites/fx-energybolt.png" alt=""></div><span>Energy Bolt en vuelo</span></div>
+        <div class="fx"><div class="box"><img class="px" src="img/sprites/fx-energy-explode.png" alt=""></div><span>Impacto de energía</span></div>
+        <div class="fx"><div class="box"><img class="px" src="img/sprites/fx-fireball.png" alt=""></div><span>Fire Ball (8 direcciones)</span></div>
+        <div class="fx"><div class="box"><img class="px" src="img/sprites/fx-fire-explode.png" alt=""></div><span>Explosión de fuego</span></div>
+        <div class="fx"><div class="box"><img class="px" src="img/sprites/fx-hit.png" alt=""></div><span>Destello de golpe</span></div>
+      </div>
+      <figure class="shot">
+        <img src="img/fire-strike.jpg" alt="La Maga lanzando Fire Strike: una gran explosión naranja con números de daño 199 y 267 sobre los enemigos" width="800" height="600" loading="lazy">
+        <figcaption>Fire Strike de la Maga: explosiones seguidas sobre el enemigo más cercano. Los números rojos son el daño.</figcaption>
+      </figure>
       <p>Detalles que imitan al original: el personaje se planta un instante al golpear o lanzar (no "patina"), el tajo suena justo cuando cae el golpe, y al correr se oyen pasos y sale polvo bajo los pies.</p>
     </section>
 
@@ -254,43 +351,94 @@ footer { margin-top: 48px; padding-top: 20px; border-top: 1px solid var(--line);
 
     <section id="cartas">
       <h2>Subir de nivel</h2>
-      <p>Al subir de nivel salen 3 cartas. Como mucho 2 son de objeto; el resto, de stat. Cada carta muestra los números de antes y después.</p>
-      <div class="table-wrap"><table>
-        <thead><tr><th>Carta</th><th>Qué da</th></tr></thead>
-        <tbody>
-          <tr><td>Stat</td><td>+3 puntos a un stat. Siempre disponible.</td></tr>
-          <tr><td>Eslabón</td><td>El siguiente arma o hechizo de tu familia, si cumples el requisito.</td></tr>
-          <tr><td>Cambio de familia</td><td>Lo mejor que puedes llevar de otra familia (por ejemplo, de Short a Long Swords).</td></tr>
-          <tr><td>Armadura o ropa</td><td>La mejor pieza que permite tu stat. Se equipa sola.</td></tr>
-          <tr><td>Pasiva</td><td><b>Boots</b>: +8 % de velocidad por rango. <b>Magnet Amulet</b>: +30 % de radio para atraer gemas. 5 rangos cada una.</td></tr>
-        </tbody>
-      </table></div>
+      <div class="shots-2">
+        <div>
+          <p>Al subir de nivel el juego se para y salen 3 cartas. Como mucho 2 son de objeto; el resto, de stat. Cada carta muestra los números de antes y después.</p>
+          <div class="table-wrap"><table>
+            <thead><tr><th>Carta</th><th>Qué da</th></tr></thead>
+            <tbody>
+              <tr><td>Stat</td><td>+3 puntos a un stat. Siempre disponible.</td></tr>
+              <tr><td>Eslabón</td><td>El siguiente arma o hechizo de tu familia, si cumples el requisito.</td></tr>
+              <tr><td>Cambio de familia</td><td>Lo mejor que puedes llevar de otra familia.</td></tr>
+              <tr><td>Armadura o ropa</td><td>La mejor pieza que permite tu stat. Se equipa sola.</td></tr>
+              <tr><td>Pasiva</td><td><b>Boots</b> (+8 % de velocidad por rango) o <b>Magnet Amulet</b> (+30 % de radio para atraer gemas). 5 rangos.</td></tr>
+            </tbody>
+          </table></div>
+        </div>
+        <figure class="shot" style="margin:0"><img src="img/levelup.jpg" alt="Pantalla Level 6 con tres cartas: Magnet Amulet, Helmet y +3 Intelligence" width="800" height="600" loading="lazy"><figcaption>Tres cartas: una pasiva, una pieza de armadura y un stat.</figcaption></figure>
+      </div>
     </section>
 
     <section id="objetos">
       <h2>Objetos y buffs</h2>
-      <div class="table-wrap"><table>
-        <thead><tr><th>Objeto</th><th>Cómo sale</th><th>Efecto</th></tr></thead>
-        <tbody>
-          <tr><td><b>Red Potion</b></td><td class="num">1,5 % por monstruo</td><td>Cura el 30 % de la vida.</td></tr>
-          <tr><td><b>Magnet</b></td><td class="num">0,5 % por monstruo</td><td>Atrae todas las gemas del mapa.</td></tr>
-          <tr><td><b>Chest</b></td><td>Lo sueltan los minijefes</td><td>Un buff al azar durante 20 s. No desaparece del suelo.</td></tr>
-        </tbody>
-      </table></div>
-      <p><b>Berserk</b> (+40 % de daño, brillo rojo) y <b>Defense Shield</b> (−40 % de daño recibido, aura azul). Se pueden tener los dos a la vez; abajo a la derecha se ve cuánto le queda a cada uno.</p>
+      <div class="items">
+        <div class="item"><div class="ic"><img class="px" src="img/sprites/gem-1.png" alt=""><!-- esmeralda --></div><div><b>Emerald</b><span>Gema de XP pequeña</span></div></div>
+        <div class="item"><div class="ic"><img class="px" src="img/sprites/gem-3.png" alt=""></div><div><b>Sapphire</b><span>Gema de XP mediana</span></div></div>
+        <div class="item"><div class="ic"><img class="px" src="img/sprites/gem-5.png" alt=""></div><div><b>Ruby</b><span>Gema de XP grande</span></div></div>
+        <div class="item"><div class="ic"><img class="px" src="img/sprites/potion.png" alt=""></div><div><b>Red Potion</b><span>Cura el 30 %. Cae con un 1,5 %</span></div></div>
+        <div class="item"><div class="ic"><img class="px" src="img/sprites/magnet.png" alt=""></div><div><b>Magnet</b><span>Atrae todas las gemas. Cae con un 0,5 %</span></div></div>
+        <div class="item"><div class="ic"><img class="px" src="img/sprites/chest.png" alt=""></div><div><b>Chest</b><span>Lo sueltan los minijefes. Da un buff</span></div></div>
+      </div>
+      <p>El cofre da uno de estos buffs durante 20 s. Se pueden tener los dos a la vez; abajo a la derecha se ve cuánto le queda a cada uno. El nombre sube sobre el personaje con la fuente del original:</p>
+      <div class="buffs">
+        <img class="drawn" src="img/sprites/txt-berserk.png" alt="Berserk!">
+        <span class="muted">+40 % de daño, brillo rojo</span>
+        <img class="drawn" src="img/sprites/txt-shield.png" alt="Defense Shield!">
+        <span class="muted">−40 % de daño recibido, aura azul</span>
+      </div>
+      <div class="fx-row">
+        <div class="fx"><div class="box"><img class="px" src="img/sprites/fx-berserk.png" alt=""></div><span>Círculo de Berserk</span></div>
+        <div class="fx"><div class="box"><img class="px" src="img/sprites/fx-shield.png" alt=""></div><span>Aura de Defense Shield</span></div>
+      </div>
+      <p class="muted">Poción e imán desaparecen a los 60 s. El imán se dibuja con el cristal del original, porque Helbreath no tiene sprite de imán; el cofre, con la bolsa de oro.</p>
     </section>
 
     <section id="enemigos">
-      <h2>Enemigos</h2>
-      <p>21 monstruos normales y 3 jefes, todos con sus sprites y sonidos originales. Su comportamiento sale del código del servidor original:</p>
+      <h2>Bestiario <small>21 monstruos y 3 jefes</small></h2>
+      <p>Todos con sus sprites y sonidos originales. Su comportamiento sale del código del servidor de Helbreath:</p>
       <ul>
         <li><b>Ritmo de ataque real.</b> Atacan con animación y sonido; el golpe solo hace daño si sigues a su alcance cuando cae.</li>
         <li><b>Alcance real.</b> El Ettin, el Ogre y el Cyclops pegan desde 3 casillas; el Wyvern, desde 7. El <b>Dark Elf dispara flechas</b> desde 8.</li>
         <li><b>Pega y huye.</b> Un 20 % pega una o dos veces y se aleja. Con muy poca vida, los pequeños suelen huir; los grandes casi nunca.</li>
         <li><b>Velocidad real</b>, algo acelerada para que lleguen antes. El jugador es unas 2 veces más rápido que ellos.</li>
-        <li>Aparecen justo fuera del borde de la pantalla.</li>
       </ul>
-      <p class="muted">La vida va de 8 (Bunny) a 760 (Tigerworm). Jefes: Ettin 2.600, Demon 6.500, Fire Wyvern 32.000.</p>
+      <div class="bestiary">
+        <div class="tier"><h3>Minutos 0–4</h3><div class="mons">
+          <div class="mon"><div class="box"><img class="px" src="img/sprites/enemy-slime.png" alt=""></div><b>Slime</b><span>10 HP</span></div>
+          <div class="mon"><div class="box"><img class="px" src="img/sprites/enemy-bunny.png" alt=""></div><b>Bunny</b><span>8 HP</span></div>
+          <div class="mon"><div class="box"><img class="px" src="img/sprites/enemy-ant.png" alt=""></div><b>Ant</b><span>12 HP</span></div>
+          <div class="mon"><div class="box"><img class="px" src="img/sprites/enemy-orc.png" alt=""></div><b>Orc</b><span>30 HP</span></div>
+          <div class="mon"><div class="box"><img class="px" src="img/sprites/enemy-snake.png" alt=""></div><b>Snake</b><span>20 HP</span></div>
+          <div class="mon"><div class="box"><img class="px" src="img/sprites/enemy-scorpion.png" alt=""></div><b>Scorpion</b><span>40 HP</span></div>
+          <div class="mon"><div class="box"><img class="px" src="img/sprites/enemy-frog.png" alt=""></div><b>Giant Frog</b><span>55 HP</span></div>
+        </div></div>
+        <div class="tier"><h3>Minutos 4–8</h3><div class="mons">
+          <div class="mon"><div class="box"><img class="px" src="img/sprites/enemy-skeleton.png" alt=""></div><b>Skeleton</b><span>70 HP</span></div>
+          <div class="mon"><div class="box"><img class="px" src="img/sprites/enemy-zombie.png" alt=""></div><b>Zombie</b><span>95 HP</span></div>
+          <div class="mon"><div class="box"><img class="px" src="img/sprites/enemy-direBoar.png" alt=""></div><b>Dire Boar</b><span>140 HP</span></div>
+          <div class="mon"><div class="box"><img class="px" src="img/sprites/enemy-troll.png" alt=""></div><b>Troll</b><span>230 HP</span></div>
+          <div class="mon"><div class="box"><img class="px" src="img/sprites/enemy-ogre.png" alt=""></div><b>Ogre</b><span>320 HP</span></div>
+          <div class="mon"><div class="box"><img class="px" src="img/sprites/enemy-stalker.png" alt=""></div><b>Stalker</b><span>210 HP</span></div>
+          <div class="mon"><div class="box"><img class="px" src="img/sprites/enemy-werewolf.png" alt=""></div><b>Werewolf</b><span>270 HP</span></div>
+        </div></div>
+        <div class="tier"><h3>Minutos 8–12</h3><div class="mons">
+          <div class="mon"><div class="box"><img class="px" src="img/sprites/enemy-cyclops.png" alt=""></div><b>Cyclops</b><span>400 HP</span></div>
+          <div class="mon"><div class="box"><img class="px" src="img/sprites/enemy-lich.png" alt=""></div><b>Lich</b><span>340 HP</span></div>
+          <div class="mon"><div class="box"><img class="px" src="img/sprites/enemy-hellhound.png" alt=""></div><b>Hellhound</b><span>270 HP</span></div>
+          <div class="mon"><div class="box"><img class="px" src="img/sprites/enemy-darkElf.png" alt=""></div><b>Dark Elf</b><span>320 HP · arquero</span></div>
+          <div class="mon"><div class="box"><img class="px" src="img/sprites/enemy-gargoyle.png" alt=""></div><b>Gargoyle</b><span>560 HP</span></div>
+          <div class="mon"><div class="box"><img class="px" src="img/sprites/enemy-hellclaw.png" alt=""></div><b>Hellclaw</b><span>650 HP</span></div>
+          <div class="mon"><div class="box"><img class="px" src="img/sprites/enemy-tigerworm.png" alt=""></div><b>Tigerworm</b><span>760 HP</span></div>
+          <div class="mon"><div class="box"><img class="px" src="img/sprites/enemy-minotaur.png" alt=""></div><b>Minotaur</b><span>700 HP</span></div>
+        </div></div>
+        <div class="tier"><h3>Jefes</h3>
+          <div class="bosses">
+            <div class="boss"><div class="box"><img class="px" src="img/sprites/enemy-ettin.png" alt="Ettin, gigante de dos cabezas"></div><div class="title"><img class="drawn" src="img/sprites/txt-ettin-name.png" alt="Ettin"></div><span>Minuto 5 · 2.600 HP · suelta cofre</span></div>
+            <div class="boss"><div class="box"><img class="px" src="img/sprites/enemy-demon.png" alt="Demon"></div><div class="title"><img class="drawn" src="img/sprites/txt-demon.png" alt="Demon"></div><span>Minuto 8 · 6.500 HP · suelta cofre</span></div>
+            <div class="boss"><div class="box"><img class="px" src="img/sprites/enemy-fireWyvern.png" alt="Fire Wyvern, dragón rojo"></div><div class="title"><img class="drawn" src="img/sprites/txt-wyvern.png" alt="Fire Wyvern"></div><span>Minuto 12 · 32.000 HP · jefe final</span></div>
+          </div>
+        </div>
+      </div>
     </section>
 
     <section id="oleadas">
@@ -298,40 +446,75 @@ footer { margin-top: 48px; padding-top: 20px; border-top: 1px solid var(--line);
       <div class="timeline" role="img" aria-label="Línea de tiempo de 12 minutos con seis tramos de monstruos y seis eventos">
         <div class="tl-inner">
           <div class="event" style="left:25%">Snakes surround you</div>
-          <div class="event boss" style="left:41.67%">Ettin</div>
+          <div class="event boss-ev" style="left:41.67%">Ettin</div>
           <div class="event" style="left:58.33%">Werewolves</div>
-          <div class="event boss" style="left:66.67%">Demon</div>
+          <div class="event boss-ev" style="left:66.67%">Demon</div>
           <div class="event" style="left:87.5%">Hellhounds</div>
-          <div class="event boss" style="left:99%">Fire Wyvern</div>
+          <div class="event boss-ev last" style="left:100%">Fire Wyvern</div>
           <div class="bands">
-            <div class="band b1"><b>0–2</b>Slime, Bunny, Ant</div>
-            <div class="band b2"><b>2–4</b>Orc, Snake, Scorpion, Giant Frog</div>
-            <div class="band b3"><b>4–6</b>Skeleton, Zombie, Dire Boar</div>
-            <div class="band b4"><b>6–8</b>Troll, Ogre, Stalker, Werewolf</div>
-            <div class="band b5"><b>8–10</b>Cyclops, Lich, Hellhound, Dark Elf</div>
-            <div class="band b6"><b>10–12</b>Gargoyle, Hellclaw, Tigerworm, Minotaur</div>
+            <div class="band b1"><b>0–2</b><div class="sp"><img class="px" src="img/sprites/enemy-slime.png" alt=""><img class="px" src="img/sprites/enemy-bunny.png" alt=""><img class="px" src="img/sprites/enemy-ant.png" alt=""></div>Slime, Bunny, Ant</div>
+            <div class="band b2"><b>2–4</b><div class="sp"><img class="px" src="img/sprites/enemy-orc.png" alt=""><img class="px" src="img/sprites/enemy-scorpion.png" alt=""><img class="px" src="img/sprites/enemy-frog.png" alt=""></div>Orc, Snake, Scorpion, Giant Frog</div>
+            <div class="band b3"><b>4–6</b><div class="sp"><img class="px" src="img/sprites/enemy-skeleton.png" alt=""><img class="px" src="img/sprites/enemy-zombie.png" alt=""><img class="px" src="img/sprites/enemy-direBoar.png" alt=""></div>Skeleton, Zombie, Dire Boar</div>
+            <div class="band b4"><b>6–8</b><div class="sp"><img class="px" src="img/sprites/enemy-troll.png" alt=""><img class="px" src="img/sprites/enemy-ogre.png" alt=""><img class="px" src="img/sprites/enemy-werewolf.png" alt=""></div>Troll, Ogre, Stalker, Werewolf</div>
+            <div class="band b5"><b>8–10</b><div class="sp"><img class="px" src="img/sprites/enemy-cyclops.png" alt=""><img class="px" src="img/sprites/enemy-lich.png" alt=""><img class="px" src="img/sprites/enemy-darkElf.png" alt=""></div>Cyclops, Lich, Hellhound, Dark Elf</div>
+            <div class="band b6"><b>10–12</b><div class="sp"><img class="px" src="img/sprites/enemy-gargoyle.png" alt=""><img class="px" src="img/sprites/enemy-tigerworm.png" alt=""><img class="px" src="img/sprites/enemy-minotaur.png" alt=""></div>Gargoyle, Hellclaw, Tigerworm, Minotaur</div>
           </div>
           <div class="axis"><span>0</span><span>2</span><span>4</span><span>6</span><span>8</span><span>10</span><span>12 min</span></div>
         </div>
       </div>
+      <p>Cada evento se anuncia en grande con la fuente del original:</p>
+      <div class="buffs">
+        <img class="drawn" src="img/sprites/txt-ettin.png" alt="The Ettin approaches!">
+        <img class="drawn" src="img/sprites/txt-surrounded.png" alt="You are surrounded!">
+      </div>
+      <div class="shots-2">
+        <figure class="shot"><img src="img/boss-warning.jpg" alt="Aviso The Ettin approaches! en rojo y la barra de vida del Ettin arriba" width="800" height="600" loading="lazy"><figcaption>Minuto 5: llega el Ettin. Arriba aparece su barra de vida con el nombre.</figcaption></figure>
+        <figure class="shot"><img src="img/boss-ettin.jpg" alt="Pelea con el Ettin rodeado de esqueletos, zombis y jabalíes, con números de crítico amarillos" width="800" height="600" loading="lazy"><figcaption>Los números amarillos con "!" son críticos (stat Chr).</figcaption></figure>
+      </div>
+      <figure class="shot">
+        <img src="img/boss-wyvern.jpg" alt="El Fire Wyvern, un dragón rojo, arriba a la izquierda lanzando bolas de fuego, con liches y hombres lobo alrededor" width="800" height="600" loading="lazy">
+        <figcaption>Minuto 12: el Fire Wyvern lanza bolas de fuego en abanico mientras los últimos monstruos rodean al jugador.</figcaption>
+      </figure>
       <ul>
-        <li>Un aviso grande anuncia cada evento ("The Ettin approaches!", "You are surrounded!").</li>
-        <li>Los jefes son más grandes, casi no retroceden y tienen una barra de vida arriba con su nombre.</li>
-        <li><b>Ettin</b> (min 5) y <b>Demon</b> (min 8) sueltan un cofre al morir.</li>
-        <li>El <b>Fire Wyvern</b> (min 12) lanza 3 bolas de fuego en abanico. Matarlo es la victoria.</li>
+        <li>Los jefes son más grandes, casi no retroceden y tienen una barra de vida arriba.</li>
+        <li><b>Ettin</b> y <b>Demon</b> sueltan un cofre al morir. El <b>Fire Wyvern</b> lanza 3 bolas de fuego cada 2,6 s.</li>
         <li>La música cambia sola: <i>middleland</i> en la partida, <i>dungeon</i> con un minijefe, <i>abaddon</i> con el jefe final.</li>
       </ul>
+    </section>
+
+    <section id="final">
+      <h2>Victoria y derrota</h2>
+      <div class="shots-2">
+        <figure class="shot" style="margin:0"><img src="img/victory.jpg" alt="Pantalla Victory! con clase Warrior nivel 23, tiempo 12:18, 64 bajas, Flamberge y armadura, y los botones Restart, Change y Log Out" width="800" height="600" loading="lazy"><figcaption>Pantalla final tras matar al Wyvern.</figcaption></figure>
+        <div>
+          <div class="endings">
+            <img class="drawn" src="img/sprites/txt-victory.png" alt="Victory!">
+            <img class="drawn" src="img/sprites/txt-fallen.png" alt="You have fallen">
+          </div>
+          <p>Al final de la partida sale un resumen: clase, nivel, tiempo, bajas, arma o hechizo y armadura.</p>
+          <ul>
+            <li><b>Restart</b>: otra partida con la misma clase.</li>
+            <li><b>Change</b>: volver a elegir clase.</li>
+            <li><b>Log Out</b>: volver al menú principal.</li>
+          </ul>
+        </div>
+      </div>
     </section>
 
     <section id="menus">
       <h2>Menús y móvil</h2>
       <ul>
-        <li><b>Main Menu</b>: Play, Achievements (todavía "Coming soon!"), Settings y Credits.</li>
-        <li><b>Settings</b>: volumen de música y de efectos, y la barra de vida sobre el personaje (On/Off). Se guarda en el navegador.</li>
+        <li><b>Main Menu</b>: Play, Achievements (todavía "Coming soon!"), Settings, Credits y Fullscreen.</li>
+        <li><b>Settings</b>: volumen de música y de efectos, y la barra de vida sobre el personaje (On/Off). En el móvil, además, <b>HUD</b>: Classic o Compact. Se guarda en el navegador.</li>
         <li><b>Pause</b>: Resume, Settings y Quit to menu.</li>
-        <li><b>Game Over</b>: Restart, Change (otra clase) y Log Out (al menú).</li>
         <li><b>Móvil</b>: joystick táctil (también en las franjas negras de los lados), botón de pausa que funciona con un segundo dedo, aviso para girar el móvil y pantalla completa.</li>
+        <li><b>Interfaz para el móvil</b>: el juego detecta las pantallas táctiles pequeñas y agranda letras, menús, cartas y la barra inferior. Los textos se ven nítidos en cualquier pantalla. En el PC todo sigue igual.</li>
+        <li><b>HUD Compact</b> (el que sale por defecto en el móvil): sin la barra de abajo, así se ve más mapa. Vida, maná y experiencia van en fila a lo largo del borde inferior, algo transparentes, con piezas de la interfaz "V2" del Helbreath original. Arriba a la derecha están los botones de stats (casco) y de pausa. <b>Classic</b> es la barra original, agrandada. Se puede cambiar en plena partida, desde la pausa.</li>
       </ul>
+      <div class="shots-2">
+        <figure class="shot"><img src="img/mobile-compact.jpg" alt="Partida en el móvil con el HUD Compact: barras de vida, maná y experiencia en fila abajo, barra del jefe Ettin arriba, botones de stats y pausa arriba a la derecha y el buff Berserk" width="800" height="600" loading="lazy"><figcaption>HUD Compact en el móvil, con un jefe y un buff activos.</figcaption></figure>
+        <figure class="shot"><img src="img/mobile-levelup.jpg" alt="Cartas de subida de nivel en el móvil, más grandes y con el texto Tap a card" width="800" height="600" loading="lazy"><figcaption>Las cartas, más grandes en el móvil. Se eligen tocándolas.</figcaption></figure>
+      </div>
     </section>
 
     <section id="tecnica">
@@ -342,7 +525,7 @@ footer { margin-top: 48px; padding-top: 20px; border-top: 1px solid var(--line);
         <li><b>Rendimiento</b>: enemigos, proyectiles, gemas y números de daño se reutilizan en lugar de crearse y destruirse. Probado a 144 FPS con 371 monstruos en pantalla.</li>
         <li><b>Descarga</b>: unos 35 MB antes del menú. Los monstruos de las oleadas siguientes (otros 15 MB) se bajan en segundo plano mientras estás en el menú.</li>
         <li><b>Assets registrados</b>: cada gráfico y sonido tiene un nombre propio (<code>enemy.orc</code>, <code>fx.fireball</code>), así que podrían cambiarse por arte original sin tocar el resto.</li>
-        <li><b>Publicación</b>: preparado para Cloudflare Pages, con despliegue automático desde GitHub.</li>
+        <li><b>Publicación</b>: GitHub Pages, que se actualiza solo con cada cambio en la rama principal.</li>
       </ul>
     </section>
 
@@ -358,15 +541,14 @@ footer { margin-top: 48px; padding-top: 20px; border-top: 1px solid var(--line);
         <li><span class="n">6</span><span>Arsenal completo, objetos y pasivas</span><span class="pill ok">hecha</span></li>
         <li><span class="n">7</span><span>Oleadas, jefes y final</span><span class="pill ok">hecha</span></li>
         <li><span class="n">8</span><span>Menús (el Archer queda aplazado)</span><span class="pill ok">hecha</span></li>
-        <li><span class="n">9</span><span>Web, móvil y publicación: móvil probado; falta publicar el enlace</span><span class="pill warn">en curso</span></li>
-        <li><span class="n">10</span><span>Pulido (opcional)</span><span class="pill todo">pendiente</span></li>
+        <li><span class="n">9</span><span>Web, móvil y publicación</span><span class="pill ok">hecha</span></li>
+        <li><span class="n">10</span><span>Pulido (opcional): interfaz del móvil hecha; quedan impacto, mando y equilibrio</span><span class="pill warn">en curso</span></li>
       </ol>
     </section>
 
     <section id="problemas">
       <h2>Problemas conocidos</h2>
       <ul>
-        <li>En el móvil todo se ve muy pequeño: letras, menús y cartas.</li>
         <li>El equilibrio está sin afinar: dificultad de cada tramo, vida de los jefes y curva de XP (objetivo: 25–30 niveles en 12–15 minutos).</li>
         <li>El daño mágico de la Maga crece rápido.</li>
         <li>No hay búsqueda de caminos: algunos monstruos se quedan en la orilla del río si estás al otro lado.</li>
@@ -381,7 +563,6 @@ footer { margin-top: 48px; padding-top: 20px; border-top: 1px solid var(--line);
 
       <h3>Pulido (Fase 10)</h3>
       <div class="ideas">
-        <div class="idea small"><h3>Interfaz grande en el móvil</h3><p>Letras, menús, cartas y barra inferior más grandes en pantallas pequeñas.</p></div>
         <div class="idea small"><h3>Sensación de impacto</h3><p>Temblor de cámara, partículas, sombras y vibración del mando al recibir daño.</p></div>
         <div class="idea small"><h3>Mando más completo</h3><p>Iconos de botones de Xbox en pantalla al usar mando, y reasignar controles.</p></div>
         <div class="idea"><h3>Equilibrio</h3><p>Ajustar dificultad, jefes y curva de XP jugando partidas completas.</p></div>
@@ -429,9 +610,9 @@ footer { margin-top: 48px; padding-top: 20px; border-top: 1px solid var(--line);
     <section id="creditos">
       <h2>Créditos y aviso legal</h2>
       <p>Helbreath © Siementech Co. Ltd. Base técnica: <i>helbreath-base-game</i> (MIT), de Erko Knoll. Fuente de la interfaz: Comic Neue (SIL Open Font License).</p>
-      <p>Proyecto fan no oficial, gratuito y sin ánimo de lucro: sin anuncios, sin pagos y sin publicar en tiendas comerciales. Los gráficos y sonidos de Helbreath pertenecen a sus dueños.</p>
+      <p>Proyecto fan no oficial, gratuito y sin ánimo de lucro: sin anuncios, sin pagos y sin publicar en tiendas comerciales. Los gráficos, sonidos y la fuente dibujada de Helbreath que aparecen en esta guía pertenecen a sus dueños.</p>
     </section>
 
-    <footer>Estado a 17 de octubre de 2026, durante la Fase 9.</footer>
+    <footer>Estado a 17 de octubre de 2026, durante la Fase 10. Esta guía se actualiza al cerrar cada fase.</footer>
   </main>
 </div>

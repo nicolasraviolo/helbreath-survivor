@@ -2,9 +2,10 @@
 // Tipos: stat ("+3 a un stat"), eslabón de arma, cambio de familia de arma y armadura.
 // Siempre hay una carta resaltada. Se elige con flechas/WASD, cruceta o stick + Enter/Espacio/A, o con el ratón.
 import Phaser from 'phaser';
+import { byDevice } from '../config/device';
 import { GAME_WIDTH, LEVEL_UP_INPUT_DELAY_MS } from '../config/gameConfig';
 import { HUD_TOP } from '../config/hud';
-import { px, UI_FONT, UI_FONT_SIZE } from '../config/ui';
+import { px, UI_TEXT, UI_FONT_SIZE } from '../config/ui';
 import { ARMOR_SLOT_NAMES, getArmorPiece } from '../data/armor';
 import { STAT_INFO, type StatId } from '../data/stats';
 import { getPassive } from '../data/passives';
@@ -14,6 +15,7 @@ import type { CharacterStats } from '../entities/CharacterStats';
 import type { Equipment } from '../entities/Equipment';
 import { Action, InputSystem } from '../systems/InputSystem';
 import type { LevelUpChoice } from '../systems/UpgradePool';
+import { overlayBottom, playAreaBottom } from '../ui/hudLayout';
 
 export type { LevelUpChoice } from '../systems/UpgradePool';
 
@@ -24,15 +26,27 @@ export interface LevelUpSceneData {
     onChoose: (choice: LevelUpChoice) => void;
 }
 
-const CARD_WIDTH = 230;
-const CARD_HEIGHT = 256;
-const CARD_GAP = 24;
-const CARD_Y = HUD_TOP / 2 + 30;
+// Phones (config/device.ts): bigger cards for the bigger text, nearly as wide as the screen.
+const CARD_WIDTH = byDevice(230, 252);
+const CARD_HEIGHT = byDevice(256, 335);
+const CARD_GAP = byDevice(24, 12);
+/** From the card's top edge: centre of the badge and of the title, and top of the effect line. */
+const CARD_BADGE_Y = byDevice(44, 46);
+const CARD_TITLE_Y = byDevice(92, 102);
+const CARD_EFFECT_Y = byDevice(116, 128);
+/** Space left free at each side of the card's text. */
+const CARD_TEXT_MARGIN = byDevice(12, 10);
+// Phones: below the boss bar (a boss can be alive while choosing).
+const TITLE_Y = byDevice(70, 80);
+const SUBTITLE_Y = byDevice(108, 120);
+/** From the bottom of the game area (the HUD bar's top, or the bottom of the screen). */
+const HINT_BOTTOM_GAP = 24;
+const HINT = byDevice('← →  and  Enter   ·   D-pad or stick  and  A   ·   Click', 'Tap a card');
 const CARD_FILL = 0x1c140c;
 const CARD_BORDER = 0x8a7038;
 const CARD_HIGHLIGHT = 0xffe080;
 const HIGHLIGHT_SCALE = 1.05;
-const BADGE_RADIUS = 26;
+const BADGE_RADIUS = byDevice(26, 30);
 const TEXT_COLOR = '#e8d9a8';
 /** Badge of the weapon and armor cards. */
 const WEAPON_BADGE = { text: 'Wpn', color: 0x9a9a9a } as const;
@@ -79,18 +93,23 @@ export class LevelUpScene extends Phaser.Scene {
     create(): void {
         const { stats, choices } = this.params;
         this.openedAt = this.time.now;
-        this.add.rectangle(0, 0, GAME_WIDTH, HUD_TOP, 0x000000, 0.6).setOrigin(0);
-        this.add.text(GAME_WIDTH / 2, 70, `Level ${stats.level}!`, {
-            fontFamily: UI_FONT, fontSize: px(UI_FONT_SIZE.title), fontStyle: 'bold', color: '#ffe080', stroke: '#000000', strokeThickness: 4,
+        const bottom = playAreaBottom();
+        // Above the compact gauges when they run along the bottom.
+        const hintBottom = overlayBottom();
+        this.add.rectangle(0, 0, GAME_WIDTH, bottom, 0x000000, 0.6).setOrigin(0);
+        this.add.text(GAME_WIDTH / 2, TITLE_Y, `Level ${stats.level}!`, {
+            ...UI_TEXT, fontSize: px(UI_FONT_SIZE.title), fontStyle: 'bold', color: '#ffe080', stroke: '#000000', strokeThickness: 4,
         }).setOrigin(0.5);
-        this.add.text(GAME_WIDTH / 2, 108, 'Choose an upgrade', { fontFamily: UI_FONT, fontSize: px(UI_FONT_SIZE.normal), color: TEXT_COLOR }).setOrigin(0.5);
-        this.add.text(GAME_WIDTH / 2, HUD_TOP - 24, '← →  and  Enter   ·   D-pad or stick  and  A   ·   Click', {
-            fontFamily: UI_FONT, fontSize: px(UI_FONT_SIZE.small), color: '#a89870',
+        this.add.text(GAME_WIDTH / 2, SUBTITLE_Y, 'Choose an upgrade', { ...UI_TEXT, fontSize: px(UI_FONT_SIZE.normal), color: TEXT_COLOR }).setOrigin(0.5);
+        this.add.text(GAME_WIDTH / 2, hintBottom - HINT_BOTTOM_GAP, HINT, {
+            ...UI_TEXT, fontSize: px(UI_FONT_SIZE.small), color: '#a89870',
         }).setOrigin(0.5);
 
+        // PC: as always. Phones: centred between the subtitle and the hint, which moves down with the compact HUD.
+        const cardY = byDevice(HUD_TOP / 2 + 30, (SUBTITLE_Y + hintBottom - HINT_BOTTOM_GAP) / 2);
         const totalWidth = choices.length * CARD_WIDTH + (choices.length - 1) * CARD_GAP;
         const firstX = (GAME_WIDTH - totalWidth) / 2 + CARD_WIDTH / 2;
-        choices.forEach((choice, i) => this.cards.push(this.createCard(choice, firstX + i * (CARD_WIDTH + CARD_GAP), i)));
+        choices.forEach((choice, i) => this.cards.push(this.createCard(choice, firstX + i * (CARD_WIDTH + CARD_GAP), cardY, i)));
         this.highlight(0);
 
         this.inputSystem = new InputSystem(this);
@@ -111,26 +130,27 @@ export class LevelUpScene extends Phaser.Scene {
         return !this.chosen && this.time.now - this.openedAt >= LEVEL_UP_INPUT_DELAY_MS;
     }
 
-    private createCard(choice: LevelUpChoice, x: number, index: number): Card {
+    private createCard(choice: LevelUpChoice, x: number, y: number, index: number): Card {
         const text = describeCard(this.params.stats, this.params.equipment, choice);
         const frame = this.add.rectangle(0, 0, CARD_WIDTH, CARD_HEIGHT, CARD_FILL, 0.95).setStrokeStyle(2, CARD_BORDER);
         const top = -CARD_HEIGHT / 2;
-        const badge = this.add.circle(0, top + 44, BADGE_RADIUS, text.badgeColor).setStrokeStyle(2, 0x000000);
-        const badgeText = this.add.text(0, top + 44, text.badge, {
-            fontFamily: UI_FONT, fontSize: px(UI_FONT_SIZE.normal), fontStyle: 'bold', color: '#ffffff', stroke: '#000000', strokeThickness: 3,
+        const textWidth = CARD_WIDTH - CARD_TEXT_MARGIN * 2;
+        const badge = this.add.circle(0, top + CARD_BADGE_Y, BADGE_RADIUS, text.badgeColor).setStrokeStyle(2, 0x000000);
+        const badgeText = this.add.text(0, top + CARD_BADGE_Y, text.badge, {
+            ...UI_TEXT, fontSize: px(UI_FONT_SIZE.normal), fontStyle: 'bold', color: '#ffffff', stroke: '#000000', strokeThickness: 3,
         }).setOrigin(0.5);
-        const title = this.add.text(0, top + 92, text.title, {
-            fontFamily: UI_FONT, fontSize: px(UI_FONT_SIZE.large), fontStyle: 'bold', color: '#ffe080',
+        const title = this.add.text(0, top + CARD_TITLE_Y, text.title, {
+            ...UI_TEXT, fontSize: px(UI_FONT_SIZE.large), fontStyle: 'bold', color: '#ffe080',
         }).setOrigin(0.5);
-        const effect = this.add.text(0, top + 116, text.effect, {
-            fontFamily: UI_FONT, fontSize: px(UI_FONT_SIZE.normal), color: '#a89870', align: 'center', wordWrap: { width: CARD_WIDTH - 24 },
+        const effect = this.add.text(0, top + CARD_EFFECT_Y, text.effect, {
+            ...UI_TEXT, fontSize: px(UI_FONT_SIZE.normal), color: '#a89870', align: 'center', wordWrap: { width: textWidth },
         }).setOrigin(0.5, 0);
         // Below the effect line, which may wrap to two lines.
-        const changes = this.add.text(0, top + 116 + effect.height + 10, text.changes.join('\n'), {
-            fontFamily: UI_FONT, fontSize: px(UI_FONT_SIZE.normal), color: TEXT_COLOR, align: 'center', lineSpacing: 2,
+        const changes = this.add.text(0, top + CARD_EFFECT_Y + effect.height + 10, text.changes.join('\n'), {
+            ...UI_TEXT, fontSize: px(UI_FONT_SIZE.normal), color: TEXT_COLOR, align: 'center', lineSpacing: 2, wordWrap: { width: textWidth },
         }).setOrigin(0.5, 0);
 
-        const container = this.add.container(x, CARD_Y, [frame, badge, badgeText, title, effect, changes]);
+        const container = this.add.container(x, y, [frame, badge, badgeText, title, effect, changes]);
         frame.setInteractive({ useHandCursor: true });
         frame.on(Phaser.Input.Events.POINTER_OVER, () => this.highlight(index));
         frame.on(Phaser.Input.Events.POINTER_DOWN, () => {
