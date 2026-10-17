@@ -36,6 +36,8 @@ interface Row {
 
 export class MenuList {
     private readonly rows: Row[] = [];
+    /** Click areas, kept to remove them in destroy() (texts and arrows are in `rows`). */
+    private readonly zones: Phaser.GameObjects.Zone[] = [];
     private selected = 0;
     /** Mouse clicks are ignored until this returns true (see MENU_INPUT_DELAY_MS). */
     private ready: () => boolean = () => true;
@@ -94,6 +96,18 @@ export class MenuList {
         });
     }
 
+    /** Removes the whole list from the scene (to build it again with other options). */
+    public destroy(): void {
+        for (const row of this.rows) {
+            row.label.container.destroy();
+            row.value?.container.destroy();
+            for (const arrow of row.arrows) arrow.destroy();
+        }
+        for (const zone of this.zones) zone.destroy();
+        this.rows.length = 0;
+        this.zones.length = 0;
+    }
+
     private select(index: number): void {
         if (index === this.selected) return;
         this.selected = index;
@@ -103,6 +117,7 @@ export class MenuList {
     /** Clickable area centred on (x, y): hover selects row `index`, a click runs `onClick`. */
     private addZone(x: number, y: number, width: number, index: number, onClick: (() => void) | undefined): void {
         const zone = this.scene.add.zone(x, y, width, MENU_ITEM.hitHeight).setInteractive({ useHandCursor: onClick !== undefined });
+        this.zones.push(zone);
         zone.on(Phaser.Input.Events.POINTER_OVER, () => this.select(index));
         zone.on(Phaser.Input.Events.POINTER_UP, () => {
             if (!this.ready()) return;

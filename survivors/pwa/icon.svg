@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Icono de la app (Fase 12): la "H" dorada de la pestaña, con fondo hasta el borde para que Android pueda recortarlo
+       en círculo o con esquinas redondeadas sin cortar la letra (la "H" cabe en el 60% central). -->
+  <rect width="512" height="512" fill="#1a1208"/>
+  <rect x="96" y="96" width="320" height="320" rx="40" fill="none" stroke="#8a6a20" stroke-width="10"/>
+  <text x="256" y="350" font-family="Georgia,serif" font-size="260" font-weight="bold" fill="#e0c060" text-anchor="middle">H</text>
+</svg>

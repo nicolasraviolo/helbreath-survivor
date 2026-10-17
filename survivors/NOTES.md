@@ -41,6 +41,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Pruebas automáticas (`pnpm check`, 17-oct-2026)
 - Sensación de impacto (Fase 10, bloque 10C)
 - Interfaz (Fase 11)
+- App instalable (Fase 12, bloque 12A)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -566,3 +567,10 @@ Tabla completa en `docs/REQUISITOS_HB.md`. Lo no obvio:
 - Los árboles del mapa son imágenes sueltas (una por objeto, `MapView.trees`), con su sombra aparte: se pueden ocultar o volver transparentes sin redibujar el mapa.
 - La selección de personaje es la imagen original de 640×480 ampliada: las cajas son fijas y en el móvil los textos no caben por encima de 17–18 px. Para botones fáciles de tocar, agrandar la zona de toque (`hitArea`) en vez de la imagen.
 - Un menú en pausa (debajo de otro) no cuenta como activo en `scene.isActive`: `pnpm check` espera a la escena de encima (`?open=`).
+
+## App instalable (Fase 12, bloque 12A)
+- Archivos en `survivors/pwa/` (manifiesto, `sw.js`, iconos). Solo van en el build: el plugin `installableApp` de `vite.config.ts` los copia junto a `index.html` y enlaza el manifiesto. En `pnpm dev` no hay manifiesto ni service worker (a propósito).
+- Iconos: se dibujan desde `pwa/icon.svg` con `node scripts/make-icons.mjs` (Chrome vía playwright-core). El de 512 sirve también como "maskable": la "H" está en el 60% central.
+- El service worker solo intercepta la página (`mode === 'navigate'`), siempre primero a internet con `cache: 'no-cache'`. El JS lleva hash en el nombre, así que una versión publicada nueva llega sola. No guarda sprites: el juego no funciona sin conexión.
+- Comprobar si Chrome lo ve instalable: `pnpm build`, `pnpm exec vite preview`, y en Playwright con **perfil persistente** (`launchPersistentContext`; con `launch` normal da `in-incognito`) la orden CDP `Page.getInstallabilityErrors` debe devolver `[]`. El evento `beforeinstallprompt` no salta en Chrome sin ventana: para ver la opción Install se simula con un `Event('beforeinstallprompt')` que tenga `prompt()`.
+- `beforeinstallprompt` puede llegar con el menú ya abierto: `MainMenuScene` rehace la lista (`MenuList.destroy()`). Con más de 6 opciones las filas se juntan (`MAIN_MENU.itemsAtFullSpacing`); con 8 (Continue en 12B) quedarían a ~23 px y se tocarían.

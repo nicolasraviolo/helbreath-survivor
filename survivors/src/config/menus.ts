@@ -20,8 +20,10 @@ export const MAIN_MENU = {
     panelX: byDevice(585, 575),
     panelY: byDevice(318, 330),
     panelScale: byDevice(1.1, 1.3),
-    /** Six options (with How to Play and Fullscreen) must fit inside the panel's frame. */
+    /** Space between options. Six (with How to Play and Fullscreen) fit inside the panel's frame like this. */
     itemSpacing: byDevice(32, 37),
+    /** Most options that fit at itemSpacing; with more (Install, Fase 12) they get closer to stay inside the frame. */
+    itemsAtFullSpacing: 6,
     /** Black strip over the original's "Multiplayer Online Game…" line, with our own footer. */
     footerHeight: 42,
     footerText: 'Unofficial fan project  ·  free and non-profit',

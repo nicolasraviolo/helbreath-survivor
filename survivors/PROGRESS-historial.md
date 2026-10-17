@@ -2,6 +2,13 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
+**Fase 12, bloque 12A: instalar como app (2026-10-18).**
+- **Manifiesto, service worker e iconos** en `survivors/pwa/` (solo en el build, vía el plugin `installableApp` de `vite.config.ts`). Pantalla completa, horizontal, fondo negro, icono con la "H" dorada (`scripts/make-icons.mjs` lo dibuja desde `pwa/icon.svg`).
+- **Actualización sola:** el service worker pide siempre la página a internet primero; el código lleva hash en el nombre. Sin conexión solo queda la última página guardada (el juego no funciona offline).
+- **Opción "Install"** al final del menú principal (`ui/install.ts`), solo cuando Chrome lo ofrece (`beforeinstallprompt`); desaparece al usarla o al instalar. El menú se rehace si el aviso llega con él abierto (`MenuList.destroy()`), y con 7 opciones las filas se juntan para caber en el marco.
+- **Comprobado:** `build` sin errores; `check menu` en PC y móvil sin errores; con `vite preview` + Chrome, `Page.getInstallabilityErrors` = sin errores y el manifiesto sin errores; captura del menú con Install revisada.
+- **Cómo probarlo:** solo en la web publicada (https) o en `pnpm --dir survivors build` + `pnpm --dir survivors preview` → http://localhost:4173 en el PC. En el móvil con Chrome: sale "Install" en el menú (o ⋮ → "Añadir a pantalla de inicio"); abrir desde el icono → pantalla completa y en horizontal.
+
 **Fase 11 completada (2026-10-18)**: fusionada en `master`, etiqueta `fase-11`. Siguiente: Fase 12 (Móvil sin pérdidas).
 
 **Fase 11: pulido de interfaz (2026-10-18, el propietario la probó y le gusta).**
