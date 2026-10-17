@@ -18,6 +18,7 @@ Copia de referencia de la wiki de Helbreath (<https://www.helbreath.net/wiki/>, 
 | [combate.md](combate.md) | Fórmulas: acierto físico y mágico, absorción, daño, regeneración de vida/maná/stamina. | Physical attack · Magic attack · Getting hit · Monster Defense Ratio · Monster absorption · Hit probability |
 | [personaje.md](personaje.md) | XP por nivel y qué hace cada stat (Str, Vit, Dex, Int, Mag, Luck). | Leveling · Character stats · (Rebirth, Tutelary angels: ignorar) |
 | [monstruos.md](monstruos.md) | Una fila por monstruo (50): vida, elemento, XP, ratios, absorción, resistencias, aggro, valentía, habilidades. **No incluye el daño de ataque.** | Tabla por tier · Monster Bravery · Monster experience |
+| [monstruos-comportamiento.md](monstruos-comportamiento.md) | Comportamiento real sacado del `NPC.cfg` y del código del servidor: ritmo de ataque (ATime), alcance (AttkRange), valentía, daño en dados y estrategias "pega y se aleja". | Columnas · Estrategias de ataque · Tabla de nuestros monstruos |
 
 ## Qué leer en cada fase
 
@@ -26,7 +27,7 @@ Copia de referencia de la wiki de Helbreath (<https://www.helbreath.net/wiki/>, 
 | 4 — Primera arma y combate | `hechizos.md` → fila Energy Bolt (Circle 2). Opcional: `combate.md` → Magic attack (idea de daño directo + área). |
 | 5 — XP y nivel | `personaje.md` → Leveling (forma de la curva) y Character stats (qué da cada stat). `monstruos.md` → columna Base XP (proporción entre enemigos). |
 | 6 — Arsenal completo | `armas.md` → la familia del arma que se añade. `armaduras.md` → la pieza. `hechizos.md` → el círculo del hechizo. Requisitos: primero `docs/REQUISITOS_HB.md`. |
-| 7 — Oleadas y jefes | `monstruos.md` → tabla por tier (vida y orden de dificultad) y habilidades. |
+| 7 — Oleadas y jefes | `monstruos.md` → tabla por tier (vida y orden de dificultad) y habilidades. `monstruos-comportamiento.md` → ritmo, alcance y estrategias de ataque. |
 | Balance en general | `combate.md` solo si hace falta una fórmula concreta; en un survivors se simplifican. |
 
 ## Aviso

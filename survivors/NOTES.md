@@ -397,3 +397,41 @@ Tabla completa en `docs/REQUISITOS_HB.md`. Lo no obvio:
   - el avance de cada letra sale de la tabla `__cSpace`; el espacio son 5 px.
   - Nosotros coloreamos con `setTintFill`, porque un tinte normal (multiplicar) sobre negro sigue siendo negro.
 - **Hoja 1 (FONT2):** otra variante, que no usamos.
+
+## Monstruos de las oleadas (sp-client Monsters.ts)
+- **Sprites:**
+  - Snake `amp`, Scorpion `scp`, Frog `giantfrog`, Skeleton `ske`, Zombie `zom`, Dire Boar `direboar`;
+  - Troll `troll`, Ogre `orge`, Stalker `stalker`, Werewolf `werewolf`, Cyclops `cyc`, Lich `liche`;
+  - Hellhound `helb`, Dark Elf `darkelf`, Gargoyle `gagoyle` (con la errata), Hellclaw `hellclaw`, Tigerworm `tigerworm`;
+  - Minotaur `minotaurs`, Ettin `ettin`, Demon `demon`, Fire Wyvern `firewyvern`.
+- **Sonidos reutilizados:**
+  - Stalker usa los del Orc (M11/M12);
+  - Gargoyle y Hellclaw, los del Cyclops (M43);
+  - Tigerworm y los Wyverns no tienen sonido de golpe;
+  - Minotaur: su sonido de ataque apunta a M123 (debería ser M104, que falta).
+- **Animaciones especiales:**
+  - Giant Frog anda con los frames 3–7;
+  - Troll, Ogre, Liche y Werewolf tienen 4–6 frames en algunos estados, lo que la regla de fps ya compensa;
+  - Wyverns:
+    - reposo = hoja 0, frames 0–3;
+    - ataque = hoja 0, desde el frame 3 (otros valores rompen Phaser);
+    - muerte = hojas 16+;
+    - opacidad 0,7.
+- **Disparos:** solo Dark Elf y Elf Master tienen `bowAttack` (`effect.spr` hoja 7, 16 frames direccionales). Las bolas del Fire Wyvern son nuestras: reutilizan el Fire Ball.
+- **Música** (`public/assets/music`): abaddon, apocalypse, aresden, default, dungeon, elvine y middleland. sp-client la toca en bucle con `MusicManager`.
+
+## Ataques de monstruos y golpe (original)
+- **sp-client no guarda alcance de ataque por monstruo:** `attackDistance` viene del diálogo de pruebas.
+  - El servidor (`multiplayer/.../Monsters.json`) solo lo trae para Dark Elf (10, a distancia), Giant Tree, Stone Golem, Guard y Sorceress.
+  - El alcance largo del Ettin lo ha observado el propietario.
+- **Ataque:**
+  - 8 frames a 5 + (velocidad/100)·25 fps; con la velocidad por defecto (50) son 17,5 fps, unos 457 ms (×2 con temporalCoefficient 0,5);
+  - el golpe cae en el frame 2;
+  - el sonido suena al empezar, comprimido a la animación;
+  - no hay espera entre ataques.
+- **Golpe normal (Client.cpp, `bAddNewEffect` tipo 1 "coup normal"):** `m_pEffectSpr[8]`, es decir `effect.spr` hoja 8: 3 frames de chispas azuladas, dibujados aditivos a la altura del atacado (−35 px). **No hay efecto de sangre** en el original.
+- **Jugador golpeado:**
+  - sonido C5 (`PLAYER_TAKE_UNARMED_DAMAGE`, igual para hombre y mujer);
+  - animación TakeDamage: hoja de cuerpo 80, de armadura 10, arma índice 5, 4 frames por dirección, 267 ms;
+  - aturdimiento de 100 ms.
+- **Velocidad real de ataque de cada monstruo:** encontrada el 17-oct-2026 en el `NPC.cfg` de [centuu/HelbreathServer](https://github.com/centuu/HelbreathServer) (y de Helbreath/server, HBX). Ver `docs/hb-wiki/monstruos-comportamiento.md`, que tiene la tabla completa y las estrategias de ataque.

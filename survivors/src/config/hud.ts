@@ -66,3 +66,41 @@ export const HUD_BUFF = { right: 12, bottomGap: 26, lineHeight: 22 } as const;
 
 /** Pause overlay. */
 export const PAUSE_SHADE_ALPHA = 0.55;
+
+/** Big health bar of the boss at the top of the screen: its name (sprite font) over a wide bar. */
+export const HUD_BOSS = {
+    y: 34,
+    width: 420,
+    height: 12,
+    backColor: 0x200808,
+    fillColor: 0xc02020,
+    borderColor: 0x8a7038,
+    nameColor: 0xffd860,
+    /** Gap between the name and the bar. */
+    nameY: 8,
+} as const;
+
+/** Event of GameScene that the HUD listens to, to show a warning in the middle of the screen. */
+export const ANNOUNCE_EVENT = 'announce';
+
+/** Warnings of the timeline ("The Ettin approaches!"): sprite font, big, in the middle; fade out at the end. */
+export const HUD_ANNOUNCE = { y: 150, scale: 2, color: 0xff5040, showMs: 3500, fadeMs: 1000 } as const;
+
+/** End-of-run screen (scenes/GameOverScene.ts). Buttons from dialogtext.spr sheet 1: normal frame, lit = next frame. */
+export const GAME_OVER = {
+    shadeAlpha: 0.7,
+    titleY: 120,
+    titleScale: 2.5,
+    victoryColor: 0xffd860,
+    defeatColor: 0xd83030,
+    statsY: 220,
+    buttonsY: 440,
+    buttonGap: 90,
+    buttonScale: 1.6,
+    buttonTexture: getSheetKey('ui.buttons', 1),
+    restartFrame: 36,
+    changeFrame: 20,
+    hintY: 500,
+    /** Ignore input for a moment, so the key or click that killed the boss doesn't choose a button. */
+    inputDelayMs: 800,
+} as const;

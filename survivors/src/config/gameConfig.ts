@@ -69,6 +69,13 @@ export const POINTER_DEADZONE_PX = 8;
 /** Mouse: at this distance from the player (or more) it runs at full speed. */
 export const POINTER_FULL_SPEED_PX = 64;
 
+/**
+ * Monster attacks (sp-client Monster.ts): the attack animation plays at 17.5 fps for 8 frames (default attack speed 50,
+ * scaled by frame count and temporalCoefficient) and the blow lands on frame 2. It hits if the player is still within
+ * reach then. `reach` = pixels beyond touching (bodies' radii) at which a monster starts its attack.
+ */
+export const MONSTER_ATTACK = { frameRate: 17.5, hitFrame: 2, reach: 10 } as const;
+
 /** Enemies: half side of the square used against walls (smaller than the body, so they fit gaps). */
 export const ENEMY_WALL_HALF_SIZE = 6;
 /** Enemies: how long the corpse stays after the death animation, then how long it takes to fade. */
@@ -91,6 +98,17 @@ export const MONSTER_SHADOW_SCALE_Y = 0.5;
 
 /** Player: blink period while invulnerable, and delay before the Game Over screen. */
 export const PLAYER_BLINK_MS = 80;
+/** Player's body for enemy projectiles: centre this many pixels above the feet, and its radius. */
+export const PLAYER_BODY_OFFSET_Y = 30;
+export const PLAYER_BODY_RADIUS = 12;
+/** After the final boss dies, its death animation plays this long before the victory screen. */
+export const VICTORY_DELAY_MS = 2000;
+/**
+ * Player hit (sp-client Player): TakeDamage animation of 4 frames in (4/15) s ≈ 267 ms, and a short stun of 100 ms
+ * (PLAYER_STUNLOCK_DURATION_MS) before moving again cuts it.
+ */
+export const PLAYER_HURT_MS = 267;
+export const PLAYER_HURT_STUN_MS = 100;
 export const GAME_OVER_DELAY_MS = 1200;
 
 /** Level-up cards: ignore input for a moment so a key or click held during play doesn't pick a card by accident. */

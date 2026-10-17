@@ -14,6 +14,8 @@ export enum PlayerState {
     Melee = 'melee',
     /** Casting a spell (16 frames; weapon and shield hidden, as in the original). */
     Cast = 'cast',
+    /** Taking a hit (TakeDamage: 4 frames). */
+    Hurt = 'hurt',
     Die = 'die',
 }
 
@@ -25,6 +27,7 @@ const HUMAN_SPRITESHEET_BASE: Record<PlayerState, number> = {
     [PlayerState.Run]: 32,
     [PlayerState.Melee]: 48,
     [PlayerState.Cast]: 64,
+    [PlayerState.Hurt]: 80,
     [PlayerState.Die]: 88,
 };
 
@@ -34,6 +37,7 @@ const ARMOUR_SPRITESHEET_BASE: Record<PlayerState, number> = {
     [PlayerState.Run]: 4,
     [PlayerState.Melee]: 6,
     [PlayerState.Cast]: 8,
+    [PlayerState.Hurt]: 10,
     [PlayerState.Die]: 11,
 };
 
@@ -46,14 +50,16 @@ const ARMAMENT_STATE_INDEX: Record<PlayerState, number | undefined> = {
     [PlayerState.Run]: 6,
     [PlayerState.Melee]: 4,
     [PlayerState.Cast]: undefined,
+    [PlayerState.Hurt]: 5,
     [PlayerState.Die]: undefined,
 };
 
 /** Hair and underwear files hold 12 sheets per style / colour. */
 const SHEETS_PER_STYLE = 12;
 export const PLAYER_FRAMES_PER_DIRECTION = 8;
-/** The Cast animation has 16 frames per direction instead of 8. */
+/** The Cast animation has 16 frames per direction instead of 8, TakeDamage only 4. */
 export const CAST_FRAMES_PER_DIRECTION = 16;
+export const HURT_FRAMES_PER_DIRECTION = 4;
 
 const MANTLE_DRAWING_ORDER = [1, 1, 1, 0, 0, 0, 2, 2] as const;
 const MANTLE_DRAWING_ORDER_ON_RUN = [1, 1, 1, 1, 1, 1, 1, 1] as const;
@@ -140,7 +146,9 @@ function subFrame(sprite: SpriteKey, sheet: number, direction: Direction, frameI
     return { texture: `${sprite}-${sheet}`, frame: String(direction * perDirection + frameIndex) };
 }
 
-/** Frames of one direction in this state (16 while casting, 8 otherwise). */
+/** Frames of one direction in this state (16 while casting, 4 when hit, 8 otherwise). */
 export function framesPerDirection(state: PlayerState): number {
-    return state === PlayerState.Cast ? CAST_FRAMES_PER_DIRECTION : PLAYER_FRAMES_PER_DIRECTION;
+    if (state === PlayerState.Cast) return CAST_FRAMES_PER_DIRECTION;
+    if (state === PlayerState.Hurt) return HURT_FRAMES_PER_DIRECTION;
+    return PLAYER_FRAMES_PER_DIRECTION;
 }

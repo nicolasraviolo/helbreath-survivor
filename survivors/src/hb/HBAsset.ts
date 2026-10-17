@@ -13,6 +13,8 @@ export interface DirectionalPlayOptions {
     direction: Direction;
     frameRate: number;
     loop: boolean;
+    /** Only part of the sheet: `count` frames from `first` (sp-client startAnimationFrame / animationFrames). */
+    frames?: { first: number; count: number };
 }
 
 export class HBAsset extends Phaser.GameObjects.Sprite {
@@ -23,8 +25,9 @@ export class HBAsset extends Phaser.GameObjects.Sprite {
     }
 
     /** Plays the sheet for a direction. Keeps the current frame index when only the direction changes. */
-    public playDirectional({ baseSheet, direction, frameRate, loop }: DirectionalPlayOptions): void {
-        const key = getSheetKey(this.spriteKey, baseSheet + direction);
+    public playDirectional({ baseSheet, direction, frameRate, loop, frames }: DirectionalPlayOptions): void {
+        const sheetKey = getSheetKey(this.spriteKey, baseSheet + direction);
+        const key = frames ? this.partialAnimation(sheetKey, frames.first, frames.count) : sheetKey;
         const current = this.anims.currentAnim;
         const sameAnimationOtherDirection = current !== null
             && current.key !== key
@@ -34,5 +37,17 @@ export class HBAsset extends Phaser.GameObjects.Sprite {
 
         this.lastBaseSheet = baseSheet;
         this.play({ key, frameRate, repeat: loop ? -1 : 0, startFrame }, false);
+    }
+
+    /** Animation with only some frames of a sheet, created the first time it is needed. */
+    private partialAnimation(sheetKey: string, first: number, count: number): string {
+        const key = `${sheetKey}#${first}+${count}`;
+        const anims = this.scene.anims;
+        if (!anims.exists(key)) {
+            const animFrames: Phaser.Types.Animations.AnimationFrame[] = [];
+            for (let i = first; i < first + count; i++) animFrames.push({ key: sheetKey, frame: String(i) });
+            anims.create({ key, frames: animFrames });
+        }
+        return key;
     }
 }

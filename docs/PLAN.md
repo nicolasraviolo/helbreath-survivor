@@ -112,6 +112,7 @@ survivors/
 - 👉 Tras esta fase: `/nueva-skill añadir-arma`.
 
 ## Fase 7 — Oleadas, jefes y final
+> Completada el 17-oct-2026: oleadas por minuto, eventos "te rodean", minijefes Ettin y Demon que sueltan el cofre, Fire Wyvern final con bolas de fuego, GameOverScene de victoria y derrota, y música por momento. Monstruos con el comportamiento real del `NPC.cfg` original (ritmo, alcance, pega y huye, valentía). Ver `survivors/PROGRESS.md` y `docs/hb-wiki/monstruos-comportamiento.md`.
 - `data/waves.ts` como línea de tiempo (minuto → enemigos, ritmo, eventos como "rodear al jugador").
 - Minijefes con cofre; jefe final con barra de vida grande.
 - Victoria/derrota; `GameOverScene` con tiempo, nivel, kills y armas.

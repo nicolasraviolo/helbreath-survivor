@@ -67,8 +67,8 @@ export class CombatSystem {
         }
     }
 
-    /** Melee swing: every enemy inside the circle sector takes the damage. Returns how many were hit. */
-    public hitArc(hit: ArcHit): number {
+    /** Melee swing: every enemy inside the circle sector takes the damage (`onHit` for each). Returns how many were hit. */
+    public hitArc(hit: ArcHit, onHit?: (enemy: Enemy) => void): number {
         const halfArc = hit.arc / 2;
         let count = 0;
         this.enemies.forEachInRadius(hit.x, hit.y, hit.radius, (enemy) => {
@@ -78,6 +78,7 @@ export class CombatSystem {
                 || Math.abs(Phaser.Math.Angle.Wrap(Math.atan2(dy, dx) - hit.angle)) <= halfArc;
             if (!inside) return;
             count++;
+            onHit?.(enemy);
             this.hitEnemy(enemy, hit.damageType, hit.damage, hit.x, hit.y, hit.knockback);
         });
         return count;

@@ -113,7 +113,7 @@ export class Player {
      * Plays a melee swing or a cast (`action`) towards a direction for `durationMs`. The player stands still for
      * `rootMs` (until the blow lands or the spell leaves) and then may run again, which cuts the rest of the animation.
      */
-    public act(action: PlayerState.Melee | PlayerState.Cast, direction: Direction, durationMs: number, rootMs: number): void {
+    public act(action: PlayerState.Melee | PlayerState.Cast | PlayerState.Hurt, direction: Direction, durationMs: number, rootMs: number): void {
         if (this.isDead) return;
         this.swingLeftMs = durationMs;
         this.rootLeftMs = rootMs;

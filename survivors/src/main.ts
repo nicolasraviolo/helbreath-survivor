@@ -10,6 +10,7 @@ import { CharacterSelectScene } from './scenes/CharacterSelectScene';
 import { GameScene } from './scenes/GameScene';
 import { HudScene } from './scenes/HudScene';
 import { LevelUpScene } from './scenes/LevelUpScene';
+import { GameOverScene } from './scenes/GameOverScene';
 import { SpriteTestScene } from './scenes/SpriteTestScene';
 
 function startGame(): void {
@@ -23,7 +24,7 @@ function startGame(): void {
         pixelArt: true,
         scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
         // HudScene y LevelUpScene van después de GameScene para dibujarse encima.
-        scene: [BootScene, PreloadScene, CharacterSelectScene, GameScene, HudScene, LevelUpScene, SpriteTestScene],
+        scene: [BootScene, PreloadScene, CharacterSelectScene, GameScene, HudScene, LevelUpScene, GameOverScene, SpriteTestScene],
     });
 
     // Solo en desarrollo: acceso desde la consola del navegador para depurar (p. ej. __game.scene.getScene('Game')).

@@ -1,6 +1,6 @@
 // Efecto de un solo uso (explosión de un hechizo), reciclable. Reproduce su animación una vez,
 // se desvanece desde el frame indicado en config/effects.ts y vuelve al pool.
-import type Phaser from 'phaser';
+import Phaser from 'phaser';
 import { EFFECTS, type EffectDef, type EffectKey } from '../config/effects';
 import { DEPTH_EFFECT_OFFSET } from '../config/gameConfig';
 import type { Poolable } from '../utils/Pool';
@@ -17,6 +17,7 @@ export class Effect implements Poolable {
     public play(key: EffectKey, x: number, y: number): void {
         const def: EffectDef = EFFECTS[key];
         this.def = def;
+        this.sprite.setBlendMode(def.additive ? Phaser.BlendModes.ADD : Phaser.BlendModes.NORMAL);
         this.sprite.setPosition(x + (def.offsetX ?? 0), y + (def.offsetY ?? 0)).setDepth(y + (def.depthOffset ?? DEPTH_EFFECT_OFFSET)).setAlpha(1).setActive(true).setVisible(true).play(key);
     }
 

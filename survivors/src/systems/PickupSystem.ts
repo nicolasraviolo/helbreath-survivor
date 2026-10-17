@@ -1,7 +1,7 @@
-// Objetos en el suelo: decide cuándo cae uno (al morir un enemigo, o un cofre cada N bajas), los recicla con un pool
+// Objetos en el suelo: decide cuándo cae uno al morir un enemigo (los cofres los sueltan los minijefes), los recicla con un pool
 // y avisa al juego cuando el jugador recoge uno. Qué hace cada objeto lo decide GameScene (curar, imán, buff).
 import type Phaser from 'phaser';
-import { CHEST_DROP_SOUND, CHEST_EVERY_KILLS, PICKUP_RADIUS, PICKUPS, type PickupId } from '../data/pickups';
+import { CHEST_DROP_SOUND, PICKUP_RADIUS, PICKUPS, type PickupId } from '../data/pickups';
 import { Pickup } from '../entities/Pickup';
 import { Pool } from '../utils/Pool';
 import type { AudioSystem } from './AudioSystem';
@@ -12,7 +12,6 @@ const ENEMY_DROPS = (Object.keys(PICKUPS) as PickupId[]).filter((id) => PICKUPS[
 export class PickupSystem {
     private readonly pickups: Pool<Pickup>;
     private readonly finished: Pickup[] = [];
-    private killsSinceChest = 0;
 
     constructor(scene: Phaser.Scene, private readonly audio: AudioSystem, private readonly onPickup: (id: PickupId) => void) {
         this.pickups = new Pool(() => new Pickup(scene));
@@ -22,18 +21,13 @@ export class PickupSystem {
         return this.pickups.active.length;
     }
 
-    /** A kill: maybe drops a potion or a magnet there, and every CHEST_EVERY_KILLS kills a chest. */
+    /** A kill: maybe drops a potion or a magnet there. */
     public onKill(x: number, y: number): void {
         for (const id of ENEMY_DROPS) {
             if (Math.random() < PICKUPS[id].dropChance) {
                 this.drop(id, x, y);
                 break;
             }
-        }
-        this.killsSinceChest++;
-        if (this.killsSinceChest >= CHEST_EVERY_KILLS) {
-            this.killsSinceChest = 0;
-            this.drop('chest', x, y);
         }
     }
 
