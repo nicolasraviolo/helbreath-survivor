@@ -2,7 +2,8 @@
 // directamente: pide `getMove()` o `justPressed(Action.X)`. El táctil (Fase 9) llega por el joystick flotante
 // (ui/TouchJoystick.ts), que la partida conecta con `setTouchJoystick`.
 // Apuntado manual (Fase 15B): mantener el clic derecho apunta al cursor y el stick derecho del mando apunta hacia
-// donde se empuja (`getManualAim()`). El clic izquierdo sigue moviendo. El táctil nunca apunta.
+// donde se empuja (`getManualAim()`). El clic izquierdo sigue moviendo.
+// Fase 15C: en el táctil, el segundo stick (mitad derecha, `setTouchAimStick`) apunta igual que el stick derecho.
 //
 // El mando se lee directamente de la Gamepad API del navegador en lugar del plugin de Phaser:
 // el plugin descarta el mando si su `timestamp` es anterior al momento en que lo detectó, y en
@@ -107,6 +108,7 @@ export class InputSystem {
     private pad: Gamepad | undefined;
     private pointerAnchor: PointerAnchor | undefined;
     private joystick: TouchJoystick | undefined;
+    private aimStick: TouchJoystick | undefined;
     private pointerMaxY = Number.POSITIVE_INFINITY;
     private pointerWasDown = false;
     private pointerJustPressed = false;
@@ -154,6 +156,11 @@ export class InputSystem {
         this.joystick = joystick;
     }
 
+    /** Aim from the second touch stick (Fase 15C). */
+    public setTouchAimStick(stick: TouchJoystick): void {
+        this.aimStick = stick;
+    }
+
     /** Ignores mouse presses that start at or below this screen Y (over the HUD bar), for movement and Confirm. */
     public setPointerMaxY(y: number): void {
         this.pointerMaxY = y;
@@ -180,8 +187,9 @@ export class InputSystem {
         pressedNow.forEach((index) => this.padButtonsDown.add(index));
 
         const pointer = this.scene.input.activePointer;
-        // A finger on the joystick is not a click / tap. Only the left button (or a finger): the right one aims.
-        const pointerDown = pointer.leftButtonDown() && pointer.downY < this.pointerMaxY && !(pointer.wasTouch && this.joystick?.active);
+        // A finger on a stick is not a click / tap. Only the left button (or a finger): the right one aims.
+        const onStick = this.joystick?.active === true || this.aimStick?.active === true;
+        const pointerDown = pointer.leftButtonDown() && pointer.downY < this.pointerMaxY && !(pointer.wasTouch && onStick);
         this.pointerJustPressed = pointerDown && !this.pointerWasDown && !this.syncHeldOnly;
         this.pointerWasDown = pointerDown;
         this.syncHeldOnly = false;
@@ -306,6 +314,13 @@ export class InputSystem {
         if (stick.x !== 0 || stick.y !== 0) {
             this.setAimDirection(stick.x, stick.y);
             this.lastDevice = 'gamepad';
+            return;
+        }
+        const touch = this.aimStick;
+        if (touch?.pushed) {
+            // Resting back in the centre keeps the last direction until the finger is lifted.
+            if (touch.vector.x !== 0 || touch.vector.y !== 0) this.setAimDirection(touch.vector.x, touch.vector.y);
+            this.lastDevice = 'touch';
             return;
         }
         const mouse = this.scene.input.mousePointer;

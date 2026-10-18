@@ -2,6 +2,15 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
+**Fase 15, bloque 15C: stick de apuntar en el móvil (2026-10-18).**
+- **Qué hace:** con la casilla **Aim Stick** (Settings, solo en pantallas táctiles, activada de serie), un dedo en la **mitad izquierda** mueve y otro en la **mitad derecha** abre un segundo stick **naranja** que apunta, como el stick derecho del mando (sale la misma flecha). Si el dedo vuelve al centro sin levantarse, se queda la última dirección; al soltarlo vuelve el automático. Con la casilla apagada, tocar en cualquier sitio mueve, como antes.
+- **Esquina reservada:** abajo a la derecha (130×130 px, `TOUCH_RESERVED_CORNER`) no abre ningún stick: ahí irá el botón del crit (Fase 16). Ahora se siguen 3 dedos a la vez (`TOUCH_POINTERS`).
+- **Código:** `ui/TouchJoystick.ts` sirve para los dos sticks (estilo y zona por parámetro); estilos en `config/touch.ts`; `InputSystem.setTouchAimStick`; los crea `GameScene`. Detalle en NOTES.md, "Stick de apuntar en el móvil".
+- **Pantallas:** Settings en el móvil con filas algo más juntas para que quepa la nueva (`SETTINGS_MENU.itemSpacing` 33). How to Play: página Touch reescrita (mitad izquierda / derecha, casilla apagada) y línea de Basics que nombra la mitad derecha; en el móvil caben 6 filas por página, así que se juntaron filas en Touch y en Keyboard (esta ya se salía desde el 15B).
+- **Atajo nuevo:** `?debug=aimstick` (con `--mobile`): dedo de mentira empujando el stick de apuntar a la derecha.
+- **Comprobado:** dedos simulados con eventos táctiles reales (izquierdo mueve hacia arriba mientras el derecho apunta a la izquierda; al soltar el derecho vuelve el automático; la esquina no abre nada; con la casilla apagada, la derecha mueve); capturas de Settings, How to Play y la partida; build y `check menu game levelup` y `game --mobile` sin errores. **El propietario lo probó en su móvil y le parece bien.**
+- **Cómo probar:** `pnpm --dir survivors dev` y abrir la dirección en el móvil (o Chrome en modo móvil): pulgar izquierdo mueve, pulgar derecho apunta; apagar "Aim Stick" en Settings para volver a lo de antes.
+
 **Fase 15, bloque 15B: apuntado manual (2026-10-18).**
 - **Qué hace:** mantener el **clic derecho** apunta todos los ataques hacia el cursor; el **stick derecho** del mando, hacia donde se empuja. Manda sobre el automático y sobre los jefes. Al soltar vuelve el automático en el acto. Solo atacan si hay algún enemigo al alcance (no hay tajos al aire). Triple Energy Bolt sale en abanico; Energy Strike cae en el cursor (como mucho a su alcance) o, con el stick, al 60% de su alcance en esa dirección. Flecha pequeña junto a los pies mientras se apunta (`ui/AimArrow.ts`).
 - **Ratón:** ahora **solo el clic izquierdo** mueve y confirma (antes cualquier botón movía). Sin menú del navegador al hacer clic derecho (`disableContextMenu` en `main.ts`).

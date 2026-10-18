@@ -37,6 +37,7 @@ function load(): GameSettings {
             screenShake: typeof stored.screenShake === 'boolean' ? stored.screenShake : DEFAULT_SETTINGS.screenShake,
             largeTrees: TREE_MODES.find((mode: TreeMode) => mode === stored.largeTrees) ?? DEFAULT_SETTINGS.largeTrees,
             anonymousStats: typeof stored.anonymousStats === 'boolean' ? stored.anonymousStats : DEFAULT_SETTINGS.anonymousStats,
+            aimStick: typeof stored.aimStick === 'boolean' ? stored.aimStick : DEFAULT_SETTINGS.aimStick,
         };
     } catch {
         return { ...DEFAULT_SETTINGS };

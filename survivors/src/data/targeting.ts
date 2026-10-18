@@ -10,7 +10,8 @@ export const AUTO_AIM = {
 } as const;
 
 // Apuntado manual (Fase 15B): mantener el clic derecho (hacia el cursor) o el stick derecho del mando.
-// Manda sobre todo lo de arriba, jefes incluidos; al soltar vuelve el automático. En el móvil no existe.
+// Manda sobre todo lo de arriba, jefes incluidos; al soltar vuelve el automático. En el móvil, con el stick de la
+// mitad derecha (Fase 15C, config/touch.ts).
 export const MANUAL_AIM = {
     /** Right stick: pushes smaller than this (0..1) are ignored (stick drift). */
     stickDeadzone: 0.35,
