@@ -4,10 +4,12 @@
 //
 // Uso:  pnpm check                     → menú principal en PC
 //       pnpm check game levelup boss   → varias situaciones seguidas (portal = matar al jefe final y ver el portal)
+//       pnpm check achievements --cards → logros desde cero: aviso al llegar a nivel 21 (achievementlist = la pantalla con todos)
 //       pnpm check levelpace           → partida simulada muy deprisa (?debug=sim): minuto de cada nivel y golpes de jefe
 //                                        (Mago: "play=mage&debug=sim"; tarda 1–3 min)
 //       pnpm check boss --mobile       → simulando un móvil en horizontal (táctil, ?ui=compact)
 //       pnpm check "play=warrior&debug=str,levels"   → cualquier combinación de atajos (ver src/config/debugStart.ts)
+//       --cards                        → elige solo la primera carta de cada subida de nivel (para que la partida siga)
 //       --wait=5000                    → milisegundos que se deja correr la partida antes de medir (por defecto 3000)
 //       --eval="g.enemies.alive"       → además, evalúa esa expresión en la página y escribe el resultado (si es una promesa, la espera)
 //                                        (g = escena Game, game = window.__game)
@@ -39,6 +41,11 @@ const PRESETS = {
     portal: 'debug=god,bosskill',
     stampede: 'debug=god,stampede',
     levelpace: 'debug=sim',
+    // Logros (Fase 14B): empezar sin ninguno y subir a nivel 21 → aviso de "Rising Star" (y "Survivor" con +5 minutos).
+    // Usar con --cards: si no, la partida se queda en las cartas.
+    achievements: 'achievements=reset&debug=god,levels,levels,levels,levels,minute,minute,minute,minute,minute',
+    // Pantalla Achievements con todos conseguidos.
+    achievementlist: 'achievements=all&open=achievements',
 };
 /** Most real time a simulated run may take (ms). */
 const SIM_TIMEOUT_MS = 8 * 60000;
@@ -47,6 +54,7 @@ const args = process.argv.slice(2);
 const mobile = args.includes('--mobile');
 const waitArg = args.find((a) => a.startsWith('--wait='));
 const waitMs = waitArg ? Number(waitArg.slice('--wait='.length)) : 3000;
+const autoCards = args.includes('--cards');
 const evalArg = args.find((a) => a.startsWith('--eval='))?.slice('--eval='.length);
 const scenarios = args.filter((a) => !a.startsWith('--'));
 if (scenarios.length === 0) scenarios.push('menu');
@@ -115,12 +123,19 @@ async function runScenario(browser, name) {
     page.on('pageerror', (err) => errors.push(`${err.name}: ${err.message}`));
 
     // ?open= (debugStart.ts) shows a menu screen: wait for it instead of the game.
-    const openKey = { howtoplay: 'HowToPlay', settings: 'Settings', credits: 'Credits', select: 'CharacterSelect' }[params.get('open') ?? ''];
+    const openKey = { howtoplay: 'HowToPlay', settings: 'Settings', credits: 'Credits', achievements: 'Achievements', select: 'CharacterSelect' }[params.get('open') ?? ''];
     const target = openKey ?? (query ? 'Game' : 'MainMenu');
     await page.goto(url);
     const t0 = Date.now();
     await page.waitForFunction((key) => window.__game?.scene.isActive(key), target, { timeout: LOAD_TIMEOUT_MS });
     const loadS = ((Date.now() - t0) / 1000).toFixed(1);
+    // --cards: the level-up cards are answered by themselves (always the first one), so the run goes on.
+    if (autoCards) {
+        await page.evaluate(() => setInterval(() => {
+            const levelUp = window.__game?.scene.getScene('LevelUp');
+            if (levelUp?.sys.isActive()) levelUp.sys.settings.data.onChoose(levelUp.sys.settings.data.choices[0]);
+        }, 150));
+    }
     await page.waitForTimeout(waitMs);
     const state = await page.evaluate(readState);
     // Not awaited yet: with a simulated run, the expression watches it while it plays.

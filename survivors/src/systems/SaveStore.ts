@@ -48,6 +48,8 @@ export interface RunSnapshot {
     finalBossDead: boolean;
     /** The portal was open: milliseconds left of its countdown. */
     portalMsLeft: number | undefined;
+    /** Potions drunk so far (Fase 14B, achievement "Iron Will"). Saves from before count as none. */
+    potionsDrunk: number;
 }
 
 type Slots = Array<RunSnapshot | undefined>;
@@ -178,18 +180,19 @@ function readSnapshot(entry: unknown): RunSnapshot | undefined {
         bosses: Array.isArray(entry.bosses) ? entry.bosses.filter((id): id is EnemyId => isKeyOf(ENEMIES, id)) : [],
         finalBossDead: entry.finalBossDead === true,
         portalMsLeft: readNumber(entry.portalMsLeft),
+        potionsDrunk: readNumber(entry.potionsDrunk) ?? 0,
     };
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
+export function isRecord(value: unknown): value is Record<string, unknown> {
     return typeof value === 'object' && value !== null;
 }
 
-function isKeyOf<T extends object>(table: T, value: unknown): value is keyof T & string {
+export function isKeyOf<T extends object>(table: T, value: unknown): value is keyof T & string {
     return typeof value === 'string' && Object.prototype.hasOwnProperty.call(table, value);
 }
 
-function readNumber(value: unknown): number | undefined {
+export function readNumber(value: unknown): number | undefined {
     return typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : undefined;
 }
 

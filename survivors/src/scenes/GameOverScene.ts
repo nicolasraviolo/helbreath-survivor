@@ -1,5 +1,6 @@
 // Pantalla de final de partida (Fase 7): victoria al matar al jefe final o derrota al morir. Se abre encima de la
-// partida, que queda pausada. Muestra tiempo, nivel, bajas, el arma o hechizo y la armadura que llevabas.
+// partida, que queda pausada. Muestra tiempo, nivel, bajas, el arma o hechizo y la armadura que llevabas, y los logros
+// conseguidos en esta partida (Fase 14B; el aviso del HUD queda tapado por esta pantalla).
 // Botones originales (dialogtext.spr): Restart = otra partida con la misma clase; Change = volver a elegir clase;
 // Log Out = volver al menú principal.
 // Se maneja con ←/→ o cruceta + Enter/A, o con el ratón.
@@ -21,6 +22,8 @@ export interface GameOverSceneData {
     weaponName: string;
     /** Armor pieces worn, by name. */
     armorNames: readonly string[];
+    /** Achievements unlocked during this run, by name. */
+    achievementNames: readonly string[];
     onRestart: () => void;
     onChangeClass: () => void;
     onMainMenu: () => void;
@@ -69,6 +72,13 @@ export class GameOverScene extends Phaser.Scene {
         this.add.text(GAME_WIDTH / 2, GAME_OVER.statsY, lines, {
             ...UI_TEXT, fontSize: px(UI_FONT_SIZE.large), color: '#e8d9a8', align: 'center', lineSpacing: 6,
         }).setOrigin(0.5, 0);
+
+        if (p.achievementNames.length > 0) {
+            this.add.text(GAME_WIDTH / 2, GAME_OVER.achievementsY, `Achievements: ${p.achievementNames.join(', ')}`, {
+                ...UI_TEXT, fontSize: px(UI_FONT_SIZE.normal), fontStyle: 'bold', color: GAME_OVER.achievementsColor,
+                stroke: '#000000', strokeThickness: 3, align: 'center', wordWrap: { width: GAME_OVER.achievementsWrap },
+            }).setOrigin(0.5);
+        }
 
         this.addButton(GAME_OVER.restartFrame, -1, p.onRestart);
         this.addButton(GAME_OVER.changeFrame, 0, p.onChangeClass);

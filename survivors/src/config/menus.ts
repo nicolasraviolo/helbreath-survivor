@@ -109,7 +109,7 @@ export const FULLSCREEN_BUTTON = {
 /** Ignore input for a moment so the key / button that opened a menu does nothing in it. */
 export const MENU_INPUT_DELAY_MS = 200;
 
-/** Plain text on the panels (Credits, Achievements). */
+/** Plain text on the panels (Credits, the count line of Achievements). */
 export const MENU_TEXT_STYLE = {
     ...UI_TEXT, fontSize: px(UI_FONT_SIZE.normal), color: '#f0e6c8', align: 'center', lineSpacing: 4,
     stroke: '#000000', strokeThickness: 3,
@@ -133,6 +133,27 @@ export const HOW_TO_PLAY = {
     pageBoxWidth: byDevice(200, 250),
     controlColor: '#ffd860',
     actionColor: '#f0e6c8',
+} as const;
+
+/**
+ * Achievements (scenes/AchievementsScene.ts, Fase 14B): the Credits-size panel, a "3 / 14 unlocked" line, the list in
+ * two columns (unlocked first), a page selector and Back. Locked ones are greyed out.
+ */
+export const ACHIEVEMENTS_SCREEN = {
+    columns: 2,
+    rowsPerPage: byDevice(4, 3),
+    /** Centre of each column, from the panel's centre. */
+    columnX: byDevice(155, 170),
+    columnWidth: byDevice(290, 320),
+    /** Space between the count line and the first row. */
+    countGap: byDevice(30, 36),
+    rowHeight: byDevice(44, 56),
+    pageBoxWidth: byDevice(130, 160),
+    countColor: '#c8b88a',
+    nameColor: '#ffd860',
+    descriptionColor: '#f0e6c8',
+    lockedNameColor: '#8a8070',
+    lockedDescriptionColor: '#6f675a',
 } as const;
 
 /** Xbox-style gamepad icons drawn on How to play (letters in the Xbox colours). */

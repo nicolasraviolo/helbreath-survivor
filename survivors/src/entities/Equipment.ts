@@ -1,6 +1,6 @@
 // Lo que lleva puesto el personaje: el arma cuerpo a cuerpo o el hechizo "en la mano" y una pieza por hueco de armadura.
 // Calcula la defensa total, el bonus de daño mágico de la ropa y qué capas hay que dibujar al cambiar una pieza.
-import { ARMOR_PIECES, getArmorPiece, MAX_DEFENSE, type ArmorPieceId, type ArmorSlotId } from '../data/armor';
+import { ARMOR_BY_SET, ARMOR_PIECES, ARMOR_SLOT_IDS, getArmorPiece, MAX_DEFENSE, type ArmorPieceId, type ArmorSlotId } from '../data/armor';
 import type { CharacterDef } from '../data/characters';
 import { getPassive, type PassiveId } from '../data/passives';
 import type { SpellId } from '../data/spells';
@@ -30,6 +30,12 @@ export class Equipment {
         let total = 0;
         for (const id of Object.values(this.armor)) total += getArmorPiece(id).magicDamageBonus ?? 0;
         return total;
+    }
+
+    /** A piece in every armor slot the class can wear (achievement "Fully Armored"). */
+    public get fullArmor(): boolean {
+        const slots = ARMOR_BY_SET[this.def.armorSet];
+        return ARMOR_SLOT_IDS.every((slot) => slots[slot] === undefined || this.armor[slot] !== undefined);
     }
 
     /** Share of incoming damage removed by all the armor worn (0..MAX_DEFENSE). */

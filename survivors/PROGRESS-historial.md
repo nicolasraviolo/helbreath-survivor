@@ -2,7 +2,15 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
-**Fase 13, bloque 13C: equilibrio y versión en el menú (2026-10-18, el propietario lo probó y le gusta). Cierra la Fase 13.**
+**Fase 14, bloque 14B: logros (2026-10-18, el propietario lo probó y le gusta).**
+- **14 logros** (`data/achievements.ts`): Survivor/Veteran (5 y 10 min), Rising Star/Legend (nivel 20 y 30), Slayer/Massacre (1.000 y 3.000 bajas), Ettin Slayer, Demon Hunter, Dragon Slayer, Island Conqueror (ganar en Bleeding Isle), Path of the Blade/Path of Magic (ganar con cada clase), Iron Will (ganar sin pociones), Fully Armored (todas las piezas de armadura de la clase).
+- **Guardado:** `systems/AchievementStore.ts`, clave `hb-survivors.achievements` con versión; se guarda el id y la fecha. Las pociones bebidas van en la partida guardada (`potionsDrunk`).
+- **En partida:** `systems/AchievementTracker.ts` mira tiempo, nivel, bajas y armadura cada 0,5 s; jefes y victoria los avisa GameScene. Apagado en la partida simulada. Al morir el Wyvern mueren todos, y un Ettin o Demon vivos también cuentan.
+- **Aviso:** abajo a la izquierda del HUD, "Achievement unlocked!" + nombre, con sonido (`sfx.buff`); si salen varios, uno detrás de otro, y espera mientras la partida está en pausa (cartas). En la pantalla de victoria/derrota, línea "Achievements: ..." con los de esa partida.
+- **Pantalla Achievements:** "N / 14 unlocked", dos columnas, conseguidos primero en dorado y pendientes en gris; páginas con ◄ ► (2 en PC, 3 en móvil).
+- **Pruebas:** `?achievements=reset|all`, `?open=achievements`, situaciones `achievements` (con `--cards`, opción nueva del script que elige cartas sola) y `achievementlist`. Comprobado: aviso al nivel 21, victoria con 8 logros, pantalla en PC y móvil, pociones tras Continue, build sin errores.
+
+: equilibrio y versión en el menú (2026-10-18, el propietario lo probó y le gusta). Cierra la Fase 13.**
 - **Versión en el pie del menú principal:** "Phase 13" (`config/version.ts`). `/fase N` la cambia al empezar cada fase.
 - **Partida simulada** (`?debug=sim`, `systems/SimRun.ts`; `pnpm check levelpace`): invencible, corre en círculos, va a por los jefes (y se rinde si se atasca), cartas al azar, ~100× más rápido. Informe: nivel y XP por minuto, cuánto vive cada jefe, su golpe más fuerte frente a la vida del jugador, arma y stats finales.
 - **Curva de XP:** antes una recta (se llegaba al nivel 100). Ahora 15/30/50/80 para los 4 primeros niveles y desde el 5, 150 × 1,24 por nivel. **XP de monstruo = vida/5** (más diferencia entre débiles y fuertes); jefes 250/500/1200. **Gema nueva:** diamante desde 60 XP (zafiro desde 5, rubí desde 15).

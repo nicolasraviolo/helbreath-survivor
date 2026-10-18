@@ -69,6 +69,8 @@ import type { HudSceneData, HudState } from './HudScene';
 import type { LevelUpChoice, LevelUpSceneData } from './LevelUpScene';
 import { DEBUG_START, type DebugAction } from '../config/debugStart';
 import { SimRun } from '../systems/SimRun';
+import { ACHIEVEMENT_EVENT, ACHIEVEMENT_SOUND } from '../data/achievements';
+import { AchievementTracker } from '../systems/AchievementTracker';
 
 /** Enemies created by the debug "spawn many" key. */
 const DEBUG_SPAWN_COUNT = 100;
@@ -90,6 +92,7 @@ const DEBUG_START_DELAY_MS = 500;
  * (registry RESUME_SLOT_KEY) se reconstruye desde esa foto. Al ganar o morir, su ranura se libera.
  * Fase 13: al matar al jefe final mueren todos los monstruos y cae su cofre; al abrirlo se abre un portal, y la partida
  * se gana al entrar en él o cuando se acaba su cuenta atrás. La XP que quede en el suelo se pierde.
+ * Fase 14B: AchievementTracker desbloquea los logros durante la partida; el aviso lo pinta HudScene (ACHIEVEMENT_EVENT).
  * Mover: WASD/flechas, stick/cruceta o mantener clic. Esc / Start: pausa. F1 / View: depuración · T: prueba del Orc.
  * Solo en desarrollo: N 100 enemigos · K matar los visibles · G invencible · X subir un nivel · V +10 Str · B +10 Int y Mag · P poción, imán y cofre · J +1 minuto · M siguiente jefe · L +5 niveles.
  */
@@ -142,6 +145,9 @@ export class GameScene extends Phaser.Scene {
     private levelUpOpen = false;
     /** Simulated run to measure the balance (?debug=sim, development only). */
     private sim: SimRun | undefined;
+    private achievements!: AchievementTracker;
+    /** Names of the achievements unlocked this run, for the end screen. */
+    private achievementsThisRun: string[] = [];
     /** Pixels run since the last puff of footstep dust, and where the player was last frame. */
     private dustDistance = 0;
     private mapId: MapId = DEFAULT_MAP;
@@ -230,6 +236,17 @@ export class GameScene extends Phaser.Scene {
         this.killFinalBossPending = false;
         this.runOver = false;
         this.equipment = new Equipment(character);
+        this.achievementsThisRun = [];
+        this.achievements = new AchievementTracker(this.characterId, this.mapId, () => ({
+            elapsedMs: this.spawner.elapsed,
+            level: this.stats.level,
+            kills: this.combat.kills,
+            fullArmor: this.equipment.fullArmor,
+        }), (def) => {
+            this.achievementsThisRun.push(def.name);
+            this.audio.play(ACHIEVEMENT_SOUND);
+            this.events.emit(ACHIEVEMENT_EVENT, def.name);
+        });
         this.meleeWeapon = undefined;
         this.spellWeapon = undefined;
         if (character.startWeapon.kind === 'melee') {
@@ -294,6 +311,7 @@ export class GameScene extends Phaser.Scene {
         switch (id) {
             case 'potion':
                 this.player.heal(Math.round(this.player.maxHp * POTION_HEAL_SHARE));
+                this.achievements.potionsDrunk++;
                 break;
             case 'magnet':
                 this.xp.attractAll();
@@ -400,6 +418,7 @@ export class GameScene extends Phaser.Scene {
         this.applyStats();
         this.player.restoreHp(run.hp);
         this.combat.restoreKills(run.kills);
+        this.achievements.potionsDrunk = run.potionsDrunk;
         this.buffs.restore(run.buffs);
         this.spawner.resumeAt(run.elapsedMs, RESUME_CALM_MS, run.bosses);
         // Saved after the final boss: the player starts somewhere else, so its chest (or the portal) appears next to them.
@@ -433,6 +452,7 @@ export class GameScene extends Phaser.Scene {
             bosses: [...this.bosses.aliveIds, ...this.spawner.bossesWaiting],
             finalBossDead: this.finalBossDead,
             portalMsLeft: this.portal?.timeLeft ?? (this.portalInMs >= 0 ? PORTAL.durationMs : undefined),
+            potionsDrunk: this.achievements.potionsDrunk,
         };
     }
 
@@ -553,6 +573,7 @@ export class GameScene extends Phaser.Scene {
         this.bosses.update(delta, player.x, bodyY, !player.isDead);
         const shotDamage = this.enemyShots.update(delta, player.x, bodyY, PLAYER_BODY_RADIUS);
         this.updateMusic();
+        if (!player.isDead) this.achievements.update(delta);
 
         const bossBlow = this.enemies.landedBossDamage + (this.enemyShots.hitFromBoss ? shotDamage : 0);
         if (this.sim && bossBlow > 0) {
@@ -726,6 +747,7 @@ export class GameScene extends Phaser.Scene {
                 break;
             case 'sim':
                 this.sim = new SimRun(this.stats.def.name);
+                this.achievements.enabled = false;
                 if (!this.player.godMode) this.runDebugAction('god');
                 break;
             case 'resume':
@@ -754,6 +776,7 @@ export class GameScene extends Phaser.Scene {
         const boss = enemy.def.boss;
         if (!boss) return;
         this.sim?.onBossDead(enemy.def.name, this.spawner.elapsed);
+        this.achievements.onBossKilled(enemy.def);
         if (!boss.final) {
             if (boss.dropsChest) this.pickups.drop('chest', enemy.x, enemy.y);
             return;
@@ -803,6 +826,7 @@ export class GameScene extends Phaser.Scene {
     private endRun(victory: boolean): void {
         if (this.runOver) return;
         this.runOver = true;
+        if (victory) this.achievements.onWin();
         this.sim?.finish(victory ? 'portal' : 'died', this.stats.level, this.spawner.elapsed, this.combat.kills, this.simBuild());
         saveStore.clear(this.saveSlot);
         const armor = Object.values(this.equipment.armor).map((id) => getArmorPiece(id).name);
@@ -814,6 +838,7 @@ export class GameScene extends Phaser.Scene {
             className: this.stats.def.name,
             weaponName: this.meleeWeapon?.def.name ?? this.spellWeapon?.def.name ?? '',
             armorNames: armor,
+            achievementNames: this.achievementsThisRun,
             onRestart: () => {
                 this.scene.stop('GameOver');
                 this.scene.restart();

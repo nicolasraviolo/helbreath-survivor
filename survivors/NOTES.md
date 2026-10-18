@@ -46,6 +46,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Settings táctil (Fase 12C)
 - Portal del final (Fase 13)
 - Partida simulada y equilibrio (Fase 13C)
+- Logros (Fase 14B)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -609,3 +610,9 @@ Tabla completa en `docs/REQUISITOS_HB.md`. Lo no obvio:
 - El Wyvern ataca desde 7 casillas: un jugador quieto no le da con la espada; hay que acercarse.
 - Los jefes no se recolocan si se atascan detrás de un obstáculo: el bot de la simulación los perseguía para siempre (de ahí el "se rinde a los 3 s").
 - Gema de diamante: `item-ground.spr` hoja 15, frame 42 (esmeralda 45, zafiro 44, rubí 43).
+
+## Logros (Fase 14B)
+- Lo que se guarda es el **id** de cada logro (`survive5`, `killWyvern`...), no su nombre: se puede cambiar el nombre o la descripción sin perder nada, pero **nunca el id**.
+- Los jefes se reconocen comparando su definición (`ENEMIES[id] === enemy.def`): todos los monstruos de una clase comparten el mismo objeto de `data/enemies.ts`.
+- La escena de cartas pausa la partida: el vigilante no corre mientras tanto y el aviso del HUD espera (`scene.isPaused`). Por eso el logro de nivel sale después de elegir la carta.
+- En las pruebas automáticas, la partida se queda en las cartas si no se usa `--cards` (el script responde por su cuenta llamando a `onChoose` de LevelUp; los eventos de teclado sintéticos no llegan a Phaser).
