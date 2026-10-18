@@ -32,7 +32,7 @@ export class SettingsScene extends MenuOverlayScene {
             onLeft: () => settings.set(key, stepVolume(settings.current[key], -1)),
             onRight: () => settings.set(key, stepVolume(settings.current[key], 1)),
         });
-        const checkbox = (key: 'showPlayerHealthBar' | 'screenShake' | 'anonymousStats' | 'aimStick'): Partial<MenuItem> => {
+        const checkbox = (key: 'showPlayerHealthBar' | 'screenShake' | 'anonymousStats' | 'aimStick' | 'showMinimap'): Partial<MenuItem> => {
             const toggle = () => settings.set(key, !settings.current[key]);
             return { checked: () => settings.current[key], onConfirm: toggle, onLeft: toggle, onRight: toggle };
         };
@@ -48,6 +48,7 @@ export class SettingsScene extends MenuOverlayScene {
             { label: 'Sound', ...volume('sfxVolume') },
             { label: 'Health Bar on Character', ...checkbox('showPlayerHealthBar') },
             { label: 'Screen Shake', ...checkbox('screenShake') },
+            { label: 'Minimap', ...checkbox('showMinimap') },
             {
                 label: 'Large Trees',
                 value: () => TREE_MODE_NAMES[settings.current.largeTrees],

@@ -515,8 +515,11 @@ export class GameScene extends Phaser.Scene {
 
     /** Bottom bar in its own scene on top. It is stopped with this scene (restart, sprite test). */
     private launchHud(): void {
+        const mapDef = MAPS_DATA[this.mapId];
+        const map = getMap(this, mapDef.asset);
         const data: HudSceneData = {
             gameSceneKey: this.scene.key,
+            minimap: { key: mapDef.minimap, mapWidth: map.width, mapHeight: map.height, playArea: mapDef.playArea },
             getState: () => ({
                 hp: this.player.hp,
                 maxHp: this.player.maxHp,
@@ -535,6 +538,7 @@ export class GameScene extends Phaser.Scene {
                 defense: this.equipment.defense,
                 passiveRanks: this.equipment.passives,
                 buffs: this.buffs.active.map(({ def, secondsLeft }) => ({ name: def.name, secondsLeft, color: def.color })),
+                minimap: { player: this.player, bosses: this.bosses.tracked.filter((boss) => boss.isAlive) },
             }),
         };
         this.scene.launch('Hud', data);

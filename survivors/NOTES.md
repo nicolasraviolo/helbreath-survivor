@@ -51,6 +51,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Apuntado automático (Fase 15A)
 - Apuntado manual (Fase 15B)
 - Stick de apuntar en el móvil (Fase 15C)
+- Minimapa (Fase 16A)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -656,3 +657,9 @@ Tabla completa en `docs/REQUISITOS_HB.md`. Lo no obvio:
 - **How to Play en el móvil:** caben **6 filas** por página; la 7ª pisa el selector "Page". En el 15C se juntaron filas ("C / Esc", "Stats / Pause buttons") y se acortaron textos para que quepan.
 - **Probar:** `?debug=aimstick` (con `--mobile`) pone un dedo de mentira empujando a la derecha. Para dedos de verdad en `pnpm check --eval`, crear `Touch` con `clientX/pageX/screenX` (si falta `pageX`, Phaser lo lee como 0) y lanzar `touchstart` en el canvas y `touchmove/touchend` en `window`. Ojo: un `import('/src/...')` desde `--eval` carga **otra copia** del módulo (Vite lo sirve con `?t=...`); para tocar los ajustes de verdad hay que importar la URL exacta de `performance.getEntriesByType('resource')`.
 
+
+## Minimapa (Fase 16A)
+- Imágenes ya hechas en `sp-client/public/assets/images/minimaps/<mapa>.jpg`, una por mapa y del mapa **entero** (bisle: 1500×1369 para 274×250 casillas, ~5,47 px por casilla en los dos ejes). sp-client marca bisle como `Minimap.NONE`, pero la imagen existe y cuadra con el mapa.
+- `ui/Minimap.ts` recorta la zona de juego como un frame de la textura (`playArea`), calculado con el tamaño de la imagen entre el del mapa: vale para cualquier mapa sin medir nada a mano.
+- `telescope.spr` (el GuideMap del original) no lo usa sp-client y no tiene índice documentado: no se usa.
+- Solo marca jugador y jefes (y tótems en el 16B), por decisión del propietario. En mapas con NPCs (Fase 21), también ellos.

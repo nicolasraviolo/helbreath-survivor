@@ -237,6 +237,16 @@ export const MAPS = {
 export type MapKey = keyof typeof MAPS;
 
 /**
+ * Minimapas (Fase 16A): imágenes ya hechas de sp-client, una por mapa, que cubren el mapa entero (bisle: 1500×1369 para
+ * 274×250 casillas). El minimapa enseña solo el trozo de la zona de juego (ui/Minimap.ts).
+ */
+export const MINIMAPS = {
+    'minimap.bisle': { file: 'images/minimaps/bisle.jpg' },
+} as const satisfies Record<string, { file: string }>;
+
+export type MinimapKey = keyof typeof MINIMAPS;
+
+/**
  * Paquetes de casillas de mapa (sp-client/src/constants/Assets.ts). Cada hoja del paquete es la
  * textura `map-tile-{start + hoja}`. Solo se cargan los que use el mapa (ver hb/mapAssets.ts).
  */

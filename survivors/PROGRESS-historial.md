@@ -2,6 +2,12 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
+**Fase 16, bloque 16A: minimapa (2026-10-18).**
+- **Qué hace:** cuadro arriba a la **derecha** (128 px; en el móvil 104 px y bajo el botón de pausa) con la zona de juego de Bleeding Isle en pequeño. Marca **solo** al jugador (punto blanco) y a los **jefes** (rojo, parpadea). Nada de monstruos normales, pociones ni cofres (decisión del propietario); los tótems se añaden en el 16B y los NPCs en mapas que los tengan (Fase 21). Casilla **Minimap** en Settings (activada de serie).
+- **Código:** `ui/Minimap.ts` (lo crea `HudScene`), números en `data/minimap.ts`, imagen `minimap.bisle` en `assetManifest.ts` (`MINIMAPS`, `images/minimaps/bisle.jpg` de sp-client) y `minimap` en cada mapa de `data/maps.ts`. `BossSystem.tracked` da los jefes. Detalle en NOTES.md, "Minimapa (Fase 16A)".
+- **Settings:** con la fila nueva no cabía "Back"; filas algo más juntas (`SETTINGS_MENU`: espaciado 34/30, primera fila más arriba).
+- **Probar:** `pnpm --dir survivors check minimap [--mobile]` (o http://localhost:8090/?debug=god,boss). Comprobado en PC y móvil sin errores; build OK. Probado y aprobado por el propietario.
+
 **Fase 15: revisión de código (`/revisar`, 2026-10-18).** 7 hallazgos pequeños. Arreglados: el atajo `?debug=aim` ya no se queda puesto al volver a jugar, comentario fuera de sitio en `GameScene`, y la división de pantalla del stick pasó a `TOUCH_AIM_ZONE_START` (`config/touch.ts`). Dejados a propósito (casi imposibles o solo de forma): un proyectil podría seguir a un jefe "de recambio" del mismo tipo que salga en el mismo frame; el stick de apuntar podría reutilizar una dirección vieja durante un frame; el `as EnemyDef` de `findNearestBoss`; `tools/spriteViewer.ts` largo (solo desarrollo).
 
 **Fase 15, bloque 15C: stick de apuntar en el móvil (2026-10-18).**

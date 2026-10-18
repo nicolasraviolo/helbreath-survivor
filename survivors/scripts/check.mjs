@@ -35,6 +35,8 @@ const PRESETS = {
     game: 'play',
     levelup: 'debug=levelup',
     boss: 'debug=god,boss',
+    // Minimapa (Fase 16A): con un jefe vivo, para ver su punto rojo junto al del jugador.
+    minimap: 'debug=god,boss',
     horde: 'debug=god,horde,horde,horde',
     pickups: 'debug=god,pickups',
     finalboss: 'debug=god,finalboss',
