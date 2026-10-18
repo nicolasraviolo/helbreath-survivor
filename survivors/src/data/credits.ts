@@ -11,11 +11,3 @@ export const CREDITS_LINES: readonly string[] = [
     'Made with Phaser 3.',
     'UI font: Comic Neue (SIL Open Font License).',
 ];
-
-/** Achievements screen: a placeholder until the feature is designed. */
-export const ACHIEVEMENTS_LINES: readonly string[] = [
-    'Coming soon!',
-    '',
-    'Achievements will reward you for your runs:',
-    'surviving, slaying bosses and mastering every class.',
-];

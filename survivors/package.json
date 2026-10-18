@@ -9,7 +9,10 @@
     "sync-assets": "node scripts/sync-assets.mjs",
     "build": "tsc --noEmit && node scripts/sync-assets.mjs && vite build",
     "preview": "vite preview",
-    "check": "node scripts/check.mjs"
+    "check": "node scripts/check.mjs",
+    "metrics:types": "wrangler types --config metrics-server/wrangler.toml metrics-server/worker-configuration.d.ts",
+    "metrics:check": "tsc --noEmit -p metrics-server",
+    "metrics:deploy": "tsc --noEmit -p metrics-server && wrangler deploy --config metrics-server/wrangler.toml"
   },
   "dependencies": {
     "@fontsource/comic-neue": "^5.3.0",
@@ -19,6 +22,7 @@
     "@types/node": "^22.20.5",
     "playwright-core": "^1.64.1",
     "typescript": "~5.7.2",
-    "vite": "^6.3.1"
+    "vite": "^6.3.1",
+    "wrangler": "^4.151.1"
   }
 }

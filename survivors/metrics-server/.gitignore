@@ -1,0 +1,4 @@
+# Tipos generados por `wrangler types` (600 KB): se regeneran con `pnpm metrics:types`.
+worker-configuration.d.ts
+.wrangler/
+.dev.vars

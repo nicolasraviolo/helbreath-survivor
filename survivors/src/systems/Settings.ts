@@ -36,6 +36,7 @@ function load(): GameSettings {
             hudStyle: HUD_STYLES.find((style: HudStyle) => style === stored.hudStyle) ?? DEFAULT_SETTINGS.hudStyle,
             screenShake: typeof stored.screenShake === 'boolean' ? stored.screenShake : DEFAULT_SETTINGS.screenShake,
             largeTrees: TREE_MODES.find((mode: TreeMode) => mode === stored.largeTrees) ?? DEFAULT_SETTINGS.largeTrees,
+            anonymousStats: typeof stored.anonymousStats === 'boolean' ? stored.anonymousStats : DEFAULT_SETTINGS.anonymousStats,
         };
     } catch {
         return { ...DEFAULT_SETTINGS };

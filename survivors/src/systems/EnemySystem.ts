@@ -18,6 +18,7 @@ export class EnemySystem {
     private landed = 0;
     /** A boss blow was among them (the screen shakes harder). */
     private landedBoss = 0;
+    private landedSource = '';
     /** Shoots an archer's arrow at the player (set by the game scene). */
     private onShoot: (enemy: Enemy, damage: number) => void = () => undefined;
 
@@ -34,6 +35,11 @@ export class EnemySystem {
     /** Strongest blow that landed on the player this frame (monster attacks), or 0. */
     public get landedDamage(): number {
         return this.landed;
+    }
+
+    /** Name of the monster whose blow landed this frame ('' if none): the metrics' "killed by". */
+    public get landedBy(): string {
+        return this.landedSource;
     }
 
     /** True if a boss blow landed on the player this frame. */
@@ -71,11 +77,15 @@ export class EnemySystem {
         this.aliveCount = 0;
         this.landed = 0;
         this.landedBoss = 0;
+        this.landedSource = '';
         for (const pool of this.pools.values()) {
             for (const enemy of pool.active) {
                 const finished = enemy.update(deltaMs, world);
                 // Several blows in the same frame count as the strongest (the player is then briefly invulnerable).
-                this.landed = Math.max(this.landed, enemy.landedDamage);
+                if (enemy.landedDamage > this.landed) {
+                    this.landed = enemy.landedDamage;
+                    this.landedSource = enemy.def.name;
+                }
                 if (enemy.def.boss) this.landedBoss = Math.max(this.landedBoss, enemy.landedDamage);
                 enemy.landedDamage = 0;
                 if (enemy.shotDamage > 0) {

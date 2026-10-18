@@ -123,9 +123,34 @@ export const HUD_COMPACT = {
 
 /** Event of GameScene that the HUD listens to, to show a warning in the middle of the screen. */
 export const ANNOUNCE_EVENT = 'announce';
+/** Emitted on the game scene by the pause menu's "Quit to menu", just before stopping it (Fase 14A: anonymous stats). */
+export const QUIT_RUN_EVENT = 'quit-run';
 
 /** Warnings of the timeline ("The Ettin approaches!"): sprite font, big, in the middle; fade out at the end. */
 export const HUD_ANNOUNCE = { y: 150, scale: byDevice(2, 2.4), color: 0xff5040, showMs: 3500, fadeMs: 1000 } as const;
+
+/**
+ * "Achievement unlocked" notice (Fase 14B): a small dark box at the bottom left of the game area (the buffs are at the
+ * right), sliding in. If several come at once, they show one after the other.
+ */
+export const HUD_ACHIEVEMENT = {
+    left: 12,
+    /** Bottom edge of the box, this far above the bottom of the game area. */
+    bottomGap: byDevice(14, 18),
+    padX: byDevice(10, 14),
+    padY: byDevice(6, 8),
+    lineGap: 2,
+    backColor: 0x000000,
+    backAlpha: 0.75,
+    borderColor: 0xc8a040,
+    header: 'Achievement unlocked!',
+    headerStyle: { ...UI_TEXT, fontSize: px(UI_FONT_SIZE.small), color: '#ffd860', stroke: '#000000', strokeThickness: 3 },
+    nameStyle: { ...UI_TEXT, fontSize: px(UI_FONT_SIZE.normal), fontStyle: 'bold', color: '#ffffff', stroke: '#000000', strokeThickness: 3 },
+    /** Slides in from the left edge, stays, then fades out. */
+    slideMs: 250,
+    showMs: 3500,
+    fadeMs: 600,
+} as const;
 
 /** End-of-run screen (scenes/GameOverScene.ts). Buttons from dialogtext.spr sheet 1: normal frame, lit = next frame. */
 export const GAME_OVER = {
@@ -135,6 +160,10 @@ export const GAME_OVER = {
     victoryColor: 0xffd860,
     defeatColor: 0xd83030,
     statsY: 220,
+    /** "Achievements: ..." unlocked this run, between the title and the stats (Fase 14B). */
+    achievementsY: 182,
+    achievementsColor: '#ffd860',
+    achievementsWrap: 700,
     buttonsY: 440,
     /** Distance between the centres of two buttons. */
     buttonGap: 140,

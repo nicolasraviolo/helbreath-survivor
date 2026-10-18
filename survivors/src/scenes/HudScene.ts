@@ -1,5 +1,6 @@
 // Interfaz de la partida: la barra (clásica abajo, o compacta arriba en el móvil: ui/ClassicHud.ts, ui/CompactHud.ts),
-// el panel de stats, la barra del jefe, los avisos, la cuenta atrás del portal (Fase 13) y las mejoras activas de los cofres.
+// el panel de stats, la barra del jefe, los avisos, la cuenta atrás del portal (Fase 13), las mejoras activas de los cofres
+// y el aviso de logro conseguido (Fase 14B, abajo a la izquierda).
 // Corre como escena aparte por encima de la partida, así que no se mueve con la cámara.
 // El casco (o C / Y del mando) muestra el panel de stats, y el disquete o Esc / Start abren la pausa (PauseScene).
 // Si se desconecta el mando en plena partida, la pausa se abre sola.
@@ -11,6 +12,7 @@ import { COMPACT_UI } from '../config/device';
 import { GAME_WIDTH } from '../config/gameConfig';
 import {
     ANNOUNCE_EVENT,
+    HUD_ACHIEVEMENT,
     HUD_ANNOUNCE,
     HUD_BOSS,
     HUD_BUFF,
@@ -24,6 +26,7 @@ import {
 } from '../config/hud';
 import type { HudStyle } from '../config/settings';
 import { TOUCH_PAUSE_BUTTON } from '../config/touch';
+import { ACHIEVEMENT_EVENT } from '../data/achievements';
 import { PASSIVE_IDS, PASSIVES } from '../data/passives';
 import { STAT_IDS, STAT_INFO } from '../data/stats';
 import type { CharacterStats } from '../entities/CharacterStats';
@@ -75,6 +78,11 @@ export class HudScene extends Phaser.Scene {
     private shownPortalSeconds = -1;
     private announce!: SpriteText;
     private announceLeftMs = 0;
+    /** Names of the achievements still to show, and the notice on screen (if any) with its time on screen. */
+    private readonly achievementQueue: string[] = [];
+    private achievementNotice: Phaser.GameObjects.Container | undefined;
+    private achievementShownMs = 0;
+    private achievementWidth = 0;
     /** One line per active buff, created when first needed. */
     private readonly buffTexts: SpriteText[] = [];
     private statsPanel!: Phaser.GameObjects.Container;
@@ -102,7 +110,14 @@ export class HudScene extends Phaser.Scene {
         const game = this.scene.get(this.gameSceneKey);
         const onAnnounce = (message: string) => this.showAnnouncement(message);
         game.events.on(ANNOUNCE_EVENT, onAnnounce);
-        this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => game.events.off(ANNOUNCE_EVENT, onAnnounce));
+        const onAchievement = (name: string) => this.achievementQueue.push(name);
+        game.events.on(ACHIEVEMENT_EVENT, onAchievement);
+        this.achievementQueue.length = 0;
+        this.achievementNotice = undefined;
+        this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+            game.events.off(ANNOUNCE_EVENT, onAnnounce);
+            game.events.off(ACHIEVEMENT_EVENT, onAchievement);
+        });
         this.inputSystem = new InputSystem(this);
         // Gamepad unplugged (or out of battery) mid-run: pause so the player doesn't die without controls.
         const onPadLost = () => this.openPause();
@@ -138,6 +153,7 @@ export class HudScene extends Phaser.Scene {
         this.showBoss(state.boss);
         this.showPortal(state.portalSecondsLeft);
         this.updateAnnouncement(delta);
+        this.updateAchievementNotice(delta);
         if (this.inputSystem.justPressed(Action.Pause)) this.openPause();
         if (this.inputSystem.justPressed(Action.ToggleStats)) this.toggleStats();
         if (this.statsPanel.visible) this.refreshStats(state);
@@ -222,6 +238,46 @@ export class HudScene extends Phaser.Scene {
             return;
         }
         this.announce.container.setAlpha(Math.min(1, this.announceLeftMs / HUD_ANNOUNCE.fadeMs));
+    }
+
+    /** One "Achievement unlocked" notice at a time: slides in from the left, stays, fades out; then the next one. */
+    private updateAchievementNotice(deltaMs: number): void {
+        // Waits while the game is paused (level-up cards, pause menu), so it isn't missed under them.
+        if (this.scene.isPaused(this.gameSceneKey)) return;
+        const { slideMs, showMs, fadeMs } = HUD_ACHIEVEMENT;
+        if (!this.achievementNotice) {
+            const name = this.achievementQueue.shift();
+            if (name === undefined) return;
+            this.achievementNotice = this.createAchievementNotice(name);
+            this.achievementShownMs = 0;
+        }
+        const notice = this.achievementNotice;
+        const t = (this.achievementShownMs += deltaMs);
+        if (t >= showMs) {
+            notice.destroy();
+            this.achievementNotice = undefined;
+            return;
+        }
+        const slide = Math.min(1, t / slideMs);
+        notice.x = HUD_ACHIEVEMENT.left - (1 - slide) * (this.achievementWidth + HUD_ACHIEVEMENT.left);
+        notice.y = overlayBottom() - HUD_ACHIEVEMENT.bottomGap;
+        notice.setAlpha(Math.min(1, (showMs - t) / fadeMs));
+    }
+
+    /** Dark box with a gold border: the header line over the achievement's name. Its origin is the bottom left corner. */
+    private createAchievementNotice(name: string): Phaser.GameObjects.Container {
+        const { padX, padY, lineGap } = HUD_ACHIEVEMENT;
+        const header = this.add.text(padX, padY, HUD_ACHIEVEMENT.header, HUD_ACHIEVEMENT.headerStyle);
+        const title = this.add.text(padX, padY + header.height + lineGap, name, HUD_ACHIEVEMENT.nameStyle);
+        const width = Math.max(header.width, title.width) + padX * 2;
+        const height = title.y + title.height + padY;
+        const box = this.add.graphics()
+            .fillStyle(HUD_ACHIEVEMENT.backColor, HUD_ACHIEVEMENT.backAlpha).fillRect(0, 0, width, height)
+            .lineStyle(2, HUD_ACHIEVEMENT.borderColor, 1).strokeRect(0, 0, width, height);
+        this.achievementWidth = width;
+        const notice = this.add.container(-width, 0, [box, header, title]).setDepth(HUD_DEPTH_TEXT);
+        for (const part of [box, header, title]) part.y -= height;
+        return notice;
     }
 
     /** Line `index` of the buffs, from the bottom of the game area up. */

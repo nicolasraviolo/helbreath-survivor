@@ -2,7 +2,26 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
-**Fase 13, bloque 13C: equilibrio y versión en el menú (2026-10-18, el propietario lo probó y le gusta). Cierra la Fase 13.**
+**Fase 14 completada (2026-10-18)**: bloques 14A (métricas) y 14B (logros). Fusionada en `master`, etiqueta `fase-14` y publicada en https://nicolasraviolo.github.io/helbreath-survivor/. Base de datos de métricas vaciada de pruebas al publicar. Siguiente: `/fase 15`.
+
+**Fase 14, bloque 14A: métricas anónimas (2026-10-18, el propietario lo probó y funciona). Cierra la Fase 14.**
+- **Servidor** `metrics-server/`: Cloudflare Worker + base de datos D1 en la cuenta del propietario, https://helbreath-survivors-metrics.nicolasraviolo.workers.dev. `POST /run` guarda una partida (solo desde github.io o localhost, máx. 8 KB, cada campo comprobado, sin IP). La raíz es la página de gráficas, con clave (secreto `DASHBOARD_KEY`; copia local en `metrics-server/.dev.vars`, fuera de git).
+- **Qué se envía** (`config/metrics.ts`, recogido por `systems/RunMetrics.ts`): versión, mapa, clase, móvil u ordenador, resultado (win, death, quit), duración, nivel, bajas, qué te mató, equipo final, cartas elegidas, nivel al final de cada minuto, daño recibido por monstruo, vida más baja, pociones, jefes (llegada, muerte, golpe más fuerte), FPS medios y del 10% más lento. Zem y crits van a 0 hasta las Fases 16 y 17.
+- **Cuándo:** al ganar, morir o "Quit to menu". Nunca en la partida simulada; en `pnpm dev` solo con `?metrics=send`. Lo recogido viaja en la partida guardada, así Continue no lo pierde.
+- **Settings:** casilla "Anonymous Stats" (activada de serie) y debajo "Only used to tune the difficulty. Nothing personal, nothing else." Filas de Settings un poco más juntas para que quepa.
+- **Gráficas:** totales (victorias, abandonos, pociones, vida más baja media), victorias por clase, muertes por minuto, quién mata y quién hace más daño, cartas más elegidas, vida más baja, FPS por dispositivo, nivel medio por minuto y clase, tabla de jefes y las últimas 50 partidas. Filtro por versión.
+- **Comandos:** `pnpm metrics:types` (tipos del Worker, tras clonar), `pnpm metrics:check`, `pnpm metrics:deploy`. Para ver la página en local con datos de mentira: `metrics-local` en `.claude/launch.json` (puerto 8787, clave `localtest`).
+- **Comprobado:** `build` sin errores; `check menu game open=settings` (PC y móvil) sin errores; partidas reales con `?metrics=send` (muerte por Ettin, abandono) llegan a la base de datos con todos los datos; Continue conserva lo recogido; la página rechaza la clave mala y dibuja todo. Pruebas borradas de la base de datos.
+
+**Fase 14, bloque 14B: logros (2026-10-18, el propietario lo probó y le gusta).**
+- **14 logros** (`data/achievements.ts`): Survivor/Veteran (5 y 10 min), Rising Star/Legend (nivel 20 y 30), Slayer/Massacre (1.000 y 3.000 bajas), Ettin Slayer, Demon Hunter, Dragon Slayer, Island Conqueror (ganar en Bleeding Isle), Path of the Blade/Path of Magic (ganar con cada clase), Iron Will (ganar sin pociones), Fully Armored (todas las piezas de armadura de la clase).
+- **Guardado:** `systems/AchievementStore.ts`, clave `hb-survivors.achievements` con versión; se guarda el id y la fecha. Las pociones bebidas van en la partida guardada (`potionsDrunk`).
+- **En partida:** `systems/AchievementTracker.ts` mira tiempo, nivel, bajas y armadura cada 0,5 s; jefes y victoria los avisa GameScene. Apagado en la partida simulada. Al morir el Wyvern mueren todos, y un Ettin o Demon vivos también cuentan.
+- **Aviso:** abajo a la izquierda del HUD, "Achievement unlocked!" + nombre, con sonido (`sfx.buff`); si salen varios, uno detrás de otro, y espera mientras la partida está en pausa (cartas). En la pantalla de victoria/derrota, línea "Achievements: ..." con los de esa partida.
+- **Pantalla Achievements:** "N / 14 unlocked", dos columnas, conseguidos primero en dorado y pendientes en gris; páginas con ◄ ► (2 en PC, 3 en móvil).
+- **Pruebas:** `?achievements=reset|all`, `?open=achievements`, situaciones `achievements` (con `--cards`, opción nueva del script que elige cartas sola) y `achievementlist`. Comprobado: aviso al nivel 21, victoria con 8 logros, pantalla en PC y móvil, pociones tras Continue, build sin errores.
+
+: equilibrio y versión en el menú (2026-10-18, el propietario lo probó y le gusta). Cierra la Fase 13.**
 - **Versión en el pie del menú principal:** "Phase 13" (`config/version.ts`). `/fase N` la cambia al empezar cada fase.
 - **Partida simulada** (`?debug=sim`, `systems/SimRun.ts`; `pnpm check levelpace`): invencible, corre en círculos, va a por los jefes (y se rinde si se atasca), cartas al azar, ~100× más rápido. Informe: nivel y XP por minuto, cuánto vive cada jefe, su golpe más fuerte frente a la vida del jugador, arma y stats finales.
 - **Curva de XP:** antes una recta (se llegaba al nivel 100). Ahora 15/30/50/80 para los 4 primeros niveles y desde el 5, 150 × 1,24 por nivel. **XP de monstruo = vida/5** (más diferencia entre débiles y fuertes); jefes 250/500/1200. **Gema nueva:** diamante desde 60 XP (zafiro desde 5, rubí desde 15).

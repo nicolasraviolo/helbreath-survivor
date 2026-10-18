@@ -56,6 +56,24 @@
         "/helbreath-survivor/"
       ],
       "port": 8092
+    },
+    {
+      "name": "metrics-local",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "--dir",
+        "survivors",
+        "exec",
+        "wrangler",
+        "dev",
+        "--config",
+        "metrics-server/wrangler.toml",
+        "--port",
+        "8787",
+        "--var",
+        "DASHBOARD_KEY:localtest"
+      ],
+      "port": 8787
     }
   ]
 }

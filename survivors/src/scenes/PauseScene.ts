@@ -1,6 +1,7 @@
 // Pausa de la partida (Fase 8): Esc o Start del mando, el botón del disquete de la barra, o sola si se desconecta
 // el mando. La partida y la barra quedan congeladas debajo. Resume vuelve a jugar; Settings abre los ajustes;
 // Fullscreen (si el navegador lo permite); Quit to menu abandona la partida y vuelve al menú principal.
+import { QUIT_RUN_EVENT } from '../config/hud';
 import { fullscreenItem } from '../ui/fullscreen';
 import { openOverlay, MenuOverlayScene, type MenuOverlayData } from './MenuOverlayScene';
 
@@ -39,6 +40,7 @@ export class PauseScene extends MenuOverlayScene {
     }
 
     private quit(): void {
+        this.scene.get(this.gameSceneKey).events.emit(QUIT_RUN_EVENT);
         // Stopping the game also stops its HUD and level-up / game over scenes (GameScene, on SHUTDOWN).
         this.scene.stop(this.gameSceneKey);
         this.scene.start('MainMenu');
