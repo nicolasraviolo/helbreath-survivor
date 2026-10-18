@@ -10,10 +10,12 @@ export interface WeaponContext {
     /** Owner's feet. */
     readonly x: number;
     readonly y: number;
-    findNearestEnemy(maxDistance: number): Enemy | undefined;
-    /** Up to `count` enemies, nearest first (the array is reused: read it right away). */
-    findNearestEnemies(maxDistance: number, count: number): readonly Enemy[];
-    launchProjectile(def: SpellDef, fromX: number, fromY: number, toX: number, toY: number, maxDistance: number): void;
+    /** Enemy to attack within `maxDistance` (systems/Targeting.ts: a nearby boss first, else the nearest). */
+    findTarget(maxDistance: number): Enemy | undefined;
+    /** Up to `count` enemies: a nearby boss first, then the nearest (the array is reused: read it right away). */
+    findTargets(maxDistance: number, count: number): readonly Enemy[];
+    /** `target`: the only enemy it may hit (a boss: it flies through the others). */
+    launchProjectile(def: SpellDef, fromX: number, fromY: number, toX: number, toY: number, maxDistance: number, target?: Enemy): void;
     /** Spells: plays the owner's cast animation and sound towards `angle` (radians). */
     castSpell(angle: number, durationMs: number): void;
     /** Melee: plays the owner's swing animation, the slash and the swing sound towards `angle` (radians). */

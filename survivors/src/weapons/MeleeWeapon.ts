@@ -29,7 +29,7 @@ export class MeleeWeapon extends Weapon {
 
     protected fire(context: WeaponContext): boolean {
         const def = this.def;
-        const target = context.findNearestEnemy(def.range + TARGET_MARGIN_PX);
+        const target = context.findTarget(def.range + TARGET_MARGIN_PX);
         if (!target) return false;
         const angle = Math.atan2(target.bodyY - (context.y - MELEE_ORIGIN_OFFSET_Y), target.x - context.x);
         const durationMs = def.swingMs * context.cooldownMultiplier;

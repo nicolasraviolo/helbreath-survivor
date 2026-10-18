@@ -1,9 +1,11 @@
 // Hechizo de la Maga: cuando hay un enemigo a su alcance, ella hace la animación de lanzar y, al soltar el hechizo,
 // salen uno o varios proyectiles (data/spells.ts → shots, shotIntervalMs, aim):
 // - 'targets': cada proyectil va a un enemigo distinto, el más cercano primero (Triple Energy Bolt: 3 enemigos).
-// - 'scatter': caen alrededor del enemigo más cercano, uno cada `shotIntervalMs` (Energy Strike).
+// - 'scatter': caen alrededor del enemigo elegido, uno cada `shotIntervalMs` (Energy Strike).
+// A quién apuntan lo decide systems/Targeting.ts: un jefe cercano va antes que los demás (Fase 15A).
 import Phaser from 'phaser';
 import { CAST_ANIMATION_MS, CAST_RELEASE_MOMENT, SPELLS, type SpellDef, type SpellId } from '../data/spells';
+import type { Enemy } from '../entities/Enemy';
 import { Weapon, type WeaponContext } from './Weapon';
 
 /** Spells look a bit further than their range when they leave the hands (the target may have stepped back). */
@@ -15,9 +17,11 @@ export class SpellWeapon extends Weapon {
     private releaseInMs = -1;
     private shotsLeft = 0;
     private nextShotInMs = 0;
-    /** Point the scattered shots fall around (the nearest enemy when the spell left). */
+    /** Point the scattered shots fall around (the target when the spell left). */
     private aimX = 0;
     private aimY = 0;
+    /** The boss they were aimed at, if it was one: the shots fly through the other monsters. */
+    private aimBoss: Enemy | undefined;
 
     constructor(public readonly id: SpellId) {
         super(SPELLS[id].cooldownMs);
@@ -40,7 +44,7 @@ export class SpellWeapon extends Weapon {
     }
 
     protected fire(context: WeaponContext): boolean {
-        const target = context.findNearestEnemy(this.def.range);
+        const target = context.findTarget(this.def.range);
         if (!target) return false;
         const durationMs = CAST_ANIMATION_MS * context.cooldownMultiplier;
         context.castSpell(Math.atan2(target.bodyY - context.y, target.x - context.x), durationMs);
@@ -53,22 +57,23 @@ export class SpellWeapon extends Weapon {
         const def = this.def;
         const range = def.range * RELEASE_RANGE_FACTOR;
         if (def.aim === 'scatter') {
-            const target = context.findNearestEnemy(range);
+            const target = context.findTarget(range);
             if (!target) return;
             this.aimX = target.x;
             this.aimY = target.bodyY;
+            this.aimBoss = bossOrUndefined(target);
             this.shotsLeft = def.shots;
             this.nextShotInMs = 0;
             return;
         }
-        const targets = context.findNearestEnemies(range, def.shots);
+        const targets = context.findTargets(range, def.shots);
         if (targets.length === 0) return;
         const fromY = context.y - def.originOffsetY;
         for (let i = 0; i < def.shots; i++) {
             // Fewer enemies than shots: the extra ones go to the nearest again.
             const target = targets[i % targets.length];
             if (!target) continue;
-            context.launchProjectile(def, context.x, fromY, target.x, target.bodyY, def.maxDistance);
+            context.launchProjectile(def, context.x, fromY, target.x, target.bodyY, def.maxDistance, bossOrUndefined(target));
             if (def.castSound) context.audio.play(def.castSound);
         }
     }
@@ -83,7 +88,11 @@ export class SpellWeapon extends Weapon {
         const toY = this.aimY + Math.sin(angle) * distance;
         const fromY = context.y - def.originOffsetY;
         const flight = Phaser.Math.Distance.Between(context.x, fromY, toX, toY);
-        context.launchProjectile(def, context.x, fromY, toX, toY, flight);
+        context.launchProjectile(def, context.x, fromY, toX, toY, flight, this.aimBoss);
         if (def.castSound) context.audio.play(def.castSound);
     }
+}
+
+function bossOrUndefined(enemy: Enemy): Enemy | undefined {
+    return enemy.def.boss ? enemy : undefined;
 }

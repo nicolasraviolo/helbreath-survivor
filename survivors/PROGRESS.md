@@ -17,9 +17,11 @@
 | 12 — Móvil sin pérdidas | ✅ completada (12A, 12B y 12C) | 2026-10-18 |
 | 13 — Jefe final y equilibrio | ✅ completada (13A, 13B y 13C) | 2026-10-18 |
 | 14 — Métricas y logros | ✅ completada (14A y 14B) | 2026-10-18 |
+| 15 — Apuntado híbrido | 🔄 en curso (15A hecho; falta 15B) | 2026-10-18 |
 
 ## Fase actual
-**Para retomar (18-oct-2026): Fase 14 completada** (14A métricas y 14B logros), fusionada en `master`, etiqueta `fase-14` y publicada: el juego publicado ya envía métricas. **Siguiente:** `/fase 15` (apuntado híbrido).
+**Para retomar (18-oct-2026): Fase 15 en curso** en la rama `fase-15`. **Hecho el 15A** (prioridad de jefes en el apuntado automático). **Siguiente:** `/fase 15` → bloque **15B**, apuntado manual: mantener el clic derecho apunta al cursor (el izquierdo sigue moviendo; quitar el menú del navegador), stick derecho del mando, al soltar vuelve el automático, flecha discreta solo mientras se apunta, móvil solo automático, explicarlo en How to Play. El manual manda sobre todo, también sobre los jefes.
+- **Apuntado (15A):** todo pasa por `systems/Targeting.ts`; un jefe a menos de 250 px (`data/targeting.ts`) y al alcance va primero, y los proyectiles lanzados a un jefe atraviesan a los demás monstruos. Detalle en NOTES.md, "Apuntado automático".
 - **Métricas (14A):** servidor `metrics-server/` (Cloudflare Worker + D1). Gráficas en https://helbreath-survivors-metrics.nicolasraviolo.workers.dev, con clave (en `metrics-server/.dev.vars`). Qué se envía: `config/metrics.ts`; lo recoge `systems/RunMetrics.ts`. En `pnpm dev` solo con `?metrics=send`. Detalle y cómo añadir un dato: NOTES.md, "Métricas".
 - **Logros (14B):** lista en `data/achievements.ts`, guardados en `systems/AchievementStore.ts` y vigilados por `systems/AchievementTracker.ts`. Para añadir uno basta con la lista (ver NOTES.md, "Logros"). Detalle en el historial.
 - **Equilibrio (13C):** curva en `data/leveling.ts` (4 niveles baratos y luego +24% por nivel), XP de monstruo = vida/5, jefes con `damageScale` y sin empuje (`data/enemies.ts`), Vit cura (`HP_REGEN_PER_VIT`, `data/stats.ts`). Medir con la partida simulada y, desde la Fase 14, con las gráficas de métricas.
@@ -47,6 +49,7 @@
 - Atajos en la dirección (solo en desarrollo, `src/config/debugStart.ts`): `?play`, `?play=warrior`, `?debug=boss,god` (acciones: horde, kill, levelup, levels, str, magic, pickups, minute, boss, finalboss, bosskill, stampede, god, resume = guardar y recargar como con Continue, sim = partida simulada), `?ui=compact` (interfaz de móvil), `?trees=off` (árboles, solo esa partida), `?open=howtoplay` (también settings, credits, achievements, select), `?achievements=reset` (borra los logros; `all` los da todos).
 - Teclas de depuración en partida: F1 panel · G invencible · N enemigos · L niveles · J +1 minuto, entre otras (`systems/InputSystem.ts`).
 - Datos de referencia de Helbreath: `docs/hb-wiki/` (índice en `README.md`).
+- **Visor de sprites** (solo en desarrollo): con `pnpm dev`, http://localhost:8090/sprites.html → todos los `.spr` por categorías (armas, armaduras, objetos, hechizos, monstruos, personajes, todos los archivos) con su nombre real. Al pinchar uno se ve animado, con pose, dirección, velocidad, zoom y fondo; las armas y armaduras, encima del cuerpo del personaje. Enlaces directos: `#weapons`, `#item/Long%20Sword`, `#file/orc/4`.
 
 **Historial de bloques y fases terminados:** `survivors/PROGRESS-historial.md` (más reciente arriba). Leer solo si hace falta un detalle concreto; buscar con grep en vez de leerlo entero.
 
@@ -73,6 +76,7 @@
 - 2026-10-18 · Equilibrio (13C): unos **24–27 niveles** por partida; ningún jefe mata en 1–2 golpes (como mucho ~30% de la vida del Mago); jefes sin empuje; al morir el Wyvern, XP sola y niveles sin cartas. Versión del juego en el pie del menú: de momento "Phase N".
 - 2026-10-18 · Métricas (14A): **activadas de serie** con aviso de que solo sirven para la dificultad; gráficas **solo con clave**; Cloudflare pese al bloqueo de LaLiga (si falla, en silencio). Se añadieron nivel por minuto, daño por monstruo, vida más baja, pociones, jefes y abandonos. Las cartas ofrecidas (no solo elegidas) quedan para más adelante.
 - 2026-10-18 · Fase 14: **servidor de métricas sí** (Cloudflare, cuenta del propietario). Logros: primera tanda de 14 aprobada; "6 armas" cambiado por "Fully Armored" y "Eternal Field" por Bleeding Isle.
+- 2026-10-18 · Fase 15: clic **izquierdo mueve y derecho apunta**; solo los **jefes** roban el objetivo automático, a **~250 px**; el apuntado manual manda siempre. Los proyectiles dirigidos a un jefe atraviesan a los demás monstruos (añadido en el 15A al ver que, si no, no le llegaba el daño).
 - 2026-10-18 · Partidas guardadas: **hasta 3**; Continue abre la lista; con las 3 llenas, Play pide cuál borrar (con confirmación). El formato lleva versión para poder crecer.
 - 2026-10-16 · Mapa: **huntzone2** (elegido por el propietario frente a middleland). Zona de juego ~100×100 casillas desde (72,70). Riesgos y detalles en `NOTES.md`.
 - 2026-10-18 · Mapa cambiado a **Bleeding Isle** (`bisle`) para el MVP, por tener menos colisiones: zona de 150×150 desde (66,52), 95% libre (el propietario prefirió 150 a 100 o 200). huntzone2 queda comentado en `data/maps.ts` para la Fase 19 (varios mapas). Las partidas guardadas en huntzone2 continúan en Bleeding Isle.

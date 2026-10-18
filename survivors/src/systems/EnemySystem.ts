@@ -2,7 +2,7 @@
 // y los golpes que dan al jugador.
 import Phaser from 'phaser';
 import { ENEMY_SEPARATION_MAX, ENEMY_SEPARATION_PER_PX, SPATIAL_CELL_SIZE } from '../config/gameConfig';
-import { ENEMIES, type EnemyId } from '../data/enemies';
+import { ENEMIES, type EnemyDef, type EnemyId } from '../data/enemies';
 import { Enemy, type EnemyWorld } from '../entities/Enemy';
 import { Pool } from '../utils/Pool';
 import type { AudioSystem } from './AudioSystem';
@@ -146,6 +146,24 @@ export class EnemySystem {
         return best;
     }
 
+    /** Closest living boss to (x, y) within `maxDistance`, or undefined (only the bosses' pools are looked at). */
+    public findNearestBoss(x: number, y: number, maxDistance: number): Enemy | undefined {
+        let best: Enemy | undefined;
+        let bestSq = maxDistance * maxDistance;
+        for (const [id, pool] of this.pools) {
+            if (!(ENEMIES[id] as EnemyDef).boss) continue;
+            for (const enemy of pool.active) {
+                if (!enemy.isAlive) continue;
+                const distSq = (enemy.x - x) ** 2 + (enemy.y - y) ** 2;
+                if (distSq < bestSq) {
+                    bestSq = distSq;
+                    best = enemy;
+                }
+            }
+        }
+        return best;
+    }
+
     /** Up to `count` living enemies within `maxDistance` of (x, y), nearest first, written into `out`. */
     public findNearestSeveral(x: number, y: number, maxDistance: number, count: number, out: Enemy[]): Enemy[] {
         out.length = 0;
@@ -177,13 +195,14 @@ export class EnemySystem {
     public findTouching(x: number, y: number, radius: number): Enemy | undefined {
         let found: Enemy | undefined;
         this.grid.forEachNear(x, y, radius + SPATIAL_CELL_SIZE, (enemy) => {
-            if (found || !enemy.isAlive) return;
-            const reach = radius + enemy.def.radius;
-            const dx = enemy.x - x;
-            const dy = enemy.bodyY - y;
-            if (dx * dx + dy * dy <= reach * reach) found = enemy;
+            if (!found && touches(enemy, x, y, radius)) found = enemy;
         });
         return found;
+    }
+
+    /** True if `enemy` is alive and its body touches the circle at (x, y). */
+    public isTouching(enemy: Enemy, x: number, y: number, radius: number): boolean {
+        return touches(enemy, x, y, radius);
     }
 
     /** Calls `visit` for every living enemy whose body (at its `bodyY`) is inside the circle. */
@@ -255,4 +274,12 @@ export class EnemySystem {
             }
         }
     }
+}
+
+function touches(enemy: Enemy, x: number, y: number, radius: number): boolean {
+    if (!enemy.isAlive) return false;
+    const reach = radius + enemy.def.radius;
+    const dx = enemy.x - x;
+    const dy = enemy.bodyY - y;
+    return dx * dx + dy * dy <= reach * reach;
 }

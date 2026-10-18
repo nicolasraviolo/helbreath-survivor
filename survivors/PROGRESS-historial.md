@@ -2,6 +2,12 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
+**Fase 15, bloque 15A: prioridad de jefes en el apuntado automático (2026-10-18).**
+- **Qué hace:** todas las armas preguntan a `systems/Targeting.ts` a quién atacar. Si hay un jefe (Ettin, Demon, Wyvern) a menos de 250 px (`data/targeting.ts`) y al alcance del arma, va a por él; si no, al más cercano, como antes. Espadas: solo si el jefe está a su alcance (el tajo sigue dando a todo el arco). Triple Energy Bolt: 1 disparo al jefe (`AUTO_AIM.bossShots`) y los demás a los más cercanos. Energy Strike: cae alrededor del jefe.
+- **Añadido sobre el plan:** los proyectiles lanzados a un jefe atraviesan a los demás monstruos y solo chocan con él (`Projectile.target`). Sin esto, los pequeños se comían los disparos.
+- **Comprobado:** Maga a nivel 1 junto al Ettin, 20 s: de 67 a 396 de daño. Partida simulada, cuánto vive cada jefe (Ettin/Demon/Wyvern), Guerrero 28 s/49 s/1:50 → 31 s/51 s/2:02 y Maga 42 s/41 s/3:33 → 43 s/75 s/1:36. No dice mucho: el jugador simulado huye del jefe. Niveles por partida sin cambio (26–27). Build y `check menu boss finalboss` sin errores.
+- **Cómo probar:** `pnpm --dir survivors dev` → http://localhost:8090/?play=mage&debug=god,boss, quieto: al acercarse el Ettin, los rayos atraviesan a los pequeños y su barra baja sin parar; al alejarte vuelven a los cercanos. Con `?play=warrior&debug=god,boss`, la espada solo va a por él cuando está pegado.
+
 **Fase 14 completada (2026-10-18)**: bloques 14A (métricas) y 14B (logros). Fusionada en `master`, etiqueta `fase-14` y publicada en https://nicolasraviolo.github.io/helbreath-survivor/. Base de datos de métricas vaciada de pruebas al publicar. Siguiente: `/fase 15`.
 
 **Fase 14, bloque 14A: métricas anónimas (2026-10-18, el propietario lo probó y funciona). Cierra la Fase 14.**

@@ -48,6 +48,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Partida simulada y equilibrio (Fase 13C)
 - Logros (Fase 14B)
 - Métricas (Fase 14A)
+- Apuntado automático (Fase 15A)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -64,6 +65,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
   - Casillas de mapa: `map-tile-N`.
   - `HBAnimation` crea **una animación por hoja**, a 10 fps y en bucle. No lo hace con Tiles, Interface ni packs de items.
 - **Tipos (`SpriteType`):** Human, Monster, EquipmentPack, HairAndUndies, Bows, Weapons, Shields, Effect, Tiles, Interface, ItemPack, ItemGround.
+- **Visor de sprites (`sprites.html`, `src/tools/spriteViewer.ts`):** lee los `.spr` sin Phaser con `readSprFile` (`src/hb/HBSprite.ts`). Los nombres salen de `/sprite-catalog.json`, que `vite.config.ts` genera solo en desarrollo ejecutando los `.ts` de datos de sp-client (`scripts/spriteCatalog.ts`): `Items.ts` (icono en `item-pack.spr` = hoja `itemSheetIndex`, frame `itemSpriteIndex`), `Monsters.ts`, `NPCs.ts` y `Effects.ts`. No entra en el build.
 - **Origen:** `.pak` originales convertidos con `tools/PakToSprConverter`. Toma como transparente el color exacto del píxel (0,0), así que pueden quedar **bordes verdes o azules** en algunos sprites. Es una deducción nuestra; si molesta, se tapa con tinte o se reconvierte.
 
 ## Animaciones: frames por estado y dirección
@@ -629,3 +631,9 @@ Tabla completa en `docs/REQUISITOS_HB.md`. Lo no obvio:
 - **Seguridad:** el Worker solo acepta envíos desde github.io y localhost (cabecera Origin), máx. 8 KB, y comprueba cada campo. No guarda IP ni nada personal. Cuerpo `text/plain` para que el navegador no haga petición previa (CORS).
 - **Probar la página en local** con datos de mentira: `metrics-local` en `.claude/launch.json` (puerto 8787, clave `localtest`, base de datos local en `metrics-server/.wrangler/`).
 - **Ojo:** la red del propietario bloquea a veces las IPs de Cloudflare (LaLiga, Fase 9). Si la página no abre, probar con datos móviles o más tarde.
+
+## Apuntado automático (Fase 15A)
+- **Un solo sitio decide a quién se ataca:** `systems/Targeting.ts` (`findTarget`, `findTargets`), usado por todas las armas a través de `WeaponContext`. Un jefe (`def.boss`) a menos de `AUTO_AIM.bossPriorityRadius` (250 px, `data/targeting.ts`) y al alcance del arma va primero; si no, el más cercano. El apuntado manual del 15B debe entrar aquí, por encima de todo.
+- **Elegir al jefe no bastaba:** los proyectiles explotan con el primer monstruo que tocan, y los pequeños que rodean al jefe se comían casi todos (medido: 67 de daño al Ettin en 20 s con la Maga a nivel 1). Por eso un proyectil lanzado a un jefe lleva `Projectile.target` y **solo choca con él** (atraviesa a los demás); si el jefe muere en vuelo, vuelve a chocar con cualquiera. Con eso: 396 en 20 s.
+- **Ojo al medir con `pnpm check`:** sin `--cards` la partida se queda parada en la primera subida de nivel, y parece que el jefe no recibe daño.
+- La partida simulada (`levelpace`) no sirve para medir esto: el jugador simulado huye del jefe y casi nunca está a menos de 250 px.
