@@ -2,6 +2,17 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
+**Fase 13, bloque 13C: equilibrio y versión en el menú (2026-10-18, el propietario lo probó y le gusta). Cierra la Fase 13.**
+- **Versión en el pie del menú principal:** "Phase 13" (`config/version.ts`). `/fase N` la cambia al empezar cada fase.
+- **Partida simulada** (`?debug=sim`, `systems/SimRun.ts`; `pnpm check levelpace`): invencible, corre en círculos, va a por los jefes (y se rinde si se atasca), cartas al azar, ~100× más rápido. Informe: nivel y XP por minuto, cuánto vive cada jefe, su golpe más fuerte frente a la vida del jugador, arma y stats finales.
+- **Curva de XP:** antes una recta (se llegaba al nivel 100). Ahora 15/30/50/80 para los 4 primeros niveles y desde el 5, 150 × 1,24 por nivel. **XP de monstruo = vida/5** (más diferencia entre débiles y fuertes); jefes 250/500/1200. **Gema nueva:** diamante desde 60 XP (zafiro desde 5, rubí desde 15).
+- **Final sin cartas:** al morir el Wyvern toda la XP vuela sola y los niveles suben sin cartas (con su sonido); la victoria ya decía el nivel.
+- **Vit cura poco a poco:** 0,02 de vida por segundo por punto de Vit (`HP_REGEN_PER_VIT`); la carta de Vit lo dice.
+- **Jefes:** sin empuje (`knockbackTaken: 0`), golpes más suaves (`damageScale`: Ettin 0,7, Demon 0,75, Wyvern 0,35; bolas de fuego 9) y menos vida (Ettin 1.600, Demon 4.000, Wyvern 10.000), pedido del propietario: retador pero sin matar en 1–2 golpes.
+- **Resultado medido:** Mago nivel 27, jefes en 30 s–1:50, golpe máximo ~27–32% de su vida; Guerrero nivel 24–26, Wyvern en ~5 min, golpes ~10–16%.
+- **Comprobado:** `build` sin errores; `check menu game levelup finalboss portal levelpace` y `menu --mobile` sin errores; tras `bosskill` no salen cartas; la Vit cura (prueba con `--eval`).
+- **Cómo probarlo:** `pnpm --dir survivors dev` → http://localhost:8090 (pie del menú) y una partida normal; http://localhost:8090/?debug=bosskill para el final.
+
 **Fase 13, bloque 13B: monstruos por mapa (2026-10-18, el propietario lo probó y le gusta).**
 - **Tres grupos:** esenciales comunes a todos los mapas (`ESSENTIAL_ENEMIES` en `data/enemies.ts`, de más débil a más fuerte: Slime, Ant, Snake, Orc, Mage-Orc, Zombie, Scorpion, Skeleton, Clay Golem, Stone Golem, Giant Frog), los propios de cada mapa (`localEnemies` en `data/maps.ts`; Bleeding Isle: Cyclops, Mountain Giant, Ogre, Cannibal Plant) y sus jefes (`bosses`: Ettin, Demon, Fire Wyvern). `data/waves.ts` comprueba al cargar que las oleadas solo usen esos; los demás monstruos (Bunny, Troll, Werewolf, Lich, Gargoyle…) quedan en `enemies.ts` para otros mapas y ya no se descargan.
 - **5 monstruos nuevos** con su comportamiento del NPC.cfg: Mage-Orc (sprite y sonidos del Orc; bolas de fuego lentas, alcance 5), Clay Golem, Stone Golem, Mountain Giant y Cannibal Plant. Vida y XP de los esenciales reordenadas según el orden del propietario (XP provisional hasta el 13C).

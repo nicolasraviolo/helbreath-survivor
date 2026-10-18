@@ -352,13 +352,14 @@ export class Enemy implements Poolable {
         }
     }
 
-    /** One blow: the original dice, compressed for our health scale (data/enemies.ts → MONSTER_DAMAGE). */
+    /** One blow: the original dice, compressed for our health scale (data/enemies.ts → MONSTER_DAMAGE), softer for bosses. */
     private rollDamage(): number {
         const [count, sides] = this.def.damageDice;
         let roll = 0;
         for (let i = 0; i < count; i++) roll += Phaser.Math.Between(1, sides);
         const average = (count * (sides + 1)) / 2;
-        return Math.max(1, Math.round(MONSTER_DAMAGE.scale * average ** MONSTER_DAMAGE.exponent * (roll / average)));
+        const blow = MONSTER_DAMAGE.scale * average ** MONSTER_DAMAGE.exponent * (roll / average);
+        return Math.max(1, Math.round(blow * (this.def.damageScale ?? 1)));
     }
 
     /** Frames of the attack animation for the current direction. */

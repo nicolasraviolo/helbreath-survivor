@@ -68,6 +68,7 @@ import { buildLevelUpChoices } from '../systems/UpgradePool';
 import type { HudSceneData, HudState } from './HudScene';
 import type { LevelUpChoice, LevelUpSceneData } from './LevelUpScene';
 import { DEBUG_START, type DebugAction } from '../config/debugStart';
+import { SimRun } from '../systems/SimRun';
 
 /** Enemies created by the debug "spawn many" key. */
 const DEBUG_SPAWN_COUNT = 100;
@@ -139,6 +140,8 @@ export class GameScene extends Phaser.Scene {
     /** Spell in hand (Mage); undefined for melee classes. */
     private spellWeapon: SpellWeapon | undefined;
     private levelUpOpen = false;
+    /** Simulated run to measure the balance (?debug=sim, development only). */
+    private sim: SimRun | undefined;
     /** Pixels run since the last puff of footstep dust, and where the player was last frame. */
     private dustDistance = 0;
     private mapId: MapId = DEFAULT_MAP;
@@ -181,6 +184,7 @@ export class GameScene extends Phaser.Scene {
         this.player = new Player(this, (spawn.x + 0.5) * TILE_SIZE, (spawn.y + 0.5) * TILE_SIZE, character, map, areaPx);
         this.stats = new CharacterStats(character);
         this.levelUpOpen = false;
+        this.sim = undefined;
         this.dustDistance = 0;
         this.lastX = this.player.x;
         this.lastY = this.player.y;
@@ -278,6 +282,7 @@ export class GameScene extends Phaser.Scene {
     private applyStats(): void {
         const stats = this.stats;
         this.player.setMaxHp(stats.maxHp);
+        this.player.regenPerSecond = stats.hpRegenPerSecond;
         this.player.speedMultiplier = stats.moveSpeedMultiplier * (1 + this.equipment.passiveBonus('boots'));
         this.xp.magnetMultiplier = 1 + this.equipment.passiveBonus('magnetAmulet');
         this.weapons.setCooldownMultiplier(stats.cooldownMultiplier);
@@ -313,10 +318,7 @@ export class GameScene extends Phaser.Scene {
             equipment: this.equipment,
             choices: buildLevelUpChoices(stats, this.equipment),
             onChoose: (choice) => {
-                this.applyChoice(choice);
-                stats.pendingLevelUps--;
-                this.applyStats();
-                this.saveRun();
+                this.chooseCard(choice);
                 this.levelUpOpen = false;
                 this.scene.stop('LevelUp');
                 this.scene.resume();
@@ -324,6 +326,20 @@ export class GameScene extends Phaser.Scene {
         };
         this.scene.pause();
         this.scene.launch('LevelUp', data);
+    }
+
+    /** After the final boss (Fase 13C): the levels still count (and their automatic points), but no cards come out. */
+    private levelUpWithoutCards(): void {
+        this.audio.play(this.player.def.levelUpSound);
+        while (this.stats.pendingLevelUps > 0) this.chooseCard(undefined);
+    }
+
+    /** A card was picked (by the player, or at random in the simulated run). */
+    private chooseCard(choice: LevelUpChoice | undefined): void {
+        if (choice) this.applyChoice(choice);
+        this.stats.pendingLevelUps--;
+        this.applyStats();
+        this.saveRun();
     }
 
     private applyChoice(choice: LevelUpChoice): void {
@@ -484,6 +500,22 @@ export class GameScene extends Phaser.Scene {
     }
 
     override update(_time: number, delta: number): void {
+        const sim = this.sim;
+        if (!sim) {
+            this.step(delta);
+            return;
+        }
+        // Simulated run: many short steps per drawn frame.
+        sim.run((d) => this.step(d));
+        const stopReason = sim.stopReason;
+        if (stopReason && !this.runOver) {
+            sim.finish(stopReason, this.stats.level, this.spawner.elapsed, this.combat.kills, this.simBuild());
+            this.endRun(true);
+        }
+    }
+
+    /** One moment of the run; false when it has ended (or the scene changed). */
+    private step(delta: number): boolean {
         const input = this.inputSystem;
         input.update();
         if (input.justPressed(Action.ToggleDebug)) {
@@ -492,16 +524,17 @@ export class GameScene extends Phaser.Scene {
         // The sprite test shows the Orc, which arrives with a later wave: only once it has loaded.
         if (input.justPressed(Action.OpenSpriteTest) && assetStreamer.isReady('orc')) {
             this.scene.start('SpriteTest');
-            return;
+            return false;
         }
         if (import.meta.env.DEV) {
             this.handleDebugKeys(delta);
         }
 
         const player = this.player;
-        player.update(player.isDead ? Phaser.Math.Vector2.ZERO : input.getMove(), delta);
+        const move = this.sim ? this.sim.nextMove(delta, player.x, player.y, this.bosses.shown) : input.getMove();
+        player.update(player.isDead ? Phaser.Math.Vector2.ZERO : move, delta);
         // No steps while standing still for a swing.
-        this.updateFootsteps(!player.isDead && !player.isRooted && input.getMove().lengthSq() > 0);
+        this.updateFootsteps(!player.isDead && !player.isRooted && move.lengthSq() > 0);
         this.world.targetX = player.x;
         this.world.targetY = player.y;
         this.enemies.update(delta, this.world);
@@ -521,15 +554,19 @@ export class GameScene extends Phaser.Scene {
         const shotDamage = this.enemyShots.update(delta, player.x, bodyY, PLAYER_BODY_RADIUS);
         this.updateMusic();
 
+        const bossBlow = this.enemies.landedBossDamage + (this.enemyShots.hitFromBoss ? shotDamage : 0);
+        if (this.sim && bossBlow > 0) {
+            this.sim.onBossHit(this.bosses.shown?.def.name ?? 'Boss', this.reduceByArmor(bossBlow), player.maxHp, this.spawner.elapsed);
+        }
         if (!player.isDead) {
             this.hurtPlayer(this.enemies.landedDamage + shotDamage, this.enemies.landedFromBoss || this.enemyShots.hitFromBoss);
         } else if (player.deadForMs > GAME_OVER_DELAY_MS) {
             this.endRun(false);
-            return;
+            return false;
         }
         if (this.updatePortal(delta)) {
             this.endRun(true);
-            return;
+            return false;
         }
 
         this.mapView.updateFading(player.y, player.getVisualBounds());
@@ -540,8 +577,11 @@ export class GameScene extends Phaser.Scene {
         }
 
         if (this.stats.pendingLevelUps > 0 && !this.levelUpOpen && !player.isDead) {
-            this.openLevelUp();
+            if (this.finalBossDead) this.levelUpWithoutCards();
+            else if (this.sim) this.chooseCard(this.sim.pick(buildLevelUpChoices(this.stats, this.equipment)));
+            else this.openLevelUp();
         }
+        return true;
     }
 
     /** Opens the portal a moment after the final chest is picked up; true when the run is won (stepped in or time up). */
@@ -597,7 +637,9 @@ export class GameScene extends Phaser.Scene {
     private gainXp(amount: number): void {
         if (amount <= 0) return;
         const level = this.stats.level;
+        this.sim?.onXp(amount, this.spawner.elapsed);
         this.stats.addXp(amount);
+        for (let reached = level + 1; this.sim && reached <= this.stats.level; reached++) this.sim.onLevel(reached, this.spawner.elapsed);
         // Automatic points per level (e.g. +1 Str +1 Vit) change health and speed right away.
         if (this.stats.level !== level) this.applyStats();
     }
@@ -682,6 +724,10 @@ export class GameScene extends Phaser.Scene {
                 this.player.setGodMode(!this.player.godMode);
                 this.godModeLabel.setVisible(this.player.godMode);
                 break;
+            case 'sim':
+                this.sim = new SimRun(this.stats.def.name);
+                if (!this.player.godMode) this.runDebugAction('god');
+                break;
             case 'resume':
                 // As if the phone had closed the tab and the player chose Continue.
                 this.saveRun();
@@ -694,28 +740,34 @@ export class GameScene extends Phaser.Scene {
     /** A moment of the timeline: shows its warning and remembers the bosses. */
     private onWaveEvent(event: WaveEventDef, spawned: readonly Enemy[]): void {
         this.events.emit(ANNOUNCE_EVENT, event.message);
-        for (const enemy of spawned) this.bosses.track(enemy, event.enemy);
+        for (const enemy of spawned) {
+            this.bosses.track(enemy, event.enemy);
+            if (enemy.def.boss) this.sim?.onBossSpawn(enemy.def.name, this.spawner.elapsed);
+        }
     }
 
     /**
      * Bosses drop a chest. The final boss drops its own chest (which opens the portal) and kills every other monster;
-     * their XP stays on the ground, to pick up before leaving.
+     * all the XP on the ground flies to the player by itself, and the levels it gives come without cards.
      */
     private onEnemyKilled(enemy: Enemy): void {
         const boss = enemy.def.boss;
         if (!boss) return;
+        this.sim?.onBossDead(enemy.def.name, this.spawner.elapsed);
         if (!boss.final) {
             if (boss.dropsChest) this.pickups.drop('chest', enemy.x, enemy.y);
             return;
         }
         if (this.finalBossDead) return;
         this.finalBossDead = true;
+        this.sim?.onFinalBossDead(this.spawner.elapsed);
         this.pickups.drop('finalChest', enemy.x, enemy.y);
         this.events.emit(ANNOUNCE_EVENT, PORTAL.bossDeadMessage);
         this.combat.killAll((other) => {
             this.xp.drop(other.x, other.y, other.def.xp);
             this.onEnemyKilled(other);
         });
+        this.xp.attractAll();
     }
 
     /** The final chest was opened at (x, y): the portal opens to one side (to the right, or left if there is a wall). */
@@ -739,10 +791,19 @@ export class GameScene extends Phaser.Scene {
         return boss?.def.boss ? { name: boss.def.boss.title, hp: Math.max(0, boss.hp), maxHp: boss.def.maxHp } : undefined;
     }
 
+    /** Weapon, stats and cards of the simulated run, for its report. */
+    private simBuild(): string {
+        const weapon = this.meleeWeapon?.def.name ?? this.spellWeapon?.def.name ?? '';
+        const stats = STAT_IDS.map((id) => `${id} ${this.stats.stats[id]}`).join(', ');
+        const cards = [...(this.sim?.cards ?? [])].map(([kind, count]) => `${kind} ×${count}`).join(', ');
+        return `${weapon} · ${stats} · cards: ${cards}`;
+    }
+
     /** Opens the end screen over the paused game. */
     private endRun(victory: boolean): void {
         if (this.runOver) return;
         this.runOver = true;
+        this.sim?.finish(victory ? 'portal' : 'died', this.stats.level, this.spawner.elapsed, this.combat.kills, this.simBuild());
         saveStore.clear(this.saveSlot);
         const armor = Object.values(this.equipment.armor).map((id) => getArmorPiece(id).name);
         const data: GameOverSceneData = {

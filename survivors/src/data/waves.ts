@@ -3,7 +3,8 @@
 // - EVENTS: momentos concretos (minijefes, jefe final, "te rodean") con su aviso en pantalla.
 //   Desde que sale el jefe final (Fase 13) no salen monstruos de las oleadas: solo sus esbirros (BOSS_MINIONS en enemies.ts).
 // - PORTAL: al matar al jefe final mueren todos los monstruos y suelta su cofre; al abrirlo se abre un portal y entrar en
-//   él (o esperar) gana la partida. La XP que quede en el suelo se pierde.
+//   él (o esperar) gana la partida. Toda la XP del suelo vuela sola hacia el jugador y los niveles que dé suben
+//   sin cartas (Fase 13C); la pantalla de victoria dice el nivel alcanzado.
 // Todos los números son un borrador: se ajustan jugando.
 import { ESSENTIAL_ENEMIES, type EnemyId } from './enemies';
 import { DEFAULT_MAP, MAPS_DATA, type MapDef } from './maps';

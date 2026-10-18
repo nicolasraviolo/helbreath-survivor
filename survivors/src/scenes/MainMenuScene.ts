@@ -5,6 +5,7 @@
 import Phaser from 'phaser';
 import { DEBUG_START } from '../config/debugStart';
 import { GAME_HEIGHT, GAME_WIDTH } from '../config/gameConfig';
+import { GAME_VERSION } from '../config/version';
 import {
     MAIN_MENU,
     MAIN_MENU_FOOTER_Y,
@@ -41,7 +42,7 @@ export class MainMenuScene extends Phaser.Scene {
         this.openedAt = this.time.now;
         this.add.image(0, 0, MENU_BACKGROUND.texture, MENU_BACKGROUND.frame).setOrigin(0).setScale(MENU_BACKGROUND_SCALE);
         this.add.rectangle(0, GAME_HEIGHT - MAIN_MENU.footerHeight, GAME_WIDTH, MAIN_MENU.footerHeight, 0x000000).setOrigin(0);
-        this.add.text(GAME_WIDTH / 2, MAIN_MENU_FOOTER_Y, MAIN_MENU.footerText, MENU_FOOTER_STYLE).setOrigin(0.5);
+        this.add.text(GAME_WIDTH / 2, MAIN_MENU_FOOTER_Y, MAIN_MENU.footerText + MAIN_MENU.footerSeparator + GAME_VERSION, MENU_FOOTER_STYLE).setOrigin(0.5);
 
         this.add.image(MAIN_MENU.panelX, MAIN_MENU.panelY, MENU_PANEL.texture, MENU_PANEL.frame)
             .setOrigin(0.5).setScale(MAIN_MENU.panelScale);

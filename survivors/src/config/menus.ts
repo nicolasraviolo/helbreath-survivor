@@ -27,6 +27,8 @@ export const MAIN_MENU = {
     /** Black strip over the original's "Multiplayer Online Game…" line, with our own footer. */
     footerHeight: 42,
     footerText: 'Unofficial fan project  ·  free and non-profit',
+    /** The version (config/version.ts) goes after the footer text, separated like this. */
+    footerSeparator: '  ·  ',
 } as const;
 
 /** Pause, Settings, Credits, Achievements and How to play: a big panel in the middle of the screen. */

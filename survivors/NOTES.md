@@ -45,6 +45,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Partidas guardadas (Fase 12, bloque 12B)
 - Settings táctil (Fase 12C)
 - Portal del final (Fase 13)
+- Partida simulada y equilibrio (Fase 13C)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -601,3 +602,10 @@ Tabla completa en `docs/REQUISITOS_HB.md`. Lo no obvio:
 - La tecla K (`?debug=kill`) mata con `combat.killAll(undefined, vista)`: cuenta como baja normal (XP, objetos, cofre del jefe). Antes usaba `enemy.kill()` a pelo y el jefe final no soltaba nada.
 - `AssetStreamer` descarga también los esbirros de cada jefe (`BOSS_MINIONS`), con el minuto de su jefe.
 - Para probar con `pnpm check`: las cartas de subir de nivel pausan la partida (y la cuenta atrás del portal). En un `--eval` hay que elegirlas a mano: `game.scene.getScene('LevelUp').params.onChoose(...)`.
+
+## Partida simulada y equilibrio (Fase 13C)
+- Todo el juego avanza con el `delta` de `update()` (no hay `delayedCall` ni tweens en la partida, solo en la música), así que la simulación llama varias veces por fotograma a `GameScene.step(33 ms)` sin romper nada. Va ~100× más rápido en Chrome sin ventana.
+- `EnemySystem.landedDamage` es el **mayor** golpe del fotograma, no la suma. Para medir solo a los jefes está `landedBossDamage`.
+- El Wyvern ataca desde 7 casillas: un jugador quieto no le da con la espada; hay que acercarse.
+- Los jefes no se recolocan si se atascan detrás de un obstáculo: el bot de la simulación los perseguía para siempre (de ahí el "se rinde a los 3 s").
+- Gema de diamante: `item-ground.spr` hoja 15, frame 42 (esmeralda 45, zafiro 44, rubí 43).

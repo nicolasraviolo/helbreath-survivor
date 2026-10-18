@@ -9,6 +9,7 @@ import {
     CRIT_MAX_CHANCE,
     HP_PER_LEVEL,
     HP_PER_VIT,
+    HP_REGEN_PER_VIT,
     MAGIC_DAMAGE_PER_MAG,
     MANA_PER_INT,
     MANA_PER_LEVEL,
@@ -68,6 +69,11 @@ export class CharacterStats {
     public get maxHp(): number {
         const raw = this.def.baseHp + HP_PER_VIT * this.stats.vit + HP_PER_LEVEL * (this.level - 1);
         return Math.round(raw * this.def.hpMultiplier);
+    }
+
+    /** Health healed by itself each second: more Vit, faster. */
+    public get hpRegenPerSecond(): number {
+        return HP_REGEN_PER_VIT * this.stats.vit;
     }
 
     public get maxMana(): number {
