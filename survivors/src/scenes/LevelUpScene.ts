@@ -227,14 +227,14 @@ function describeCard(stats: CharacterStats, equipment: Equipment, choice: Level
             const piece = getArmorPiece(choice.piece);
             const pct = (value: number) => `${Math.round(value * 100)}%`;
             const changes = [`Damage taken −${pct(equipment.defense)} → −${pct(equipment.defenseWith(choice.piece))}`];
-            const magicAfter = equipment.magicDamageBonusWith(choice.piece);
+            const magicAfter = equipment.totalWith(choice.piece, 'magicDamageBonus');
             if (magicAfter !== equipment.magicDamageBonus) changes.push(`Magic damage +${pct(equipment.magicDamageBonus)} → +${pct(magicAfter)}`);
             // General dodge and magic resist (Fases 18A and 18B), when the piece changes them.
             const dodge = (armorRatio: number) => dodgeChance(playerDefenseRatio(stats.stats.dex, armorRatio));
-            const [dodgeBefore, dodgeAfter] = [dodge(equipment.defenseRatio), dodge(equipment.defenseRatioWith(choice.piece))];
+            const [dodgeBefore, dodgeAfter] = [dodge(equipment.defenseRatio), dodge(equipment.totalWith(choice.piece, 'defenseRatio'))];
             if (pct(dodgeBefore) !== pct(dodgeAfter)) changes.push(`Dodge ${pct(dodgeBefore)} → ${pct(dodgeAfter)}`);
             const resist = (armorResistance: number) => resistChance(playerMagicResistance(stats.stats.mag, armorResistance));
-            const [resistBefore, resistAfter] = [resist(equipment.magicResistance), resist(equipment.magicResistanceWith(choice.piece))];
+            const [resistBefore, resistAfter] = [resist(equipment.magicResistance), resist(equipment.totalWith(choice.piece, 'magicResistance'))];
             if (pct(resistBefore) !== pct(resistAfter)) changes.push(`Magic resist ${pct(resistBefore)} → ${pct(resistAfter)}`);
             return {
                 badge: ARMOR_BADGE.text, badgeColor: ARMOR_BADGE.color, title: piece.name,

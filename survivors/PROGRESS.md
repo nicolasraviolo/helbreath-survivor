@@ -35,6 +35,7 @@
 - **Equilibrio (13C):** curva en `data/leveling.ts` (4 niveles baratos y luego +24% por nivel), XP de monstruo = vida/5, jefes con `damageScale` y sin empuje (`data/enemies.ts`), Vit cura (`HP_REGEN_PER_VIT`, `data/stats.ts`). Medir con la partida simulada y, desde la Fase 14, con las gráficas de métricas.
 - **Monstruos por grupos (13B):** esenciales en `ESSENTIAL_ENEMIES` (`data/enemies.ts`), los de cada mapa en `localEnemies` y jefes en `bosses` (`data/maps.ts`). Detalle en el historial.
 - **Pendiente (idea del propietario, sin fecha):** monstruos que aparecen al azar como evento especial.
+- **Idea para el futuro (revisión Fase 18):** jefes más difíciles de esquivar (un mínimo de acierto propio). Nota en `data/defense.ts`.
 - **Final de partida:** al morir el jefe final, mueren todos, toda la XP vuela sola y los niveles suben sin cartas; cae su cofre y al cogerlo se abre el portal (30 s). Atajos `?debug=finalboss` y `?debug=bosskill`.
 - **Partidas guardadas:** `systems/SaveStore.ts` (formato con versión; ver NOTES.md, "Partidas guardadas"). Desde la 17A, una por personaje, en el mismo número de hueco. Logros y personajes van en sus propias claves; récords y baúl (Fases 21 y 23) irán igual.
 - **App instalable:** solo en el build (`survivors/pwa/`); en `pnpm dev` no existe. Para probarla en el PC: `pnpm build` y `pnpm preview` → http://localhost:4173.
@@ -65,7 +66,7 @@
 - Con un solo Energy Bolt, 300 enemigos sobrepasan al jugador. Las cartas de stat ayudan, pero la progresión real llega con las armas de la Fase 6.
 - Guerrero frente a Mago, igualados en el 13C (18-oct-2026): Str y Mag dan +3% de daño por punto, el Mago gana +1 Int y +1 Mag por nivel, espadas ×1,5 y Energy Strike 8 por descarga (antes 14). Simulación: Wyvern en ~2:50 (Guerrero) y ~2:10 (Mago), nivel 24–27 los dos. La guía (`docs/guia`) aún dice "+2 Mag": se actualiza con `/guia`.
 - La red del propietario bloquea a veces las IPs de Cloudflare (LaLiga): la página de métricas puede no abrir y sus partidas no llegar. Probar con datos móviles o más tarde.
-- La partida simulada a veces no sirve: el jugador no alcanza a un jefe atascado y este vive hasta el final. Descartar esas partidas al medir. (Que el jefe final no llegara a salir por no encontrar hueco ya está corregido en `SpawnSystem.ts`.)
+- La partida simulada a veces no sirve: el jugador no alcanza a un jefe atascado y este vive hasta el final. Descartar esas partidas al medir. El 18-oct-2026 (cierre de la Fase 18) salió muy irregular con el guerrero (nivel 10–27 con el mismo código); parece ir peor cuanto más deprisa corre (×400–500). Repetir varias veces y fiarse de la mediana. (Que el jefe final no llegara a salir por no encontrar hueco ya está corregido en `SpawnSystem.ts`.)
 - Las flechas "→" de las cartas usan otra fuente: Comic Neue no tiene ese carácter. No molesta.
 - How to Play, página Basics: la última línea (añadida en la 16B) pisa el selector "Page". Pendiente de arreglar (acortar textos o juntar líneas).
 - El navegador interno de la app, si el panel está en segundo plano, va a ~1 FPS y parece congelado. Para revisar el juego, usar Playwright o tener el panel visible. A veces también le pasa a Playwright: `requestAnimationFrame` cae a 2 por segundo incluso sin el juego (visto el 16-oct-2026). No es un problema del juego.

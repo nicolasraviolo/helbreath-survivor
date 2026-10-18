@@ -715,3 +715,5 @@ Tabla completa en `docs/REQUISITOS_HB.md`. Lo no obvio:
 - La tirada va en `EnemyProjectileSystem.update` después de la de esquiva. Resistida: explota (efecto y sonido) sin daño y llama a `onResist` → `DamageNumbers.showWord` ("Resist", del mismo pool que los números).
 - Panel y cartas: % general contra `MAGIC_RESIST.referenceHitRatio` (= la bola del Mage-Orc). Si se cambia la del Mage-Orc, cambiar también la referencia.
 - La partida simulada cuenta los hechizos junto a los golpes (`blows`).
+- Varios "Resist" casi a la vez (las 3 bolas del Wyvern) se apilan hacia arriba (`WORD_STACK_MS`/`WORD_STACK_PX` en `DamageNumbers.ts`).
+- `Equipment` guarda los totales de la armadura (`totals`) y los recalcula solo en `wear()`, porque se leen cada frame. La armadura solo se cambia con `wear()` (`armor` es de solo lectura). Para la vista previa de las cartas: `totalWith(pieza, 'magicResistance')`, etc.

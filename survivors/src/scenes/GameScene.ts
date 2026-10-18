@@ -44,7 +44,7 @@ import { PickupSystem } from '../systems/PickupSystem';
 import { CHEST_CARDS_TITLE, POTION_HEAL_SHARE, type PickupId } from '../data/pickups';
 import { getTotem, TOTEM_IDS, type TotemId } from '../data/totems';
 import { TotemSystem } from '../systems/TotemSystem';
-import { playerDefenseRatio, playerMagicResistance, RESIST_TEXT } from '../data/defense';
+import { playerDefenseRatio, playerMagicResistance, RESIST_TEXT, type PlayerDefense } from '../data/defense';
 import { ARMOR_BY_SET } from '../data/armor';
 import { Equipment } from '../entities/Equipment';
 import type { EnemyWorld } from '../entities/Enemy';
@@ -122,6 +122,8 @@ export class GameScene extends Phaser.Scene {
     private enemies!: EnemySystem;
     private spawner!: SpawnSystem;
     private damageNumbers!: DamageNumbers;
+    /** Defense and magic resistance, refreshed once per frame and reused (no new object each frame). */
+    private readonly playerDefense: PlayerDefense = { defenseRatio: 0, magicResistance: 0 };
     private audio!: AudioSystem;
     private combat!: CombatSystem;
     private particles!: HitParticles;
@@ -657,7 +659,9 @@ export class GameScene extends Phaser.Scene {
         this.updateFootsteps(!player.isDead && !player.isRooted && move.lengthSq() > 0);
         this.world.targetX = player.x;
         this.world.targetY = player.y;
-        this.world.defenseRatio = this.defenseRatio;
+        this.playerDefense.defenseRatio = this.defenseRatio;
+        this.playerDefense.magicResistance = this.magicResistance;
+        this.world.defenseRatio = this.playerDefense.defenseRatio;
         this.world.onBlow = this.sim ? this.onSimBlow : undefined;
         this.enemies.update(delta, this.world);
         // Manual aim (right click / right stick) wins over the automatic one; the simulated run always aims on its own.
@@ -680,8 +684,7 @@ export class GameScene extends Phaser.Scene {
         this.sim?.onAlive(this.enemies.alive, this.spawner.elapsed);
         const bodyY = player.y - PLAYER_BODY_OFFSET_Y;
         this.bosses.update(delta, player.x, bodyY, !player.isDead);
-        const shotDamage = this.enemyShots.update(delta, player.x, bodyY, PLAYER_BODY_RADIUS,
-            { defenseRatio: this.defenseRatio, magicResistance: this.magicResistance }, this.world.onBlow);
+        const shotDamage = this.enemyShots.update(delta, player.x, bodyY, PLAYER_BODY_RADIUS, this.playerDefense, this.world.onBlow);
         this.updateMusic();
         if (!player.isDead) this.achievements.update(delta);
         if (!player.isDead && !this.sim) this.metrics.update(delta, this.spawner.elapsed, this.stats.level);

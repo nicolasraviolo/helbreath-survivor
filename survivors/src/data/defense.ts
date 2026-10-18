@@ -16,7 +16,12 @@
 // al guerrero bien equipado, ~3/4.
 //
 // Panel de stats y cartas: un % GENERAL (decisión del propietario: no hablar de un monstruo concreto), calculado
-// contra un monstruo y un hechizo "típicos" (referenceHitRatio).
+// contra un monstruo "típico" (DODGE.referenceHitRatio) y la bola de fuego del Mage-Orc (REFERENCE_SPELL).
+//
+// Idea para el futuro (revisión de la Fase 18): los golpes de los jefes (Ettin, Wyvern...) se esquivan como los de
+// cualquier monstruo, solo con su puntería. Si se quieren jefes más difíciles de esquivar, añadir aquí un mínimo
+// de acierto propio para jefes (p. ej. minBossHitChance) y usarlo en hitChance cuando el atacante sea jefe.
+import { ENEMIES } from './enemies';
 
 /** What the player has against monster attacks (blows and arrows, and spells). */
 export interface PlayerDefense {
@@ -39,6 +44,9 @@ export const DODGE = {
     referenceHitRatio: 150,
 } as const;
 
+/** The "typical" spell of the general resist % (stats panel and cards): the Mage-Orc's fireball, read from its data. */
+const REFERENCE_SPELL = ENEMIES.orcMage.attackProjectile;
+
 /** Shown over the player when a spell is resisted. */
 export const RESIST_TEXT = 'Resist';
 
@@ -48,8 +56,6 @@ export const MAGIC_RESIST = {
     /** A spell always has at least this chance to land, and never more than the maximum. */
     minHitChance: 0.25,
     maxHitChance: 0.95,
-    /** Magic hit ratio of a "typical" spell (the Mage-Orc's fireball), for the general resist % of the panel and cards. */
-    referenceHitRatio: 45,
 } as const;
 
 /** The player's defense ratio: Dex plus the armor worn. */
@@ -84,5 +90,6 @@ export function spellHitChance(magicHitRatio: number, magicResistance: number): 
 
 /** General chance (0..1) of resisting a spell, against a typical one (stats panel and armor cards). */
 export function resistChance(magicResistance: number): number {
-    return 1 - spellHitChance(MAGIC_RESIST.referenceHitRatio, magicResistance);
+    const { magicHitRatio } = REFERENCE_SPELL;
+    return magicHitRatio === undefined ? 0 : 1 - spellHitChance(magicHitRatio, magicResistance);
 }
