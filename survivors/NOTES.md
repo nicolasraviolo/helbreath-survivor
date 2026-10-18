@@ -185,6 +185,7 @@ Medido con un script sobre los `.amd`. "Ventana" = cuadrado de N×N casillas con
 | middled1n / 1x | 220 / 200 | 23–24% | 16×16 | Mazmorras: estrecho |
 | 2ndmiddle | 250×250 | 55% | 100×100 al 90% | Variado, con agua dispersa |
 | middleland | 524×524 | 62% | 100×100 al 99% en (364,340) | Pradera casi vacía; era la propuesta técnica, pero algo monótona |
+| **bisle** (Bleeding Isle) | 274×250 | 51% | 100×100 al 99% en (46,78) · **150×150 al 95% en (66,52)** (zona usada) · 200×200 al 81% (entra la costa) | Todo lo transitable está conectado (una sola región). **Mapa del juego desde el 18-oct-2026** |
 
 ### Decisión: `huntzone2` (elegido por el propietario el 2026-10-16)
 - Mapa entero de 200×200 casillas (6400×6400 px) con un único bloque transitable: no hay zonas aisladas.
@@ -572,7 +573,7 @@ Tabla completa en `docs/REQUISITOS_HB.md`. Lo no obvio:
 
 ## App instalable (Fase 12, bloque 12A)
 - Archivos en `survivors/pwa/` (manifiesto, `sw.js`, iconos). Solo van en el build: el plugin `installableApp` de `vite.config.ts` los copia junto a `index.html` y enlaza el manifiesto. En `pnpm dev` no hay manifiesto ni service worker (a propósito).
-- Iconos: se dibujan desde `pwa/icon.svg` con `node scripts/make-icons.mjs` (Chrome vía playwright-core). El de 512 sirve también como "maskable": la "H" está en el 60% central.
+- Iconos: los diseñó el propietario (originales en `custom-assets/iconos-HS/`, fuera de git). En `pwa/` van solo los que se usan: `favicon.ico` + `icon-16/32` (pestaña), `apple-touch-icon` (iPhone), `icon-192/512` y `maskable-192/512` (Android). En `pnpm dev` el plugin `devIcons` sirve las imágenes de `pwa/` para que la pestaña también tenga icono.
 - El service worker solo intercepta la página (`mode === 'navigate'`), siempre primero a internet con `cache: 'no-cache'`. El JS lleva hash en el nombre, así que una versión publicada nueva llega sola. No guarda sprites: el juego no funciona sin conexión.
 - Comprobar si Chrome lo ve instalable: `pnpm build`, `pnpm exec vite preview`, y en Playwright con **perfil persistente** (`launchPersistentContext`; con `launch` normal da `in-incognito`) la orden CDP `Page.getInstallabilityErrors` debe devolver `[]`. El evento `beforeinstallprompt` no salta en Chrome sin ventana: para ver la opción Install se simula con un `Event('beforeinstallprompt')` que tenga `prompt()`.
 - `beforeinstallprompt` puede llegar con el menú ya abierto: `MainMenuScene` rehace la lista (`MenuList.destroy()`). Con más de 6 opciones las filas se juntan (`MAIN_MENU.itemsAtFullSpacing`); con 8 (Continue en 12B) quedarían a ~23 px y se tocarían.

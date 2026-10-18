@@ -15,11 +15,15 @@ export interface MapDef {
     playArea: TileRect;
 }
 
+// De momento solo se juega un mapa: PreloadScene carga únicamente las casillas de DEFAULT_MAP.
+// Las partidas guardadas con un mapa que ya no está aquí siguen en DEFAULT_MAP (ver SaveStore).
 export const MAPS_DATA = {
-    // Ventana de 100×100 casillas con un 80% libre: santuario central con el anillo de río (NOTES.md).
-    huntzone2: { name: 'Hunt Zone 2', asset: 'map.huntzone2', playArea: { x: 72, y: 70, width: 100, height: 100 } },
+    // Ventana de 150×150 casillas con un 95% libre, todo conectado (medido el 18-oct-2026; NOTES.md).
+    bisle: { name: 'Bleeding Isle', asset: 'map.bisle', playArea: { x: 66, y: 52, width: 150, height: 150 } },
+    // Mapa anterior (hasta el 18-oct-2026), guardado para la Fase 19 (varios mapas):
+    // huntzone2: { name: 'Hunt Zone 2', asset: 'map.huntzone2', playArea: { x: 72, y: 70, width: 100, height: 100 } },
 } as const satisfies Record<string, MapDef>;
 
 export type MapId = keyof typeof MAPS_DATA;
 
-export const DEFAULT_MAP: MapId = 'huntzone2';
+export const DEFAULT_MAP: MapId = 'bisle';
