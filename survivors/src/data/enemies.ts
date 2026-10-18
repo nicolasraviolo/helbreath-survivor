@@ -42,6 +42,11 @@ export interface EnemyRangedAttack {
     radius: number;
     /** A physical shot (arrows): the player can dodge it like a blow. Spells (fireballs) cannot be dodged. */
     physical?: boolean;
+    /**
+     * Spells only: magic hit ratio against the player's magic resistance (data/defense.ts); our own number, the wiki
+     * has none. Undefined = it always lands.
+     */
+    magicHitRatio?: number;
 }
 
 export interface BossInfo {
@@ -155,7 +160,7 @@ export function enemySpeed(def: EnemyDef): number {
 
 /** Mage-Orc fireballs: the Wyvern's look, one at a time, slow enough to dodge. Damage = its own dice. */
 const ORC_FIREBALL: EnemyRangedAttack = {
-    flyEffect: 'fx.fireBall.fly', explodeEffect: 'fx.fireBall.explode', sound: 'sfx.explosion',
+    flyEffect: 'fx.fireBall.fly', explodeEffect: 'fx.fireBall.explode', sound: 'sfx.explosion', magicHitRatio: 45,
     cooldownMs: 0, range: 5 * 32, speed: 200, shots: 1, spreadDegrees: 0, radius: 10,
 };
 
@@ -317,7 +322,7 @@ export const ENEMIES = {
             title: 'Fire Wyvern', dropsChest: true, final: true,
             ranged: {
                 flyEffect: 'fx.fireBall.fly', explodeEffect: 'fx.fireBall.explode', sound: 'sfx.explosion',
-                damage: 9, cooldownMs: 2600, range: 520, speed: 230, shots: 3, spreadDegrees: 30, radius: 12,
+                magicHitRatio: 80, damage: 9, cooldownMs: 2600, range: 520, speed: 230, shots: 3, spreadDegrees: 30, radius: 12,
             },
         },
     },

@@ -28,8 +28,7 @@ import {
 import type { HudStyle } from '../config/settings';
 import { TOUCH_PAUSE_BUTTON } from '../config/touch';
 import { ACHIEVEMENT_EVENT } from '../data/achievements';
-import { DODGE_REFERENCE, dodgeChance } from '../data/defense';
-import { ENEMIES } from '../data/enemies';
+import { dodgeChance, resistChance } from '../data/defense';
 import { PASSIVE_IDS, PASSIVES } from '../data/passives';
 import { STAT_IDS, STAT_INFO } from '../data/stats';
 import type { CharacterStats } from '../entities/CharacterStats';
@@ -56,6 +55,8 @@ export interface HudState extends HudBarState {
     defense: number;
     /** Defense ratio against monster blows: Dex plus armor (data/defense.ts). */
     defenseRatio: number;
+    /** Magic resistance against spells: Magic plus armor (data/defense.ts). */
+    magicResistance: number;
     /** Rank of each passive. */
     passiveRanks: Readonly<Record<keyof typeof PASSIVES, number>>;
     /** Boss shown on the big bar at the top, if one is alive. */
@@ -400,8 +401,9 @@ function describeDerived(state: HudState): [string, string][] {
     if (state.weaponName) gear.push([stats.def.startWeapon.kind === 'spell' ? 'Spell' : 'Weapon', state.weaponName]);
     // Always shown (every class can wear something), so the panel keeps the height it was built with.
     gear.push(['Damage taken', `−${Math.round(state.defense * 100)}%`]);
-    // Chance of dodging a weak and a strong monster (Fase 18A).
-    gear.push(['Dodge', DODGE_REFERENCE.map((id) => `${ENEMIES[id].name} ${Math.round(dodgeChance(id, state.defenseRatio) * 100)}%`).join(' · ')]);
+    // General chance of dodging a blow and of resisting a spell, against a typical monster (Fases 18A and 18B).
+    gear.push(['Dodge', `${Math.round(dodgeChance(state.defenseRatio) * 100)}%`]);
+    gear.push(['Magic resist', `${Math.round(resistChance(state.magicResistance) * 100)}%`]);
     // Always shown, at any rank (0 too), so the panel keeps the height it was built with.
     for (const id of PASSIVE_IDS) gear.push([PASSIVES[id].name, `${state.passiveRanks[id]}/${PASSIVES[id].maxRank}`]);
     return [

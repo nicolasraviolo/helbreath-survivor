@@ -1,11 +1,12 @@
 // Proyectiles de los enemigos (las bolas de fuego del Fire Wyvern y las flechas del Dark Elf). Vuelan en línea recta hacia donde estaba el
 // jugador; si lo tocan le hacen daño (la armadura y el Defense Shield lo reducen en GameScene) y explotan.
 // Las flechas se pueden esquivar como un golpe (Fase 18A): si fallan, siguen volando de largo.
+// Los hechizos se pueden resistir (Fase 18B): explotan igual, pero sin daño y con el texto "Resist".
 // Se reciclan con un pool (regla 5). Usan los mismos efectos que el Fire Ball de la Maga.
 import type Phaser from 'phaser';
 import { effectAnimationKey, type EffectKey } from '../config/effects';
 import { DEPTH_EFFECT_OFFSET } from '../config/gameConfig';
-import { hitChance } from '../data/defense';
+import { hitChance, spellHitChance, type PlayerDefense } from '../data/defense';
 import type { EnemyRangedAttack } from '../data/enemies';
 import { Pool, type Poolable } from '../utils/Pool';
 import type { AudioSystem } from './AudioSystem';
@@ -81,6 +82,8 @@ export class EnemyProjectileSystem {
         private readonly audio: AudioSystem,
         /** Plays the explosion (shared effect pool). */
         private readonly spawnEffect: (key: EffectKey, x: number, y: number) => void,
+        /** A spell was resisted where it touched the player (shows "Resist"). */
+        private readonly onResist: (x: number, y: number) => void,
     ) {
         this.projectiles = new Pool(() => new EnemyProjectile(scene));
     }
@@ -115,9 +118,10 @@ export class EnemyProjectileSystem {
 
     /**
      * Moves the projectiles; one touching the player's body at (bodyX, bodyY) explodes and its damage is returned
-     * (the sum if several hit this frame). A physical shot rolls its hit ratio against `defenseRatio` first.
+     * (the sum if several hit this frame). A physical shot rolls its hit ratio against the player's defense ratio
+     * first, and a spell its magic hit ratio against the magic resistance.
      */
-    public update(deltaMs: number, bodyX: number, bodyY: number, bodyRadius: number, defenseRatio: number,
+    public update(deltaMs: number, bodyX: number, bodyY: number, bodyRadius: number, defense: PlayerDefense,
         onBlow?: (source: string, damage: number, landed: boolean) => void): number {
         let damage = 0;
         let strongest = 0;
@@ -128,11 +132,20 @@ export class EnemyProjectileSystem {
             const reach = projectile.attack.radius + bodyRadius;
             const dx = projectile.x - bodyX;
             const dy = projectile.y - bodyY;
-            let hit = !projectile.dodged && dx * dx + dy * dy <= reach * reach;
+            const touches = !projectile.dodged && dx * dx + dy * dy <= reach * reach;
+            let hit = touches;
             if (hit && projectile.hitRatio !== undefined) {
-                hit = Math.random() < hitChance(projectile.hitRatio, defenseRatio);
+                hit = Math.random() < hitChance(projectile.hitRatio, defense.defenseRatio);
                 projectile.dodged = !hit;
                 onBlow?.(projectile.source, projectile.damage, hit);
+            }
+            const { magicHitRatio } = projectile.attack;
+            let resisted = false;
+            if (hit && magicHitRatio !== undefined) {
+                hit = Math.random() < spellHitChance(magicHitRatio, defense.magicResistance);
+                resisted = !hit;
+                onBlow?.(projectile.source, projectile.damage, hit);
+                if (resisted) this.onResist(bodyX, bodyY);
             }
             if (hit) {
                 damage += projectile.damage;
@@ -142,7 +155,7 @@ export class EnemyProjectileSystem {
                     this.hitSource = projectile.source;
                 }
             }
-            if (hit || !flying) {
+            if (hit || resisted || !flying) {
                 const { explodeEffect, sound } = projectile.attack;
                 if (explodeEffect) this.spawnEffect(explodeEffect, projectile.x, projectile.y);
                 if (sound) this.audio.play(sound);

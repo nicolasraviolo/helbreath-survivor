@@ -15,6 +15,9 @@ import {
 const NORMAL_COLOR = '#ff2020';
 const CRITICAL_COLOR = '#ffe040';
 const CRITICAL_SCALE = 1.3;
+/** Words instead of numbers ("Resist", Fase 18B): light blue, a bit smaller. */
+const WORD_COLOR = '#80c8ff';
+const WORD_SCALE = 0.85;
 import { Pool, type Poolable } from '../utils/Pool';
 
 class DamageNumber implements Poolable {
@@ -56,6 +59,15 @@ export class DamageNumbers {
             .setColor(critical ? CRITICAL_COLOR : NORMAL_COLOR)
             .setScale(critical ? CRITICAL_SCALE : 1)
             .setPosition(x + spread, y).setAlpha(1).setActive(true).setVisible(true);
+    }
+
+    /** Shows a word (e.g. "Resist") at (x, y), rising like a number. Skipped when too many are on screen. */
+    public showWord(x: number, y: number, word: string): void {
+        if (this.pool.active.length >= DAMAGE_NUMBER_MAX) return;
+        const number = this.pool.acquire();
+        number.ageMs = 0;
+        number.text.setText(word).setColor(WORD_COLOR).setScale(WORD_SCALE)
+            .setPosition(x, y).setAlpha(1).setActive(true).setVisible(true);
     }
 
     public update(deltaMs: number): void {

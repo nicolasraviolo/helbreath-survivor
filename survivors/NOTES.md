@@ -56,6 +56,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Personajes guardados (Fase 17A)
 - Aspecto del personaje (Fase 17B)
 - Esquiva física (Fase 18A)
+- Resistencia mágica (Fase 18B)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -704,4 +705,13 @@ Tabla completa en `docs/REQUISITOS_HB.md`. Lo no obvio:
 - El dado se tira **por golpe** en `Enemy.strike` (antes de juntar los golpes del frame) y en `EnemyProjectileSystem` para las flechas (`physical: true`). Una flecha esquivada sigue volando de largo. Las bolas de fuego son magia: no se esquivan (18B).
 - Sin texto "Miss" (decisión del propietario): el golpe esquivado no hace nada, ni parpadeo ni animación de daño.
 - Valores con el mejor equipo: guerrero 125 de defensa (Orc acierta 29%, Werewolf 68%, Ettin 77%); Maga 44 (casi todo entra).
+- Desde la 18B el panel y las cartas no nombran monstruos: % **general** contra `DODGE.referenceHitRatio` (150).
 - Partida simulada: el informe trae `blows` (golpes que acertaron/total por monstruo) y `pnpm check levelpace` lo escribe. Primera medida (18-oct-2026): el guerrero esquiva ~24% del daño de la partida y la Maga ~5%. Contra el Ettin (minuto 5) el guerrero aún esquiva poco porque le falta armadura.
+
+## Resistencia mágica (Fase 18B)
+- Fórmula en `src/data/defense.ts` (`MAGIC_RESIST`): probabilidad de que un hechizo entre = 50·puntería mágica / resistencia, entre 25% y 95%. Sin compresión (los números son nuestros y pequeños).
+- **Puntería mágica** = `magicHitRatio` del ataque a distancia (`EnemyRangedAttack` en `data/enemies.ts`): Mage-Orc 45, Fire Wyvern 80. Un ataque sin `physical` ni `magicHitRatio` entra siempre.
+- **Resistencia** = Mag + `magicResistance` de cada pieza (`data/armor.ts`, números nuestros: la wiki no la da por pieza). Fija: no sube sola como la habilidad del original.
+- La tirada va en `EnemyProjectileSystem.update` después de la de esquiva. Resistida: explota (efecto y sonido) sin daño y llama a `onResist` → `DamageNumbers.showWord` ("Resist", del mismo pool que los números).
+- Panel y cartas: % general contra `MAGIC_RESIST.referenceHitRatio` (= la bola del Mage-Orc). Si se cambia la del Mage-Orc, cambiar también la referencia.
+- La partida simulada cuenta los hechizos junto a los golpes (`blows`).

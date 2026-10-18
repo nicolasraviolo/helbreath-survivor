@@ -9,7 +9,7 @@
 //                      stampede =lanzar ya una estampida (la primera de data/waves.ts, Fase 13B)
 //                      resume = guardar y volver a cargar la partida, como con Continue (Fase 12)
 //                      aim = apuntar a mano hacia la derecha todo el rato (sin ratón ni mando, Fase 15B)
-//                      dodge = la mejor armadura de la clase en cada hueco (Fase 18A; sin logros esa partida)
+//                      dodge = la mejor armadura de la clase en cada hueco: esquiva y resistencia (Fases 18A y 18B; sin logros esa partida)
 //                      stats = el panel de stats (C) abierto desde el principio
 //                      aimstick = un dedo de mentira en el stick de apuntar, empujado a la derecha (con --mobile, Fase 15C)
 //                      sim = partida simulada muy deprisa para medir el equilibrio (systems/SimRun.ts, Fase 13C)

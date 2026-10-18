@@ -66,6 +66,20 @@ export class Equipment {
         return this.defenseRatio - (current ? ARMOR_PIECES[current].defenseRatio : 0) + ARMOR_PIECES[piece].defenseRatio;
     }
 
+    /** Magic resistance of all the armor worn: makes spells fail (data/defense.ts). */
+    public get magicResistance(): number {
+        let total = 0;
+        for (const id of Object.values(this.armor)) total += getArmorPiece(id).magicResistance ?? 0;
+        return total;
+    }
+
+    /** Armor magic resistance if `piece` replaced what is worn in its slot (for the card preview). */
+    public magicResistanceWith(piece: ArmorPieceId): number {
+        const def = getArmorPiece(piece);
+        const current = this.armor[def.slot];
+        return this.magicResistance - (current ? getArmorPiece(current).magicResistance ?? 0 : 0) + (def.magicResistance ?? 0);
+    }
+
     /** Magic damage bonus if `piece` replaced what is worn in its slot (for the card preview). */
     public magicDamageBonusWith(piece: ArmorPieceId): number {
         const def = getArmorPiece(piece);
