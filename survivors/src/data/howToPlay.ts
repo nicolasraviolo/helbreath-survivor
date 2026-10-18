@@ -3,7 +3,7 @@
 // Al añadir un control nuevo (apuntado, crit, tótems...), se añade aquí.
 
 /** Gamepad buttons drawn as Xbox icons (scenes/HowToPlayScene.ts). */
-export type PadIcon = 'A' | 'B' | 'Y' | 'Start' | 'LeftStick' | 'Dpad';
+export type PadIcon = 'A' | 'B' | 'Y' | 'Start' | 'LeftStick' | 'RightStick' | 'Dpad';
 
 export interface ControlRow {
     /** Key, mouse or touch control, as text. */
@@ -28,6 +28,7 @@ export const HOW_TO_PLAY_PAGES: readonly HowToPlayPage[] = [
         lines: [
             'Move around and stay alive.',
             'Your weapons and spells attack on their own.',
+            'Hold right click or use the right stick to aim them yourself.',
             'Pick up the gems that enemies drop to gain experience.',
             'Each level up, choose one of the cards to grow stronger.',
             'Survive the waves and defeat the final boss to win.',
@@ -38,6 +39,7 @@ export const HOW_TO_PLAY_PAGES: readonly HowToPlayPage[] = [
         rows: [
             { control: 'WASD or arrow keys', action: 'Move' },
             { control: 'Hold left click', action: 'Walk towards the pointer' },
+            { control: 'Hold right click', action: 'Aim your attacks at the pointer' },
             { control: 'C', action: 'Show or hide your stats' },
             { control: 'Esc', action: 'Pause' },
             { control: 'Arrows + Enter, or click', action: 'Choose in menus and cards' },
@@ -48,6 +50,7 @@ export const HOW_TO_PLAY_PAGES: readonly HowToPlayPage[] = [
         name: 'Gamepad',
         rows: [
             { pad: ['LeftStick', 'Dpad'], action: 'Move' },
+            { pad: ['RightStick'], action: 'Aim your attacks' },
             { pad: ['Y'], action: 'Show or hide your stats' },
             { pad: ['Start'], action: 'Pause' },
             { pad: ['Dpad', 'A'], action: 'Choose in menus and cards' },

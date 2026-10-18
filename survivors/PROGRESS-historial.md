@@ -2,6 +2,15 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
+**Fase 15, bloque 15B: apuntado manual (2026-10-18).**
+- **Qué hace:** mantener el **clic derecho** apunta todos los ataques hacia el cursor; el **stick derecho** del mando, hacia donde se empuja. Manda sobre el automático y sobre los jefes. Al soltar vuelve el automático en el acto. Solo atacan si hay algún enemigo al alcance (no hay tajos al aire). Triple Energy Bolt sale en abanico; Energy Strike cae en el cursor (como mucho a su alcance) o, con el stick, al 60% de su alcance en esa dirección. Flecha pequeña junto a los pies mientras se apunta (`ui/AimArrow.ts`).
+- **Ratón:** ahora **solo el clic izquierdo** mueve y confirma (antes cualquier botón movía). Sin menú del navegador al hacer clic derecho (`disableContextMenu` en `main.ts`).
+- **How to Play:** línea nueva en Basics y filas "Hold right click" (teclado) y stick derecho con icono "R" (mando).
+- **Números:** `MANUAL_AIM` en `data/targeting.ts` (zona muerta del stick, abanico, flecha). Detalle técnico en NOTES.md, "Apuntado manual".
+- **Atajo nuevo:** `?debug=aim` apunta a la derecha todo el rato (sin ratón).
+- **Comprobado:** clic derecho real con Playwright (apunta al cursor, el personaje no se mueve, sin menú del navegador, al soltar vuelve el automático); con `?debug=aim` y jefe en pantalla, Guerrero y Maga atacan siempre a la derecha; en móvil no se activa; build y `check menu levelup boss` y `game --mobile` sin errores. **El stick derecho no se ha probado con un mando de verdad.**
+- **Cómo probar:** `pnpm --dir survivors dev` → http://localhost:8090/?play, mantener el clic derecho en distintos sitios; con `?play&debug=boss,god`, apuntar lejos del jefe.
+
 **Herramienta: visor de sprites (2026-10-18, fuera de las fases).**
 - **Qué es:** página solo de desarrollo, http://localhost:8090/sprites.html con `pnpm dev`, para elegir diseños. Muestra todos los `.spr` de sp-client por categorías (armas y escudos, armaduras, otros objetos, hechizos y efectos, monstruos, personajes y NPCs, todos los archivos), con nombres sacados de los datos del cliente original. Al abrir uno se anima, con pose, dirección, hombre o mujer, velocidad, zoom y fondo; armas, escudos y armaduras se ven sobre el cuerpo.
 - **Archivos:** `sprites.html`, `src/tools/spriteViewer.ts`, `scripts/spriteCatalog.ts` (catálogo servido por un plugin de `vite.config.ts` solo con `pnpm dev`). `readSprFile` sacado de `src/hb/HBSprite.ts` para leer `.spr` sin Phaser.

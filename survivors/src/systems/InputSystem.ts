@@ -1,12 +1,16 @@
 // Traduce teclado, ratón y mando a acciones. El resto del juego nunca lee teclas ni botones
 // directamente: pide `getMove()` o `justPressed(Action.X)`. El táctil (Fase 9) llega por el joystick flotante
 // (ui/TouchJoystick.ts), que la partida conecta con `setTouchJoystick`.
+// Apuntado manual (Fase 15B): mantener el clic derecho apunta al cursor y el stick derecho del mando apunta hacia
+// donde se empuja (`getManualAim()`). El clic izquierdo sigue moviendo. El táctil nunca apunta.
 //
 // El mando se lee directamente de la Gamepad API del navegador en lugar del plugin de Phaser:
 // el plugin descarta el mando si su `timestamp` es anterior al momento en que lo detectó, y en
 // algunos navegadores/mandos ese reloj no coincide, así que nunca se movía.
 import Phaser from 'phaser';
 import { GAMEPAD_DEADZONE, POINTER_DEADZONE_PX, POINTER_FULL_SPEED_PX } from '../config/gameConfig';
+import { MANUAL_AIM } from '../data/targeting';
+import type { ManualAim } from './Targeting';
 import type { TouchJoystick } from '../ui/TouchJoystick';
 
 export enum Action {
@@ -67,7 +71,7 @@ const KEYBOARD_ACTIONS: Record<Action, number[]> = {
 
 /** Standard Gamepad API button indices (Xbox layout). */
 const GAMEPAD_BUTTON = { A: 0, B: 1, Y: 3, View: 8, Start: 9, DpadUp: 12, DpadDown: 13, DpadLeft: 14, DpadRight: 15 } as const;
-const GAMEPAD_AXIS = { LeftX: 0, LeftY: 1 } as const;
+const GAMEPAD_AXIS = { LeftX: 0, LeftY: 1, RightX: 2, RightY: 3 } as const;
 /** Fake button ids for "the left stick was just pushed left/right/up/down" (menus). */
 const STICK_BUTTON = { Left: 100, Right: 101, Up: 102, Down: 103 } as const;
 /** How far the stick must be pushed to count as a menu move. */
@@ -107,6 +111,11 @@ export class InputSystem {
     private pointerWasDown = false;
     private pointerJustPressed = false;
     private lastDevice: InputDevice = 'none';
+    private readonly manualAim: ManualAim = { dirX: 0, dirY: 0, point: undefined };
+    private readonly aimPoint = { x: 0, y: 0 };
+    private aiming = false;
+    /** Development: aim this way all the time (?debug=aim), to check it without a mouse. */
+    private forcedAim: { x: number; y: number } | undefined;
     /**
      * The next update only records what is held, without "just pressed": a button still held from the previous
      * screen, or pressed while this scene was paused (it doesn't update then), must not trigger anything here.
@@ -171,13 +180,24 @@ export class InputSystem {
         pressedNow.forEach((index) => this.padButtonsDown.add(index));
 
         const pointer = this.scene.input.activePointer;
-        // A finger on the joystick is not a click / tap.
-        const pointerDown = pointer.isDown && pointer.downY < this.pointerMaxY && !(pointer.wasTouch && this.joystick?.active);
+        // A finger on the joystick is not a click / tap. Only the left button (or a finger): the right one aims.
+        const pointerDown = pointer.leftButtonDown() && pointer.downY < this.pointerMaxY && !(pointer.wasTouch && this.joystick?.active);
         this.pointerJustPressed = pointerDown && !this.pointerWasDown && !this.syncHeldOnly;
         this.pointerWasDown = pointerDown;
         this.syncHeldOnly = false;
 
         this.updateMove();
+        this.updateAim();
+    }
+
+    /** Where the player aims by hand this frame, or undefined (the weapons aim on their own). Reused: read it right away. */
+    public getManualAim(): Readonly<ManualAim> | undefined {
+        return this.aiming ? this.manualAim : undefined;
+    }
+
+    /** Development (?debug=aim): aim towards (x, y) all the time; undefined = stop. */
+    public setForcedAim(direction: { x: number; y: number } | undefined): void {
+        this.forcedAim = direction;
     }
 
     /**
@@ -263,7 +283,7 @@ export class InputSystem {
     /** While the left mouse button is held: towards the cursor, slower when it is close. */
     private readPointerMove(): { x: number; y: number } | undefined {
         const pointer = this.scene.input.activePointer;
-        if (!this.pointerAnchor || !pointer.isDown || pointer.wasTouch || pointer.downY >= this.pointerMaxY) return undefined;
+        if (!this.pointerAnchor || !pointer.leftButtonDown() || pointer.wasTouch || pointer.downY >= this.pointerMaxY) return undefined;
         const anchor = this.pointerAnchor();
         const target = pointer.positionToCamera(this.scene.cameras.main) as Phaser.Math.Vector2;
         const dx = target.x - anchor.x;
@@ -272,6 +292,45 @@ export class InputSystem {
         if (distance < POINTER_DEADZONE_PX) return undefined;
         const speed = Math.min(1, distance / POINTER_FULL_SPEED_PX);
         return { x: (dx / distance) * speed, y: (dy / distance) * speed };
+    }
+
+    /** Right stick first (it is being pushed on purpose), then the right mouse button held, then ?debug=aim. */
+    private updateAim(): void {
+        const pad = this.pad;
+        const stick = pad
+            ? applyRadialDeadzone(pad.axes[GAMEPAD_AXIS.RightX] ?? 0, pad.axes[GAMEPAD_AXIS.RightY] ?? 0, MANUAL_AIM.stickDeadzone)
+            : { x: 0, y: 0 };
+        const aim = this.manualAim;
+        aim.point = undefined;
+        this.aiming = true;
+        if (stick.x !== 0 || stick.y !== 0) {
+            this.setAimDirection(stick.x, stick.y);
+            this.lastDevice = 'gamepad';
+            return;
+        }
+        const mouse = this.scene.input.mousePointer;
+        if (mouse && this.pointerAnchor && mouse.rightButtonDown() && !mouse.wasTouch) {
+            const anchor = this.pointerAnchor();
+            const cursor = mouse.positionToCamera(this.scene.cameras.main) as Phaser.Math.Vector2;
+            this.aimPoint.x = cursor.x;
+            this.aimPoint.y = cursor.y;
+            // The cursor right on the feet gives no direction: keep the last one.
+            if (Math.hypot(cursor.x - anchor.x, cursor.y - anchor.y) > 0) this.setAimDirection(cursor.x - anchor.x, cursor.y - anchor.y);
+            aim.point = this.aimPoint;
+            this.lastDevice = 'mouse';
+            return;
+        }
+        if (this.forcedAim) {
+            this.setAimDirection(this.forcedAim.x, this.forcedAim.y);
+            return;
+        }
+        this.aiming = false;
+    }
+
+    private setAimDirection(x: number, y: number): void {
+        const length = Math.hypot(x, y);
+        this.manualAim.dirX = x / length;
+        this.manualAim.dirY = y / length;
     }
 }
 

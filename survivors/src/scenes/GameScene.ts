@@ -53,6 +53,7 @@ import { EnemySystem } from '../systems/EnemySystem';
 import { assetStreamer } from '../systems/AssetStreamer';
 import { Action, InputSystem } from '../systems/InputSystem';
 import { SETTINGS_CHANGED, settings } from '../systems/Settings';
+import { AimArrow } from '../ui/AimArrow';
 import { playAreaBottom } from '../ui/hudLayout';
 import { TouchJoystick } from '../ui/TouchJoystick';
 import { SpawnSystem } from '../systems/SpawnSystem';
@@ -115,8 +116,10 @@ export class GameScene extends Phaser.Scene {
     private particles!: HitParticles;
     private screenShake!: ScreenShake;
     private weapons!: WeaponSystem;
+    private aimArrow!: AimArrow;
     private debug!: DebugSystem;
     /** The ?debug= actions still have to run (only on the first run after loading the page). */
+    private debugAimForced = false;
     private debugStartPending = DEBUG_START.actions.length > 0;
     /** Run time left before those actions (counted with the frames: the scene clock is not ready in create()). */
     private debugStartWaitMs = DEBUG_START_DELAY_MS;
@@ -234,6 +237,7 @@ export class GameScene extends Phaser.Scene {
             this.onEnemyKilled(enemy);
         });
         this.weapons = new WeaponSystem(this, this.enemies, this.combat, this.audio, this.screenShake);
+        this.aimArrow = new AimArrow(this);
         this.buffs = new BuffSystem(this, this.player, this.audio, (key, x, y) => this.weapons.spawnEffect(key, x, y));
         this.enemyShots = new EnemyProjectileSystem(this, this.audio, (key, x, y) => this.weapons.spawnEffect(key, x, y));
         this.bosses = new BossSystem(this.enemyShots, (minions, x, y) => this.spawner.spawnRing(minions.enemies, minions.count, x, y, minions.radius));
@@ -576,7 +580,11 @@ export class GameScene extends Phaser.Scene {
         this.world.targetX = player.x;
         this.world.targetY = player.y;
         this.enemies.update(delta, this.world);
+        // Manual aim (right click / right stick) wins over the automatic one; the simulated run always aims on its own.
+        const manualAim = this.sim || player.isDead ? undefined : input.getManualAim();
+        this.weapons.setManualAim(manualAim);
         this.weapons.update(delta, player.x, player.y, !player.isDead);
+        this.aimArrow.update(manualAim, player.x, player.y);
         this.damageNumbers.update(delta);
         this.screenShake.update(delta);
         if (!player.isDead) {
@@ -766,6 +774,11 @@ export class GameScene extends Phaser.Scene {
             case 'god':
                 this.player.setGodMode(!this.player.godMode);
                 this.godModeLabel.setVisible(this.player.godMode);
+                break;
+            case 'aim':
+                // Aims to the right until pressed again (manual aim without a mouse or gamepad, Fase 15B).
+                this.debugAimForced = !this.debugAimForced;
+                this.inputSystem.setForcedAim(this.debugAimForced ? { x: 1, y: 0 } : undefined);
                 break;
             case 'sim':
                 this.sim = new SimRun(this.stats.def.name);

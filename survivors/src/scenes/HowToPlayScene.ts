@@ -78,11 +78,11 @@ export class HowToPlayScene extends MenuOverlayScene {
             g.fillCircle(0, 0, r).strokeCircle(0, 0, r);
             g.lineStyle(2, PAD_ICON.shapeColor);
             for (const dy of [-r * 0.35, 0, r * 0.35]) g.lineBetween(-r * 0.45, dy, r * 0.45, dy);
-        } else if (icon === 'LeftStick') {
-            // Stick seen from above: a ring with the "L" of the left stick.
+        } else if (icon === 'LeftStick' || icon === 'RightStick') {
+            // Stick seen from above: a ring with the "L" or "R" of the stick.
             g.fillCircle(0, 0, r).strokeCircle(0, 0, r);
             g.lineStyle(2, PAD_ICON.shapeColor).strokeCircle(0, 0, r * 0.6);
-            parts.push(this.add.text(0, 0, 'L', {
+            parts.push(this.add.text(0, 0, icon === 'LeftStick' ? 'L' : 'R', {
                 ...UI_TEXT, fontSize: px(Math.round(r * 0.9)), fontStyle: 'bold', color: '#e8dcc0',
             }).setOrigin(0.5));
         } else {

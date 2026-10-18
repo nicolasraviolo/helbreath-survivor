@@ -17,7 +17,7 @@ import type { AudioSystem } from './AudioSystem';
 import type { CombatSystem } from './CombatSystem';
 import type { EnemySystem } from './EnemySystem';
 import type { ScreenShake } from './ScreenShake';
-import { Targeting } from './Targeting';
+import { type ManualAim, Targeting } from './Targeting';
 
 /** Owner animation asked by a weapon: a melee swing or a cast. */
 export type OwnerAction = 'melee' | 'cast';
@@ -55,7 +55,8 @@ export class WeaponSystem {
         this.projectiles = new Pool(() => new Projectile(scene));
         this.effects = new Pool(() => new Effect(scene));
         this.slash = new Slash(scene);
-        this.targeting = new Targeting(enemies);
+        const targeting = new Targeting(enemies);
+        this.targeting = targeting;
         this.context = {
             x: 0,
             y: 0,
@@ -63,6 +64,10 @@ export class WeaponSystem {
             audio,
             findTarget: (maxDistance) => this.targeting.findTarget(this.context.x, this.context.y, maxDistance),
             findTargets: (maxDistance, count) => this.targeting.findTargets(this.context.x, this.context.y, maxDistance, count),
+            get manualAim() {
+                return targeting.manual;
+            },
+            inReach: (maxDistance) => this.targeting.inReach(this.context.x, this.context.y, maxDistance),
             launchProjectile: (def, fromX, fromY, toX, toY, maxDistance, target) => {
                 this.projectiles.acquire().launch(def, fromX, fromY, toX, toY, maxDistance, target);
             },
@@ -114,6 +119,11 @@ export class WeaponSystem {
 
     public setOwnerActionHandler(handler: (action: OwnerAction, angle: number, durationMs: number) => void): void {
         this.onOwnerAction = handler;
+    }
+
+    /** Manual aim of this frame (InputSystem.getManualAim), or undefined for the automatic one. */
+    public setManualAim(aim: Readonly<ManualAim> | undefined): void {
+        this.targeting.manual = aim;
     }
 
     public setCooldownMultiplier(value: number): void {

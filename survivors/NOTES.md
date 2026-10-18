@@ -49,6 +49,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Logros (Fase 14B)
 - Métricas (Fase 14A)
 - Apuntado automático (Fase 15A)
+- Apuntado manual (Fase 15B)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -637,3 +638,11 @@ Tabla completa en `docs/REQUISITOS_HB.md`. Lo no obvio:
 - **Elegir al jefe no bastaba:** los proyectiles explotan con el primer monstruo que tocan, y los pequeños que rodean al jefe se comían casi todos (medido: 67 de daño al Ettin en 20 s con la Maga a nivel 1). Por eso un proyectil lanzado a un jefe lleva `Projectile.target` y **solo choca con él** (atraviesa a los demás); si el jefe muere en vuelo, vuelve a chocar con cualquiera. Con eso: 396 en 20 s.
 - **Ojo al medir con `pnpm check`:** sin `--cards` la partida se queda parada en la primera subida de nivel, y parece que el jefe no recibe daño.
 - La partida simulada (`levelpace`) no sirve para medir esto: el jugador simulado huye del jefe y casi nunca está a menos de 250 px.
+
+## Apuntado manual (Fase 15B)
+- **Quién lo lee:** `InputSystem.getManualAim()`, cada frame. El stick derecho (zona muerta `MANUAL_AIM.stickDeadzone`) va antes que el clic derecho; el clic derecho da además el punto del cursor. `GameScene` se lo pasa a `WeaponSystem.setManualAim` → `Targeting.manual`. La partida simulada y el jugador muerto nunca apuntan a mano.
+- **Qué hacen las armas:** si hay **algún** enemigo al alcance (`inReach`), atacan hacia `manualAimAngle` (desde su propio origen: el cuerpo en los tajos, los pies en los hechizos). Triple Energy Bolt sale en abanico (`fanDegrees`). Energy Strike cae en el cursor (como mucho a su alcance) o, con el stick, a `stickAreaDistance` × alcance. En manual los proyectiles **no** atraviesan monstruos aunque haya un jefe.
+- **Ratón:** solo el botón **izquierdo** mueve y confirma (`leftButtonDown()`; un dedo también cuenta como izquierdo). Antes cualquier botón movía. El menú del navegador está quitado con `disableContextMenu` en `main.ts`.
+- **Flecha:** `ui/AimArrow.ts`, un triángulo dibujado una vez y rotado; medidas en `data/targeting.ts`.
+- **Probar sin ratón:** `?debug=aim` apunta a la derecha todo el rato (se puede combinar con `boss` para ver que el manual manda sobre el jefe).
+
