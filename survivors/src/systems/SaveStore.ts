@@ -2,7 +2,7 @@
 // Cada foto guarda nombres (clase, arma, piezas de armadura, jefes vivos), nunca posiciones en una lista, para que
 // añadir armas, mapas o niveles no estropee las partidas viejas. Lo que ya no existe se ignora al leer.
 // El conjunto lleva número de versión: si un día cambia la forma de guardar, se sube la versión y migrate() convierte
-// lo viejo, sin borrar el progreso de nadie. Logros, récords y baúl (Fases 14, 19 y 21) irán en otras claves.
+// lo viejo, sin borrar el progreso de nadie. Logros, récords y baúl (Fases 14, 20 y 22) irán en otras claves.
 // Si el navegador no deja guardar (modo privado, almacenamiento bloqueado), el juego funciona igual, sin Continue.
 import type { BossReport, RunMetricsState } from '../config/metrics';
 import { ARMOR_PIECES, type ArmorPieceId, type ArmorSlotId } from '../data/armor';

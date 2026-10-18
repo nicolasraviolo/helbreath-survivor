@@ -20,27 +20,27 @@
 | 15 — Apuntado híbrido | ✅ completada (15A, 15B y 15C) | 2026-10-18 |
 
 ## Fase actual
-**Para retomar (18-oct-2026): Fase 15 completada** (fusionada en `master`, etiqueta `fase-15`). **Siguiente:** `/fase 16` → crits ("Gritos"); al empezar, preguntar las decisiones pendientes de la Fase 16 en `docs/PLAN-2.md` (la Maga con o sin crits; Espacio o Alt). El botón táctil del crit va en la esquina reservada de abajo a la derecha (`TOUCH_RESERVED_CORNER`, `config/touch.ts`).
+**Para retomar (18-oct-2026): Fase 15 completada** (fusionada en `master`, etiqueta `fase-15`). **Siguiente:** `/fase 16` → minimapa y tótems; al empezar, preguntar su decisión pendiente en `docs/PLAN-2.md` (si los cofres siguen dando buffs). Después, `/fase 17` → selección de personaje al estilo del original (fase nueva). **Plan reordenado el 18-oct-2026:** los crits pasan a la Fase 18, el Zem a la 19 y lo demás corre (mapas 20, ciudad 21, equipo 22, más mapas 23, bandos 24, raids 25, ranking 26). El historial usa los números viejos. El botón táctil del crit va en la esquina reservada de abajo a la derecha (`TOUCH_RESERVED_CORNER`, `config/touch.ts`).
 - **Ajuste de oleadas (18-oct-2026, antes de la Fase 16):** un monstruo nuevo cada ~minuto (los débiles siguen saliendo poco, por variedad), tope de vivos 100→260, **con un jefe vivo no sale nadie de las oleadas** (`SpawnSystem`), monstruos normales con vida y XP ×2 y daño ×1,4 (jefes igual que antes). Simulación: 900–1.400 muertes por partida (antes 2.400–3.300), ~8% mueren de un golpe (antes 15–21%), nivel 25–26, Ettin ~30–65 s, Wyvern ~2:15–2:55. La partida simulada ahora da también `aliveByMinute` y `oneHitKillShare`.
-- **Apuntado:** todo pasa por `systems/Targeting.ts`. Automático (15A): un jefe a menos de 250 px y al alcance va primero, y sus proyectiles atraviesan a los demás. Manual (15B): `InputSystem.getManualAim()` → `WeaponSystem.setManualAim`; números en `data/targeting.ts` (`MANUAL_AIM`). Móvil (15C): con la casilla **Aim Stick** (Settings, activada de serie) la mitad izquierda mueve y la derecha abre un segundo stick naranja que apunta; la esquina de abajo a la derecha queda libre para el botón del crit (Fase 16). Detalle en NOTES.md, "Apuntado automático", "Apuntado manual" y "Stick de apuntar en el móvil". El stick derecho del mando aún no se ha probado con un mando real.
+- **Apuntado:** todo pasa por `systems/Targeting.ts`. Automático (15A): un jefe a menos de 250 px y al alcance va primero, y sus proyectiles atraviesan a los demás. Manual (15B): `InputSystem.getManualAim()` → `WeaponSystem.setManualAim`; números en `data/targeting.ts` (`MANUAL_AIM`). Móvil (15C): con la casilla **Aim Stick** (Settings, activada de serie) la mitad izquierda mueve y la derecha abre un segundo stick naranja que apunta; la esquina de abajo a la derecha queda libre para el botón del crit (Fase 18). Detalle en NOTES.md, "Apuntado automático", "Apuntado manual" y "Stick de apuntar en el móvil". El stick derecho del mando aún no se ha probado con un mando real.
 - **Métricas (14A):** servidor `metrics-server/` (Cloudflare Worker + D1). Gráficas en https://helbreath-survivors-metrics.nicolasraviolo.workers.dev, con clave (en `metrics-server/.dev.vars`). Qué se envía: `config/metrics.ts`; lo recoge `systems/RunMetrics.ts`. En `pnpm dev` solo con `?metrics=send`. Detalle y cómo añadir un dato: NOTES.md, "Métricas".
 - **Logros (14B):** lista en `data/achievements.ts`, guardados en `systems/AchievementStore.ts` y vigilados por `systems/AchievementTracker.ts`. Para añadir uno basta con la lista (ver NOTES.md, "Logros"). Detalle en el historial.
 - **Equilibrio (13C):** curva en `data/leveling.ts` (4 niveles baratos y luego +24% por nivel), XP de monstruo = vida/5, jefes con `damageScale` y sin empuje (`data/enemies.ts`), Vit cura (`HP_REGEN_PER_VIT`, `data/stats.ts`). Medir con la partida simulada y, desde la Fase 14, con las gráficas de métricas.
 - **Monstruos por grupos (13B):** esenciales en `ESSENTIAL_ENEMIES` (`data/enemies.ts`), los de cada mapa en `localEnemies` y jefes en `bosses` (`data/maps.ts`). Detalle en el historial.
 - **Pendiente (idea del propietario, sin fecha):** monstruos que aparecen al azar como evento especial.
 - **Final de partida:** al morir el jefe final, mueren todos, toda la XP vuela sola y los niveles suben sin cartas; cae su cofre y al cogerlo se abre el portal (30 s). Atajos `?debug=finalboss` y `?debug=bosskill`.
-- **Partidas guardadas:** `systems/SaveStore.ts` (formato con versión; ver NOTES.md, "Partidas guardadas"). Logros ya en su propia clave; récords y baúl (Fases 19 y 21) igual.
+- **Partidas guardadas:** `systems/SaveStore.ts` (formato con versión; ver NOTES.md, "Partidas guardadas"). Logros ya en su propia clave; récords y baúl (Fases 20 y 22) igual.
 - **App instalable:** solo en el build (`survivors/pwa/`); en `pnpm dev` no existe. Para probarla en el PC: `pnpm build` y `pnpm preview` → http://localhost:4173.
 - **Controles:** todo control nuevo se explica en How to Play (`data/howToPlay.ts`), nunca en pantalla.
 - **Settings:** lo que es sí/no va con casilla (`MenuList`, `checked`); volumen y opciones de varios valores, con flechas ◄ ►.
 - **Assets propios** (los que no están en sp-client, como las voces de subir de nivel): `survivors/custom-assets/`, con la misma estructura de carpetas.
 - **Ajustes posibles del temblor**, si el propietario los pide (`data/feedback.ts`): acortar la pausa entre explosiones críticas (2,5 s), contar cualquier crítico de la explosión, o añadir temblor a los críticos cuerpo a cuerpo.
 - **Lo demás de la Fase 10 queda para la segunda etapa** (`docs/PLAN-2.md`, tabla "Traído de la Fase 10"):
-  - vibración y reasignar controles → Fase 16;
-  - sombras → Fase 19;
-  - más mapas → Fases 19 y 22;
-  - récords locales → Fase 19; progresión entre partidas → Fase 21;
-  - límite de enemigos en el móvil → Fase 24, o antes si va lento;
+  - vibración y reasignar controles → Fase 18;
+  - sombras → Fase 20;
+  - más mapas → Fases 20 y 23;
+  - récords locales → Fase 20; progresión entre partidas → Fase 22;
+  - límite de enemigos en el móvil → Fase 25, o antes si va lento;
   - equilibrio → Fase 13 y al cerrar cada fase de combate.
 
 ## Cómo probar
@@ -82,4 +82,4 @@
 - 2026-10-18 · Fase 15C: el móvil también tendrá apuntado manual con un **segundo stick en la mitad derecha** de la pantalla, con casilla en Settings **activada de serie** (cambia lo de "móvil solo automático" del plan).
 - 2026-10-18 · Partidas guardadas: **hasta 3**; Continue abre la lista; con las 3 llenas, Play pide cuál borrar (con confirmación). El formato lleva versión para poder crecer.
 - 2026-10-16 · Mapa: **huntzone2** (elegido por el propietario frente a middleland). Zona de juego ~100×100 casillas desde (72,70). Riesgos y detalles en `NOTES.md`.
-- 2026-10-18 · Mapa cambiado a **Bleeding Isle** (`bisle`) para el MVP, por tener menos colisiones: zona de 150×150 desde (66,52), 95% libre (el propietario prefirió 150 a 100 o 200). huntzone2 queda comentado en `data/maps.ts` para la Fase 19 (varios mapas). Las partidas guardadas en huntzone2 continúan en Bleeding Isle.
+- 2026-10-18 · Mapa cambiado a **Bleeding Isle** (`bisle`) para el MVP, por tener menos colisiones: zona de 150×150 desde (66,52), 95% libre (el propietario prefirió 150 a 100 o 200). huntzone2 queda comentado en `data/maps.ts` para la Fase 20 (varios mapas). Las partidas guardadas en huntzone2 continúan en Bleeding Isle.

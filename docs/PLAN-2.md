@@ -1,6 +1,6 @@
 # Plan de desarrollo — Segunda etapa (Fases 11+)
 
-> Borrador del 17-oct-2026, reordenado el mismo día con las ideas nuevas del propietario. **Orden aprobado por el propietario el 17-oct-2026**; las decisiones de cada fase se preguntan al empezarla.
+> Borrador del 17-oct-2026, reordenado el mismo día con las ideas nuevas del propietario. **Orden aprobado por el propietario el 17-oct-2026.** **Reordenado el 18-oct-2026:** minimapa y tótems pasan a la Fase 16, se añade la selección de personaje (Fase 17) y crits, Zem y todo lo demás corren (16→18, 17→19, 19→20... 25→26). Las decisiones de cada fase se preguntan al empezarla.
 > Continúa `docs/PLAN.md` (Fases 0–10, todas cerradas).
 > Mismas reglas que antes: una fase por sesión (`/fase N`), plan corto → OK → código → `/checkpoint`. Las fases marcadas **mini** caben en una sesión corta.
 
@@ -21,48 +21,49 @@ Fuentes de la investigación (17-oct-2026):
 | **13** | Jefe final y equilibrio | El jefe corta las oleadas · portal tras matarlo · curva de XP, oleadas y dificultad | Medio |
 | **14** | Métricas y logros | Resumen anónimo de cada partida en un servidor pequeño · primeros logros | Medio |
 | **15** | Apuntado híbrido | Automático por defecto; manual con ratón o stick derecho | Medio |
-| **16** | Crits ("gritos") | Golpe crítico con cargas · vibración y reasignar controles | Pequeño |
-| **17** | Zem | Vida extra: revives una vez | Pequeño |
-| **18** | Minimapa y tótems | Minimapa · tótems en el mapa que dan buffs | Pequeño-medio |
-| **19** | Sistema de mapas + Icebound | Varios mapas, Select Map, récords locales por mapa, sombras, Icebound | Grande |
-| **20** | La ciudad | Mapa pequeño tras elegir personaje: NPCs, cofre y portal a la partida | Grande |
-| **21** | Equipo y baúl | Equipar armas, escudos y armaduras · los jefes sueltan equipo · se guarda entre partidas | Grande |
-| **22** | Más mapas | Un mapa por bloque | Grande (por partes) |
-| **23** | Aresden y Elvine | Elegir bando · objetos Hero con EK | Medio |
-| **24** | Raids | "Jugadores" enemigos del otro bando | Medio-grande |
-| **25** | Ranking online *(opcional)* | Reutiliza el servidor de la Fase 14 | Pequeño |
+| **16** | Minimapa y tótems | Minimapa · tótems en el mapa que dan buffs | Pequeño-medio |
+| **17** | Selección de personaje *(nueva)* | Pantallas de elegir y crear personaje como en el Helbreath original | Pequeño-medio |
+| **18** | Crits ("gritos") | Golpe crítico con cargas · vibración y reasignar controles | Pequeño |
+| **19** | Zem | Vida extra: revives una vez | Pequeño |
+| **20** | Sistema de mapas + Icebound | Varios mapas, Select Map, récords locales por mapa, sombras, Icebound | Grande |
+| **21** | La ciudad | Mapa pequeño tras elegir personaje: NPCs, cofre y portal a la partida | Grande |
+| **22** | Equipo y baúl | Equipar armas, escudos y armaduras · los jefes sueltan equipo · se guarda entre partidas | Grande |
+| **23** | Más mapas | Un mapa por bloque | Grande (por partes) |
+| **24** | Aresden y Elvine | Elegir bando · objetos Hero con EK | Medio |
+| **25** | Raids | "Jugadores" enemigos del otro bando | Medio-grande |
+| **26** | Ranking online *(opcional)* | Reutiliza el servidor de la Fase 14 | Pequeño |
 
 **Por qué este orden:**
 1. **11–13:** primero lo que arregla molestias que ya existen: visibilidad, controles, partidas perdidas en el móvil, subir de nivel demasiado rápido y un final de partida abrupto.
 2. **14:** las métricas, pronto, para que todo lo que venga después se equilibre con datos reales. Los logros van aquí porque cuentan las mismas cosas.
-3. **15–18:** mejoras de la partida de hoy, pequeñas y divertidas. El apuntado va antes que los crits porque el crit sale hacia donde apuntas.
-4. **19–21:** la gran base: varios mapas, la ciudad como "centro" del juego y el equipo que se guarda (el cofre vive en la ciudad).
-5. **22–25:** contenido que se apoya en todo lo anterior.
+3. **15–19:** mejoras de la partida de hoy, pequeñas y divertidas. El apuntado va antes que los crits porque el crit sale hacia donde apuntas. El 18-oct-2026 el propietario adelantó el minimapa y los tótems (16) y añadió la selección de personaje del original (17).
+4. **20–22:** la gran base: varios mapas, la ciudad como "centro" del juego y el equipo que se guarda (el cofre vive en la ciudad).
+5. **23–26:** contenido que se apoya en todo lo anterior.
 
-**Dependencias:** la 21 necesita el guardado (12) y la ciudad (20); la 20 necesita el sistema de mapas (19); la 24 necesita los bandos (23); la 25 necesita el servidor (14). El resto puede moverse si el propietario quiere otra prioridad.
+**Dependencias:** la 22 necesita el guardado (12) y la ciudad (21); la 21 necesita el sistema de mapas (20); la 25 necesita los bandos (24); la 26 necesita el servidor (14). El resto puede moverse si el propietario quiere otra prioridad.
 
 ### De dónde viene cada cosa del borrador anterior
 | Antes | Ahora |
 |---|---|
-| 11 Crits | 16. Los iconos del mando en pantalla se cambian por la página How to play (Fase 11) |
-| 12 Zem | 17 |
-| 13 Minimapa | 18, con los tótems |
-| 14 Sistema de mapas + Icebound | 19. La pantalla Select Map se abre desde el portal de la ciudad (Fase 20) |
-| 15 Más mapas | 22 |
-| 16 Bandos | 23. La opción B (objetos Hero) se apoya en el baúl de la 21 |
-| 17 Raids | 24 |
-| 18 Leaderboard | Récords locales → 19 · progresión entre partidas → 21 · online → 25 |
-| 19 Bolsa ligera | Sustituida por **Equipo y baúl** (21), a petición del propietario |
+| 11 Crits | 18. Los iconos del mando en pantalla se cambian por la página How to play (Fase 11) |
+| 12 Zem | 19 |
+| 13 Minimapa | 16, con los tótems |
+| 14 Sistema de mapas + Icebound | 20. La pantalla Select Map se abre desde el portal de la ciudad (Fase 21) |
+| 15 Más mapas | 23 |
+| 16 Bandos | 24. La opción B (objetos Hero) se apoya en el baúl de la 22 |
+| 17 Raids | 25 |
+| 18 Leaderboard | Récords locales → 20 · progresión entre partidas → 22 · online → 26 |
+| 19 Bolsa ligera | Sustituida por **Equipo y baúl** (22), a petición del propietario |
 
 ### Traído de la Fase 10
 | Qué | Dónde |
 |---|---|
-| Vibración del mando, reasignar controles | Fase 16 (Crits) |
+| Vibración del mando, reasignar controles | Fase 18 (Crits) |
 | Iconos de botones de Xbox | Fase 11, **solo dentro de How to play** (el propietario quiere la partida sin textos de controles) |
-| Sombras bajo personajes y monstruos | Fase 19 |
-| Récords locales | Fase 19 |
-| Progresión entre partidas | Fase 21 |
-| Límite de enemigos en el móvil | Fase 24 (Raids), o antes si el móvil va lento |
+| Sombras bajo personajes y monstruos | Fase 20 |
+| Récords locales | Fase 20 |
+| Progresión entre partidas | Fase 22 |
+| Límite de enemigos en el móvil | Fase 25 (Raids), o antes si el móvil va lento |
 | Equilibrio | Fase 13, y repaso al cerrar cada fase de combate |
 
 ---
@@ -110,7 +111,7 @@ Hoy **no se guarda ninguna partida**; solo las opciones de Settings (`systems/Se
 - Al volver: si la pestaña sigue viva, la partida está en pausa; si el móvil la cerró, el menú muestra **"Continue"** arriba del todo.
 - **Límite aceptado:** no se guardan los monstruos uno a uno. Al continuar se genera la oleada del minuto en que estabas, con unos segundos de calma.
 - El guardado se borra al terminar la partida (victoria o derrota).
-- Esto es la base del guardado de las Fases 14 (logros), 19 (récords) y 21 (baúl).
+- Esto es la base del guardado de las Fases 14 (logros), 20 (récords) y 22 (baúl).
 
 ### Aceptación
 - En el móvil: jugar 3 minutos, minimizar, abrir otras apps, volver → la partida sigue o aparece "Continue" con el mismo nivel, armas y minuto.
@@ -123,7 +124,7 @@ Hoy **no se guarda ninguna partida**; solo las opciones de Settings (`systems/Se
 ### 13A. El jefe final
 - **Corta las oleadas:** cuando aparece el jefe final, dejan de salir monstruos nuevos. Quedan los que ya había, el jefe y **sus esbirros** (definidos en sus datos: qué monstruos llama y cada cuánto).
 - **Al matarlo no acaba la partida:**
-  1. cae su botín (hoy, XP y cofre; con la Fase 21, equipo);
+  1. cae su botín (hoy, XP y cofre; con la Fase 22, equipo);
   2. se abre un **portal** en el suelo, cerca de donde murió;
   3. la partida termina al **entrar en el portal** o a los **30 segundos**, lo que pase primero (contador visible);
   4. después, la pantalla final de victoria.
@@ -139,7 +140,7 @@ Hoy **no se guarda ninguna partida**; solo las opciones de Settings (`systems/Se
   - objetivo inicial: **25–30 niveles en una partida de 12–15 minutos**, con los primeros niveles rápidos y luego uno cada 30–45 s (a confirmar con el propietario);
   - revisar las oleadas (`data/waves.ts`): cantidad de monstruos por minuto, mezcla de tipos y vida de los jefes;
   - para medirlo, que `pnpm check` diga en qué minuto se llega a cada nivel.
-- Se repite un repaso de equilibrio al cerrar las Fases 16, 17, 19 y 24. Desde la Fase 14, con datos reales.
+- Se repite un repaso de equilibrio al cerrar las Fases 18, 19, 20 y 25. Desde la Fase 14, con datos reales.
 
 ### Aceptación
 - Al salir el Wyvern no aparecen monstruos nuevos, solo sus esbirros.
@@ -153,7 +154,7 @@ Hoy **no se guarda ninguna partida**; solo las opciones de Settings (`systems/Se
 ### 14A. Métricas
 - **Para qué:** entender la dificultad. Si la gente muere muy rápido o no muere nunca, con qué personaje, en qué minuto...
 - **Qué se envía al terminar cada partida** (anónimo, sin datos personales): versión del juego, mapa, clase, móvil u ordenador, resultado, minuto de muerte, nivel alcanzado, bajas, qué te mató, armas y cartas elegidas, si se usó Zem o crits, y los FPS medios.
-- **Dónde:** un servidor pequeño y gratuito, **Cloudflare Workers + D1**. El mismo servirá para el ranking online (Fase 25).
+- **Dónde:** un servidor pequeño y gratuito, **Cloudflare Workers + D1**. El mismo servirá para el ranking online (Fase 26).
 - **Cómo lo ve el propietario:** una página sencilla con gráficas: duración media, muertes por minuto, % de victorias por clase y cartas más elegidas.
 - **Privacidad:** sin cookies ni identificadores personales. Un aviso de una línea en Options, con opción "Send anonymous stats: On/Off".
 - **Decisión del propietario:** montar el servidor (requiere crear una cuenta gratuita de Cloudflare; eso lo hace él).
@@ -166,7 +167,7 @@ Hoy **no se guarda ninguna partida**; solo las opciones de Settings (`systems/Se
   - pantalla Achievements con los conseguidos y los pendientes (en gris, con su descripción);
   - **primera tanda (~10–15):** ganar en Eternal Field, ganar con cada clase, sobrevivir 5 y 10 minutos, llegar al nivel 20, matar 1.000 monstruos en una partida, matar a cada minijefe, llevar 6 armas a la vez, terminar sin beber pociones...
 - **Más adelante**, cada fase añade los suyos: "10 Critical Strikes in one run", "Revive with a Zem", "Win Icebound", "Kill 50 raiders"...
-- En la Fase 20, un NPC de la ciudad enseña los logros y, más adelante, misiones.
+- En la Fase 21, un NPC de la ciudad enseña los logros y, más adelante, misiones.
 
 ### Aceptación
 - Tras una partida aparece una fila nueva en la página de métricas.
@@ -187,7 +188,7 @@ Hoy todas las armas apuntan solas al enemigo más cercano (`findNearestEnemies` 
 - **Al soltar,** vuelve al automático en el acto.
 - Un solo sitio del código decide "¿hacia dónde apunto?" y todas las armas lo usan: tajos, proyectiles y hechizos. Las armas que caen en zona (alrededor de enemigos) siguen igual o caen hacia donde apuntas.
 - Un indicador discreto (flecha o retícula) solo mientras apuntas a mano.
-- **En el móvil (15C, decidido el 18-oct-2026):** segundo stick flotante en la mitad derecha de la pantalla para apuntar; la izquierda mueve. Casilla "Aim Stick" en Settings, activada de serie. El botón del crit (Fase 16) irá en la esquina de abajo a la derecha.
+- **En el móvil (15C, decidido el 18-oct-2026):** segundo stick flotante en la mitad derecha de la pantalla para apuntar; la izquierda mueve. Casilla "Aim Stick" en Settings, activada de serie. El botón del crit (Fase 18) irá en la esquina de abajo a la derecha.
 - **Decisión del propietario:** el clic deja de servir para moverse (el ratón pasa a apuntar), o el clic izquierdo mueve y el derecho apunta.
 - Se explica en How to play.
 
@@ -197,7 +198,79 @@ Hoy todas las armas apuntan solas al enemigo más cercano (`findNearestEnemies` 
 
 ---
 
-## Fase 16 — Crits ("Gritos")
+## Fase 16 — Minimapa y tótems
+
+### 16A. Minimapa
+
+#### Qué hay en el original
+- El "GuideMap" era un cuadro de **128×128** con una miniatura del mapa (`telescope.spr` hoja 0, un frame por mapa: huntzone2 = 9, icebound = 24, middleland = 4, dglv4 = 14, arefarm = 6, elvfarm = 5, druncncity = 25).
+- El punto del jugador era GameDialog hoja 4, frame 37 (6×5 px). Los frames 36–39 son puntos de otros colores y los 40–43, marcadores de 12×12.
+- **El original no dibujaba monstruos.** Eso lo añadimos nosotros.
+- Alternativa: `sp-client/public/assets/images/minimaps/*.jpg` (1500×1500, uno por mapa), más nítidos para recortar.
+
+#### Propuesta
+- Cuadro de ~128×128 arriba a la **izquierda**. Arriba a la derecha está el botón de pausa táctil.
+- Muestra **solo la zona de juego** (nuestro recorte de 150×150 casillas de Bleeding Isle), no el mapa entero.
+- **Puntos:** jugador (el punto original); **jefes** (marcador grande que parpadea); **cofres** (dorado); **pociones** (rojo); **Zem** (violeta); **tótems** (su propio color, apagado mientras recargan); **portal** del jefe (Fase 13); **jugadores enemigos** cuando lleguen las Raids (rojo grande).
+- **Monstruos normales: no.** Con 300 enemigos sería una mancha. Como mucho, opcional en Settings, en forma de puntitos sueltos.
+- **Settings:** "Minimap: On/Off" y quizá tamaño grande o pequeño. En el móvil, más pequeño o plegable al tocarlo.
+- Fuera de pantalla: una **flecha en el borde** hacia el jefe, el portal o el cofre más cercano. Opcional.
+- **Teclas de pruebas:** M y C ya están ocupadas (saltar al jefe, panel de stats). El minimapa no se activa con M.
+
+### 16B. Tótems
+- **Idea del propietario:** en vez de que los buffs salgan al azar, que haya **monumentos o tótems** en el mapa que te den una mejora o un buff al pasar por encima.
+- **Situación:** hoy los buffs (Berserk, Defense Shield...) salen de los cofres de los minijefes (`data/pickups.ts`).
+- **Propuesta:**
+  - 3–5 tótems repartidos por la zona de juego, en sitios fijos de cada mapa (en `data/maps.ts`), o que aparecen cada cierto tiempo;
+  - al pasar por encima dan un buff (cada tótem uno distinto, o al azar) y luego **recargan** (por ejemplo, 60 s) o se apagan para siempre;
+  - algunos tótems raros podrían dar una **carta de mejora** directamente;
+  - el minimapa los marca, y así el jugador decide cuándo ir a por ellos.
+- **Dibujo:** objetos de Helbreath que parezcan monumentos: Mana Stone (`manastone`), estatuas o banderas del mapa, con un brillo encima. Buscarlo con un subagente.
+- **Choque a decidir:** si los cofres siguen dando buffs o, con la Fase 22, pasan a dar equipo. Propuesta: tótems = buffs y cofres = equipo.
+
+### Aceptación
+- El minimapa enseña dónde estás, el cofre que dejó el Ettin, la poción que cayó y los tótems. Se apaga en Settings y no tapa nada en el móvil.
+- Pasar por un tótem da su buff, el tótem se apaga y vuelve a encenderse al recargar.
+
+---
+
+## Fase 17 — Selección de personaje al estilo Helbreath
+
+### Idea del propietario (18-oct-2026)
+Cambiar la pantalla de elegir personaje por la del Helbreath original. Tenemos los sprites y el código de referencia.
+
+### Cómo era en el original
+Visto por encima en `reference/Client.cpp`. Al empezar la fase, mirar el detalle con un subagente.
+- **Select Character** (`UpdateScreen_OnSelectCharacter`, C:25688):
+  - fondo a pantalla completa: `GameDialog` hoja 8 (`DEF_SPRID_INTERFACE_ND_SELECTCHAR`);
+  - **4 huecos en fila**; en cada uno, el personaje **dibujado con su equipo y animado** (`DrawObject_OnMove_ForMenu`), con nombre, nivel y experiencia debajo;
+  - opciones: entrar a jugar, New Character, Delete Character y salir.
+- **Create New Character** (`UpdateScreen_OnCreateNewCharacter`, C:23601; `_InitOnCreateNewCharacter`, C:14257):
+  - fondo: `GameDialog` hoja 9 (`DEF_SPRID_INTERFACE_ND_NEWCHAR`);
+  - nombre, sexo, color de piel, peinado, color de pelo y color de la ropa interior;
+  - reparto de puntos entre Strength, Vitality, Dexterity, Intelligence, Magic y Charisma, con la vida, el maná y el aguante que salen.
+- Los sprites están en `sp-client/public/assets/sprites/gamedialog.spr`. Hay que comprobar que las hojas 8 y 9 son esas pantallas.
+
+### Choques con lo que hay (a decidir al empezar la fase)
+- Hoy se elige **clase** (Warrior o Mage) en `CharacterSelectScene`. El original no tenía clases: el tipo de personaje salía del reparto de stats.
+- El original guardaba **personajes** (4 huecos, con nivel y experiencia). Nosotros guardamos **hasta 3 partidas** (`SaveSlotsScene`), que no son personajes.
+
+### Opciones
+- **A) Solo el aspecto:** la pantalla de elegir clase usa el marco y la disposición del original. Warrior y Mage salen dibujados y animados con su equipo de salida, con sus stats debajo. Pequeño.
+- **B) Crear personaje:** además, una pantalla "New Character" como la original para escoger sexo, piel, pelo, ropa interior y nombre. El personaje se ve así en partida. Medio. Hay que comprobar que el cuerpo del jugador admite esas variantes (en sp-client existen).
+- **C) Personajes guardados:** los huecos pasan a ser personajes que duran (nombre, aspecto, récord y, más adelante, equipo y baúl), en vez de partidas sueltas. Grande. Encaja mejor con la Fase 22.
+- **Propuesta:** A y B ahora. C se decide en la Fase 22.
+
+### Móvil
+Tiene que caber en el móvil con los tamaños de la Fase 10A. Los huecos quizá en 2×2.
+
+### Aceptación
+- Al pulsar Play sale la pantalla con el marco del original y los personajes animados. Se elige con ratón, teclado, mando y dedo.
+- Con la opción B: se crea un personaje cambiando sexo, piel y pelo, y en partida se ve así.
+
+---
+
+## Fase 18 — Crits ("Gritos")
 
 ### Cómo era en el original (comprobado en el código)
 - Se guardaban "cargas" de crítico (`m_iSuperAttackLeft`). **Máximo = nivel / 10** (S:4121). Un nivel 180 llevaba 18.
@@ -243,7 +316,7 @@ Con el Guerrero, pulsar Espacio/X lanza un tajo crítico con grito y número de 
 
 ---
 
-## Fase 17 — Zem: la resurrección
+## Fase 19 — Zem: la resurrección
 
 ### Cómo era en el original (comprobado)
 - **Zemstone of Sacrifice** (objeto 650). Al morir, en vez de perder objetos al azar, **se perdía el Zem**. Tenía **3 usos** (durabilidad 3) y luego se rompía (S:25270, S:12370).
@@ -275,60 +348,24 @@ Con un Zem (tecla de pruebas), al morir revives con media vida, efecto y sonido.
 
 ---
 
-## Fase 18 — Minimapa y tótems
+## Fase 20 — Sistema de mapas + Icebound
 
-### 18A. Minimapa
-
-#### Qué hay en el original
-- El "GuideMap" era un cuadro de **128×128** con una miniatura del mapa (`telescope.spr` hoja 0, un frame por mapa: huntzone2 = 9, icebound = 24, middleland = 4, dglv4 = 14, arefarm = 6, elvfarm = 5, druncncity = 25).
-- El punto del jugador era GameDialog hoja 4, frame 37 (6×5 px). Los frames 36–39 son puntos de otros colores y los 40–43, marcadores de 12×12.
-- **El original no dibujaba monstruos.** Eso lo añadimos nosotros.
-- Alternativa: `sp-client/public/assets/images/minimaps/*.jpg` (1500×1500, uno por mapa), más nítidos para recortar.
-
-#### Propuesta
-- Cuadro de ~128×128 arriba a la **izquierda**. Arriba a la derecha está el botón de pausa táctil.
-- Muestra **solo la zona de juego** (nuestro recorte de 100×100 casillas), no el mapa entero.
-- **Puntos:** jugador (el punto original); **jefes** (marcador grande que parpadea); **cofres** (dorado); **pociones** (rojo); **Zem** (violeta); **tótems** (su propio color, apagado mientras recargan); **portal** del jefe (Fase 13); **jugadores enemigos** cuando lleguen las Raids (rojo grande).
-- **Monstruos normales: no.** Con 300 enemigos sería una mancha. Como mucho, opcional en Settings, en forma de puntitos sueltos.
-- **Settings:** "Minimap: On/Off" y quizá tamaño grande o pequeño. En el móvil, más pequeño o plegable al tocarlo.
-- Fuera de pantalla: una **flecha en el borde** hacia el jefe, el portal o el cofre más cercano. Opcional.
-- **Teclas de pruebas:** M y C ya están ocupadas (saltar al jefe, panel de stats). El minimapa no se activa con M.
-
-### 18B. Tótems
-- **Idea del propietario:** en vez de que los buffs salgan al azar, que haya **monumentos o tótems** en el mapa que te den una mejora o un buff al pasar por encima.
-- **Situación:** hoy los buffs (Berserk, Defense Shield...) salen de los cofres de los minijefes (`data/pickups.ts`).
-- **Propuesta:**
-  - 3–5 tótems repartidos por la zona de juego, en sitios fijos de cada mapa (en `data/maps.ts`), o que aparecen cada cierto tiempo;
-  - al pasar por encima dan un buff (cada tótem uno distinto, o al azar) y luego **recargan** (por ejemplo, 60 s) o se apagan para siempre;
-  - algunos tótems raros podrían dar una **carta de mejora** directamente;
-  - el minimapa los marca, y así el jugador decide cuándo ir a por ellos.
-- **Dibujo:** objetos de Helbreath que parezcan monumentos: Mana Stone (`manastone`), estatuas o banderas del mapa, con un brillo encima. Buscarlo con un subagente.
-- **Choque a decidir:** si los cofres siguen dando buffs o, con la Fase 21, pasan a dar equipo. Propuesta: tótems = buffs y cofres = equipo.
-
-### Aceptación
-- El minimapa enseña dónde estás, el cofre que dejó el Ettin, la poción que cayó y los tótems. Se apaga en Settings y no tapa nada en el móvil.
-- Pasar por un tótem da su buff, el tótem se apaga y vuelve a encenderse al recargar.
-
----
-
-## Fase 19 — Sistema de mapas + Icebound
-
-### 19A. Sistema de mapas
+### 20A. Sistema de mapas
 Hoy todo está pensado para un solo mapa (`huntzone2`). Hay que:
 - **`data/maps.ts`** con todo lo de cada mapa: recorte de juego, oleadas propias, minijefes, jefe final, música, miniatura, tótems y monstruos que descargar.
 - **`data/waves.ts` por mapa** (una línea de tiempo cada uno).
-- **Pantalla "Select Map"** con la miniatura, el nombre, la dificultad y tu récord en ese mapa. En esta fase se abre después de elegir clase; en la Fase 20 se abrirá desde el portal de la ciudad.
+- **Pantalla "Select Map"** con la miniatura, el nombre, la dificultad y tu récord en ese mapa. En esta fase se abre después de elegir clase; en la Fase 21 se abrirá desde el portal de la ciudad.
 - **Desbloqueo:** ganar un mapa abre el siguiente (guardado en el navegador). Una tecla de pruebas los abre todos.
 - **Descargas:** `AssetStreamer` baja solo los monstruos y casillas del mapa elegido. Hoy ya lo hace por oleada, así que se adapta. Las casillas del mapa se descargan **al elegirlo**, no antes del menú.
 
-### 19B. Récords locales (antes en la Fase 18)
+### 20B. Récords locales (antes en la Fase 18)
 - Top 10 por **mapa** y **clase**, guardado en el navegador.
 - **Orden:** victoria primero; después, menos tiempo para ganar; si no se ganó, más tiempo sobrevivido. Muestra nivel y bajas.
 - Pantalla "Records" en el menú principal y tu mejor marca en Select Map. En la pantalla final: "New record!" (sonido E23).
 - Tu nombre se escribe una vez. En el móvil y con el mando hace falta un teclado en pantalla, o usar el nombre del personaje ("NkII"/"NMs").
 - No hay arte de "ranking" en el original: se reutilizan los paneles de GameDialog (hoja 2, frames 1–2) y la fuente dibujada.
 
-### 19C. Icebound
+### 20C. Icebound
 - **Primer mapa nuevo** (el más pedido y de los que mejor encajan).
 - **Monstruos:** Frost ✅, Dire Boar ♻️, Ice Golem ✅, Skeleton ♻️, Stone Golem ✅, Beholder ✅, Rudolph ✅ (reno navideño), Claw Turtle ✅.
 - **Minijefes:** Tigerworm ♻️ (en el original tenía un "pit" en Icebound) y Nizie ✅.
@@ -350,7 +387,7 @@ Crear la skill `/nueva-skill anadir-mapa`.
 
 ---
 
-## Fase 20 — La ciudad
+## Fase 21 — La ciudad
 
 ### Idea del propietario
 Después de crear el personaje, se va a una pequeña **ciudad** donde se puede andar libremente y hablar con NPCs. Desde un **portal** se empieza "la partida de verdad", eligiendo el mapa.
@@ -365,18 +402,18 @@ Los nombres salen de `sp-client/src/constants/NPCs.ts`; los papeles, del origina
 
 | NPC | Sprite | Papel en el original | Papel en el juego |
 |---|---|---|---|
-| **Howard** | `howard` | Warehouse Keeper | Junto al **Cofre**: gestionar el equipo (se activa en la Fase 21) |
+| **Howard** | `howard` | Warehouse Keeper | Junto al **Cofre**: gestionar el equipo (se activa en la Fase 22) |
 | **Shop Keeper** | `shopkpr` | La vendedora | **Tienda** (a futuro); de momento, "Coming soon" |
 | **William** | `william` | City Hall | **Logros** (Fase 14) y, más adelante, **misiones** |
 | Tom, Gandalf, Kennedy... | `tom`, `gandlf`, `kennedy` | Herrero, magia, gremio | Decoración o usos futuros (mejorar equipo, comprar hechizos...) |
 
 - **Hablar:** acercarse y pulsar una tecla o botón (en el móvil, un botón "Talk" que aparece al estar cerca). Se abre un panel con el diseño de GameDialog.
-- **El Cofre:** un objeto en el suelo junto a Howard. En esta fase solo se ve; en la 21 abre el equipo.
+- **El Cofre:** un objeto en el suelo junto a Howard. En esta fase solo se ve; en la 22 abre el equipo.
 - **El Portal:** el mismo efecto que el del jefe (Fase 13). Al entrar se abre Select Map.
 
 ### El mapa de la ciudad
 Tiene que pesar poco: es lo primero que se carga después del menú. Opciones (medir con un subagente):
-- **A) Un recorte pequeño de Aresden o Elvine** (una plaza con el almacén y la tienda). Es lo más reconocible y encaja con los bandos (Fase 23: tu ciudad según tu bando). Hay que medir cuánto pesa un recorte, porque la ciudad entera son 22 MB.
+- **A) Un recorte pequeño de Aresden o Elvine** (una plaza con el almacén y la tienda). Es lo más reconocible y encaja con los bandos (Fase 24: tu ciudad según tu bando). Hay que medir cuánto pesa un recorte, porque la ciudad entera son 22 MB.
 - **B) Un interior** (`cityhall_1`, `wrhus_1`, `gshop_1`...). Muy ligero, pero es una sala cerrada.
 - **C) Un recorte de la granja.** Bonito, pero pesa mucho.
 - Propuesta: **A** si el recorte pesa menos de ~3 MB; si no, **B**.
@@ -392,7 +429,7 @@ Tiene que pesar poco: es lo primero que se carga después del menú. Opciones (m
 
 ---
 
-## Fase 21 — Equipo y baúl
+## Fase 22 — Equipo y baúl
 
 ### Idea del propietario
 Un inventario donde equipar **armas, escudos, armaduras** y otros objetos. Cambia la mecánica de drop: **las armas y armaduras caen de los jefes** y se guardan entre partidas y mapas.
@@ -402,7 +439,7 @@ Un inventario donde equipar **armas, escudos, armaduras** y otros objetos. Cambi
 - Hoy las armas se consiguen con las **cartas de subir de nivel** (Fase 6). **Decisión clave:** ¿qué pasa con esas cartas?
   - **Propuesta:** lo que equipas en la ciudad es tu **equipo de salida** (empiezas la partida con esa arma y esa armadura, y sus stats). Durante la partida, las cartas siguen dando armas nuevas y mejorándolas. Así se mantiene el ritmo Survivors y el equipo da progresión entre partidas.
   - Alternativa: las armas solo vienen del equipo y las cartas solo dan stats y mejoras. Es un cambio mucho más grande del juego.
-- Los **cofres de los minijefes** dan hoy buffs. Propuesta: pasan a dar **equipo** (y los buffs quedan para los tótems de la Fase 18).
+- Los **cofres de los minijefes** dan hoy buffs. Propuesta: pasan a dar **equipo** (y los buffs quedan para los tótems de la Fase 16).
 
 ### Propuesta
 - **Equipo:** arma, escudo, casco, armadura, pantalones, botas, capa y quizá anillo o collar. Los sprites existen: el `CharacterSprite` ya compone cuerpo, armadura, arma y capa, y hay iconos en `item-pack`.
@@ -411,13 +448,13 @@ Un inventario donde equipar **armas, escudos, armaduras** y otros objetos. Cambi
 - **Drops:** el jefe final suelta 1–2 piezas al morir (junto al portal de la Fase 13); los minijefes, a veces. Rareza (común, rara, épica) con color en el nombre.
 - **En partida:** el equipo conseguido se ve como "botín" y se guarda al terminar, ganes o pierdas (o solo si ganas: decisión del propietario).
 - **Pociones:** se quedan como ahora (se usan al cogerlas). La "bolsa ligera" del borrador anterior queda como idea para después.
-- **Bandos (Fase 23, opción B):** los objetos Hero desbloqueados con EK aparecen aquí.
+- **Bandos (Fase 24, opción B):** los objetos Hero desbloqueados con EK aparecen aquí.
 - **Tienda (a futuro):** la Shop Keeper de la ciudad podría vender equipo por oro.
 
 ### Bloques
-- **21A:** datos del equipo, baúl guardado y pantalla de equipo en la ciudad.
-- **21B:** drops de jefes y minijefes, equipo de salida en partida.
-- **21C** (si hace falta): rarezas, comparar piezas, vender o romper lo que sobra.
+- **22A:** datos del equipo, baúl guardado y pantalla de equipo en la ciudad.
+- **22B:** drops de jefes y minijefes, equipo de salida en partida.
+- **22C** (si hace falta): rarezas, comparar piezas, vender o romper lo que sobra.
 
 ### Aceptación
 - Mato al Wyvern, cae una espada; vuelvo a la ciudad, la equipo en el Cofre y empiezo la siguiente partida con ella.
@@ -425,7 +462,7 @@ Un inventario donde equipar **armas, escudos, armaduras** y otros objetos. Cambi
 
 ---
 
-## Fase 22 — Más mapas
+## Fase 23 — Más mapas
 
 ### Mapas candidatos (medidos con el código del juego)
 Columnas:
@@ -435,12 +472,12 @@ Columnas:
 
 | Mapa | Zona libre | Descarga | Extra | Valoración |
 |---|---|---|---|---|
-| **Icebound** | 91% (94% en 80×80) | 9,2 MB | ~3,9 MB | ⭐ Excelente: campo nevado abierto. En el original nieva en este mapa (Fase 19) |
+| **Icebound** | 91% (94% en 80×80) | 9,2 MB | ~3,9 MB | ⭐ Excelente: campo nevado abierto. En el original nieva en este mapa (Fase 20) |
 | **Dungeon L4** (`dglv4`) | 99% solo en 60×60; 63% en 100×100 | 4,9 MB | ~0,9 MB | ⭐ Bueno como **arena más pequeña** (una sala de 60×60). Muy barato. Pasillos alrededor |
 | **Druncian City** | 86% | 8,5 MB | ~7,5 MB | Bueno: plazas abiertas. Tiene la hoja de casillas más pesada del juego (5 MB) |
 | **Middleland** | 99% | 14,9 MB | menos si se recorta | Muy abierto, pero el propietario lo descartó por monótono. Se podría usar otra zona |
 | **Farm** (`arefarm`/`elvfarm`) | 93–95% | **16,2 MB** | alto | Abierto y bonito, pero es el que más pesa |
-| Aresden / Elvine (ciudades) | 92–96% | 22,2 MB | muy alto | Los más pesados. Ver La ciudad (Fase 20) y Bandos |
+| Aresden / Elvine (ciudades) | 92–96% | 22,2 MB | muy alto | Los más pesados. Ver La ciudad (Fase 21) y Bandos |
 | Otros que encajan: Promiseland (`2ndmiddle`, 6,5 MB), Bisle (islas, 5,4 MB), Procella (10,6 MB), Abaddon (3,1 MB, aspecto infernal) | | | | |
 | No encajan: dglv2, dglv3, Tower of Hell, Maze, fightzones (todo pasillos o muy pequeños) | | | | |
 
@@ -460,7 +497,7 @@ Los rosters salen del original (wiki de helbreath.net y `GameWorlds.json`), adap
 - **Monstruos:** Slime ♻️, Giant Ant ♻️, Orc ♻️, Snake ♻️, Scorpion ♻️, Bunny ♻️, Cat ✅.
 - **Decoración:** Scarecrow ✅ y cultivos (`crop.spr`) como decoración o "enemigos" que se rompen.
 - **Mapa fácil o de principiantes**, ideal como **primer mapa** del juego. Pesa mucho (16 MB): se puede recortar.
-- **Jefe:** aquí el jefe natural **es una Raid** (jugadores del otro bando atacando la granja). Ver Fase 24.
+- **Jefe:** aquí el jefe natural **es una Raid** (jugadores del otro bando atacando la granja). Ver Fase 25.
 - **Música:** `aresden.mp3` o `elvine.mp3`, según la granja.
 
 **🏙️ Druncian City** (primer mapa del Apocalypse; en el original se entraba por un portal en Icebound)
@@ -481,11 +518,11 @@ Los rosters salen del original (wiki de helbreath.net y `GameWorlds.json`), adap
 Farm → Eternal Field (actual) → Dungeon L4 → Icebound → Druncian City (→ Middleland).
 
 ### Bloques
-**22A, 22B...:** un mapa por bloque, con `/anadir-mapa` y `/anadir-enemigo` para cada monstruo.
+**23A, 23B...:** un mapa por bloque, con `/anadir-mapa` y `/anadir-enemigo` para cada monstruo.
 
 ---
 
-## Fase 23 — Aresden y Elvine
+## Fase 24 — Aresden y Elvine
 
 ### Cómo era en el original
 - Empezabas como **Traveller** (neutral, sin perder objetos al morir) y luego elegías ciudad.
@@ -498,10 +535,10 @@ Farm → Eternal Field (actual) → Dungeon L4 → Icebound → Druncian City (�
 ### Opciones para meterlo (se pueden combinar)
 - **A) Elegir bando al empezar** (recomendada, base de todo lo demás):
   - En la selección de personaje, un botón **Aresden / Elvine**.
-  - Cambia el **color de la capa** y del nombre, la música del menú (`aresden.mp3` / `elvine.mp3`) y **la ciudad** de la Fase 20 (si se usó un recorte de ciudad).
+  - Cambia el **color de la capa** y del nombre, la música del menú (`aresden.mp3` / `elvine.mp3`) y **la ciudad** de la Fase 21 (si se usó un recorte de ciudad).
   - Da un **bonus pequeño** distinto a cada bando, por ejemplo: Aresden +5% de daño físico, Elvine +5% de daño mágico. Esto es invención nuestra.
   - **Decide quién te ataca en las Raids** (el otro bando).
-- **B) Objetos Hero con EK** (meta-progresión, se apoya en el baúl de la Fase 21):
+- **B) Objetos Hero con EK** (meta-progresión, se apoya en el baúl de la Fase 22):
   - Cada jugador enemigo que matas en una Raid da **EK**, que se guarda entre partidas.
   - Con EK se **desbloquean los objetos Hero de tu bando**: capa, casco, armadura... Los sprites existen todos, en versión Aresden y Elvine, hombre y mujer. Se "compran" a William en la ciudad, como en el City Hall del original.
 - **C) Mapas de ciudad / Crusade:** ver "Ideas para después".
@@ -521,7 +558,7 @@ Farm → Eternal Field (actual) → Dungeon L4 → Icebound → Druncian City (�
 
 ---
 
-## Fase 24 — Raids: "jugadores" enemigos
+## Fase 25 — Raids: "jugadores" enemigos
 
 ### Qué era una raid
 Un grupo de jugadores del bando enemigo entrando en tu ciudad, granja o dungeon para matar ciudadanos. El original lo limitaba con un "raid time": unos días a la semana se permitía estar más tiempo en la zona enemiga. También había grupos de PK en Middleland.
@@ -542,7 +579,7 @@ Un grupo de jugadores del bando enemigo entrando en tu ciudad, granja o dungeon 
   - como **evento de la línea de tiempo** (`waves.ts`): "Elvine raiders have entered the map!", un grupo de 2–5;
   - también **al azar** en algunos mapas: una probabilidad por minuto a partir del minuto 4, por ejemplo.
   - En la **Farm**, la raid es el jefe final: un grupo grande con un "líder" con más vida.
-- **Recompensa:** matar a un raider da mucha XP, **EK** (si se hace la opción B de Bandos), probabilidad de Zem, de cofre y de **equipo** (Fase 21).
+- **Recompensa:** matar a un raider da mucha XP, **EK** (si se hace la opción B de Bandos), probabilidad de Zem, de cofre y de **equipo** (Fase 22).
 - **Ellos usan buffs** (Berserk = brillo rojo, como el tuyo) para que se note que son "jugadores".
 - **Rendimiento:** cada raider son ~8–12 dibujos (como el jugador) en vez de 1. **Máximo 6 a la vez**. Con `pooling`, como todo lo demás. Aquí se mide el **límite de enemigos en el móvil** (traído de la Fase 10).
 - **Sonidos:** los del jugador (golpe C18, quejido C12/C13, grito C23/C24, hechizos E*).
@@ -554,7 +591,7 @@ Un grupo de jugadores del bando enemigo entrando en tu ciudad, granja o dungeon 
 
 ---
 
-## Fase 25 — Ranking online *(opcional)*
+## Fase 26 — Ranking online *(opcional)*
 
 - Reutiliza el servidor de las métricas (Fase 14, Cloudflare Workers + D1). El juego envía la marca al terminar.
 - Top por mapa y clase, visible en la pantalla Records junto a los récords locales.
@@ -578,12 +615,12 @@ Un grupo de jugadores del bando enemigo entrando en tu ciudad, granja o dungeon 
 ## Cosas que afectan a varias fases
 - **Móvil:** cada botón nuevo (crit, hablar en la ciudad, minimapa) necesita versión táctil y debe verse bien con lo hecho en la Fase 10A (todo más grande en el móvil).
 - **Controles:** todo control nuevo se explica en **How to play** (Fase 11), no en pantalla.
-- **Guardado:** la Fase 12 crea el guardado en el navegador; logros (14), récords (19) y baúl (21) lo reutilizan. Cambiar su formato exige versión y migración, para no borrar el progreso de nadie.
+- **Guardado:** la Fase 12 crea el guardado en el navegador; logros (14), récords (20) y baúl (22) lo reutilizan. Cambiar su formato exige versión y migración, para no borrar el progreso de nadie.
 - **Descarga:**
   - cada mapa añade 1–8 MB y cada monstruo grande 0,5–3,6 MB (el Wyvern pesa 3,6 MB);
   - se descargan **solo al elegir el mapa**, con `AssetStreamer`;
-  - la descarga inicial no debe crecer. La ciudad (Fase 20) debe ser ligera.
-- **Equilibrio:** primera pasada en la Fase 13 (objetivo inicial: 25–30 niveles en 12–15 minutos, a confirmar). Repasarlo al cerrar las Fases 16, 17, 19 y 24, con los datos de las métricas (Fase 14).
+  - la descarga inicial no debe crecer. La ciudad (Fase 21) debe ser ligera.
+- **Equilibrio:** primera pasada en la Fase 13 (objetivo inicial: 25–30 niveles en 12–15 minutos, a confirmar). Repasarlo al cerrar las Fases 18, 19, 20 y 25, con los datos de las métricas (Fase 14).
 - **Logros:** cada fase añade los suyos ("Win Icebound", "Kill 50 raiders", "Revive with a Zem", "10 Critical Strikes in one run").
 
 ## Decisiones pendientes del propietario
@@ -592,10 +629,11 @@ Se preguntan al empezar cada fase (`/fase N`):
 2. **Fase 13:** ritmo de subida de nivel deseado (¿cuántos niveles en una partida completa?).
 3. **Fase 14:** ¿montamos el servidor de métricas (cuenta gratuita de Cloudflare)?
 4. **Fase 15:** ¿el clic deja de mover al personaje, o clic izquierdo mueve y derecho apunta?
-5. **Fase 16:** ¿la Maga sin crits (como el original) o con "Critical Cast"? ¿Espacio o Alt en el teclado?
-6. **Fase 17:** ¿se puede conseguir otro Zem después de gastarlo?
-7. **Fase 18:** ¿los cofres siguen dando buffs o pasan a dar equipo (con la Fase 21)?
-8. **Fase 19:** ¿qué mapa primero (propuesta: Icebound)?
-9. **Fase 20:** ¿la ciudad es un recorte de Aresden/Elvine o un interior pequeño?
-10. **Fase 21:** ¿las armas siguen saliendo en las cartas de nivel (propuesta: sí, el equipo es el de salida)? ¿El botín se guarda siempre o solo al ganar?
-11. **Fase 23:** ¿solo la opción A, o también la B (EK y objetos Hero)? ¿Bonus distinto por bando o solo estético?
+5. **Fase 16:** ¿los cofres siguen dando buffs o pasan a dar equipo (con la Fase 22)?
+6. **Fase 17:** ¿solo el aspecto del original (A), también crear personaje (B) o personajes guardados (C)?
+7. **Fase 18:** ¿la Maga sin crits (como el original) o con "Critical Cast"? ¿Espacio o Alt en el teclado?
+8. **Fase 19:** ¿se puede conseguir otro Zem después de gastarlo?
+9. **Fase 20:** ¿qué mapa primero (propuesta: Icebound)?
+10. **Fase 21:** ¿la ciudad es un recorte de Aresden/Elvine o un interior pequeño?
+11. **Fase 22:** ¿las armas siguen saliendo en las cartas de nivel (propuesta: sí, el equipo es el de salida)? ¿El botín se guarda siempre o solo al ganar?
+12. **Fase 24:** ¿solo la opción A, o también la B (EK y objetos Hero)? ¿Bonus distinto por bando o solo estético?

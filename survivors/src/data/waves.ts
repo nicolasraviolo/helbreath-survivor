@@ -106,7 +106,7 @@ export const PORTAL = {
 } as const;
 
 // Comprobación al cargar: las oleadas solo usan esenciales y monstruos del mapa, y los eventos de jefe, sus jefes.
-// Las oleadas son de DEFAULT_MAP; con varios mapas (Fase 19) cada mapa tendrá las suyas.
+// Las oleadas son de DEFAULT_MAP; con varios mapas (Fase 20) cada mapa tendrá las suyas.
 {
     const map: MapDef = MAPS_DATA[DEFAULT_MAP];
     const allowed = new Set<EnemyId>([...ESSENTIAL_ENEMIES, ...map.localEnemies]);
