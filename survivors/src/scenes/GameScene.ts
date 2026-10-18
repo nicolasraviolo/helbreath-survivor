@@ -12,7 +12,7 @@ import {
     PLAYER_HURT_STUN_MS,
     TILE_SIZE,
 } from '../config/gameConfig';
-import { TOUCH_AIM_STICK, TOUCH_JOYSTICK, TOUCH_RESERVED_CORNER } from '../config/touch';
+import { TOUCH_AIM_STICK, TOUCH_AIM_ZONE_START, TOUCH_JOYSTICK, TOUCH_RESERVED_CORNER } from '../config/touch';
 import { ANNOUNCE_EVENT, QUIT_RUN_EVENT } from '../config/hud';
 import { getArmorPiece } from '../data/armor';
 import { MUSIC } from '../data/audio';
@@ -120,8 +120,9 @@ export class GameScene extends Phaser.Scene {
     private weapons!: WeaponSystem;
     private aimArrow!: AimArrow;
     private debug!: DebugSystem;
-    /** The ?debug= actions still have to run (only on the first run after loading the page). */
+    /** ?debug=aim / debug key: aiming to the right by itself (reset at the start of each run). */
     private debugAimForced = false;
+    /** The ?debug= actions still have to run (only on the first run after loading the page). */
     private debugStartPending = DEBUG_START.actions.length > 0;
     /** Run time left before those actions (counted with the frames: the scene clock is not ready in create()). */
     private debugStartWaitMs = DEBUG_START_DELAY_MS;
@@ -203,6 +204,7 @@ export class GameScene extends Phaser.Scene {
         this.stats = new CharacterStats(character);
         this.levelUpOpen = false;
         this.sim = undefined;
+        this.debugAimForced = false;
         this.metrics = new RunMetrics(this.game, resume?.metrics, resume !== undefined);
         // Quit to menu: the run stays saved, but the stats count it as left (if it is continued, it sends again).
         const onQuit = () => {
@@ -293,7 +295,7 @@ export class GameScene extends Phaser.Scene {
         this.inputSystem.setPointerAnchor(() => this.player);
         if (this.sys.game.device.input.touch) {
             // With the aim stick on (Fase 15C) the left half moves and the right half aims; off, anywhere moves.
-            const aimSide = (x: number): boolean => settings.current.aimStick && x >= GAME_WIDTH / 2;
+            const aimSide = (x: number): boolean => settings.current.aimStick && x >= GAME_WIDTH * TOUCH_AIM_ZONE_START;
             const critCorner = (x: number, y: number, maxY: number): boolean =>
                 x >= GAME_WIDTH - TOUCH_RESERVED_CORNER.width && y >= maxY - TOUCH_RESERVED_CORNER.height;
             this.joystick = new TouchJoystick(this, playAreaBottom(), DEPTH_DEBUG - 2, TOUCH_JOYSTICK,
