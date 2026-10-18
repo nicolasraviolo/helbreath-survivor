@@ -2,6 +2,16 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
+**Fase 19, bloque 19A: Critical Strike del Guerrero (2026-10-18).**
+- **Qué hace:** con **Espacio**, **X** del mando o el **botón táctil** (abajo a la derecha), el Guerrero gasta una carga y da al momento un golpe de área hacia donde apunta (manual, el enemigo más cercano o hacia donde mira). Forma según el arma (decisión del propietario): espada corta, barrido 1 casilla más allá del golpe normal; espada larga, 3 casillas; hachas, dos giros completos; martillos, círculo de 2 casillas con mucho empuje (estos dos, preparados aunque estén apagados). Sale la espiral de `effect6.spr` hoja 1 alrededor del personaje, el grito C23 (hombre) o C24 (mujer), números grandes y un temblor suave.
+- **Cargas:** máximo 1 + nivel/10; +1 cada **20 s** y +1 cada 15 golpes recibidos. Daño = daño del arma × (2 + nivel/30) × extra de familia (larga +10%, hacha y martillo +20%). Se guardan con la partida (`critCharges`; las partidas antiguas empiezan con todas).
+- **Interfaz:** esfera **roja** del original (`gamedialog86` hoja 6, frame 5) con el número de cargas, que pasa un momento a la **violeta** (frame 3) al lanzar. En el PC, en el hueco cuadrado de la barra; en el móvil y con `?ui=compact`, ese icono grande **es el botón**, encima de las barras. Atenuado sin cargas; el Mago no tiene nada (llega en el 19B). Página nueva "Crit" en How to Play (con icono X del mando).
+- **También cambiado:** el `!` de los números de daño sale **solo en el golpe que mata** ("-20" / "-20!"), como en el original; el crítico de Chr sigue amarillo y grande. Las cartas y el Game Over se eligen con Enter / A / clic, **no con Espacio** (`Action.Pick`).
+- **Código:** `data/critStrike.ts`, `systems/CritStrikeSystem.ts`, `WeaponSystem.criticalStrike`, `ui/CritButton.ts`, `CritIconState` en `ui/hudLayout.ts`, `HUD_CRIT` y `HUD_CRIT_BUTTON` en `config/hud.ts`, `fx.crit.strike` y `fx.effect6` (+0,48 MB de carga inicial). La partida simulada lanza un crit en cuanto tiene carga.
+- **Truco:** `?debug=crits` o tecla **H** en partida → crits infinitos. Situación nueva `pnpm check crit` (con `--eval="g.launchCritStrike()"` para lanzarlo).
+- **Comprobado:** build; `check menu game levelup crit` y `crit --mobile` sin errores; 5 crits seguidos golpean (2–10 enemigos cada uno); el toque en el botón gasta la carga; capturas del efecto y del icono en PC y móvil; Mago sin botón; la partida simulada termina sin errores (el equilibrio se repasa al cerrar la fase).
+- **Probar:** `pnpm --dir survivors dev` → http://localhost:8090/?play=warrior&debug=crits y pulsar Espacio (móvil: añadir `&ui=compact`).
+
 **Fase 18 completada (2026-10-18)**: bloques 18A (esquiva física) y 18B (resistencia mágica). Revisión final: totales de armadura guardados en `Equipment` (no se recalculan cada frame), un solo objeto de defensa por frame, "Resist" apilados sin taparse y el % general de resistencia leído de la bola del Mage-Orc. Idea apuntada para el futuro: jefes más difíciles de esquivar. Fusionada en `master`, etiqueta `fase-18`. Siguiente: `/fase 19`.
 
 **Fase 18, bloque 18B: resistencia mágica (2026-10-18).**

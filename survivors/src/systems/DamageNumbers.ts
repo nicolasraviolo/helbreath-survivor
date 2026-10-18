@@ -1,7 +1,8 @@
 // Números de daño flotantes, reciclados con un pool (regla 5).
 // Estilo inspirado en sp-client/src/game/objects/GameObject.ts (addDamageText): "-N" rojo en Georgia
 // negrita, sube y se desvanece la segunda mitad de su vida. Añadimos un borde negro para que se lea sobre la hierba.
-// Los críticos salen en amarillo, más grandes y con "!" (como "-90Pts!" en el original).
+// Los críticos salen en amarillo y más grandes. El "!" solo va al final del golpe que mata, como en el original
+// (decidido por el propietario el 18-oct-2026: "20" si sobrevive, "20!" si muere).
 import Phaser from 'phaser';
 import {
     DAMAGE_NUMBER_FONT_SIZE,
@@ -54,14 +55,14 @@ export class DamageNumbers {
         return this.pool.active.length;
     }
 
-    /** Shows "-amount" at (x, y). Skipped when too many are on screen. */
-    public show(x: number, y: number, amount: number, critical = false): void {
+    /** Shows "-amount" at (x, y), with "!" if the blow killed. Skipped when too many are on screen. */
+    public show(x: number, y: number, amount: number, critical = false, lethal = false): void {
         if (this.pool.active.length >= DAMAGE_NUMBER_MAX) return;
         const number = this.pool.acquire();
         number.ageMs = 0;
         number.isWord = false;
         const spread = (Math.random() - 0.5) * DAMAGE_NUMBER_SPREAD_PX;
-        number.text.setText(critical ? `-${amount}!` : `-${amount}`)
+        number.text.setText(lethal ? `-${amount}!` : `-${amount}`)
             .setColor(critical ? CRITICAL_COLOR : NORMAL_COLOR)
             .setScale(critical ? CRITICAL_SCALE : 1)
             .setPosition(x + spread, y).setAlpha(1).setActive(true).setVisible(true);

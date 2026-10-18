@@ -124,7 +124,7 @@ export class LevelUpScene extends Phaser.Scene {
         if (!this.ready()) return;
         if (input.justPressed(Action.MenuLeft)) this.highlight(this.selected - 1);
         if (input.justPressed(Action.MenuRight)) this.highlight(this.selected + 1);
-        if (input.justPressed(Action.Confirm)) this.choose(this.selected);
+        if (input.justPressed(Action.Pick)) this.choose(this.selected);
     }
 
     private ready(): boolean {

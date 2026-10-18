@@ -57,6 +57,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Aspecto del personaje (Fase 17B)
 - Esquiva física (Fase 18A)
 - Resistencia mágica (Fase 18B)
+- Critical Strike (Fase 19A)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -539,7 +540,7 @@ Tabla completa en `docs/REQUISITOS_HB.md`. Lo no obvio:
 - Cloudflare Pages: 25 MiB máximo por archivo (el mayor es `tile489-522.spr`, 5,2 MB) y 20 000 archivos por despliegue.
 
 ## Assets para la segunda etapa (investigado el 17-oct-2026, ver `docs/PLAN-2.md`)
-- **Crítico del original:** se lanza con Alt; cargas = nivel/10, +1 cada ~13 s (S:4117). Grito `C23` (hombre) / `C24` (mujer). Icono del HUD al mantener Alt: GameDialog hoja 6 frame 3.
+- **Crítico del original:** se lanza con Alt; cargas = nivel/10, +1 cada ~13 s (S:4117). Grito `C23` (hombre) / `C24` (mujer). Icono del HUD al mantener Alt: GameDialog hoja 6 frame 3 (el icono rojo con el número es el frame 5; ver "Critical Strike (Fase 19A)").
 - **Zem** (Zemstone of Sacrifice): `item-ground`/`item-pack` hoja 15 frame 39. Efecto Resurrection: `effect11` hoja 10 (21 frames; el código pide 30).
 - **Minimapa original:** `telescope.spr` hoja 0, miniaturas de 128×128. Frame por mapa: huntzone2 9, middleland 4, arefarm 6, elvfarm 5, dglv4 14, icebound 24, druncncity 25. Punto del jugador: GameDialog hoja 4 frame 37. También hay `images/minimaps/<mapa>.jpg` (1500×1500).
 - **Bolsa original:** GameDialog hoja 7 frame 0 (226×188); objetos dibujados en (32+x, 44+y).
@@ -717,3 +718,14 @@ Tabla completa en `docs/REQUISITOS_HB.md`. Lo no obvio:
 - La partida simulada cuenta los hechizos junto a los golpes (`blows`).
 - Varios "Resist" casi a la vez (las 3 bolas del Wyvern) se apilan hacia arriba (`WORD_STACK_MS`/`WORD_STACK_PX` en `DamageNumbers.ts`).
 - `Equipment` guarda los totales de la armadura (`totals`) y los recalcula solo en `wear()`, porque se leen cada frame. La armadura solo se cambia con `wear()` (`armor` es de solo lectura). Para la vista previa de las cartas: `totalWith(pieza, 'magicResistance')`, etc.
+
+## Critical Strike (Fase 19A)
+- **Iconos de `gamedialog86.spr` hoja 6** (la del HUD): frames 0/1/2 = espadas azul / roja / gris en un rectángulo (36×44); frames 3/4/5 = esferas violeta / amarilla / **roja** con espada (32×32). El propietario eligió la **roja (5)** con las cargas encima, que pasa a la **violeta (3)** un momento al lanzar ("pulsada"). Va centrada en el hueco cuadrado de la barra, a la izquierda de los botones (x≈448–484).
+- Esos frames traen el punto de anclaje del original: con `origin` por defecto quedan descolocados. Usar `setOrigin(0.5)` y `setFrame(f, false, false)` (si no, `setFrame` vuelve a poner el anclaje del frame).
+- Efecto: `effect6.spr` **hoja 1** (elegida en el visor). En sp-client esa hoja es "Earth Worm Attack Helix"; la tarjeta del visor dice "Base" porque "Base" es la hoja 4 del mismo archivo. `effect6.spr` pesa ~0,48 MB y se carga al principio.
+- Números de daño: el `!` va solo en el golpe que mata (como el original); el crítico de Chr sigue amarillo y grande.
+- Grito: `C23.mp3` hombre / `C24.mp3` mujer.
+- Forma del golpe por familia en `data/critStrike.ts` (`CRIT_SHAPES`): alcance = alcance del arma + N casillas. Hachas y martillos ya tienen la suya aunque estén apagados.
+- Con las cartas abiertas el crit no se lanza; las cartas y el Game Over se eligen con Enter / A / clic, **no con Espacio** (`Action.Pick`), para que un Espacio pulsado de más no elija carta.
+- El botón táctil (`ui/CritButton.ts`) y la esquina reservada se miden desde `overlayBottom()`: con la barra compacta abajo quedan por encima de las barras.
+- La partida simulada lanza un crit en cuanto tiene carga.

@@ -165,7 +165,7 @@ export const PAD_ICON = {
     gap: byDevice(8, 10),
     fill: 0x202020,
     outline: 0xc8b88a,
-    letterColor: { A: '#6cc04a', B: '#e04a3a', Y: '#f0c030' },
+    letterColor: { A: '#6cc04a', B: '#e04a3a', X: '#3a8fe0', Y: '#f0c030' },
     /** Start, stick and d-pad are drawn in this colour. */
     shapeColor: 0xe8dcc0,
 } as const;

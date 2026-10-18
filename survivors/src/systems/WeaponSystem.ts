@@ -1,12 +1,14 @@
 // Armas del jugador: les da el contexto cada frame, mueve los proyectiles de los hechizos (con pool), detecta impactos
 // y lanza las explosiones (algunas con retraso, como Fire Strike), cuyo daño aplica CombatSystem una sola vez.
-// También los tajos cuerpo a cuerpo (animación, estela y daño).
+// También los tajos cuerpo a cuerpo (animación, estela y daño) y el Critical Strike del Guerrero (Fase 19A): un golpe de
+// área inmediato cuya forma depende de la familia del arma (data/critStrike.ts); lo pide systems/CritStrikeSystem.ts.
 import Phaser from 'phaser';
 import { MELEE_ORIGIN_OFFSET_Y } from '../config/gameConfig';
 import { SWING_SOUND_MS } from '../data/audio';
 import type { EffectKey } from '../config/effects';
 import { CAST_SOUND, type SpellBurst, type SpellDef } from '../data/spells';
-import { MELEE_HIT_SOUND, MELEE_SWING_SOUND } from '../data/weapons';
+import { critReach, type CritShape } from '../data/critStrike';
+import { MELEE_HIT_MOMENT, MELEE_HIT_SOUND, MELEE_SWING_SOUND, type MeleeWeaponDef } from '../data/weapons';
 import { Effect } from '../entities/Effect';
 import type { Enemy } from '../entities/Enemy';
 import { Projectile } from '../entities/Projectile';
@@ -17,7 +19,7 @@ import type { AudioSystem } from './AudioSystem';
 import type { CombatSystem } from './CombatSystem';
 import type { EnemySystem } from './EnemySystem';
 import type { ScreenShake } from './ScreenShake';
-import { type ManualAim, Targeting } from './Targeting';
+import { type ManualAim, manualAimAngle, Targeting } from './Targeting';
 
 /** Owner animation asked by a weapon: a melee swing or a cast. */
 export type OwnerAction = 'melee' | 'cast';
@@ -42,6 +44,8 @@ export class WeaponSystem {
     private readonly bursts = new Pool(() => new PendingBurst());
     private readonly finishedBursts: PendingBurst[] = [];
     private readonly targeting: Targeting;
+    /** Critical Strike under way: blows still to land (axes spin twice) and when the next one lands. */
+    private readonly strike = { hitsLeft: 0, waitMs: 0, angle: 0, radius: 0, arc: 0, damage: 0, knockback: 0, repeatMs: 0, swingMs: 0 };
     /** Plays the owner's swing or cast animation (set by the game scene). */
     private onOwnerAction: (action: OwnerAction, angle: number, durationMs: number) => void = () => undefined;
 
@@ -126,6 +130,36 @@ export class WeaponSystem {
         this.targeting.manual = aim;
     }
 
+    /**
+     * Critical Strike (Fase 19A): a swing right now, wider and further than the weapon's own, towards the manual aim, else
+     * the nearest enemy in reach, else `fallbackAngle` (where the player faces). `damage` is the base damage of each blow.
+     */
+    public criticalStrike(def: MeleeWeaponDef, shape: CritShape, damage: number, fallbackAngle: number): void {
+        const { x, y } = this.context;
+        const originY = y - MELEE_ORIGIN_OFFSET_Y;
+        const radius = critReach(def.range, shape);
+        let angle = fallbackAngle;
+        const manual = this.targeting.manual;
+        if (manual) {
+            angle = manualAimAngle(manual, x, originY);
+        } else {
+            const target = this.targeting.findTarget(x, y, radius);
+            if (target) angle = Math.atan2(target.bodyY - originY, target.x - x);
+        }
+        const swingMs = def.swingMs * this.context.cooldownMultiplier;
+        const strike = this.strike;
+        strike.hitsLeft = shape.hits;
+        strike.waitMs = swingMs * MELEE_HIT_MOMENT;
+        strike.angle = angle;
+        strike.radius = radius;
+        strike.arc = Phaser.Math.DegToRad(shape.arcDegrees);
+        strike.damage = damage;
+        strike.knockback = shape.knockback;
+        strike.repeatMs = shape.repeatMs;
+        strike.swingMs = swingMs;
+        this.onOwnerAction('melee', angle, swingMs);
+    }
+
     public setCooldownMultiplier(value: number): void {
         this.context.cooldownMultiplier = value;
     }
@@ -151,6 +185,7 @@ export class WeaponSystem {
                 this.finishedProjectiles.push(projectile);
             }
         }
+        this.updateStrike(deltaMs);
         this.slash.update(deltaMs);
         for (const pending of this.bursts.active) {
             pending.waitMs -= deltaMs;
@@ -169,6 +204,33 @@ export class WeaponSystem {
         for (const effect of this.finishedEffects) this.effects.release(effect);
         this.finishedProjectiles.length = 0;
         this.finishedEffects.length = 0;
+    }
+
+    /** Lands the blows of the Critical Strike when their time comes (the second spin of an axe swings again). */
+    private updateStrike(deltaMs: number): void {
+        const strike = this.strike;
+        if (strike.hitsLeft <= 0 || (strike.waitMs -= deltaMs) > 0) return;
+        strike.hitsLeft--;
+        const x = this.context.x;
+        const y = this.context.y - MELEE_ORIGIN_OFFSET_Y;
+        this.audio.play(MELEE_SWING_SOUND, SWING_SOUND_MS);
+        this.slash.show(x, y, strike.radius, strike.angle, strike.arc);
+        const hits = this.combat.hitArc({
+            damageType: 'physical',
+            x,
+            y,
+            radius: strike.radius,
+            angle: strike.angle,
+            arc: strike.arc,
+            damage: strike.damage,
+            knockback: strike.knockback,
+            bigNumbers: true,
+        }, (enemy) => this.spawnEffect('fx.hit', enemy.x, enemy.bodyY));
+        if (hits > 0) this.audio.play(MELEE_HIT_SOUND);
+        if (strike.hitsLeft > 0) {
+            strike.waitMs = strike.repeatMs;
+            this.onOwnerAction('melee', strike.angle, strike.swingMs);
+        }
     }
 
     /** Impact: the damage lands once; the explosions are drawn now or after their delay. */

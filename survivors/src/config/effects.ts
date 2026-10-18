@@ -58,6 +58,9 @@ export const EFFECTS = {
     'fx.totem.glow': { sprite: 'fx.effect5', sheet: 7, frameRate: 10, loop: true, additive: true, depthOffset: -1 },
     'fx.fullHp.cast': { sprite: 'fx.effect11', sheet: 10, frameRate: 15, loop: false },
     'fx.freeze.cast': { sprite: 'fx.effect8', sheet: 5, frameRate: 10, loop: false, depthOffset: -1 },
+    // Critical Strike (Fase 19A, elegido por el propietario en el visor de sprites): effect6.spr hoja 1, la espiral del
+    // Earthworm Strike (sp-client "Earth Worm Attack Helix"), 13 frames a 20 fps, una vez, alrededor del jugador.
+    'fx.crit.strike': { sprite: 'fx.effect6', sheet: 1, frameRate: 20, loop: false, fadeFromFrame: 9 },
     'fx.footsteps':{ sprite: 'fx.effect2', sheet: 1, frames: [28, 32], frameRate: 10, loop: false, depthOffset: -1 },
 } as const satisfies Record<string, EffectDef>;
 

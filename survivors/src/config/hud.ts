@@ -66,6 +66,39 @@ export const HUD_TEXT_STYLE = {
 export const HUD_INFO_STYLE = { ...HUD_TEXT_STYLE, color: '#e8d9a8' } as const;
 
 /**
+ * Critical Strike (Fase 19A): the original's red orb with a sword (HUD_TEXTURE frame 5, 32x32) with the charges on it;
+ * right after a launch it turns into the purple one (frame 3) for a moment, as if pressed (owner, 18-oct-2026). On the
+ * classic bar it sits centred in the square hole left of the buttons, where the original drew its number (Client.cpp:
+ * 465,574 on 800x600). In bar pixels; dimmed while there is no charge.
+ */
+export const HUD_CRIT = {
+    frame: 5,
+    pressedFrame: 3,
+    pressedMs: 350,
+    x: 466,
+    y: 28,
+    numberX: 466,
+    numberY: 28,
+    emptyAlpha: 0.35,
+    style: { ...HUD_TEXT_STYLE, fontSize: px(UI_FONT_SIZE.normal) },
+} as const;
+
+/**
+ * Touch button of the Critical Strike (Fase 19A): the same red sword, bigger, with its charges, in the middle of the
+ * corner kept free for it (TOUCH_RESERVED_CORNER, bottom right of the game area). Only on touch screens and ?ui=compact.
+ */
+export const HUD_CRIT_BUTTON = {
+    iconScale: 2,
+    radius: 42,
+    color: 0x000000,
+    alpha: 0.45,
+    ringColor: 0xff5040,
+    ringAlpha: 0.8,
+    numberOffset: { x: 0, y: 0 },
+    style: { ...HUD_TEXT_STYLE, fontSize: px(UI_FONT_SIZE.large), strokeThickness: 4 },
+} as const;
+
+/**
  * Active buffs (chests): bottom right, just above the bar, one line each with name and seconds left, in the game's
  * own sprite font (the spell book letters). The first buff taken is the lowest line.
  */

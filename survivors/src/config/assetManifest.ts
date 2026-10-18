@@ -116,6 +116,8 @@ export const SPRITES = {
     'fx.effect2': { file: 'sprites/effect2.spr', type: SpriteType.Effect },
     // Brillo de los tótems: Casting Circle (hoja 7; ver data/totems.ts).
     'fx.effect5': { file: 'sprites/effect5.spr', type: SpriteType.Effect },
+    // Critical Strike (Fase 19A): la espiral del Earthworm Strike (hoja 1). ~0,48 MB.
+    'fx.effect6': { file: 'sprites/effect6.spr', type: SpriteType.Effect },
     // Tótems (Fase 16B): la Mana Stone. Una sola imagen, repetida en sus 40 hojas (se usa la 0).
     'object.manastone': { file: 'sprites/manastone.spr', type: SpriteType.Effect },
 
@@ -230,6 +232,9 @@ export const SOUNDS = {
     // Subir de nivel: voces del juego original que sp-client no trae, aportadas por el propietario (survivors/custom-assets/).
     'sfx.levelUp.m': { file: 'sounds/level-up-male.mp3' },
     'sfx.levelUp.w': { file: 'sounds/level-up-female.mp3' },
+    // Grito del Critical Strike (Fase 19A): C23 hombre / C24 mujer, como en el original (sp-client Player.ts).
+    'sfx.crit.m': { file: 'sounds/C23.mp3' },
+    'sfx.crit.w': { file: 'sounds/C24.mp3' },
     // Muerte del Fire Wyvern (no tiene sonido de golpe en sp-client).
     'sfx.wyvern.death': { file: 'sounds/M105.mp3' },
     // Música (sp-client public/assets/music; ver systems/MusicSystem.ts).

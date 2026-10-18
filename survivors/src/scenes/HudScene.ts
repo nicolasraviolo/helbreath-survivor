@@ -5,7 +5,8 @@
 // El casco (o C / Y del mando) muestra el panel de stats, y el disquete o Esc / Start abren la pausa (PauseScene).
 // Si se desconecta el mando en plena partida, la pausa se abre sola.
 // En pantallas táctiles hay además un botón de pausa arriba a la derecha, y la pausa se abre sola al poner el móvil
-// en vertical (el juego es apaisado y queda tapado por el aviso de girarlo).
+// en vertical (el juego es apaisado y queda tapado por el aviso de girarlo), y el botón del Critical Strike (Fase 19A)
+// abajo a la derecha.
 // Si se cambia el estilo de la barra en los ajustes (desde la pausa), la barra se cambia al momento.
 import Phaser from 'phaser';
 import { DEBUG_START } from '../config/debugStart';
@@ -36,6 +37,7 @@ import { Action, InputSystem } from '../systems/InputSystem';
 import { SETTINGS_CHANGED, settings } from '../systems/Settings';
 import { SpriteText } from '../hb/SpriteText';
 import { ClassicHud } from '../ui/ClassicHud';
+import { CritButton } from '../ui/CritButton';
 import { CompactHud } from '../ui/CompactHud';
 import { activeHudStyle, overlayBottom, type HudBar, type HudBarState } from '../ui/hudLayout';
 import { Minimap, type MinimapInfo, type MinimapMarkers } from '../ui/Minimap';
@@ -74,12 +76,16 @@ export interface HudSceneData {
     /** Scene paused while the pause menu is open. */
     gameSceneKey: string;
     minimap: MinimapInfo;
+    /** The touch button of the Critical Strike was pressed. */
+    launchCritStrike: () => void;
 }
 
 export class HudScene extends Phaser.Scene {
     private getState!: () => HudState;
     private gameSceneKey!: string;
     private minimapInfo!: MinimapInfo;
+    private launchCritStrike!: () => void;
+    private critButton: CritButton | undefined;
     private minimap!: Minimap;
     private inputSystem!: InputSystem;
     private bar!: HudBar;
@@ -113,6 +119,7 @@ export class HudScene extends Phaser.Scene {
         this.getState = data.getState;
         this.gameSceneKey = data.gameSceneKey;
         this.minimapInfo = data.minimap;
+        this.launchCritStrike = data.launchCritStrike;
     }
 
     create(): void {
@@ -166,6 +173,10 @@ export class HudScene extends Phaser.Scene {
         if (this.sys.game.device.input.touch || COMPACT_UI) {
             this.createTouchPauseButton();
             this.minimap.setTop(MINIMAP.topUnderButtons);
+            this.critButton = new CritButton(this, () => this.launchCritStrike());
+            this.critButton.place(overlayBottom());
+        } else {
+            this.critButton = undefined;
         }
     }
 
@@ -180,6 +191,7 @@ export class HudScene extends Phaser.Scene {
         if (this.inputSystem.justPressed(Action.ToggleStats)) this.toggleStats();
         if (this.statsPanel.visible) this.refreshStats(state);
         this.bar.update(state);
+        this.critButton?.update(state.critCharges, state.critLaunches);
         this.showBuffs(state.buffs);
         this.minimap.update(state.minimap, this.time.now);
     }
@@ -195,6 +207,7 @@ export class HudScene extends Phaser.Scene {
     private rebuildBar(): void {
         this.bar.destroy();
         this.buildBar();
+        this.critButton?.place(overlayBottom());
         this.placeStatsPanel();
         this.buffTexts.forEach((text, i) => {
             text.container.y = this.buffY(i);

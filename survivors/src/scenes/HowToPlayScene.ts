@@ -68,7 +68,7 @@ export class HowToPlayScene extends MenuOverlayScene {
         const g = this.add.graphics();
         g.fillStyle(PAD_ICON.fill).lineStyle(2, PAD_ICON.outline);
         const parts: Phaser.GameObjects.GameObject[] = [g];
-        if (icon === 'A' || icon === 'B' || icon === 'Y') {
+        if (icon === 'A' || icon === 'B' || icon === 'X' || icon === 'Y') {
             g.fillCircle(0, 0, r).strokeCircle(0, 0, r);
             parts.push(this.add.text(0, 0, icon, {
                 ...UI_TEXT, fontSize: px(Math.round(r * 1.3)), fontStyle: 'bold', color: PAD_ICON.letterColor[icon],

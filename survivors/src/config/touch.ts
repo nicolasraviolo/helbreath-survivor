@@ -52,8 +52,9 @@ export const TOUCH_AIM_STICK: Readonly<TouchStickStyle> = {
 export const TOUCH_AIM_ZONE_START = 0.5;
 
 /**
- * Bottom-right corner of the game area kept free for the crit button (Fase 19): a finger that lands here opens no
- * stick. Sizes in screen pixels, measured from the right edge and from the bottom of the game area.
+ * Bottom-right corner of the game area kept free for the Critical Strike button (Fase 19A, ui/CritButton.ts): a finger
+ * that lands here opens no stick. Sizes in screen pixels, measured from the right edge and from overlayBottom() (the
+ * bottom of the game area, or the top of the compact gauges when they run along the bottom).
  */
 export const TOUCH_RESERVED_CORNER = { width: 130, height: 130 } as const;
 

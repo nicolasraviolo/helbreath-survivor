@@ -42,6 +42,23 @@ export interface HudBarState {
     level: number;
     elapsedMs: number;
     kills: number;
+    /** Critical Strike charges held (Fase 19A); undefined for a character without them (the Mage, for now). */
+    critCharges: number | undefined;
+    /** Critical Strikes launched so far: when it grows, the icon shows pressed for a moment. */
+    critLaunches: number;
+}
+
+/** Red sword icon of the Critical Strike: which frame to show (purple for a moment after each launch). */
+export class CritIconState {
+    private lastLaunches = -1;
+    private pressedUntil = 0;
+
+    /** Frame for now (`now` in ms, the scene clock). */
+    public frame(launches: number, now: number, frames: { frame: number; pressedFrame: number; pressedMs: number }): number {
+        if (this.lastLaunches >= 0 && launches > this.lastLaunches) this.pressedUntil = now + frames.pressedMs;
+        this.lastLaunches = launches;
+        return now < this.pressedUntil ? frames.pressedFrame : frames.frame;
+    }
 }
 
 /** What the bar's buttons do. */

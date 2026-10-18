@@ -17,6 +17,13 @@ import type { TouchJoystick } from '../ui/TouchJoystick';
 export enum Action {
     /** Accept / continue: Enter, Space, gamepad A or a mouse click. */
     Confirm = 'confirm',
+    /**
+     * Pick a level-up card or a Game Over option: like Confirm but without Space, which launches the Critical Strike
+     * during the run (a Space mashed as the cards open must not pick one).
+     */
+    Pick = 'pick',
+    /** Critical Strike of the Warrior (Fase 19A): Space or gamepad X (the touch button calls the game directly). */
+    CritStrike = 'critStrike',
     /** Open / close the pause menu: Esc or gamepad Start. */
     Pause = 'pause',
     /** Go back / close a menu: Esc, Backspace or gamepad B. */
@@ -40,6 +47,7 @@ export enum Action {
     DebugSkipMinute = 'debugSkipMinute',
     DebugGiveLevels = 'debugGiveLevels',
     DebugNextBoss = 'debugNextBoss',
+    DebugInfiniteCrits = 'debugInfiniteCrits',
 }
 
 export type InputDevice = 'keyboard' | 'mouse' | 'gamepad' | 'touch' | 'none';
@@ -49,6 +57,8 @@ const KEY = Phaser.Input.Keyboard.KeyCodes;
 /** Keys per action. F1 is captured so the browser does not open its help page. */
 const KEYBOARD_ACTIONS: Record<Action, number[]> = {
     [Action.Confirm]: [KEY.ENTER, KEY.SPACE],
+    [Action.Pick]: [KEY.ENTER],
+    [Action.CritStrike]: [KEY.SPACE],
     [Action.Pause]: [KEY.ESC],
     [Action.Back]: [KEY.ESC, KEY.BACKSPACE],
     [Action.MenuLeft]: [KEY.LEFT, KEY.A],
@@ -68,10 +78,11 @@ const KEYBOARD_ACTIONS: Record<Action, number[]> = {
     [Action.DebugSkipMinute]: [KEY.J],
     [Action.DebugGiveLevels]: [KEY.L],
     [Action.DebugNextBoss]: [KEY.M],
+    [Action.DebugInfiniteCrits]: [KEY.H],
 };
 
 /** Standard Gamepad API button indices (Xbox layout). */
-const GAMEPAD_BUTTON = { A: 0, B: 1, Y: 3, View: 8, Start: 9, DpadUp: 12, DpadDown: 13, DpadLeft: 14, DpadRight: 15 } as const;
+const GAMEPAD_BUTTON = { A: 0, B: 1, X: 2, Y: 3, View: 8, Start: 9, DpadUp: 12, DpadDown: 13, DpadLeft: 14, DpadRight: 15 } as const;
 const GAMEPAD_AXIS = { LeftX: 0, LeftY: 1, RightX: 2, RightY: 3 } as const;
 /** Fake button ids for "the left stick was just pushed left/right/up/down" (menus). */
 const STICK_BUTTON = { Left: 100, Right: 101, Up: 102, Down: 103 } as const;
@@ -80,6 +91,8 @@ const STICK_MENU_THRESHOLD = 0.5;
 
 const GAMEPAD_ACTIONS: Partial<Record<Action, number[]>> = {
     [Action.Confirm]: [GAMEPAD_BUTTON.A],
+    [Action.Pick]: [GAMEPAD_BUTTON.A],
+    [Action.CritStrike]: [GAMEPAD_BUTTON.X],
     [Action.Pause]: [GAMEPAD_BUTTON.Start],
     [Action.Back]: [GAMEPAD_BUTTON.B],
     [Action.MenuLeft]: [GAMEPAD_BUTTON.DpadLeft, STICK_BUTTON.Left],
@@ -91,7 +104,7 @@ const GAMEPAD_ACTIONS: Partial<Record<Action, number[]>> = {
 };
 
 /** Actions also triggered by a mouse click. */
-const POINTER_ACTIONS: ReadonlySet<Action> = new Set([Action.Confirm]);
+const POINTER_ACTIONS: ReadonlySet<Action> = new Set([Action.Confirm, Action.Pick]);
 
 /** World position the mouse movement is measured from (the player's feet). */
 export type PointerAnchor = () => { x: number; y: number };

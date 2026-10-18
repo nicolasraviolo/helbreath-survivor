@@ -40,3 +40,8 @@ export function directionFromVector(dx: number, dy: number): Direction | undefin
     const sector = Math.round(angle / (Math.PI / 4));
     return ((sector + DIRECTION_COUNT) % DIRECTION_COUNT) as Direction;
 }
+
+/** Screen angle (radians, 0 = East, y down) the given direction points to. */
+export function angleFromDirection(direction: Direction): number {
+    return -Math.PI / 2 + direction * (Math.PI / 4);
+}

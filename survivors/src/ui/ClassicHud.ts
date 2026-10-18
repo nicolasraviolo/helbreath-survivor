@@ -1,5 +1,6 @@
 // Barra inferior clásica, al estilo del Helbreath original: vida, maná, experiencia, tiempo y bajas, y 6 botones.
 // Usa la imagen original llena y tapa la parte que falta de cada barra con la pieza gris "vacía".
+// El icono rojo (se vuelve violeta un momento al lanzar) lleva las cargas del Critical Strike (Fase 19A), donde lo ponía el original.
 // El casco muestra el panel de stats y el disquete abre la pausa; los demás botones se iluminan pero no hacen nada.
 // En el móvil se dibuja un 25 % más grande (HUD_SCALE), centrada abajo.
 import Phaser from 'phaser';
@@ -7,6 +8,7 @@ import { GAME_WIDTH } from '../config/gameConfig';
 import {
     HUD_BUTTONS,
     HUD_CHARACTER_BUTTON,
+    HUD_CRIT,
     HUD_FRAME,
     HUD_HP,
     HUD_INFO,
@@ -20,7 +22,7 @@ import {
     HUD_XP,
 } from '../config/hud';
 import { formatTime } from '../utils/format';
-import type { HudBar, HudBarActions, HudBarState } from './hudLayout';
+import { CritIconState, type HudBar, type HudBarActions, type HudBarState } from './hudLayout';
 
 interface Gauge {
     empty: Phaser.GameObjects.Image;
@@ -37,6 +39,10 @@ export class ClassicHud implements HudBar {
     private readonly hpText: Phaser.GameObjects.Text;
     private readonly mpText: Phaser.GameObjects.Text;
     private readonly infoText: Phaser.GameObjects.Text;
+    private readonly critIcon: Phaser.GameObjects.Image;
+    private readonly critText: Phaser.GameObjects.Text;
+    private shownCrit: number | undefined = -1;
+    private readonly critState = new CritIconState();
 
     constructor(private readonly scene: Phaser.Scene, actions: HudBarActions) {
         // Scaled around the bottom centre of the screen, so a bigger bar stays centred and on the bottom edge.
@@ -48,6 +54,10 @@ export class ClassicHud implements HudBar {
         this.hpText = this.createCenteredText(HUD_HP, HUD_TEXT_STYLE);
         this.mpText = this.createCenteredText(HUD_MP, HUD_TEXT_STYLE);
         this.infoText = this.createCenteredText(HUD_INFO, HUD_INFO_STYLE);
+        // Its frame carries the original's pivot: centred by hand.
+        this.critIcon = scene.add.image(HUD_CRIT.x, HUD_CRIT.y, HUD_TEXTURE, HUD_CRIT.frame).setOrigin(0.5);
+        this.critText = scene.add.text(HUD_CRIT.numberX, HUD_CRIT.numberY, '', HUD_CRIT.style).setOrigin(0.5);
+        this.bar.add([this.critIcon, this.critText]);
         this.createButtons(actions);
     }
 
@@ -63,6 +73,16 @@ export class ClassicHud implements HudBar {
         }
         setGauge(this.xp, state.xpRatio);
         this.infoText.setText(`Lv ${state.level}  ${formatTime(state.elapsedMs)}  ${state.kills} kills`);
+        this.showCrit(state.critCharges);
+        if (state.critCharges !== undefined) this.critIcon.setFrame(this.critState.frame(state.critLaunches, this.scene.time.now, HUD_CRIT), false, false);
+    }
+
+    /** The red orb with the charges; dimmed with none, hidden for a character without Critical Strike. */
+    private showCrit(charges: number | undefined): void {
+        if (charges === this.shownCrit) return;
+        this.shownCrit = charges;
+        this.critIcon.setVisible(charges !== undefined).setAlpha(charges ? 1 : HUD_CRIT.emptyAlpha);
+        this.critText.setVisible(charges !== undefined).setText(String(charges ?? ''));
     }
 
     public destroy(): void {

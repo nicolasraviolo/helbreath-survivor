@@ -3,7 +3,7 @@
 // Al añadir un control nuevo (apuntado, crit, tótems...), se añade aquí.
 
 /** Gamepad buttons drawn as Xbox icons (scenes/HowToPlayScene.ts). */
-export type PadIcon = 'A' | 'B' | 'Y' | 'Start' | 'LeftStick' | 'RightStick' | 'Dpad';
+export type PadIcon = 'A' | 'B' | 'X' | 'Y' | 'Start' | 'LeftStick' | 'RightStick' | 'Dpad';
 
 export interface ControlRow {
     /** Key, mouse or touch control, as text. */
@@ -66,6 +66,18 @@ export const HOW_TO_PLAY_PAGES: readonly HowToPlayPage[] = [
             { control: 'Stats / Pause buttons', action: 'Show your stats / Pause' },
             { control: 'Tap a card or option', action: 'Choose it' },
             { control: 'Top-right icon', action: 'Fullscreen' },
+        ],
+    },
+    {
+        // Fase 19A: Critical Strike del Guerrero (el hechizo activo del Mago llegará en la 19B, con el mismo botón).
+        name: 'Crit',
+        rows: [
+            { control: 'Space', action: 'Warrior: Critical Strike' },
+            { pad: ['X'], action: 'Warrior: Critical Strike' },
+            { control: 'Red orb button (touch)', action: 'Warrior: Critical Strike' },
+            { control: 'Number on the red orb', action: 'Charges: one more every 20 s' },
+            { control: 'Getting hit', action: 'Also refills the charges' },
+            { control: 'Every 10 levels', action: 'One more charge, and more damage' },
         ],
     },
     {
