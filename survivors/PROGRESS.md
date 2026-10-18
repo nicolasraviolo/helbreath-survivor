@@ -15,9 +15,12 @@
 | 10 — Pulido (opcional) | ✅ completada (10A, 10B y 10C) | 2026-10-17 |
 | 11 — Pulido de interfaz | ✅ completada | 2026-10-18 |
 | 12 — Móvil sin pérdidas | ✅ completada (12A, 12B y 12C) | 2026-10-18 |
+| 13 — Jefe final y equilibrio | 🔨 en curso (13A hecho) | 2026-10-18 |
 
 ## Fase actual
-**Para retomar (18-oct-2026): Fase 12 completada y fusionada en `master`** (app instalable, 3 partidas guardadas con Continue, Settings táctil); resumen en `PROGRESS-historial.md`. Después se cambió el mapa a **Bleeding Isle** (150×150 casillas, ver Decisiones). **Siguiente: Fase 13, Jefe final y equilibrio** (`docs/PLAN-2.md`). Antes del plan, preguntar al propietario la decisión pendiente 2: ¿cuántos niveles en una partida completa?
+**Para retomar (18-oct-2026): Fase 13, bloque 13A (jefe final y portal) terminado** en la rama `fase-13`; resumen en `PROGRESS-historial.md`. **Siguiente: bloque 13B, equilibrio** (`docs/PLAN-2.md`): curva de XP más empinada, XP de gemas y monstruos, oleadas y vida de los jefes, y que `pnpm check` diga en qué minuto se llega a cada nivel. Objetivo decidido por el propietario: **25–30 niveles en una partida completa** (3–4 niveles rápidos al empezar y luego uno cada 30–45 s). Al cerrar el 13B: `/checkpoint fase`.
+- **Ojo para el 13B:** al matar al jefe final con nivel bajo se sube de golpe muchos niveles (con `bosskill` a nivel 1: del 3 al 20), por la XP del Wyvern (500) más la de todos los monstruos.
+- **Final de partida:** al morir el jefe final, mueren todos, cae su cofre; al cogerlo se abre el portal (30 s). La XP no recogida se pierde. Atajos `?debug=finalboss` y `?debug=bosskill`.
 - **Partidas guardadas:** `systems/SaveStore.ts` (formato con versión; ver NOTES.md, "Partidas guardadas"). Logros, récords y baúl (Fases 14, 19 y 21) irán en otras claves, reutilizando la idea.
 - **App instalable:** solo en el build (`survivors/pwa/`); en `pnpm dev` no existe. Para probarla en el PC: `pnpm build` y `pnpm preview` → http://localhost:4173.
 - **Controles:** todo control nuevo se explica en How to Play (`data/howToPlay.ts`), nunca en pantalla.
@@ -34,8 +37,8 @@
 
 ## Cómo probar
 - Jugar: `pnpm --dir survivors dev` → http://localhost:8090
-- Comprobación automática: `pnpm --dir survivors check [situaciones] [--mobile]` → escenas, FPS, estado de la partida, errores de consola y una captura pequeña en `survivors/.check/`. Situaciones: `menu`, `game`, `levelup`, `boss`, `horde`, `pickups` o atajos a mano (`"play=warrior&debug=str,levels"`). `--eval="g.enemies.alive"` escribe cualquier dato de la partida (g = escena Game); `--wait=5000` la deja correr más. Si la expresión devuelve una promesa, se espera (útil para vigilar unos segundos).
-- Atajos en la dirección (solo en desarrollo, `src/config/debugStart.ts`): `?play`, `?play=warrior`, `?debug=boss,god` (acciones: horde, kill, levelup, levels, str, magic, pickups, minute, boss, god, resume = guardar y recargar como con Continue), `?ui=compact` (interfaz de móvil), `?trees=off` (árboles, solo esa partida), `?open=howtoplay` (también settings, credits, select).
+- Comprobación automática: `pnpm --dir survivors check [situaciones] [--mobile]` → escenas, FPS, estado de la partida, errores de consola y una captura pequeña en `survivors/.check/`. Situaciones: `menu`, `game`, `levelup`, `boss`, `finalboss`, `portal`, `horde`, `pickups` o atajos a mano (`"play=warrior&debug=str,levels"`). `--eval="g.enemies.alive"` escribe cualquier dato de la partida (g = escena Game); `--wait=5000` la deja correr más. Si la expresión devuelve una promesa, se espera (útil para vigilar unos segundos).
+- Atajos en la dirección (solo en desarrollo, `src/config/debugStart.ts`): `?play`, `?play=warrior`, `?debug=boss,god` (acciones: horde, kill, levelup, levels, str, magic, pickups, minute, boss, finalboss, bosskill, god, resume = guardar y recargar como con Continue), `?ui=compact` (interfaz de móvil), `?trees=off` (árboles, solo esa partida), `?open=howtoplay` (también settings, credits, select).
 - Teclas de depuración en partida: F1 panel · G invencible · N enemigos · L niveles · J +1 minuto, entre otras (`systems/InputSystem.ts`).
 - Datos de referencia de Helbreath: `docs/hb-wiki/` (índice en `README.md`).
 
@@ -57,6 +60,7 @@
 - 2026-10-17 · Temblor de cámara: suave con cualquier golpe, fuerte con golpes de jefe, y en las explosiones grandes solo con crítico (como mucho una vez cada 2,5 s). Se puede quitar en Settings.
 - 2026-10-18 · Ningún texto de controles en partida ni en menús: se explican en **How to Play**. Árboles grandes: On por defecto (desde la 12C, solo On/Off).
 - 2026-10-18 · Settings: casillas para sí/no; volumen con flechas y número (se probaron barras y no gustaron). Large Trees solo On/Off. Fullscreen: icono arriba a la derecha del menú principal, casilla en Settings y opción en la Pausa.
+- 2026-10-18 · Fase 13: el jefe final corta las oleadas y llama esbirros; al matarlo **mueren todos los monstruos**, el portal se abre **al coger su cofre** y la XP que quede en el suelo se pierde. **Dark Elf desactivado** (esqueletos en su lugar). Objetivo de equilibrio: 25–30 niveles por partida.
 - 2026-10-18 · Partidas guardadas: **hasta 3**; Continue abre la lista; con las 3 llenas, Play pide cuál borrar (con confirmación). El formato lleva versión para poder crecer.
 - 2026-10-16 · Mapa: **huntzone2** (elegido por el propietario frente a middleland). Zona de juego ~100×100 casillas desde (72,70). Riesgos y detalles en `NOTES.md`.
 - 2026-10-18 · Mapa cambiado a **Bleeding Isle** (`bisle`) para el MVP, por tener menos colisiones: zona de 150×150 desde (66,52), 95% libre (el propietario prefirió 150 a 100 o 200). huntzone2 queda comentado en `data/maps.ts` para la Fase 19 (varios mapas). Las partidas guardadas en huntzone2 continúan en Bleeding Isle.

@@ -33,7 +33,7 @@ export class PickupSystem {
 
     public drop(id: PickupId, x: number, y: number): void {
         this.pickups.acquire().drop(id, x, y);
-        if (id === 'chest') this.audio.play(CHEST_DROP_SOUND);
+        if (id === 'chest' || id === 'finalChest') this.audio.play(CHEST_DROP_SOUND);
     }
 
     /** Ages the pickups and collects the ones the player at (x, y) (feet) touches. */

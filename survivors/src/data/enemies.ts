@@ -216,6 +216,7 @@ export const ENEMIES = {
         name: 'Hellhound', sprite: 'enemy.hellhound', temporalCoefficient: 0.5, hasShadow: true, maxHp: 270, xp: 28, radius: 13, bodyOffsetY: 18,
         actionTimeMs: 900, attackRange: 1, bravery: 4, damageDice: [7, 5], hitSound: 'sfx.hellhound.hit', deathSound: 'sfx.hellhound.death', attackSound: 'sfx.hellhound.attack',
     },
+    // Desactivado (Fase 13): no sale en ninguna oleada ni como esbirro. Se deja para volver a usarlo más adelante.
     darkElf: {
         // Dispara flechas (NPC.cfg: alcance 8; servidor: "Dark Elf: 활 공격", ataque de arco).
         name: 'Dark Elf', sprite: 'enemy.darkElf', temporalCoefficient: 1, hasShadow: true, maxHp: 320, xp: 30, radius: 11, bodyOffsetY: 32,
@@ -262,7 +263,7 @@ export const ENEMIES = {
         scale: 1.15, alpha: 0.85, knockbackTaken: 0,
         animations: { idle: { sheet: 0, firstFrame: 0, frameCount: 4 }, attack: { sheet: 0, firstFrame: 3, frameCount: 4 }, dead: { sheet: 16 } },
         boss: {
-            title: 'Fire Wyvern', dropsChest: false, final: true,
+            title: 'Fire Wyvern', dropsChest: true, final: true,
             ranged: {
                 flyEffect: 'fx.fireBall.fly', explodeEffect: 'fx.fireBall.explode', sound: 'sfx.explosion',
                 damage: 22, cooldownMs: 2600, range: 520, speed: 230, shots: 3, spreadDegrees: 30, radius: 12,
@@ -276,3 +277,22 @@ export type EnemyId = keyof typeof ENEMIES;
 export function getEnemy(id: EnemyId): EnemyDef {
     return ENEMIES[id];
 }
+
+/** Monsters a boss calls to its side while it lives (they appear in a ring around it). */
+export interface BossMinions {
+    /** One of these, at random (only those already downloaded), for each place of the ring. */
+    enemies: readonly EnemyId[];
+    /** Time between two calls (ms); the first one comes this long after the boss appears. */
+    everyMs: number;
+    /** Monsters per call. */
+    count: number;
+    /** No call while this many of its monsters are still alive. */
+    maxAlive: number;
+    /** Distance of the ring from the boss (px). */
+    radius: number;
+}
+
+// Fase 13: el jefe final corta las oleadas; solo quedan él y sus esbirros (los del último tramo antes de él).
+export const BOSS_MINIONS: Partial<Record<EnemyId, BossMinions>> = {
+    fireWyvern: { enemies: ['hellhound', 'skeleton'], everyMs: 8000, count: 6, maxAlive: 24, radius: 110 },
+};

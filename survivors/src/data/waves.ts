@@ -1,6 +1,9 @@
 // Línea de tiempo de la partida (Fase 7, sustituye a data/spawn.ts). Sigue la tabla "Oleadas" de docs/DESIGN.md.
 // - WAVES: qué enemigos salen en cada tramo, cada cuánto y cuántos a la vez como máximo.
 // - EVENTS: momentos concretos (minijefes, jefe final, "te rodean") con su aviso en pantalla.
+//   Desde que sale el jefe final (Fase 13) no salen monstruos de las oleadas: solo sus esbirros (BOSS_MINIONS en enemies.ts).
+// - PORTAL: al matar al jefe final mueren todos los monstruos y suelta su cofre; al abrirlo se abre un portal y entrar en
+//   él (o esperar) gana la partida. La XP que quede en el suelo se pierde.
 // Todos los números son un borrador: se ajustan jugando.
 import type { EnemyId } from './enemies';
 
@@ -29,15 +32,15 @@ export interface WaveEventDef {
     message: string;
 }
 
+// El Dark Elf está desactivado (18-oct-2026, pedido del propietario): sus flechas eran molestas y desequilibradas.
+// Sus datos siguen en enemies.ts; en su lugar salen esqueletos.
 export const WAVES: readonly WaveDef[] = [
     { fromMinute: 0, enemies: [{ enemy: 'slime', weight: 4 }, { enemy: 'bunny', weight: 3 }, { enemy: 'ant', weight: 3 }], startInterval: 1.2, endInterval: 0.6, batchSize: 2, maxAlive: 200 },
     { fromMinute: 2, enemies: [{ enemy: 'orc', weight: 3 }, { enemy: 'snake', weight: 3 }, { enemy: 'scorpion', weight: 2 }, { enemy: 'frog', weight: 2 }, { enemy: 'ant', weight: 1 }], startInterval: 0.8, endInterval: 0.45, batchSize: 2, maxAlive: 260 },
     { fromMinute: 4, enemies: [{ enemy: 'skeleton', weight: 4 }, { enemy: 'zombie', weight: 3 }, { enemy: 'direBoar', weight: 2 }, { enemy: 'orc', weight: 1 }], startInterval: 0.6, endInterval: 0.35, batchSize: 2, maxAlive: 300 },
     { fromMinute: 6, enemies: [{ enemy: 'troll', weight: 3 }, { enemy: 'ogre', weight: 2 }, { enemy: 'stalker', weight: 3 }, { enemy: 'werewolf', weight: 2 }, { enemy: 'skeleton', weight: 1 }], startInterval: 0.5, endInterval: 0.3, batchSize: 2, maxAlive: 320 },
-    { fromMinute: 8, enemies: [{ enemy: 'cyclops', weight: 2 }, { enemy: 'lich', weight: 3 }, { enemy: 'hellhound', weight: 3 }, { enemy: 'darkElf', weight: 3 }], startInterval: 0.45, endInterval: 0.25, batchSize: 2, maxAlive: 340 },
+    { fromMinute: 8, enemies: [{ enemy: 'cyclops', weight: 2 }, { enemy: 'lich', weight: 3 }, { enemy: 'hellhound', weight: 3 }, { enemy: 'skeleton', weight: 3 }], startInterval: 0.45, endInterval: 0.25, batchSize: 2, maxAlive: 340 },
     { fromMinute: 10, enemies: [{ enemy: 'gargoyle', weight: 3 }, { enemy: 'hellclaw', weight: 2 }, { enemy: 'tigerworm', weight: 2 }, { enemy: 'minotaur', weight: 3 }], startInterval: 0.4, endInterval: 0.22, batchSize: 2, maxAlive: 360 },
-    // Jefe final: solo un goteo de enemigos para que el combate sea contra él.
-    { fromMinute: 12, enemies: [{ enemy: 'hellhound', weight: 1 }, { enemy: 'darkElf', weight: 1 }], startInterval: 2.5, endInterval: 2.5, batchSize: 1, maxAlive: 40 },
 ];
 
 export const WAVE_EVENTS: readonly WaveEventDef[] = [
@@ -62,4 +65,21 @@ export const SPAWN = {
     relocateDistanceFactor: 1.8,
     /** …checked this often (ms). Keeps enemies stuck behind the river in play. Bosses are never moved. */
     relocateEveryMs: 1000,
+} as const;
+
+/** End of the run (Fase 13): what happens once the final boss is dead. */
+export const PORTAL = {
+    /** The portal opens this long after the player picks up the final boss's chest (ms). */
+    openDelayMs: 1000,
+    /** The run is won when the player steps in, or when this time runs out (ms). */
+    durationMs: 30000,
+    /** The player is "in" when their feet are this close to the centre of the portal (px). */
+    enterRadius: 26,
+    /** It opens this far to one side of the chest (px): the player is standing there, and must walk in on purpose. */
+    besideChestX: 90,
+    /** Continue after the final boss: its chest (or the portal, if it was open) appears this far to the right of the player (px). */
+    resumeOffsetX: 120,
+    /** Shown when the final boss dies, and when the portal opens. */
+    bossDeadMessage: 'Open the chest to leave!',
+    message: 'A portal has opened!',
 } as const;

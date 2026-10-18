@@ -3,7 +3,7 @@
 // y errores de consola. Guarda una captura pequeña en survivors/.check/ (solo hay que mirarla si hace falta).
 //
 // Uso:  pnpm check                     → menú principal en PC
-//       pnpm check game levelup boss   → varias situaciones seguidas
+//       pnpm check game levelup boss   → varias situaciones seguidas (portal = matar al jefe final y ver el portal)
 //       pnpm check boss --mobile       → simulando un móvil en horizontal (táctil, ?ui=compact)
 //       pnpm check "play=warrior&debug=str,levels"   → cualquier combinación de atajos (ver src/config/debugStart.ts)
 //       --wait=5000                    → milisegundos que se deja correr la partida antes de medir (por defecto 3000)
@@ -33,6 +33,8 @@ const PRESETS = {
     boss: 'debug=god,boss',
     horde: 'debug=god,horde,horde,horde',
     pickups: 'debug=god,pickups',
+    finalboss: 'debug=god,finalboss',
+    portal: 'debug=god,bosskill',
 };
 
 const args = process.argv.slice(2);

@@ -2,6 +2,18 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
+**Fase 13, bloque 13A: jefe final y portal (2026-10-18, el propietario lo probó y va bien).**
+- **El jefe final corta las oleadas** (`SpawnSystem.wavesOver`): desde que sale el Fire Wyvern no salen monstruos de las oleadas. Se quitó la oleada de goteo del minuto 12.
+- **Esbirros** (`BOSS_MINIONS` en `data/enemies.ts`, `BossSystem`): el Wyvern llama 6 monstruos cada 8 s en un anillo a su alrededor (máximo 24 vivos): Hellhounds y esqueletos.
+- **Dark Elf desactivado** (pedido del propietario: sus flechas eran molestas y desequilibradas). En el minuto 8 y como esbirros salen esqueletos. Sus datos siguen en `enemies.ts`.
+- **Al morir el jefe final:** mueren todos los monstruos (cuentan como bajas y sueltan su XP, que **no** vuela sola) y cae un **cofre grande** (`finalChest`) con el aviso "Open the chest to leave!".
+- **Al coger el cofre:** da un buff y, 1 s después, se abre el **portal** (`entities/Portal.ts`, efecto `fx.portal` = Portal 1 de sp-client) a 90 px a un lado. Arriba sale "Enter the portal: 30". Entrar en él o esperar 30 s → **Victory!** La XP que quede en el suelo se pierde (decisión del propietario).
+- **Guardado:** `finalBossDead` y `portalMsLeft` en la partida guardada. Al continuar, el cofre (o el portal con su tiempo) aparece junto al jugador, sin monstruos.
+- **Arreglo:** la tecla K (matar los visibles) ahora cuenta como golpe real; antes el jefe final no soltaba nada.
+- **Atajos nuevos:** `?debug=finalboss` (salta al jefe final) y `?debug=bosskill` (lo mata en cuanto sale); situaciones `pnpm check finalboss` y `pnpm check portal`. Números en `data/waves.ts` (`PORTAL`).
+- **Comprobado:** `build` sin errores; `check menu game finalboss portal` sin errores (también `portal --mobile`); con `--eval`: solo esbirros con el Wyvern vivo, cofre → portal a 90 px, Victory al entrar y al acabar el tiempo, Continue antes y después de abrir el cofre.
+- **Cómo probarlo:** `pnpm --dir survivors dev` → http://localhost:8090/?debug=god,finalboss (pelea) o http://localhost:8090/?debug=god,bosskill (final directo: buscar el cofre, cogerlo y entrar en el portal).
+
 **Cambio de mapa a Bleeding Isle (2026-10-18, entre las Fases 12 y 13; el propietario lo probó y le gusta).**
 - **Motivo:** huntzone2 tenía muchas colisiones (río, ruinas, acantilados). Se adelanta solo el cambio de mapa; la Fase 19 (varios mapas, Select Map) sigue pendiente.
 - **Bleeding Isle** (`bisle.amd`, registrado como `map.bisle`): zona de juego **150×150 casillas desde (66,52), 95% libre**, todo conectado. Se midieron 100 (99%), 150 (95%) y 200 (81%, entra la costa); el propietario eligió 150.

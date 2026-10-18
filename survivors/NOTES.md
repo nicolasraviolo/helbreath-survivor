@@ -44,6 +44,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - App instalable (Fase 12, bloque 12A)
 - Partidas guardadas (Fase 12, bloque 12B)
 - Settings táctil (Fase 12C)
+- Portal del final (Fase 13)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -590,3 +591,11 @@ Tabla completa en `docs/REQUISITOS_HB.md`. Lo no obvio:
 - App instalada: `(display-mode: fullscreen)` también se cumple en una pestaña normal puesta a pantalla completa. Por eso `ui/fullscreen.ts` lo lee **una sola vez al arrancar** para saber si se abrió desde el icono (y entonces no ofrece Fullscreen).
 - Large Trees solo On/Off: un `'transparent'` guardado (Fase 11) no está en `TREE_MODES` y se carga como el valor por defecto (On), sin migración.
 - En Playwright, esperar a que la escena exista (`waitForFunction`) antes de pulsar teclas: con `?open=` la pantalla tarda algo más de 1,5 s.
+
+## Portal del final (Fase 13)
+- Efecto `fx.portal` = sp-client EFFECT_PORTAL_1: `effect11.spr` hoja 12, 30 frames a 15 fps. Ya lo carga el juego (no añade descarga).
+- Sus frames tienen el pivote desplazado: el dibujo queda ~97 px a la derecha y ~77 px por debajo del ancla. Se corrige con `offsetX/offsetY` en `config/effects.ts` (medido con `getBounds()` en partida). Mide unos 115–165 × 60–90 px según el frame.
+- Los primeros frames son pequeños y crecen; en bucle no se nota un salto molesto.
+- La tecla K (`?debug=kill`) mata con `combat.killAll(undefined, vista)`: cuenta como baja normal (XP, objetos, cofre del jefe). Antes usaba `enemy.kill()` a pelo y el jefe final no soltaba nada.
+- `AssetStreamer` descarga también los esbirros de cada jefe (`BOSS_MINIONS`), con el minuto de su jefe.
+- Para probar con `pnpm check`: las cartas de subir de nivel pausan la partida (y la cuenta atrás del portal). En un `--eval` hay que elegirlas a mano: `game.scene.getScene('LevelUp').params.onChoose(...)`.

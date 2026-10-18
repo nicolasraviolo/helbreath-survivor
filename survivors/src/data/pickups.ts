@@ -2,12 +2,12 @@
 // - Red Potion: cura. Imán (dibujado con el Crystal: no hay sprite de imán): atrae todas las gemas de XP.
 // - Cofre (dibujado con la bolsa de oro): da un buff aleatorio, ofensivo o defensivo. Los cofres NO desaparecen.
 //   Los buffs se combinan; coger uno que ya tienes renueva su tiempo (systems/BuffSystem.ts).
-// - Los cofres los sueltan los minijefes (Fase 7, data/enemies.ts → boss.dropsChest).
+// - Los cofres los sueltan los minijefes (Fase 7, data/enemies.ts → boss.dropsChest). El del jefe final abre el portal (Fase 13).
 // Sprites: item-ground.spr (sp-client Items.ts). Buffs: efectos y sonido de sp-client Effects.ts (Berserk, Defense Shield).
 import type { SoundKey } from '../config/assetManifest';
 import type { EffectKey } from '../config/effects';
 
-export type PickupId = 'potion' | 'magnet' | 'chest';
+export type PickupId = 'potion' | 'magnet' | 'chest' | 'finalChest';
 
 export interface PickupDef {
     name: string;
@@ -29,6 +29,8 @@ export const PICKUPS = {
     magnet: { name: 'Magnet', sheet: 15, frame: 46, scale: 1.5, dropChance: 0.005, lifeMs: 60000, pickupSound: 'sfx.pickup' },
     // Cofre: Gold Pocket (item-ground 5/120). No desaparece (pedido por el propietario).
     chest: { name: 'Chest', sheet: 5, frame: 120, scale: 1.6, dropChance: 0, pickupSound: 'sfx.pickup' },
+    // Cofre del jefe final (Fase 13): da un buff como los demás y, al abrirlo, se abre el portal de salida. Más grande.
+    finalChest: { name: 'Chest', sheet: 5, frame: 120, scale: 2.2, dropChance: 0, pickupSound: 'sfx.pickup' },
 } as const satisfies Record<PickupId, PickupDef>;
 
 /** Health healed by a potion, as a share of maximum health. */

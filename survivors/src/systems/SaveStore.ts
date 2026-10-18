@@ -44,6 +44,10 @@ export interface RunSnapshot {
     buffs: Partial<Record<BuffId, number>>;
     /** Bosses that were alive: they come back after the calm. */
     bosses: EnemyId[];
+    /** The final boss was dead (Fase 13): its chest comes back, or the portal if it was open. */
+    finalBossDead: boolean;
+    /** The portal was open: milliseconds left of its countdown. */
+    portalMsLeft: number | undefined;
 }
 
 type Slots = Array<RunSnapshot | undefined>;
@@ -172,6 +176,8 @@ function readSnapshot(entry: unknown): RunSnapshot | undefined {
         passives,
         buffs,
         bosses: Array.isArray(entry.bosses) ? entry.bosses.filter((id): id is EnemyId => isKeyOf(ENEMIES, id)) : [],
+        finalBossDead: entry.finalBossDead === true,
+        portalMsLeft: readNumber(entry.portalMsLeft),
     };
 }
 

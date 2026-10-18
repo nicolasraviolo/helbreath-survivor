@@ -182,15 +182,13 @@ export class EnemySystem {
         });
     }
 
-    /** Kills every living enemy inside a rectangle (debug). Returns how many died. */
-    public killInside(rect: Phaser.Geom.Rectangle): number {
-        let killed = 0;
+    /** Visits every living enemy. */
+    public forEachAlive(visit: (enemy: Enemy) => void): void {
         for (const pool of this.pools.values()) {
             for (const enemy of pool.active) {
-                if (rect.contains(enemy.x, enemy.y) && enemy.kill()) killed++;
+                if (enemy.isAlive) visit(enemy);
             }
         }
-        return killed;
     }
 
     private getPool(id: EnemyId): Pool<Enemy> {

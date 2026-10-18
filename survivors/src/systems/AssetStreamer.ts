@@ -6,7 +6,7 @@
 import type Phaser from 'phaser';
 import { ASSET_BASE_PATH, SPRITES, type SpriteKey } from '../config/assetManifest';
 import { DEFAULT_ANIMATION_FRAME_RATE } from '../config/gameConfig';
-import { ENEMIES, type EnemyId } from '../data/enemies';
+import { BOSS_MINIONS, ENEMIES, type EnemyId } from '../data/enemies';
 import { WAVE_EVENTS, WAVES } from '../data/waves';
 import { getSheetKey, HBSpriteFile } from '../hb/HBSprite';
 
@@ -23,6 +23,8 @@ function streamOrder(): EnemyId[] {
     const appearances: Array<{ minute: number; enemy: EnemyId }> = [
         ...WAVES.flatMap((wave) => wave.enemies.map((entry) => ({ minute: wave.fromMinute, enemy: entry.enemy }))),
         ...WAVE_EVENTS.map((event) => ({ minute: event.atMinute, enemy: event.enemy })),
+        // A boss's minions, with the boss.
+        ...WAVE_EVENTS.flatMap((event) => (BOSS_MINIONS[event.enemy]?.enemies ?? []).map((enemy) => ({ minute: event.atMinute, enemy }))),
     ];
     appearances.sort((a, b) => a.minute - b.minute);
     const order: EnemyId[] = [];

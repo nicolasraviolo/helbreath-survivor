@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import {
     CAMERA_LERP,
     DEPTH_DEBUG,
+    ENEMY_WALL_HALF_SIZE,
     GAME_OVER_DELAY_MS,
     GAME_WIDTH,
     MAP_OBJECT_MARGIN_TILES,
@@ -10,13 +11,13 @@ import {
     PLAYER_HURT_MS,
     PLAYER_HURT_STUN_MS,
     TILE_SIZE,
-    VICTORY_DELAY_MS,
 } from '../config/gameConfig';
 import { ANNOUNCE_EVENT } from '../config/hud';
 import { getArmorPiece } from '../data/armor';
 import { MUSIC } from '../data/audio';
-import type { WaveEventDef } from '../data/waves';
+import { PORTAL, type WaveEventDef } from '../data/waves';
 import type { Enemy } from '../entities/Enemy';
+import { Portal } from '../entities/Portal';
 import { BossSystem } from '../systems/BossSystem';
 import { EnemyProjectileSystem } from '../systems/EnemyProjectileSystem';
 import { MusicSystem } from '../systems/MusicSystem';
@@ -57,6 +58,7 @@ import { TouchJoystick } from '../ui/TouchJoystick';
 import { SpawnSystem } from '../systems/SpawnSystem';
 import { WeaponSystem } from '../systems/WeaponSystem';
 import { XpSystem } from '../systems/XpSystem';
+import { canStandAt } from '../utils/collision';
 import { formatTime } from '../utils/format';
 import { SpellWeapon } from '../weapons/SpellWeapon';
 import { PlayerState } from '../hb/playerAppearance';
@@ -85,6 +87,8 @@ const DEBUG_START_DELAY_MS = 500;
  * final (Fase 7), arma o hechizo automático, gemas de XP, cartas al subir de nivel, objetos y buffs. Al final, GameOverScene.
  * Fase 12: la partida se guarda (SaveStore) cada pocos segundos, al minimizar y al salir al menú; con Continue
  * (registry RESUME_SLOT_KEY) se reconstruye desde esa foto. Al ganar o morir, su ranura se libera.
+ * Fase 13: al matar al jefe final mueren todos los monstruos y cae su cofre; al abrirlo se abre un portal, y la partida
+ * se gana al entrar en él o cuando se acaba su cuenta atrás. La XP que quede en el suelo se pierde.
  * Mover: WASD/flechas, stick/cruceta o mantener clic. Esc / Start: pausa. F1 / View: depuración · T: prueba del Orc.
  * Solo en desarrollo: N 100 enemigos · K matar los visibles · G invencible · X subir un nivel · V +10 Str · B +10 Int y Mag · P poción, imán y cofre · J +1 minuto · M siguiente jefe · L +5 niveles.
  */
@@ -111,8 +115,17 @@ export class GameScene extends Phaser.Scene {
     private bosses!: BossSystem;
     private enemyShots!: EnemyProjectileSystem;
     private music!: MusicSystem;
-    /** Counts down to the victory screen once the final boss is dead; negative = not won yet. */
-    private victoryInMs = -1;
+    /** The final boss is dead: no more monsters; its chest opens the portal. */
+    private finalBossDead = false;
+    /** Counts down to the portal opening once the final chest is picked up; negative = not yet, or already open. */
+    private portalInMs = -1;
+    /** Where the portal will open (beside the final chest). */
+    private portalX = 0;
+    private portalY = 0;
+    /** Open after the final boss's death: stepping in (or waiting) wins the run. */
+    private portal: Portal | undefined;
+    /** Debug ?debug=bosskill: kill the final boss as soon as it is out. */
+    private killFinalBossPending = false;
     /** The end screen is open (victory or defeat). */
     private runOver = false;
     private godModeLabel!: Phaser.GameObjects.Text;
@@ -199,7 +212,7 @@ export class GameScene extends Phaser.Scene {
         this.weapons = new WeaponSystem(this, this.enemies, this.combat, this.audio, this.screenShake);
         this.buffs = new BuffSystem(this, this.player, this.audio, (key, x, y) => this.weapons.spawnEffect(key, x, y));
         this.enemyShots = new EnemyProjectileSystem(this, this.audio, (key, x, y) => this.weapons.spawnEffect(key, x, y));
-        this.bosses = new BossSystem(this.enemyShots);
+        this.bosses = new BossSystem(this.enemyShots, (minions, x, y) => this.spawner.spawnRing(minions.enemies, minions.count, x, y, minions.radius));
         // Archers (Dark Elf) shoot arrows at the player's body instead of hitting directly.
         this.enemies.setShootHandler((enemy, damage) => {
             const ranged = enemy.def.attackProjectile;
@@ -207,7 +220,10 @@ export class GameScene extends Phaser.Scene {
         });
         this.music = new MusicSystem(this);
         this.music.play(MUSIC.normal);
-        this.victoryInMs = -1;
+        this.finalBossDead = false;
+        this.portalInMs = -1;
+        this.portal = undefined;
+        this.killFinalBossPending = false;
         this.runOver = false;
         this.equipment = new Equipment(character);
         this.meleeWeapon = undefined;
@@ -279,6 +295,10 @@ export class GameScene extends Phaser.Scene {
                 break;
             case 'chest':
                 this.buffs.startRandom();
+                break;
+            case 'finalChest':
+                this.buffs.startRandom();
+                this.openPortalBeside(this.player.x, this.player.y);
                 break;
         }
     }
@@ -366,6 +386,13 @@ export class GameScene extends Phaser.Scene {
         this.combat.restoreKills(run.kills);
         this.buffs.restore(run.buffs);
         this.spawner.resumeAt(run.elapsedMs, RESUME_CALM_MS, run.bosses);
+        // Saved after the final boss: the player starts somewhere else, so its chest (or the portal) appears next to them.
+        if (run.finalBossDead) {
+            this.finalBossDead = true;
+            const x = this.player.x + PORTAL.resumeOffsetX;
+            if (run.portalMsLeft !== undefined) this.portal = new Portal(this, x, this.player.y, run.portalMsLeft);
+            else this.pickups.drop('finalChest', x, this.player.y);
+        }
     }
 
     /** What SaveStore keeps of this run. */
@@ -388,12 +415,14 @@ export class GameScene extends Phaser.Scene {
             passives: { ...equipment.passives },
             buffs: this.buffs.remaining,
             bosses: [...this.bosses.aliveIds, ...this.spawner.bossesWaiting],
+            finalBossDead: this.finalBossDead,
+            portalMsLeft: this.portal?.timeLeft ?? (this.portalInMs >= 0 ? PORTAL.durationMs : undefined),
         };
     }
 
-    /** Saves the run, unless it is already decided (dead, or the final boss beaten). */
+    /** Saves the run, unless it is already decided (dead, or over). With the portal open, its countdown is kept. */
     private saveRun(): void {
-        if (this.runOver || this.player.isDead || this.victoryInMs >= 0) return;
+        if (this.runOver || this.player.isDead) return;
         saveStore.save(this.saveSlot, this.snapshot());
     }
 
@@ -428,6 +457,7 @@ export class GameScene extends Phaser.Scene {
                 kills: this.combat.kills,
                 pauseLocked: this.player.isDead || this.levelUpOpen || this.runOver,
                 boss: this.bossInfo(),
+                portalSecondsLeft: this.portal ? Math.ceil(this.portal.timeLeft / 1000) : undefined,
                 stats: this.stats,
                 weaponName: this.meleeWeapon?.def.name ?? this.spellWeapon?.def.name,
                 defense: this.equipment.defense,
@@ -484,7 +514,7 @@ export class GameScene extends Phaser.Scene {
         this.pickups.update(delta, player.x, player.y, !player.isDead);
         this.buffs.update(delta);
         this.stats.buffDamageMultiplier = this.buffs.damageMultiplier;
-        this.spawner.enabled = !player.isDead && this.victoryInMs < 0;
+        this.spawner.enabled = !player.isDead && !this.finalBossDead;
         this.spawner.update(delta);
         const bodyY = player.y - PLAYER_BODY_OFFSET_Y;
         this.bosses.update(delta, player.x, bodyY, !player.isDead);
@@ -497,12 +527,9 @@ export class GameScene extends Phaser.Scene {
             this.endRun(false);
             return;
         }
-        if (this.victoryInMs >= 0) {
-            this.victoryInMs -= delta;
-            if (this.victoryInMs < 0) {
-                this.endRun(true);
-                return;
-            }
+        if (this.updatePortal(delta)) {
+            this.endRun(true);
+            return;
         }
 
         this.mapView.updateFading(player.y, player.getVisualBounds());
@@ -515,6 +542,17 @@ export class GameScene extends Phaser.Scene {
         if (this.stats.pendingLevelUps > 0 && !this.levelUpOpen && !player.isDead) {
             this.openLevelUp();
         }
+    }
+
+    /** Opens the portal a moment after the final chest is picked up; true when the run is won (stepped in or time up). */
+    private updatePortal(delta: number): boolean {
+        if (this.portalInMs >= 0 && (this.portalInMs -= delta) < 0) {
+            this.portal = new Portal(this, this.portalX, this.portalY, PORTAL.durationMs);
+            this.events.emit(ANNOUNCE_EVENT, PORTAL.message);
+        }
+        const portal = this.portal;
+        if (!portal || this.player.isDead) return false;
+        return !portal.update(delta) || portal.contains(this.player.x, this.player.y);
     }
 
     /** Running: footstep sound in a loop at the pace of the run animation, and a puff of dust every tile. */
@@ -579,6 +617,11 @@ export class GameScene extends Phaser.Scene {
             [Action.DebugNextBoss, 'boss'],
             [Action.DebugGodMode, 'god'],
         ];
+        const finalBoss = this.killFinalBossPending ? this.bosses.finalBoss : undefined;
+        if (finalBoss) {
+            this.killFinalBossPending = false;
+            this.combat.slay(finalBoss);
+        }
         for (const [action, debugAction] of keys) {
             if (input.justPressed(action)) this.runDebugAction(debugAction);
         }
@@ -595,7 +638,7 @@ export class GameScene extends Phaser.Scene {
                 this.spawner.spawnMany(DEBUG_SPAWN_COUNT);
                 break;
             case 'kill':
-                this.enemies.killInside(this.cameras.main.worldView);
+                this.combat.killAll(undefined, this.cameras.main.worldView);
                 break;
             case 'levelup':
                 this.gainXp(this.stats.xpToNext - this.stats.xp);
@@ -625,6 +668,13 @@ export class GameScene extends Phaser.Scene {
             case 'boss':
                 this.spawner.skipToNextBoss();
                 break;
+            case 'finalboss':
+                this.spawner.skipToNextBoss(true);
+                break;
+            case 'bosskill':
+                this.spawner.skipToNextBoss(true);
+                this.killFinalBossPending = true;
+                break;
             case 'god':
                 this.player.setGodMode(!this.player.godMode);
                 this.godModeLabel.setVisible(this.player.godMode);
@@ -644,12 +694,35 @@ export class GameScene extends Phaser.Scene {
         for (const enemy of spawned) this.bosses.track(enemy, event.enemy);
     }
 
-    /** Mini-bosses drop a chest; the final boss wins the game once its death animation has played. */
+    /**
+     * Bosses drop a chest. The final boss drops its own chest (which opens the portal) and kills every other monster;
+     * their XP stays on the ground, to pick up before leaving.
+     */
     private onEnemyKilled(enemy: Enemy): void {
         const boss = enemy.def.boss;
         if (!boss) return;
-        if (boss.dropsChest) this.pickups.drop('chest', enemy.x, enemy.y);
-        if (boss.final && this.victoryInMs < 0) this.victoryInMs = VICTORY_DELAY_MS;
+        if (!boss.final) {
+            if (boss.dropsChest) this.pickups.drop('chest', enemy.x, enemy.y);
+            return;
+        }
+        if (this.finalBossDead) return;
+        this.finalBossDead = true;
+        this.pickups.drop('finalChest', enemy.x, enemy.y);
+        this.events.emit(ANNOUNCE_EVENT, PORTAL.bossDeadMessage);
+        this.combat.killAll((other) => {
+            this.xp.drop(other.x, other.y, other.def.xp);
+            this.onEnemyKilled(other);
+        });
+    }
+
+    /** The final chest was opened at (x, y): the portal opens to one side (to the right, or left if there is a wall). */
+    private openPortalBeside(x: number, y: number): void {
+        if (this.portal || this.portalInMs >= 0) return;
+        const { map, area } = this.world;
+        const side = [PORTAL.besideChestX, -PORTAL.besideChestX].find((dx) => canStandAt(map, area, x + dx, y, ENEMY_WALL_HALF_SIZE)) ?? PORTAL.besideChestX;
+        this.portalX = x + side;
+        this.portalY = y;
+        this.portalInMs = PORTAL.openDelayMs;
     }
 
     private updateMusic(): void {
