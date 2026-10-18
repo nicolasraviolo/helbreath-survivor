@@ -1,7 +1,7 @@
 // Partida simulada (Fase 13C, solo en desarrollo: ?debug=sim, situación `levelpace` de pnpm check).
 // Juega una partida entera muy deprisa para medir el equilibrio: el jugador es invencible, corre en círculos,
-// elige cartas al azar y se apunta en qué segundo llega a cada nivel y cuánto quitan los golpes de los jefes
-// (comparado con su vida máxima). El informe queda en window.__sim para que lo lea el script.
+// elige cartas al azar y se apunta en qué segundo llega a cada nivel, cuánto quitan los golpes de los jefes
+// (comparado con su vida máxima) y cuántos golpes de cada monstruo le aciertan y cuántos esquiva (Fase 18A). El informe queda en window.__sim para que lo lea el script.
 import Phaser from 'phaser';
 
 /** Game time of each sub-step (ms): like a phone at 30 FPS. */
@@ -27,6 +27,15 @@ export interface SimBossHit {
     maxHp: number;
 }
 
+/** Blows of one monster kind that reached the player: how many landed (the rest were dodged), and their damage. */
+export interface SimBlows {
+    tried: number;
+    landed: number;
+    /** Damage before armor: of every blow, and of those that landed. */
+    damageTried: number;
+    damageLanded: number;
+}
+
 export interface SimReport {
     done: boolean;
     character: string;
@@ -34,6 +43,8 @@ export interface SimReport {
     levels: Array<{ level: number; atS: number }>;
     /** The biggest blow of each boss (after armor), with the player's health at that moment. */
     bossHits: Record<string, SimBossHit>;
+    /** Blows that reached the player, by monster name (Fase 18A: how many it dodged). */
+    blows: Record<string, SimBlows>;
     /** When each boss appeared and died (game seconds). */
     bossLife: Array<{ boss: string; fromS: number; toS?: number }>;
     /** Total XP picked up by the end of each minute (index = minute). */
@@ -74,7 +85,7 @@ export class SimRun {
 
     constructor(character: string) {
         this.report = {
-            done: false, character, levels: [], bossHits: {}, bossLife: [], xpByMinute: [], aliveByMinute: [], oneHitKillShare: 0, finalBossDeadAtS: undefined,
+            done: false, character, levels: [], bossHits: {}, blows: {}, bossLife: [], xpByMinute: [], aliveByMinute: [], oneHitKillShare: 0, finalBossDeadAtS: undefined,
             endLevel: 1, endS: 0, kills: 0, end: '', build: '', speed: 0,
         };
         window.__sim = this.report;
@@ -163,6 +174,16 @@ export class SimRun {
         const best = this.report.bossHits[boss];
         if (!best || damage / maxHp > best.damage / best.maxHp) {
             this.report.bossHits[boss] = { boss, atS: Math.round(elapsedMs / 1000), damage, maxHp };
+        }
+    }
+
+    onBlow(source: string, damage: number, landed: boolean): void {
+        const blows = (this.report.blows[source] ??= { tried: 0, landed: 0, damageTried: 0, damageLanded: 0 });
+        blows.tried++;
+        blows.damageTried += damage;
+        if (landed) {
+            blows.landed++;
+            blows.damageLanded += damage;
         }
     }
 

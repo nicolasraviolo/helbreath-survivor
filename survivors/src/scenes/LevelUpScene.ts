@@ -7,6 +7,7 @@ import { GAME_WIDTH, LEVEL_UP_INPUT_DELAY_MS } from '../config/gameConfig';
 import { HUD_TOP } from '../config/hud';
 import { px, UI_TEXT, UI_FONT_SIZE } from '../config/ui';
 import { ARMOR_SLOT_NAMES, getArmorPiece } from '../data/armor';
+import { dodgeChance, playerDefenseRatio, playerMagicResistance, resistChance } from '../data/defense';
 import { STAT_INFO, type StatId } from '../data/stats';
 import { getPassive } from '../data/passives';
 import { getSpell, SPELL_FAMILIES, type SpellDef } from '../data/spells';
@@ -226,8 +227,15 @@ function describeCard(stats: CharacterStats, equipment: Equipment, choice: Level
             const piece = getArmorPiece(choice.piece);
             const pct = (value: number) => `${Math.round(value * 100)}%`;
             const changes = [`Damage taken −${pct(equipment.defense)} → −${pct(equipment.defenseWith(choice.piece))}`];
-            const magicAfter = equipment.magicDamageBonusWith(choice.piece);
+            const magicAfter = equipment.totalWith(choice.piece, 'magicDamageBonus');
             if (magicAfter !== equipment.magicDamageBonus) changes.push(`Magic damage +${pct(equipment.magicDamageBonus)} → +${pct(magicAfter)}`);
+            // General dodge and magic resist (Fases 18A and 18B), when the piece changes them.
+            const dodge = (armorRatio: number) => dodgeChance(playerDefenseRatio(stats.stats.dex, armorRatio));
+            const [dodgeBefore, dodgeAfter] = [dodge(equipment.defenseRatio), dodge(equipment.totalWith(choice.piece, 'defenseRatio'))];
+            if (pct(dodgeBefore) !== pct(dodgeAfter)) changes.push(`Dodge ${pct(dodgeBefore)} → ${pct(dodgeAfter)}`);
+            const resist = (armorResistance: number) => resistChance(playerMagicResistance(stats.stats.mag, armorResistance));
+            const [resistBefore, resistAfter] = [resist(equipment.magicResistance), resist(equipment.totalWith(choice.piece, 'magicResistance'))];
+            if (pct(resistBefore) !== pct(resistAfter)) changes.push(`Magic resist ${pct(resistBefore)} → ${pct(resistAfter)}`);
             return {
                 badge: ARMOR_BADGE.text, badgeColor: ARMOR_BADGE.color, title: piece.name,
                 effect: choice.from ? `${ARMOR_SLOT_NAMES[piece.slot]} · replaces ${getArmorPiece(choice.from).name}` : ARMOR_SLOT_NAMES[piece.slot],

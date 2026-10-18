@@ -55,6 +55,8 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Tótems (Fase 16B)
 - Personajes guardados (Fase 17A)
 - Aspecto del personaje (Fase 17B)
+- Esquiva física (Fase 18A)
+- Resistencia mágica (Fase 18B)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -695,3 +697,23 @@ Tabla completa en `docs/REQUISITOS_HB.md`. Lo no obvio:
 - **Colores probados en pantalla:** varios de los 16 salen casi iguales (el 15 "rubio" sale verde oliva y el 0 rojo oscuro se parece al 1). Los 8 elegidos están en `HAIR_COLORS`, con su número del original.
 - **Casco:** como en el original, oculta el pelo.
 - **Voz y grito:** van por sexo (`GENDER_SOUNDS`), no por clase.
+
+## Esquiva física (Fase 18A)
+- Fórmula y números en `src/data/defense.ts`: probabilidad de que un golpe acierte = 50·puntería / defensa, entre 25% y 95%.
+- **Puntería** (`hitRatio` en `data/enemies.ts`) = la original de la wiki, sin el "Dash Attack". Se comprime al usarla (8,3 × puntería^0,53) porque va de 30 a 1.300. Hellhound no está en la wiki: le puse 200 (como un Troll).
+- **Defensa del jugador** = 2·Dex + `defenseRatio` de cada pieza (valor original de `docs/hb-wiki/armaduras.md`; Knight Shield no está en la wiki y usa el del Kite Shield, 30). La reducción de daño de antes (`defense`) sigue igual: la armadura ayuda dos veces.
+- El dado se tira **por golpe** en `Enemy.strike` (antes de juntar los golpes del frame) y en `EnemyProjectileSystem` para las flechas (`physical: true`). Una flecha esquivada sigue volando de largo. Las bolas de fuego son magia: no se esquivan (18B).
+- Sin texto "Miss" (decisión del propietario): el golpe esquivado no hace nada, ni parpadeo ni animación de daño.
+- Valores con el mejor equipo: guerrero 125 de defensa (Orc acierta 29%, Werewolf 68%, Ettin 77%); Maga 44 (casi todo entra).
+- Desde la 18B el panel y las cartas no nombran monstruos: % **general** contra `DODGE.referenceHitRatio` (150).
+- Partida simulada: el informe trae `blows` (golpes que acertaron/total por monstruo) y `pnpm check levelpace` lo escribe. Primera medida (18-oct-2026): el guerrero esquiva ~24% del daño de la partida y la Maga ~5%. Contra el Ettin (minuto 5) el guerrero aún esquiva poco porque le falta armadura.
+
+## Resistencia mágica (Fase 18B)
+- Fórmula en `src/data/defense.ts` (`MAGIC_RESIST`): probabilidad de que un hechizo entre = 50·puntería mágica / resistencia, entre 25% y 95%. Sin compresión (los números son nuestros y pequeños).
+- **Puntería mágica** = `magicHitRatio` del ataque a distancia (`EnemyRangedAttack` en `data/enemies.ts`): Mage-Orc 45, Fire Wyvern 80. Un ataque sin `physical` ni `magicHitRatio` entra siempre.
+- **Resistencia** = Mag + `magicResistance` de cada pieza (`data/armor.ts`, números nuestros: la wiki no la da por pieza). Fija: no sube sola como la habilidad del original.
+- La tirada va en `EnemyProjectileSystem.update` después de la de esquiva. Resistida: explota (efecto y sonido) sin daño y llama a `onResist` → `DamageNumbers.showWord` ("Resist", del mismo pool que los números).
+- Panel y cartas: % general contra `MAGIC_RESIST.referenceHitRatio` (= la bola del Mage-Orc). Si se cambia la del Mage-Orc, cambiar también la referencia.
+- La partida simulada cuenta los hechizos junto a los golpes (`blows`).
+- Varios "Resist" casi a la vez (las 3 bolas del Wyvern) se apilan hacia arriba (`WORD_STACK_MS`/`WORD_STACK_PX` en `DamageNumbers.ts`).
+- `Equipment` guarda los totales de la armadura (`totals`) y los recalcula solo en `wear()`, porque se leen cada frame. La armadura solo se cambia con `wear()` (`armor` es de solo lectura). Para la vista previa de las cartas: `totalWith(pieza, 'magicResistance')`, etc.

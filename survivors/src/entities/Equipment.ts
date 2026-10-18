@@ -7,12 +7,26 @@ import type { SpellId } from '../data/spells';
 import { getMeleeWeapon, type MeleeWeaponId } from '../data/weapons';
 import type { GearLayer, GearSlot } from '../hb/playerAppearance';
 
+/** Armor values that add up over the pieces worn. */
+export type ArmorTotal = 'defense' | 'defenseRatio' | 'magicResistance' | 'magicDamageBonus';
+
+function pieceValue(piece: ArmorPieceId, key: ArmorTotal): number {
+    return getArmorPiece(piece)[key] ?? 0;
+}
+
 export class Equipment {
     public weapon: MeleeWeaponId | undefined;
     public spell: SpellId | undefined;
-    public readonly armor: Partial<Record<ArmorSlotId, ArmorPieceId>> = {};
+    /** One piece per armor slot; changed only through wear(), which keeps `totals` up to date. */
+    private readonly worn: Partial<Record<ArmorSlotId, ArmorPieceId>> = {};
     /** Rank of each passive (0 = not taken). */
     public readonly passives: Record<PassiveId, number> = { boots: 0, magnetAmulet: 0 };
+    /** Sum of each armor value over the pieces worn; recomputed only in wear() (read every frame). */
+    private readonly totals: Record<ArmorTotal, number> = { defense: 0, defenseRatio: 0, magicResistance: 0, magicDamageBonus: 0 };
+
+    public get armor(): Readonly<Partial<Record<ArmorSlotId, ArmorPieceId>>> {
+        return this.worn;
+    }
 
     constructor(private readonly def: CharacterDef) {
         const start = def.startWeapon;
@@ -25,13 +39,6 @@ export class Equipment {
         return getPassive(id).perRank * rank;
     }
 
-    /** Extra magic damage from the clothes worn (0.1 = +10%). */
-    public get magicDamageBonus(): number {
-        let total = 0;
-        for (const id of Object.values(this.armor)) total += getArmorPiece(id).magicDamageBonus ?? 0;
-        return total;
-    }
-
     /** A piece in every armor slot the class can wear (achievement "Fully Armored"). */
     public get fullArmor(): boolean {
         const slots = ARMOR_BY_SET[this.def.armorSet];
@@ -40,25 +47,36 @@ export class Equipment {
 
     /** Share of incoming damage removed by all the armor worn (0..MAX_DEFENSE). */
     public get defense(): number {
-        let total = 0;
-        for (const id of Object.values(this.armor)) total += ARMOR_PIECES[id].defense;
-        return Math.min(MAX_DEFENSE, total);
+        return Math.min(MAX_DEFENSE, this.totals.defense);
+    }
+
+    /** Original defense ratio of all the armor worn: makes blows miss (data/defense.ts). */
+    public get defenseRatio(): number {
+        return this.totals.defenseRatio;
+    }
+
+    /** Magic resistance of all the armor worn: makes spells fail (data/defense.ts). */
+    public get magicResistance(): number {
+        return this.totals.magicResistance;
+    }
+
+    /** Extra magic damage from the clothes worn (0.1 = +10%). */
+    public get magicDamageBonus(): number {
+        return this.totals.magicDamageBonus;
+    }
+
+    /**
+     * What a total would be if `piece` replaced what is worn in its slot (for the card preview). Defense is not
+     * capped here: use defenseWith.
+     */
+    public totalWith(piece: ArmorPieceId, key: ArmorTotal): number {
+        const current = this.armor[ARMOR_PIECES[piece].slot];
+        return this.totals[key] - (current ? pieceValue(current, key) : 0) + pieceValue(piece, key);
     }
 
     /** Defense if `piece` replaced what is worn in its slot (for the card preview). */
     public defenseWith(piece: ArmorPieceId): number {
-        const slot = ARMOR_PIECES[piece].slot;
-        const current = this.armor[slot];
-        const without = this.defense - (current ? ARMOR_PIECES[current].defense : 0);
-        return Math.min(MAX_DEFENSE, without + ARMOR_PIECES[piece].defense);
-    }
-
-    /** Magic damage bonus if `piece` replaced what is worn in its slot (for the card preview). */
-    public magicDamageBonusWith(piece: ArmorPieceId): number {
-        const def = getArmorPiece(piece);
-        const current = this.armor[def.slot];
-        const without = this.magicDamageBonus - (current ? getArmorPiece(current).magicDamageBonus ?? 0 : 0);
-        return without + (def.magicDamageBonus ?? 0);
+        return Math.min(MAX_DEFENSE, this.totalWith(piece, 'defense'));
     }
 
     /** Layer drawn for the weapon in hand (undefined if the weapon has no sprite). */
@@ -74,7 +92,12 @@ export class Equipment {
     public wear(piece: ArmorPieceId): Array<[GearSlot, GearLayer | undefined]> {
         const slot = ARMOR_PIECES[piece].slot;
         const old = this.armor[slot];
-        this.armor[slot] = piece;
+        this.worn[slot] = piece;
+        for (const key of Object.keys(this.totals) as ArmorTotal[]) {
+            let total = 0;
+            for (const id of Object.values(this.worn)) total += pieceValue(id, key);
+            this.totals[key] = total;
+        }
         const changes = new Map<GearSlot, GearLayer | undefined>();
         if (old) {
             for (const gearSlot of Object.keys(ARMOR_PIECES[old].look) as GearSlot[]) {

@@ -15,11 +15,19 @@ import {
 const NORMAL_COLOR = '#ff2020';
 const CRITICAL_COLOR = '#ffe040';
 const CRITICAL_SCALE = 1.3;
+/** Words instead of numbers ("Resist", Fase 18B): light blue, a bit smaller. */
+const WORD_COLOR = '#80c8ff';
+const WORD_SCALE = 0.85;
+/** Words shown at almost the same time (the Wyvern's 3 fireballs) stack upwards instead of overlapping. */
+const WORD_STACK_MS = 400;
+const WORD_STACK_PX = 14;
 import { Pool, type Poolable } from '../utils/Pool';
 
 class DamageNumber implements Poolable {
     public poolIndex = -1;
     public ageMs = 0;
+    /** Shows a word, not a number. */
+    public isWord = false;
     public readonly text: Phaser.GameObjects.Text;
 
     constructor(scene: Phaser.Scene) {
@@ -51,11 +59,24 @@ export class DamageNumbers {
         if (this.pool.active.length >= DAMAGE_NUMBER_MAX) return;
         const number = this.pool.acquire();
         number.ageMs = 0;
+        number.isWord = false;
         const spread = (Math.random() - 0.5) * DAMAGE_NUMBER_SPREAD_PX;
         number.text.setText(critical ? `-${amount}!` : `-${amount}`)
             .setColor(critical ? CRITICAL_COLOR : NORMAL_COLOR)
             .setScale(critical ? CRITICAL_SCALE : 1)
             .setPosition(x + spread, y).setAlpha(1).setActive(true).setVisible(true);
+    }
+
+    /** Shows a word (e.g. "Resist") at (x, y), rising like a number. Skipped when too many are on screen. */
+    public showWord(x: number, y: number, word: string): void {
+        if (this.pool.active.length >= DAMAGE_NUMBER_MAX) return;
+        let recent = 0;
+        for (const other of this.pool.active) if (other.isWord && other.ageMs < WORD_STACK_MS) recent++;
+        const number = this.pool.acquire();
+        number.ageMs = 0;
+        number.isWord = true;
+        number.text.setText(word).setColor(WORD_COLOR).setScale(WORD_SCALE)
+            .setPosition(x, y - recent * WORD_STACK_PX).setAlpha(1).setActive(true).setVisible(true);
     }
 
     public update(deltaMs: number): void {

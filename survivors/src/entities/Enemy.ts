@@ -1,6 +1,6 @@
 // Enemigo ligero y reciclable: un sprite animado (más su sombra) que persigue al jugador y, al tenerlo a su alcance,
 // se para y le ataca con su animación y su sonido; el golpe cae en el frame 2, como en el original, y solo hace daño
-// si el jugador sigue a su alcance. Lo crea y lo recicla EnemySystem; aquí solo vive su comportamiento.
+// si el jugador sigue a su alcance y la tirada de puntería contra su defensa acierta (Fase 18A). Lo crea y lo recicla EnemySystem; aquí solo vive su comportamiento.
 import Phaser from 'phaser';
 import {
     DEFAULT_ANIMATION_FRAME_RATE,
@@ -17,6 +17,7 @@ import {
 } from '../config/gameConfig';
 import type { AudioSystem } from '../systems/AudioSystem';
 import { enemySpeed, MONSTER_AI, MONSTER_DAMAGE, type EnemyDef } from '../data/enemies';
+import { hitChance } from '../data/defense';
 import { FREEZE_TINT } from '../data/totems';
 import { TILE_SIZE } from '../config/gameConfig';
 import { HBAsset } from '../hb/HBAsset';
@@ -40,6 +41,10 @@ export interface EnemyWorld {
     targetY: number;
     /** Distance to the target at which the enemy stops pushing forward. */
     targetRadius: number;
+    /** The player's defense ratio: each blow rolls its hit ratio against it (data/defense.ts). */
+    defenseRatio: number;
+    /** Told about every blow that reaches the player, landed or dodged (the simulated run counts them). */
+    onBlow?: (source: string, damage: number, landed: boolean) => void;
 }
 
 export class Enemy implements Poolable {
@@ -282,7 +287,7 @@ export class Enemy implements Poolable {
 
         if (this.attackLeftMs > 0) {
             // Attacking: stands still (only pushes and knockback move it) until the animation ends.
-            this.updateAttack(deltaMs, inReach);
+            this.updateAttack(deltaMs, inReach, world);
             wanted = MonsterState.Attack;
         } else if (this.fleeMs > 0) {
             // Running away from the player (hit-and-run or scared at low health).
@@ -357,14 +362,14 @@ export class Enemy implements Poolable {
         this.audio.play(this.def.attackSound, durationMs);
     }
 
-    /** The blow lands on frame 2, if the player is still within reach (archers shoot instead). */
-    private updateAttack(deltaMs: number, inReach: boolean): void {
+    /** The blow lands on frame 2, if the player is still within reach and does not dodge it (archers shoot instead). */
+    private updateAttack(deltaMs: number, inReach: boolean, world: EnemyWorld): void {
         this.attackLeftMs -= deltaMs;
         if (this.hitInMs >= 0) {
             this.hitInMs -= deltaMs;
             if (this.hitInMs < 0) {
                 if (this.def.attackProjectile) this.shotDamage = this.rollDamage();
-                else if (inReach) this.landedDamage = Math.max(this.landedDamage, this.rollDamage());
+                else if (inReach) this.strike(world);
             }
         }
         if (this.attackLeftMs <= 0) {
@@ -372,6 +377,14 @@ export class Enemy implements Poolable {
             this.afterBlow();
             this.play(MonsterState.Move, true);
         }
+    }
+
+    /** A melee blow reaches the player: it lands only if the hit roll beats the player's defense. */
+    private strike(world: EnemyWorld): void {
+        const damage = this.rollDamage();
+        const landed = Math.random() < hitChance(this.def.hitRatio, world.defenseRatio);
+        world.onBlow?.(this.def.name, damage, landed);
+        if (landed) this.landedDamage = Math.max(this.landedDamage, damage);
     }
 
     /** Hit-and-run strategies: after one (or two) blows, it runs away for a couple of actions. */

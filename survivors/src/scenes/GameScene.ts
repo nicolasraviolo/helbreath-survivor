@@ -44,6 +44,8 @@ import { PickupSystem } from '../systems/PickupSystem';
 import { CHEST_CARDS_TITLE, POTION_HEAL_SHARE, type PickupId } from '../data/pickups';
 import { getTotem, TOTEM_IDS, type TotemId } from '../data/totems';
 import { TotemSystem } from '../systems/TotemSystem';
+import { playerDefenseRatio, playerMagicResistance, RESIST_TEXT, type PlayerDefense } from '../data/defense';
+import { ARMOR_BY_SET } from '../data/armor';
 import { Equipment } from '../entities/Equipment';
 import type { EnemyWorld } from '../entities/Enemy';
 import { Player } from '../entities/Player';
@@ -120,6 +122,8 @@ export class GameScene extends Phaser.Scene {
     private enemies!: EnemySystem;
     private spawner!: SpawnSystem;
     private damageNumbers!: DamageNumbers;
+    /** Defense and magic resistance, refreshed once per frame and reused (no new object each frame). */
+    private readonly playerDefense: PlayerDefense = { defenseRatio: 0, magicResistance: 0 };
     private audio!: AudioSystem;
     private combat!: CombatSystem;
     private particles!: HitParticles;
@@ -266,12 +270,13 @@ export class GameScene extends Phaser.Scene {
         this.buffs = new BuffSystem(this, this.player, this.audio, (key, x, y) => this.weapons.spawnEffect(key, x, y));
         this.totems = new TotemSystem(this, map, areaPx, this.audio, (id) => this.collectTotem(id));
         this.chestCards = 0;
-        this.enemyShots = new EnemyProjectileSystem(this, this.audio, (key, x, y) => this.weapons.spawnEffect(key, x, y));
+        this.enemyShots = new EnemyProjectileSystem(this, this.audio, (key, x, y) => this.weapons.spawnEffect(key, x, y),
+            (x, y) => this.damageNumbers.showWord(x, y, RESIST_TEXT));
         this.bosses = new BossSystem(this.enemyShots, (minions, x, y) => this.spawner.spawnRing(minions.enemies, minions.count, x, y, minions.radius));
         // Archers (Dark Elf) shoot arrows at the player's body instead of hitting directly.
         this.enemies.setShootHandler((enemy, damage) => {
             const ranged = enemy.def.attackProjectile;
-            if (ranged) this.enemyShots.throwAt(ranged, enemy.def.name, enemy.x, enemy.bodyY, this.player.x, this.player.y - PLAYER_BODY_OFFSET_Y, damage);
+            if (ranged) this.enemyShots.throwAt(ranged, enemy.def.name, enemy.x, enemy.bodyY, this.player.x, this.player.y - PLAYER_BODY_OFFSET_Y, damage, false, enemy.def.hitRatio);
         });
         this.music = new MusicSystem(this);
         this.music.play(MUSIC.normal);
@@ -310,7 +315,7 @@ export class GameScene extends Phaser.Scene {
         });
         this.player.setMaxHp(this.stats.maxHp, true);
         this.applyStats();
-        this.world = { map, area: areaPx, targetX: 0, targetY: 0, targetRadius: character.hitboxHalfSize };
+        this.world = { map, area: areaPx, targetX: 0, targetY: 0, targetRadius: character.hitboxHalfSize, defenseRatio: 0 };
         if (resume) this.restore(resume);
         this.watchForSaving();
 
@@ -588,6 +593,8 @@ export class GameScene extends Phaser.Scene {
                 stats: this.stats,
                 weaponName: this.meleeWeapon?.def.name ?? this.spellWeapon?.def.name,
                 defense: this.equipment.defense,
+                defenseRatio: this.defenseRatio,
+                magicResistance: this.magicResistance,
                 passiveRanks: this.equipment.passives,
                 buffs: this.buffs.active.map(({ def, secondsLeft }) => ({ name: def.name, secondsLeft, color: def.color })),
                 minimap: { player: this.player, bosses: this.bosses.tracked.filter((boss) => boss.isAlive), totems: this.totems.active },
@@ -652,6 +659,10 @@ export class GameScene extends Phaser.Scene {
         this.updateFootsteps(!player.isDead && !player.isRooted && move.lengthSq() > 0);
         this.world.targetX = player.x;
         this.world.targetY = player.y;
+        this.playerDefense.defenseRatio = this.defenseRatio;
+        this.playerDefense.magicResistance = this.magicResistance;
+        this.world.defenseRatio = this.playerDefense.defenseRatio;
+        this.world.onBlow = this.sim ? this.onSimBlow : undefined;
         this.enemies.update(delta, this.world);
         // Manual aim (right click / right stick) wins over the automatic one; the simulated run always aims on its own.
         const manualAim = this.sim || player.isDead ? undefined : input.getManualAim();
@@ -673,7 +684,7 @@ export class GameScene extends Phaser.Scene {
         this.sim?.onAlive(this.enemies.alive, this.spawner.elapsed);
         const bodyY = player.y - PLAYER_BODY_OFFSET_Y;
         this.bosses.update(delta, player.x, bodyY, !player.isDead);
-        const shotDamage = this.enemyShots.update(delta, player.x, bodyY, PLAYER_BODY_RADIUS);
+        const shotDamage = this.enemyShots.update(delta, player.x, bodyY, PLAYER_BODY_RADIUS, this.playerDefense, this.world.onBlow);
         this.updateMusic();
         if (!player.isDead) this.achievements.update(delta);
         if (!player.isDead && !this.sim) this.metrics.update(delta, this.spawner.elapsed, this.stats.level);
@@ -758,6 +769,21 @@ export class GameScene extends Phaser.Scene {
         this.audio.play('sfx.player.hurt');
         player.act(PlayerState.Hurt, player.direction, PLAYER_HURT_MS, PLAYER_HURT_STUN_MS);
     }
+
+    /** Defense against monster blows: Dex plus the armor worn (data/defense.ts). */
+    private get defenseRatio(): number {
+        return playerDefenseRatio(this.stats.stats.dex, this.equipment.defenseRatio);
+    }
+
+    /** Resistance against spells: Magic plus the armor worn (data/defense.ts). */
+    private get magicResistance(): number {
+        return playerMagicResistance(this.stats.stats.mag, this.equipment.magicResistance);
+    }
+
+    /** The simulated run counts every blow, landed or dodged (it is told only while ?debug=sim runs). */
+    private readonly onSimBlow = (source: string, damage: number, landed: boolean): void => {
+        this.sim?.onBlow(source, damage, landed);
+    };
 
     /** Armor and a Defense Shield remove part of each hit (0 stays 0: no enemy touching). */
     private reduceByArmor(damage: number): number {
@@ -868,6 +894,17 @@ export class GameScene extends Phaser.Scene {
             case 'aimstick':
                 // A pretend finger on the aim stick, pushed to the right (touch screens only, Fase 15C).
                 this.aimStick?.debugHold(GAME_WIDTH * 0.75, playAreaBottom() / 2, TOUCH_AIM_STICK.radius, 0);
+                break;
+            case 'dodge':
+                // The best armor of the class in every slot, to see blows miss and spells resisted (Fases 18A and 18B). No achievements: they would be free.
+                this.achievements.enabled = false;
+                for (const pieces of Object.values(ARMOR_BY_SET[this.stats.def.armorSet])) {
+                    const best = pieces[pieces.length - 1];
+                    if (best) for (const [slot, layer] of this.equipment.wear(best)) this.player.setGear(slot, layer);
+                }
+                break;
+            case 'stats':
+                // Opened by the Hud scene itself.
                 break;
             case 'sim':
                 this.sim = new SimRun(this.stats.def.name);
