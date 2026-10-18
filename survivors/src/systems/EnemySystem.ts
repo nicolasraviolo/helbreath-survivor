@@ -146,6 +146,15 @@ export class EnemySystem {
         return best;
     }
 
+    /** True while any boss is alive (the waves wait for it to die). */
+    public get bossAlive(): boolean {
+        for (const [id, pool] of this.pools) {
+            if (!(ENEMIES[id] as EnemyDef).boss) continue;
+            if (pool.active.some((enemy) => enemy.isAlive)) return true;
+        }
+        return false;
+    }
+
     /** Closest living boss to (x, y) within `maxDistance`, or undefined (only the bosses' pools are looked at). */
     public findNearestBoss(x: number, y: number, maxDistance: number): Enemy | undefined {
         let best: Enemy | undefined;

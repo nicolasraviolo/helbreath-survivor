@@ -38,6 +38,10 @@ export interface SimReport {
     bossLife: Array<{ boss: string; fromS: number; toS?: number }>;
     /** Total XP picked up by the end of each minute (index = minute). */
     xpByMinute: number[];
+    /** Most enemies alive at once during each minute (index = minute). */
+    aliveByMinute: number[];
+    /** Share of the normal (non-boss) monsters killed by their first hit, 0..1. An Energy Bolt is 2 hits (direct + area). */
+    oneHitKillShare: number;
     finalBossDeadAtS: number | undefined;
     endLevel: number;
     endS: number;
@@ -70,7 +74,7 @@ export class SimRun {
 
     constructor(character: string) {
         this.report = {
-            done: false, character, levels: [], bossHits: {}, bossLife: [], xpByMinute: [], finalBossDeadAtS: undefined,
+            done: false, character, levels: [], bossHits: {}, bossLife: [], xpByMinute: [], aliveByMinute: [], oneHitKillShare: 0, finalBossDeadAtS: undefined,
             endLevel: 1, endS: 0, kills: 0, end: '', build: '', speed: 0,
         };
         window.__sim = this.report;
@@ -131,6 +135,25 @@ export class SimRun {
         while (totals.length <= minute) totals.push(totals.at(-1) ?? 0);
         totals[minute] = (totals[minute] ?? 0) + amount;
     }
+
+    onAlive(alive: number, elapsedMs: number): void {
+        const minute = Math.floor(elapsedMs / 60000);
+        const most = this.report.aliveByMinute;
+        while (most.length <= minute) most.push(0);
+        most[minute] = Math.max(most[minute] ?? 0, alive);
+    }
+
+    /** A normal monster died after `hits` hits. */
+    onKill(hits: number): void {
+        // 0 hits: killed all at once when the final boss died; not a weapon kill.
+        if (hits === 0) return;
+        this.normalKills++;
+        if (hits <= 1) this.oneHitKills++;
+        this.report.oneHitKillShare = Math.round((this.oneHitKills / this.normalKills) * 100) / 100;
+    }
+
+    private normalKills = 0;
+    private oneHitKills = 0;
 
     onLevel(level: number, elapsedMs: number): void {
         this.report.levels.push({ level, atS: Math.round(elapsedMs / 1000) });

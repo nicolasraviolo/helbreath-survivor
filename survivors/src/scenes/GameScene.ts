@@ -610,6 +610,7 @@ export class GameScene extends Phaser.Scene {
         this.stats.buffDamageMultiplier = this.buffs.damageMultiplier;
         this.spawner.enabled = !player.isDead && !this.finalBossDead;
         this.spawner.update(delta);
+        this.sim?.onAlive(this.enemies.alive, this.spawner.elapsed);
         const bodyY = player.y - PLAYER_BODY_OFFSET_Y;
         this.bosses.update(delta, player.x, bodyY, !player.isDead);
         const shotDamage = this.enemyShots.update(delta, player.x, bodyY, PLAYER_BODY_RADIUS);
@@ -830,7 +831,10 @@ export class GameScene extends Phaser.Scene {
      */
     private onEnemyKilled(enemy: Enemy): void {
         const boss = enemy.def.boss;
-        if (!boss) return;
+        if (!boss) {
+            this.sim?.onKill(enemy.hitsTaken);
+            return;
+        }
         this.sim?.onBossDead(enemy.def.name, this.spawner.elapsed);
         this.metrics.onBossDead(enemy.def.name, this.spawner.elapsed);
         this.achievements.onBossKilled(enemy.def);

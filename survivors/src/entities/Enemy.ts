@@ -46,6 +46,8 @@ export class Enemy implements Poolable {
     public x = 0;
     public y = 0;
     public hp = 0;
+    /** Hits taken since it spawned (to measure how many die in one hit: ?debug=sim). */
+    public hitsTaken = 0;
     public phase = EnemyPhase.Alive;
     /** Separation push accumulated by EnemySystem this frame, in px/s. */
     public pushX = 0;
@@ -111,6 +113,7 @@ export class Enemy implements Poolable {
         this.x = x;
         this.y = y;
         this.hp = this.def.maxHp;
+        this.hitsTaken = 0;
         this.phase = EnemyPhase.Alive;
         this.pushX = 0;
         this.pushY = 0;
@@ -164,6 +167,7 @@ export class Enemy implements Poolable {
     public takeDamage(amount: number, fromX: number, fromY: number, knockback: number): boolean {
         if (!this.isAlive) return false;
         this.hp -= amount;
+        this.hitsTaken++;
         this.flashMs = ENEMY_HIT_FLASH_MS;
         this.sprite.setTintFill(0xffffff);
         const dx = this.x - fromX;
