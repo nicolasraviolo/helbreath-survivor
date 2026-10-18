@@ -2,7 +2,9 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
-**Fase 14, bloque 14A: métricas anónimas (2026-10-18, el propietario lo probó y funciona). Cierra la Fase 14 (falta `/checkpoint fase`).**
+**Fase 14 completada (2026-10-18)**: bloques 14A (métricas) y 14B (logros). Fusionada en `master`, etiqueta `fase-14` y publicada en https://nicolasraviolo.github.io/helbreath-survivor/. Base de datos de métricas vaciada de pruebas al publicar. Siguiente: `/fase 15`.
+
+**Fase 14, bloque 14A: métricas anónimas (2026-10-18, el propietario lo probó y funciona). Cierra la Fase 14.**
 - **Servidor** `metrics-server/`: Cloudflare Worker + base de datos D1 en la cuenta del propietario, https://helbreath-survivors-metrics.nicolasraviolo.workers.dev. `POST /run` guarda una partida (solo desde github.io o localhost, máx. 8 KB, cada campo comprobado, sin IP). La raíz es la página de gráficas, con clave (secreto `DASHBOARD_KEY`; copia local en `metrics-server/.dev.vars`, fuera de git).
 - **Qué se envía** (`config/metrics.ts`, recogido por `systems/RunMetrics.ts`): versión, mapa, clase, móvil u ordenador, resultado (win, death, quit), duración, nivel, bajas, qué te mató, equipo final, cartas elegidas, nivel al final de cada minuto, daño recibido por monstruo, vida más baja, pociones, jefes (llegada, muerte, golpe más fuerte), FPS medios y del 10% más lento. Zem y crits van a 0 hasta las Fases 16 y 17.
 - **Cuándo:** al ganar, morir o "Quit to menu". Nunca en la partida simulada; en `pnpm dev` solo con `?metrics=send`. Lo recogido viaja en la partida guardada, así Continue no lo pierde.

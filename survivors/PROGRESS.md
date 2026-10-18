@@ -16,10 +16,10 @@
 | 11 — Pulido de interfaz | ✅ completada | 2026-10-18 |
 | 12 — Móvil sin pérdidas | ✅ completada (12A, 12B y 12C) | 2026-10-18 |
 | 13 — Jefe final y equilibrio | ✅ completada (13A, 13B y 13C) | 2026-10-18 |
-| 14 — Métricas y logros | 🔨 14A y 14B hechos; falta cerrar la fase (`/checkpoint fase`) | |
+| 14 — Métricas y logros | ✅ completada (14A y 14B) | 2026-10-18 |
 
 ## Fase actual
-**Para retomar (18-oct-2026): Fase 14 hecha (14A métricas y 14B logros)** en la rama `fase-14`. **Siguiente:** `/checkpoint fase` para cerrarla (fusionar en `master` y publicar: hasta entonces el juego publicado no envía métricas) y luego `/fase 15` (apuntado híbrido).
+**Para retomar (18-oct-2026): Fase 14 completada** (14A métricas y 14B logros), fusionada en `master`, etiqueta `fase-14` y publicada: el juego publicado ya envía métricas. **Siguiente:** `/fase 15` (apuntado híbrido).
 - **Métricas (14A):** servidor `metrics-server/` (Cloudflare Worker + D1). Gráficas en https://helbreath-survivors-metrics.nicolasraviolo.workers.dev, con clave (en `metrics-server/.dev.vars`). Qué se envía: `config/metrics.ts`; lo recoge `systems/RunMetrics.ts`. En `pnpm dev` solo con `?metrics=send`. Detalle y cómo añadir un dato: NOTES.md, "Métricas".
 - **Logros (14B):** lista en `data/achievements.ts`, guardados en `systems/AchievementStore.ts` y vigilados por `systems/AchievementTracker.ts`. Para añadir uno basta con la lista (ver NOTES.md, "Logros"). Detalle en el historial.
 - **Equilibrio (13C):** curva en `data/leveling.ts` (4 niveles baratos y luego +24% por nivel), XP de monstruo = vida/5, jefes con `damageScale` y sin empuje (`data/enemies.ts`), Vit cura (`HP_REGEN_PER_VIT`, `data/stats.ts`). Medir con la partida simulada y, desde la Fase 14, con las gráficas de métricas.
