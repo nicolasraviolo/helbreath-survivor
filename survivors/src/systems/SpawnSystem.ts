@@ -5,6 +5,8 @@
 // Fase 13: desde que sale el jefe final no salen más monstruos de las oleadas (solo los esbirros que llama él).
 // Los monstruos se descargan por oleadas (AssetStreamer): uno que aún no está listo no aparece, y un evento cuyo
 // monstruo no está listo espera (normalmente unos segundos como mucho) a que lo esté.
+// Un jefe nunca se pierde: si no hay sitio libre fuera de la pantalla, se busca más cerca del jugador, y si aun así
+// no hay, su evento sigue pendiente y se reintenta en el siguiente fotograma.
 import Phaser from 'phaser';
 import { ENEMY_WALL_HALF_SIZE } from '../config/gameConfig';
 import type { EnemyId } from '../data/enemies';
@@ -16,6 +18,9 @@ import type { EnemySystem } from './EnemySystem';
 
 const MAX_ATTEMPTS = 12;
 const MS_PER_MINUTE = 60000;
+/** Boss fallback search: rings from the spawn ring towards the player, and points tried on each one. */
+const FALLBACK_RINGS = 8;
+const FALLBACK_POINTS_PER_RING = 16;
 
 export class SpawnSystem {
     private elapsedMs = 0;
@@ -133,8 +138,14 @@ export class SpawnSystem {
             }
             // Its own event, for the warning (the last one with this monster that already happened).
             const event = [...WAVE_EVENTS].reverse().find((e) => e.enemy === id && isBossEvent(e) && e.atMinute <= minutes);
-            const point = this.findSpawnPoint();
-            if (event && point) this.onEvent(event, [this.enemies.spawn(id, point.x, point.y)]);
+            const point = this.findBossPoint();
+            // No room anywhere yet: it tries again with the next spawn.
+            if (!point) {
+                waiting.push(id);
+                continue;
+            }
+            const boss = this.enemies.spawn(id, point.x, point.y);
+            if (event) this.onEvent(event, [boss]);
         }
         this.bossesToReturn = waiting;
     }
@@ -164,8 +175,10 @@ export class SpawnSystem {
             this.hurry(event.enemy);
             return;
         }
+        const spawned = this.runEvent(event);
+        if (!spawned) return;
         this.debugEvent = undefined;
-        this.onEvent(event, this.runEvent(event));
+        this.onEvent(event, spawned);
     }
 
     private runDueEvents(): void {
@@ -176,21 +189,49 @@ export class SpawnSystem {
                 this.hurry(event.enemy);
                 return;
             }
+            // A boss with no room to appear yet: the event stays pending and is tried again next frame.
+            const spawned = this.runEvent(event);
+            if (!spawned) return;
             this.nextEvent++;
-            this.onEvent(event, this.runEvent(event));
+            this.onEvent(event, spawned);
             event = WAVE_EVENTS[this.nextEvent];
         }
     }
 
-    private runEvent(event: WaveEventDef): Enemy[] {
-        if (event.kind === 'finalBoss') this.wavesOver = true;
+    /** Runs an event; undefined when it is a boss that found no room to appear (the caller tries again later). */
+    private runEvent(event: WaveEventDef): Enemy[] | undefined {
         if (event.kind === 'surround') {
             const view = this.camera.worldView;
             return this.spawnRing([event.enemy], event.count ?? 0, view.centerX, view.centerY, SPAWN.surroundRadius);
         }
         if (event.kind === 'stampede') return this.spawnStampede(event.enemy, event.count ?? 0);
+        const point = this.findBossPoint();
+        if (!point) return undefined;
+        // The waves stop only once the final boss is really on the map.
+        if (event.kind === 'finalBoss') this.wavesOver = true;
+        return [this.enemies.spawn(event.enemy, point.x, point.y)];
+    }
+
+    /**
+     * Where a boss appears: on the usual spawn ring if possible; if not (walls or water all around the screen edge),
+     * on rings closer and closer to the player, so it always finds a place unless the whole screen is blocked.
+     */
+    private findBossPoint(): { x: number; y: number } | undefined {
         const point = this.findSpawnPoint();
-        return point ? [this.enemies.spawn(event.enemy, point.x, point.y)] : [];
+        if (point) return point;
+        const view = this.camera.worldView;
+        const outer = Math.hypot(view.width, view.height) / 2 + SPAWN.offscreenMargin;
+        const turn = Math.random() * Math.PI * 2;
+        for (let ring = 0; ring < FALLBACK_RINGS; ring++) {
+            const radius = outer * (1 - ring / FALLBACK_RINGS);
+            for (let i = 0; i < FALLBACK_POINTS_PER_RING; i++) {
+                const angle = turn + (i / FALLBACK_POINTS_PER_RING) * Math.PI * 2;
+                const x = view.centerX + Math.cos(angle) * radius;
+                const y = view.centerY + Math.sin(angle) * radius;
+                if (canStandAt(this.map, this.area, x, y, ENEMY_WALL_HALF_SIZE)) return { x, y };
+            }
+        }
+        return undefined;
     }
 
     /**
