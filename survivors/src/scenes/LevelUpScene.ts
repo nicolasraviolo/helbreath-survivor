@@ -7,6 +7,8 @@ import { GAME_WIDTH, LEVEL_UP_INPUT_DELAY_MS } from '../config/gameConfig';
 import { HUD_TOP } from '../config/hud';
 import { px, UI_TEXT, UI_FONT_SIZE } from '../config/ui';
 import { ARMOR_SLOT_NAMES, getArmorPiece } from '../data/armor';
+import { DODGE_REFERENCE, dodgeChance, playerDefenseRatio } from '../data/defense';
+import { ENEMIES } from '../data/enemies';
 import { STAT_INFO, type StatId } from '../data/stats';
 import { getPassive } from '../data/passives';
 import { getSpell, SPELL_FAMILIES, type SpellDef } from '../data/spells';
@@ -228,6 +230,13 @@ function describeCard(stats: CharacterStats, equipment: Equipment, choice: Level
             const changes = [`Damage taken −${pct(equipment.defense)} → −${pct(equipment.defenseWith(choice.piece))}`];
             const magicAfter = equipment.magicDamageBonusWith(choice.piece);
             if (magicAfter !== equipment.magicDamageBonus) changes.push(`Magic damage +${pct(equipment.magicDamageBonus)} → +${pct(magicAfter)}`);
+            // Dodge against the weak reference monster (Fase 18A), when the piece changes it.
+            const dodgeOf = DODGE_REFERENCE[0];
+            if (dodgeOf) {
+                const dodge = (armorRatio: number) => dodgeChance(dodgeOf, playerDefenseRatio(stats.stats.dex, armorRatio));
+                const [before, after] = [dodge(equipment.defenseRatio), dodge(equipment.defenseRatioWith(choice.piece))];
+                if (pct(before) !== pct(after)) changes.push(`Dodge (${ENEMIES[dodgeOf].name}) ${pct(before)} → ${pct(after)}`);
+            }
             return {
                 badge: ARMOR_BADGE.text, badgeColor: ARMOR_BADGE.color, title: piece.name,
                 effect: choice.from ? `${ARMOR_SLOT_NAMES[piece.slot]} · replaces ${getArmorPiece(choice.from).name}` : ARMOR_SLOT_NAMES[piece.slot],

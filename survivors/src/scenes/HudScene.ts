@@ -8,6 +8,7 @@
 // en vertical (el juego es apaisado y queda tapado por el aviso de girarlo).
 // Si se cambia el estilo de la barra en los ajustes (desde la pausa), la barra se cambia al momento.
 import Phaser from 'phaser';
+import { DEBUG_START } from '../config/debugStart';
 import { COMPACT_UI } from '../config/device';
 import { GAME_WIDTH } from '../config/gameConfig';
 import {
@@ -27,6 +28,8 @@ import {
 import type { HudStyle } from '../config/settings';
 import { TOUCH_PAUSE_BUTTON } from '../config/touch';
 import { ACHIEVEMENT_EVENT } from '../data/achievements';
+import { DODGE_REFERENCE, dodgeChance } from '../data/defense';
+import { ENEMIES } from '../data/enemies';
 import { PASSIVE_IDS, PASSIVES } from '../data/passives';
 import { STAT_IDS, STAT_INFO } from '../data/stats';
 import type { CharacterStats } from '../entities/CharacterStats';
@@ -51,6 +54,8 @@ export interface HudState extends HudBarState {
     weaponName: string | undefined;
     /** Share of damage removed by armor (0..1). */
     defense: number;
+    /** Defense ratio against monster blows: Dex plus armor (data/defense.ts). */
+    defenseRatio: number;
     /** Rank of each passive. */
     passiveRanks: Readonly<Record<keyof typeof PASSIVES, number>>;
     /** Boss shown on the big bar at the top, if one is alive. */
@@ -112,6 +117,8 @@ export class HudScene extends Phaser.Scene {
     create(): void {
         this.buildBar();
         this.createStatsPanel();
+        // ?debug=stats: the panel open from the start, to check it (src/config/debugStart.ts).
+        if (DEBUG_START.actions.includes('stats')) this.toggleStats();
         this.createBossBar();
         this.announce = new SpriteText(this, GAME_WIDTH / 2, HUD_ANNOUNCE.y, '', HUD_ANNOUNCE.color, 'center');
         this.announce.container.setScale(HUD_ANNOUNCE.scale).setDepth(HUD_DEPTH_TEXT).setVisible(false);
@@ -393,6 +400,8 @@ function describeDerived(state: HudState): [string, string][] {
     if (state.weaponName) gear.push([stats.def.startWeapon.kind === 'spell' ? 'Spell' : 'Weapon', state.weaponName]);
     // Always shown (every class can wear something), so the panel keeps the height it was built with.
     gear.push(['Damage taken', `−${Math.round(state.defense * 100)}%`]);
+    // Chance of dodging a weak and a strong monster (Fase 18A).
+    gear.push(['Dodge', DODGE_REFERENCE.map((id) => `${ENEMIES[id].name} ${Math.round(dodgeChance(id, state.defenseRatio) * 100)}%`).join(' · ')]);
     // Always shown, at any rank (0 too), so the panel keeps the height it was built with.
     for (const id of PASSIVE_IDS) gear.push([PASSIVES[id].name, `${state.passiveRanks[id]}/${PASSIVES[id].maxRank}`]);
     return [

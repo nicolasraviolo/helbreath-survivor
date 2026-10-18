@@ -180,7 +180,7 @@ async function runScenario(browser, name) {
     return errors.length === 0 && !state.error;
 }
 
-/** The simulated run (src/systems/SimRun.ts): levels per minute, and the biggest blow of each boss. */
+/** The simulated run (src/systems/SimRun.ts): levels per minute, the biggest blow of each boss and the blows dodged. */
 function printSim(sim) {
     const mmss = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
     console.log(`  simulated ${sim.character}: level ${sim.endLevel} at ${mmss(sim.endS)} (${sim.end}) · ${sim.kills} kills · ×${sim.speed} speed`);
@@ -196,6 +196,13 @@ function printSim(sim) {
     for (const hit of Object.values(sim.bossHits)) {
         const share = Math.round((hit.damage / hit.maxHp) * 100);
         console.log(`  biggest ${hit.boss} blow: ${hit.damage} of ${hit.maxHp} health (${share}%, ~${Math.ceil(100 / share)} hits to die) at ${mmss(hit.atS)}`);
+    }
+    // Fase 18A: share of each monster's blows that landed (the rest were dodged), most damage first.
+    const blows = Object.entries(sim.blows ?? {}).sort((a, b) => b[1].damageTried - a[1].damageTried);
+    const total = blows.reduce((sum, [, b]) => ({ tried: sum.tried + b.damageTried, landed: sum.landed + b.damageLanded }), { tried: 0, landed: 0 });
+    if (total.tried > 0) console.log(`  damage taken (before armor): ${total.landed} of ${total.tried} (${Math.round((total.landed / total.tried) * 100)}%; the rest dodged)`);
+    for (const [name, b] of blows) {
+        console.log(`    ${name}: ${b.landed}/${b.tried} blows landed (${Math.round((b.landed / b.tried) * 100)}%) · ${b.damageLanded} of ${b.damageTried} damage`);
     }
 }
 

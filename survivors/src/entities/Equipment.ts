@@ -53,6 +53,19 @@ export class Equipment {
         return Math.min(MAX_DEFENSE, without + ARMOR_PIECES[piece].defense);
     }
 
+    /** Original defense ratio of all the armor worn: makes blows miss (data/defense.ts). */
+    public get defenseRatio(): number {
+        let total = 0;
+        for (const id of Object.values(this.armor)) total += ARMOR_PIECES[id].defenseRatio;
+        return total;
+    }
+
+    /** Armor defense ratio if `piece` replaced what is worn in its slot (for the card preview). */
+    public defenseRatioWith(piece: ArmorPieceId): number {
+        const current = this.armor[ARMOR_PIECES[piece].slot];
+        return this.defenseRatio - (current ? ARMOR_PIECES[current].defenseRatio : 0) + ARMOR_PIECES[piece].defenseRatio;
+    }
+
     /** Magic damage bonus if `piece` replaced what is worn in its slot (for the card preview). */
     public magicDamageBonusWith(piece: ArmorPieceId): number {
         const def = getArmorPiece(piece);

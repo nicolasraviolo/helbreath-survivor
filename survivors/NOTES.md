@@ -55,6 +55,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Tótems (Fase 16B)
 - Personajes guardados (Fase 17A)
 - Aspecto del personaje (Fase 17B)
+- Esquiva física (Fase 18A)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -695,3 +696,12 @@ Tabla completa en `docs/REQUISITOS_HB.md`. Lo no obvio:
 - **Colores probados en pantalla:** varios de los 16 salen casi iguales (el 15 "rubio" sale verde oliva y el 0 rojo oscuro se parece al 1). Los 8 elegidos están en `HAIR_COLORS`, con su número del original.
 - **Casco:** como en el original, oculta el pelo.
 - **Voz y grito:** van por sexo (`GENDER_SOUNDS`), no por clase.
+
+## Esquiva física (Fase 18A)
+- Fórmula y números en `src/data/defense.ts`: probabilidad de que un golpe acierte = 50·puntería / defensa, entre 25% y 95%.
+- **Puntería** (`hitRatio` en `data/enemies.ts`) = la original de la wiki, sin el "Dash Attack". Se comprime al usarla (8,3 × puntería^0,53) porque va de 30 a 1.300. Hellhound no está en la wiki: le puse 200 (como un Troll).
+- **Defensa del jugador** = 2·Dex + `defenseRatio` de cada pieza (valor original de `docs/hb-wiki/armaduras.md`; Knight Shield no está en la wiki y usa el del Kite Shield, 30). La reducción de daño de antes (`defense`) sigue igual: la armadura ayuda dos veces.
+- El dado se tira **por golpe** en `Enemy.strike` (antes de juntar los golpes del frame) y en `EnemyProjectileSystem` para las flechas (`physical: true`). Una flecha esquivada sigue volando de largo. Las bolas de fuego son magia: no se esquivan (18B).
+- Sin texto "Miss" (decisión del propietario): el golpe esquivado no hace nada, ni parpadeo ni animación de daño.
+- Valores con el mejor equipo: guerrero 125 de defensa (Orc acierta 29%, Werewolf 68%, Ettin 77%); Maga 44 (casi todo entra).
+- Partida simulada: el informe trae `blows` (golpes que acertaron/total por monstruo) y `pnpm check levelpace` lo escribe. Primera medida (18-oct-2026): el guerrero esquiva ~24% del daño de la partida y la Maga ~5%. Contra el Ettin (minuto 5) el guerrero aún esquiva poco porque le falta armadura.

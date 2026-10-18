@@ -1,9 +1,11 @@
 // Proyectiles de los enemigos (las bolas de fuego del Fire Wyvern y las flechas del Dark Elf). Vuelan en línea recta hacia donde estaba el
 // jugador; si lo tocan le hacen daño (la armadura y el Defense Shield lo reducen en GameScene) y explotan.
+// Las flechas se pueden esquivar como un golpe (Fase 18A): si fallan, siguen volando de largo.
 // Se reciclan con un pool (regla 5). Usan los mismos efectos que el Fire Ball de la Maga.
 import type Phaser from 'phaser';
 import { effectAnimationKey, type EffectKey } from '../config/effects';
 import { DEPTH_EFFECT_OFFSET } from '../config/gameConfig';
+import { hitChance } from '../data/defense';
 import type { EnemyRangedAttack } from '../data/enemies';
 import { Pool, type Poolable } from '../utils/Pool';
 import type { AudioSystem } from './AudioSystem';
@@ -18,6 +20,10 @@ class EnemyProjectile implements Poolable {
     public fromBoss = false;
     /** Name of the monster that threw it (the metrics' "killed by"). */
     public source = '';
+    /** Thrower's hit ratio for a physical shot (it can be dodged); undefined for spells. */
+    public hitRatio: number | undefined;
+    /** Already dodged: it flies on past the player. */
+    public dodged = false;
     private vx = 0;
     private vy = 0;
     private remaining = 0;
@@ -27,8 +33,10 @@ class EnemyProjectile implements Poolable {
         this.sprite = scene.add.sprite(0, 0, '__DEFAULT').setActive(false).setVisible(false);
     }
 
-    public launch(attack: EnemyRangedAttack, source: string, damage: number, fromBoss: boolean, x: number, y: number, angle: number): void {
+    public launch(attack: EnemyRangedAttack, source: string, damage: number, fromBoss: boolean, hitRatio: number | undefined, x: number, y: number, angle: number): void {
         this.attack = attack;
+        this.hitRatio = hitRatio;
+        this.dodged = false;
         this.source = source;
         this.damage = damage;
         this.fromBoss = fromBoss;
@@ -93,22 +101,24 @@ export class EnemyProjectileSystem {
 
     /**
      * Throws `attack.shots` projectiles from (x, y) towards (targetX, targetY), fanned over its spread.
-     * `damage` is used when the attack has no fixed damage of its own (arrows use the archer's dice).
+     * `damage` is used when the attack has no fixed damage of its own (arrows use the archer's dice), and `hitRatio`
+     * (the thrower's) when the attack is physical and can be dodged.
      */
-    public throwAt(attack: EnemyRangedAttack, source: string, x: number, y: number, targetX: number, targetY: number, damage = 0, fromBoss = false): void {
+    public throwAt(attack: EnemyRangedAttack, source: string, x: number, y: number, targetX: number, targetY: number, damage = 0, fromBoss = false, hitRatio?: number): void {
         const centre = Math.atan2(targetY - y, targetX - x);
         const spread = (attack.spreadDegrees * Math.PI) / 180;
         for (let i = 0; i < attack.shots; i++) {
             const offset = attack.shots > 1 ? (i / (attack.shots - 1) - 0.5) * spread : 0;
-            this.projectiles.acquire().launch(attack, source, attack.damage ?? damage, fromBoss, x, y, centre + offset);
+            this.projectiles.acquire().launch(attack, source, attack.damage ?? damage, fromBoss, attack.physical ? hitRatio : undefined, x, y, centre + offset);
         }
     }
 
     /**
      * Moves the projectiles; one touching the player's body at (bodyX, bodyY) explodes and its damage is returned
-     * (the sum if several hit this frame).
+     * (the sum if several hit this frame). A physical shot rolls its hit ratio against `defenseRatio` first.
      */
-    public update(deltaMs: number, bodyX: number, bodyY: number, bodyRadius: number): number {
+    public update(deltaMs: number, bodyX: number, bodyY: number, bodyRadius: number, defenseRatio: number,
+        onBlow?: (source: string, damage: number, landed: boolean) => void): number {
         let damage = 0;
         let strongest = 0;
         this.bossHit = false;
@@ -118,7 +128,12 @@ export class EnemyProjectileSystem {
             const reach = projectile.attack.radius + bodyRadius;
             const dx = projectile.x - bodyX;
             const dy = projectile.y - bodyY;
-            const hit = dx * dx + dy * dy <= reach * reach;
+            let hit = !projectile.dodged && dx * dx + dy * dy <= reach * reach;
+            if (hit && projectile.hitRatio !== undefined) {
+                hit = Math.random() < hitChance(projectile.hitRatio, defenseRatio);
+                projectile.dodged = !hit;
+                onBlow?.(projectile.source, projectile.damage, hit);
+            }
             if (hit) {
                 damage += projectile.damage;
                 this.bossHit ||= projectile.fromBoss;

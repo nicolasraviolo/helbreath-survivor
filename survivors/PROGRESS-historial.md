@@ -2,6 +2,15 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
+**Fase 18, bloque 18A: esquiva física (2026-10-18).**
+- **Qué hace:** cada golpe de monstruo y cada flecha del Dark Elf tira su **puntería** contra la **defensa** del jugador (2·Dex + la defensa original de cada pieza de armadura y escudo). Si falla, no pasa nada: ni daño, ni parpadeo, ni animación. **Sin texto "Miss"** ni línea en How to Play (decisión del propietario). Una flecha esquivada sigue volando de largo. Las bolas de fuego (magia) no se esquivan: van en el 18B.
+- **Números:** fórmula del original (50·puntería/defensa) con la puntería comprimida (8,3 × original^0,53) y límites 25%–95%. Con el mejor equipo, el guerrero tiene 125 de defensa (Orc acierta 29%, Werewolf 68%, Ettin 77%); la Maga, 44.
+- **Interfaz:** línea **"Dodge"** en el panel de stats (C), contra un Orc y un Ettin. Las cartas de armadura muestran "Dodge (Orc) x% → y%". El texto de Dex dice ahora "Movement and attack speed, dodge".
+- **Código:** `data/defense.ts` (nuevo), `hitRatio` en `data/enemies.ts`, `defenseRatio` en `data/armor.ts`, `Equipment.defenseRatio`, `Enemy.strike`, `EnemyProjectileSystem` (`physical`, `dodged`), `EnemyWorld.defenseRatio/onBlow`. La partida simulada cuenta los golpes (`blows`) y `pnpm check levelpace` los escribe. Detalle en NOTES.md, "Esquiva física (Fase 18A)".
+- **Atajos nuevos:** `?debug=dodge` (la mejor armadura de la clase; sin logros esa partida) y `?debug=stats` (panel de stats abierto).
+- **Comprobado:** build; `check menu game levelup boss` y `play=warrior&debug=dodge,stats` (también `--mobile`) sin errores; el panel cabe en PC y móvil. Partida simulada: el guerrero esquiva ~24% del daño y la Maga ~5%; los niveles no cambian (la simulación es invencible).
+- **Probar:** `pnpm --dir survivors dev` → http://localhost:8090/?play=warrior&debug=dodge,stats
+
 **Fase 17, bloque 17B: aspecto del personaje (2026-10-18).**
 - **Qué hace:** en Create Character funcionan las flechas del original de Gender, Skin Color, Hair Style, Hair Color y Underwear Color (zonas de toque más anchas en el móvil). El aspecto sale al azar al abrir, como en el original. Teclado y mando: ↑/↓ eligen fila (la elegida, en rojo; la última es la clase) y ←/→ la cambian. El personaje se ve igual en Select Character y en partida.
 - **Contenido:** sexo libre en las dos clases; 3 pieles (cuerpos `wm/ym/bm` y `ww/yw/bw`), 8 peinados (el 2 es calvo), 8 colores de pelo y 8 de ropa interior. Toda la ropa y las armas del Guerrero tienen versión de mujer; el Mago hombre lleva túnica, gorros y varita de hombre, y empieza con Shirt y Trousers. Con casco no se ve el pelo. Voz al subir de nivel y grito al morir, por sexo.

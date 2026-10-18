@@ -2,7 +2,7 @@
 // Decidido con el propietario (16-oct-2026):
 // - Str: daño físico de armas y requisito de armas y armaduras.
 // - Vit: vida máxima y curación poco a poco (Fase 13C: más Vit, más rápido).
-// - Dex: velocidad de movimiento y de ataque.
+// - Dex: velocidad de movimiento y de ataque, y desde la Fase 18A esquiva (2 de defensa por punto, data/defense.ts).
 // - Int: requisito de hechizos y de equipo de mago (varitas, túnicas). Da un poco de maná (fórmula original).
 // - Mag: daño mágico y maná.
 // - Chr: probabilidad de crítico.
@@ -27,7 +27,7 @@ export interface StatInfo {
 export const STAT_INFO: Record<StatId, StatInfo> = {
     str: { short: 'Str', name: 'Strength', effect: 'Physical damage. Required by weapons and armor', color: 0xc03828 },
     vit: { short: 'Vit', name: 'Vitality', effect: 'Maximum health and slow healing', color: 0x38a040 },
-    dex: { short: 'Dex', name: 'Dexterity', effect: 'Movement and attack speed', color: 0xd09020 },
+    dex: { short: 'Dex', name: 'Dexterity', effect: 'Movement and attack speed, dodge', color: 0xd09020 },
     int: { short: 'Int', name: 'Intelligence', effect: 'Required by spells, wands and robes', color: 0x3070d0 },
     mag: { short: 'Mag', name: 'Magic', effect: 'Magic damage and mana', color: 0x8040c0 },
     chr: { short: 'Chr', name: 'Charisma', effect: 'Critical hit chance', color: 0xe0c040 },
