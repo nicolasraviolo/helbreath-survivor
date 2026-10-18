@@ -2,6 +2,7 @@ import { createReadStream, existsSync, readdirSync, readFileSync, statSync } fro
 import { extname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defineConfig, type Plugin } from 'vite';
+import { buildSpriteCatalog } from './scripts/spriteCatalog';
 
 // En desarrollo servimos los assets directamente desde sp-client/public para no duplicar ~290 MB.
 // En el build, scripts/sync-assets.mjs copia antes solo lo necesario a survivors/public (ignorado por git),
@@ -56,6 +57,26 @@ function devIcons(): Plugin {
     };
 }
 
+/**
+ * Dev server only: /sprite-catalog.json, the names of every sprite for the sprite viewer (sprites.html).
+ * Built from sp-client's own data files on first request (see scripts/spriteCatalog.ts).
+ */
+function spriteCatalog(): Plugin {
+    const spClient = fileURLToPath(new URL('../sp-client', import.meta.url));
+    let json: string | undefined;
+    return {
+        name: 'sprite-catalog',
+        apply: 'serve',
+        configureServer(server) {
+            server.middlewares.use('/sprite-catalog.json', (_req, res) => {
+                json ??= JSON.stringify(buildSpriteCatalog(spClient));
+                res.setHeader('Content-Type', 'application/json');
+                res.end(json);
+            });
+        },
+    };
+}
+
 /** Build only: copies pwa/* next to index.html and links the manifest from it. */
 function installableApp(): Plugin {
     return {
@@ -76,7 +97,7 @@ function installableApp(): Plugin {
 export default defineConfig(({ command }) => ({
     base: './',
     publicDir: command === 'build' ? 'public' : '../sp-client/public',
-    plugins: [customAssets(), devIcons(), installableApp()],
+    plugins: [customAssets(), devIcons(), spriteCatalog(), installableApp()],
     // host: true → también se puede abrir desde el móvil en la misma wifi (http://IP-del-PC:8090).
     server: { port: 8090, strictPort: true, host: true },
     build: {

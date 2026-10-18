@@ -2,6 +2,12 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
+**Herramienta: visor de sprites (2026-10-18, fuera de las fases).**
+- **Qué es:** página solo de desarrollo, http://localhost:8090/sprites.html con `pnpm dev`, para elegir diseños. Muestra todos los `.spr` de sp-client por categorías (armas y escudos, armaduras, otros objetos, hechizos y efectos, monstruos, personajes y NPCs, todos los archivos), con nombres sacados de los datos del cliente original. Al abrir uno se anima, con pose, dirección, hombre o mujer, velocidad, zoom y fondo; armas, escudos y armaduras se ven sobre el cuerpo.
+- **Archivos:** `sprites.html`, `src/tools/spriteViewer.ts`, `scripts/spriteCatalog.ts` (catálogo servido por un plugin de `vite.config.ts` solo con `pnpm dev`). `readSprFile` sacado de `src/hb/HBSprite.ts` para leer `.spr` sin Phaser.
+- **Privado:** no entra en el build ni en la web publicada (comprobado en `dist/`).
+- **Comprobado:** build sin errores; `check menu game` sin errores; en el navegador, todas las categorías dibujan, y la Long Sword, una armadura, el Orc y un hechizo se animan sin errores de consola.
+
 **Fase 15, bloque 15A: prioridad de jefes en el apuntado automático (2026-10-18).**
 - **Qué hace:** todas las armas preguntan a `systems/Targeting.ts` a quién atacar. Si hay un jefe (Ettin, Demon, Wyvern) a menos de 250 px (`data/targeting.ts`) y al alcance del arma, va a por él; si no, al más cercano, como antes. Espadas: solo si el jefe está a su alcance (el tajo sigue dando a todo el arco). Triple Energy Bolt: 1 disparo al jefe (`AUTO_AIM.bossShots`) y los demás a los más cercanos. Energy Strike: cae alrededor del jefe.
 - **Añadido sobre el plan:** los proyectiles lanzados a un jefe atraviesan a los demás monstruos y solo chocan con él (`Projectile.target`). Sin esto, los pequeños se comían los disparos.

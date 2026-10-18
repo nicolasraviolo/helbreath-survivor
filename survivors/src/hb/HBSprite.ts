@@ -183,49 +183,68 @@ export class HBSpriteFile {
     }
 
     private parseSprite(buffer: ArrayBuffer): Array<{ textureKey: string; frames: HBSpriteFrame[]; imageData: Uint8Array }> {
-        const view = new DataView(buffer);
-        let offset = 0;
-
-        const sheetCount = readInt16(view, offset);
-        offset += HEADER_SIZE;
-
-        const sheets = new Array<{ textureKey: string; frames: HBSpriteFrame[]; imageLength: number }>(sheetCount);
-
-        for (let i = 0; i < sheetCount; i += 1) {
-            const frameCount = readInt16(view, offset);
-            offset += 2;
-            const imageLength = readInt32(view, offset);
-            offset += 4;
-            offset += 4; // width (unused)
-            offset += 4; // height (unused)
-            offset += 1; // startLocation placeholder byte
-
+        return readSprFile(buffer).map((sheet, i) => {
             const textureKey = this.tileStartIndex !== undefined
                 ? `map-tile-${this.tileStartIndex + i}`
                 : getSheetKey(this.spriteKey, i);
-            const frames = new Array<HBSpriteFrame>(frameCount);
-
-            for (let f = 0; f < frameCount; f += 1) {
-                const left = readInt16(view, offset);
-                const top = readInt16(view, offset + 2);
-                const width = readInt16(view, offset + 4);
-                const height = readInt16(view, offset + 6);
-                const pivotX = readInt16(view, offset + 8);
-                const pivotY = readInt16(view, offset + 10);
-                offset += 12;
-                frames[f] = new HBSpriteFrame(left, top, width, height, pivotX, pivotY, textureKey, f);
-            }
-
-            sheets[i] = { textureKey, frames, imageLength };
-        }
-
-        return sheets.map((sheet) => {
-            offset += 4; // startLocation, not needed for sequential read
-            const imageData = new Uint8Array(buffer, offset, sheet.imageLength);
-            offset += sheet.imageLength;
-            return { textureKey: sheet.textureKey, frames: sheet.frames, imageData };
+            const frames = sheet.frames.map((f, index) =>
+                new HBSpriteFrame(f.x, f.y, f.width, f.height, f.pivotX, f.pivotY, textureKey, index));
+            return { textureKey, frames, imageData: sheet.imageData };
         });
     }
+}
+
+/** One frame rect inside a sheet PNG, with its pivot (offset from the entity position to the top-left corner). */
+export interface SprFrameRect {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    pivotX: number;
+    pivotY: number;
+}
+
+/** Raw read of a .spr file without Phaser: each sheet's frame rects plus its embedded PNG bytes. */
+export function readSprFile(buffer: ArrayBuffer): Array<{ frames: SprFrameRect[]; imageData: Uint8Array }> {
+    const view = new DataView(buffer);
+    let offset = 0;
+
+    const sheetCount = readInt16(view, offset);
+    offset += HEADER_SIZE;
+
+    const sheets = new Array<{ frames: SprFrameRect[]; imageLength: number }>(sheetCount);
+
+    for (let i = 0; i < sheetCount; i += 1) {
+        const frameCount = readInt16(view, offset);
+        offset += 2;
+        const imageLength = readInt32(view, offset);
+        offset += 4;
+        offset += 4; // width (unused)
+        offset += 4; // height (unused)
+        offset += 1; // startLocation placeholder byte
+
+        const frames = new Array<SprFrameRect>(frameCount);
+        for (let f = 0; f < frameCount; f += 1) {
+            frames[f] = {
+                x: readInt16(view, offset),
+                y: readInt16(view, offset + 2),
+                width: readInt16(view, offset + 4),
+                height: readInt16(view, offset + 6),
+                pivotX: readInt16(view, offset + 8),
+                pivotY: readInt16(view, offset + 10),
+            };
+            offset += 12;
+        }
+
+        sheets[i] = { frames, imageLength };
+    }
+
+    return sheets.map((sheet) => {
+        offset += 4; // startLocation, not needed for sequential read
+        const imageData = new Uint8Array(buffer, offset, sheet.imageLength);
+        offset += sheet.imageLength;
+        return { frames: sheet.frames, imageData };
+    });
 }
 
 async function createImageFromPng(data: Uint8Array): Promise<DecodedSpriteImage> {
