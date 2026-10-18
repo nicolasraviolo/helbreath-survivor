@@ -2,6 +2,15 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
+**Fase 13, bloque 13B: monstruos por mapa (2026-10-18, el propietario lo probó y le gusta).**
+- **Tres grupos:** esenciales comunes a todos los mapas (`ESSENTIAL_ENEMIES` en `data/enemies.ts`, de más débil a más fuerte: Slime, Ant, Snake, Orc, Mage-Orc, Zombie, Scorpion, Skeleton, Clay Golem, Stone Golem, Giant Frog), los propios de cada mapa (`localEnemies` en `data/maps.ts`; Bleeding Isle: Cyclops, Mountain Giant, Ogre, Cannibal Plant) y sus jefes (`bosses`: Ettin, Demon, Fire Wyvern). `data/waves.ts` comprueba al cargar que las oleadas solo usen esos; los demás monstruos (Bunny, Troll, Werewolf, Lich, Gargoyle…) quedan en `enemies.ts` para otros mapas y ya no se descargan.
+- **5 monstruos nuevos** con su comportamiento del NPC.cfg: Mage-Orc (sprite y sonidos del Orc; bolas de fuego lentas, alcance 5), Clay Golem, Stone Golem, Mountain Giant y Cannibal Plant. Vida y XP de los esenciales reordenadas según el orden del propietario (XP provisional hasta el 13C).
+- **Oleadas nuevas** de Bleeding Isle (6 tramos, cortes en 1,5 / 3,5 / 5,5 / 7,5 / 9,5 min): esenciales por orden de poder y, desde el 5:30, los del mapa con poco peso. Rodeos con serpientes, esqueletos ("The dead rise around you!") y Stone Golems. Esbirros del Wyvern: Stone Golems y ranas.
+- **Estampida** (evento `stampede`, idea de la guía de hordas): un bloque de 3 filas sale de un lado, alineado con el jugador, y cruza la pantalla en línea recta 3,5× más rápido (`SPAWN.stampede`, `Enemy.charge`). Si choca con el jugador, le pega; después persigue normal. Orcos en el 4:30 ("Orc stampede!") y ranas en el 9:30.
+- **Atajo nuevo:** `?debug=stampede` (espera a que el monstruo esté descargado) y `pnpm check stampede`.
+- **Comprobado:** `build` sin errores; `check game boss finalboss stampede` sin errores; con `--eval`, los 5 nuevos andan, atacan y el Mage-Orc dispara; captura ampliada: se dibujan bien.
+- **Cómo probarlo:** `pnpm --dir survivors dev` → http://localhost:8090/?play (a mitad de partida, golems y Mage-Orcs; tecla J = +1 minuto) o http://localhost:8090/?debug=god,stampede.
+
 **Fase 13, bloque 13A: jefe final y portal (2026-10-18, el propietario lo probó y va bien).**
 - **El jefe final corta las oleadas** (`SpawnSystem.wavesOver`): desde que sale el Fire Wyvern no salen monstruos de las oleadas. Se quitó la oleada de goteo del minuto 12.
 - **Esbirros** (`BOSS_MINIONS` en `data/enemies.ts`, `BossSystem`): el Wyvern llama 6 monstruos cada 8 s en un anillo a su alrededor (máximo 24 vivos): Hellhounds y esqueletos.

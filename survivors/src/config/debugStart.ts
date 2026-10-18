@@ -5,6 +5,7 @@
 //   ?debug=boss,god  → acciones al empezar, separadas por comas (se pueden repetir: minute,minute)
 //                      finalboss = saltar directamente al jefe final (con sus esbirros)
 //                      bosskill = saltar al jefe final y matarlo en cuanto salga (para ver el portal, Fase 13)
+//                      stampede = lanzar ya una estampida (la primera de data/waves.ts, Fase 13B)
 //                      resume = guardar y volver a cargar la partida, como con Continue (Fase 12)
 //   ?trees=off       → árboles grandes en ese modo solo en esta partida (on, off), sin guardarlo
 //   ?open=howtoplay  → abre esa pantalla de los menús (howtoplay, settings, credits, select = selección de personaje)
@@ -22,7 +23,7 @@ function isDebugScreen(value: string | null): value is DebugScreen {
 }
 
 /** Actions that ?debug= can run at the start of a run (the same ones as the debug keys of GameScene). */
-export const DEBUG_ACTIONS = ['horde', 'kill', 'levelup', 'levels', 'str', 'magic', 'pickups', 'minute', 'boss', 'finalboss', 'bosskill', 'god', 'resume'] as const;
+export const DEBUG_ACTIONS = ['horde', 'kill', 'levelup', 'levels', 'str', 'magic', 'pickups', 'minute', 'boss', 'finalboss', 'bosskill', 'stampede', 'god', 'resume'] as const;
 export type DebugAction = (typeof DEBUG_ACTIONS)[number];
 
 function isDebugAction(value: string): value is DebugAction {

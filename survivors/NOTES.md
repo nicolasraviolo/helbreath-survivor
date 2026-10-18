@@ -447,7 +447,9 @@ Tabla completa en `docs/REQUISITOS_HB.md`. Lo no obvio:
   - Snake `amp`, Scorpion `scp`, Frog `giantfrog`, Skeleton `ske`, Zombie `zom`, Dire Boar `direboar`;
   - Troll `troll`, Ogre `orge`, Stalker `stalker`, Werewolf `werewolf`, Cyclops `cyc`, Lich `liche`;
   - Hellhound `helb`, Dark Elf `darkelf`, Gargoyle `gagoyle` (con la errata), Hellclaw `hellclaw`, Tigerworm `tigerworm`;
-  - Minotaur `minotaurs`, Ettin `ettin`, Demon `demon`, Fire Wyvern `firewyvern`.
+  - Minotaur `minotaurs`, Ettin `ettin`, Demon `demon`, Fire Wyvern `firewyvern`;
+  - Fase 13B: Clay Golem `cla`, Stone Golem `gol`, Mountain Giant `mtgiant`, Cannibal Plant `canplant` (sin animaciones especiales; los golems con `temporalCoefficient` 0,5).
+- **Mage-Orc ("Orc (spellcaster)" en la wiki, `Orc-Mage` en el NPC.cfg):** sp-client no lo tiene; en el original se ve igual que el Orc. Usamos `orc.spr` y sus sonidos. Su `AttkRange` del cfg es 1 (la bola de fuego es su hechizo, magia 3): le damos alcance 5 para que lance desde lejos.
 - **Sonidos reutilizados:**
   - Stalker usa los del Orc (M11/M12);
   - Gargoyle y Hellclaw, los del Cyclops (M43);
@@ -461,7 +463,7 @@ Tabla completa en `docs/REQUISITOS_HB.md`. Lo no obvio:
     - ataque = hoja 0, desde el frame 3 (otros valores rompen Phaser);
     - muerte = hojas 16+;
     - opacidad 0,7.
-- **Disparos:** solo Dark Elf y Elf Master tienen `bowAttack` (`effect.spr` hoja 7, 16 frames direccionales). Las bolas del Fire Wyvern son nuestras: reutilizan el Fire Ball.
+- **Disparos:** solo Dark Elf y Elf Master tienen `bowAttack` (`effect.spr` hoja 7, 16 frames direccionales). Las bolas del Fire Wyvern y del Mage-Orc son nuestras: reutilizan el Fire Ball.
 - **Música** (`public/assets/music`): abaddon, apocalypse, aresden, default, dungeon, elvine y middleland. sp-client la toca en bucle con `MusicManager`.
 
 ## Ataques de monstruos y golpe (original)

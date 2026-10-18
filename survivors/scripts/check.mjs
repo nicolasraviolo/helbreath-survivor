@@ -35,6 +35,7 @@ const PRESETS = {
     pickups: 'debug=god,pickups',
     finalboss: 'debug=god,finalboss',
     portal: 'debug=god,bosskill',
+    stampede: 'debug=god,stampede',
 };
 
 const args = process.argv.slice(2);

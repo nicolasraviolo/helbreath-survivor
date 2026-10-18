@@ -135,6 +135,12 @@ export function enemySpeed(def: EnemyDef): number {
     return ((MONSTER_MOVE.tilePx * 1000) / stepMs) * MONSTER_MOVE.scale;
 }
 
+/** Mage-Orc fireballs: the Wyvern's look, one at a time, slow enough to dodge. Damage = its own dice. */
+const ORC_FIREBALL: EnemyRangedAttack = {
+    flyEffect: 'fx.fireBall.fly', explodeEffect: 'fx.fireBall.explode', sound: 'sfx.explosion',
+    cooldownMs: 0, range: 5 * 32, speed: 200, shots: 1, spreadDegrees: 0, radius: 10,
+};
+
 /** Dark Elf arrows (sp-client ArrowProjectile: effect.spr sheet 7, 2 frames per direction). Damage = its own dice. */
 const ARROW: EnemyRangedAttack = {
     flyEffect: 'fx.arrow', cooldownMs: 0, range: 8 * 32, speed: 420, shots: 1, spreadDegrees: 0, radius: 8,
@@ -151,7 +157,7 @@ export const ENEMIES = {
         actionTimeMs: 1500, attackRange: 1, bravery: 2, damageDice: [1, 5], hitSound: 'sfx.bunny.hit', deathSound: 'sfx.bunny.death', attackSound: 'sfx.bunny.attack',
     },
     ant: {
-        name: 'Ant', sprite: 'enemy.ant', temporalCoefficient: 1, hasShadow: false, maxHp: 12, xp: 3, radius: 10, bodyOffsetY: 12,
+        name: 'Ant', sprite: 'enemy.ant', temporalCoefficient: 1, hasShadow: false, maxHp: 14, xp: 3, radius: 10, bodyOffsetY: 12,
         actionTimeMs: 1200, attackRange: 1, bravery: 2, damageDice: [2, 3], hitSound: 'sfx.ant.hit', deathSound: 'sfx.ant.death', attackSound: 'sfx.ant.attack',
     },
     // Minutos 2–4 (tiers 1–4)
@@ -159,28 +165,45 @@ export const ENEMIES = {
         name: 'Orc', sprite: 'enemy.orc', temporalCoefficient: 1, hasShadow: true, maxHp: 30, xp: 5, radius: 12, bodyOffsetY: 28,
         actionTimeMs: 1200, attackRange: 1, bravery: 2, damageDice: [3, 3], hitSound: 'sfx.orc.hit', deathSound: 'sfx.orc.death', attackSound: 'sfx.orc.attack',
     },
+    orcMage: {
+        // "Orc (spellcaster)" de la wiki: mismo sprite y sonidos que el Orc, pero lanza bolas de fuego (su hechizo
+        // Fire-Ball, magia 3). NPC.cfg Orc-Mage: ATime 1500, MinBrvy 3, 4d3; su AttkRange es 1 (el hechizo va aparte):
+        // usamos 5 casillas para que lance desde lejos. Bola lenta para poder esquivarla.
+        name: 'Mage-Orc', sprite: 'enemy.orc', temporalCoefficient: 1, hasShadow: true, maxHp: 40, xp: 6, radius: 12, bodyOffsetY: 28,
+        actionTimeMs: 1500, attackRange: 5, bravery: 3, damageDice: [4, 3], hitSound: 'sfx.orc.hit', deathSound: 'sfx.orc.death', attackSound: 'sfx.orc.attack',
+        attackProjectile: ORC_FIREBALL,
+    },
     snake: {
         name: 'Snake', sprite: 'enemy.snake', temporalCoefficient: 0.5, hasShadow: false, maxHp: 20, xp: 4, radius: 9, bodyOffsetY: 8,
         actionTimeMs: 1000, attackRange: 1, bravery: 1, damageDice: [2, 4], hitSound: 'sfx.snake.hit', deathSound: 'sfx.snake.death', attackSound: 'sfx.snake.attack',
     },
     scorpion: {
-        name: 'Scorpion', sprite: 'enemy.scorpion', temporalCoefficient: 0.5, hasShadow: false, maxHp: 40, xp: 6, radius: 12, bodyOffsetY: 12,
+        name: 'Scorpion', sprite: 'enemy.scorpion', temporalCoefficient: 0.5, hasShadow: false, maxHp: 75, xp: 8, radius: 12, bodyOffsetY: 12,
         actionTimeMs: 1200, attackRange: 1, bravery: 3, damageDice: [5, 3], hitSound: 'sfx.scorpion.hit', deathSound: 'sfx.scorpion.death', attackSound: 'sfx.scorpion.attack',
     },
     frog: {
         // sp-client: la animación de andar son los frames 3–7 de la hoja.
-        name: 'Giant Frog', sprite: 'enemy.frog', temporalCoefficient: 1, hasShadow: true, maxHp: 55, xp: 8, radius: 14, bodyOffsetY: 16,
+        name: 'Giant Frog', sprite: 'enemy.frog', temporalCoefficient: 1, hasShadow: true, maxHp: 180, xp: 16, radius: 14, bodyOffsetY: 16,
         actionTimeMs: 900, attackRange: 2, bravery: 4, damageDice: [7, 5], hitSound: 'sfx.frog.hit', deathSound: 'sfx.frog.death', attackSound: 'sfx.frog.attack',
         animations: { move: { sheet: 8, firstFrame: 3, frameCount: 5 } },
     },
     // Minutos 4–6 (tiers 2–6)
     skeleton: {
-        name: 'Skeleton', sprite: 'enemy.skeleton', temporalCoefficient: 0.5, hasShadow: true, maxHp: 70, xp: 9, radius: 11, bodyOffsetY: 30,
+        name: 'Skeleton', sprite: 'enemy.skeleton', temporalCoefficient: 0.5, hasShadow: true, maxHp: 90, xp: 10, radius: 11, bodyOffsetY: 30,
         actionTimeMs: 800, attackRange: 2, bravery: 100, damageDice: [5, 4], hitSound: 'sfx.skeleton.hit', deathSound: 'sfx.skeleton.death', attackSound: 'sfx.skeleton.attack',
     },
     zombie: {
-        name: 'Zombie', sprite: 'enemy.zombie', temporalCoefficient: 0.5, hasShadow: true, maxHp: 95, xp: 10, radius: 11, bodyOffsetY: 30,
+        name: 'Zombie', sprite: 'enemy.zombie', temporalCoefficient: 0.5, hasShadow: true, maxHp: 60, xp: 7, radius: 11, bodyOffsetY: 30,
         actionTimeMs: 1500, attackRange: 1, bravery: 100, damageDice: [4, 4], hitSound: 'sfx.zombie.hit', deathSound: 'sfx.zombie.death', attackSound: 'sfx.zombie.attack',
+    },
+    // Golems (tier 3). NPC.cfg Clay-Golem y Stone-Golem: ATime 1200, alcance 1, MinBrvy 100, 7d4. sp-client: 0,5.
+    clayGolem: {
+        name: 'Clay Golem', sprite: 'enemy.clayGolem', temporalCoefficient: 0.5, hasShadow: true, maxHp: 120, xp: 12, radius: 15, bodyOffsetY: 34,
+        actionTimeMs: 1200, attackRange: 1, bravery: 100, damageDice: [7, 4], hitSound: 'sfx.clayGolem.hit', deathSound: 'sfx.clayGolem.death', attackSound: 'sfx.clayGolem.attack',
+    },
+    stoneGolem: {
+        name: 'Stone Golem', sprite: 'enemy.stoneGolem', temporalCoefficient: 0.5, hasShadow: true, maxHp: 150, xp: 14, radius: 15, bodyOffsetY: 34,
+        actionTimeMs: 1200, attackRange: 1, bravery: 100, damageDice: [7, 4], hitSound: 'sfx.stoneGolem.hit', deathSound: 'sfx.stoneGolem.death', attackSound: 'sfx.stoneGolem.attack',
     },
     direBoar: {
         name: 'Dire Boar', sprite: 'enemy.direBoar', temporalCoefficient: 1, hasShadow: false, maxHp: 140, xp: 14, radius: 16, bodyOffsetY: 18,
@@ -192,7 +215,7 @@ export const ENEMIES = {
         actionTimeMs: 700, attackRange: 1, bravery: 100, damageDice: [8, 5], hitSound: 'sfx.troll.hit', deathSound: 'sfx.troll.death', attackSound: 'sfx.troll.attack',
     },
     ogre: {
-        name: 'Ogre', sprite: 'enemy.ogre', temporalCoefficient: 1, hasShadow: true, maxHp: 320, xp: 26, radius: 18, bodyOffsetY: 40,
+        name: 'Ogre', sprite: 'enemy.ogre', temporalCoefficient: 1, hasShadow: true, maxHp: 520, xp: 42, radius: 18, bodyOffsetY: 40,
         actionTimeMs: 700, attackRange: 3, bravery: 100, damageDice: [8, 7], hitSound: 'sfx.ogre.hit', deathSound: 'sfx.ogre.death', attackSound: 'sfx.ogre.attack',
     },
     stalker: {
@@ -207,6 +230,16 @@ export const ENEMIES = {
     cyclops: {
         name: 'Cyclops', sprite: 'enemy.cyclops', temporalCoefficient: 0.5, hasShadow: true, maxHp: 400, xp: 34, radius: 18, bodyOffsetY: 44,
         actionTimeMs: 1200, attackRange: 3, bravery: 805, damageDice: [8, 6], hitSound: 'sfx.cyclops.hit', deathSound: 'sfx.cyclops.death', attackSound: 'sfx.cyclops.attack',
+    },
+    // Propios de Bleeding Isle (tiers 5–7). NPC.cfg Cannibal-Plant: ATime 800, alcance 2, 8d8.
+    // NPC.cfg Mountain-Giant: ATime 700, alcance 2, 8d7.
+    cannibalPlant: {
+        name: 'Cannibal Plant', sprite: 'enemy.cannibalPlant', temporalCoefficient: 1, hasShadow: true, maxHp: 450, xp: 38, radius: 16, bodyOffsetY: 36,
+        actionTimeMs: 800, attackRange: 2, bravery: 100, damageDice: [8, 8], hitSound: 'sfx.cannibalPlant.hit', deathSound: 'sfx.cannibalPlant.death', attackSound: 'sfx.cannibalPlant.attack',
+    },
+    mountainGiant: {
+        name: 'Mountain Giant', sprite: 'enemy.mountainGiant', temporalCoefficient: 1, hasShadow: true, maxHp: 650, xp: 50, radius: 20, bodyOffsetY: 50,
+        actionTimeMs: 700, attackRange: 2, bravery: 100, damageDice: [8, 7], hitSound: 'sfx.mountainGiant.hit', deathSound: 'sfx.mountainGiant.death', attackSound: 'sfx.mountainGiant.attack',
     },
     lich: {
         name: 'Lich', sprite: 'enemy.lich', temporalCoefficient: 1, hasShadow: true, maxHp: 340, xp: 32, radius: 14, bodyOffsetY: 36,
@@ -274,6 +307,14 @@ export const ENEMIES = {
 
 export type EnemyId = keyof typeof ENEMIES;
 
+/**
+ * Monsters common to every map, weakest first (chosen by the owner on 18-oct-2026). Each map adds its own, stronger
+ * and fewer (data/maps.ts → localEnemies), and its bosses. The rest of ENEMIES stays here for future maps.
+ */
+export const ESSENTIAL_ENEMIES: readonly EnemyId[] = [
+    'slime', 'ant', 'snake', 'orc', 'orcMage', 'zombie', 'scorpion', 'skeleton', 'clayGolem', 'stoneGolem', 'frog',
+];
+
 export function getEnemy(id: EnemyId): EnemyDef {
     return ENEMIES[id];
 }
@@ -294,5 +335,5 @@ export interface BossMinions {
 
 // Fase 13: el jefe final corta las oleadas; solo quedan él y sus esbirros (los del último tramo antes de él).
 export const BOSS_MINIONS: Partial<Record<EnemyId, BossMinions>> = {
-    fireWyvern: { enemies: ['hellhound', 'skeleton'], everyMs: 8000, count: 6, maxAlive: 24, radius: 110 },
+    fireWyvern: { enemies: ['stoneGolem', 'frog'], everyMs: 8000, count: 6, maxAlive: 24, radius: 110 },
 };

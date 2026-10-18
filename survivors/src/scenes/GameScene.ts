@@ -675,6 +675,9 @@ export class GameScene extends Phaser.Scene {
                 this.spawner.skipToNextBoss(true);
                 this.killFinalBossPending = true;
                 break;
+            case 'stampede':
+                this.spawner.runFirstEvent('stampede');
+                break;
             case 'god':
                 this.player.setGodMode(!this.player.godMode);
                 this.godModeLabel.setVisible(this.player.godMode);
