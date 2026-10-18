@@ -38,6 +38,7 @@ function load(): GameSettings {
             largeTrees: TREE_MODES.find((mode: TreeMode) => mode === stored.largeTrees) ?? DEFAULT_SETTINGS.largeTrees,
             anonymousStats: typeof stored.anonymousStats === 'boolean' ? stored.anonymousStats : DEFAULT_SETTINGS.anonymousStats,
             aimStick: typeof stored.aimStick === 'boolean' ? stored.aimStick : DEFAULT_SETTINGS.aimStick,
+            showMinimap: typeof stored.showMinimap === 'boolean' ? stored.showMinimap : DEFAULT_SETTINGS.showMinimap,
         };
     } catch {
         return { ...DEFAULT_SETTINGS };

@@ -5,6 +5,7 @@
 // con On se vuelven transparentes al pasar por detrás, y un 'transparent' guardado pasa a On al cargar).
 // Fase 14A: enviar estadísticas anónimas (activado de serie; se explica con una línea en Settings).
 // Fase 15C: en el móvil, stick de apuntar en la mitad derecha de la pantalla (activado de serie).
+// Fase 16A: minimapa arriba a la derecha (activado de serie).
 // Se guardan en el navegador (localStorage), así que siguen ahí la próxima vez que se abre el juego.
 
 /** In-game HUD on phones: the original bottom bar, or a small block at the top (more of the map visible). */
@@ -34,6 +35,8 @@ export interface GameSettings {
     anonymousStats: boolean;
     /** Touch screens only: the right half of the screen opens a second stick that aims (Fase 15C). Off = touch anywhere to move. */
     aimStick: boolean;
+    /** Small map at the top right with the player, bosses and totems (Fase 16A, data/minimap.ts). */
+    showMinimap: boolean;
 }
 
 export const DEFAULT_SETTINGS: Readonly<GameSettings> = {
@@ -45,6 +48,7 @@ export const DEFAULT_SETTINGS: Readonly<GameSettings> = {
     largeTrees: 'on',
     anonymousStats: true,
     aimStick: true,
+    showMinimap: true,
 };
 
 /** Each press of ← / → changes a volume by this much. */

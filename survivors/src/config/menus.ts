@@ -86,8 +86,8 @@ export const MENU_CHECKBOX = {
 /** Settings (Fase 12C): the big panel, rows a bit closer so all of them fit inside its frame (tighter on phones since the Aim Stick row, Fase 15C). */
 export const SETTINGS_MENU = {
     /** First row, from the usual content row. */
-    firstRowOffset: byDevice(-28, -34),
-    itemSpacing: byDevice(36, 33),
+    firstRowOffset: byDevice(-38, -40),
+    itemSpacing: byDevice(34, 30),
     /** Width of the value column (checkbox or "◄ Compact ►"). */
     valueBoxWidth: byDevice(150, 210),
     /** The one-line note about the anonymous stats (Fase 14A), just under the panel's bottom edge. */

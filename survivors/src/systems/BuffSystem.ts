@@ -1,4 +1,4 @@
-// Buffs temporales del cofre (Berserk y Defense Shield). Se combinan: se pueden tener los dos a la vez, cada uno con
+// Buffs temporales (Berserk y Defense Shield), que dan los tótems desde la Fase 16B (antes, los cofres). Se combinan: se pueden tener los dos a la vez, cada uno con
 // su temporizador. Coger otra vez uno que ya está activo renueva su tiempo (decidido por el propietario el 16-oct-2026).
 // Visuales del original: el efecto de lanzarlo a los pies, el aura que sigue al jugador (Defense Shield) y el brillo
 // rojo aditivo sobre el personaje (Berserk). Al cogerlo, su nombre sube sobre el jugador ("Berserk!"), como al lanzar
@@ -25,11 +25,11 @@ export class BuffSystem {
     /** One looping aura sprite per buff that has one, reused every time that buff starts. */
     private readonly auras = new Map<BuffId, Phaser.GameObjects.Sprite>();
     private readonly listed: ActiveBuff[] = [];
-    /** The rising "Name!" of each buff, reused every time it starts, and how long it has been showing. */
-    private readonly names = new Map<BuffId, { text: SpriteText; ageMs: number }>();
+    /** The rising "Name!" of each buff or totem, by name, reused every time it shows, and how long it has been showing. */
+    private readonly names = new Map<string, { text: SpriteText; ageMs: number }>();
 
     constructor(
-        scene: Phaser.Scene,
+        private readonly scene: Phaser.Scene,
         private readonly player: Player,
         private readonly audio: AudioSystem,
         /** Plays a one-shot effect at a point (shared effect pool). */
@@ -38,9 +38,6 @@ export class BuffSystem {
         for (const id of BUFF_IDS) {
             const def = getBuff(id);
             if (def.auraEffect) this.auras.set(id, scene.add.sprite(0, 0, '__DEFAULT').setVisible(false));
-            const text = new SpriteText(scene, 0, 0, `${def.name}!`, def.color, 'center');
-            text.container.setDepth(DEPTH_DAMAGE_NUMBERS).setVisible(false);
-            this.names.set(id, { text, ageMs: BUFF_NAME_FLOAT.lifeMs });
         }
     }
 
@@ -79,13 +76,6 @@ export class BuffSystem {
         this.refreshGlow();
     }
 
-    /** Chest: an offensive or a defensive buff, chosen at random. */
-    public startRandom(): void {
-        const kind = Math.random() < 0.5 ? 'offense' : 'defense';
-        const id = Phaser.Utils.Array.GetRandom(BUFF_IDS.filter((buff) => getBuff(buff).kind === kind));
-        if (id) this.start(id);
-    }
-
     /** Turns a buff on, or renews its time if it was already on. */
     public start(id: BuffId): void {
         const def: BuffDef = getBuff(id);
@@ -93,14 +83,23 @@ export class BuffSystem {
         this.left.set(id, def.durationMs);
         this.spawnEffect(def.castEffect, this.player.x, this.player.y);
         this.audio.play(BUFF_CAST_SOUND);
-        const name = this.names.get(id);
-        if (name) {
-            name.ageMs = 0;
-            name.text.container.setVisible(true).setAlpha(1);
-        }
+        this.announce(def.name, def.color);
         if (wasOn) return;
         if (def.auraEffect) this.auras.get(id)?.setVisible(true).play(def.auraEffect);
         this.refreshGlow();
+    }
+
+    /** "Name!" rises over the player, like a spell name in the original (also for the totems that are not buffs). */
+    public announce(name: string, color: number): void {
+        let shown = this.names.get(name);
+        if (!shown) {
+            const text = new SpriteText(this.scene, 0, 0, `${name}!`, color, 'center');
+            text.container.setDepth(DEPTH_DAMAGE_NUMBERS);
+            shown = { text, ageMs: 0 };
+            this.names.set(name, shown);
+        }
+        shown.ageMs = 0;
+        shown.text.container.setVisible(true).setAlpha(1);
     }
 
     public update(deltaMs: number): void {

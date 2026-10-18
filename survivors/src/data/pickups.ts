@@ -1,6 +1,7 @@
 // Objetos que caen al suelo y buffs temporales (Fase 6, bloque 6C; plan aprobado por el propietario el 16-oct-2026).
 // - Red Potion: cura. Imán (dibujado con el Crystal: no hay sprite de imán): atrae todas las gemas de XP.
-// - Cofre (dibujado con la bolsa de oro): da un buff aleatorio, ofensivo o defensivo. Los cofres NO desaparecen.
+// - Cofre (dibujado con la bolsa de oro): desde la Fase 16B da una carta de mejora gratis (antes, un buff). Los cofres
+//   NO desaparecen. Los buffs los dan ahora los tótems (data/totems.ts).
 //   Los buffs se combinan; coger uno que ya tienes renueva su tiempo (systems/BuffSystem.ts).
 // - Los cofres los sueltan los minijefes (Fase 7, data/enemies.ts → boss.dropsChest). El del jefe final abre el portal (Fase 13).
 // Sprites: item-ground.spr (sp-client Items.ts). Buffs: efectos y sonido de sp-client Effects.ts (Berserk, Defense Shield).
@@ -29,7 +30,7 @@ export const PICKUPS = {
     magnet: { name: 'Magnet', sheet: 15, frame: 46, scale: 1.5, dropChance: 0.005, lifeMs: 60000, pickupSound: 'sfx.pickup' },
     // Cofre: Gold Pocket (item-ground 5/120). No desaparece (pedido por el propietario).
     chest: { name: 'Chest', sheet: 5, frame: 120, scale: 1.6, dropChance: 0, pickupSound: 'sfx.pickup' },
-    // Cofre del jefe final (Fase 13): da un buff como los demás y, al abrirlo, se abre el portal de salida. Más grande.
+    // Cofre del jefe final (Fase 13): da una carta como los demás y, al abrirlo, se abre el portal de salida. Más grande.
     finalChest: { name: 'Chest', sheet: 5, frame: 120, scale: 2.2, dropChance: 0, pickupSound: 'sfx.pickup' },
 } as const satisfies Record<PickupId, PickupDef>;
 
@@ -42,15 +43,15 @@ export const PICKUP_BLINK_MS = 5000;
 export const PICKUP_BLINK_PERIOD_MS = 150;
 /** Sound when a chest appears on the ground (ITEM_DROPPED_SOUND). */
 export const CHEST_DROP_SOUND: SoundKey = 'sfx.itemDrop';
+/** Title of the cards a chest gives (instead of "Level N!"). */
+export const CHEST_CARDS_TITLE = 'Treasure!';
 
-// --- Buffs del cofre -------------------------------------------------------------------------------------
+// --- Buffs (de los tótems desde la Fase 16B) ----------------------------------------------------------------
 
 export type BuffId = 'berserk' | 'defenseShield';
 
 export interface BuffDef {
     name: string;
-    /** 'offense' or 'defense': the chest picks one kind at random, then a buff of that kind. */
-    kind: 'offense' | 'defense';
     durationMs: number;
     /** Multiplies all damage dealt (1 = no change). */
     damageMultiplier: number;
@@ -69,12 +70,12 @@ export interface BuffDef {
 export const BUFFS = {
     berserk: {
         // sp-client: effect8 hoja 1 al lanzarlo; mientras dura, copia roja aditiva (0xff4444, 50%) sobre el personaje.
-        name: 'Berserk', kind: 'offense', durationMs: 20000, damageMultiplier: 1.4, damageTakenMultiplier: 1,
+        name: 'Berserk', durationMs: 20000, damageMultiplier: 1.4, damageTakenMultiplier: 1,
         castEffect: 'fx.berserk.cast', overlayTint: 0xff4444, color: 0xff3828,
     },
     defenseShield: {
         // sp-client: effect8 hoja 6 al lanzarlo; aura effect9 hoja 14 mientras dura.
-        name: 'Defense Shield', kind: 'defense', durationMs: 20000, damageMultiplier: 1, damageTakenMultiplier: 0.6,
+        name: 'Defense Shield', durationMs: 20000, damageMultiplier: 1, damageTakenMultiplier: 0.6,
         castEffect: 'fx.defenseShield.cast', auraEffect: 'fx.defenseShield.aura', color: 0x70a8ff,
     },
 } as const satisfies Record<BuffId, BuffDef>;

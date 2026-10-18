@@ -45,6 +45,11 @@ export class BossSystem {
         return this.bosses.find((boss) => boss.def.boss?.final) ?? this.bosses[0];
     }
 
+    /** Bosses being tracked (dead ones are dropped on the next update: check isAlive). For the minimap. */
+    public get tracked(): readonly Enemy[] {
+        return this.bosses;
+    }
+
     /** Bosses alive now, by name (for the saved run). */
     public get aliveIds(): EnemyId[] {
         return this.bosses.flatMap((boss) => {
@@ -72,6 +77,8 @@ export class BossSystem {
                 this.minions.delete(boss);
                 continue;
             }
+            // Freeze totem (Fase 16B): neither throws nor calls minions while frozen.
+            if (boss.isFrozen) continue;
             const ranged = boss.def.boss?.ranged;
             if (ranged && canAttack) this.updateRanged(boss, ranged, deltaMs, playerX, playerBodyY);
             this.updateMinions(boss, deltaMs);

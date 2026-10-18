@@ -31,6 +31,7 @@ export const HOW_TO_PLAY_PAGES: readonly HowToPlayPage[] = [
             'Right click, right stick or right half of the screen: aim yourself.',
             'Pick up the gems that enemies drop to gain experience.',
             'Each level up, choose one of the cards to grow stronger.',
+            'Step on the glowing Mana Stones for a power-up. Chests give a free card.',
             'Survive the waves and defeat the final boss to win.',
         ],
     },

@@ -17,6 +17,7 @@ import {
 } from '../config/gameConfig';
 import type { AudioSystem } from '../systems/AudioSystem';
 import { enemySpeed, MONSTER_AI, MONSTER_DAMAGE, type EnemyDef } from '../data/enemies';
+import { FREEZE_TINT } from '../data/totems';
 import { TILE_SIZE } from '../config/gameConfig';
 import { HBAsset } from '../hb/HBAsset';
 import type { HBMap } from '../hb/HBMap';
@@ -88,6 +89,8 @@ export class Enemy implements Poolable {
     private chargeMs = 0;
     private chargeX = 0;
     private chargeY = 0;
+    /** Freeze totem (Fase 16B): time left standing still, animation paused and tinted blue. */
+    private frozenMs = 0;
 
     constructor(scene: Phaser.Scene, public readonly def: EnemyDef, private readonly audio: AudioSystem) {
         const scale = def.scale ?? 1;
@@ -129,6 +132,8 @@ export class Enemy implements Poolable {
         this.blowsSinceFlee = 0;
         this.braveryChecked = false;
         this.chargeMs = 0;
+        this.frozenMs = 0;
+        this.sprite.anims.resume();
         const roll = Phaser.Math.Between(1, MONSTER_AI.strategyDie);
         this.strategy = roll === MONSTER_AI.hitAndRunRoll ? 'hitAndRun' : roll === MONSTER_AI.twoHitsAndRunRoll ? 'twoHitsAndRun' : 'normal';
         this.sprite.clearTint();
@@ -148,6 +153,23 @@ export class Enemy implements Poolable {
         this.chargeX = (dirX / length) * this.speed * speedFactor;
         this.chargeY = (dirY / length) * this.speed * speedFactor;
         this.chargeMs = ms;
+    }
+
+    /** Freeze totem: stands still (no walking, no attacks, a blow on its way is cancelled) for `ms`. */
+    public freeze(ms: number): void {
+        if (!this.isAlive) return;
+        this.frozenMs = Math.max(this.frozenMs, ms);
+        this.attackLeftMs = 0;
+        this.hitInMs = -1;
+        this.chargeMs = 0;
+        this.knockX = 0;
+        this.knockY = 0;
+        this.sprite.anims.pause();
+        if (this.flashMs <= 0) this.sprite.setTint(FREEZE_TINT);
+    }
+
+    public get isFrozen(): boolean {
+        return this.frozenMs > 0;
     }
 
     /** Walking speed (px/s). */
@@ -175,7 +197,7 @@ export class Enemy implements Poolable {
         const distance = Math.hypot(dx, dy);
         // Bosses barely move when hit.
         knockback *= this.def.knockbackTaken ?? 1;
-        if (distance > 0) {
+        if (distance > 0 && !this.isFrozen) {
             this.knockX += (dx / distance) * knockback;
             this.knockY += (dy / distance) * knockback;
         }
@@ -191,6 +213,7 @@ export class Enemy implements Poolable {
     public kill(): boolean {
         if (!this.isAlive) return false;
         this.phase = EnemyPhase.Dying;
+        if (this.isFrozen) this.thaw();
         this.shadow?.setVisible(false);
         this.play(MonsterState.Dead, true);
         return true;
@@ -200,10 +223,18 @@ export class Enemy implements Poolable {
     public update(deltaMs: number, world: EnemyWorld): boolean {
         if (this.flashMs > 0) {
             this.flashMs -= deltaMs;
-            if (this.flashMs <= 0) this.sprite.clearTint();
+            if (this.flashMs <= 0) {
+                if (this.isFrozen) this.sprite.setTint(FREEZE_TINT);
+                else this.sprite.clearTint();
+            }
         }
         switch (this.phase) {
             case EnemyPhase.Alive:
+                if (this.frozenMs > 0) {
+                    this.frozenMs -= deltaMs;
+                    if (this.frozenMs <= 0) this.thaw();
+                    return false;
+                }
                 this.chase(deltaMs, world);
                 this.syncDisplay();
                 return false;
@@ -225,6 +256,12 @@ export class Enemy implements Poolable {
                 }
                 return false;
         }
+    }
+
+    private thaw(): void {
+        this.frozenMs = 0;
+        this.sprite.anims.resume();
+        if (this.flashMs <= 0) this.sprite.clearTint();
     }
 
     private chase(deltaMs: number, world: EnemyWorld): void {

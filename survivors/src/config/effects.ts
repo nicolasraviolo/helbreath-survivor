@@ -53,7 +53,12 @@ export const EFFECTS = {
     // Portal del final (Fase 13): sp-client EFFECT_PORTAL_1, effect11.spr hoja 12 (30 frames), en bucle y bajo el jugador.
     // Sus frames quedan ~97 px a la derecha y ~77 px por debajo del ancla (medido en partida): se devuelve a su sitio.
     'fx.portal': { sprite: 'fx.effect11', sheet: 12, frameRate: 15, loop: true, depthOffset: -1, offsetX: -97, offsetY: -77 },
-    'fx.footsteps': { sprite: 'fx.effect2', sheet: 1, frames: [28, 32], frameRate: 10, loop: false, depthOffset: -1 },
+    // Tótems (Fase 16B, data/totems.ts): brillo a sus pies (sp-client Casting Circle), Full HP (Resurrection)
+    // y Freeze (Mass Illusion Movement Base).
+    'fx.totem.glow': { sprite: 'fx.effect5', sheet: 7, frameRate: 10, loop: true, additive: true, depthOffset: -1 },
+    'fx.fullHp.cast': { sprite: 'fx.effect11', sheet: 10, frameRate: 15, loop: false },
+    'fx.freeze.cast': { sprite: 'fx.effect8', sheet: 5, frameRate: 10, loop: false, depthOffset: -1 },
+    'fx.footsteps':{ sprite: 'fx.effect2', sheet: 1, frames: [28, 32], frameRate: 10, loop: false, depthOffset: -1 },
 } as const satisfies Record<string, EffectDef>;
 
 export type EffectKey = keyof typeof EFFECTS;

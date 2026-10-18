@@ -1,6 +1,6 @@
 // Interfaz de la partida: la barra (clásica abajo, o compacta arriba en el móvil: ui/ClassicHud.ts, ui/CompactHud.ts),
 // el panel de stats, la barra del jefe, los avisos, la cuenta atrás del portal (Fase 13), las mejoras activas de los cofres
-// y el aviso de logro conseguido (Fase 14B, abajo a la izquierda).
+// el aviso de logro conseguido (Fase 14B, abajo a la izquierda) y el minimapa (Fase 16A, arriba a la derecha).
 // Corre como escena aparte por encima de la partida, así que no se mueve con la cámara.
 // El casco (o C / Y del mando) muestra el panel de stats, y el disquete o Esc / Start abren la pausa (PauseScene).
 // Si se desconecta el mando en plena partida, la pausa se abre sola.
@@ -36,6 +36,8 @@ import { SpriteText } from '../hb/SpriteText';
 import { ClassicHud } from '../ui/ClassicHud';
 import { CompactHud } from '../ui/CompactHud';
 import { activeHudStyle, overlayBottom, type HudBar, type HudBarState } from '../ui/hudLayout';
+import { Minimap, type MinimapInfo, type MinimapMarkers } from '../ui/Minimap';
+import { MINIMAP } from '../data/minimap';
 import { openOverlay } from './MenuOverlayScene';
 import type { PauseSceneData } from './PauseScene';
 
@@ -57,17 +59,22 @@ export interface HudState extends HudBarState {
     portalSecondsLeft: number | undefined;
     /** Buffs from chests that are on (they can be combined), with their seconds left. */
     buffs: ReadonlyArray<{ name: string; secondsLeft: number; color: number }>;
+    /** What the minimap marks (Fase 16A). */
+    minimap: MinimapMarkers;
 }
 
 export interface HudSceneData {
     getState: () => HudState;
     /** Scene paused while the pause menu is open. */
     gameSceneKey: string;
+    minimap: MinimapInfo;
 }
 
 export class HudScene extends Phaser.Scene {
     private getState!: () => HudState;
     private gameSceneKey!: string;
+    private minimapInfo!: MinimapInfo;
+    private minimap!: Minimap;
     private inputSystem!: InputSystem;
     private bar!: HudBar;
     private barStyle!: HudStyle;
@@ -99,6 +106,7 @@ export class HudScene extends Phaser.Scene {
     init(data: HudSceneData): void {
         this.getState = data.getState;
         this.gameSceneKey = data.gameSceneKey;
+        this.minimapInfo = data.minimap;
     }
 
     create(): void {
@@ -132,9 +140,12 @@ export class HudScene extends Phaser.Scene {
             if (document.visibilityState === 'hidden') this.openPause();
         };
         document.addEventListener('visibilitychange', onVisibility);
-        // Settings → HUD changed (from the pause menu): swap the bar right away.
+        this.minimap = new Minimap(this, this.minimapInfo, HUD_DEPTH_TEXT);
+        this.minimap.setVisible(settings.current.showMinimap);
+        // Settings → HUD changed (from the pause menu): swap the bar right away. Same with the minimap.
         const onSettings = () => {
             if (activeHudStyle() !== this.barStyle) this.rebuildBar();
+            this.minimap.setVisible(settings.current.showMinimap);
         };
         settings.on(SETTINGS_CHANGED, onSettings);
         this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
@@ -144,7 +155,10 @@ export class HudScene extends Phaser.Scene {
             settings.off(SETTINGS_CHANGED, onSettings);
         });
         // The compact HUD has no floppy disk button: it needs the round one (also when forced with ?ui=compact on a PC).
-        if (this.sys.game.device.input.touch || COMPACT_UI) this.createTouchPauseButton();
+        if (this.sys.game.device.input.touch || COMPACT_UI) {
+            this.createTouchPauseButton();
+            this.minimap.setTop(MINIMAP.topUnderButtons);
+        }
     }
 
     override update(_time: number, delta: number): void {
@@ -159,6 +173,7 @@ export class HudScene extends Phaser.Scene {
         if (this.statsPanel.visible) this.refreshStats(state);
         this.bar.update(state);
         this.showBuffs(state.buffs);
+        this.minimap.update(state.minimap, this.time.now);
     }
 
     /** The bar of the style chosen in the settings (the PC always gets the classic one). */

@@ -91,6 +91,10 @@ export const SPRITES = {
     'fx.effect9': { file: 'sprites/effect9.spr', type: SpriteType.Effect },
     // Polvo de los pasos al correr (Footsteps dry: hoja 1, frames 28–32).
     'fx.effect2': { file: 'sprites/effect2.spr', type: SpriteType.Effect },
+    // Brillo de los tótems: Casting Circle (hoja 7; ver data/totems.ts).
+    'fx.effect5': { file: 'sprites/effect5.spr', type: SpriteType.Effect },
+    // Tótems (Fase 16B): la Mana Stone. Una sola imagen, repetida en sus 40 hojas (se usa la 0).
+    'object.manastone': { file: 'sprites/manastone.spr', type: SpriteType.Effect },
 
     // Interfaz: barra inferior original 800x600 (hoja 6; ver config/hud.ts para frames y posiciones)
     // y fondo de "Create New Character" 640x480 (hoja 9; ver config/characterSelect.ts).
@@ -221,6 +225,9 @@ export const SOUNDS = {
     'sfx.drink': { file: 'sounds/C19.mp3' },
     'sfx.itemDrop': { file: 'sounds/E12.mp3' },
     'sfx.buff': { file: 'sounds/E5.mp3' },
+    // Tótems (Fase 16B): al aparecer, el "chin" de fabricar un objeto con éxito (E23); Freeze, fragmentos de hielo (E46).
+    'sfx.totemAppear': { file: 'sounds/E23.mp3' },
+    'sfx.freeze': { file: 'sounds/E46.mp3' },
     // Pasos al correr (PLAYER_RUNNING).
     'sfx.footsteps': { file: 'sounds/C10.mp3' },
     // Recoger una gema: el sonido de "objeto añadido" del original (sp-client SoundFileNames.ts, ITEM_ADDED_SOUND).
@@ -235,6 +242,16 @@ export const MAPS = {
 } as const satisfies Record<string, { file: string }>;
 
 export type MapKey = keyof typeof MAPS;
+
+/**
+ * Minimapas (Fase 16A): imágenes ya hechas de sp-client, una por mapa, que cubren el mapa entero (bisle: 1500×1369 para
+ * 274×250 casillas). El minimapa enseña solo el trozo de la zona de juego (ui/Minimap.ts).
+ */
+export const MINIMAPS = {
+    'minimap.bisle': { file: 'images/minimaps/bisle.jpg' },
+} as const satisfies Record<string, { file: string }>;
+
+export type MinimapKey = keyof typeof MINIMAPS;
 
 /**
  * Paquetes de casillas de mapa (sp-client/src/constants/Assets.ts). Cada hoja del paquete es la

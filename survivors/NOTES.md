@@ -51,6 +51,8 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Apuntado automático (Fase 15A)
 - Apuntado manual (Fase 15B)
 - Stick de apuntar en el móvil (Fase 15C)
+- Minimapa (Fase 16A)
+- Tótems (Fase 16B)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -656,3 +658,18 @@ Tabla completa en `docs/REQUISITOS_HB.md`. Lo no obvio:
 - **How to Play en el móvil:** caben **6 filas** por página; la 7ª pisa el selector "Page". En el 15C se juntaron filas ("C / Esc", "Stats / Pause buttons") y se acortaron textos para que quepan.
 - **Probar:** `?debug=aimstick` (con `--mobile`) pone un dedo de mentira empujando a la derecha. Para dedos de verdad en `pnpm check --eval`, crear `Touch` con `clientX/pageX/screenX` (si falta `pageX`, Phaser lo lee como 0) y lanzar `touchstart` en el canvas y `touchmove/touchend` en `window`. Ojo: un `import('/src/...')` desde `--eval` carga **otra copia** del módulo (Vite lo sirve con `?t=...`); para tocar los ajustes de verdad hay que importar la URL exacta de `performance.getEntriesByType('resource')`.
 
+
+## Minimapa (Fase 16A)
+- Imágenes ya hechas en `sp-client/public/assets/images/minimaps/<mapa>.jpg`, una por mapa y del mapa **entero** (bisle: 1500×1369 para 274×250 casillas, ~5,47 px por casilla en los dos ejes). sp-client marca bisle como `Minimap.NONE`, pero la imagen existe y cuadra con el mapa.
+- `ui/Minimap.ts` recorta la zona de juego como un frame de la textura (`playArea`), calculado con el tamaño de la imagen entre el del mapa: vale para cualquier mapa sin medir nada a mano.
+- `telescope.spr` (el GuideMap del original) no lo usa sp-client y no tiene índice documentado: no se usa.
+- Solo marca jugador y jefes (y tótems en el 16B), por decisión del propietario. En mapas con NPCs (Fase 21), también ellos.
+
+## Tótems (Fase 16B)
+- `manastone.spr` tiene 40 hojas, pero todas son **la misma imagen** (56×100, base a 86 px del borde de arriba): se usa la hoja 0. sp-client no la usa.
+- Brillo: Casting Circle (`effect5` hoja 7), dorado. Para teñirlo de otro color hay que usar `setTintFill` (con `setTint` normal el azul casi desaparece, porque el dibujo apenas tiene azul). Con el modo aditivo queda un círculo de luz del color puro.
+- Zona de recogida (`entities/Totem.ts`): casillas que tapa el dibujo en al menos 8 px por eje, y siempre la de la base. Según dónde caiga, la Mana Stone ocupa 2×4 o 3×4 casillas.
+- Freeze: pausa la animación del monstruo y lo tiñe de azul. Los Slimes, que son verdes y semitransparentes, se ven **verde azulado oscuro** (parecen matas). Es normal.
+- Freeze solo afecta a los monstruos que se ven al cogerlo (`cameras.main.worldView`). En `?debug=horde`, los primeros segundos aún no hay ninguno en pantalla.
+- Los cofres dan carta con `chestCards` en GameScene (se guarda en la partida). Va detrás de las cartas de nivel y también sale después del jefe final, cuando las subidas de nivel ya no dan cartas.
+- Descarga inicial: +0,9 MB (`effect5.spr` 0,72 MB y `manastone.spr` 0,19 MB). Full HP usa el efecto Resurrection (`effect11`) y Freeze, `effect8` hoja 5; los dos ya se cargaban.
