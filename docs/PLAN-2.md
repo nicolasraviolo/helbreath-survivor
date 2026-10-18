@@ -488,7 +488,16 @@ Hoy todo está pensado para un solo mapa (`huntzone2`). Hay que:
 - **`data/waves.ts` por mapa** (una línea de tiempo cada uno).
 - **Pantalla "Select Map"** con la miniatura, el nombre, la dificultad y tu récord en ese mapa. En esta fase se abre después de elegir clase; en la Fase 23 se abrirá desde el portal de la ciudad.
 - **Desbloqueo:** ganar un mapa abre el siguiente (guardado en el navegador). Una tecla de pruebas los abre todos.
-- **Descargas:** `AssetStreamer` baja solo los monstruos y casillas del mapa elegido. Hoy ya lo hace por oleada, así que se adapta. Las casillas del mapa se descargan **al elegirlo**, no antes del menú.
+- **Descargas:** ver "Carga por mapa" abajo.
+
+### Carga por mapa *(idea del propietario, 18-oct-2026)*
+Hoy la primera carga ronda unos **25 MB** de golpe (medido el 18-oct-2026; con un solo mapa no hacía falta más). Ya se hace: monstruos por oleada en segundo plano (`AssetStreamer`, Fase 9), ropa y armas del personaje bajo demanda (`ON_DEMAND_SPRITES`) y solo las casillas que usa el mapa. Con varios mapas, la carga se parte en dos:
+- **Carga inicial (antes del menú):** solo lo común: interfaz, sonidos, fuentes, jugador base. Nada de mapas ni monstruos.
+- **Carga del mapa (al elegirlo en Select Map, con su propia pantalla de carga):** el `.amd`, sus casillas, su minimapa, su música y los monstruos de su primera oleada. El resto de sus monstruos sigue en segundo plano con `AssetStreamer`, en el orden de **sus** oleadas.
+- **Efectos de hechizos y armas según el personaje:** hoy se cargan todos al principio aunque juegues de Guerrero (`fx.effect11` pesa 2,4 MB). Cargarlos al elegir personaje, como ya se hace con la ropa.
+- **Caché entre mapas:** lo ya descargado no se vuelve a bajar; si la memoria del móvil sufre, liberar los monstruos y casillas del mapa anterior al cambiar.
+- **Medir antes y después:** cronometrar por separado la descarga y la preparación ("Preparing…", la conversión de `.spr` a texturas), en ordenador y móvil. Si lo lento es preparar, la solución es otra (preparar en segundo plano o por partes).
+- En la Fase 23 la ciudad usa la misma idea: su propia carga (NPCs y su mapa), sin bajar los mapas de caza.
 
 ### 22B. Récords locales (antes en la Fase 18)
 - Top 10 por **mapa** y **clase**, guardado en el navegador.
@@ -516,6 +525,7 @@ Crear la skill `/nueva-skill anadir-mapa`.
 - Desde el menú se elige Icebound. Salen sus monstruos, minijefes y el Wyvern.
 - Al ganarlo queda registrado, y la pantalla Records lo muestra.
 - huntzone2 sigue igual que antes. La descarga extra se nota poco.
+- La carga inicial no baja ningún mapa ni monstruo; cada mapa carga lo suyo al elegirlo. Tiempos medidos antes y después.
 
 ---
 
