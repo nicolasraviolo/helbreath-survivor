@@ -20,10 +20,10 @@
 | 15 — Apuntado híbrido | ✅ completada (15A, 15B y 15C) | 2026-10-18 |
 | 16 — Minimapa y tótems | ✅ completada (16A y 16B) | 2026-10-18 |
 | 17 — Selección de personaje | ✅ completada (17A y 17B) | 2026-10-18 |
-| 18 — Esquiva y resistencia mágica | 🔨 en curso (18A y 18B hechos; falta cerrarla) | 2026-10-18 |
+| 18 — Esquiva y resistencia mágica | ✅ completada (18A y 18B) | 2026-10-18 |
 
 ## Fase actual
-**Para retomar (18-oct-2026): Fase 18 con sus dos bloques hechos** (18A esquiva, 18B resistencia mágica) en la rama `fase-18`. **Siguiente:** que el propietario la pruebe y, si da el OK, `/revisar` y `/checkpoint fase`; luego Fase 19 (crits, botón táctil en `TOUCH_RESERVED_CORNER`).
+**Para retomar (18-oct-2026): Fase 18 completada** (18A esquiva, 18B resistencia mágica), fusionada en `master` con la etiqueta `fase-18`. **Siguiente:** `/fase 19`, crits ("Gritos"), con su botón táctil en `TOUCH_RESERVED_CORNER`.
 - **Esquiva (18A):** golpes y flechas fallan según puntería del monstruo contra 2·Dex + armadura (`data/defense.ts`). Sin texto "Miss". Detalle en NOTES.md, "Esquiva física (Fase 18A)".
 - **Resistencia mágica (18B):** las bolas de fuego tiran puntería mágica contra Mag + ropa/escudo; si se resisten, sin daño y texto "Resist". El panel C y las cartas enseñan **% generales** (no por monstruo). Detalle en NOTES.md, "Resistencia mágica (Fase 18B)".
 - **Personajes (17):** 4 huecos (`scenes/CharacterSlotsScene.ts`, `systems/CharacterStore.ts`), una partida a medias por personaje, aspecto en `data/appearance.ts`. Ver NOTES.md, "Personajes guardados" y "Aspecto del personaje".

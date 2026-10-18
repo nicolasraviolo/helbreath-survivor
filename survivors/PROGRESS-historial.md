@@ -2,6 +2,8 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
+**Fase 18 completada (2026-10-18)**: bloques 18A (esquiva física) y 18B (resistencia mágica). Revisión final: totales de armadura guardados en `Equipment` (no se recalculan cada frame), un solo objeto de defensa por frame, "Resist" apilados sin taparse y el % general de resistencia leído de la bola del Mage-Orc. Idea apuntada para el futuro: jefes más difíciles de esquivar. Fusionada en `master`, etiqueta `fase-18`. Siguiente: `/fase 19`.
+
 **Fase 18, bloque 18B: resistencia mágica (2026-10-18).**
 - **Qué hace:** cada hechizo de monstruo (bola de fuego del Mage-Orc y las tres del Fire Wyvern) tira su **puntería mágica** contra la **resistencia mágica** del jugador (Mag + la de su ropa y escudo). Si la resiste, la bola explota igual pero **no hace daño** y sale un **"Resist"** azul claro sobre el personaje (decisión del propietario: aquí sí texto, a diferencia del "Miss"). La resistencia es fija: no sube sola.
 - **Números:** fórmula del original (50·puntería mágica/resistencia), límites 25%–95%. Puntería mágica (nuestra, la wiki no la da): Mage-Orc 45, Fire Wyvern 80. Resistencia de piezas (nuestra): Robe 8, Wizard Robe 15, Wizard Cap 5, Wizard Hat 10, Knight Shield 6, Tower Shield 12, Winged Helmet 4, Horned Helmet 8. Con el mejor equipo: Maga 39 a nivel 1 (42% general), guerrero 30 (25%).
