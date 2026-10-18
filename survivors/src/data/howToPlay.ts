@@ -68,4 +68,14 @@ export const HOW_TO_PLAY_PAGES: readonly HowToPlayPage[] = [
             { control: 'Top-right icon', action: 'Fullscreen' },
         ],
     },
+    {
+        // Fase 17A: la pantalla de los 4 personajes (CharacterSlotsScene). Página propia: en las otras no caben más filas.
+        name: 'Characters',
+        rows: [
+            { control: 'Click or tap a character', action: 'Choose it' },
+            { control: 'Click or tap it again', action: 'Play, or continue its run' },
+            { control: 'Empty slot', action: 'Create a new character' },
+            { control: 'Delete key or button', action: 'Delete it (press twice)' },
+        ],
+    },
 ];

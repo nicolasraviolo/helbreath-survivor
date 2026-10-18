@@ -9,6 +9,8 @@ import { Direction } from './directions';
 /** Subset of the original PlayerState that the survivors player uses. */
 export enum PlayerState {
     IdleCombat = 'idleCombat',
+    /** Walking in combat stance (only the character screens use it, as in the original menu). */
+    Walk = 'walk',
     Run = 'run',
     /** Melee swing (MeleeAttack in the original). */
     Melee = 'melee',
@@ -24,6 +26,7 @@ export type GearSlot = 'human' | 'hair' | 'underwear' | 'hauberk' | 'leggings' |
 /** Body sheet = base + direction (one sheet per direction). */
 const HUMAN_SPRITESHEET_BASE: Record<PlayerState, number> = {
     [PlayerState.IdleCombat]: 8,
+    [PlayerState.Walk]: 24,
     [PlayerState.Run]: 32,
     [PlayerState.Melee]: 48,
     [PlayerState.Cast]: 64,
@@ -34,6 +37,7 @@ const HUMAN_SPRITESHEET_BASE: Record<PlayerState, number> = {
 /** Hair, underwear and equipment: one sheet per state with 8 frames per direction inside. */
 const ARMOUR_SPRITESHEET_BASE: Record<PlayerState, number> = {
     [PlayerState.IdleCombat]: 1,
+    [PlayerState.Walk]: 3,
     [PlayerState.Run]: 4,
     [PlayerState.Melee]: 6,
     [PlayerState.Cast]: 8,
@@ -47,6 +51,7 @@ const ARMOUR_SPRITESHEET_BASE: Record<PlayerState, number> = {
  */
 const ARMAMENT_STATE_INDEX: Record<PlayerState, number | undefined> = {
     [PlayerState.IdleCombat]: 1,
+    [PlayerState.Walk]: 3,
     [PlayerState.Run]: 6,
     [PlayerState.Melee]: 4,
     [PlayerState.Cast]: undefined,

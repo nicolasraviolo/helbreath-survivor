@@ -30,6 +30,7 @@ import { STAT_IDS } from '../data/stats';
 import type { MeleeWeaponId } from '../data/weapons';
 import type { SpellId } from '../data/spells';
 import { RESUME_SLOT_KEY, saveStore, type RunSnapshot } from '../systems/SaveStore';
+import { ACTIVE_CHARACTER_KEY, characterStore } from '../systems/CharacterStore';
 import { MIN_DAMAGE_TAKEN } from '../data/armor';
 import { MELEE_ROOT_MOMENT } from '../data/weapons';
 import { CAST_RELEASE_MOMENT } from '../data/spells';
@@ -172,6 +173,8 @@ export class GameScene extends Phaser.Scene {
     private dustDistance = 0;
     private mapId: MapId = DEFAULT_MAP;
     private characterId: CharacterId = DEFAULT_CHARACTER;
+    /** Saved character playing this run (Fase 17A), to keep its best level; undefined in old saves and debug runs. */
+    private characterUid: string | undefined;
     /** Save slot of this run (SaveStore). */
     private saveSlot = 0;
     private autosaveInMs = AUTOSAVE_EVERY_MS;
@@ -183,11 +186,16 @@ export class GameScene extends Phaser.Scene {
     }
 
     create(): void {
-        // Continue: the slot chosen in SaveSlotsScene. Read once, so Restart (game over) starts a new run.
+        // Continue: the slot chosen in CharacterSlotsScene. Read once, so Restart (game over) starts a new run.
         const resumeSlot: unknown = this.registry.get(RESUME_SLOT_KEY);
         this.registry.remove(RESUME_SLOT_KEY);
         const resume = typeof resumeSlot === 'number' ? saveStore.get(resumeSlot) : undefined;
-        this.saveSlot = resume && typeof resumeSlot === 'number' ? resumeSlot : saveStore.slotForNewRun();
+        const activeUid: unknown = this.registry.get(ACTIVE_CHARACTER_KEY);
+        this.characterUid = resume ? resume.characterUid : typeof activeUid === 'string' ? activeUid : undefined;
+        // One run per character, in its slot (Fase 17A). Without a character (debug ?play): a slot with no character,
+        // so the run becomes a new character when the game loads again; with none free, it isn't saved (-1).
+        const characterSlot = characterStore.slotOf(this.characterUid);
+        this.saveSlot = resume && typeof resumeSlot === 'number' ? resumeSlot : characterSlot >= 0 ? characterSlot : characterStore.firstFree;
         this.autosaveInMs = AUTOSAVE_EVERY_MS;
         this.mapId = resume?.map ?? DEFAULT_MAP;
         const mapDef = MAPS_DATA[this.mapId];
@@ -508,6 +516,7 @@ export class GameScene extends Phaser.Scene {
             savedAt: Date.now(),
             map: this.mapId,
             character: this.characterId,
+            characterUid: this.characterUid,
             elapsedMs: this.spawner.elapsed,
             level: stats.level,
             xp: stats.xp,
@@ -531,7 +540,7 @@ export class GameScene extends Phaser.Scene {
 
     /** Saves the run, unless it is already decided (dead, or over). With the portal open, its countdown is kept. */
     private saveRun(): void {
-        if (this.runOver || this.player.isDead) return;
+        if (this.runOver || this.player.isDead || this.saveSlot < 0) return;
         saveStore.save(this.saveSlot, this.snapshot());
     }
 
@@ -601,6 +610,8 @@ export class GameScene extends Phaser.Scene {
         const sim = this.sim;
         if (!sim) {
             this.step(delta);
+            // The character's best level (shown on the select screen); cheap when it isn't a new best.
+            characterStore.recordLevel(this.characterUid, this.stats.level);
             return;
         }
         // Simulated run: many short steps per drawn frame.
@@ -984,7 +995,7 @@ export class GameScene extends Phaser.Scene {
             },
             onChangeClass: () => {
                 this.scene.stop('GameOver');
-                this.scene.start('CharacterSelect');
+                this.scene.start('CharacterSlots');
             },
             onMainMenu: () => {
                 this.scene.stop('GameOver');

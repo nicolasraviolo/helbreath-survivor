@@ -53,6 +53,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Stick de apuntar en el móvil (Fase 15C)
 - Minimapa (Fase 16A)
 - Tótems (Fase 16B)
+- Personajes guardados (Fase 17A)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -673,3 +674,14 @@ Tabla completa en `docs/REQUISITOS_HB.md`. Lo no obvio:
 - Freeze solo afecta a los monstruos que se ven al cogerlo (`cameras.main.worldView`). En `?debug=horde`, los primeros segundos aún no hay ninguno en pantalla.
 - Los cofres dan carta con `chestCards` en GameScene (se guarda en la partida). Va detrás de las cartas de nivel y también sale después del jefe final, cuando las subidas de nivel ya no dan cartas.
 - Descarga inicial: +0,9 MB (`effect5.spr` 0,72 MB y `manastone.spr` 0,19 MB). Full HP usa el efecto Resurrection (`effect11`) y Freeze, `effect8` hoja 5; los dos ya se cargaban.
+
+## Personajes guardados (Fase 17A)
+- **Pantalla "Select Character":** `scenes/CharacterSlotsScene.ts`, con números en `config/characterSlots.ts`. El fondo (`gamedialog86.spr`, hoja 8) **ya trae dibujados** los marcos de los 4 huecos, los rótulos Name, Lev y Exp y los 5 botones de la derecha (Start, Create New Character, Delete Character, Change Password y Log Out). Encima solo se pintan los marcos marcados (`dialogtext` 61/62) y los botones iluminados (51–55 normales, +5 iluminados). Change Password se tapa con un rectángulo oscuro.
+- **Guardado:** `systems/CharacterStore.ts`, en la clave `hb-survivors.characters` (con versión). Cada personaje tiene un `uid` fijo. La partida guardada lo lleva en `RunSnapshot.characterUid`, y así el mejor nivel va al personaje correcto aunque se borre y se rehaga el hueco. Lo apunta `GameScene` en cada frame con `characterStore.recordLevel` (solo escribe si es un récord).
+- **Personaje activo:** se guarda en `registry` con `ACTIVE_CHARACTER_KEY`, además de `CHOSEN_CHARACTER_KEY` (la clase). Al continuar una partida manda su `characterUid`, no el registry.
+- **Animación del menú:** como en el original, caminando en el sitio (`PlayerState.Walk`: hoja del cuerpo 24, armadura 3 y arma 3) y girando a la vez cada 6,4 s.
+- **Escribir el nombre (`ui/TextInput.ts`):** usa un `<input>` invisible. Mientras tiene el foco hay que llamar a `keyboard.disableGlobalCapture()`, porque si no Phaser se traga W, A, S, D, el espacio y el retroceso. Además, `InputSystem.setKeyboardEnabled(false)` evita que las letras muevan menús. Al cerrar la escena no se puede redibujar el texto (error `drawImage` de null), por eso existe la bandera `destroyed`.
+- **Pruebas con Playwright:** `keyboard.press()` suelta la tecla en el mismo frame y a veces Phaser no la ve (pasa con Supr). Hay que usar `down`, esperar ~120 ms y luego `up`. Antes de usar teclas, hacer clic en la página para que tenga el foco.
+- **Atajos:** `?open=slots` y `?characters=demo|reset`. Situaciones `slots` y `slotsempty` en `pnpm check`.
+- **Una partida por personaje (decidido el 18-oct-2026):** la partida del hueco i es la del personaje del hueco i (`SAVE_SLOT_COUNT = CHARACTER_SLOT_COUNT`). Continue y Play abren `CharacterSlotsScene` (`mode: 'continue' | 'play'`). En Continue solo se eligen los personajes con partida. Elegir un personaje con partida la **continúa**, también desde Play. Borrar o crear un personaje borra la partida de ese hueco. `SaveSlotsScene` se eliminó.
+- **Partidas sin dueño:** al arrancar, `characterStore.linkRuns()` pone cada partida en el hueco de su `characterUid`. Las que no tienen dueño (guardadas antes de la Fase 17 o partidas de prueba con `?play`) se convierten en un personaje con el nombre de la clase, en un hueco libre. Si no queda ninguno libre, se pierden. Una partida con `?play` y sin huecos libres no se guarda (`saveSlot = -1`).

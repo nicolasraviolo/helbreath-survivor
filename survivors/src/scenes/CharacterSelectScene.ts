@@ -1,8 +1,11 @@
-// Pantalla "Create New Character" del Helbreath original, usada para elegir clase antes de la partida.
-// De momento solo se elige la clase (Warrior o Magician): nombre, aspecto y stats son fijos, así que
-// las flechas de aspecto y los botones +/- se ven apagados. Master no se incluye.
+// Pantalla "Create New Character" del Helbreath original: se abre al pulsar un hueco vacío de "Select Character"
+// (CharacterSlotsScene). Se escribe el nombre y se elige la clase (Warrior o Magician); al pulsar Create el personaje se
+// guarda en ese hueco (CharacterStore) y empieza la partida. Aspecto y stats son fijos de momento (el aspecto llega en
+// el 17B), así que sus flechas y los botones +/- se ven apagados. Master no se incluye.
+// Fase 17A: el nombre se escribe en la caja del original (ui/TextInput.ts). En el PC se puede escribir nada más abrir;
+// en el móvil, al tocar la caja sale el teclado. Mientras se escribe: Enter = Create, Esc = Cancel, ←/→ = clase.
 // Fase 11: en el móvil, textos algo más grandes y zonas de toque mucho más altas en los botones.
-// Controles: ←/→ o cruceta/stick cambian de clase; Enter/A crea el personaje; Esc/B = Cancel (menú principal); ratón.
+// Controles: ←/→ o cruceta/stick cambian de clase; Enter/A crea el personaje; Esc/B = Cancel (vuelve a los huecos); ratón.
 import Phaser from 'phaser';
 import {
     SELECT_BACKGROUND,
@@ -32,13 +35,25 @@ import {
     SELECT_VALUE_STYLE,
     SELECT_VALUES,
 } from '../config/characterSelect';
+import { CHARACTER_NAME_MAX_LENGTH } from '../data/characterSlots';
 import { CHARACTERS, CHOSEN_CHARACTER_KEY, DEFAULT_CHARACTER, isCharacterId, type CharacterId } from '../data/characters';
 import { STAT_IDS, STAT_INFO } from '../data/stats';
 import { CharacterSprite } from '../entities/CharacterSprite';
 import { CharacterStats } from '../entities/CharacterStats';
 import { Direction } from '../hb/directions';
 import { PlayerState } from '../hb/playerAppearance';
+import { ACTIVE_CHARACTER_KEY, characterStore, cleanName } from '../systems/CharacterStore';
 import { Action, InputSystem } from '../systems/InputSystem';
+import { TextInput, TYPES_WITHOUT_TAPPING, type TextInputKey } from '../ui/TextInput';
+
+/** Scene data: the free slot the new character goes into (the first free one if missing, e.g. ?open=select). */
+export interface CharacterSelectSceneData {
+    slot?: number;
+}
+
+/** The blinking cursor in the name box while typing. */
+const NAME_CURSOR = '_';
+const NAME_CURSOR_BLINK_MS = 500;
 
 /** 640x480 coordinates of the original image → screen pixels. */
 function s(value: number): number {
@@ -73,9 +88,15 @@ export class CharacterSelectScene extends Phaser.Scene {
     private statTexts: Phaser.GameObjects.Text[] = [];
     private valueTexts: Phaser.GameObjects.Text[] = [];
     private descriptionText!: Phaser.GameObjects.Text;
+    private nameInput!: TextInput;
+    private slot = 0;
 
     constructor() {
         super('CharacterSelect');
+    }
+
+    init(data: CharacterSelectSceneData): void {
+        this.slot = data.slot ?? Math.max(0, characterStore.firstFree);
     }
 
     create(): void {
@@ -99,17 +120,20 @@ export class CharacterSelectScene extends Phaser.Scene {
         this.inputSystem = new InputSystem(this);
         // Buttons have their own click handlers: a click elsewhere does nothing.
         this.inputSystem.setPointerMaxY(-1);
+        this.createNameInput();
 
         const chosen: unknown = this.registry.get(CHOSEN_CHARACTER_KEY);
         this.select(isCharacterId(chosen) ? chosen : DEFAULT_CHARACTER);
     }
 
-    override update(_time: number, delta: number): void {
+    override update(time: number, delta: number): void {
         this.updatePreviews(delta);
+        this.refreshName(time);
         const input = this.inputSystem;
         input.update();
         if (this.time.now - this.openedAt < SELECT_INPUT_DELAY_MS) return;
-        if (input.justPressed(Action.MenuLeft) || input.justPressed(Action.MenuRight)) this.selectNext();
+        if (input.justPressed(Action.MenuLeft)) this.selectNext(-1);
+        if (input.justPressed(Action.MenuRight)) this.selectNext(1);
         if (input.justPressed(Action.Confirm)) this.startGame();
         if (input.justPressed(Action.Back)) this.cancel();
     }
@@ -123,6 +147,11 @@ export class CharacterSelectScene extends Phaser.Scene {
         this.add.text(labelX, s(SELECT_NAME.labelY), 'Character Name', SELECT_TEXT_STYLE).setOrigin(0, 0.5);
         const box = SELECT_NAME.box;
         this.nameText = this.add.text(s(box.x + 6), s(box.y + box.height / 2), '', SELECT_NAME_STYLE).setOrigin(0, 0.5);
+        // Clicking / tapping the box starts typing (on phones it opens the keyboard).
+        const pad = SELECT_BUTTON_HIT_PAD;
+        this.add.zone(s(box.x - pad.x), s(box.y - pad.y), s(box.width + pad.x * 2), s(box.height + pad.y * 2)).setOrigin(0)
+            .setInteractive({ useHandCursor: true })
+            .on(Phaser.Input.Events.POINTER_UP, () => this.nameInput.focus());
 
         // Look: fixed for now (later phases).
         title(SELECT_LOOK.titleY, 'Character look (coming soon).');
@@ -140,6 +169,36 @@ export class CharacterSelectScene extends Phaser.Scene {
         });
         this.dimArrows(SELECT_STATS.firstRowY, STAT_IDS.length, SELECT_STATS.step);
         title(SELECT_FOOTER_Y, 'Choose Warrior or Magician below.');
+    }
+
+    private createNameInput(): void {
+        this.nameInput = new TextInput(this, this.inputSystem, {
+            initial: '',
+            maxLength: CHARACTER_NAME_MAX_LENGTH,
+            clean: cleanName,
+            onChange: () => this.refreshName(this.time.now),
+            onFocusChange: () => this.refreshName(this.time.now),
+            onKey: (key) => this.onNameKey(key),
+        });
+        if (TYPES_WITHOUT_TAPPING) this.nameInput.focus();
+    }
+
+    private onNameKey(key: TextInputKey): void {
+        if (this.time.now - this.openedAt < SELECT_INPUT_DELAY_MS) return;
+        if (key === 'Enter') this.startGame();
+        else if (key === 'Escape') this.cancel();
+        else this.selectNext(key === 'ArrowLeft' ? -1 : 1);
+    }
+
+    /** Typed name with a blinking cursor while typing; the class's default name, greyed out, while empty. */
+    private refreshName(time: number): void {
+        if (!this.nameInput) return;
+        const typed = this.nameInput.value;
+        const placeholder = typed === '' && !this.nameInput.focused;
+        const cursor = this.nameInput.focused && Math.floor(time / NAME_CURSOR_BLINK_MS) % 2 === 0 ? NAME_CURSOR : '';
+        const text = placeholder ? CHARACTERS[this.selected].playerName : typed + cursor;
+        if (this.nameText.text !== text) this.nameText.setText(text);
+        this.nameText.setAlpha(placeholder ? 0.6 : 1);
     }
 
     /** Covers the original arrow / +- buttons with a translucent shade: they don't work yet. */
@@ -194,6 +253,8 @@ export class CharacterSelectScene extends Phaser.Scene {
         });
         image.on(Phaser.Input.Events.POINTER_UP, () => {
             if (this.time.now - this.openedAt >= SELECT_INPUT_DELAY_MS) onClick();
+            // A click on the canvas takes the focus away from the name: on the PC, typing goes on.
+            if (TYPES_WITHOUT_TAPPING && this.scene.isActive()) this.nameInput.focus();
         });
         return button;
     }
@@ -212,7 +273,7 @@ export class CharacterSelectScene extends Phaser.Scene {
         this.selected = id;
         const def = CHARACTERS[id];
         const stats = new CharacterStats(def);
-        this.nameText.setText(def.playerName);
+        this.refreshName(this.time.now);
         STAT_IDS.forEach((stat, i) => this.statTexts[i]?.setText(String(stats.stats[stat])));
         const values = [String(stats.maxHp), String(stats.maxMana), `${Math.round(stats.critChance * 100)}%`];
         values.forEach((value, i) => this.valueTexts[i]?.setText(value));
@@ -224,9 +285,9 @@ export class CharacterSelectScene extends Phaser.Scene {
         this.refreshButtons();
     }
 
-    private selectNext(): void {
+    private selectNext(step: number): void {
         const ids = SELECT_CLASS_BUTTONS.map((button) => button.id);
-        const next = ids[(ids.indexOf(this.selected) + 1) % ids.length];
+        const next = ids[(ids.indexOf(this.selected) + step + ids.length) % ids.length];
         if (next) this.select(next);
     }
 
@@ -241,14 +302,17 @@ export class CharacterSelectScene extends Phaser.Scene {
         preview.mirror.update(delta);
     }
 
-    /** "Create": starts the game with the chosen class. */
+    /** "Create": saves the character in its slot and starts the game with it. No name = the class's default name. */
     private startGame(): void {
-        this.registry.set(CHOSEN_CHARACTER_KEY, this.selected);
+        const name = this.nameInput.value || CHARACTERS[this.selected].playerName;
+        const character = characterStore.create(this.slot, name, this.selected);
+        this.registry.set(CHOSEN_CHARACTER_KEY, character.classId);
+        this.registry.set(ACTIVE_CHARACTER_KEY, character.uid);
         this.scene.start('Game');
     }
 
-    /** "Cancel": back to the main menu. */
+    /** "Cancel": back to the character slots. */
     private cancel(): void {
-        this.scene.start('MainMenu');
+        this.scene.start('CharacterSlots');
     }
 }

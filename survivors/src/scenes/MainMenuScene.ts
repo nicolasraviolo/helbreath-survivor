@@ -1,5 +1,5 @@
 // Menú principal (Fase 8): la pantalla de título del Helbreath original con un panel de opciones a la derecha.
-// Continue (Fase 12, si hay partidas guardadas) → SaveSlotsScene; Play → elegir personaje; How to Play (Fase 11), Achievements, Settings y Credits se abren encima; Install
+// Continue (Fase 12, si hay partidas guardadas) y Play → los 4 personajes (CharacterSlotsScene, Fase 17A); How to Play (Fase 11), Achievements, Settings y Credits se abren encima; Install
 // (Fase 12), si el navegador lo permite. Pantalla completa: icono pequeño arriba a la derecha (Fase 12C). Suena la música por defecto del original.
 // Se maneja con ↑/↓ (cruceta o stick) + Enter/A, o con el ratón.
 import Phaser from 'phaser';
@@ -23,7 +23,7 @@ import { addFullscreenButton } from '../ui/fullscreen';
 import { INSTALL_CHANGED, installEvents, installItem } from '../ui/install';
 import { MenuList } from '../ui/MenuList';
 import { openOverlay } from './MenuOverlayScene';
-import type { SaveSlotsSceneData } from './SaveSlotsScene';
+import type { CharacterSlotsSceneData } from './CharacterSlotsScene';
 import { saveStore } from '../systems/SaveStore';
 
 /** ?open= only applies the first time the menu is shown. */
@@ -64,7 +64,7 @@ export class MainMenuScene extends Phaser.Scene {
         // The monsters of later waves start downloading already, while the player is in the menus.
         assetStreamer.start(this);
         // ?open= (debugStart.ts): show that menu screen once, as if it had been chosen here.
-        if (DEBUG_START.open && DEBUG_START.open !== 'CharacterSelect' && !debugScreenOpened) {
+        if (DEBUG_START.open && DEBUG_START.open !== 'CharacterSelect' && DEBUG_START.open !== 'CharacterSlots' && !debugScreenOpened) {
             debugScreenOpened = true;
             openOverlay(this, DEBUG_START.open);
         }
@@ -77,14 +77,11 @@ export class MainMenuScene extends Phaser.Scene {
 
     private buildList(): void {
         this.list?.destroy();
-        // Fase 12: Continue only with a saved run; Play with every slot in use first asks which run to delete.
+        // Fase 12: Continue only with a saved run. Fase 17A: both open the character slots (one run per character).
         const continueItem = saveStore.hasAny
-            ? [{ label: 'Continue', onConfirm: () => openOverlay(this, 'SaveSlots', { mode: 'continue' } satisfies SaveSlotsSceneData) }]
+            ? [{ label: 'Continue', onConfirm: () => this.scene.start('CharacterSlots', { mode: 'continue' } satisfies CharacterSlotsSceneData) }]
             : [];
-        const play = () => {
-            if (saveStore.hasFree) this.scene.start('CharacterSelect');
-            else openOverlay(this, 'SaveSlots', { mode: 'replace' } satisfies SaveSlotsSceneData);
-        };
+        const play = () => this.scene.start('CharacterSlots', { mode: 'play' } satisfies CharacterSlotsSceneData);
         const items = [
             ...continueItem,
             { label: 'Play', onConfirm: play },
