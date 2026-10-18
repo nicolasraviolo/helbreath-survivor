@@ -1,4 +1,4 @@
-// Critical Strike del Guerrero (Fase 19A): cargas, recarga y lanzamiento. Lo pide el jugador (Espacio, X del mando o el
+// Critical Strike del Guerrero (Fase 19A): cargas, recarga y lanzamiento. Lo pide el jugador (Espacio, R2 del mando o el
 // botón táctil); cada uno gasta una carga y da un golpe de área inmediato según el arma (WeaponSystem.criticalStrike),
 // con la espiral del Earthworm Strike alrededor del jugador, el grito del original (C23 / C24) y un pequeño temblor.
 // Cargas: máximo 1 + Power/10; +1 cada 20 s y +1 cada 15 golpes recibidos (números en data/critStrike.ts).

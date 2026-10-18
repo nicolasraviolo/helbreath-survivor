@@ -1,4 +1,4 @@
-// Critical Strike del Guerrero (Fase 19A): el "crit" que se lanzaba con Alt en el original, ahora con Espacio, X del mando
+// Critical Strike del Guerrero (Fase 19A): el "crit" que se lanzaba con Alt en el original, ahora con Espacio, R2 del mando
 // o el botón táctil. Gasta una carga y da un golpe de área inmediato, cuya forma depende del tipo de arma
 // (decidido por el propietario el 18-oct-2026). No es el crítico al azar de Chr (ese sigue en data/stats.ts).
 // Original (reference/Server.cpp): cargas = nivel/10, +1 cada ~13 s y +1 cada ~14 golpes recibidos (ver NOTES.md).

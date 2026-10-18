@@ -3,7 +3,7 @@
 // Al añadir un control nuevo (apuntado, crit, tótems...), se añade aquí.
 
 /** Gamepad buttons drawn as Xbox icons (scenes/HowToPlayScene.ts). */
-export type PadIcon = 'A' | 'B' | 'X' | 'Y' | 'Start' | 'LeftStick' | 'RightStick' | 'Dpad';
+export type PadIcon = 'A' | 'B' | 'X' | 'Y' | 'R2' | 'Start' | 'LeftStick' | 'RightStick' | 'Dpad';
 
 export interface ControlRow {
     /** Key, mouse or touch control, as text. */
@@ -74,7 +74,7 @@ export const HOW_TO_PLAY_PAGES: readonly HowToPlayPage[] = [
         rows: [
             // Como mucho 7 filas: con 8, la última pisa el selector "Page".
             { control: 'Space', action: 'Warrior: Critical Strike · Mage: Meteor Strike' },
-            { pad: ['X'], action: 'Warrior: Critical Strike · Mage: Meteor Strike' },
+            { pad: ['R2'], action: 'Warrior: Critical Strike · Mage: Meteor Strike' },
             { control: 'Red orb button (touch)', action: 'Warrior: Critical Strike · Mage: Meteor Strike' },
             { control: 'Number on the red orb', action: 'Warrior: charges (+1 each 20 s) · Mage: secs left' },
             { control: 'Getting hit', action: 'Warrior: also refills the charges' },

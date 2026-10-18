@@ -22,7 +22,7 @@ export enum Action {
      * during the run (a Space mashed as the cards open must not pick one).
      */
     Pick = 'pick',
-    /** Critical Strike of the Warrior (Fase 19A): Space or gamepad X (the touch button calls the game directly). */
+    /** Critical Strike of the Warrior (Fase 19A): Space or gamepad R2 (the touch button calls the game directly). */
     CritStrike = 'critStrike',
     /** Open / close the pause menu: Esc or gamepad Start. */
     Pause = 'pause',
@@ -82,7 +82,8 @@ const KEYBOARD_ACTIONS: Record<Action, number[]> = {
 };
 
 /** Standard Gamepad API button indices (Xbox layout). */
-const GAMEPAD_BUTTON = { A: 0, B: 1, X: 2, Y: 3, View: 8, Start: 9, DpadUp: 12, DpadDown: 13, DpadLeft: 14, DpadRight: 15 } as const;
+// R2 = right trigger (standard mapping): `pressed` once pushed past the browser's threshold.
+const GAMEPAD_BUTTON = { A: 0, B: 1, X: 2, Y: 3, R2: 7, View: 8, Start: 9, DpadUp: 12, DpadDown: 13, DpadLeft: 14, DpadRight: 15 } as const;
 const GAMEPAD_AXIS = { LeftX: 0, LeftY: 1, RightX: 2, RightY: 3 } as const;
 /** Fake button ids for "the left stick was just pushed left/right/up/down" (menus). */
 const STICK_BUTTON = { Left: 100, Right: 101, Up: 102, Down: 103 } as const;
@@ -92,7 +93,8 @@ const STICK_MENU_THRESHOLD = 0.5;
 const GAMEPAD_ACTIONS: Partial<Record<Action, number[]>> = {
     [Action.Confirm]: [GAMEPAD_BUTTON.A],
     [Action.Pick]: [GAMEPAD_BUTTON.A],
-    [Action.CritStrike]: [GAMEPAD_BUTTON.X],
+    // Owner, 18-oct-2026: R2 on the gamepad (it was X in the 19A).
+    [Action.CritStrike]: [GAMEPAD_BUTTON.R2],
     [Action.Pause]: [GAMEPAD_BUTTON.Start],
     [Action.Back]: [GAMEPAD_BUTTON.B],
     [Action.MenuLeft]: [GAMEPAD_BUTTON.DpadLeft, STICK_BUTTON.Left],

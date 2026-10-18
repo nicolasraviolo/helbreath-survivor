@@ -1,5 +1,5 @@
 // Hechizo activo del Mago (Fase 19B): lo lanza el jugador con el mismo botón que el Critical Strike del Guerrero
-// (Espacio, X del mando o el botón táctil) y luego tiene que recargarse. Son hechizos grandes, distintos de los
+// (Espacio, R2 del mando o el botón táctil) y luego tiene que recargarse. Son hechizos grandes, distintos de los
 // automáticos de data/spells.ts.
 // Decidido con el propietario el 18-oct-2026: de momento uno solo, Meteor Strike; en el futuro serán "equipables"
 // (Fase 20, segundo hueco de hechizo) y por eso van en una lista. La recarga baja con la Mag del personaje.

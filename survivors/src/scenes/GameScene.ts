@@ -749,7 +749,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     /**
-     * Critical Strike (Fase 19A): recharges, and goes off with Space / gamepad X (the touch button calls
+     * Critical Strike (Fase 19A): recharges, and goes off with Space / gamepad R2 (the touch button calls
      * launchCritStrike from the HUD). The simulated run launches one as soon as it has a charge, to measure the balance.
      */
     private updateCritStrike(delta: number): void {
@@ -801,7 +801,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     /**
-     * The Mage's active spell (Fase 19B): recharges, and goes off with the Critical Strike button (Space / gamepad X /
+     * The Mage's active spell (Fase 19B): recharges, and goes off with the Critical Strike button (Space / gamepad R2 /
      * the touch button, which calls launchCritStrike). The simulated run casts it as soon as it is ready.
      */
     private updateActiveSpell(delta: number): void {

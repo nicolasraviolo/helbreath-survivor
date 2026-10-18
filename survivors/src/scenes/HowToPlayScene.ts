@@ -73,6 +73,12 @@ export class HowToPlayScene extends MenuOverlayScene {
             parts.push(this.add.text(0, 0, icon, {
                 ...UI_TEXT, fontSize: px(Math.round(r * 1.3)), fontStyle: 'bold', color: PAD_ICON.letterColor[icon],
             }).setOrigin(0.5));
+        } else if (icon === 'R2') {
+            // Trigger: a rounded tab with its name.
+            g.fillRoundedRect(-r * 1.4, -r, r * 2.8, r * 2, r * 0.5).strokeRoundedRect(-r * 1.4, -r, r * 2.8, r * 2, r * 0.5);
+            parts.push(this.add.text(0, 0, icon, {
+                ...UI_TEXT, fontSize: px(Math.round(r * 1.2)), fontStyle: 'bold', color: '#e8dcc0',
+            }).setOrigin(0.5));
         } else if (icon === 'Start') {
             // Small round button with the three "menu" lines.
             g.fillCircle(0, 0, r).strokeCircle(0, 0, r);

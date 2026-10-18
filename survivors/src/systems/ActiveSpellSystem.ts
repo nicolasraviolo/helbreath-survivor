@@ -1,5 +1,5 @@
 // Hechizo activo del Mago (Fase 19B): recarga y lanzamiento. Lo pide el jugador con el mismo botón que el Critical
-// Strike del Guerrero (Espacio, X del mando o el botón táctil). Cae donde apunta, o sobre el objetivo automático; sin
+// Strike del Guerrero (Espacio, R2 del mando o el botón táctil). Cae donde apunta, o sobre el objetivo automático; sin
 // nada a su alcance no sale y no gasta la recarga. La recarga baja con la Mag (data/activeSpells.ts).
 // Su dibujo se descarga al empezar la partida (ON_DEMAND_SPRITES): hasta que llega no se puede lanzar.
 // Con `infinite` (truco ?debug=crits o la tecla H) no hay recarga: para probarlo sin esperar.
