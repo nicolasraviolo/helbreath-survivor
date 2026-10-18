@@ -28,7 +28,7 @@ export const MAPS_DATA = {
     // Ventana de 150×150 casillas con un 95% libre, todo conectado (medido el 18-oct-2026; NOTES.md).
     bisle: { name: 'Bleeding Isle', asset: 'map.bisle', minimap: 'minimap.bisle', playArea: { x: 66, y: 52, width: 150, height: 150 },
         localEnemies: ['cyclops', 'mountainGiant', 'ogre', 'cannibalPlant'], bosses: ['ettin', 'demon', 'fireWyvern'] },
-    // Mapa anterior (hasta el 18-oct-2026), guardado para la Fase 20 (varios mapas):
+    // Mapa anterior (hasta el 18-oct-2026), guardado para la Fase 21 (varios mapas):
     // huntzone2: { name: 'Hunt Zone 2', asset: 'map.huntzone2', playArea: { x: 72, y: 70, width: 100, height: 100 } },
 } as const satisfies Record<string, MapDef>;
 

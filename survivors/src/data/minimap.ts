@@ -1,6 +1,6 @@
 // Minimapa (Fase 16A; plan aprobado por el propietario el 18-oct-2026).
 // Cuadro arriba a la derecha con la zona de juego en pequeño. Solo enseña al jugador, los jefes y (16B) los tótems:
-// ni monstruos normales, ni pociones, ni cofres. En otros mapas se marcarán también los NPCs (Fase 21).
+// ni monstruos normales, ni pociones, ni cofres. En otros mapas se marcarán también los NPCs (Fase 22).
 // Se apaga en Settings → Minimap. Lo dibuja ui/Minimap.ts.
 import { byDevice } from '../config/device';
 
