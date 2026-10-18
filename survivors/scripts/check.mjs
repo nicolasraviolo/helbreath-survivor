@@ -3,7 +3,9 @@
 // y errores de consola. Guarda una captura pequeña en survivors/.check/ (solo hay que mirarla si hace falta).
 //
 // Uso:  pnpm check                     → menú principal en PC
-//       pnpm check game levelup boss   → varias situaciones seguidas
+//       pnpm check game levelup boss   → varias situaciones seguidas (portal = matar al jefe final y ver el portal)
+//       pnpm check levelpace           → partida simulada muy deprisa (?debug=sim): minuto de cada nivel y golpes de jefe
+//                                        (Mago: "play=mage&debug=sim"; tarda 1–3 min)
 //       pnpm check boss --mobile       → simulando un móvil en horizontal (táctil, ?ui=compact)
 //       pnpm check "play=warrior&debug=str,levels"   → cualquier combinación de atajos (ver src/config/debugStart.ts)
 //       --wait=5000                    → milisegundos que se deja correr la partida antes de medir (por defecto 3000)
@@ -11,7 +13,7 @@
 //                                        (g = escena Game, game = window.__game)
 // Si el servidor de desarrollo (puerto 8090) no está en marcha, lo arranca y lo para al terminar.
 import { spawn } from 'node:child_process';
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright-core';
@@ -33,7 +35,13 @@ const PRESETS = {
     boss: 'debug=god,boss',
     horde: 'debug=god,horde,horde,horde',
     pickups: 'debug=god,pickups',
+    finalboss: 'debug=god,finalboss',
+    portal: 'debug=god,bosskill',
+    stampede: 'debug=god,stampede',
+    levelpace: 'debug=sim',
 };
+/** Most real time a simulated run may take (ms). */
+const SIM_TIMEOUT_MS = 8 * 60000;
 
 const args = process.argv.slice(2);
 const mobile = args.includes('--mobile');
@@ -115,7 +123,8 @@ async function runScenario(browser, name) {
     const loadS = ((Date.now() - t0) / 1000).toFixed(1);
     await page.waitForTimeout(waitMs);
     const state = await page.evaluate(readState);
-    const evalResult = evalArg === undefined ? undefined : await page.evaluate(async (code) => {
+    // Not awaited yet: with a simulated run, the expression watches it while it plays.
+    const evalPromise = evalArg === undefined ? undefined : page.evaluate(async (code) => {
         const game = window.__game;
         const g = game?.scene.getScene('Game');
         try {
@@ -125,6 +134,10 @@ async function runScenario(browser, name) {
             return `error: ${err.message}`;
         }
     }, evalArg);
+    const sim = params.get('debug')?.split(',').includes('sim')
+        ? await page.waitForFunction(() => window.__sim?.done && window.__sim, undefined, { timeout: SIM_TIMEOUT_MS, polling: 1000 }).then((h) => h.jsonValue())
+        : undefined;
+    const evalResult = await evalPromise;
 
     mkdirSync(OUT_DIR, { recursive: true });
     const file = join(OUT_DIR, `${name.replace(/[^a-z0-9]+/gi, '_')}${mobile ? '-mobile' : ''}.jpg`);
@@ -136,9 +149,32 @@ async function runScenario(browser, name) {
     if (state.run) console.log(`  run: ${Object.entries(state.run).map(([k, v]) => `${k} ${v}`).join(' · ')}`);
     if (state.error) console.log(`  ${state.error}`);
     if (evalResult !== undefined) console.log(`  eval: ${evalResult}`);
+    if (sim) {
+        printSim(sim);
+        writeFileSync(file.replace(/\.jpg$/, '.json'), JSON.stringify(sim, null, 1));
+    }
     console.log(errors.length ? `  ✗ ${errors.length} console error(s):\n    ${errors.slice(0, 10).join('\n    ')}` : '  ✓ no console errors');
     console.log(`  screenshot: ${file}`);
     return errors.length === 0 && !state.error;
+}
+
+/** The simulated run (src/systems/SimRun.ts): levels per minute, and the biggest blow of each boss. */
+function printSim(sim) {
+    const mmss = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+    console.log(`  simulated ${sim.character}: level ${sim.endLevel} at ${mmss(sim.endS)} (${sim.end}) · ${sim.kills} kills · ×${sim.speed} speed`);
+    console.log(`  build: ${sim.build}`);
+    if (sim.finalBossDeadAtS !== undefined) console.log(`  final boss killed at ${mmss(sim.finalBossDeadAtS)}`);
+    const byMinute = new Map();
+    for (const { level, atS } of sim.levels) byMinute.set(Math.floor(atS / 60), [...(byMinute.get(Math.floor(atS / 60)) ?? []), level]);
+    for (const [minute, xp] of sim.xpByMinute.entries()) {
+        const levels = byMinute.get(minute) ?? [];
+        console.log(`    min ${String(minute).padStart(2)}: ${levels.length} level(s) → ${levels.at(-1) ?? '-'} · ${xp} XP so far`);
+    }
+    for (const life of sim.bossLife) console.log(`  ${life.boss}: from ${mmss(life.fromS)} to ${life.toS === undefined ? 'the end' : mmss(life.toS)}`);
+    for (const hit of Object.values(sim.bossHits)) {
+        const share = Math.round((hit.damage / hit.maxHp) * 100);
+        console.log(`  biggest ${hit.boss} blow: ${hit.damage} of ${hit.maxHp} health (${share}%, ~${Math.ceil(100 / share)} hits to die) at ${mmss(hit.atS)}`);
+    }
 }
 
 const server = await ensureServer();

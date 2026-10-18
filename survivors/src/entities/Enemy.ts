@@ -82,6 +82,10 @@ export class Enemy implements Poolable {
     private blowsSinceFlee = 0;
     /** The low-health bravery check is done once. */
     private braveryChecked = false;
+    /** Stampede (data/waves.ts): runs straight this way, faster, for `chargeMs`; then chases as usual. */
+    private chargeMs = 0;
+    private chargeX = 0;
+    private chargeY = 0;
 
     constructor(scene: Phaser.Scene, public readonly def: EnemyDef, private readonly audio: AudioSystem) {
         const scale = def.scale ?? 1;
@@ -121,6 +125,7 @@ export class Enemy implements Poolable {
         this.fleeMs = 0;
         this.blowsSinceFlee = 0;
         this.braveryChecked = false;
+        this.chargeMs = 0;
         const roll = Phaser.Math.Between(1, MONSTER_AI.strategyDie);
         this.strategy = roll === MONSTER_AI.hitAndRunRoll ? 'hitAndRun' : roll === MONSTER_AI.twoHitsAndRunRoll ? 'twoHitsAndRun' : 'normal';
         this.sprite.clearTint();
@@ -129,6 +134,22 @@ export class Enemy implements Poolable {
         this.setActive(true);
         this.play(MonsterState.Move, true);
         this.syncDisplay();
+    }
+
+    /**
+     * Stampede: runs in a straight line along (dirX, dirY) at `speedFactor` times its speed for `ms`, ignoring the
+     * player except to hit them if they get in the way. Afterwards it chases as usual.
+     */
+    public charge(dirX: number, dirY: number, speedFactor: number, ms: number): void {
+        const length = Math.hypot(dirX, dirY) || 1;
+        this.chargeX = (dirX / length) * this.speed * speedFactor;
+        this.chargeY = (dirY / length) * this.speed * speedFactor;
+        this.chargeMs = ms;
+    }
+
+    /** Walking speed (px/s). */
+    public get speedPxPerSecond(): number {
+        return this.speed;
     }
 
     /** Point where projectiles aim and hit (above the feet). */
@@ -231,6 +252,12 @@ export class Enemy implements Poolable {
             }
             facingX = -dx;
             facingY = -dy;
+        } else if (this.chargeMs > 0 && !(inReach && this.cooldownMs <= 0)) {
+            this.chargeMs -= deltaMs;
+            vx += this.chargeX;
+            vy += this.chargeY;
+            facingX = this.chargeX;
+            facingY = this.chargeY;
         } else if (inReach) {
             if (this.cooldownMs <= 0) {
                 this.startAttack(dx, dy);
@@ -325,13 +352,14 @@ export class Enemy implements Poolable {
         }
     }
 
-    /** One blow: the original dice, compressed for our health scale (data/enemies.ts → MONSTER_DAMAGE). */
+    /** One blow: the original dice, compressed for our health scale (data/enemies.ts → MONSTER_DAMAGE), softer for bosses. */
     private rollDamage(): number {
         const [count, sides] = this.def.damageDice;
         let roll = 0;
         for (let i = 0; i < count; i++) roll += Phaser.Math.Between(1, sides);
         const average = (count * (sides + 1)) / 2;
-        return Math.max(1, Math.round(MONSTER_DAMAGE.scale * average ** MONSTER_DAMAGE.exponent * (roll / average)));
+        const blow = MONSTER_DAMAGE.scale * average ** MONSTER_DAMAGE.exponent * (roll / average);
+        return Math.max(1, Math.round(blow * (this.def.damageScale ?? 1)));
     }
 
     /** Frames of the attack animation for the current direction. */

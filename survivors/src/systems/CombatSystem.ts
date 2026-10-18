@@ -4,6 +4,7 @@ import Phaser from 'phaser';
 import { CRIT_DAMAGE_MULTIPLIER } from '../data/stats';
 import type { CharacterStats, DamageType } from '../entities/CharacterStats';
 import type { Enemy } from '../entities/Enemy';
+import type { SoundKey } from '../config/assetManifest';
 import type { AudioSystem } from './AudioSystem';
 import type { DamageNumbers } from './DamageNumbers';
 import type { HitParticles } from './HitParticles';
@@ -95,6 +96,33 @@ export class CombatSystem {
             this.hitEnemy(enemy, hit.damageType, hit.damage, hit.x, hit.y, hit.knockback);
         });
         return count;
+    }
+
+    /** Kills one enemy outright, as if hit (debug: ?debug=bosskill). */
+    public slay(enemy: Enemy): void {
+        if (!enemy.kill()) return;
+        this.killCount++;
+        this.particles.death(enemy.x, enemy.y, enemy.bodyY);
+        this.audio.play(enemy.def.deathSound);
+        this.onKill(enemy);
+    }
+
+    /**
+     * Kills every living enemy at once (the final boss is dead), or only those inside `area` (debug key K): they count
+     * as kills and `onEach` drops their XP (by default, what a normal kill does: XP, drops, boss chests).
+     * Each kind's death cry plays only once, so hundreds of deaths don't flood the sound.
+     */
+    public killAll(onEach: (enemy: Enemy) => void = this.onKill, area?: Phaser.Geom.Rectangle): void {
+        const cries = new Set<SoundKey>();
+        this.enemies.forEachAlive((enemy) => {
+            if (area && !area.contains(enemy.x, enemy.y)) return;
+            if (!enemy.kill()) return;
+            this.killCount++;
+            this.particles.death(enemy.x, enemy.y, enemy.bodyY);
+            cries.add(enemy.def.deathSound);
+            onEach(enemy);
+        });
+        for (const cry of cries) this.audio.play(cry);
     }
 
     /** One hit on one enemy, pushed away from (fromX, fromY). `baseDamage` is scaled by the attacker's stats. Returns true on a critical hit. */

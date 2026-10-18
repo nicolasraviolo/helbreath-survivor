@@ -101,8 +101,6 @@ export const PLAYER_BLINK_MS = 80;
 /** Player's body for enemy projectiles: centre this many pixels above the feet, and its radius. */
 export const PLAYER_BODY_OFFSET_Y = 30;
 export const PLAYER_BODY_RADIUS = 12;
-/** After the final boss dies, its death animation plays this long before the victory screen. */
-export const VICTORY_DELAY_MS = 2000;
 /**
  * Player hit (sp-client Player): TakeDamage animation of 4 frames in (4/15) s ≈ 267 ms, and a short stun of 100 ms
  * (PLAYER_STUNLOCK_DURATION_MS) before moving again cuts it.

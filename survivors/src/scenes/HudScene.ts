@@ -1,5 +1,5 @@
 // Interfaz de la partida: la barra (clásica abajo, o compacta arriba en el móvil: ui/ClassicHud.ts, ui/CompactHud.ts),
-// el panel de stats, la barra del jefe, los avisos y las mejoras activas de los cofres.
+// el panel de stats, la barra del jefe, los avisos, la cuenta atrás del portal (Fase 13) y las mejoras activas de los cofres.
 // Corre como escena aparte por encima de la partida, así que no se mueve con la cámara.
 // El casco (o C / Y del mando) muestra el panel de stats, y el disquete o Esc / Start abren la pausa (PauseScene).
 // Si se desconecta el mando en plena partida, la pausa se abre sola.
@@ -17,6 +17,7 @@ import {
     HUD_COMPACT,
     HUD_COMPACT_LAYOUT,
     HUD_DEPTH_TEXT,
+    HUD_PORTAL,
     HUD_STATS_PANEL,
     HUD_STATS_STYLE,
     HUD_STATS_TITLE_STYLE,
@@ -49,6 +50,8 @@ export interface HudState extends HudBarState {
     passiveRanks: Readonly<Record<keyof typeof PASSIVES, number>>;
     /** Boss shown on the big bar at the top, if one is alive. */
     boss: { name: string; hp: number; maxHp: number } | undefined;
+    /** Seconds left to step into the portal after the final boss, if it is open. */
+    portalSecondsLeft: number | undefined;
     /** Buffs from chests that are on (they can be combined), with their seconds left. */
     buffs: ReadonlyArray<{ name: string; secondsLeft: number; color: number }>;
 }
@@ -68,6 +71,8 @@ export class HudScene extends Phaser.Scene {
     private bossName!: SpriteText;
     private bossBar!: Phaser.GameObjects.Graphics;
     private shownBossRatio = -1;
+    private portalText!: SpriteText;
+    private shownPortalSeconds = -1;
     private announce!: SpriteText;
     private announceLeftMs = 0;
     /** One line per active buff, created when first needed. */
@@ -131,6 +136,7 @@ export class HudScene extends Phaser.Scene {
         this.inputSystem.update();
         const state = this.getState();
         this.showBoss(state.boss);
+        this.showPortal(state.portalSecondsLeft);
         this.updateAnnouncement(delta);
         if (this.inputSystem.justPressed(Action.Pause)) this.openPause();
         if (this.inputSystem.justPressed(Action.ToggleStats)) this.toggleStats();
@@ -155,12 +161,25 @@ export class HudScene extends Phaser.Scene {
             text.container.y = this.buffY(i);
         });
         this.shownBossRatio = -1;
+        this.shownPortalSeconds = -1;
     }
 
     private createBossBar(): void {
         this.bossName = new SpriteText(this, GAME_WIDTH / 2, 0, '', HUD_BOSS.nameColor, 'center');
         this.bossName.container.setScale(HUD_BOSS.nameScale).setDepth(HUD_DEPTH_TEXT).setVisible(false);
         this.bossBar = this.add.graphics().setDepth(HUD_DEPTH_TEXT).setVisible(false);
+        this.portalText = new SpriteText(this, GAME_WIDTH / 2, HUD_PORTAL.y, '', HUD_PORTAL.color, 'center');
+        this.portalText.container.setScale(HUD_PORTAL.scale).setDepth(HUD_DEPTH_TEXT).setVisible(false);
+    }
+
+    /** Countdown of the portal, where the boss bar was. Its text changes only once a second. */
+    private showPortal(seconds: number | undefined): void {
+        this.portalText.container.setVisible(seconds !== undefined);
+        if (seconds === undefined || seconds === this.shownPortalSeconds) return;
+        this.shownPortalSeconds = seconds;
+        const between = this.barStyle === 'compact' && HUD_COMPACT_LAYOUT === 'top';
+        this.portalText.setText(`${HUD_PORTAL.label} ${seconds}`);
+        this.portalText.container.x = between ? HUD_COMPACT.top.bossCenterX : GAME_WIDTH / 2;
     }
 
     /** Name and health of the boss; hidden when there is none. Redrawn only when its health changes. */

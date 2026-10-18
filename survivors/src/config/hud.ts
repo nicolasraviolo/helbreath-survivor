@@ -86,6 +86,9 @@ export const HUD_BOSS = {
     nameScale: byDevice(1, 1.3),
 } as const;
 
+/** Countdown of the portal after the final boss (Fase 13): in the place of the boss bar, in the sprite font. */
+export const HUD_PORTAL = { y: byDevice(30, 34), scale: byDevice(1.4, 1.7), color: 0x80d0ff, label: 'Enter the portal:' } as const;
+
 /**
  * Compact HUD (phones only, Settings → HUD → Compact): no bottom bar; the gauges of the original "V2" interface
  * (dialogsv2.spr sheet 0), a bit see-through, over the map. At the top right, a stats button next to the pause one.

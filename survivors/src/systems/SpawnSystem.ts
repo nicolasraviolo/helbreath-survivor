@@ -1,6 +1,8 @@
 // Hace aparecer enemigos siguiendo la línea de tiempo de data/waves.ts: en cada tramo, los suyos, justo fuera
-// del borde de la pantalla y cada vez más rápido; y en su minuto, los eventos (minijefes, jefe final, "te rodean").
+// del borde de la pantalla y cada vez más rápido; y en su minuto, los eventos (minijefes, jefe final, "te rodean",
+// estampida: un bloque de monstruos que cruza la pantalla en línea recta).
 // Descarta puntos sobre muros, agua o fuera de la zona de juego.
+// Fase 13: desde que sale el jefe final no salen más monstruos de las oleadas (solo los esbirros que llama él).
 // Los monstruos se descargan por oleadas (AssetStreamer): uno que aún no está listo no aparece, y un evento cuyo
 // monstruo no está listo espera (normalmente unos segundos como mucho) a que lo esté.
 import Phaser from 'phaser';
@@ -23,6 +25,10 @@ export class SpawnSystem {
     private nextEvent = 0;
     /** Continue: bosses that were alive, brought back when the calm ends. */
     private bossesToReturn: EnemyId[] = [];
+    /** The final boss has appeared: the waves are over. */
+    private wavesOver = false;
+    /** Debug: an event waiting for its monster to download (runFirstEvent). */
+    private debugEvent: WaveEventDef | undefined;
     public enabled = true;
 
     constructor(
@@ -62,13 +68,14 @@ export class SpawnSystem {
         if (!this.enabled) return;
         this.elapsedMs += deltaMs;
         this.runDueEvents();
+        this.runDebugEvent();
         this.relocateStragglers(deltaMs);
         this.timerMs -= deltaMs;
         if (this.timerMs > 0) return;
         this.returnBosses();
         const wave = this.wave;
         this.timerMs = this.currentInterval() * 1000;
-        if (this.enemies.alive < wave.maxAlive) {
+        if (!this.wavesOver && this.enemies.alive < wave.maxAlive) {
             this.spawnMany(wave.batchSize);
         }
     }
@@ -104,6 +111,7 @@ export class SpawnSystem {
         const minutes = elapsedMs / MS_PER_MINUTE;
         this.nextEvent = WAVE_EVENTS.findIndex((event) => event.atMinute > minutes);
         if (this.nextEvent < 0) this.nextEvent = WAVE_EVENTS.length;
+        this.wavesOver = WAVE_EVENTS.some((event) => event.kind === 'finalBoss' && event.atMinute <= minutes);
         this.timerMs = calmMs;
         this.bossesToReturn = [...bosses];
     }
@@ -124,7 +132,7 @@ export class SpawnSystem {
                 continue;
             }
             // Its own event, for the warning (the last one with this monster that already happened).
-            const event = [...WAVE_EVENTS].reverse().find((e) => e.enemy === id && e.kind !== 'surround' && e.atMinute <= minutes);
+            const event = [...WAVE_EVENTS].reverse().find((e) => e.enemy === id && isBossEvent(e) && e.atMinute <= minutes);
             const point = this.findSpawnPoint();
             if (event && point) this.onEvent(event, [this.enemies.spawn(id, point.x, point.y)]);
         }
@@ -137,10 +145,27 @@ export class SpawnSystem {
         this.runDueEvents();
     }
 
-    /** Debug: jumps to the next boss event. */
-    public skipToNextBoss(): void {
-        const next = WAVE_EVENTS.slice(this.nextEvent).find((event) => event.kind !== 'surround');
+    /** Debug: jumps to the next boss event (or to the final boss's one). */
+    public skipToNextBoss(finalOnly = false): void {
+        const next = WAVE_EVENTS.slice(this.nextEvent).find((event) => (finalOnly ? event.kind === 'finalBoss' : isBossEvent(event)));
         if (next) this.skip(Math.max(0, next.atMinute * MS_PER_MINUTE - this.elapsedMs));
+    }
+
+    /** Debug: runs the first event of this kind out of the timeline, as soon as its monster is downloaded. */
+    public runFirstEvent(kind: WaveEventDef['kind']): void {
+        this.debugEvent = WAVE_EVENTS.find((e) => e.kind === kind);
+        this.runDebugEvent();
+    }
+
+    private runDebugEvent(): void {
+        const event = this.debugEvent;
+        if (!event) return;
+        if (!this.isReady(event.enemy)) {
+            this.hurry(event.enemy);
+            return;
+        }
+        this.debugEvent = undefined;
+        this.onEvent(event, this.runEvent(event));
     }
 
     private runDueEvents(): void {
@@ -158,20 +183,65 @@ export class SpawnSystem {
     }
 
     private runEvent(event: WaveEventDef): Enemy[] {
-        if (event.kind === 'surround') return this.spawnRing(event.enemy, event.count ?? 0);
+        if (event.kind === 'finalBoss') this.wavesOver = true;
+        if (event.kind === 'surround') {
+            const view = this.camera.worldView;
+            return this.spawnRing([event.enemy], event.count ?? 0, view.centerX, view.centerY, SPAWN.surroundRadius);
+        }
+        if (event.kind === 'stampede') return this.spawnStampede(event.enemy, event.count ?? 0);
         const point = this.findSpawnPoint();
         return point ? [this.enemies.spawn(event.enemy, point.x, point.y)] : [];
     }
 
-    /** A closed ring of enemies around the player (the centre of the camera). */
-    private spawnRing(enemy: EnemyId, count: number): Enemy[] {
+    /**
+     * A closed ring of `count` enemies around (x, y), each one picked at random among `enemies` (those already
+     * downloaded). Used by "surround" events (around the player) and by bosses calling their minions.
+     */
+    public spawnRing(enemies: readonly EnemyId[], count: number, x: number, y: number, radius: number): Enemy[] {
+        const ready = enemies.filter((id) => this.isReady(id));
+        const spawned: Enemy[] = [];
+        if (ready.length === 0) return spawned;
+        const turn = Math.random() * Math.PI * 2;
+        for (let i = 0; i < count; i++) {
+            const angle = turn + (i / count) * Math.PI * 2;
+            const px = x + Math.cos(angle) * radius;
+            const py = y + Math.sin(angle) * radius;
+            const id = ready[Math.floor(Math.random() * ready.length)];
+            if (id && canStandAt(this.map, this.area, px, py, ENEMY_WALL_HALF_SIZE)) spawned.push(this.enemies.spawn(id, px, py));
+        }
+        return spawned;
+    }
+
+    /**
+     * Stampede: a block of monsters off a random side of the screen, in line with the player, that runs straight across
+     * to the other side (SPAWN.stampede).
+     */
+    private spawnStampede(id: EnemyId, count: number): Enemy[] {
+        const { rows, spacing, speedFactor } = SPAWN.stampede;
         const view = this.camera.worldView;
+        const margin = SPAWN.offscreenMargin;
+        // Direction of the run: one of the four sides, towards the opposite one.
+        const side = Math.floor(Math.random() * 4);
+        const dirX = side === 0 ? 1 : side === 1 ? -1 : 0;
+        const dirY = side === 2 ? 1 : side === 3 ? -1 : 0;
+        const startX = dirX > 0 ? view.x - margin : dirX < 0 ? view.right + margin : view.centerX;
+        const startY = dirY > 0 ? view.y - margin : dirY < 0 ? view.bottom + margin : view.centerY;
+        // It crosses the screen plus both margins and its own depth.
+        const travel = (dirX !== 0 ? view.width : view.height) + margin * 2 + rows * spacing;
+        const perRow = Math.ceil(count / rows);
         const spawned: Enemy[] = [];
         for (let i = 0; i < count; i++) {
-            const angle = (i / count) * Math.PI * 2;
-            const x = view.centerX + Math.cos(angle) * SPAWN.surroundRadius;
-            const y = view.centerY + Math.sin(angle) * SPAWN.surroundRadius;
-            if (canStandAt(this.map, this.area, x, y, ENEMY_WALL_HALF_SIZE)) spawned.push(this.enemies.spawn(enemy, x, y));
+            const row = Math.floor(i / perRow);
+            const across = ((i % perRow) - (perRow - 1) / 2) * spacing;
+            // Rows go backwards from the edge; across the line, a little jitter so it doesn't look like a grid.
+            const back = row * spacing;
+            const jitter = (Math.random() - 0.5) * spacing * 0.5;
+            const x = startX - dirX * back + (dirX === 0 ? across : jitter);
+            const y = startY - dirY * back + (dirY === 0 ? across : jitter);
+            if (!canStandAt(this.map, this.area, x, y, ENEMY_WALL_HALF_SIZE)) continue;
+            const enemy = this.enemies.spawn(id, x, y);
+            enemy.charge(dirX, dirY, speedFactor, (travel / (enemy.speedPxPerSecond * speedFactor)) * 1000);
+            spawned.push(enemy);
         }
         return spawned;
     }
@@ -221,6 +291,11 @@ export class SpawnSystem {
         }
         return undefined;
     }
+}
+
+/** Events that bring a boss (not the surround and stampede ones). */
+function isBossEvent(event: WaveEventDef): boolean {
+    return event.kind === 'boss' || event.kind === 'finalBoss';
 }
 
 /** A random enemy of the wave by weight, among those already loaded; undefined if none is ready yet. */

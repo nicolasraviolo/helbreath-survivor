@@ -44,6 +44,8 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - App instalable (Fase 12, bloque 12A)
 - Partidas guardadas (Fase 12, bloque 12B)
 - Settings táctil (Fase 12C)
+- Portal del final (Fase 13)
+- Partida simulada y equilibrio (Fase 13C)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -446,7 +448,9 @@ Tabla completa en `docs/REQUISITOS_HB.md`. Lo no obvio:
   - Snake `amp`, Scorpion `scp`, Frog `giantfrog`, Skeleton `ske`, Zombie `zom`, Dire Boar `direboar`;
   - Troll `troll`, Ogre `orge`, Stalker `stalker`, Werewolf `werewolf`, Cyclops `cyc`, Lich `liche`;
   - Hellhound `helb`, Dark Elf `darkelf`, Gargoyle `gagoyle` (con la errata), Hellclaw `hellclaw`, Tigerworm `tigerworm`;
-  - Minotaur `minotaurs`, Ettin `ettin`, Demon `demon`, Fire Wyvern `firewyvern`.
+  - Minotaur `minotaurs`, Ettin `ettin`, Demon `demon`, Fire Wyvern `firewyvern`;
+  - Fase 13B: Clay Golem `cla`, Stone Golem `gol`, Mountain Giant `mtgiant`, Cannibal Plant `canplant` (sin animaciones especiales; los golems con `temporalCoefficient` 0,5).
+- **Mage-Orc ("Orc (spellcaster)" en la wiki, `Orc-Mage` en el NPC.cfg):** sp-client no lo tiene; en el original se ve igual que el Orc. Usamos `orc.spr` y sus sonidos. Su `AttkRange` del cfg es 1 (la bola de fuego es su hechizo, magia 3): le damos alcance 5 para que lance desde lejos.
 - **Sonidos reutilizados:**
   - Stalker usa los del Orc (M11/M12);
   - Gargoyle y Hellclaw, los del Cyclops (M43);
@@ -460,7 +464,7 @@ Tabla completa en `docs/REQUISITOS_HB.md`. Lo no obvio:
     - ataque = hoja 0, desde el frame 3 (otros valores rompen Phaser);
     - muerte = hojas 16+;
     - opacidad 0,7.
-- **Disparos:** solo Dark Elf y Elf Master tienen `bowAttack` (`effect.spr` hoja 7, 16 frames direccionales). Las bolas del Fire Wyvern son nuestras: reutilizan el Fire Ball.
+- **Disparos:** solo Dark Elf y Elf Master tienen `bowAttack` (`effect.spr` hoja 7, 16 frames direccionales). Las bolas del Fire Wyvern y del Mage-Orc son nuestras: reutilizan el Fire Ball.
 - **Música** (`public/assets/music`): abaddon, apocalypse, aresden, default, dungeon, elvine y middleland. sp-client la toca en bucle con `MusicManager`.
 
 ## Ataques de monstruos y golpe (original)
@@ -590,3 +594,18 @@ Tabla completa en `docs/REQUISITOS_HB.md`. Lo no obvio:
 - App instalada: `(display-mode: fullscreen)` también se cumple en una pestaña normal puesta a pantalla completa. Por eso `ui/fullscreen.ts` lo lee **una sola vez al arrancar** para saber si se abrió desde el icono (y entonces no ofrece Fullscreen).
 - Large Trees solo On/Off: un `'transparent'` guardado (Fase 11) no está en `TREE_MODES` y se carga como el valor por defecto (On), sin migración.
 - En Playwright, esperar a que la escena exista (`waitForFunction`) antes de pulsar teclas: con `?open=` la pantalla tarda algo más de 1,5 s.
+
+## Portal del final (Fase 13)
+- Efecto `fx.portal` = sp-client EFFECT_PORTAL_1: `effect11.spr` hoja 12, 30 frames a 15 fps. Ya lo carga el juego (no añade descarga).
+- Sus frames tienen el pivote desplazado: el dibujo queda ~97 px a la derecha y ~77 px por debajo del ancla. Se corrige con `offsetX/offsetY` en `config/effects.ts` (medido con `getBounds()` en partida). Mide unos 115–165 × 60–90 px según el frame.
+- Los primeros frames son pequeños y crecen; en bucle no se nota un salto molesto.
+- La tecla K (`?debug=kill`) mata con `combat.killAll(undefined, vista)`: cuenta como baja normal (XP, objetos, cofre del jefe). Antes usaba `enemy.kill()` a pelo y el jefe final no soltaba nada.
+- `AssetStreamer` descarga también los esbirros de cada jefe (`BOSS_MINIONS`), con el minuto de su jefe.
+- Para probar con `pnpm check`: las cartas de subir de nivel pausan la partida (y la cuenta atrás del portal). En un `--eval` hay que elegirlas a mano: `game.scene.getScene('LevelUp').params.onChoose(...)`.
+
+## Partida simulada y equilibrio (Fase 13C)
+- Todo el juego avanza con el `delta` de `update()` (no hay `delayedCall` ni tweens en la partida, solo en la música), así que la simulación llama varias veces por fotograma a `GameScene.step(33 ms)` sin romper nada. Va ~100× más rápido en Chrome sin ventana.
+- `EnemySystem.landedDamage` es el **mayor** golpe del fotograma, no la suma. Para medir solo a los jefes está `landedBossDamage`.
+- El Wyvern ataca desde 7 casillas: un jugador quieto no le da con la espada; hay que acercarse.
+- Los jefes no se recolocan si se atascan detrás de un obstáculo: el bot de la simulación los perseguía para siempre (de ahí el "se rinde a los 3 s").
+- Gema de diamante: `item-ground.spr` hoja 15, frame 42 (esmeralda 45, zafiro 44, rubí 43).

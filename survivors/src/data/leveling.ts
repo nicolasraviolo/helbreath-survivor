@@ -1,15 +1,22 @@
 // Experiencia: curva de niveles y gemas de XP.
-// Curva: en el original (docs/hb-wiki/personaje.md, Leveling) lo que cuesta cada nivel crece más o menos en línea recta
-// (5.100, 8.300, 13.000, 18.200…). Mantenemos esa forma con números pequeños, pensados para unos
-// 25–30 niveles en 12–15 min. Prueba del 16-oct-2026: con 5 + 4·n se llegaba al nivel 11 en 90 s, demasiado rápido.
-// Se ajustará con las oleadas de la Fase 7.
+// Curva (Fase 13C), en dos tramos:
+// - los 4 primeros niveles, a mano y baratos: salen en el primer minuto;
+// - desde el 5, cada nivel cuesta un XP_GROWTH más que el anterior (crece en porcentaje, no en línea recta), al
+//   ritmo al que crece la XP de los monstruos: uno cada 30–45 s, y pasado el 25 cuesta cada vez más.
+// Objetivo: unos 25–30 niveles en una partida de 12–15 min. Antes era una recta (10, 20, 30…) y se llegaba al 100.
+// Se mide con `pnpm check levelpace` (partida simulada, systems/SimRun.ts).
 
-/** XP needed to go from `level` to `level + 1`: XP_FIRST_LEVEL + XP_GROWTH_PER_LEVEL·(level − 1). */
-export const XP_FIRST_LEVEL = 10;
-export const XP_GROWTH_PER_LEVEL = 10;
+/** XP for levels 1→2, 2→3, 3→4 and 4→5. */
+export const XP_EARLY_LEVELS: readonly number[] = [15, 30, 50, 80];
+/** XP for level 5→6; each level after it costs XP_GROWTH times more (1.24 = 24% more). */
+export const XP_AFTER_EARLY = 150;
+export const XP_GROWTH = 1.24;
 
+/** XP needed to go from `level` to `level + 1`. */
 export function xpToNextLevel(level: number): number {
-    return XP_FIRST_LEVEL + XP_GROWTH_PER_LEVEL * (level - 1);
+    const early = XP_EARLY_LEVELS[level - 1];
+    if (early !== undefined) return early;
+    return Math.round(XP_AFTER_EARLY * XP_GROWTH ** (level - 1 - XP_EARLY_LEVELS.length));
 }
 
 export interface GemTier {
@@ -19,12 +26,13 @@ export interface GemTier {
     frame: number;
 }
 
-/** Gem looks, from cheapest to most valuable: Emerald, Sapphire, Ruby. */
+/** Gem looks, from cheapest to most valuable: Emerald, Sapphire, Ruby, Diamond (Fase 13C, for the big monsters). */
 export const GEM_SHEET = 15;
 export const GEM_TIERS: readonly GemTier[] = [
     { minValue: 1, frame: 45 },
-    { minValue: 3, frame: 44 },
-    { minValue: 5, frame: 43 },
+    { minValue: 5, frame: 44 },
+    { minValue: 15, frame: 43 },
+    { minValue: 60, frame: 42 },
 ];
 
 /** The original gems are 12–15 px: drawn bigger so they read well among many enemies. */

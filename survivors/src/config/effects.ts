@@ -50,6 +50,9 @@ export const EFFECTS = {
     'fx.hit': { sprite: 'fx.effect', sheet: 8, frameRate: 20, loop: false, additive: true },
     // Flecha del Dark Elf (sp-client ArrowProjectile): effect.spr hoja 7, 2 frames por dirección.
     'fx.arrow': { sprite: 'fx.effect', sheet: 7, frameRate: 10, loop: true, framesPerDirection: 2 },
+    // Portal del final (Fase 13): sp-client EFFECT_PORTAL_1, effect11.spr hoja 12 (30 frames), en bucle y bajo el jugador.
+    // Sus frames quedan ~97 px a la derecha y ~77 px por debajo del ancla (medido en partida): se devuelve a su sitio.
+    'fx.portal': { sprite: 'fx.effect11', sheet: 12, frameRate: 15, loop: true, depthOffset: -1, offsetX: -97, offsetY: -77 },
     'fx.footsteps': { sprite: 'fx.effect2', sheet: 1, frames: [28, 32], frameRate: 10, loop: false, depthOffset: -1 },
 } as const satisfies Record<string, EffectDef>;
 

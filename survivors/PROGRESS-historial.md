@@ -2,6 +2,38 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
+**Fase 13, bloque 13C: equilibrio y versión en el menú (2026-10-18, el propietario lo probó y le gusta). Cierra la Fase 13.**
+- **Versión en el pie del menú principal:** "Phase 13" (`config/version.ts`). `/fase N` la cambia al empezar cada fase.
+- **Partida simulada** (`?debug=sim`, `systems/SimRun.ts`; `pnpm check levelpace`): invencible, corre en círculos, va a por los jefes (y se rinde si se atasca), cartas al azar, ~100× más rápido. Informe: nivel y XP por minuto, cuánto vive cada jefe, su golpe más fuerte frente a la vida del jugador, arma y stats finales.
+- **Curva de XP:** antes una recta (se llegaba al nivel 100). Ahora 15/30/50/80 para los 4 primeros niveles y desde el 5, 150 × 1,24 por nivel. **XP de monstruo = vida/5** (más diferencia entre débiles y fuertes); jefes 250/500/1200. **Gema nueva:** diamante desde 60 XP (zafiro desde 5, rubí desde 15).
+- **Final sin cartas:** al morir el Wyvern toda la XP vuela sola y los niveles suben sin cartas (con su sonido); la victoria ya decía el nivel.
+- **Vit cura poco a poco:** 0,02 de vida por segundo por punto de Vit (`HP_REGEN_PER_VIT`); la carta de Vit lo dice.
+- **Jefes:** sin empuje (`knockbackTaken: 0`), golpes más suaves (`damageScale`: Ettin 0,7, Demon 0,75, Wyvern 0,35; bolas de fuego 9) y menos vida (Ettin 1.600, Demon 4.000, Wyvern 10.000), pedido del propietario: retador pero sin matar en 1–2 golpes.
+- **Resultado medido:** Mago nivel 27, jefes en 30 s–1:50, golpe máximo ~27–32% de su vida; Guerrero nivel 24–26, Wyvern en ~5 min, golpes ~10–16%.
+- **Comprobado:** `build` sin errores; `check menu game levelup finalboss portal levelpace` y `menu --mobile` sin errores; tras `bosskill` no salen cartas; la Vit cura (prueba con `--eval`).
+- **Cómo probarlo:** `pnpm --dir survivors dev` → http://localhost:8090 (pie del menú) y una partida normal; http://localhost:8090/?debug=bosskill para el final.
+
+**Fase 13, bloque 13B: monstruos por mapa (2026-10-18, el propietario lo probó y le gusta).**
+- **Tres grupos:** esenciales comunes a todos los mapas (`ESSENTIAL_ENEMIES` en `data/enemies.ts`, de más débil a más fuerte: Slime, Ant, Snake, Orc, Mage-Orc, Zombie, Scorpion, Skeleton, Clay Golem, Stone Golem, Giant Frog), los propios de cada mapa (`localEnemies` en `data/maps.ts`; Bleeding Isle: Cyclops, Mountain Giant, Ogre, Cannibal Plant) y sus jefes (`bosses`: Ettin, Demon, Fire Wyvern). `data/waves.ts` comprueba al cargar que las oleadas solo usen esos; los demás monstruos (Bunny, Troll, Werewolf, Lich, Gargoyle…) quedan en `enemies.ts` para otros mapas y ya no se descargan.
+- **5 monstruos nuevos** con su comportamiento del NPC.cfg: Mage-Orc (sprite y sonidos del Orc; bolas de fuego lentas, alcance 5), Clay Golem, Stone Golem, Mountain Giant y Cannibal Plant. Vida y XP de los esenciales reordenadas según el orden del propietario (XP provisional hasta el 13C).
+- **Oleadas nuevas** de Bleeding Isle (6 tramos, cortes en 1,5 / 3,5 / 5,5 / 7,5 / 9,5 min): esenciales por orden de poder y, desde el 5:30, los del mapa con poco peso. Rodeos con serpientes, esqueletos ("The dead rise around you!") y Stone Golems. Esbirros del Wyvern: Stone Golems y ranas.
+- **Estampida** (evento `stampede`, idea de la guía de hordas): un bloque de 3 filas sale de un lado, alineado con el jugador, y cruza la pantalla en línea recta 3,5× más rápido (`SPAWN.stampede`, `Enemy.charge`). Si choca con el jugador, le pega; después persigue normal. Orcos en el 4:30 ("Orc stampede!") y ranas en el 9:30.
+- **Atajo nuevo:** `?debug=stampede` (espera a que el monstruo esté descargado) y `pnpm check stampede`.
+- **Comprobado:** `build` sin errores; `check game boss finalboss stampede` sin errores; con `--eval`, los 5 nuevos andan, atacan y el Mage-Orc dispara; captura ampliada: se dibujan bien.
+- **Cómo probarlo:** `pnpm --dir survivors dev` → http://localhost:8090/?play (a mitad de partida, golems y Mage-Orcs; tecla J = +1 minuto) o http://localhost:8090/?debug=god,stampede.
+
+**Fase 13, bloque 13A: jefe final y portal (2026-10-18, el propietario lo probó y va bien).**
+- **El jefe final corta las oleadas** (`SpawnSystem.wavesOver`): desde que sale el Fire Wyvern no salen monstruos de las oleadas. Se quitó la oleada de goteo del minuto 12.
+- **Esbirros** (`BOSS_MINIONS` en `data/enemies.ts`, `BossSystem`): el Wyvern llama 6 monstruos cada 8 s en un anillo a su alrededor (máximo 24 vivos): Hellhounds y esqueletos.
+- **Dark Elf desactivado** (pedido del propietario: sus flechas eran molestas y desequilibradas). En el minuto 8 y como esbirros salen esqueletos. Sus datos siguen en `enemies.ts`.
+- **Al morir el jefe final:** mueren todos los monstruos (cuentan como bajas y sueltan su XP, que **no** vuela sola) y cae un **cofre grande** (`finalChest`) con el aviso "Open the chest to leave!".
+- **Al coger el cofre:** da un buff y, 1 s después, se abre el **portal** (`entities/Portal.ts`, efecto `fx.portal` = Portal 1 de sp-client) a 90 px a un lado. Arriba sale "Enter the portal: 30". Entrar en él o esperar 30 s → **Victory!** La XP que quede en el suelo se pierde (decisión del propietario).
+- **Guardado:** `finalBossDead` y `portalMsLeft` en la partida guardada. Al continuar, el cofre (o el portal con su tiempo) aparece junto al jugador, sin monstruos.
+- **Arreglo:** la tecla K (matar los visibles) ahora cuenta como golpe real; antes el jefe final no soltaba nada.
+- **Atajos nuevos:** `?debug=finalboss` (salta al jefe final) y `?debug=bosskill` (lo mata en cuanto sale); situaciones `pnpm check finalboss` y `pnpm check portal`. Números en `data/waves.ts` (`PORTAL`).
+- **Comprobado:** `build` sin errores; `check menu game finalboss portal` sin errores (también `portal --mobile`); con `--eval`: solo esbirros con el Wyvern vivo, cofre → portal a 90 px, Victory al entrar y al acabar el tiempo, Continue antes y después de abrir el cofre.
+- **Cómo probarlo:** `pnpm --dir survivors dev` → http://localhost:8090/?debug=god,finalboss (pelea) o http://localhost:8090/?debug=god,bosskill (final directo: buscar el cofre, cogerlo y entrar en el portal).
+
 **Cambio de mapa a Bleeding Isle (2026-10-18, entre las Fases 12 y 13; el propietario lo probó y le gusta).**
 - **Motivo:** huntzone2 tenía muchas colisiones (río, ruinas, acantilados). Se adelanta solo el cambio de mapa; la Fase 19 (varios mapas, Select Map) sigue pendiente.
 - **Bleeding Isle** (`bisle.amd`, registrado como `map.bisle`): zona de juego **150×150 casillas desde (66,52), 95% libre**, todo conectado. Se midieron 100 (99%), 150 (95%) y 200 (81%, entra la costa); el propietario eligió 150.

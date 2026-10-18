@@ -112,6 +112,7 @@ export class Player {
         }
 
         this.updateInvulnerability(deltaMs);
+        this.regenerate(deltaMs);
         this.container.setPosition(this.x, this.y).setDepth(this.y);
     }
 
@@ -134,11 +135,29 @@ export class Player {
         this.body.setGlow(color, alpha);
     }
 
+    /** Health healed by itself each second (from Vit: CharacterStats.hpRegenPerSecond). */
+    public regenPerSecond = 0;
+    /** Healing gathered but not yet applied (health goes up one whole point at a time). */
+    private regenCarry = 0;
+
     /** Heals up to the maximum. */
     public heal(amount: number): void {
         if (this.isDead) return;
         this.hp = Math.min(this.maxHp, this.hp + amount);
         this.drawHealthBar();
+    }
+
+    /** Slow healing from Vit, a whole point at a time. Nothing gathers while at full health. */
+    private regenerate(deltaMs: number): void {
+        if (this.hp >= this.maxHp) {
+            this.regenCarry = 0;
+            return;
+        }
+        this.regenCarry += (this.regenPerSecond * deltaMs) / 1000;
+        const whole = Math.floor(this.regenCarry);
+        if (whole <= 0) return;
+        this.regenCarry -= whole;
+        this.heal(whole);
     }
 
     /** Changes the weapon or a piece of armor drawn on the player (undefined takes it off). */

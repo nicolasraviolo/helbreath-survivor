@@ -1,7 +1,7 @@
 // Stats de personaje (los seis de Helbreath) y lo que hace cada uno en el survivors.
 // Decidido con el propietario (16-oct-2026):
 // - Str: daño físico de armas y requisito de armas y armaduras.
-// - Vit: vida máxima.
+// - Vit: vida máxima y curación poco a poco (Fase 13C: más Vit, más rápido).
 // - Dex: velocidad de movimiento y de ataque.
 // - Int: requisito de hechizos y de equipo de mago (varitas, túnicas). Da un poco de maná (fórmula original).
 // - Mag: daño mágico y maná.
@@ -26,7 +26,7 @@ export interface StatInfo {
 
 export const STAT_INFO: Record<StatId, StatInfo> = {
     str: { short: 'Str', name: 'Strength', effect: 'Physical damage. Required by weapons and armor', color: 0xc03828 },
-    vit: { short: 'Vit', name: 'Vitality', effect: 'Maximum health', color: 0x38a040 },
+    vit: { short: 'Vit', name: 'Vitality', effect: 'Maximum health and slow healing', color: 0x38a040 },
     dex: { short: 'Dex', name: 'Dexterity', effect: 'Movement and attack speed', color: 0xd09020 },
     int: { short: 'Int', name: 'Intelligence', effect: 'Required by spells, wands and robes', color: 0x3070d0 },
     mag: { short: 'Mag', name: 'Magic', effect: 'Magic damage and mana', color: 0x8040c0 },
@@ -39,6 +39,8 @@ export const STAT_BASELINE = 10;
 /** Vida: base del personaje + Vit + nivel (en el original 2 por Vit y ~2,5 por nivel). */
 export const HP_PER_VIT = 4;
 export const HP_PER_LEVEL = 2;
+/** Vida que se recupera sola cada segundo por punto de Vit (Vit 10 → 0,2/s, unos 12 por minuto). */
+export const HP_REGEN_PER_VIT = 0.02;
 
 /** Maná, fórmula original: 2·Mag + 2·nivel + Int/2 (docs/hb-wiki/personaje.md, Leveling). */
 export const MANA_PER_MAG = 2;
