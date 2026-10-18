@@ -11,6 +11,7 @@
 //   ?trees=off       → árboles grandes en ese modo solo en esta partida (on, off), sin guardarlo
 //   ?open=howtoplay  → abre esa pantalla de los menús (howtoplay, settings, credits, achievements, select = selección de personaje)
 //   ?achievements=reset → borra los logros conseguidos al cargar (all = los da todos, para ver la pantalla llena; Fase 14B)
+//   ?metrics=send    → enviar las métricas de esta partida al servidor de verdad (en desarrollo no se envían; Fase 14A)
 //   Se combina con ?ui=compact (interfaz de móvil).
 // En el build publicado no hace nada.
 import { isCharacterId, type CharacterId } from '../data/characters';
@@ -45,10 +46,12 @@ interface DebugStart {
     open: (typeof DEBUG_SCREENS)[DebugScreen] | undefined;
     /** Clear every unlocked achievement, or unlock them all, when the page loads. */
     achievements: 'reset' | 'all' | undefined;
+    /** Send this run's anonymous stats even in development. */
+    sendMetrics: boolean;
 }
 
 function readDebugStart(): DebugStart {
-    const none: DebugStart = { play: false, character: undefined, actions: [], trees: undefined, open: undefined, achievements: undefined };
+    const none: DebugStart = { play: false, character: undefined, actions: [], trees: undefined, open: undefined, achievements: undefined, sendMetrics: false };
     if (!import.meta.env.DEV) return none;
     const params = new URLSearchParams(window.location.search);
     const play = params.get('play');
@@ -63,6 +66,7 @@ function readDebugStart(): DebugStart {
         trees,
         open: isDebugScreen(open) ? DEBUG_SCREENS[open] : undefined,
         achievements: achievements === 'reset' || achievements === 'all' ? achievements : undefined,
+        sendMetrics: params.get('metrics') === 'send',
     };
 }
 

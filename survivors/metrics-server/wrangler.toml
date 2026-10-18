@@ -1,0 +1,12 @@
+# Servidor de métricas (Fase 14A): Cloudflare Worker + base de datos D1.
+# Publicar: pnpm --dir survivors exec wrangler deploy --config metrics-server/wrangler.toml
+# La clave de la página de gráficas es un secreto (DASHBOARD_KEY), nunca en git:
+#   pnpm --dir survivors exec wrangler secret put DASHBOARD_KEY --config metrics-server/wrangler.toml
+name = "helbreath-survivors-metrics"
+main = "src/index.ts"
+compatibility_date = "2026-10-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "helbreath-survivors-metrics"
+database_id = "26197bdf-16b0-4f40-9352-8954f7405363"

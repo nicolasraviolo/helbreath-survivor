@@ -4,6 +4,7 @@
 // El conjunto lleva número de versión: si un día cambia la forma de guardar, se sube la versión y migrate() convierte
 // lo viejo, sin borrar el progreso de nadie. Logros, récords y baúl (Fases 14, 19 y 21) irán en otras claves.
 // Si el navegador no deja guardar (modo privado, almacenamiento bloqueado), el juego funciona igual, sin Continue.
+import type { BossReport, RunMetricsState } from '../config/metrics';
 import { ARMOR_PIECES, type ArmorPieceId, type ArmorSlotId } from '../data/armor';
 import { isCharacterId, type CharacterId } from '../data/characters';
 import { ENEMIES, type EnemyId } from '../data/enemies';
@@ -50,6 +51,8 @@ export interface RunSnapshot {
     portalMsLeft: number | undefined;
     /** Potions drunk so far (Fase 14B, achievement "Iron Will"). Saves from before count as none. */
     potionsDrunk: number;
+    /** What the anonymous stats collected so far (Fase 14A). Saves from before have none. */
+    metrics: RunMetricsState | undefined;
 }
 
 type Slots = Array<RunSnapshot | undefined>;
@@ -181,7 +184,34 @@ function readSnapshot(entry: unknown): RunSnapshot | undefined {
         finalBossDead: entry.finalBossDead === true,
         portalMsLeft: readNumber(entry.portalMsLeft),
         potionsDrunk: readNumber(entry.potionsDrunk) ?? 0,
+        metrics: readMetrics(entry.metrics),
     };
+}
+
+function readMetrics(value: unknown): RunMetricsState | undefined {
+    if (!isRecord(value)) return undefined;
+    const bosses: BossReport[] = [];
+    for (const boss of Array.isArray(value.bosses) ? value.bosses : []) {
+        if (!isRecord(boss) || typeof boss.name !== 'string') continue;
+        bosses.push({ name: boss.name, spawnMs: readNumber(boss.spawnMs) ?? 0, killMs: readNumber(boss.killMs) ?? -1, maxHit: readNumber(boss.maxHit) ?? 0 });
+    }
+    return {
+        cards: readCounts(value.cards),
+        levelByMinute: Array.isArray(value.levelByMinute) ? value.levelByMinute.filter((n): n is number => readNumber(n) !== undefined) : [],
+        damageBy: readCounts(value.damageBy),
+        minHpPct: readNumber(value.minHpPct) ?? 100,
+        bosses,
+    };
+}
+
+/** { name: number } with only the entries that are numbers. */
+function readCounts(value: unknown): Record<string, number> {
+    const counts: Record<string, number> = {};
+    for (const [key, count] of Object.entries(isRecord(value) ? value : {})) {
+        const n = readNumber(count);
+        if (n !== undefined) counts[key] = n;
+    }
+    return counts;
 }
 
 export function isRecord(value: unknown): value is Record<string, unknown> {

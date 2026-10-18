@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Survivors Metrics</title>
+<style>
+:root { --bg: #f6f4ef; --card: #fff; --text: #222; --muted: #777; --bar: #b5832e; --win: #3f8f4f; --line: #e3ded3; }
+@media (prefers-color-scheme: dark) { :root { --bg: #17161a; --card: #222127; --text: #eee; --muted: #999; --bar: #d6a24a; --win: #5cb56d; --line: #34323a; } }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.4 system-ui, sans-serif; }
+main { max-width: 1000px; margin: 0 auto; padding: 16px; }
+h1 { font-size: 22px; margin: 4px 0 12px; }
+h2 { font-size: 15px; margin: 0 0 10px; color: var(--muted); font-weight: 600; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px; overflow-x: auto; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; margin-bottom: 12px; }
+.tile b { display: block; font-size: 24px; }
+.tile span { color: var(--muted); font-size: 13px; }
+.row { display: grid; grid-template-columns: 130px 1fr 70px; gap: 8px; align-items: center; margin: 4px 0; font-size: 13px; }
+.row .label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.track { background: var(--line); height: 14px; border-radius: 3px; overflow: hidden; }
+.fill { background: var(--bar); height: 100%; }
+.fill.win { background: var(--win); }
+.row .n { text-align: right; color: var(--muted); }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { text-align: left; padding: 4px 6px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th { color: var(--muted); font-weight: 600; }
+form, .bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
+input, select, button { font: inherit; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--line); background: var(--card); color: var(--text); }
+button { cursor: pointer; }
+.muted { color: var(--muted); }
+.hidden { display: none; }
+</style>
+</head>
+<body>
+<main>
+<h1>Helbreath Survivors · Metrics</h1>
+<form id="login" class="hidden">
+    <input id="key" type="password" placeholder="Dashboard key" autocomplete="current-password" required>
+    <button>Open</button>
+    <span id="error" class="muted"></span>
+</form>
+<div id="app" class="hidden">
+    <div class="bar">
+        <label>Version <select id="version"><option value="">All</option></select></label>
+        <button id="refresh" type="button">Refresh</button>
+        <button id="logout" type="button">Forget key</button>
+    </div>
+    <div class="tiles" id="tiles"></div>
+    <div class="grid">
+        <div class="card"><h2>Win rate by class</h2><div id="byClass"></div></div>
+        <div class="card"><h2>Deaths by minute</h2><div id="deathMinutes"></div></div>
+        <div class="card"><h2>What kills players</h2><div id="killers"></div></div>
+        <div class="card"><h2>Most picked cards</h2><div id="cards"></div></div>
+        <div class="card"><h2>Damage taken by monster (all runs)</h2><div id="damage"></div></div>
+        <div class="card"><h2>Lowest health reached (% of max)</h2><div id="lowestHp"></div></div>
+        <div class="card"><h2>FPS by device (average · slow moments)</h2><div id="devices"></div></div>
+    </div>
+    <div class="card" style="margin-top:12px"><h2>Average level at each minute</h2><div id="levelCurve"></div></div>
+    <div class="card" style="margin-top:12px"><h2>Bosses</h2><div id="bosses"></div></div>
+    <div class="card" style="margin-top:12px"><h2>Last runs</h2><div id="recent"></div></div>
+</div>
+</main>
+<script>
+const KEY_STORAGE = 'survivors-metrics-key';
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+const minutes = (ms) => { const s = Math.round((ms ?? 0) / 1000); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
+const pct = (a, b) => (b ? Math.round((a / b) * 100) : 0);
+
+function getKey() { try { return localStorage.getItem(KEY_STORAGE) || ''; } catch { return ''; } }
+function setKey(k) { try { k ? localStorage.setItem(KEY_STORAGE, k) : localStorage.removeItem(KEY_STORAGE); } catch {} }
+
+function bars(rows, label, value, note, win = false) {
+    if (!rows.length) return '<p class="muted">No data yet.</p>';
+    const max = Math.max(...rows.map(value), 1);
+    return rows.map((r) => `<div class="row"><span class="label" title="${esc(label(r))}">${esc(label(r))}</span>
+        <div class="track"><div class="fill${win ? ' win' : ''}" style="width:${(value(r) / max) * 100}%"></div></div>
+        <span class="n">${esc(note(r))}</span></div>`).join('');
+}
+
+async function load() {
+    const key = getKey();
+    if (!key) return showLogin('');
+    const version = $('version').value;
+    const res = await fetch(`api/summary?version=${encodeURIComponent(version)}`, { headers: { Authorization: `Bearer ${key}` } });
+    if (res.status === 401) { setKey(''); return showLogin('Wrong key.'); }
+    if (!res.ok) return showLogin(`Server error ${res.status}.`);
+    const d = await res.json();
+    $('login').classList.add('hidden');
+    $('app').classList.remove('hidden');
+
+    const sel = $('version');
+    sel.innerHTML = '<option value="">All</option>' + d.versions.map((v) => `<option value="${esc(v.version)}">${esc(v.version)} (${v.runs})</option>`).join('');
+    sel.value = version;
+
+    const t = d.totals || {};
+    $('tiles').innerHTML = [
+        [t.runs ?? 0, 'runs'], [`${pct(t.wins, t.runs)}%`, 'wins'], [minutes(t.avgMs), 'average length'],
+        [Math.round(t.avgLevel ?? 0), 'average level'], [Math.round(t.avgKills ?? 0), 'average kills'],
+        [`${pct(t.quits, t.runs)}%`, 'quit to menu'], [(t.avgPotions ?? 0).toFixed(1), 'potions per run'],
+        [`${Math.round(t.avgMinHp ?? 0)}%`, 'average lowest health'],
+    ].map(([v, l]) => `<div class="card tile"><b>${esc(v)}</b><span>${esc(l)}</span></div>`).join('');
+
+    $('byClass').innerHTML = bars(d.byClass, (r) => r.character, (r) => pct(r.wins, r.runs),
+        (r) => `${pct(r.wins, r.runs)}% of ${r.runs}`, true)
+        + (d.byClass.length ? `<p class="muted">${d.byClass.map((r) => `${esc(r.character)}: ${minutes(r.avgMs)}, level ${Math.round(r.avgLevel)}`).join(' · ')}</p>` : '');
+    $('deathMinutes').innerHTML = bars(d.deathMinutes, (r) => `minute ${r.minute}`, (r) => r.deaths, (r) => r.deaths);
+    $('killers').innerHTML = bars(d.killers, (r) => r.killer || '?', (r) => r.deaths, (r) => r.deaths);
+    $('cards').innerHTML = bars(d.cards, (r) => r.card, (r) => r.picks, (r) => r.picks);
+    $('damage').innerHTML = bars(d.damage, (r) => r.monster, (r) => r.damage, (r) => r.damage);
+    $('lowestHp').innerHTML = bars(d.lowestHp, (r) => `${r.result === 'win' ? 'win' : 'death'} · ${r.bucket}–${r.bucket + 9}%`,
+        (r) => r.runs, (r) => r.runs, false);
+    const classes = [...new Set(d.levelCurve.map((r) => r.character))];
+    const minutesList = [...new Set(d.levelCurve.map((r) => r.minute))].sort((a, b) => a - b);
+    const lvl = (c, m) => d.levelCurve.find((r) => r.character === c && r.minute === m);
+    $('levelCurve').innerHTML = minutesList.length ? `<table><tr><th>Minute</th>${classes.map((c) => `<th>${esc(c)}</th>`).join('')}</tr>
+        ${minutesList.map((m) => `<tr><td>${m}</td>${classes.map((c) => { const r = lvl(c, m);
+            return `<td>${r ? `${r.level.toFixed(1)} <span class="muted">(${r.runs})</span>` : ''}</td>`; }).join('')}</tr>`).join('')}</table>`
+        : '<p class="muted">No data yet.</p>';
+    $('bosses').innerHTML = d.bosses.length ? `<table><tr><th>Boss</th><th>Seen</th><th>Killed</th><th>Average life</th>
+        <th>Average strongest hit</th><th>Strongest hit</th></tr>${d.bosses.map((b) => `<tr><td>${esc(b.boss)}</td><td>${b.seen}</td>
+        <td>${pct(b.killed, b.seen)}%</td><td>${b.avgLifeMs == null ? '–' : minutes(b.avgLifeMs)}</td>
+        <td>${Math.round(b.avgMaxHit ?? 0)}</td><td>${b.maxHit ?? 0}</td></tr>`).join('')}</table>`
+        : '<p class="muted">No bosses yet.</p>';
+    $('devices').innerHTML = bars(d.devices, (r) => `${r.device} (${r.runs})`, (r) => r.fpsAvg, (r) => `${Math.round(r.fpsAvg)} · ${Math.round(r.fpsLow)}`);
+
+    $('recent').innerHTML = d.recent.length ? `<table><tr><th>When (UTC)</th><th>Version</th><th>Class</th><th>Device</th><th>Result</th>
+        <th>Time</th><th>Level</th><th>Kills</th><th>Killed by</th><th>Lowest HP</th><th>Potions</th><th>FPS</th></tr>${d.recent.map((r) => `<tr><td>${esc(r.at)}</td>
+        <td>${esc(r.version)}</td><td>${esc(r.character)}</td><td>${esc(r.device)}</td><td>${({ win: 'Victory', death: 'Death', quit: 'Quit' })[r.result] ?? esc(r.result)}</td>
+        <td>${minutes(r.ms)}</td><td>${r.level}</td><td>${r.kills}</td><td>${esc(r.killer)}</td><td>${r.minHp}%</td><td>${r.potions}</td><td>${Math.round(r.fps)}</td></tr>`).join('')}</table>`
+        : '<p class="muted">No runs yet.</p>';
+}
+
+function showLogin(message) {
+    $('app').classList.add('hidden');
+    $('login').classList.remove('hidden');
+    $('error').textContent = message;
+}
+
+$('login').addEventListener('submit', (e) => { e.preventDefault(); setKey($('key').value.trim()); load(); });
+$('version').addEventListener('change', load);
+$('refresh').addEventListener('click', load);
+$('logout').addEventListener('click', () => { setKey(''); showLogin(''); });
+load();
+</script>
+</body>
+</html>

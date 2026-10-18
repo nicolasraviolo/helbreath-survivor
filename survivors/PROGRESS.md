@@ -16,12 +16,13 @@
 | 11 — Pulido de interfaz | ✅ completada | 2026-10-18 |
 | 12 — Móvil sin pérdidas | ✅ completada (12A, 12B y 12C) | 2026-10-18 |
 | 13 — Jefe final y equilibrio | ✅ completada (13A, 13B y 13C) | 2026-10-18 |
-| 14 — Métricas y logros | 🔨 en curso (14B hecho; falta 14A) | |
+| 14 — Métricas y logros | 🔨 14A y 14B hechos; falta cerrar la fase (`/checkpoint fase`) | |
 
 ## Fase actual
-**Para retomar (18-oct-2026): Fase 14, bloque 14B (logros) terminado** en la rama `fase-14`. **Siguiente: 14A (métricas)**, con servidor gratuito de Cloudflare Workers + D1 (el propietario dijo que sí; la cuenta la crea él).
+**Para retomar (18-oct-2026): Fase 14 hecha (14A métricas y 14B logros)** en la rama `fase-14`. **Siguiente:** `/checkpoint fase` para cerrarla (fusionar en `master` y publicar: hasta entonces el juego publicado no envía métricas) y luego `/fase 15` (apuntado híbrido).
+- **Métricas (14A):** servidor `metrics-server/` (Cloudflare Worker + D1). Gráficas en https://helbreath-survivors-metrics.nicolasraviolo.workers.dev, con clave (en `metrics-server/.dev.vars`). Qué se envía: `config/metrics.ts`; lo recoge `systems/RunMetrics.ts`. En `pnpm dev` solo con `?metrics=send`. Detalle y cómo añadir un dato: NOTES.md, "Métricas".
 - **Logros (14B):** lista en `data/achievements.ts`, guardados en `systems/AchievementStore.ts` y vigilados por `systems/AchievementTracker.ts`. Para añadir uno basta con la lista (ver NOTES.md, "Logros"). Detalle en el historial.
-- **Equilibrio (13C):** curva en `data/leveling.ts` (4 niveles baratos y luego +24% por nivel), XP de monstruo = vida/5, jefes con `damageScale` y sin empuje (`data/enemies.ts`), Vit cura (`HP_REGEN_PER_VIT`, `data/stats.ts`). Medir siempre con la partida simulada antes de tocar números.
+- **Equilibrio (13C):** curva en `data/leveling.ts` (4 niveles baratos y luego +24% por nivel), XP de monstruo = vida/5, jefes con `damageScale` y sin empuje (`data/enemies.ts`), Vit cura (`HP_REGEN_PER_VIT`, `data/stats.ts`). Medir con la partida simulada y, desde la Fase 14, con las gráficas de métricas.
 - **Monstruos por grupos (13B):** esenciales en `ESSENTIAL_ENEMIES` (`data/enemies.ts`), los de cada mapa en `localEnemies` y jefes en `bosses` (`data/maps.ts`). Detalle en el historial.
 - **Pendiente (idea del propietario, sin fecha):** monstruos que aparecen al azar como evento especial.
 - **Final de partida:** al morir el jefe final, mueren todos, toda la XP vuela sola y los niveles suben sin cartas; cae su cofre y al cogerlo se abre el portal (30 s). Atajos `?debug=finalboss` y `?debug=bosskill`.
@@ -42,6 +43,7 @@
 ## Cómo probar
 - Jugar: `pnpm --dir survivors dev` → http://localhost:8090
 - Comprobación automática: `pnpm --dir survivors check [situaciones] [--mobile]` → escenas, FPS, estado de la partida, errores de consola y una captura pequeña en `survivors/.check/`. Situaciones: `menu`, `game`, `achievements` (con `--cards`: logros desde cero hasta nivel 21), `achievementlist` (pantalla con todos), `levelup`, `boss`, `finalboss`, `portal`, `stampede`, `horde`, `pickups`, `levelpace` (partida simulada muy deprisa: nivel por minuto, cuánto vive cada jefe y su golpe más fuerte; informe también en `.check/levelpace.json`) o atajos a mano (`"play=warrior&debug=str,levels"`). `--eval="g.enemies.alive"` escribe cualquier dato de la partida (g = escena Game); `--wait=5000` la deja correr más; `--cards` elige sola la primera carta de cada subida de nivel. Si la expresión devuelve una promesa, se espera (útil para vigilar unos segundos).
+- Métricas: `?metrics=send` envía la partida al servidor de verdad (en desarrollo, si no, nunca se envía). Página de gráficas: ver "Para retomar".
 - Atajos en la dirección (solo en desarrollo, `src/config/debugStart.ts`): `?play`, `?play=warrior`, `?debug=boss,god` (acciones: horde, kill, levelup, levels, str, magic, pickups, minute, boss, finalboss, bosskill, stampede, god, resume = guardar y recargar como con Continue, sim = partida simulada), `?ui=compact` (interfaz de móvil), `?trees=off` (árboles, solo esa partida), `?open=howtoplay` (también settings, credits, achievements, select), `?achievements=reset` (borra los logros; `all` los da todos).
 - Teclas de depuración en partida: F1 panel · G invencible · N enemigos · L niveles · J +1 minuto, entre otras (`systems/InputSystem.ts`).
 - Datos de referencia de Helbreath: `docs/hb-wiki/` (índice en `README.md`).
@@ -51,6 +53,7 @@
 ## Problemas conocidos
 - Con un solo Energy Bolt, 300 enemigos sobrepasan al jugador. Las cartas de stat ayudan, pero la progresión real llega con las armas de la Fase 6.
 - Guerrero frente a Mago, igualados en el 13C (18-oct-2026): Str y Mag dan +3% de daño por punto, el Mago gana +1 Int y +1 Mag por nivel, espadas ×1,5 y Energy Strike 8 por descarga (antes 14). Simulación: Wyvern en ~2:50 (Guerrero) y ~2:10 (Mago), nivel 24–27 los dos. La guía (`docs/guia`) aún dice "+2 Mag": se actualiza con `/guia`.
+- La red del propietario bloquea a veces las IPs de Cloudflare (LaLiga): la página de métricas puede no abrir y sus partidas no llegar. Probar con datos móviles o más tarde.
 - La partida simulada a veces no sirve: el jugador no alcanza a un jefe atascado y este vive hasta el final. Descartar esas partidas al medir. (Que el jefe final no llegara a salir por no encontrar hueco ya está corregido en `SpawnSystem.ts`.)
 - Las flechas "→" de las cartas usan otra fuente: Comic Neue no tiene ese carácter. No molesta.
 - El navegador interno de la app, si el panel está en segundo plano, va a ~1 FPS y parece congelado. Para revisar el juego, usar Playwright o tener el panel visible. A veces también le pasa a Playwright: `requestAnimationFrame` cae a 2 por segundo incluso sin el juego (visto el 16-oct-2026). No es un problema del juego.
@@ -68,6 +71,7 @@
 - 2026-10-18 · Fase 13: el jefe final corta las oleadas y llama esbirros; al matarlo **mueren todos los monstruos**, el portal se abre **al coger su cofre** y la XP que quede en el suelo se pierde. **Dark Elf desactivado** (esqueletos en su lugar). Objetivo de equilibrio: 25–30 niveles por partida.
 - 2026-10-18 · Monstruos por mapa: **esenciales** comunes a todos (Slime, Giant Ant, Snake, Orc, Mage-Orc, Zombie, Giant Scorpion, Skeleton, Clay Golem, Stone Golem, Giant Frog, de más débil a más fuerte), **propios del mapa** (más fuertes y menos; Bleeding Isle: Cyclops, Mountain Giant, Ogre, Cannibal Plant) y **jefes** (Ettin, Demon, Wyvern). Al morir el Wyvern, en el 13C: XP del suelo recogida sola y niveles sin cartas.
 - 2026-10-18 · Equilibrio (13C): unos **24–27 niveles** por partida; ningún jefe mata en 1–2 golpes (como mucho ~30% de la vida del Mago); jefes sin empuje; al morir el Wyvern, XP sola y niveles sin cartas. Versión del juego en el pie del menú: de momento "Phase N".
+- 2026-10-18 · Métricas (14A): **activadas de serie** con aviso de que solo sirven para la dificultad; gráficas **solo con clave**; Cloudflare pese al bloqueo de LaLiga (si falla, en silencio). Se añadieron nivel por minuto, daño por monstruo, vida más baja, pociones, jefes y abandonos. Las cartas ofrecidas (no solo elegidas) quedan para más adelante.
 - 2026-10-18 · Fase 14: **servidor de métricas sí** (Cloudflare, cuenta del propietario). Logros: primera tanda de 14 aprobada; "6 armas" cambiado por "Fully Armored" y "Eternal Field" por Bleeding Isle.
 - 2026-10-18 · Partidas guardadas: **hasta 3**; Continue abre la lista; con las 3 llenas, Play pide cuál borrar (con confirmación). El formato lleva versión para poder crecer.
 - 2026-10-16 · Mapa: **huntzone2** (elegido por el propietario frente a middleland). Zona de juego ~100×100 casillas desde (72,70). Riesgos y detalles en `NOTES.md`.

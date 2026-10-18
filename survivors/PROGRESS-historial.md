@@ -2,6 +2,15 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
+**Fase 14, bloque 14A: métricas anónimas (2026-10-18, el propietario lo probó y funciona). Cierra la Fase 14 (falta `/checkpoint fase`).**
+- **Servidor** `metrics-server/`: Cloudflare Worker + base de datos D1 en la cuenta del propietario, https://helbreath-survivors-metrics.nicolasraviolo.workers.dev. `POST /run` guarda una partida (solo desde github.io o localhost, máx. 8 KB, cada campo comprobado, sin IP). La raíz es la página de gráficas, con clave (secreto `DASHBOARD_KEY`; copia local en `metrics-server/.dev.vars`, fuera de git).
+- **Qué se envía** (`config/metrics.ts`, recogido por `systems/RunMetrics.ts`): versión, mapa, clase, móvil u ordenador, resultado (win, death, quit), duración, nivel, bajas, qué te mató, equipo final, cartas elegidas, nivel al final de cada minuto, daño recibido por monstruo, vida más baja, pociones, jefes (llegada, muerte, golpe más fuerte), FPS medios y del 10% más lento. Zem y crits van a 0 hasta las Fases 16 y 17.
+- **Cuándo:** al ganar, morir o "Quit to menu". Nunca en la partida simulada; en `pnpm dev` solo con `?metrics=send`. Lo recogido viaja en la partida guardada, así Continue no lo pierde.
+- **Settings:** casilla "Anonymous Stats" (activada de serie) y debajo "Only used to tune the difficulty. Nothing personal, nothing else." Filas de Settings un poco más juntas para que quepa.
+- **Gráficas:** totales (victorias, abandonos, pociones, vida más baja media), victorias por clase, muertes por minuto, quién mata y quién hace más daño, cartas más elegidas, vida más baja, FPS por dispositivo, nivel medio por minuto y clase, tabla de jefes y las últimas 50 partidas. Filtro por versión.
+- **Comandos:** `pnpm metrics:types` (tipos del Worker, tras clonar), `pnpm metrics:check`, `pnpm metrics:deploy`. Para ver la página en local con datos de mentira: `metrics-local` en `.claude/launch.json` (puerto 8787, clave `localtest`).
+- **Comprobado:** `build` sin errores; `check menu game open=settings` (PC y móvil) sin errores; partidas reales con `?metrics=send` (muerte por Ettin, abandono) llegan a la base de datos con todos los datos; Continue conserva lo recogido; la página rechaza la clave mala y dibuja todo. Pruebas borradas de la base de datos.
+
 **Fase 14, bloque 14B: logros (2026-10-18, el propietario lo probó y le gusta).**
 - **14 logros** (`data/achievements.ts`): Survivor/Veteran (5 y 10 min), Rising Star/Legend (nivel 20 y 30), Slayer/Massacre (1.000 y 3.000 bajas), Ettin Slayer, Demon Hunter, Dragon Slayer, Island Conqueror (ganar en Bleeding Isle), Path of the Blade/Path of Magic (ganar con cada clase), Iron Will (ganar sin pociones), Fully Armored (todas las piezas de armadura de la clase).
 - **Guardado:** `systems/AchievementStore.ts`, clave `hb-survivors.achievements` con versión; se guarda el id y la fecha. Las pociones bebidas van en la partida guardada (`potionsDrunk`).

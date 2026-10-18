@@ -123,6 +123,8 @@ export const HUD_COMPACT = {
 
 /** Event of GameScene that the HUD listens to, to show a warning in the middle of the screen. */
 export const ANNOUNCE_EVENT = 'announce';
+/** Emitted on the game scene by the pause menu's "Quit to menu", just before stopping it (Fase 14A: anonymous stats). */
+export const QUIT_RUN_EVENT = 'quit-run';
 
 /** Warnings of the timeline ("The Ettin approaches!"): sprite font, big, in the middle; fade out at the end. */
 export const HUD_ANNOUNCE = { y: 150, scale: byDevice(2, 2.4), color: 0xff5040, showMs: 3500, fadeMs: 1000 } as const;

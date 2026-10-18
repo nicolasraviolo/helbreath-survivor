@@ -47,6 +47,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Portal del final (Fase 13)
 - Partida simulada y equilibrio (Fase 13C)
 - Logros (Fase 14B)
+- Métricas (Fase 14A)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -616,3 +617,15 @@ Tabla completa en `docs/REQUISITOS_HB.md`. Lo no obvio:
 - Los jefes se reconocen comparando su definición (`ENEMIES[id] === enemy.def`): todos los monstruos de una clase comparten el mismo objeto de `data/enemies.ts`.
 - La escena de cartas pausa la partida: el vigilante no corre mientras tanto y el aviso del HUD espera (`scene.isPaused`). Por eso el logro de nivel sale después de elegir la carta.
 - En las pruebas automáticas, la partida se queda en las cartas si no se usa `--cards` (el script responde por su cuenta llamando a `onChoose` de LevelUp; los eventos de teclado sintéticos no llegan a Phaser).
+
+## Métricas (Fase 14A)
+- **Servidor:** `metrics-server/` (Cloudflare Worker + D1 `helbreath-survivors-metrics`, cuenta del propietario). Dirección: https://helbreath-survivors-metrics.nicolasraviolo.workers.dev (la raíz es la página de gráficas; pide la clave).
+- **Clave de las gráficas:** secreto `DASHBOARD_KEY` del Worker. Copia local en `metrics-server/.dev.vars` (ignorado por git). Cambiarla: `pnpm --dir survivors exec wrangler secret put DASHBOARD_KEY --config metrics-server/wrangler.toml`.
+- **Formato:** `src/config/metrics.ts` (`RunReport`). El Worker importa ese tipo; al añadir un campo: tipo + `readReport` y `INSERT` en `metrics-server/src/index.ts` + columna nueva con `ALTER TABLE` en D1 (y en `schema.sql`). Luego `pnpm --dir survivors metrics:deploy`.
+- **Tipos del Worker:** `worker-configuration.d.ts` lo genera `pnpm metrics:types` (600 KB, ignorado por git). Hace falta antes de `pnpm metrics:check`/`metrics:deploy` en un clon nuevo.
+- **Qué se envía:** además de lo básico, nivel al final de cada minuto, daño recibido por monstruo (los 10 que más), vida más baja (%), pociones, y cada jefe con su llegada, su muerte (-1 si sigue vivo) y su golpe más fuerte (tras armadura). Lo recoge `systems/RunMetrics.ts`.
+- **Cuándo se envía:** al ganar, al morir y al salir con "Quit to menu" (`result: 'quit'`, evento `QUIT_RUN_EVENT`). La partida sigue guardada: si se continúa y se termina, llega otra fila con `resumed = 1`. Nunca en la partida simulada; en `pnpm dev` solo con `?metrics=send`. Si falla, en silencio. Lo recogido viaja en la partida guardada (`metrics`), así Continue no lo pierde.
+- **Ojo con las medias:** las filas de antes de añadir los datos nuevos (solo la prueba del propietario, 18-oct-2026) tienen `min_hp_pct = 100` y listas vacías por defecto.
+- **Seguridad:** el Worker solo acepta envíos desde github.io y localhost (cabecera Origin), máx. 8 KB, y comprueba cada campo. No guarda IP ni nada personal. Cuerpo `text/plain` para que el navegador no haga petición previa (CORS).
+- **Probar la página en local** con datos de mentira: `metrics-local` en `.claude/launch.json` (puerto 8787, clave `localtest`, base de datos local en `metrics-server/.wrangler/`).
+- **Ojo:** la red del propietario bloquea a veces las IPs de Cloudflare (LaLiga, Fase 9). Si la página no abre, probar con datos móviles o más tarde.
