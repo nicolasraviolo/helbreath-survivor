@@ -53,6 +53,8 @@ export interface HudState extends HudBarState {
     stats: Readonly<CharacterStats>;
     /** Weapon or spell in hand. */
     weaponName: string | undefined;
+    /** Stats panel row of the active skill (Fase 19): the Mage's spell and its recharge, or the Warrior's charges. */
+    skillRow: [string, string] | undefined;
     /** Share of damage removed by armor (0..1). */
     defense: number;
     /** Defense ratio against monster blows: Dex plus armor (data/defense.ts). */
@@ -191,7 +193,7 @@ export class HudScene extends Phaser.Scene {
         if (this.inputSystem.justPressed(Action.ToggleStats)) this.toggleStats();
         if (this.statsPanel.visible) this.refreshStats(state);
         this.bar.update(state);
-        this.critButton?.update(state.critCharges, state.critLaunches);
+        this.critButton?.update(state.skillOrb, state.skillUses);
         this.showBuffs(state.buffs);
         this.minimap.update(state.minimap, this.time.now);
     }
@@ -412,6 +414,7 @@ function describeDerived(state: HudState): [string, string][] {
     const bonus = (multiplier: number) => `${multiplier >= 1 ? '+' : ''}${Math.round((multiplier - 1) * 100)}%`;
     const gear: [string, string][] = [];
     if (state.weaponName) gear.push([stats.def.startWeapon.kind === 'spell' ? 'Spell' : 'Weapon', state.weaponName]);
+    if (state.skillRow) gear.push(state.skillRow);
     // Always shown (every class can wear something), so the panel keeps the height it was built with.
     gear.push(['Damage taken', `−${Math.round(state.defense * 100)}%`]);
     // General chance of dodging a blow and of resisting a spell, against a typical monster (Fases 18A and 18B).

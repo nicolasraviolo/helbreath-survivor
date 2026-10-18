@@ -21,6 +21,8 @@ export interface AreaHit {
     direct: Enemy | undefined;
     directDamage: number;
     knockback: number;
+    /** Every number shown big, as a critical hit (the Mage's active spell, Fase 19B). */
+    bigNumbers?: boolean;
 }
 
 export interface ArcHit {
@@ -74,11 +76,11 @@ export class CombatSystem {
         this.enemies.forEachInRadius(hit.x, hit.y, hit.radius, (enemy) => {
             const isDirect = enemy === direct;
             directInArea ||= isDirect;
-            const critical = this.hitEnemy(enemy, hit.damageType, hit.areaDamage + (isDirect ? hit.directDamage : 0), hit.x, hit.y, hit.knockback);
+            const critical = this.hitEnemy(enemy, hit.damageType, hit.areaDamage + (isDirect ? hit.directDamage : 0), hit.x, hit.y, hit.knockback, hit.bigNumbers);
             if (isDirect || (!direct && mainCritical === undefined)) mainCritical = critical;
         });
         if (direct && !directInArea) {
-            mainCritical = this.hitEnemy(direct, hit.damageType, hit.directDamage, hit.x, hit.y, hit.knockback);
+            mainCritical = this.hitEnemy(direct, hit.damageType, hit.directDamage, hit.x, hit.y, hit.knockback, hit.bigNumbers);
         }
         return mainCritical ?? false;
     }

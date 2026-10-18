@@ -118,6 +118,9 @@ export const SPRITES = {
     'fx.effect5': { file: 'sprites/effect5.spr', type: SpriteType.Effect },
     // Critical Strike (Fase 19A): la espiral del Earthworm Strike (hoja 1). ~0,48 MB.
     'fx.effect6': { file: 'sprites/effect6.spr', type: SpriteType.Effect },
+    // Meteor Strike, hechizo activo del Mago (Fase 19B, data/activeSpells.ts). ~1,25 MB: se descarga solo al empezar
+    // una partida de Mago (ON_DEMAND_SPRITES).
+    'fx.crueffect1': { file: 'sprites/crueffect1.spr', type: SpriteType.Effect },
     // Tótems (Fase 16B): la Mana Stone. Una sola imagen, repetida en sus 40 hojas (se usa la 0).
     'object.manastone': { file: 'sprites/manastone.spr', type: SpriteType.Effect },
 
@@ -342,6 +345,7 @@ export const ON_DEMAND_SPRITES: ReadonlySet<SpriteKey> = new Set<SpriteKey>([
     'gear.leggings.chain.w', 'gear.leggings.plate.w',
     'gear.helm.basic.w', 'gear.helm.full.w', 'gear.helm.winged.w', 'gear.helm.horned.w',
     'gear.swords.w', 'gear.shields.w',
+    'fx.crueffect1',
 ]);
 
 export const PHONE_ONLY_SPRITES: ReadonlySet<SpriteKey> = new Set<SpriteKey>(['ui.v2']);

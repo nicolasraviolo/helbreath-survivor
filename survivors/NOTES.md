@@ -58,6 +58,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Esquiva física (Fase 18A)
 - Resistencia mágica (Fase 18B)
 - Critical Strike (Fase 19A)
+- Meteor Strike, hechizo activo del Mago (Fase 19B)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -729,3 +730,11 @@ Tabla completa en `docs/REQUISITOS_HB.md`. Lo no obvio:
 - Con las cartas abiertas el crit no se lanza; las cartas y el Game Over se eligen con Enter / A / clic, **no con Espacio** (`Action.Pick`), para que un Espacio pulsado de más no elija carta.
 - El botón táctil (`ui/CritButton.ts`) y la esquina reservada se miden desde `overlayBottom()`: con la barra compacta abajo quedan por encima de las barras.
 - La partida simulada lanza un crit en cuanto tiene carga.
+
+## Meteor Strike, hechizo activo del Mago (Fase 19B)
+- Números en `data/activeSpells.ts` (lista de hechizos activos: en la Fase 20 serán equipables). Lógica en `systems/ActiveSpellSystem.ts`; el meteorito (`entities/Meteor.ts`, con pool) lo mueve `WeaponSystem`.
+- Mismo botón que el Critical Strike: con el Mago, `GameScene.launchCritStrike()` lanza el meteoro. La esfera roja del HUD es la misma (`HudBarState.skillOrb`): con el Mago enseña los segundos que faltan. El propietario quiere un icono propio para el Mago más adelante (`hudIcon` en los datos).
+- Recarga: 20 s × (1 − 1% por punto de Mag), mínimo 8 s. Daño × (2 + Power/30), igual que el crit; todos los números salen grandes.
+- Dibujo: `crueffect1.spr` (1,25 MB; hoja 0 = meteoro y orbes, 1 = impacto, 2 = explosión, 8 = explosión de suelo). Va en `ON_DEMAND_SPRITES` y se descarga al empezar una partida de Mago; después se vuelve a llamar a `registerEffectAnimations` (ahora salta los efectos cuyo .spr aún no está). Hasta que llega, el botón no hace nada.
+- Sin enemigos al alcance (420 px) y sin apuntar a mano, no sale y no gasta la recarga.
+- **sp-client se queda corto en el impacto.** El original (`reference/Client.cpp`, efectos 61/62/63/12) dibuja además una estela de humo al caer (crueffect1 hoja 0, frames 20–24, uno cada 25 ms), el fuego del suelo y la explosión **aditivos**, y 5 "Burst" (`effect2.spr` hoja 1, frames 10–15) repartidos. `m_pEffectSpr[n]`: effect.spr = 0–9, effect2.spr = 10–12, crueffect1 = 31–33 (`MakeEffectSpr`, C:4062). La explosión de suelo (hoja 8) es solo de sp-client; la dejamos.

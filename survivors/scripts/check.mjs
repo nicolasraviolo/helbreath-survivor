@@ -48,6 +48,9 @@ const PRESETS = {
     // Critical Strike (Fase 19A): Guerrero con una horda alrededor y cargas infinitas. Para lanzarlo:
     // --eval="g.launchCritStrike()"; con --mobile se ve el botón de la espada roja.
     crit: 'play=warrior&debug=god,horde,crits',
+    // Meteor Strike del Mago (Fase 19B): horda alrededor y sin recarga. Para lanzarlo: --eval="g.launchCritStrike()"
+    // (el mismo botón que el crit); con --wait da tiempo a que caiga y explote.
+    meteor: 'play=mage&debug=god,horde,crits',
     // Logros (Fase 14B): empezar sin ninguno y subir a nivel 21 → aviso de "Rising Star" (y "Survivor" con +5 minutos).
     // Usar con --cards: si no, la partida se queda en las cartas.
     achievements: 'achievements=reset&debug=god,levels,levels,levels,levels,minute,minute,minute,minute,minute',

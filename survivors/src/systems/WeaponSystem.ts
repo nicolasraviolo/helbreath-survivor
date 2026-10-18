@@ -2,15 +2,18 @@
 // y lanza las explosiones (algunas con retraso, como Fire Strike), cuyo daño aplica CombatSystem una sola vez.
 // También los tajos cuerpo a cuerpo (animación, estela y daño) y el Critical Strike del Guerrero (Fase 19A): un golpe de
 // área inmediato cuya forma depende de la familia del arma (data/critStrike.ts); lo pide systems/CritStrikeSystem.ts.
+// Y el meteorito del hechizo activo del Mago (Fase 19B, data/activeSpells.ts); lo pide systems/ActiveSpellSystem.ts.
 import Phaser from 'phaser';
 import { MELEE_ORIGIN_OFFSET_Y } from '../config/gameConfig';
 import { SWING_SOUND_MS } from '../data/audio';
 import type { EffectKey } from '../config/effects';
 import { CAST_SOUND, type SpellBurst, type SpellDef } from '../data/spells';
 import { critReach, type CritShape } from '../data/critStrike';
+import { METEOR_LOOK, type ActiveSpellDef } from '../data/activeSpells';
 import { MELEE_HIT_MOMENT, MELEE_HIT_SOUND, MELEE_SWING_SOUND, type MeleeWeaponDef } from '../data/weapons';
 import { Effect } from '../entities/Effect';
 import type { Enemy } from '../entities/Enemy';
+import { Meteor } from '../entities/Meteor';
 import { Projectile } from '../entities/Projectile';
 import { Slash } from '../entities/Slash';
 import { Pool, type Poolable } from '../utils/Pool';
@@ -38,6 +41,8 @@ export class WeaponSystem {
     private readonly projectiles: Pool<Projectile>;
     private readonly effects: Pool<Effect>;
     private readonly finishedProjectiles: Projectile[] = [];
+    private readonly meteors: Pool<Meteor>;
+    private readonly finishedMeteors: Meteor[] = [];
     private readonly finishedEffects: Effect[] = [];
     private readonly context: WeaponContext & { x: number; y: number; cooldownMultiplier: number };
     private readonly slash: Slash;
@@ -57,6 +62,7 @@ export class WeaponSystem {
         private readonly screenShake: ScreenShake,
     ) {
         this.projectiles = new Pool(() => new Projectile(scene));
+        this.meteors = new Pool(() => new Meteor(scene, METEOR_LOOK));
         this.effects = new Pool(() => new Effect(scene));
         this.slash = new Slash(scene);
         const targeting = new Targeting(enemies);
@@ -160,6 +166,30 @@ export class WeaponSystem {
         this.onOwnerAction('melee', angle, swingMs);
     }
 
+    /**
+     * Where the Mage's active spell should land (Fase 19B): at the cursor (within `range`), `range` × `stickShare` along
+     * the aim stick, else on the target of the automatic aim (a near boss first). Undefined with nothing in range.
+     */
+    public activeSpellTarget(range: number, stickShare: number): { x: number; y: number } | undefined {
+        const { x, y } = this.context;
+        const manual = this.targeting.manual;
+        if (manual) {
+            const point = manual.point;
+            const angle = manualAimAngle(manual, x, y);
+            const distance = point ? Math.min(range, Math.hypot(point.x - x, point.y - y)) : range * stickShare;
+            return { x: x + Math.cos(angle) * distance, y: y + Math.sin(angle) * distance };
+        }
+        const target = this.targeting.findTarget(x, y, range);
+        return target ? { x: target.x, y: target.y } : undefined;
+    }
+
+    /** Meteor Strike (Fase 19B): a meteor starts falling on (x, y); it explodes in update() when it lands. */
+    public castMeteor(def: ActiveSpellDef, powerMultiplier: number, x: number, y: number): void {
+        this.onOwnerAction('cast', Math.atan2(y - this.context.y, x - this.context.x), def.castMs);
+        if (def.castSound) this.audio.play(def.castSound);
+        this.meteors.acquire().launch(def, powerMultiplier, x, y);
+    }
+
     public setCooldownMultiplier(value: number): void {
         this.context.cooldownMultiplier = value;
     }
@@ -185,6 +215,20 @@ export class WeaponSystem {
                 this.finishedProjectiles.push(projectile);
             }
         }
+        for (const meteor of this.meteors.active) {
+            if (meteor.update(deltaMs)) {
+                if ((meteor.smokeWaitMs -= deltaMs) <= 0) {
+                    meteor.smokeWaitMs += METEOR_LOOK.smokeEveryMs;
+                    this.spawnEffect(METEOR_LOOK.smoke, meteor.x, meteor.y);
+                }
+                continue;
+            }
+            this.landMeteor(meteor);
+            meteor.deactivate();
+            this.finishedMeteors.push(meteor);
+        }
+        for (const meteor of this.finishedMeteors) this.meteors.release(meteor);
+        this.finishedMeteors.length = 0;
         this.updateStrike(deltaMs);
         this.slash.update(deltaMs);
         for (const pending of this.bursts.active) {
@@ -231,6 +275,29 @@ export class WeaponSystem {
             strike.waitMs = strike.repeatMs;
             this.onOwnerAction('melee', strike.angle, strike.swingMs);
         }
+    }
+
+    /** The meteor landed: its three explosions at once, a big shake and the damage, every number big. */
+    private landMeteor(meteor: Meteor): void {
+        const { def, targetX: x, targetY: y } = meteor;
+        for (const key of METEOR_LOOK.impact) this.spawnEffect(key, x, y);
+        const spread = METEOR_LOOK.burstSpread;
+        for (let i = 0; i < METEOR_LOOK.burstCount; i++) {
+            this.spawnEffect(METEOR_LOOK.burst, x + Phaser.Math.Between(-spread, spread), y + Phaser.Math.Between(-spread, spread));
+        }
+        this.audio.play(def.impactSound);
+        this.screenShake.shake(def.shakePx, def.shakeMs);
+        this.combat.hitArea({
+            damageType: 'magic',
+            x,
+            y,
+            radius: def.areaRadius,
+            areaDamage: def.areaDamage * meteor.powerMultiplier,
+            direct: this.enemies.findTouching(x, y, def.directRadius),
+            directDamage: def.directDamage * meteor.powerMultiplier,
+            knockback: def.knockback,
+            bigNumbers: true,
+        });
     }
 
     /** Impact: the damage lands once; the explosions are drawn now or after their delay. */

@@ -10,7 +10,7 @@
 //                      resume = guardar y volver a cargar la partida, como con Continue (Fase 12)
 //                      aim = apuntar a mano hacia la derecha todo el rato (sin ratón ni mando, Fase 15B)
 //                      dodge = la mejor armadura de la clase en cada hueco: esquiva y resistencia (Fases 18A y 18B; sin logros esa partida)
-//                      crits = Critical Strikes sin gastar cargas, para lanzar muchos seguidos (Fase 19A; tecla H en partida)
+//                      crits = Critical Strikes sin gastar cargas y Meteor Strike del Mago sin recarga (Fases 19A y 19B; tecla H en partida)
 //                      stats = el panel de stats (C) abierto desde el principio
 //                      aimstick = un dedo de mentira en el stick de apuntar, empujado a la derecha (con --mobile, Fase 15C)
 //                      sim = partida simulada muy deprisa para medir el equilibrio (systems/SimRun.ts, Fase 13C)

@@ -42,10 +42,25 @@ export interface HudBarState {
     level: number;
     elapsedMs: number;
     kills: number;
-    /** Critical Strike charges held (Fase 19A); undefined for a character without them (the Mage, for now). */
-    critCharges: number | undefined;
-    /** Critical Strikes launched so far: when it grows, the icon shows pressed for a moment. */
-    critLaunches: number;
+    /**
+     * Orb of the active skill (Fase 19): the Warrior's Critical Strike charges, or the seconds left until the Mage's
+     * spell is ready (nothing when it is). Undefined for a character without one.
+     */
+    skillOrb: SkillOrb | undefined;
+    /** Skills used so far: when it grows, the icon shows pressed for a moment. */
+    skillUses: number;
+}
+
+/** What the skill orb shows: a number over it, and dimmed when it cannot be used. */
+export interface SkillOrb {
+    text: string;
+    ready: boolean;
+}
+
+/** True when both show the same (`null` = nothing shown yet). */
+export function sameOrb(a: SkillOrb | undefined, b: SkillOrb | undefined | null): boolean {
+    if (b === null) return false;
+    return a === b || (a !== undefined && b !== undefined && a.text === b.text && a.ready === b.ready);
 }
 
 /** Red sword icon of the Critical Strike: which frame to show (purple for a moment after each launch). */

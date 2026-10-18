@@ -68,6 +68,10 @@ import { SpawnSystem } from '../systems/SpawnSystem';
 import { WeaponSystem } from '../systems/WeaponSystem';
 import { CritStrikeSystem } from '../systems/CritStrikeSystem';
 import { maxCritCharges } from '../data/critStrike';
+import { ActiveSpellSystem } from '../systems/ActiveSpellSystem';
+import { DEFAULT_ACTIVE_SPELL } from '../data/activeSpells';
+import { registerEffectAnimations } from '../config/effects';
+import type { SkillOrb } from '../ui/hudLayout';
 import { XpSystem } from '../systems/XpSystem';
 import { canStandAt } from '../utils/collision';
 import { formatTime } from '../utils/format';
@@ -133,6 +137,8 @@ export class GameScene extends Phaser.Scene {
     private weapons!: WeaponSystem;
     /** Critical Strike of the Warrior (Fase 19A); the Mage has none until 19B. */
     private critStrike!: CritStrikeSystem;
+    /** The Mage's active spell (Fase 19B); undefined for the Warrior. */
+    private activeSpell: ActiveSpellSystem | undefined;
     private aimArrow!: AimArrow;
     private debug!: DebugSystem;
     /** ?debug=aim / debug key: aiming to the right by itself (reset at the start of each run). */
@@ -271,6 +277,7 @@ export class GameScene extends Phaser.Scene {
         });
         this.weapons = new WeaponSystem(this, this.enemies, this.combat, this.audio, this.screenShake);
         this.critStrike = new CritStrikeSystem(this.weapons, this.audio, this.screenShake);
+        this.activeSpell = this.createActiveSpell();
         this.aimArrow = new AimArrow(this);
         this.buffs = new BuffSystem(this, this.player, this.audio, (key, x, y) => this.weapons.spawnEffect(key, x, y));
         this.totems = new TotemSystem(this, map, areaPx, this.audio, (id) => this.collectTotem(id));
@@ -518,6 +525,7 @@ export class GameScene extends Phaser.Scene {
         this.buffs.restore(run.buffs);
         if (run.critCharges !== undefined) this.critStrike.restore(run.critCharges, stats.level);
         else this.critStrike.restore(maxCritCharges(stats.level), stats.level);
+        this.activeSpell?.restore(run.spellCooldownMs ?? 0, stats.stats.mag);
         this.spawner.resumeAt(run.elapsedMs, RESUME_CALM_MS, run.bosses);
         // Saved after the final boss: the player starts somewhere else, so its chest (or the portal) appears next to them.
         if (run.finalBossDead) {
@@ -554,6 +562,7 @@ export class GameScene extends Phaser.Scene {
             portalMsLeft: this.portal?.timeLeft ?? (this.portalInMs >= 0 ? PORTAL.durationMs : undefined),
             potionsDrunk: this.achievements.potionsDrunk,
             critCharges: this.critStrike.charges,
+            spellCooldownMs: this.activeSpell?.cooldownLeftMs,
             metrics: this.metrics.snapshot(),
         };
     }
@@ -597,13 +606,14 @@ export class GameScene extends Phaser.Scene {
                 level: this.stats.level,
                 elapsedMs: this.spawner.elapsed,
                 kills: this.combat.kills,
-                critCharges: this.meleeWeapon ? this.critStrike.charges : undefined,
-                critLaunches: this.critStrike.launched,
+                skillOrb: this.skillOrb(),
+                skillUses: this.critStrike.launched + (this.activeSpell?.casts ?? 0),
                 pauseLocked: this.player.isDead || this.levelUpOpen || this.runOver,
                 boss: this.bossInfo(),
                 portalSecondsLeft: this.portal ? Math.ceil(this.portal.timeLeft / 1000) : undefined,
                 stats: this.stats,
                 weaponName: this.meleeWeapon?.def.name ?? this.spellWeapon?.def.name,
+                skillRow: this.skillRow(),
                 defense: this.equipment.defense,
                 defenseRatio: this.defenseRatio,
                 magicResistance: this.magicResistance,
@@ -680,6 +690,7 @@ export class GameScene extends Phaser.Scene {
         const manualAim = this.sim || player.isDead ? undefined : input.getManualAim();
         this.weapons.setManualAim(manualAim);
         this.updateCritStrike(delta);
+        this.updateActiveSpell(delta);
         this.weapons.update(delta, player.x, player.y, !player.isDead);
         this.aimArrow.update(manualAim, player.x, player.y);
         this.damageNumbers.update(delta);
@@ -751,10 +762,59 @@ export class GameScene extends Phaser.Scene {
 
     /** Launches a Critical Strike now, if the Warrior has a charge and is free to act. */
     public launchCritStrike(): void {
+        if (this.activeSpell) {
+            this.castActiveSpell();
+            return;
+        }
         const weapon = this.meleeWeapon;
         const player = this.player;
         if (!weapon || player.isDead || this.levelUpOpen || this.runOver) return;
         this.critStrike.launch(weapon.def, this.stats.level, player.look.gender, player.x, player.y, angleFromDirection(player.direction));
+    }
+
+    /** The HUD orb: the Warrior's Critical Strike charges, or the seconds left of the Mage's spell (blank when ready). */
+    private skillOrb(): SkillOrb | undefined {
+        const spell = this.activeSpell;
+        if (spell) return { text: spell.ready ? '' : String(Math.ceil(spell.cooldownLeftMs / 1000) || ''), ready: spell.ready };
+        if (!this.meleeWeapon) return undefined;
+        const charges = this.critStrike.charges;
+        return { text: String(charges), ready: charges > 0 };
+    }
+
+    /** Stats panel: the Mage's spell with its recharge at this Mag, or the Warrior's maximum Critical Strike charges. */
+    private skillRow(): [string, string] | undefined {
+        const spell = this.activeSpell;
+        if (spell) return [spell.def.name, `${(spell.cooldownMs(this.stats.stats.mag) / 1000).toFixed(1)} s`];
+        if (!this.meleeWeapon) return undefined;
+        return ['Critical Strikes', `${maxCritCharges(this.stats.level)} max`];
+    }
+
+    /** Mage only: their active spell (Fase 19B), its sprite downloaded now (it is big; ON_DEMAND_SPRITES). */
+    private createActiveSpell(): ActiveSpellSystem | undefined {
+        if (CHARACTERS[this.characterId].startWeapon.kind !== 'spell') return undefined;
+        const spell = new ActiveSpellSystem(this.weapons, DEFAULT_ACTIVE_SPELL);
+        void lookLoader.ensure(this, [spell.def.sprite]).then(() => {
+            registerEffectAnimations(this.anims, this.textures);
+            spell.loaded = lookLoader.isReady(this, spell.def.sprite);
+        });
+        return spell;
+    }
+
+    /**
+     * The Mage's active spell (Fase 19B): recharges, and goes off with the Critical Strike button (Space / gamepad X /
+     * the touch button, which calls launchCritStrike). The simulated run casts it as soon as it is ready.
+     */
+    private updateActiveSpell(delta: number): void {
+        const spell = this.activeSpell;
+        if (!spell || this.player.isDead) return;
+        spell.update(delta);
+        if (this.sim ? spell.ready : this.inputSystem.justPressed(Action.CritStrike)) this.castActiveSpell();
+    }
+
+    /** Casts the Mage's active spell now, if it is ready and the Mage is free to act. */
+    private castActiveSpell(): void {
+        if (!this.activeSpell || this.player.isDead || this.levelUpOpen || this.runOver) return;
+        this.activeSpell.cast(this.stats.level, this.stats.stats.mag);
     }
 
     /** Opens the portal a moment after the final chest is picked up; true when the run is won (stepped in or time up). */
@@ -939,8 +999,9 @@ export class GameScene extends Phaser.Scene {
                 }
                 break;
             case 'crits':
-                // Critical Strikes without spending charges, until pressed again (Fase 19A).
+                // Critical Strikes without spending charges and the Mage's spell without recharge, until pressed again (Fases 19A and 19B).
                 this.critStrike.infinite = !this.critStrike.infinite;
+                if (this.activeSpell) this.activeSpell.infinite = this.critStrike.infinite;
                 break;
             case 'stats':
                 // Opened by the Hud scene itself.

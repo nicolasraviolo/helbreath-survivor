@@ -69,15 +69,17 @@ export const HOW_TO_PLAY_PAGES: readonly HowToPlayPage[] = [
         ],
     },
     {
-        // Fase 19A: Critical Strike del Guerrero (el hechizo activo del Mago llegará en la 19B, con el mismo botón).
+        // Fase 19A: Critical Strike del Guerrero; 19B: hechizo activo del Mago (Meteor Strike), con el mismo botón.
         name: 'Crit',
         rows: [
-            { control: 'Space', action: 'Warrior: Critical Strike' },
-            { pad: ['X'], action: 'Warrior: Critical Strike' },
-            { control: 'Red orb button (touch)', action: 'Warrior: Critical Strike' },
-            { control: 'Number on the red orb', action: 'Charges: one more every 20 s' },
-            { control: 'Getting hit', action: 'Also refills the charges' },
-            { control: 'Every 10 levels', action: 'One more charge, and more damage' },
+            // Como mucho 7 filas: con 8, la última pisa el selector "Page".
+            { control: 'Space', action: 'Warrior: Critical Strike · Mage: Meteor Strike' },
+            { pad: ['X'], action: 'Warrior: Critical Strike · Mage: Meteor Strike' },
+            { control: 'Red orb button (touch)', action: 'Warrior: Critical Strike · Mage: Meteor Strike' },
+            { control: 'Number on the red orb', action: 'Warrior: charges (+1 each 20 s) · Mage: secs left' },
+            { control: 'Getting hit', action: 'Warrior: also refills the charges' },
+            { control: 'Every 10 levels', action: 'Warrior: one more charge, and more damage' },
+            { control: 'More Mag', action: 'Mage: Meteor Strike recharges faster' },
         ],
     },
     {

@@ -22,7 +22,7 @@ import {
     HUD_XP,
 } from '../config/hud';
 import { formatTime } from '../utils/format';
-import { CritIconState, type HudBar, type HudBarActions, type HudBarState } from './hudLayout';
+import { CritIconState, sameOrb, type SkillOrb, type HudBar, type HudBarActions, type HudBarState } from './hudLayout';
 
 interface Gauge {
     empty: Phaser.GameObjects.Image;
@@ -41,7 +41,7 @@ export class ClassicHud implements HudBar {
     private readonly infoText: Phaser.GameObjects.Text;
     private readonly critIcon: Phaser.GameObjects.Image;
     private readonly critText: Phaser.GameObjects.Text;
-    private shownCrit: number | undefined = -1;
+    private shownCrit: SkillOrb | undefined | null = null;
     private readonly critState = new CritIconState();
 
     constructor(private readonly scene: Phaser.Scene, actions: HudBarActions) {
@@ -73,16 +73,19 @@ export class ClassicHud implements HudBar {
         }
         setGauge(this.xp, state.xpRatio);
         this.infoText.setText(`Lv ${state.level}  ${formatTime(state.elapsedMs)}  ${state.kills} kills`);
-        this.showCrit(state.critCharges);
-        if (state.critCharges !== undefined) this.critIcon.setFrame(this.critState.frame(state.critLaunches, this.scene.time.now, HUD_CRIT), false, false);
+        this.showCrit(state.skillOrb);
+        if (state.skillOrb) this.critIcon.setFrame(this.critState.frame(state.skillUses, this.scene.time.now, HUD_CRIT), false, false);
     }
 
-    /** The red orb with the charges; dimmed with none, hidden for a character without Critical Strike. */
-    private showCrit(charges: number | undefined): void {
-        if (charges === this.shownCrit) return;
-        this.shownCrit = charges;
-        this.critIcon.setVisible(charges !== undefined).setAlpha(charges ? 1 : HUD_CRIT.emptyAlpha);
-        this.critText.setVisible(charges !== undefined).setText(String(charges ?? ''));
+    /**
+     * The red orb with the Critical Strike charges or the seconds left of the Mage's spell; dimmed when it cannot be
+     * used, hidden for a character without either.
+     */
+    private showCrit(orb: SkillOrb | undefined): void {
+        if (sameOrb(orb, this.shownCrit)) return;
+        this.shownCrit = orb && { ...orb };
+        this.critIcon.setVisible(orb !== undefined).setAlpha(orb?.ready ? 1 : HUD_CRIT.emptyAlpha);
+        this.critText.setVisible(orb !== undefined).setText(orb?.text ?? '');
     }
 
     public destroy(): void {
