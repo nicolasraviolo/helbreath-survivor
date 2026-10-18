@@ -47,10 +47,10 @@ export const MANA_PER_MAG = 2;
 export const MANA_PER_LEVEL = 2;
 export const MANA_PER_INT = 0.5;
 
-/** Daño físico +2% por punto de Str sobre 10 (en el original, +0,2%). */
-export const PHYSICAL_DAMAGE_PER_STR = 0.02;
-/** Daño mágico +4% por punto de Mag sobre 10 (en el original, +0,3%). */
-export const MAGIC_DAMAGE_PER_MAG = 0.04;
+/** Daño físico +3% por punto de Str sobre 10 (en el original, +0,2%). Igual que Mag (Fase 13C). */
+export const PHYSICAL_DAMAGE_PER_STR = 0.03;
+/** Daño mágico +3% por punto de Mag sobre 10 (en el original, +0,3%). Era +4% hasta la Fase 13C. */
+export const MAGIC_DAMAGE_PER_MAG = 0.03;
 
 /** Dex: +1% de velocidad de movimiento y +1% de velocidad de ataque por punto sobre 10. */
 export const MOVE_SPEED_PER_DEX = 0.01;
