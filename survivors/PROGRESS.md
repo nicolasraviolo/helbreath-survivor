@@ -18,10 +18,10 @@
 | 13 — Jefe final y equilibrio | ✅ completada (13A, 13B y 13C) | 2026-10-18 |
 | 14 — Métricas y logros | ✅ completada (14A y 14B) | 2026-10-18 |
 | 15 — Apuntado híbrido | ✅ completada (15A, 15B y 15C) | 2026-10-18 |
-| 16 — Minimapa y tótems | 🔄 en curso (16A y 16B hechos; falta cerrarla) | 2026-10-18 |
+| 16 — Minimapa y tótems | ✅ completada (16A y 16B) | 2026-10-18 |
 
 ## Fase actual
-**Para retomar (18-oct-2026): Fase 16, bloques 16A (minimapa) y 16B (tótems) terminados** en la rama `fase-16`. **Siguiente:** cerrar la fase: `/revisar` y `/checkpoint fase` (fusionar en `master`, etiqueta `fase-16`). Después, `/fase 17` (selección de personaje). Los crits van en la Fase 18 (botón táctil en `TOUCH_RESERVED_CORNER`).
+**Para retomar (18-oct-2026): Fase 16 (minimapa y tótems) completada** y fusionada en `master` (etiqueta `fase-16`; no se pasó `/revisar`). **Siguiente:** `/fase 17` (selección de personaje). Los crits van en la Fase 18 (botón táctil en `TOUCH_RESERVED_CORNER`).
 - **Minimapa (16A):** `ui/Minimap.ts` + `data/minimap.ts`; solo jugador, jefes y tótems. Ver NOTES.md, "Minimapa (Fase 16A)".
 - **Tótems (16B):** Mana Stones cada ~75 s (máx. 2, duran 60 s) con Berserk, Defense Shield, Full HP o Freeze (5 s); números en `data/totems.ts`, lógica en `systems/TotemSystem.ts`. **Los cofres dan una carta gratis** ("Treasure!"), también el del jefe final. Atajo `?debug=totems`. Ver NOTES.md, "Tótems (Fase 16B)".
 - **Ajuste de oleadas (18-oct-2026, antes de la Fase 16):** un monstruo nuevo cada ~minuto (los débiles siguen saliendo poco, por variedad), tope de vivos 100→260, **con un jefe vivo no sale nadie de las oleadas** (`SpawnSystem`), monstruos normales con vida y XP ×2 y daño ×1,4 (jefes igual que antes). Simulación: 900–1.400 muertes por partida (antes 2.400–3.300), ~8% mueren de un golpe (antes 15–21%), nivel 25–26, Ettin ~30–65 s, Wyvern ~2:15–2:55. La partida simulada ahora da también `aliveByMinute` y `oneHitKillShare`.
