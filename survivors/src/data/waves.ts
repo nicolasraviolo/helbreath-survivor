@@ -39,12 +39,21 @@ export interface WaveEventDef {
 // El resto de monstruos de enemies.ts (Bunny, Troll, Werewolf, Lich, Gargoyle…) queda para otros mapas.
 // Al final del archivo se comprueba que cada oleada solo use monstruos permitidos en el mapa.
 export const WAVES: readonly WaveDef[] = [
-    { fromMinute: 0, enemies: [{ enemy: 'slime', weight: 5 }, { enemy: 'ant', weight: 4 }, { enemy: 'snake', weight: 2 }], startInterval: 1.2, endInterval: 0.6, batchSize: 2, maxAlive: 200 },
-    { fromMinute: 1.5, enemies: [{ enemy: 'ant', weight: 2 }, { enemy: 'snake', weight: 3 }, { enemy: 'orc', weight: 4 }, { enemy: 'orcMage', weight: 1 }], startInterval: 0.8, endInterval: 0.45, batchSize: 2, maxAlive: 260 },
-    { fromMinute: 3.5, enemies: [{ enemy: 'orc', weight: 2 }, { enemy: 'orcMage', weight: 1 }, { enemy: 'zombie', weight: 4 }, { enemy: 'scorpion', weight: 3 }], startInterval: 0.6, endInterval: 0.35, batchSize: 2, maxAlive: 300 },
-    { fromMinute: 5.5, enemies: [{ enemy: 'scorpion', weight: 2 }, { enemy: 'skeleton', weight: 4 }, { enemy: 'clayGolem', weight: 3 }, { enemy: 'cyclops', weight: 1 }], startInterval: 0.5, endInterval: 0.3, batchSize: 2, maxAlive: 320 },
-    { fromMinute: 7.5, enemies: [{ enemy: 'skeleton', weight: 2 }, { enemy: 'clayGolem', weight: 2 }, { enemy: 'stoneGolem', weight: 3 }, { enemy: 'frog', weight: 2 }, { enemy: 'cyclops', weight: 1 }, { enemy: 'cannibalPlant', weight: 1 }], startInterval: 0.45, endInterval: 0.25, batchSize: 2, maxAlive: 340 },
-    { fromMinute: 9.5, enemies: [{ enemy: 'stoneGolem', weight: 3 }, { enemy: 'frog', weight: 3 }, { enemy: 'skeleton', weight: 1 }, { enemy: 'cyclops', weight: 1 }, { enemy: 'cannibalPlant', weight: 1 }, { enemy: 'ogre', weight: 1 }, { enemy: 'mountainGiant', weight: 1 }], startInterval: 0.4, endInterval: 0.22, batchSize: 2, maxAlive: 360 },
+    // Ajuste del 18-oct-2026 (propietario): un monstruo nuevo cada ~minuto, los débiles siguen saliendo poco para dar
+    // variedad, y menos monstruos a la vez (pero con el doble de vida y más daño, enemies.ts). Con un jefe vivo no sale
+    // nadie de las oleadas (SpawnSystem).
+    { fromMinute: 0, enemies: [{ enemy: 'slime', weight: 6 }, { enemy: 'ant', weight: 4 }], startInterval: 1.4, endInterval: 0.9, batchSize: 2, maxAlive: 100 },
+    { fromMinute: 1, enemies: [{ enemy: 'slime', weight: 3 }, { enemy: 'ant', weight: 4 }, { enemy: 'snake', weight: 4 }], startInterval: 1.1, endInterval: 0.8, batchSize: 2, maxAlive: 120 },
+    { fromMinute: 2, enemies: [{ enemy: 'slime', weight: 1 }, { enemy: 'ant', weight: 2 }, { enemy: 'snake', weight: 3 }, { enemy: 'orc', weight: 5 }], startInterval: 1, endInterval: 0.7, batchSize: 2, maxAlive: 140 },
+    { fromMinute: 3, enemies: [{ enemy: 'slime', weight: 1 }, { enemy: 'ant', weight: 1 }, { enemy: 'snake', weight: 2 }, { enemy: 'orc', weight: 4 }, { enemy: 'orcMage', weight: 2 }, { enemy: 'zombie', weight: 4 }], startInterval: 0.9, endInterval: 0.65, batchSize: 2, maxAlive: 160 },
+    { fromMinute: 4, enemies: [{ enemy: 'snake', weight: 1 }, { enemy: 'orc', weight: 2 }, { enemy: 'orcMage', weight: 1 }, { enemy: 'zombie', weight: 3 }, { enemy: 'scorpion', weight: 4 }], startInterval: 0.8, endInterval: 0.6, batchSize: 2, maxAlive: 170 },
+    { fromMinute: 5, enemies: [{ enemy: 'ant', weight: 1 }, { enemy: 'orc', weight: 1 }, { enemy: 'zombie', weight: 2 }, { enemy: 'scorpion', weight: 3 }, { enemy: 'skeleton', weight: 4 }], startInterval: 0.75, endInterval: 0.55, batchSize: 2, maxAlive: 180 },
+    { fromMinute: 6, enemies: [{ enemy: 'slime', weight: 1 }, { enemy: 'orc', weight: 1 }, { enemy: 'scorpion', weight: 2 }, { enemy: 'skeleton', weight: 3 }, { enemy: 'clayGolem', weight: 4 }], startInterval: 0.7, endInterval: 0.5, batchSize: 2, maxAlive: 200 },
+    { fromMinute: 7, enemies: [{ enemy: 'snake', weight: 1 }, { enemy: 'zombie', weight: 1 }, { enemy: 'scorpion', weight: 1 }, { enemy: 'skeleton', weight: 2 }, { enemy: 'clayGolem', weight: 3 }, { enemy: 'cyclops', weight: 1 }], startInterval: 0.65, endInterval: 0.5, batchSize: 2, maxAlive: 210 },
+    { fromMinute: 8, enemies: [{ enemy: 'orc', weight: 1 }, { enemy: 'skeleton', weight: 2 }, { enemy: 'clayGolem', weight: 2 }, { enemy: 'stoneGolem', weight: 4 }, { enemy: 'cyclops', weight: 1 }], startInterval: 0.6, endInterval: 0.45, batchSize: 2, maxAlive: 220 },
+    { fromMinute: 9, enemies: [{ enemy: 'slime', weight: 1 }, { enemy: 'skeleton', weight: 1 }, { enemy: 'clayGolem', weight: 1 }, { enemy: 'stoneGolem', weight: 3 }, { enemy: 'frog', weight: 3 }, { enemy: 'cyclops', weight: 1 }, { enemy: 'cannibalPlant', weight: 1 }], startInterval: 0.55, endInterval: 0.45, batchSize: 2, maxAlive: 240 },
+    { fromMinute: 10, enemies: [{ enemy: 'ant', weight: 1 }, { enemy: 'zombie', weight: 1 }, { enemy: 'stoneGolem', weight: 3 }, { enemy: 'frog', weight: 3 }, { enemy: 'cyclops', weight: 1 }, { enemy: 'cannibalPlant', weight: 1 }, { enemy: 'ogre', weight: 1 }], startInterval: 0.5, endInterval: 0.4, batchSize: 2, maxAlive: 250 },
+    { fromMinute: 11, enemies: [{ enemy: 'slime', weight: 1 }, { enemy: 'orc', weight: 1 }, { enemy: 'stoneGolem', weight: 3 }, { enemy: 'frog', weight: 3 }, { enemy: 'cyclops', weight: 1 }, { enemy: 'cannibalPlant', weight: 1 }, { enemy: 'ogre', weight: 1 }, { enemy: 'mountainGiant', weight: 1 }], startInterval: 0.5, endInterval: 0.4, batchSize: 2, maxAlive: 260 },
 ];
 
 export const WAVE_EVENTS: readonly WaveEventDef[] = [
