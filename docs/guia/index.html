@@ -126,16 +126,19 @@ td.icon img { max-height: 40px; vertical-align: middle; }
 
 /* Línea de tiempo de 12 minutos, a escala */
 .timeline { margin: 18px 0 6px; overflow-x: auto; }
-.tl-inner { min-width: 680px; position: relative; padding-top: 34px; }
-.bands { display: grid; grid-template-columns: repeat(6, 1fr); border-radius: 6px; overflow: hidden; border: 1px solid var(--wood); }
-.band { padding: 8px 8px 10px; font-size: 13px; line-height: 1.35; min-height: 128px; }
+.tl-inner { min-width: 680px; position: relative; padding-top: 58px; }
+.bands { display: grid; grid-template-columns: 1.5fr 2fr 2fr 2fr 2fr 2.5fr; border-radius: 6px; overflow: hidden; border: 1px solid var(--wood); }
+.band { padding: 8px 8px 10px; font-size: 12.5px; line-height: 1.35; min-height: 150px; }
 .band b { display: block; font-family: var(--mono); font-size: 12px; margin-bottom: 4px; }
 .band .sp { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 2px; height: 46px; margin-bottom: 4px; }
 .band .sp img { max-height: 44px; max-width: 40px; }
 .b1{background:var(--band1)} .b2{background:var(--band2)} .b3{background:var(--band3)} .b4{background:var(--band4)} .b5{background:var(--band5)} .b6{background:var(--band6)}
-.event { position: absolute; top: 0; transform: translateX(-50%); font-size: 12px; white-space: nowrap; text-align: center; font-family: var(--game); }
+.event { position: absolute; top: 24px; transform: translateX(-50%); font-size: 12px; white-space: nowrap; text-align: center; font-family: var(--game); }
+.event.up { top: 0; }
 .event::after { content: ""; display: block; width: 2px; height: 10px; background: var(--fg); margin: 2px auto 0; }
+.event.up::after { height: 32px; }
 .event.boss-ev { font-weight: 700; color: var(--gold); }
+.event.stamp { color: var(--red); }
 .event.boss-ev::after { background: var(--gold); }
 .event.last { transform: translateX(-100%); text-align: right; }
 .event.last::after { margin-right: 0; }
@@ -208,25 +211,26 @@ footer { margin-top: 48px; padding-top: 20px; border-top: 1px solid var(--wood);
   <main>
     <header class="hero">
       <div>
-        <div class="eyebrow">Proyecto fan · demo web · octubre 2026</div>
+        <div class="eyebrow">Proyecto fan · demo web · octubre 2026 · Fase 13</div>
         <h1><img class="drawn" src="img/sprites/txt-title.png" alt=""><span>Helbreath Survivors</span></h1>
         <p class="lede">Un juego de supervivencia contra hordas, al estilo de <i>Vampire Survivors</i>, hecho con los gráficos, sonidos y monstruos del MMORPG coreano <b>Helbreath</b> (2000). Se juega en el navegador, en PC y en el móvil.</p>
         <div class="facts">
           <div><b>12 min</b> hasta el jefe final</div>
           <div><b>2</b> clases</div>
-          <div><b>24</b> monstruos, <b>3</b> jefes</div>
-          <div>Fase <b>10 de 10</b></div>
+          <div><b>15</b> monstruos, <b>3</b> jefes</div>
+          <div>Mapa <b>Bleeding Isle</b></div>
+          <div>Fase <b>13</b> terminada</div>
         </div>
       </div>
       <figure class="shot" style="margin:0">
-        <img src="img/menu.png" alt="Menú principal con la pantalla de título original de Helbreath y las opciones Play, Achievements, Settings, Credits y Fullscreen" width="800" height="600">
-        <figcaption>El menú principal usa la pantalla de título original del juego.</figcaption>
+        <img src="img/menu.jpg" alt="Menú principal con la pantalla de título original de Helbreath, las opciones Play, How to Play, Achievements, Settings y Credits, y abajo la versión del juego" width="800" height="600">
+        <figcaption>El menú principal usa la pantalla de título original. Abajo se ve la versión del juego (la fase en curso).</figcaption>
       </figure>
     </header>
 
     <section id="que-es">
       <h2>Qué es</h2>
-      <p>En un <i>Survivors</i> el jugador solo mueve a su personaje. Las armas atacan solas. Cada vez llegan más monstruos, que sueltan gemas de experiencia al morir. Al subir de nivel eliges una mejora entre tres cartas, y la partida termina cuando mueres o cuando matas al jefe final.</p>
+      <p>En un <i>Survivors</i> el jugador solo mueve a su personaje. Las armas atacan solas. Cada vez llegan más monstruos, que sueltan gemas de experiencia al morir. Al subir de nivel eliges una mejora entre tres cartas, y la partida termina cuando mueres o cuando matas al jefe final y sales por su portal.</p>
       <p>Lo especial de este proyecto es que todo sale de Helbreath: el mapa, los personajes compuestos por capas (cuerpo, pelo, armadura, arma), las animaciones, las explosiones de los hechizos, los sonidos, la música y la fuente dibujada que ves en los títulos de esta guía. Los monstruos copian el comportamiento del servidor original: su ritmo de ataque, su alcance, su velocidad y su tendencia a huir.</p>
       <p class="muted">El juego está solo en inglés. Esta guía está en español. Todas las imágenes salen del juego en marcha.</p>
     </section>
@@ -234,17 +238,17 @@ footer { margin-top: 48px; padding-top: 20px; border-top: 1px solid var(--wood);
     <section id="partida">
       <h2>Cómo es una partida</h2>
       <figure class="shot">
-        <img src="img/play-warrior.jpg" alt="El Guerrero en el centro del mapa Eternal Field, rodeado de orcos y escorpiones junto a un río, con la barra inferior original" width="800" height="600" loading="lazy">
-        <figcaption>Minuto 3 con el Guerrero. Abajo, la barra original de Helbreath con vida, maná, experiencia, nivel, tiempo y bajas.</figcaption>
+        <img src="img/play-warrior.jpg" alt="El Guerrero en el centro del mapa Bleeding Isle, con raíces en el suelo y orcos acercándose, junto a un río, con la barra inferior original" width="800" height="600" loading="lazy">
+        <figcaption>Minuto 3 con el Guerrero en Bleeding Isle. Abajo, la barra original de Helbreath con vida, maná, experiencia, nivel, tiempo y bajas.</figcaption>
       </figure>
       <ul>
         <li><b>Menú principal</b> → <b>Play</b>.</li>
         <li><b>Create New Character</b>, la pantalla original de creación: eliges <b>Warrior</b> o <b>Magician</b>.</li>
-        <li>Apareces en <b>Eternal Field</b> (el mapa <code>huntzone2</code>), una zona de unas 100×100 casillas con río y bosque.</li>
+        <li>Apareces en <b>Bleeding Isle</b>, una isla de 150×150 casillas, casi toda libre de obstáculos, con río, bosque y ruinas.</li>
         <li>Te mueves. Tu arma o hechizo ataca sola al enemigo más cercano.</li>
         <li>Recoges las <b>gemas</b>. Al subir de nivel, el juego se para y eliges <b>1 de 3 cartas</b>.</li>
-        <li>Cada 2 minutos cambia la oleada. En los minutos 5 y 8 llegan minijefes; en el 12, el <b>Fire Wyvern</b>.</li>
-        <li>Si matas al Wyvern, <b>ganas</b>. Si mueres, <b>Game Over</b>.</li>
+        <li>Cada pocos minutos cambia la oleada y hay eventos: rodeos y estampidas. En los minutos 5 y 8 llegan minijefes; en el 12, el <b>Fire Wyvern</b>.</li>
+        <li>Si matas al Wyvern, abres su cofre y cruzas el portal: <b>ganas</b>. Si mueres, <b>Game Over</b>.</li>
       </ul>
     </section>
 
@@ -261,7 +265,7 @@ footer { margin-top: 48px; padding-top: 20px; border-top: 1px solid var(--wood);
           <tr><td>Volver</td><td><kbd>Esc</kbd> <kbd>Retroceso</kbd></td><td>B</td><td>Tocar</td></tr>
         </tbody>
       </table></div>
-      <p class="muted">Si se desconecta el mando, la partida se pausa sola. En el móvil, el juego pide girar a horizontal y ofrece pantalla completa (salvo en iPhone, donde Safari no lo permite).</p>
+      <p class="muted">En pantalla no hay ningún texto de controles: todos se explican en <b>How to Play</b>, en el menú principal y en la pausa. Si se desconecta el mando, la partida se pausa sola. En el móvil, el juego pide girar a horizontal y ofrece pantalla completa (salvo en iPhone, donde Safari no lo permite).</p>
     </section>
 
     <section id="personajes">
@@ -280,7 +284,7 @@ footer { margin-top: 48px; padding-top: 20px; border-top: 1px solid var(--wood);
           <div>
             <div class="name"><img class="drawn" src="img/sprites/txt-magician.png" alt="Magician"></div>
             <p>A distancia. Lanza hechizos al enemigo más cercano. Desbloquea hechizos con <b>Int</b> y les sube el daño con <b>Mag</b>.</p>
-            <p class="statline">Empieza con Energy Bolt, corpiño, falda, botas y varita.<br>Str 12 · Vit 10 · Dex 10 · Int 14 · Mag 14 · Chr 10<br>Cada nivel: +1 Int, +2 Mag</p>
+            <p class="statline">Empieza con Energy Bolt, corpiño, falda, botas y varita.<br>Str 12 · Vit 10 · Dex 10 · Int 14 · Mag 14 · Chr 10<br>Cada nivel: +1 Int, +1 Mag</p>
           </div>
         </div>
       </div>
@@ -293,22 +297,22 @@ footer { margin-top: 48px; padding-top: 20px; border-top: 1px solid var(--wood);
 
     <section id="stats">
       <h2>Stats</h2>
-      <p>Los seis stats de Helbreath. Suben solos con cada nivel y con las cartas "+3".</p>
+      <p>Los seis stats de Helbreath. Suben solos con cada nivel (Guerrero: +1 Str y +1 Vit; Maga: +1 Int y +1 Mag) y con las cartas "+3".</p>
       <div class="shots-2">
         <div class="table-wrap" style="margin:0"><table>
           <thead><tr><th>Stat</th><th>Qué hace en el juego</th></tr></thead>
           <tbody>
-            <tr><td><b>Str</b></td><td>Daño físico. Requisito de armas y armaduras del Guerrero.</td></tr>
-            <tr><td><b>Vit</b></td><td>Vida máxima.</td></tr>
-            <tr><td><b>Dex</b></td><td>Velocidad de movimiento y de ataque.</td></tr>
+            <tr><td><b>Str</b></td><td>Daño físico: +3 % por punto sobre 10. Requisito de armas y armaduras del Guerrero.</td></tr>
+            <tr><td><b>Vit</b></td><td>Vida máxima, y cura poco a poco: 0,02 de vida por segundo por punto de Vit.</td></tr>
+            <tr><td><b>Dex</b></td><td>Velocidad de movimiento y de ataque: +1 % por punto sobre 10.</td></tr>
             <tr><td><b>Int</b></td><td>Requisito de hechizos y de ropa de mago; algo de maná.</td></tr>
-            <tr><td><b>Mag</b></td><td>Daño mágico y maná.</td></tr>
-            <tr><td><b>Chr</b></td><td>Crítico: daño doble, número amarillo con "!".</td></tr>
+            <tr><td><b>Mag</b></td><td>Daño mágico: +3 % por punto sobre 10 (igual que Str). También da maná.</td></tr>
+            <tr><td><b>Chr</b></td><td>Crítico: 5 % de base y +1 % por punto sobre 10. Hace daño doble, con número amarillo y "!".</td></tr>
           </tbody>
         </table></div>
         <figure class="shot" style="margin:0"><img src="img/stats-panel.jpg" alt="Panel de stats abierto con la tecla C: nivel, stats, arma, daño recibido y pasivas" width="800" height="600" loading="lazy"><figcaption>El panel de stats (tecla <kbd>C</kbd>) a mitad de partida.</figcaption></figure>
       </div>
-      <p class="muted">Los requisitos son los del original multiplicados por 0,4, para que quepan en una partida de 12 minutos.</p>
+      <p class="muted">Los requisitos son los del original multiplicados por 0,4, para que quepan en una partida de 12 minutos. Las espadas hacen ×1,5 de daño y Energy Strike lanza descargas de 8 de daño: así el Guerrero y la Maga matan al Wyvern en un tiempo parecido (unos 2:10 a 2:50 en partidas simuladas).</p>
     </section>
 
     <section id="arsenal">
@@ -372,12 +376,13 @@ footer { margin-top: 48px; padding-top: 20px; border-top: 1px solid var(--wood);
     <section id="objetos">
       <h2>Objetos y buffs</h2>
       <div class="items">
-        <div class="item"><div class="ic"><img class="px" src="img/sprites/gem-1.png" alt=""><!-- esmeralda --></div><div><b>Emerald</b><span>Gema de XP pequeña</span></div></div>
-        <div class="item"><div class="ic"><img class="px" src="img/sprites/gem-3.png" alt=""></div><div><b>Sapphire</b><span>Gema de XP mediana</span></div></div>
-        <div class="item"><div class="ic"><img class="px" src="img/sprites/gem-5.png" alt=""></div><div><b>Ruby</b><span>Gema de XP grande</span></div></div>
+        <div class="item"><div class="ic"><img class="px" src="img/sprites/gem-1.png" alt=""><!-- esmeralda --></div><div><b>Emerald</b><span>Gema de XP pequeña (menos de 5)</span></div></div>
+        <div class="item"><div class="ic"><img class="px" src="img/sprites/gem-3.png" alt=""></div><div><b>Sapphire</b><span>XP mediana (de 5 a 14)</span></div></div>
+        <div class="item"><div class="ic"><img class="px" src="img/sprites/gem-5.png" alt=""></div><div><b>Ruby</b><span>XP grande (de 15 a 59)</span></div></div>
+        <div class="item"><div class="ic"><img class="px" src="img/sprites/gem-diamond.png" alt=""></div><div><b>Diamond</b><span>XP enorme (60 o más): monstruos grandes y jefes</span></div></div>
         <div class="item"><div class="ic"><img class="px" src="img/sprites/potion.png" alt=""></div><div><b>Red Potion</b><span>Cura el 30 %. Cae con un 1,5 %</span></div></div>
         <div class="item"><div class="ic"><img class="px" src="img/sprites/magnet.png" alt=""></div><div><b>Magnet</b><span>Atrae todas las gemas. Cae con un 0,5 %</span></div></div>
-        <div class="item"><div class="ic"><img class="px" src="img/sprites/chest.png" alt=""></div><div><b>Chest</b><span>Lo sueltan los minijefes. Da un buff</span></div></div>
+        <div class="item"><div class="ic"><img class="px" src="img/sprites/chest.png" alt=""></div><div><b>Chest</b><span>Lo sueltan los minijefes y el jefe final. Da un buff</span></div></div>
       </div>
       <p>El cofre da uno de estos buffs durante 20 s. Se pueden tener los dos a la vez; abajo a la derecha se ve cuánto le queda a cada uno. El nombre sube sobre el personaje con la fuente del original:</p>
       <div class="buffs">
@@ -394,70 +399,66 @@ footer { margin-top: 48px; padding-top: 20px; border-top: 1px solid var(--wood);
     </section>
 
     <section id="enemigos">
-      <h2>Bestiario <small>21 monstruos y 3 jefes</small></h2>
+      <h2>Bestiario <small>15 monstruos y 3 jefes en Bleeding Isle</small></h2>
       <p>Todos con sus sprites y sonidos originales. Su comportamiento sale del código del servidor de Helbreath:</p>
       <ul>
         <li><b>Ritmo de ataque real.</b> Atacan con animación y sonido; el golpe solo hace daño si sigues a su alcance cuando cae.</li>
-        <li><b>Alcance real.</b> El Ettin, el Ogre y el Cyclops pegan desde 3 casillas; el Wyvern, desde 7. El <b>Dark Elf dispara flechas</b> desde 8.</li>
+        <li><b>Alcance real.</b> El Ettin, el Ogre y el Cyclops pegan desde 3 casillas; el Wyvern, desde 7. El <b>Mage-Orc</b> lanza bolas de fuego lentas desde 5 (usa el dibujo del Orc).</li>
         <li><b>Pega y huye.</b> Un 20 % pega una o dos veces y se aleja. Con muy poca vida, los pequeños suelen huir; los grandes casi nunca.</li>
         <li><b>Velocidad real</b>, algo acelerada para que lleguen antes. El jugador es unas 2 veces más rápido que ellos.</li>
+        <li><b>XP</b>: cada monstruo da una quinta parte de su vida en experiencia (un Slime, 2; un Ogre, 104). Los grandes sueltan diamantes.</li>
       </ul>
+      <p>Los monstruos se reparten en tres grupos. Los <b>comunes</b> aparecen en todos los mapas; cada mapa añade los suyos, más fuertes y menos numerosos, y sus jefes. El Dark Elf (el arquero) está desactivado: sus flechas eran molestas. Otros monstruos ya preparados (Bunny, Troll, Werewolf, Lich, Gargoyle, Minotaur...) esperan a otros mapas.</p>
       <div class="bestiary">
-        <div class="tier"><h3>Minutos 0–4</h3><div class="mons">
+        <div class="tier"><h3>Comunes a todos los mapas (de más débil a más fuerte)</h3><div class="mons">
           <div class="mon"><div class="box"><img class="px" src="img/sprites/enemy-slime.png" alt=""></div><b>Slime</b><span>10 HP</span></div>
-          <div class="mon"><div class="box"><img class="px" src="img/sprites/enemy-bunny.png" alt=""></div><b>Bunny</b><span>8 HP</span></div>
-          <div class="mon"><div class="box"><img class="px" src="img/sprites/enemy-ant.png" alt=""></div><b>Ant</b><span>12 HP</span></div>
-          <div class="mon"><div class="box"><img class="px" src="img/sprites/enemy-orc.png" alt=""></div><b>Orc</b><span>30 HP</span></div>
+          <div class="mon"><div class="box"><img class="px" src="img/sprites/enemy-ant.png" alt=""></div><b>Ant</b><span>14 HP</span></div>
           <div class="mon"><div class="box"><img class="px" src="img/sprites/enemy-snake.png" alt=""></div><b>Snake</b><span>20 HP</span></div>
-          <div class="mon"><div class="box"><img class="px" src="img/sprites/enemy-scorpion.png" alt=""></div><b>Scorpion</b><span>40 HP</span></div>
-          <div class="mon"><div class="box"><img class="px" src="img/sprites/enemy-frog.png" alt=""></div><b>Giant Frog</b><span>55 HP</span></div>
+          <div class="mon"><div class="box"><img class="px" src="img/sprites/enemy-orc.png" alt=""></div><b>Orc</b><span>30 HP</span></div>
+          <div class="mon"><div class="box"><img class="px" src="img/sprites/enemy-orc.png" alt=""></div><b>Mage-Orc</b><span>40 HP · bolas de fuego</span></div>
+          <div class="mon"><div class="box"><img class="px" src="img/sprites/enemy-zombie.png" alt=""></div><b>Zombie</b><span>60 HP</span></div>
+          <div class="mon"><div class="box"><img class="px" src="img/sprites/enemy-scorpion.png" alt=""></div><b>Scorpion</b><span>75 HP</span></div>
+          <div class="mon"><div class="box"><img class="px" src="img/sprites/enemy-skeleton.png" alt=""></div><b>Skeleton</b><span>90 HP</span></div>
+          <div class="mon"><div class="box"><img class="px" src="img/sprites/enemy-clayGolem.png" alt=""></div><b>Clay Golem</b><span>120 HP</span></div>
+          <div class="mon"><div class="box"><img class="px" src="img/sprites/enemy-stoneGolem.png" alt=""></div><b>Stone Golem</b><span>150 HP</span></div>
+          <div class="mon"><div class="box"><img class="px" src="img/sprites/enemy-frog.png" alt=""></div><b>Giant Frog</b><span>180 HP</span></div>
         </div></div>
-        <div class="tier"><h3>Minutos 4–8</h3><div class="mons">
-          <div class="mon"><div class="box"><img class="px" src="img/sprites/enemy-skeleton.png" alt=""></div><b>Skeleton</b><span>70 HP</span></div>
-          <div class="mon"><div class="box"><img class="px" src="img/sprites/enemy-zombie.png" alt=""></div><b>Zombie</b><span>95 HP</span></div>
-          <div class="mon"><div class="box"><img class="px" src="img/sprites/enemy-direBoar.png" alt=""></div><b>Dire Boar</b><span>140 HP</span></div>
-          <div class="mon"><div class="box"><img class="px" src="img/sprites/enemy-troll.png" alt=""></div><b>Troll</b><span>230 HP</span></div>
-          <div class="mon"><div class="box"><img class="px" src="img/sprites/enemy-ogre.png" alt=""></div><b>Ogre</b><span>320 HP</span></div>
-          <div class="mon"><div class="box"><img class="px" src="img/sprites/enemy-stalker.png" alt=""></div><b>Stalker</b><span>210 HP</span></div>
-          <div class="mon"><div class="box"><img class="px" src="img/sprites/enemy-werewolf.png" alt=""></div><b>Werewolf</b><span>270 HP</span></div>
-        </div></div>
-        <div class="tier"><h3>Minutos 8–12</h3><div class="mons">
+        <div class="tier"><h3>Propios de Bleeding Isle (salen desde el minuto 5:30, pocos)</h3><div class="mons">
           <div class="mon"><div class="box"><img class="px" src="img/sprites/enemy-cyclops.png" alt=""></div><b>Cyclops</b><span>400 HP</span></div>
-          <div class="mon"><div class="box"><img class="px" src="img/sprites/enemy-lich.png" alt=""></div><b>Lich</b><span>340 HP</span></div>
-          <div class="mon"><div class="box"><img class="px" src="img/sprites/enemy-hellhound.png" alt=""></div><b>Hellhound</b><span>270 HP</span></div>
-          <div class="mon"><div class="box"><img class="px" src="img/sprites/enemy-darkElf.png" alt=""></div><b>Dark Elf</b><span>320 HP · arquero</span></div>
-          <div class="mon"><div class="box"><img class="px" src="img/sprites/enemy-gargoyle.png" alt=""></div><b>Gargoyle</b><span>560 HP</span></div>
-          <div class="mon"><div class="box"><img class="px" src="img/sprites/enemy-hellclaw.png" alt=""></div><b>Hellclaw</b><span>650 HP</span></div>
-          <div class="mon"><div class="box"><img class="px" src="img/sprites/enemy-tigerworm.png" alt=""></div><b>Tigerworm</b><span>760 HP</span></div>
-          <div class="mon"><div class="box"><img class="px" src="img/sprites/enemy-minotaur.png" alt=""></div><b>Minotaur</b><span>700 HP</span></div>
+          <div class="mon"><div class="box"><img class="px" src="img/sprites/enemy-cannibalPlant.png" alt=""></div><b>Cannibal Plant</b><span>450 HP</span></div>
+          <div class="mon"><div class="box"><img class="px" src="img/sprites/enemy-ogre.png" alt=""></div><b>Ogre</b><span>520 HP</span></div>
+          <div class="mon"><div class="box"><img class="px" src="img/sprites/enemy-mountainGiant.png" alt=""></div><b>Mountain Giant</b><span>650 HP</span></div>
         </div></div>
         <div class="tier"><h3>Jefes</h3>
           <div class="bosses">
-            <div class="boss"><div class="box"><img class="px" src="img/sprites/enemy-ettin.png" alt="Ettin, gigante de dos cabezas"></div><div class="title"><img class="drawn" src="img/sprites/txt-ettin-name.png" alt="Ettin"></div><span>Minuto 5 · 2.600 HP · suelta cofre</span></div>
-            <div class="boss"><div class="box"><img class="px" src="img/sprites/enemy-demon.png" alt="Demon"></div><div class="title"><img class="drawn" src="img/sprites/txt-demon.png" alt="Demon"></div><span>Minuto 8 · 6.500 HP · suelta cofre</span></div>
-            <div class="boss"><div class="box"><img class="px" src="img/sprites/enemy-fireWyvern.png" alt="Fire Wyvern, dragón rojo"></div><div class="title"><img class="drawn" src="img/sprites/txt-wyvern.png" alt="Fire Wyvern"></div><span>Minuto 12 · 32.000 HP · jefe final</span></div>
+            <div class="boss"><div class="box"><img class="px" src="img/sprites/enemy-ettin.png" alt="Ettin, gigante de dos cabezas"></div><div class="title"><img class="drawn" src="img/sprites/txt-ettin-name.png" alt="Ettin"></div><span>Minuto 5 · 1.600 HP · suelta cofre</span></div>
+            <div class="boss"><div class="box"><img class="px" src="img/sprites/enemy-demon.png" alt="Demon"></div><div class="title"><img class="drawn" src="img/sprites/txt-demon.png" alt="Demon"></div><span>Minuto 8 · 4.000 HP · suelta cofre</span></div>
+            <div class="boss"><div class="box"><img class="px" src="img/sprites/enemy-fireWyvern.png" alt="Fire Wyvern, dragón rojo"></div><div class="title"><img class="drawn" src="img/sprites/txt-wyvern.png" alt="Fire Wyvern"></div><span>Minuto 12 · 10.000 HP · jefe final</span></div>
           </div>
+          <p class="muted">Ningún jefe retrocede al ser golpeado, y ninguno mata de uno o dos golpes: sus golpes quitan como mucho un tercio de la vida del jugador.</p>
         </div>
       </div>
     </section>
 
     <section id="oleadas">
       <h2>Oleadas y jefes <small>línea de tiempo a escala</small></h2>
-      <div class="timeline" role="img" aria-label="Línea de tiempo de 12 minutos con seis tramos de monstruos y seis eventos">
+      <div class="timeline" role="img" aria-label="Línea de tiempo de 12 minutos con seis tramos de monstruos y ocho eventos">
         <div class="tl-inner">
           <div class="event" style="left:25%">Snakes surround you</div>
+          <div class="event up stamp" style="left:37.5%">Orc stampede</div>
           <div class="event boss-ev" style="left:41.67%">Ettin</div>
-          <div class="event" style="left:58.33%">Werewolves</div>
+          <div class="event up" style="left:58.33%">Skeletons rise</div>
           <div class="event boss-ev" style="left:66.67%">Demon</div>
-          <div class="event" style="left:87.5%">Hellhounds</div>
-          <div class="event boss-ev last" style="left:100%">Fire Wyvern</div>
+          <div class="event up stamp" style="left:79.17%">Frog stampede</div>
+          <div class="event" style="left:87.5%">Golems surround</div>
+          <div class="event up boss-ev last" style="left:100%">Fire Wyvern</div>
           <div class="bands">
-            <div class="band b1"><b>0–2</b><div class="sp"><img class="px" src="img/sprites/enemy-slime.png" alt=""><img class="px" src="img/sprites/enemy-bunny.png" alt=""><img class="px" src="img/sprites/enemy-ant.png" alt=""></div>Slime, Bunny, Ant</div>
-            <div class="band b2"><b>2–4</b><div class="sp"><img class="px" src="img/sprites/enemy-orc.png" alt=""><img class="px" src="img/sprites/enemy-scorpion.png" alt=""><img class="px" src="img/sprites/enemy-frog.png" alt=""></div>Orc, Snake, Scorpion, Giant Frog</div>
-            <div class="band b3"><b>4–6</b><div class="sp"><img class="px" src="img/sprites/enemy-skeleton.png" alt=""><img class="px" src="img/sprites/enemy-zombie.png" alt=""><img class="px" src="img/sprites/enemy-direBoar.png" alt=""></div>Skeleton, Zombie, Dire Boar</div>
-            <div class="band b4"><b>6–8</b><div class="sp"><img class="px" src="img/sprites/enemy-troll.png" alt=""><img class="px" src="img/sprites/enemy-ogre.png" alt=""><img class="px" src="img/sprites/enemy-werewolf.png" alt=""></div>Troll, Ogre, Stalker, Werewolf</div>
-            <div class="band b5"><b>8–10</b><div class="sp"><img class="px" src="img/sprites/enemy-cyclops.png" alt=""><img class="px" src="img/sprites/enemy-lich.png" alt=""><img class="px" src="img/sprites/enemy-darkElf.png" alt=""></div>Cyclops, Lich, Hellhound, Dark Elf</div>
-            <div class="band b6"><b>10–12</b><div class="sp"><img class="px" src="img/sprites/enemy-gargoyle.png" alt=""><img class="px" src="img/sprites/enemy-tigerworm.png" alt=""><img class="px" src="img/sprites/enemy-minotaur.png" alt=""></div>Gargoyle, Hellclaw, Tigerworm, Minotaur</div>
+            <div class="band b1"><b>0–1:30</b><div class="sp"><img class="px" src="img/sprites/enemy-slime.png" alt=""><img class="px" src="img/sprites/enemy-ant.png" alt=""><img class="px" src="img/sprites/enemy-snake.png" alt=""></div>Slime, Ant, Snake</div>
+            <div class="band b2"><b>1:30–3:30</b><div class="sp"><img class="px" src="img/sprites/enemy-snake.png" alt=""><img class="px" src="img/sprites/enemy-orc.png" alt=""></div>Ant, Snake, Orc, Mage-Orc</div>
+            <div class="band b3"><b>3:30–5:30</b><div class="sp"><img class="px" src="img/sprites/enemy-zombie.png" alt=""><img class="px" src="img/sprites/enemy-scorpion.png" alt=""></div>Orc, Mage-Orc, Zombie, Scorpion</div>
+            <div class="band b4"><b>5:30–7:30</b><div class="sp"><img class="px" src="img/sprites/enemy-skeleton.png" alt=""><img class="px" src="img/sprites/enemy-clayGolem.png" alt=""><img class="px" src="img/sprites/enemy-cyclops.png" alt=""></div>Scorpion, Skeleton, Clay Golem y algún Cyclops</div>
+            <div class="band b5"><b>7:30–9:30</b><div class="sp"><img class="px" src="img/sprites/enemy-stoneGolem.png" alt=""><img class="px" src="img/sprites/enemy-frog.png" alt=""><img class="px" src="img/sprites/enemy-cannibalPlant.png" alt=""></div>Skeleton, Clay y Stone Golem, Giant Frog; Cyclops y Cannibal Plant</div>
+            <div class="band b6"><b>9:30–12</b><div class="sp"><img class="px" src="img/sprites/enemy-mountainGiant.png" alt=""><img class="px" src="img/sprites/enemy-ogre.png" alt=""><img class="px" src="img/sprites/enemy-stoneGolem.png" alt=""></div>Stone Golem, Giant Frog, Skeleton; Cyclops, Cannibal Plant, Ogre y Mountain Giant</div>
           </div>
           <div class="axis"><span>0</span><span>2</span><span>4</span><span>6</span><span>8</span><span>10</span><span>12 min</span></div>
         </div>
@@ -467,54 +468,82 @@ footer { margin-top: 48px; padding-top: 20px; border-top: 1px solid var(--wood);
         <img class="drawn" src="img/sprites/txt-ettin.png" alt="The Ettin approaches!">
         <img class="drawn" src="img/sprites/txt-surrounded.png" alt="You are surrounded!">
       </div>
+      <h3>Estampida</h3>
+      <p>Un bloque de orcos (minuto 4:30) o de ranas (9:30), en tres filas, sale de un lado de la pantalla alineado contigo y la cruza en línea recta, 3,5 veces más rápido de lo normal. Si te alcanza, te pega; si te apartas, pasa de largo y después te persigue como los demás.</p>
       <div class="shots-2">
-        <figure class="shot"><img src="img/boss-warning.jpg" alt="Aviso The Ettin approaches! en rojo y la barra de vida del Ettin arriba" width="800" height="600" loading="lazy"><figcaption>Minuto 5: llega el Ettin. Arriba aparece su barra de vida con el nombre.</figcaption></figure>
-        <figure class="shot"><img src="img/boss-ettin.jpg" alt="Pelea con el Ettin rodeado de esqueletos, zombis y jabalíes, con números de crítico amarillos" width="800" height="600" loading="lazy"><figcaption>Los números amarillos con "!" son críticos (stat Chr).</figcaption></figure>
+        <figure class="shot"><img src="img/stampede.jpg" alt="Un bloque de monstruos verdes entrando por el lado derecho de la pantalla mientras la Maga los golpea" width="800" height="600" loading="lazy"><figcaption>Una estampida entrando por el lado derecho de la pantalla.</figcaption></figure>
+        <figure class="shot"><img src="img/boss-warning.jpg" alt="Aviso The Ettin approaches! en rojo, la barra de vida del Ettin arriba y una fila de orcos en estampida a la izquierda" width="800" height="600" loading="lazy"><figcaption>Minuto 5: llega el Ettin. Arriba aparece su barra de vida con el nombre. A la izquierda pasa una fila de orcos.</figcaption></figure>
       </div>
       <figure class="shot">
-        <img src="img/boss-wyvern.jpg" alt="El Fire Wyvern, un dragón rojo, arriba a la izquierda lanzando bolas de fuego, con liches y hombres lobo alrededor" width="800" height="600" loading="lazy">
-        <figcaption>Minuto 12: el Fire Wyvern lanza bolas de fuego en abanico mientras los últimos monstruos rodean al jugador.</figcaption>
+        <img src="img/boss-ettin.jpg" alt="Pelea con el Ettin rodeado de monstruos, con números de crítico amarillos" width="800" height="600" loading="lazy">
+        <figcaption>Los números amarillos con "!" son críticos (stat Chr). Esta captura es anterior al cambio de mapa: los monstruos de fondo ya no son los de ahora.</figcaption>
       </figure>
       <ul>
-        <li>Los jefes son más grandes, casi no retroceden y tienen una barra de vida arriba.</li>
-        <li><b>Ettin</b> y <b>Demon</b> sueltan un cofre al morir. El <b>Fire Wyvern</b> lanza 3 bolas de fuego cada 2,6 s.</li>
+        <li>Los jefes son más grandes, no retroceden al ser golpeados y tienen una barra de vida arriba.</li>
+        <li><b>Ettin</b> y <b>Demon</b> sueltan un cofre al morir.</li>
+        <li><b>Fire Wyvern</b> (minuto 12): <b>corta las oleadas</b>, ya no salen más monstruos normales. Lanza 3 bolas de fuego cada 2,6 s y <b>llama a sus esbirros</b>: 6 Stone Golems o ranas cada 8 s, en un anillo a su alrededor (máximo 24 vivos).</li>
         <li>La música cambia sola: <i>middleland</i> en la partida, <i>dungeon</i> con un minijefe, <i>abaddon</i> con el jefe final.</li>
+        <li><b>Ritmo de niveles</b>: el objetivo es llegar a los niveles 24–28. Los 4 primeros niveles llegan en el primer minuto (15, 30, 50 y 80 de XP); desde el 5, cada nivel cuesta un 24 % más que el anterior (150 de XP el 5→6), y a mitad de partida sale uno cada 30–45 s.</li>
       </ul>
     </section>
 
     <section id="final">
       <h2>Victoria y derrota</h2>
+      <p>Matar al Fire Wyvern no acaba la partida de golpe. Hay un final en cuatro pasos:</p>
+      <ol>
+        <li><b>Mueren todos los monstruos</b> de golpe (cuentan como bajas) y cae el <b>cofre grande</b> del Wyvern. Sale el aviso "Open the chest to leave!".</li>
+        <li><b>Toda la experiencia del suelo vuela hacia ti</b> y los niveles que da suben solos, sin cartas, con su sonido. La pantalla de victoria dice el nivel que alcanzaste.</li>
+        <li>Al <b>coger el cofre</b> recibes un buff y, un segundo después, se abre un <b>portal</b> a un lado. Arriba cuenta "Enter the portal: 30".</li>
+        <li>Si <b>entras en el portal</b>, o esperas esos 30 segundos, ganas.</li>
+      </ol>
       <div class="shots-2">
-        <figure class="shot" style="margin:0"><img src="img/victory.jpg" alt="Pantalla Victory! con clase Warrior nivel 23, tiempo 12:18, 64 bajas, Flamberge y armadura, y los botones Restart, Change y Log Out" width="800" height="600" loading="lazy"><figcaption>Pantalla final tras matar al Wyvern.</figcaption></figure>
-        <div>
-          <div class="endings">
-            <img class="drawn" src="img/sprites/txt-victory.png" alt="Victory!">
-            <img class="drawn" src="img/sprites/txt-fallen.png" alt="You have fallen">
-          </div>
-          <p>Al final de la partida sale un resumen: clase, nivel, tiempo, bajas, arma o hechizo y armadura.</p>
-          <ul>
-            <li><b>Restart</b>: otra partida con la misma clase.</li>
-            <li><b>Change</b>: volver a elegir clase.</li>
-            <li><b>Log Out</b>: volver al menú principal.</li>
-          </ul>
-        </div>
+        <figure class="shot"><img src="img/portal.jpg" alt="La Maga junto a un portal azul que acaba de abrirse, con el aviso A portal has opened! y el contador Enter the portal: 29" width="800" height="600" loading="lazy"><figcaption>El portal recién abierto, con la cuenta atrás de 30 segundos.</figcaption></figure>
+        <figure class="shot"><img src="img/victory.jpg" alt="Pantalla Victory! con clase Warrior nivel 23, tiempo 12:18, 64 bajas, Flamberge y armadura, y los botones Restart, Change y Log Out" width="800" height="600" loading="lazy"><figcaption>Pantalla final (captura de una versión anterior; el resumen es el mismo).</figcaption></figure>
       </div>
+      <div class="endings">
+        <img class="drawn" src="img/sprites/txt-victory.png" alt="Victory!">
+        <img class="drawn" src="img/sprites/txt-fallen.png" alt="You have fallen">
+      </div>
+      <p>Al final de la partida sale un resumen: clase, nivel, tiempo, bajas, arma o hechizo y armadura. Al morir sale "You have fallen".</p>
+      <ul>
+        <li><b>Restart</b>: otra partida con la misma clase.</li>
+        <li><b>Change</b>: volver a elegir clase.</li>
+        <li><b>Log Out</b>: volver al menú principal.</li>
+      </ul>
     </section>
 
     <section id="menus">
       <h2>Menús y móvil</h2>
       <ul>
-        <li><b>Main Menu</b>: Play, Achievements (todavía "Coming soon!"), Settings, Credits y Fullscreen.</li>
-        <li><b>Settings</b>: volumen de música y de efectos, y la barra de vida sobre el personaje (On/Off). En el móvil, además, <b>HUD</b>: Classic o Compact. Se guarda en el navegador.</li>
-        <li><b>Pause</b>: Resume, Settings y Quit to menu.</li>
-        <li><b>Móvil</b>: joystick táctil (también en las franjas negras de los lados), botón de pausa que funciona con un segundo dedo, aviso para girar el móvil y pantalla completa.</li>
-        <li><b>Interfaz para el móvil</b>: el juego detecta las pantallas táctiles pequeñas y agranda letras, menús, cartas y la barra inferior. Los textos se ven nítidos en cualquier pantalla. En el PC todo sigue igual.</li>
-        <li><b>HUD Compact</b> (el que sale por defecto en el móvil): sin la barra de abajo, así se ve más mapa. Vida, maná y experiencia van en fila a lo largo del borde inferior, algo transparentes, con piezas de la interfaz "V2" del Helbreath original. Arriba a la derecha están los botones de stats (casco) y de pausa. <b>Classic</b> es la barra original, agrandada. Se puede cambiar en plena partida, desde la pausa.</li>
+        <li><b>Main Menu</b>: <b>Continue</b> (solo si hay partida guardada), Play, How to Play, Achievements (todavía "Coming soon!"), Settings y Credits. Arriba a la derecha hay un icono de pantalla completa. Abajo se ve la versión del juego. Si el navegador lo permite, aparece también <b>Install</b>.</li>
+        <li><b>How to Play</b>: la pantalla que explica todos los controles, en páginas (Basics, Keyboard, Gamepad y Touch) que se cambian con las flechas. También está en la pausa.</li>
+        <li><b>Settings</b>: volumen de música y de efectos, y casillas para la barra de vida sobre el personaje, <b>Screen Shake</b> (el temblor de pantalla), <b>Large Trees</b> (con On, el árbol se vuelve transparente al pasar por detrás) y Fullscreen. En el móvil, además, <b>HUD</b>: Classic o Compact. Se guarda en el navegador y se maneja bien con el dedo.</li>
+        <li><b>Pause</b>: Resume, How to Play, Settings, Fullscreen y Quit to menu. La partida se pone en pausa sola si cambias de pestaña o se desconecta el mando.</li>
+      </ul>
+      <h3>Partidas guardadas</h3>
+      <ul>
+        <li>El juego guarda la partida en el navegador cada 5 segundos, al elegir carta y al salir o cambiar de pestaña. Hay <b>3 ranuras</b>. La ranura se libera al ganar o morir.</li>
+        <li>En el menú, <b>Continue</b> abre la lista de ranuras con la clase, el nivel y el tiempo. Al continuar, el reloj sigue donde estaba, tienes 5 segundos de calma y vuelven los jefes que estaban vivos. No se guardan los monstruos ni los objetos del suelo.</li>
+        <li>Si las 3 ranuras están llenas, <b>Play</b> pregunta cuál borrar ("Yes, delete it" / "No").</li>
+      </ul>
+      <div class="shots-2">
+        <figure class="shot"><img src="img/continue.jpg" alt="Pantalla Continue con tres partidas guardadas: Mage nivel 1, Warrior nivel 14 y Mage nivel 7, con su tiempo" width="800" height="600" loading="lazy"><figcaption>Continue con tres ranuras (captura de una versión anterior del menú).</figcaption></figure>
+        <figure class="shot"><img src="img/howtoplay.jpg" alt="Pantalla How to Play, página Basics, con los cinco consejos básicos y flechas para cambiar de página" width="800" height="600" loading="lazy"><figcaption>How to Play, página Basics. Las demás páginas explican teclado, mando y táctil.</figcaption></figure>
+      </div>
+      <h3>Instalar como app</h3>
+      <p>En la web publicada, el navegador puede ofrecer instalar el juego como una app, con su icono propio (diseñado por el propietario del proyecto), en pantalla completa y en horizontal. Siempre pide la última versión a internet: no funciona sin conexión.</p>
+      <h3>Móvil</h3>
+      <ul>
+        <li>Joystick táctil (también en las franjas negras de los lados), botón de pausa que funciona con un segundo dedo, aviso para girar el móvil y pantalla completa.</li>
+        <li>El juego detecta las pantallas táctiles pequeñas y agranda letras, menús, cartas y la barra inferior; en el PC todo sigue igual. La pantalla de elegir personaje tiene botones con zonas de toque más grandes.</li>
+        <li><b>HUD Compact</b> (el que sale por defecto en el móvil): sin la barra de abajo, así se ve más mapa. Vida, maná y experiencia van en fila a lo largo del borde inferior, algo transparentes. Arriba a la derecha están los botones de stats (casco) y de pausa. <b>Classic</b> es la barra original, agrandada. Se cambia en plena partida, desde la pausa.</li>
       </ul>
       <div class="shots-2">
         <figure class="shot"><img src="img/mobile-compact.jpg" alt="Partida en el móvil con el HUD Compact: barras de vida, maná y experiencia en fila abajo, barra del jefe Ettin arriba, botones de stats y pausa arriba a la derecha y el buff Berserk" width="800" height="600" loading="lazy"><figcaption>HUD Compact en el móvil, con un jefe y un buff activos.</figcaption></figure>
         <figure class="shot"><img src="img/mobile-levelup.jpg" alt="Cartas de subida de nivel en el móvil, más grandes y con el texto Tap a card" width="800" height="600" loading="lazy"><figcaption>Las cartas, más grandes en el móvil. Se eligen tocándolas.</figcaption></figure>
       </div>
+      <h3>Sensación de impacto</h3>
+      <p>Cualquier golpe sacude un poco la pantalla; los golpes de jefe, más fuerte; y las explosiones grandes de los hechizos solo si el golpe es crítico. Al golpear a un monstruo saltan chispas y al morir levanta una nube de polvo. Al subir de nivel suena una voz original, de hombre o de mujer según el personaje, y al morir el jugador, su grito. El temblor se puede apagar en Settings.</p>
     </section>
 
     <section id="tecnica">
@@ -522,8 +551,9 @@ footer { margin-top: 48px; padding-top: 20px; border-top: 1px solid var(--wood);
       <ul>
         <li><b>Tecnología</b>: Phaser 3 y TypeScript, sobre <i>helbreath-base-game</i>, una base libre (licencia MIT) que ya sabía leer los gráficos <code>.spr</code> y los mapas <code>.amd</code> de Helbreath.</li>
         <li><b>Datos separados de la lógica</b>: vida, daño, oleadas y requisitos viven en archivos de datos. El equilibrio se ajusta sin tocar el código.</li>
-        <li><b>Rendimiento</b>: enemigos, proyectiles, gemas y números de daño se reutilizan en lugar de crearse y destruirse. Probado a 144 FPS con 371 monstruos en pantalla.</li>
-        <li><b>Descarga</b>: unos 35 MB antes del menú. Los monstruos de las oleadas siguientes (otros 15 MB) se bajan en segundo plano mientras estás en el menú.</li>
+        <li><b>Rendimiento</b>: enemigos, proyectiles, gemas y números de daño se reutilizan en lugar de crearse y destruirse. Probado a unos 120 FPS con cientos de monstruos en pantalla.</li>
+        <li><b>Descarga</b>: los monstruos de las oleadas siguientes se bajan en segundo plano mientras juegas, y solo los del mapa: los que no se usan no se descargan.</li>
+        <li><b>Partidas simuladas</b>: el juego sabe jugar solo, unas 100 veces más rápido, para medir el equilibrio (nivel por minuto, cuánto vive cada jefe) sin jugar 12 minutos cada vez.</li>
         <li><b>Assets registrados</b>: cada gráfico y sonido tiene un nombre propio (<code>enemy.orc</code>, <code>fx.fireball</code>), así que podrían cambiarse por arte original sin tocar el resto.</li>
         <li><b>Publicación</b>: GitHub Pages, que se actualiza solo con cada cambio en la rama principal.</li>
       </ul>
@@ -542,50 +572,51 @@ footer { margin-top: 48px; padding-top: 20px; border-top: 1px solid var(--wood);
         <li><span class="n">7</span><span>Oleadas, jefes y final</span><span class="pill ok">hecha</span></li>
         <li><span class="n">8</span><span>Menús (el Archer queda aplazado)</span><span class="pill ok">hecha</span></li>
         <li><span class="n">9</span><span>Web, móvil y publicación</span><span class="pill ok">hecha</span></li>
-        <li><span class="n">10</span><span>Pulido (opcional): interfaz del móvil hecha; quedan impacto, mando y equilibrio</span><span class="pill warn">en curso</span></li>
+        <li><span class="n">10</span><span>Pulido: interfaz del móvil, HUD elegible y sensación de impacto (temblor, partículas, sonidos)</span><span class="pill ok">hecha</span></li>
+        <li><span class="n">11</span><span>Pulido de interfaz: árboles grandes, How to Play, selección de personaje en el móvil</span><span class="pill ok">hecha</span></li>
+        <li><span class="n">12</span><span>Móvil sin pérdidas: instalar como app, partidas guardadas y Settings táctil</span><span class="pill ok">hecha</span></li>
+        <li><span class="n">13</span><span>Jefe final y equilibrio: portal, monstruos por mapa, estampidas y curva de XP</span><span class="pill ok">hecha</span></li>
+        <li><span class="n">14</span><span>Métricas y logros</span><span class="pill todo">siguiente</span></li>
       </ol>
     </section>
 
     <section id="problemas">
       <h2>Problemas conocidos</h2>
       <ul>
-        <li>El equilibrio está sin afinar: dificultad de cada tramo, vida de los jefes y curva de XP (objetivo: 25–30 niveles en 12–15 minutos).</li>
-        <li>El daño mágico de la Maga crece rápido.</li>
-        <li>No hay búsqueda de caminos: algunos monstruos se quedan en la orilla del río si estás al otro lado.</li>
+        <li>El equilibrio está afinado solo con partidas simuladas, no con mucha gente jugando. Por eso la Fase 14 medirá partidas reales.</li>
+        <li>No hay búsqueda de caminos: algunos monstruos se quedan tras un obstáculo si estás al otro lado (en Bleeding Isle pasa mucho menos que en el mapa anterior). Si quedan lejos, se recolocan.</li>
         <li>A 800×600 (el tamaño original de Helbreath) el personaje se ve pequeño.</li>
+        <li>Al continuar una partida guardada no vuelven los monstruos, las gemas ni los objetos del suelo.</li>
+        <li>Solo hay un mapa por ahora.</li>
       </ul>
     </section>
 
     <section id="mejoras">
       <h2>Mejoras posibles</h2>
-      <p>Ideas en estudio. Ninguna está aprobada todavía. Casi todas tienen ya los gráficos y sonidos necesarios en los archivos de Helbreath.</p>
+      <p>Ideas del plan de la segunda etapa. Solo está decidida la siguiente fase; el resto puede cambiar de orden. Casi todas tienen ya los gráficos y sonidos necesarios en los archivos de Helbreath.</p>
       <div class="legend"><span class="s">Pequeña</span><span class="m">Mediana</span><span class="l">Grande</span></div>
 
-      <h3>Pulido (Fase 10)</h3>
+      <h3>Segunda etapa</h3>
       <div class="ideas">
-        <div class="idea small"><h3>Sensación de impacto</h3><p>Temblor de cámara, partículas, sombras y vibración del mando al recibir daño.</p></div>
-        <div class="idea small"><h3>Mando más completo</h3><p>Iconos de botones de Xbox en pantalla al usar mando, y reasignar controles.</p></div>
-        <div class="idea"><h3>Equilibrio</h3><p>Ajustar dificultad, jefes y curva de XP jugando partidas completas.</p></div>
+        <div class="idea"><h3>Métricas y logros</h3><p>Un resumen anónimo de cada partida en un servidor pequeño, para equilibrar con datos reales, y los primeros logros.</p><div class="meta"><span>Fase 14 · la siguiente</span></div></div>
+        <div class="idea"><h3>Apuntado híbrido</h3><p>Automático por defecto; manual con el ratón o el stick derecho.</p><div class="meta"><span>Fase 15</span></div></div>
+        <div class="idea small"><h3>Critical Strike</h3><p>Un botón para lanzar el "crit" de Helbreath, con grito incluido. Cargas que crecen con el nivel y se recargan con el tiempo. Con vibración del mando y reasignar controles.</p><div class="meta"><span>Fase 16</span><span>Assets: todos</span></div></div>
+        <div class="idea small"><h3>Zemstone of Sacrifice</h3><p>Una vida extra: si mueres llevando el Zem, revives con media vida. Solo se puede llevar uno.</p><div class="meta"><span>Fase 17</span><span>Assets: todos</span></div></div>
+        <div class="idea small"><h3>Minimapa y tótems</h3><p>Miniatura original del mapa en una esquina, con jefes, cofres y pociones. Y tótems en el mapa que dan buffs.</p><div class="meta"><span>Fase 18</span><span>Assets: todos</span></div></div>
+        <div class="idea big"><h3>Más mapas</h3><p>Varios mapas, una pantalla para elegirlos, récords locales por mapa y sombras. Primero Icebound (con el Wyvern de hielo); después otros, uno por bloque.</p><div class="meta"><span>Fases 19 y 22</span><span>Assets: casi todos</span></div></div>
+        <div class="idea big"><h3>La ciudad y el baúl</h3><p>Un mapa pequeño tras elegir personaje, con NPCs, un cofre y el portal a la partida. Equipar armas y armaduras que sueltan los jefes y se guardan entre partidas.</p><div class="meta"><span>Fases 20 y 21</span></div></div>
+        <div class="idea"><h3>Aresden y Elvine</h3><p>Elegir bando al empezar: capa, colores, música y quién te ataca en las Raids. Quizá desbloquear objetos Hero.</p><div class="meta"><span>Fase 23</span><span>Faltan escudos de ciudad</span></div></div>
+        <div class="idea big"><h3>Raids</h3><p>"Jugadores" enemigos del otro bando, dibujados como el jugador: guerreros que lanzan crits y magos que te frenan con hielo.</p><div class="meta"><span>Fase 24</span><span>Assets: todos</span></div></div>
+        <div class="idea small"><h3>Ranking online</h3><p>Opcional. Reutilizaría el servidor de las métricas.</p><div class="meta"><span>Fase 25</span></div></div>
       </div>
 
-      <h3>Segunda etapa (Fases 11+)</h3>
-      <div class="ideas">
-        <div class="idea small"><h3>Critical Strike</h3><p>Un botón para lanzar el "crit" de Helbreath, con grito incluido. Cargas que crecen con el nivel y se recargan con el tiempo.</p><div class="meta"><span>Fase 11</span><span>Assets: todos</span></div></div>
-        <div class="idea small"><h3>Zemstone of Sacrifice</h3><p>Una vida extra: si mueres llevando el Zem, revives con media vida. Solo se puede llevar uno.</p><div class="meta"><span>Fase 12</span><span>Assets: todos</span></div></div>
-        <div class="idea small"><h3>Minimapa</h3><p>Miniatura original del mapa en una esquina, con jefes, cofres y pociones.</p><div class="meta"><span>Fase 13</span><span>Assets: todos</span></div></div>
-        <div class="idea big"><h3>Más mapas</h3><p>Cada mapa con sus monstruos, jefe y música, y una pantalla para elegirlo. Primero Icebound (con el Wyvern de hielo); después Dungeon L4, Farm y Druncian City.</p><div class="meta"><span>Fases 14–15</span><span>Assets: casi todos</span></div></div>
-        <div class="idea"><h3>Aresden y Elvine</h3><p>Elegir bando al empezar: capa, colores, música y quién te ataca en las Raids. Quizá desbloquear objetos Hero entre partidas.</p><div class="meta"><span>Fase 16</span><span>Faltan escudos de ciudad</span></div></div>
-        <div class="idea big"><h3>Raids</h3><p>"Jugadores" enemigos del otro bando, dibujados como el jugador: guerreros que lanzan crits y magos que te frenan con hielo.</p><div class="meta"><span>Fase 17</span><span>Assets: todos</span></div></div>
-        <div class="idea small"><h3>Récords</h3><p>Top 10 por mapa y clase guardado en el navegador. Un ranking online sería un paso aparte.</p><div class="meta"><span>Fase 18</span><span>Se reutilizan paneles</span></div></div>
-        <div class="idea"><h3>Bolsa ligera</h3><p>3–4 casillas de consumibles (pociones, pergaminos, Zem) con su tecla. No el inventario completo de Helbreath.</p><div class="meta"><span>Fase 19</span><span>Assets: todos</span></div></div>
-      </div>
-
-      <h3>Pendiente de antes</h3>
+      <h3>Sin fecha</h3>
       <ul>
         <li><b>Archer</b>, el tercer personaje, con arco.</li>
-        <li><b>Achievements</b> de verdad: "Win Icebound", "Revive with a Zem"…</li>
+        <li><b>Achievements</b> de verdad (la Fase 14 empieza con los primeros).</li>
         <li>Elegir sexo, piel y pelo en la creación de personaje.</li>
         <li>Activar las familias apagadas: Hammer, Axe, Fencing, y los hechizos Lightning, Ice y Meteor.</li>
+        <li>Monstruos que aparecen al azar como evento especial.</li>
       </ul>
     </section>
 
@@ -613,6 +644,6 @@ footer { margin-top: 48px; padding-top: 20px; border-top: 1px solid var(--wood);
       <p>Proyecto fan no oficial, gratuito y sin ánimo de lucro: sin anuncios, sin pagos y sin publicar en tiendas comerciales. Los gráficos, sonidos y la fuente dibujada de Helbreath que aparecen en esta guía pertenecen a sus dueños.</p>
     </section>
 
-    <footer>Estado a 17 de octubre de 2026, durante la Fase 10. Esta guía se actualiza al cerrar cada fase.</footer>
+    <footer>Estado a 18 de octubre de 2026, con la Fase 13 terminada. Esta guía se actualiza al cerrar cada fase.</footer>
   </main>
 </div>
