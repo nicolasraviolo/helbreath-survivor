@@ -2,6 +2,15 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
+**Fase 16, bloque 16B: tótems y cofres con carta (2026-10-18).**
+- **Qué hace:** cada ~75 s (el primero al minuto) aparece una **Mana Stone** en un sitio libre al azar, a 320–900 px del jugador, con el "chin" de fabricar del original (E23). Hay como mucho 2 a la vez. Si nadie la coge en 60 s, parpadea y desaparece. Lleva a los pies un círculo mágico (Casting Circle) del color de su efecto, y el minimapa la marca con ese color. Se recoge pisando **cualquier casilla que tape el dibujo** (2×4 o 3×4; como mínimo 2×2, pedido por el propietario). Efectos: **Berserk** y **Defense Shield** (los buffs de antes), **Full HP** (cura entera, efecto Resurrection) y **Freeze** (los monstruos que se ven, jefes incluidos, quietos y azules 5 s: no andan, no atacan, no disparan ni llaman esbirros). Al cogerlo, su nombre sube sobre el jugador.
+- **Cofres:** ya no dan buff; dan una **carta gratis** con el título "Treasure!" (sin subir de nivel). El del jefe final también, y sigue abriendo el portal. Las cartas de cofre pendientes se guardan en la partida (`chestCards`).
+- **Código:** `data/totems.ts` (todos los números), `entities/Totem.ts`, `systems/TotemSystem.ts`, `Enemy.freeze()`, `BuffSystem.announce()`. Línea nueva en How to Play (Basics). Detalle en NOTES.md, "Tótems (Fase 16B)".
+- **Atajo nuevo:** `?debug=totems` (los 4 en fila debajo del jugador) y situación `pnpm check totems`.
+- **Descarga inicial:** +0,9 MB (`effect5.spr` y `manastone.spr`).
+- **Comprobado:** Freeze congela los 95 monstruos de la pantalla y se pasa a los 5 s; Full HP cura del todo; el cofre abre "Treasure!" sin cambiar de nivel; partida simulada completa (nivel 26, jefe final muerto a las 14:06); móvil; build y `check menu totems pickups minimap` sin errores. **Probado y aprobado por el propietario.**
+- **Probar:** `pnpm --dir survivors dev` → http://localhost:8090/?play&debug=totems (y `?play&debug=pickups` para el cofre).
+
 **Fase 16, bloque 16A: minimapa (2026-10-18).**
 - **Qué hace:** cuadro arriba a la **derecha** (128 px; en el móvil 104 px y bajo el botón de pausa) con la zona de juego de Bleeding Isle en pequeño. Marca **solo** al jugador (punto blanco) y a los **jefes** (rojo, parpadea). Nada de monstruos normales, pociones ni cofres (decisión del propietario); los tótems se añaden en el 16B y los NPCs en mapas que los tengan (Fase 21). Casilla **Minimap** en Settings (activada de serie).
 - **Código:** `ui/Minimap.ts` (lo crea `HudScene`), números en `data/minimap.ts`, imagen `minimap.bisle` en `assetManifest.ts` (`MINIMAPS`, `images/minimaps/bisle.jpg` de sp-client) y `minimap` en cada mapa de `data/maps.ts`. `BossSystem.tracked` da los jefes. Detalle en NOTES.md, "Minimapa (Fase 16A)".

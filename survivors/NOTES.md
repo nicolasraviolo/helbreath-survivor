@@ -52,6 +52,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Apuntado manual (Fase 15B)
 - Stick de apuntar en el móvil (Fase 15C)
 - Minimapa (Fase 16A)
+- Tótems (Fase 16B)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -663,3 +664,12 @@ Tabla completa en `docs/REQUISITOS_HB.md`. Lo no obvio:
 - `ui/Minimap.ts` recorta la zona de juego como un frame de la textura (`playArea`), calculado con el tamaño de la imagen entre el del mapa: vale para cualquier mapa sin medir nada a mano.
 - `telescope.spr` (el GuideMap del original) no lo usa sp-client y no tiene índice documentado: no se usa.
 - Solo marca jugador y jefes (y tótems en el 16B), por decisión del propietario. En mapas con NPCs (Fase 21), también ellos.
+
+## Tótems (Fase 16B)
+- `manastone.spr` tiene 40 hojas, pero todas son **la misma imagen** (56×100, base a 86 px del borde de arriba): se usa la hoja 0. sp-client no la usa.
+- Brillo: Casting Circle (`effect5` hoja 7), dorado. Para teñirlo de otro color hay que usar `setTintFill` (con `setTint` normal el azul casi desaparece, porque el dibujo apenas tiene azul). Con el modo aditivo queda un círculo de luz del color puro.
+- Zona de recogida (`entities/Totem.ts`): casillas que tapa el dibujo en al menos 8 px por eje, y siempre la de la base. Según dónde caiga, la Mana Stone ocupa 2×4 o 3×4 casillas.
+- Freeze: pausa la animación del monstruo y lo tiñe de azul. Los Slimes, que son verdes y semitransparentes, se ven **verde azulado oscuro** (parecen matas). Es normal.
+- Freeze solo afecta a los monstruos que se ven al cogerlo (`cameras.main.worldView`). En `?debug=horde`, los primeros segundos aún no hay ninguno en pantalla.
+- Los cofres dan carta con `chestCards` en GameScene (se guarda en la partida). Va detrás de las cartas de nivel y también sale después del jefe final, cuando las subidas de nivel ya no dan cartas.
+- Descarga inicial: +0,9 MB (`effect5.spr` 0,72 MB y `manastone.spr` 0,19 MB). Full HP usa el efecto Resurrection (`effect11`) y Freeze, `effect8` hoja 5; los dos ya se cargaban.

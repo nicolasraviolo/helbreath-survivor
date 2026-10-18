@@ -30,4 +30,6 @@ export interface MinimapDotStyle {
 export const MINIMAP_DOTS = {
     player: { radius: 3, color: 0xffffff, outline: 0x000000, blinkMs: 0 },
     boss: { radius: 5, color: 0xff3020, outline: 0x000000, blinkMs: 400 },
+    // Tótems (Fase 16B): cada uno con el color de su efecto (data/totems.ts); este color no se usa.
+    totem: { radius: 4, color: 0xffffff, outline: 0x000000, blinkMs: 0 },
 } as const satisfies Record<string, MinimapDotStyle>;

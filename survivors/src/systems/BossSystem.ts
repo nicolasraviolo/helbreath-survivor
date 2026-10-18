@@ -77,6 +77,8 @@ export class BossSystem {
                 this.minions.delete(boss);
                 continue;
             }
+            // Freeze totem (Fase 16B): neither throws nor calls minions while frozen.
+            if (boss.isFrozen) continue;
             const ranged = boss.def.boss?.ranged;
             if (ranged && canAttack) this.updateRanged(boss, ranged, deltaMs, playerX, playerBodyY);
             this.updateMinions(boss, deltaMs);

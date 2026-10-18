@@ -39,6 +39,8 @@ const PRESETS = {
     minimap: 'debug=god,boss',
     horde: 'debug=god,horde,horde,horde',
     pickups: 'debug=god,pickups',
+    // Tótems (Fase 16B): los 4 en fila debajo del jugador, con unos monstruos alrededor.
+    totems: 'debug=god,horde,totems',
     finalboss: 'debug=god,finalboss',
     portal: 'debug=god,bosskill',
     stampede: 'debug=god,stampede',

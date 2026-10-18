@@ -34,6 +34,8 @@ export interface RunSnapshot {
     xp: number;
     /** Level-up cards not chosen yet (they show again on Continue). */
     pendingLevelUps: number;
+    /** Free cards from chests not chosen yet (Fase 16B). Saves from before have none. */
+    chestCards: number;
     stats: Stats;
     hp: number;
     kills: number;
@@ -172,6 +174,7 @@ function readSnapshot(entry: unknown): RunSnapshot | undefined {
         level,
         xp: readNumber(entry.xp) ?? 0,
         pendingLevelUps: readNumber(entry.pendingLevelUps) ?? 0,
+        chestCards: readNumber(entry.chestCards) ?? 0,
         stats: statValues,
         hp: readNumber(entry.hp) ?? 1,
         kills: readNumber(entry.kills) ?? 0,

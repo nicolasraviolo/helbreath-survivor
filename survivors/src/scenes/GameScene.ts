@@ -38,7 +38,9 @@ import { PLAYER_FRAMES_PER_DIRECTION } from '../hb/playerAppearance';
 import { CharacterStats } from '../entities/CharacterStats';
 import { BuffSystem } from '../systems/BuffSystem';
 import { PickupSystem } from '../systems/PickupSystem';
-import { POTION_HEAL_SHARE, type PickupId } from '../data/pickups';
+import { CHEST_CARDS_TITLE, POTION_HEAL_SHARE, type PickupId } from '../data/pickups';
+import { getTotem, TOTEM_IDS, type TotemId } from '../data/totems';
+import { TotemSystem } from '../systems/TotemSystem';
 import { Equipment } from '../entities/Equipment';
 import type { EnemyWorld } from '../entities/Enemy';
 import { Player } from '../entities/Player';
@@ -85,6 +87,8 @@ const DEBUG_SPAWN_COUNT = 100;
 const DEBUG_STR_POINTS = 10;
 /** Distance from the player of the pickups dropped by the debug key P. */
 const DEBUG_PICKUP_SPACING = 48;
+/** ?debug=totems: gap between the totems, and how far below the player they stand (wider than their pickup zone). */
+const DEBUG_TOTEM_SPACING = 120;
 /** Time skipped by the debug key J. */
 const DEBUG_SKIP_MS = 60000;
 /** Levels given by the debug key L (one card per level). */
@@ -148,6 +152,9 @@ export class GameScene extends Phaser.Scene {
     private xp!: XpSystem;
     private pickups!: PickupSystem;
     private buffs!: BuffSystem;
+    private totems!: TotemSystem;
+    /** Free cards from chests not chosen yet (Fase 16B): they show after any level-up cards. */
+    private chestCards = 0;
     private equipment!: Equipment;
     /** Melee weapon in hand (Warrior); undefined for spell casters. */
     private meleeWeapon: MeleeWeapon | undefined;
@@ -243,6 +250,8 @@ export class GameScene extends Phaser.Scene {
         this.weapons = new WeaponSystem(this, this.enemies, this.combat, this.audio, this.screenShake);
         this.aimArrow = new AimArrow(this);
         this.buffs = new BuffSystem(this, this.player, this.audio, (key, x, y) => this.weapons.spawnEffect(key, x, y));
+        this.totems = new TotemSystem(this, map, areaPx, this.audio, (id) => this.collectTotem(id));
+        this.chestCards = 0;
         this.enemyShots = new EnemyProjectileSystem(this, this.audio, (key, x, y) => this.weapons.spawnEffect(key, x, y));
         this.bosses = new BossSystem(this.enemyShots, (minions, x, y) => this.spawner.spawnRing(minions.enemies, minions.count, x, y, minions.radius));
         // Archers (Dark Elf) shoot arrows at the player's body instead of hitting directly.
@@ -349,26 +358,51 @@ export class GameScene extends Phaser.Scene {
                 this.xp.attractAll();
                 break;
             case 'chest':
-                this.buffs.startRandom();
+                this.chestCards++;
                 break;
             case 'finalChest':
-                this.buffs.startRandom();
+                this.chestCards++;
                 this.openPortalBeside(this.player.x, this.player.y);
                 break;
         }
     }
 
-    /** Pauses the game and shows the cards. Picking one applies it and resumes. */
-    private openLevelUp(): void {
+    /** The player stepped on a totem (Fase 16B). */
+    private collectTotem(id: TotemId): void {
+        const def = getTotem(id);
+        const effect = def.effect;
+        switch (effect.kind) {
+            case 'buff':
+                this.buffs.start(effect.buff);
+                return;
+            case 'fullHeal':
+                this.player.heal(this.player.maxHp);
+                break;
+            case 'freeze': {
+                const view = this.cameras.main.worldView;
+                this.enemies.forEachAlive((enemy) => {
+                    if (view.contains(enemy.x, enemy.y)) enemy.freeze(effect.durationMs);
+                });
+                break;
+            }
+        }
+        if (def.castEffect) this.weapons.spawnEffect(def.castEffect, this.player.x, this.player.y);
+        if (def.castSound) this.audio.play(def.castSound);
+        this.buffs.announce(def.name, def.color);
+    }
+
+    /** Pauses the game and shows the cards (of a level up, or of a chest). Picking one applies it and resumes. */
+    private openLevelUp(fromChest: boolean): void {
         this.levelUpOpen = true;
-        this.audio.play(this.player.def.levelUpSound);
+        if (!fromChest) this.audio.play(this.player.def.levelUpSound);
         const stats = this.stats;
         const data: LevelUpSceneData = {
             stats,
             equipment: this.equipment,
             choices: buildLevelUpChoices(stats, this.equipment),
+            title: fromChest ? CHEST_CARDS_TITLE : undefined,
             onChoose: (choice) => {
-                this.chooseCard(choice);
+                this.chooseCard(choice, fromChest);
                 this.levelUpOpen = false;
                 this.scene.stop('LevelUp');
                 this.scene.resume();
@@ -385,12 +419,13 @@ export class GameScene extends Phaser.Scene {
     }
 
     /** A card was picked (by the player, or at random in the simulated run). */
-    private chooseCard(choice: LevelUpChoice | undefined): void {
+    private chooseCard(choice: LevelUpChoice | undefined, fromChest = false): void {
         if (choice) {
             this.applyChoice(choice);
             this.metrics.onCard(choice);
         }
-        this.stats.pendingLevelUps--;
+        if (fromChest) this.chestCards--;
+        else this.stats.pendingLevelUps--;
         this.applyStats();
         this.saveRun();
     }
@@ -442,6 +477,7 @@ export class GameScene extends Phaser.Scene {
         stats.level = run.level;
         stats.xp = run.xp;
         stats.pendingLevelUps = run.pendingLevelUps;
+        this.chestCards = run.chestCards;
         for (const id of STAT_IDS) stats.stats[id] = run.stats[id];
         if (run.weapon && run.weapon !== this.equipment.weapon) this.equipMelee(run.weapon);
         if (run.spell && run.spell !== this.equipment.spell) this.equipSpell(run.spell);
@@ -476,6 +512,7 @@ export class GameScene extends Phaser.Scene {
             level: stats.level,
             xp: stats.xp,
             pendingLevelUps: stats.pendingLevelUps,
+            chestCards: this.chestCards,
             stats: { ...stats.stats },
             hp: this.player.hp,
             kills: this.combat.kills,
@@ -538,7 +575,7 @@ export class GameScene extends Phaser.Scene {
                 defense: this.equipment.defense,
                 passiveRanks: this.equipment.passives,
                 buffs: this.buffs.active.map(({ def, secondsLeft }) => ({ name: def.name, secondsLeft, color: def.color })),
-                minimap: { player: this.player, bosses: this.bosses.tracked.filter((boss) => boss.isAlive) },
+                minimap: { player: this.player, bosses: this.bosses.tracked.filter((boss) => boss.isAlive), totems: this.totems.active },
             }),
         };
         this.scene.launch('Hud', data);
@@ -610,6 +647,8 @@ export class GameScene extends Phaser.Scene {
             this.gainXp(this.xp.update(delta, player.x, player.y));
         }
         this.pickups.update(delta, player.x, player.y, !player.isDead);
+        this.totems.enabled = !player.isDead && !this.finalBossDead;
+        this.totems.update(delta, player.x, player.y, !player.isDead);
         this.buffs.update(delta);
         this.stats.buffDamageMultiplier = this.buffs.damageMultiplier;
         this.spawner.enabled = !player.isDead && !this.finalBossDead;
@@ -648,7 +687,11 @@ export class GameScene extends Phaser.Scene {
         if (this.stats.pendingLevelUps > 0 && !this.levelUpOpen && !player.isDead) {
             if (this.finalBossDead) this.levelUpWithoutCards();
             else if (this.sim) this.chooseCard(this.sim.pick(buildLevelUpChoices(this.stats, this.equipment)));
-            else this.openLevelUp();
+            else this.openLevelUp(false);
+        } else if (this.chestCards > 0 && !this.levelUpOpen && !player.isDead) {
+            // A chest's card, even after the final boss (its chest gives one too).
+            if (this.sim) this.chooseCard(this.sim.pick(buildLevelUpChoices(this.stats, this.equipment)), true);
+            else this.openLevelUp(true);
         }
         return true;
     }
@@ -775,6 +818,11 @@ export class GameScene extends Phaser.Scene {
                 this.pickups.drop('chest', x + DEBUG_PICKUP_SPACING, y + DEBUG_PICKUP_SPACING);
                 break;
             }
+            case 'totems':
+                // The 4 totems in a row under the player (Fase 16B).
+                TOTEM_IDS.forEach((id, i) => this.totems.place(id,
+                    this.player.x + (i - (TOTEM_IDS.length - 1) / 2) * DEBUG_TOTEM_SPACING, this.player.y + DEBUG_TOTEM_SPACING));
+                break;
             case 'minute':
                 this.spawner.skip(DEBUG_SKIP_MS);
                 break;
