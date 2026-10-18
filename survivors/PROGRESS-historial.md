@@ -2,6 +2,8 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
+**Fase 15: revisión de código (`/revisar`, 2026-10-18).** 7 hallazgos pequeños. Arreglados: el atajo `?debug=aim` ya no se queda puesto al volver a jugar, comentario fuera de sitio en `GameScene`, y la división de pantalla del stick pasó a `TOUCH_AIM_ZONE_START` (`config/touch.ts`). Dejados a propósito (casi imposibles o solo de forma): un proyectil podría seguir a un jefe "de recambio" del mismo tipo que salga en el mismo frame; el stick de apuntar podría reutilizar una dirección vieja durante un frame; el `as EnemyDef` de `findNearestBoss`; `tools/spriteViewer.ts` largo (solo desarrollo).
+
 **Fase 15, bloque 15C: stick de apuntar en el móvil (2026-10-18).**
 - **Qué hace:** con la casilla **Aim Stick** (Settings, solo en pantallas táctiles, activada de serie), un dedo en la **mitad izquierda** mueve y otro en la **mitad derecha** abre un segundo stick **naranja** que apunta, como el stick derecho del mando (sale la misma flecha). Si el dedo vuelve al centro sin levantarse, se queda la última dirección; al soltarlo vuelve el automático. Con la casilla apagada, tocar en cualquier sitio mueve, como antes.
 - **Esquina reservada:** abajo a la derecha (130×130 px, `TOUCH_RESERVED_CORNER`) no abre ningún stick: ahí irá el botón del crit (Fase 16). Ahora se siguen 3 dedos a la vez (`TOUCH_POINTERS`).
