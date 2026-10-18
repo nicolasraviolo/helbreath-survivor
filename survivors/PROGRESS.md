@@ -19,10 +19,10 @@
 | 14 — Métricas y logros | ✅ completada (14A y 14B) | 2026-10-18 |
 | 15 — Apuntado híbrido | ✅ completada (15A, 15B y 15C) | 2026-10-18 |
 | 16 — Minimapa y tótems | ✅ completada (16A y 16B) | 2026-10-18 |
-| 17 — Selección de personaje | 🔶 en curso (17A y 17B hechos) | 2026-10-18 |
+| 17 — Selección de personaje | ✅ completada (17A y 17B) | 2026-10-18 |
 
 ## Fase actual
-**Para retomar (18-oct-2026): Fase 17, bloques 17A y 17B terminados** en la rama `fase-17` (sin fusionar). Con eso la fase cumple su aceptación. **Siguiente:** que el propietario pruebe Create Character y, si le vale, `/checkpoint fase` para cerrar la Fase 17. Después, `/fase 18` (esquiva y resistencia mágica, nueva). Los crits pasan a la Fase 19 (botón táctil en `TOUCH_RESERVED_CORNER`).
+**Para retomar (18-oct-2026): Fase 17 completada** (fusionada en `master`, etiqueta `fase-17`). **Siguiente:** `/fase 18` → esquiva y resistencia mágica (nueva; ver `docs/PLAN-2.md`). Los crits van en la Fase 19 (botón táctil en `TOUCH_RESERVED_CORNER`).
 - **Aspecto (17B):** en Create Character se eligen sexo (libre en las dos clases), piel, peinado, color de pelo (8) y ropa interior; sale al azar al abrir. Se guarda en `SavedCharacter.look`. Datos en `data/appearance.ts`; la ropa se cambia por la del otro sexo con `gearForGender`; las piezas nuevas se descargan bajo demanda (`systems/LookLoader.ts`); el pelo se tiñe sumando color (`hb/additiveTint.ts`). Detalle en NOTES.md, "Aspecto del personaje (Fase 17B)".
 - **Personajes (17A):** Play y Continue abren "Select Character" (`scenes/CharacterSlotsScene.ts`): 4 huecos del original con el personaje caminando, su nombre y su mejor nivel. Un hueco vacío abre Create Character, donde ya se escribe el nombre. Guardado en `systems/CharacterStore.ts`. **Una partida a medias por personaje**: elegirlo la continúa, también desde Play. Detalle en NOTES.md, "Personajes guardados (Fase 17A)".
 - **Minimapa y tótems (16):** `ui/Minimap.ts` y `systems/TotemSystem.ts` (números en `data/minimap.ts` y `data/totems.ts`). Los cofres dan una carta gratis. Ver NOTES.md.
