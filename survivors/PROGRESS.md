@@ -17,10 +17,10 @@
 | 12 — Móvil sin pérdidas | ✅ completada (12A, 12B y 12C) | 2026-10-18 |
 | 13 — Jefe final y equilibrio | ✅ completada (13A, 13B y 13C) | 2026-10-18 |
 | 14 — Métricas y logros | ✅ completada (14A y 14B) | 2026-10-18 |
-| 15 — Apuntado híbrido | 🔄 en curso (15A, 15B y 15C hechos; falta cerrar la fase) | 2026-10-18 |
+| 15 — Apuntado híbrido | ✅ completada (15A, 15B y 15C) | 2026-10-18 |
 
 ## Fase actual
-**Para retomar (18-oct-2026): Fase 15 con sus tres bloques hechos y probados** en la rama `fase-15`: 15A (prioridad de jefes), 15B (apuntado manual con clic derecho y stick derecho) y 15C (stick de apuntar en el móvil, probado por el propietario en su móvil). **Siguiente:** `/checkpoint fase` para cerrar la Fase 15 (fusionar, etiquetar y publicar); antes, si se quiere, `/revisar`. Después, `/fase 16` (crits).
+**Para retomar (18-oct-2026): Fase 15 completada** (fusionada en `master`, etiqueta `fase-15`). **Siguiente:** `/fase 16` → crits ("Gritos"); al empezar, preguntar las decisiones pendientes de la Fase 16 en `docs/PLAN-2.md` (la Maga con o sin crits; Espacio o Alt). El botón táctil del crit va en la esquina reservada de abajo a la derecha (`TOUCH_RESERVED_CORNER`, `config/touch.ts`).
 - **Apuntado:** todo pasa por `systems/Targeting.ts`. Automático (15A): un jefe a menos de 250 px y al alcance va primero, y sus proyectiles atraviesan a los demás. Manual (15B): `InputSystem.getManualAim()` → `WeaponSystem.setManualAim`; números en `data/targeting.ts` (`MANUAL_AIM`). Móvil (15C): con la casilla **Aim Stick** (Settings, activada de serie) la mitad izquierda mueve y la derecha abre un segundo stick naranja que apunta; la esquina de abajo a la derecha queda libre para el botón del crit (Fase 16). Detalle en NOTES.md, "Apuntado automático", "Apuntado manual" y "Stick de apuntar en el móvil". El stick derecho del mando aún no se ha probado con un mando real.
 - **Métricas (14A):** servidor `metrics-server/` (Cloudflare Worker + D1). Gráficas en https://helbreath-survivors-metrics.nicolasraviolo.workers.dev, con clave (en `metrics-server/.dev.vars`). Qué se envía: `config/metrics.ts`; lo recoge `systems/RunMetrics.ts`. En `pnpm dev` solo con `?metrics=send`. Detalle y cómo añadir un dato: NOTES.md, "Métricas".
 - **Logros (14B):** lista en `data/achievements.ts`, guardados en `systems/AchievementStore.ts` y vigilados por `systems/AchievementTracker.ts`. Para añadir uno basta con la lista (ver NOTES.md, "Logros"). Detalle en el historial.
