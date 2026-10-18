@@ -54,6 +54,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Minimapa (Fase 16A)
 - Tótems (Fase 16B)
 - Personajes guardados (Fase 17A)
+- Aspecto del personaje (Fase 17B)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -653,7 +654,7 @@ Tabla completa en `docs/REQUISITOS_HB.md`. Lo no obvio:
 ## Stick de apuntar en el móvil (Fase 15C)
 - **Dos sticks, una clase:** `ui/TouchJoystick.ts` recibe su estilo (`TOUCH_JOYSTICK` o `TOUCH_AIM_STICK`, `config/touch.ts`) y una función `accepts(x, y, maxY)` que decide si un dedo que se apoya ahí le toca. `GameScene` crea los dos: con `settings.aimStick` la mitad izquierda (x < 400, también la franja negra izquierda) mueve y la derecha apunta; sin él, el de mover acepta todo y el de apuntar nada. La casilla se lee en cada toque, así que cambiarla en la Pausa vale al momento.
 - **Lectura:** `InputSystem.updateAim` mira el stick de apuntar justo después del stick derecho del mando. Solo cuenta cuando el dedo ya ha salido de la zona muerta (`pushed`); si vuelve al centro sin levantarse, se queda la última dirección. Sin punto (como el mando): Energy Strike cae a `stickAreaDistance` × alcance.
-- **Esquina reservada:** `TOUCH_RESERVED_CORNER` (abajo a la derecha de la zona de juego) no abre ningún stick: ahí irá el botón del crit (Fase 18). El botón de pausa es de la escena del HUD, que va encima y se queda el toque.
+- **Esquina reservada:** `TOUCH_RESERVED_CORNER` (abajo a la derecha de la zona de juego) no abre ningún stick: ahí irá el botón del crit (Fase 19). El botón de pausa es de la escena del HUD, que va encima y se queda el toque.
 - **Dedos:** `TOUCH_POINTERS = 3` (mover + apuntar + botón).
 - **Settings en el móvil:** con la fila "Aim Stick" son 11 filas; para que quepan en el marco, `SETTINGS_MENU.itemSpacing` en el móvil bajó a 33. Otra fila más ya no cabe: habría que quitar alguna o hacer dos páginas.
 - **How to Play en el móvil:** caben **6 filas** por página; la 7ª pisa el selector "Page". En el 15C se juntaron filas ("C / Esc", "Stats / Pause buttons") y se acortaron textos para que quepan.
@@ -664,7 +665,7 @@ Tabla completa en `docs/REQUISITOS_HB.md`. Lo no obvio:
 - Imágenes ya hechas en `sp-client/public/assets/images/minimaps/<mapa>.jpg`, una por mapa y del mapa **entero** (bisle: 1500×1369 para 274×250 casillas, ~5,47 px por casilla en los dos ejes). sp-client marca bisle como `Minimap.NONE`, pero la imagen existe y cuadra con el mapa.
 - `ui/Minimap.ts` recorta la zona de juego como un frame de la textura (`playArea`), calculado con el tamaño de la imagen entre el del mapa: vale para cualquier mapa sin medir nada a mano.
 - `telescope.spr` (el GuideMap del original) no lo usa sp-client y no tiene índice documentado: no se usa.
-- Solo marca jugador y jefes (y tótems en el 16B), por decisión del propietario. En mapas con NPCs (Fase 21), también ellos.
+- Solo marca jugador y jefes (y tótems en el 16B), por decisión del propietario. En mapas con NPCs (Fase 22), también ellos.
 
 ## Tótems (Fase 16B)
 - `manastone.spr` tiene 40 hojas, pero todas son **la misma imagen** (56×100, base a 86 px del borde de arriba): se usa la hoja 0. sp-client no la usa.
@@ -685,3 +686,12 @@ Tabla completa en `docs/REQUISITOS_HB.md`. Lo no obvio:
 - **Atajos:** `?open=slots` y `?characters=demo|reset`. Situaciones `slots` y `slotsempty` en `pnpm check`.
 - **Una partida por personaje (decidido el 18-oct-2026):** la partida del hueco i es la del personaje del hueco i (`SAVE_SLOT_COUNT = CHARACTER_SLOT_COUNT`). Continue y Play abren `CharacterSlotsScene` (`mode: 'continue' | 'play'`). En Continue solo se eligen los personajes con partida. Elegir un personaje con partida la **continúa**, también desde Play. Borrar o crear un personaje borra la partida de ese hueco. `SaveSlotsScene` se eliminó.
 - **Partidas sin dueño:** al arrancar, `characterStore.linkRuns()` pone cada partida en el hueco de su `characterUid`. Las que no tienen dueño (guardadas antes de la Fase 17 o partidas de prueba con `?play`) se convierten en un personaje con el nombre de la clase, en un hueco libre. Si no queda ninguno libre, se pierden. Una partida con `?play` y sin huecos libres no se guarda (`saveSlot = -1`).
+
+## Aspecto del personaje (Fase 17B)
+- **Datos:** `data/appearance.ts`. Sexo, piel (wm/ym/bm, ww/yw/bw), peinado (8, el 2 es calvo), color de pelo (8 de los 16 del original) y ropa interior (8). Cada personaje lo guarda en `SavedCharacter.look` (CharacterStore, versión 2; los de la versión 1 reciben `DEFAULT_LOOKS` de su clase).
+- **Ropa por sexo:** clases y armaduras siguen escritas con un solo sexo. `CharacterSprite.setLayer` cambia cada pieza por la del otro sexo con `gearForGender` (tablas `TO_FEMALE` y `TO_MALE`). Las versiones de hombre y de mujer tienen las mismas hojas (msw/wsw 672, msh/wsh 63...), así que `startSheet` vale igual. No hay corpiño ni falda de hombre: el Mago hombre lleva Shirt y Trousers.
+- **Descarga bajo demanda:** las piezas nuevas (`ON_DEMAND_SPRITES`, ~6,5 MB) no se cargan al empezar. `systems/LookLoader.ts` las baja cuando algo las dibuja; mientras, esa capa no se ve. `GameScene` pide al empezar todo lo que el personaje puede ponerse (`runSprites`).
+- **Color de pelo:** el original suma color (`PutSpriteRGB`, escala 0..31). Phaser solo multiplica, así que `hb/additiveTint.ts` hace una copia teñida de cada hoja la primera vez (clave `{hoja}~hair{n}`). Para eso la hoja debe ser **canvas**: las texturas normales vienen de un `ImageBitmap` que HBSprite cierra al subirlo a la GPU (error "image source is detached"). Por eso `HairAndUndies` se carga como canvas, igual que los Tiles. `getSourceImage()` falla en nuestras hojas (no tienen frame `__BASE`): usar `texture.source[0].image`.
+- **Colores probados en pantalla:** varios de los 16 salen casi iguales (el 15 "rubio" sale verde oliva y el 0 rojo oscuro se parece al 1). Los 8 elegidos están en `HAIR_COLORS`, con su número del original.
+- **Casco:** como en el original, oculta el pelo.
+- **Voz y grito:** van por sexo (`GENDER_SOUNDS`), no por clase.

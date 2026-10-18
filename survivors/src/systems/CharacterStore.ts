@@ -5,12 +5,14 @@
 // Si el navegador no deja guardar (modo privado), los personajes duran hasta cerrar la página.
 import { DEBUG_START } from '../config/debugStart';
 import { CHARACTER_NAME_ALLOWED, CHARACTER_NAME_MAX_LENGTH, CHARACTER_SLOT_COUNT } from '../data/characterSlots';
+import { BODY_SPRITES, DEFAULT_LOOKS, GENDERS, HAIR_COLORS, HAIR_STYLE_COUNT, UNDERWEAR_COUNT, type CharacterLook } from '../data/appearance';
 import { CHARACTERS, isCharacterId, type CharacterId } from '../data/characters';
 import { isRecord, readNumber, saveStore, type RunSnapshot } from './SaveStore';
 
 const STORAGE_KEY = 'hb-survivors.characters';
 /** Raise it (and teach migrate() the old shape) whenever SavedCharacter changes in a way old data can't be read as. */
-const CHARACTERS_VERSION = 1;
+/** 2 (Fase 17B): every character has a look. Version 1 characters get the look of their class until then. */
+const CHARACTERS_VERSION = 2;
 
 /** Registry key (game.registry) with the uid of the character that plays the next run. */
 export const ACTIVE_CHARACTER_KEY = 'activeCharacter';
@@ -20,6 +22,8 @@ export interface SavedCharacter {
     uid: string;
     name: string;
     classId: CharacterId;
+    /** Gender, skin, hair and underwear chosen in Create New Character (Fase 17B). */
+    look: CharacterLook;
     /** Highest level reached in any run. */
     bestLevel: number;
     createdAt: number;
@@ -36,8 +40,8 @@ class CharacterStoreImpl {
         if (DEBUG_START.characters === 'reset') this.slots = emptySlots();
         if (DEBUG_START.characters === 'demo') {
             this.slots = emptySlots();
-            this.create(0, 'Kaila', 'mage');
-            this.create(1, 'Gorn', 'warrior');
+            this.create(0, 'Kaila', 'mage', { gender: 'female', skin: 1, hairStyle: 4, hairColor: 2, underwear: 3 });
+            this.create(1, 'Gorn', 'warrior', { gender: 'male', skin: 2, hairStyle: 2, hairColor: 0, underwear: 5 });
             this.recordLevel(this.slots[1]?.uid, 17);
         }
         if (DEBUG_START.characters) this.write();
@@ -67,12 +71,13 @@ class CharacterStoreImpl {
     }
 
     /** New character in that slot (any old run left there is dropped: it belonged to nobody). */
-    public create(slot: number, name: string, classId: CharacterId, bestLevel = 1): SavedCharacter {
+    public create(slot: number, name: string, classId: CharacterId, look: CharacterLook = DEFAULT_LOOKS[classId], bestLevel = 1): SavedCharacter {
         const now = Date.now();
         const character: SavedCharacter = {
             uid: `${now.toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
             name: cleanName(name) || CHARACTERS[classId].name,
             classId,
+            look: { ...look },
             bestLevel,
             createdAt: now,
         };
@@ -108,7 +113,7 @@ class CharacterStoreImpl {
         for (const run of orphans) {
             const free = this.slots.findIndex((c, i) => c === undefined && !placed[i]);
             if (free < 0) break;
-            const character = this.create(free, '', run.character, run.level);
+            const character = this.create(free, '', run.character, undefined, run.level);
             placed[free] = { ...run, characterUid: character.uid };
         }
         const unchanged = placed.every((run, i) => run === saveStore.get(i));
@@ -155,10 +160,10 @@ function load(): Slots {
     return slots;
 }
 
-/** Old shapes → today's list of slots. Version 1 is the first one: nothing to convert yet. */
+/** Old shapes → today's list of slots. Version 1 had no look: readCharacter() gives them their class's look. */
 function migrate(data: unknown): unknown[] {
     if (!isRecord(data) || !Array.isArray(data.slots)) return [];
-    if (data.version === CHARACTERS_VERSION) return data.slots;
+    if (data.version === CHARACTERS_VERSION || data.version === 1) return data.slots;
     // Saved by a newer version of the game (an older copy cached on the phone): leave it alone.
     return [];
 }
@@ -169,9 +174,26 @@ function readCharacter(entry: unknown): SavedCharacter | undefined {
         uid: entry.uid,
         name: cleanName(entry.name) || CHARACTERS[entry.classId].name,
         classId: entry.classId,
+        look: readLook(entry.look) ?? { ...DEFAULT_LOOKS[entry.classId] },
         bestLevel: Math.max(1, Math.floor(readNumber(entry.bestLevel) ?? 1)),
         createdAt: readNumber(entry.createdAt) ?? 0,
     };
+}
+
+/** A saved look, or undefined if missing or out of range (then the class's look is used). */
+function readLook(value: unknown): CharacterLook | undefined {
+    if (!isRecord(value)) return undefined;
+    const gender = GENDERS.find((g) => g === value.gender);
+    const index = (raw: unknown, count: number) => {
+        const n = readNumber(raw);
+        return n !== undefined && Number.isInteger(n) && n >= 0 && n < count ? n : undefined;
+    };
+    const skin = index(value.skin, BODY_SPRITES.male.length);
+    const hairStyle = index(value.hairStyle, HAIR_STYLE_COUNT);
+    const hairColor = index(value.hairColor, HAIR_COLORS.length);
+    const underwear = index(value.underwear, UNDERWEAR_COUNT);
+    if (!gender || skin === undefined || hairStyle === undefined || hairColor === undefined || underwear === undefined) return undefined;
+    return { gender, skin, hairStyle, hairColor, underwear };
 }
 
 export const characterStore = new CharacterStoreImpl();

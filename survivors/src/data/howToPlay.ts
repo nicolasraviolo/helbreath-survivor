@@ -76,6 +76,9 @@ export const HOW_TO_PLAY_PAGES: readonly HowToPlayPage[] = [
             { control: 'Click or tap it again', action: 'Play, or continue its run' },
             { control: 'Empty slot', action: 'Create a new character' },
             { control: 'Delete key or button', action: 'Delete it (press twice)' },
+            // Fase 17B: Create New Character.
+            { control: 'Create: arrows next to a row', action: 'Change your look' },
+            { control: 'Create: arrow keys / pad', action: 'Up-Down: row, Left-Right: change' },
         ],
     },
 ];

@@ -2,7 +2,7 @@
 //
 // Solo lo necesario para dibujar un personaje fijo por capas: tablas estado → hoja,
 // orden de capas según la dirección (getGearRenderOrder, copiado tal cual) y qué frame
-// mostrar en cada capa. Sin género variable, sin tintes y sin inventario.
+// mostrar en cada capa. Sin inventario. El sexo, la piel y el color de pelo (Fase 17B) los pone data/appearance.ts.
 import type { SpriteKey } from '../config/assetManifest';
 import { Direction } from './directions';
 
@@ -106,6 +106,8 @@ export interface GearLayer {
     startSheet?: number;
     /** Colour multiplied over the layer (e.g. Wizard Robe = Robe in another colour). */
     tint?: number;
+    /** Hair only: index in HAIR_COLORS (data/appearance.ts), added to the hair as in the original. */
+    hairColor?: number;
 }
 
 export type Appearance = Partial<Record<GearSlot, GearLayer>>;

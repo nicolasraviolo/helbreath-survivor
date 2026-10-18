@@ -6,9 +6,9 @@
 import Phaser from 'phaser';
 import type { InputSystem } from '../systems/InputSystem';
 
-/** Keys that the scene handles even while typing (create, cancel, change class). */
-export type TextInputKey = 'Enter' | 'Escape' | 'ArrowLeft' | 'ArrowRight';
-const SCENE_KEYS: ReadonlySet<string> = new Set<TextInputKey>(['Enter', 'Escape', 'ArrowLeft', 'ArrowRight']);
+/** Keys that the scene handles even while typing (create, cancel, move through the rows and change them). */
+export type TextInputKey = 'Enter' | 'Escape' | 'ArrowLeft' | 'ArrowRight' | 'ArrowUp' | 'ArrowDown';
+const SCENE_KEYS: ReadonlySet<string> = new Set<TextInputKey>(['Enter', 'Escape', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown']);
 
 /** Mouse (not a finger): typing can start straight away, there is no on-screen keyboard to open. */
 export const TYPES_WITHOUT_TAPPING = !window.matchMedia('(pointer: coarse)').matches;

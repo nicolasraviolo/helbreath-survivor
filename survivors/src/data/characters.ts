@@ -1,7 +1,7 @@
 // Personajes jugables, elegidos en la pantalla "Create New Character" (scenes/CharacterSelectScene.ts).
 // El Mago dispara Energy Bolt; el Guerrero lleva un arma cuerpo a cuerpo y armadura (Fase 6, data/weapons.ts y data/armor.ts).
-// Nombre, aspecto y stats iniciales son fijos por ahora (decidido por el propietario el 16-oct-2026).
-import type { SoundKey } from '../config/assetManifest';
+// Stats iniciales fijos por clase (decidido por el propietario el 16-oct-2026). Desde la Fase 17B el sexo, la piel y el
+// pelo los elige el jugador (data/appearance.ts): el aspecto de aquí es la ropa de salida, que se dibuja para su sexo.
 import type { Appearance } from '../hb/playerAppearance';
 import type { Stats } from './stats';
 import type { ArmorSetId } from './armor';
@@ -41,15 +41,14 @@ export interface CharacterDef {
     magicDamageMultiplier: number;
     /** Multiplies weapon cooldowns (0.9 = 10% shorter). */
     cooldownMultiplier: number;
-    /** Look at level 1. The melee weapon layer is replaced by the weapon in hand. */
+    /**
+     * Clothes at level 1, drawn for the character's gender (body, hair and underwear come from its look).
+     * The melee weapon layer is replaced by the weapon in hand.
+     */
     appearance: Appearance;
     startWeapon: StartWeapon;
     /** Which pieces of data/armor.ts the class can wear (their cards only show up for it). */
     armorSet: ArmorSetId;
-    /** Cry when the character dies: the original has one for men and one for women. */
-    deathSound: SoundKey;
-    /** Voice when the level-up cards open, also one for men and one for women. */
-    levelUpSound: SoundKey;
 }
 
 /** Guerrero al empezar: camisa, pantalón, botas altas y daga. La armadura se gana con las cartas (data/armor.ts). */
@@ -115,8 +114,6 @@ export const CHARACTERS = {
         appearance: MAGE_FEMALE_LOOK,
         startWeapon: { kind: 'spell', id: 'energyBolt' },
         armorSet: 'mage',
-        deathSound: 'sfx.player.death.w',
-        levelUpSound: 'sfx.levelUp.w',
     },
     warrior: {
         ...COMMON,
@@ -133,8 +130,6 @@ export const CHARACTERS = {
         appearance: WARRIOR_LOOK,
         startWeapon: { kind: 'melee', id: 'dagger' },
         armorSet: 'warrior',
-        deathSound: 'sfx.player.death.m',
-        levelUpSound: 'sfx.levelUp.m',
     },
 } as const satisfies Record<string, CharacterDef>;
 

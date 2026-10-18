@@ -85,7 +85,7 @@ class Streamer {
 }
 
 /** Downloads one .spr and turns it into textures and animations (like PreloadScene, but outside the loader). */
-async function loadSprite(scene: Phaser.Scene, key: SpriteKey): Promise<void> {
+export async function loadSprite(scene: Phaser.Scene, key: SpriteKey): Promise<void> {
     const response = await fetch(ASSET_BASE_PATH + SPRITES[key].file);
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     scene.sys.game.cache.binary.add(key, await response.arrayBuffer());

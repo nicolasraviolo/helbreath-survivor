@@ -1,8 +1,13 @@
 // Dibujo de un personaje por capas (cuerpo, pelo, ropa, armadura, arma...). Todas las capas avanzan con
 // un único reloj para que nunca se desincronicen, y se reordenan según la dirección como en el original.
 // Lo usan el jugador en la partida y la vista previa de la pantalla de selección.
+// Fase 17B: el aspecto (sexo, piel, pelo, ropa interior) llega aparte de la clase. Cada pieza se cambia por la de su
+// sexo (gearForGender), las piezas que aún no se han descargado no se ven hasta que llegan (LookLoader), el pelo se
+// tiñe sumando color como en el original y se oculta con casco (como el original).
 import Phaser from 'phaser';
+import { gearForGender, HAIR_COLOR_SCALE, HAIR_COLORS, lookLayers, type CharacterLook } from '../data/appearance';
 import type { CharacterDef } from '../data/characters';
+import { ensureAdditiveTexture, tintedKey } from '../hb/additiveTint';
 import { Direction } from '../hb/directions';
 import {
     PLAYER_FRAMES_PER_DIRECTION,
@@ -10,9 +15,14 @@ import {
     framesPerDirection,
     getGearRenderOrder,
     getLayerFrame,
+    type Appearance,
     type GearLayer,
     type GearSlot,
 } from '../hb/playerAppearance';
+import { lookLoader } from '../systems/LookLoader';
+
+/** Slots that come from the look, not from the class or the armor. */
+const LOOK_SLOTS: ReadonlySet<GearSlot> = new Set<GearSlot>(['human', 'hair', 'underwear']);
 
 export class CharacterSprite {
     /** Holds only the layers; place, scale or nest it like any container. */
@@ -32,16 +42,36 @@ export class CharacterSprite {
     private overlayTint: number | undefined;
     private overlayAlpha = 1;
 
-    constructor(private readonly scene: Phaser.Scene, private readonly def: CharacterDef, x = 0, y = 0) {
+    constructor(
+        private readonly scene: Phaser.Scene,
+        private readonly def: CharacterDef,
+        private readonly look: CharacterLook,
+        x = 0,
+        y = 0,
+    ) {
         this.container = scene.add.container(x, y);
-        for (const [slot, layer] of Object.entries(def.appearance) as [GearSlot, GearLayer][]) {
+        // The class's clothes, with body, hair (none when bald) and underwear from the look.
+        const appearance: Appearance = { ...def.appearance };
+        delete appearance.hair;
+        Object.assign(appearance, lookLayers(look));
+        for (const [slot, layer] of Object.entries(appearance) as [GearSlot, GearLayer][]) {
             this.setLayer(slot, layer, false);
         }
         this.refresh(true);
     }
 
-    /** Puts on, swaps or (with undefined) takes off the piece drawn in a slot. */
-    public setLayer(slot: GearSlot, layer: GearLayer | undefined, redraw = true): void {
+    /** Puts on, swaps or (with undefined) takes off the piece drawn in a slot (as drawn for the look's gender). */
+    public setLayer(slot: GearSlot, piece: GearLayer | undefined, redraw = true): void {
+        const layer = piece && !LOOK_SLOTS.has(slot) ? { ...piece, sprite: gearForGender(piece.sprite, this.look.gender) } : piece;
+        if (layer && !lookLoader.isReady(this.scene, layer.sprite)) {
+            // Not downloaded yet: hidden until it arrives, then redrawn (if the character is still on screen).
+            void lookLoader.ensure(this.scene, [layer.sprite]).then(() => {
+                if (this.container.active) {
+                    this.orderKey = '';
+                    this.refresh(true);
+                }
+            });
+        }
         const current = this.layers.get(slot);
         if (!layer) {
             current?.sprite.destroy();
@@ -61,6 +91,11 @@ export class CharacterSprite {
             this.orderKey = '';
             this.refresh(true);
         }
+    }
+
+    /** Removes every layer (the preview of Create New Character is rebuilt when the look changes). */
+    public destroy(): void {
+        this.container.destroy();
     }
 
     /** Changes state and direction; a new state starts its animation from the first frame. */
@@ -131,13 +166,26 @@ export class CharacterSprite {
         }
         this.shownFrame = frame;
 
+        // As in the original, a helmet hides the hair.
+        const helmed = this.layers.has('helm');
         for (const [slot, { def, sprite }] of this.layers) {
-            const layerFrame = getLayerFrame(slot, def, this.state, this.direction, frame);
-            sprite.setVisible(layerFrame !== undefined);
-            if (layerFrame) sprite.setTexture(layerFrame.texture, layerFrame.frame);
+            const layerFrame = slot === 'hair' && helmed ? undefined : getLayerFrame(slot, def, this.state, this.direction, frame);
+            const texture = layerFrame ? this.textureOf(def, layerFrame.texture) : undefined;
+            sprite.setVisible(texture !== undefined);
+            if (layerFrame && texture) sprite.setTexture(texture, layerFrame.frame);
             if (this.overlayTint !== undefined) this.syncOverlay(slot, sprite);
         }
         this.applyRenderOrder();
+    }
+
+    /** Texture to draw (the hair's tinted copy), or undefined while it isn't loaded. */
+    private textureOf(layer: GearLayer, baseKey: string): string | undefined {
+        const textures = this.scene.sys.textures;
+        const color = layer.hairColor === undefined ? undefined : HAIR_COLORS[layer.hairColor];
+        if (!color) return textures.exists(baseKey) ? baseKey : undefined;
+        const key = tintedKey(baseKey, `hair${layer.hairColor}`);
+        const add = color.add.map((value) => Math.round(value * HAIR_COLOR_SCALE)) as [number, number, number];
+        return ensureAdditiveTexture(textures, baseKey, key, add) ? key : undefined;
     }
 
     /** Re-stacks the layers when direction or state changes the drawing order. */
