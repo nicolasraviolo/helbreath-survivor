@@ -4,6 +4,7 @@
 // El conjunto lleva número de versión: si un día cambia la forma de guardar, se sube la versión y migrate() convierte
 // lo viejo, sin borrar el progreso de nadie. Logros, récords y baúl (Fases 14, 20 y 22) irán en otras claves.
 // Si el navegador no deja guardar (modo privado, almacenamiento bloqueado), el juego funciona igual, sin Continue.
+// Fase 17A: una partida por personaje, en el mismo número de hueco (lo mantiene CharacterStore al arrancar).
 import type { BossReport, RunMetricsState } from '../config/metrics';
 import { ARMOR_PIECES, type ArmorPieceId, type ArmorSlotId } from '../data/armor';
 import { isCharacterId, type CharacterId } from '../data/characters';
@@ -29,6 +30,8 @@ export interface RunSnapshot {
     savedAt: number;
     map: MapId;
     character: CharacterId;
+    /** Saved character playing it (Fase 17A, CharacterStore). Saves from before have none. */
+    characterUid: string | undefined;
     elapsedMs: number;
     level: number;
     xp: number;
@@ -71,23 +74,23 @@ class SaveStoreImpl {
         return this.slots.some((slot) => slot !== undefined);
     }
 
-    public get hasFree(): boolean {
-        return this.slots.some((slot) => slot === undefined);
-    }
-
     public get(slot: number): Readonly<RunSnapshot> | undefined {
         return this.slots[slot];
     }
 
-    /** Slot for a new run: the first free one or, if they are all in use, the oldest one. */
-    public slotForNewRun(): number {
-        const free = this.slots.indexOf(undefined);
-        if (free >= 0) return free;
-        let oldest = 0;
-        this.slots.forEach((slot, i) => {
-            if (slot && slot.savedAt < (this.slots[oldest]?.savedAt ?? Infinity)) oldest = i;
+    /** Slot of the run saved most recently, or -1 if there is none. */
+    public get newest(): number {
+        let newest = -1;
+        this.slots.forEach((run, i) => {
+            if (run && run.savedAt > (this.slots[newest]?.savedAt ?? -Infinity)) newest = i;
         });
-        return oldest;
+        return newest;
+    }
+
+    /** Replaces every slot at once (CharacterStore puts each run in its character's slot). */
+    public replaceAll(slots: ReadonlyArray<RunSnapshot | undefined>): void {
+        this.slots = Array.from({ length: SAVE_SLOT_COUNT }, (_, i) => slots[i]);
+        this.write();
     }
 
     public save(slot: number, snapshot: RunSnapshot): void {
@@ -170,6 +173,7 @@ function readSnapshot(entry: unknown): RunSnapshot | undefined {
         savedAt: readNumber(entry.savedAt) ?? 0,
         map: isKeyOf(MAPS_DATA, entry.map) ? entry.map : DEFAULT_MAP,
         character: entry.character,
+        characterUid: typeof entry.characterUid === 'string' ? entry.characterUid : undefined,
         elapsedMs,
         level,
         xp: readNumber(entry.xp) ?? 0,

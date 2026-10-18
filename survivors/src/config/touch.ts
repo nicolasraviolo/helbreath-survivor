@@ -1,5 +1,5 @@
 // Controles táctiles (Fase 9): joystick que aparece donde se pone el dedo, botón de pausa y aviso de girar el móvil.
-// Fase 15C: segundo stick para apuntar (mitad derecha) y esquina reservada para el botón del crit (Fase 18).
+// Fase 15C: segundo stick para apuntar (mitad derecha) y esquina reservada para el botón del crit (Fase 19).
 // Solo se usan en pantallas táctiles; con teclado, ratón o mando no se ve nada de esto.
 
 /** Look of a floating stick (movement or aim). */
@@ -52,7 +52,7 @@ export const TOUCH_AIM_STICK: Readonly<TouchStickStyle> = {
 export const TOUCH_AIM_ZONE_START = 0.5;
 
 /**
- * Bottom-right corner of the game area kept free for the crit button (Fase 18): a finger that lands here opens no
+ * Bottom-right corner of the game area kept free for the crit button (Fase 19): a finger that lands here opens no
  * stick. Sizes in screen pixels, measured from the right edge and from the bottom of the game area.
  */
 export const TOUCH_RESERVED_CORNER = { width: 130, height: 130 } as const;

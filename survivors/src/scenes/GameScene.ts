@@ -23,6 +23,7 @@ import { BossSystem } from '../systems/BossSystem';
 import { EnemyProjectileSystem } from '../systems/EnemyProjectileSystem';
 import { MusicSystem } from '../systems/MusicSystem';
 import type { GameOverSceneData } from './GameOverScene';
+import { DEFAULT_LOOKS, GENDER_SOUNDS } from '../data/appearance';
 import { CHARACTERS, CHOSEN_CHARACTER_KEY, DEFAULT_CHARACTER, isCharacterId, type CharacterId } from '../data/characters';
 import { DEFAULT_MAP, MAPS_DATA, type MapId } from '../data/maps';
 import { AUTOSAVE_EVERY_MS, RESUME_CALM_MS } from '../data/saves';
@@ -30,6 +31,8 @@ import { STAT_IDS } from '../data/stats';
 import type { MeleeWeaponId } from '../data/weapons';
 import type { SpellId } from '../data/spells';
 import { RESUME_SLOT_KEY, saveStore, type RunSnapshot } from '../systems/SaveStore';
+import { ACTIVE_CHARACTER_KEY, characterStore } from '../systems/CharacterStore';
+import { lookLoader, runSprites } from '../systems/LookLoader';
 import { MIN_DAMAGE_TAKEN } from '../data/armor';
 import { MELEE_ROOT_MOMENT } from '../data/weapons';
 import { CAST_RELEASE_MOMENT } from '../data/spells';
@@ -172,6 +175,8 @@ export class GameScene extends Phaser.Scene {
     private dustDistance = 0;
     private mapId: MapId = DEFAULT_MAP;
     private characterId: CharacterId = DEFAULT_CHARACTER;
+    /** Saved character playing this run (Fase 17A), to keep its best level; undefined in old saves and debug runs. */
+    private characterUid: string | undefined;
     /** Save slot of this run (SaveStore). */
     private saveSlot = 0;
     private autosaveInMs = AUTOSAVE_EVERY_MS;
@@ -183,11 +188,16 @@ export class GameScene extends Phaser.Scene {
     }
 
     create(): void {
-        // Continue: the slot chosen in SaveSlotsScene. Read once, so Restart (game over) starts a new run.
+        // Continue: the slot chosen in CharacterSlotsScene. Read once, so Restart (game over) starts a new run.
         const resumeSlot: unknown = this.registry.get(RESUME_SLOT_KEY);
         this.registry.remove(RESUME_SLOT_KEY);
         const resume = typeof resumeSlot === 'number' ? saveStore.get(resumeSlot) : undefined;
-        this.saveSlot = resume && typeof resumeSlot === 'number' ? resumeSlot : saveStore.slotForNewRun();
+        const activeUid: unknown = this.registry.get(ACTIVE_CHARACTER_KEY);
+        this.characterUid = resume ? resume.characterUid : typeof activeUid === 'string' ? activeUid : undefined;
+        // One run per character, in its slot (Fase 17A). Without a character (debug ?play): a slot with no character,
+        // so the run becomes a new character when the game loads again; with none free, it isn't saved (-1).
+        const characterSlot = characterStore.slotOf(this.characterUid);
+        this.saveSlot = resume && typeof resumeSlot === 'number' ? resumeSlot : characterSlot >= 0 ? characterSlot : characterStore.firstFree;
         this.autosaveInMs = AUTOSAVE_EVERY_MS;
         this.mapId = resume?.map ?? DEFAULT_MAP;
         const mapDef = MAPS_DATA[this.mapId];
@@ -207,7 +217,11 @@ export class GameScene extends Phaser.Scene {
         const chosen: unknown = this.registry.get(CHOSEN_CHARACTER_KEY);
         this.characterId = resume?.character ?? (isCharacterId(chosen) ? chosen : DEFAULT_CHARACTER);
         const character = CHARACTERS[this.characterId];
-        this.player = new Player(this, (spawn.x + 0.5) * TILE_SIZE, (spawn.y + 0.5) * TILE_SIZE, character, map, areaPx);
+        // Look of the saved character (Fase 17B); debug runs without one look as the class did before.
+        const look = characterStore.byUid(this.characterUid)?.look ?? DEFAULT_LOOKS[this.characterId];
+        // Everything this character may wear during the run (armor from the cards), so new pieces show at once.
+        void lookLoader.ensure(this, runSprites(character, look));
+        this.player = new Player(this, (spawn.x + 0.5) * TILE_SIZE, (spawn.y + 0.5) * TILE_SIZE, character, look, map, areaPx);
         this.stats = new CharacterStats(character);
         this.levelUpOpen = false;
         this.sim = undefined;
@@ -394,7 +408,7 @@ export class GameScene extends Phaser.Scene {
     /** Pauses the game and shows the cards (of a level up, or of a chest). Picking one applies it and resumes. */
     private openLevelUp(fromChest: boolean): void {
         this.levelUpOpen = true;
-        if (!fromChest) this.audio.play(this.player.def.levelUpSound);
+        if (!fromChest) this.audio.play(GENDER_SOUNDS[this.player.look.gender].levelUp);
         const stats = this.stats;
         const data: LevelUpSceneData = {
             stats,
@@ -414,7 +428,7 @@ export class GameScene extends Phaser.Scene {
 
     /** After the final boss (Fase 13C): the levels still count (and their automatic points), but no cards come out. */
     private levelUpWithoutCards(): void {
-        this.audio.play(this.player.def.levelUpSound);
+        this.audio.play(GENDER_SOUNDS[this.player.look.gender].levelUp);
         while (this.stats.pendingLevelUps > 0) this.chooseCard(undefined);
     }
 
@@ -508,6 +522,7 @@ export class GameScene extends Phaser.Scene {
             savedAt: Date.now(),
             map: this.mapId,
             character: this.characterId,
+            characterUid: this.characterUid,
             elapsedMs: this.spawner.elapsed,
             level: stats.level,
             xp: stats.xp,
@@ -531,7 +546,7 @@ export class GameScene extends Phaser.Scene {
 
     /** Saves the run, unless it is already decided (dead, or over). With the portal open, its countdown is kept. */
     private saveRun(): void {
-        if (this.runOver || this.player.isDead) return;
+        if (this.runOver || this.player.isDead || this.saveSlot < 0) return;
         saveStore.save(this.saveSlot, this.snapshot());
     }
 
@@ -601,6 +616,8 @@ export class GameScene extends Phaser.Scene {
         const sim = this.sim;
         if (!sim) {
             this.step(delta);
+            // The character's best level (shown on the select screen); cheap when it isn't a new best.
+            characterStore.recordLevel(this.characterUid, this.stats.level);
             return;
         }
         // Simulated run: many short steps per drawn frame.
@@ -734,7 +751,7 @@ export class GameScene extends Phaser.Scene {
         this.metrics.onHurt(source, taken, player.hp, player.maxHp);
         this.screenShake.hurt(byBoss);
         if (player.isDead) {
-            this.audio.play(player.def.deathSound);
+            this.audio.play(GENDER_SOUNDS[player.look.gender].death);
             return;
         }
         this.weapons.spawnEffect('fx.hit', player.x, player.y - PLAYER_BODY_OFFSET_Y);
@@ -984,7 +1001,7 @@ export class GameScene extends Phaser.Scene {
             },
             onChangeClass: () => {
                 this.scene.stop('GameOver');
-                this.scene.start('CharacterSelect');
+                this.scene.start('CharacterSlots');
             },
             onMainMenu: () => {
                 this.scene.stop('GameOver');

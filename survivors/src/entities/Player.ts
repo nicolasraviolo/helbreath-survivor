@@ -2,6 +2,7 @@
 // vida con invulnerabilidad tras un golpe. El dibujo por capas lo hace CharacterSprite.
 import Phaser from 'phaser';
 import { MOVE_DIRECTIONS, PLAYER_BLINK_MS } from '../config/gameConfig';
+import type { CharacterLook } from '../data/appearance';
 import type { CharacterDef } from '../data/characters';
 import type { HBMap } from '../hb/HBMap';
 import { Direction, directionFromVector } from '../hb/directions';
@@ -47,13 +48,14 @@ export class Player {
         public x: number,
         public y: number,
         public readonly def: CharacterDef,
+        public readonly look: CharacterLook,
         private readonly map: HBMap,
         /** Playable rectangle in pixels; the feet never leave it. */
         private readonly area: Phaser.Geom.Rectangle,
     ) {
         this.maxHp = def.baseHp;
         this.hp = this.maxHp;
-        this.body = new CharacterSprite(scene, def);
+        this.body = new CharacterSprite(scene, def, look);
         this.healthBar = scene.make.graphics({}, false);
         this.container = scene.add.container(x, y, [this.body.container, this.healthBar]);
         this.drawHealthBar();

@@ -2,13 +2,15 @@
 //
 // Solo lo necesario para dibujar un personaje fijo por capas: tablas estado → hoja,
 // orden de capas según la dirección (getGearRenderOrder, copiado tal cual) y qué frame
-// mostrar en cada capa. Sin género variable, sin tintes y sin inventario.
+// mostrar en cada capa. Sin inventario. El sexo, la piel y el color de pelo (Fase 17B) los pone data/appearance.ts.
 import type { SpriteKey } from '../config/assetManifest';
 import { Direction } from './directions';
 
 /** Subset of the original PlayerState that the survivors player uses. */
 export enum PlayerState {
     IdleCombat = 'idleCombat',
+    /** Walking in combat stance (only the character screens use it, as in the original menu). */
+    Walk = 'walk',
     Run = 'run',
     /** Melee swing (MeleeAttack in the original). */
     Melee = 'melee',
@@ -24,6 +26,7 @@ export type GearSlot = 'human' | 'hair' | 'underwear' | 'hauberk' | 'leggings' |
 /** Body sheet = base + direction (one sheet per direction). */
 const HUMAN_SPRITESHEET_BASE: Record<PlayerState, number> = {
     [PlayerState.IdleCombat]: 8,
+    [PlayerState.Walk]: 24,
     [PlayerState.Run]: 32,
     [PlayerState.Melee]: 48,
     [PlayerState.Cast]: 64,
@@ -34,6 +37,7 @@ const HUMAN_SPRITESHEET_BASE: Record<PlayerState, number> = {
 /** Hair, underwear and equipment: one sheet per state with 8 frames per direction inside. */
 const ARMOUR_SPRITESHEET_BASE: Record<PlayerState, number> = {
     [PlayerState.IdleCombat]: 1,
+    [PlayerState.Walk]: 3,
     [PlayerState.Run]: 4,
     [PlayerState.Melee]: 6,
     [PlayerState.Cast]: 8,
@@ -47,6 +51,7 @@ const ARMOUR_SPRITESHEET_BASE: Record<PlayerState, number> = {
  */
 const ARMAMENT_STATE_INDEX: Record<PlayerState, number | undefined> = {
     [PlayerState.IdleCombat]: 1,
+    [PlayerState.Walk]: 3,
     [PlayerState.Run]: 6,
     [PlayerState.Melee]: 4,
     [PlayerState.Cast]: undefined,
@@ -101,6 +106,8 @@ export interface GearLayer {
     startSheet?: number;
     /** Colour multiplied over the layer (e.g. Wizard Robe = Robe in another colour). */
     tint?: number;
+    /** Hair only: index in HAIR_COLORS (data/appearance.ts), added to the hair as in the original. */
+    hairColor?: number;
 }
 
 export type Appearance = Partial<Record<GearSlot, GearLayer>>;

@@ -3,6 +3,7 @@
 // - botones: dialogtext.spr, hoja 1 (74x20, cada uno en versión normal y, en el frame siguiente, iluminada).
 // Las posiciones se midieron sobre la imagen original de 640x480; la escena las amplía a 800x600.
 import { getSheetKey } from '../hb/HBSprite';
+import type { CharacterLook } from '../data/appearance';
 import type { CharacterId } from '../data/characters';
 import { byDevice } from './device';
 import { GAME_WIDTH } from './gameConfig';
@@ -38,8 +39,27 @@ export const SELECT_CANCEL_BUTTON = { x: 494, y: 449 } as const;
 export const SELECT_TEXT_CENTER_X = 180;
 export const SELECT_LABEL_X = 86;
 export const SELECT_NAME = { titleY: 92, labelY: 115, box: { x: 192, y: 107, width: 107, height: 17 } } as const;
-export const SELECT_LOOK = { titleY: 140, firstRowY: 163, step: 16 } as const;
-export const SELECT_LOOK_ROWS = ['Gender', 'Skin Color', 'Hair Style', 'Hair Color', 'Underwear Color'] as const;
+/**
+ * Look rows (Fase 17B), at the original's positions (Client.cpp, UpdateScreen_OnCreateNewCharacter): one row every
+ * 15 px, with the ◄ and ► arrows already drawn in the background.
+ */
+export const SELECT_LOOK = {
+    titleY: 140,
+    firstRowY: 163,
+    step: 15,
+    leftArrow: { x: 236, width: 21 },
+    rightArrow: { x: 259, width: 21 },
+    arrowHeight: 14,
+} as const;
+export const SELECT_LOOK_ROWS: ReadonlyArray<{ key: keyof CharacterLook; label: string }> = [
+    { key: 'gender', label: 'Gender' },
+    { key: 'skin', label: 'Skin Color' },
+    { key: 'hairStyle', label: 'Hair Style' },
+    { key: 'hairColor', label: 'Hair Color' },
+    { key: 'underwear', label: 'Underwear Color' },
+];
+/** Extra touch area of each arrow on its outer side (the two arrows of a row are only 2 px apart). */
+export const SELECT_ARROW_HIT_PAD = byDevice({ x: 0, y: 0 }, { x: 8, y: 1 });
 export const SELECT_STATS = { titleY: 258, firstRowY: 283, step: 16, valueX: 212 } as const;
 export const SELECT_FOOTER_Y = 395;
 
@@ -58,8 +78,9 @@ export const SELECT_INPUT_DELAY_MS = 250;
 export const SELECT_TEXT_STYLE = { ...UI_TEXT, fontSize: byDevice('15px', '18px'), color: '#1e1408' } as const;
 /** Class description: a long last line ("+1 Int and +2 Mag every level") must fit the bottom-right box. */
 export const SELECT_DESCRIPTION_STYLE = { ...SELECT_TEXT_STYLE, fontSize: byDevice('15px', '17px') } as const;
-export const SELECT_DISABLED_STYLE = { ...SELECT_TEXT_STYLE, color: '#54452e' } as const;
+/** Row chosen with the keyboard or pad (↑/↓): ←/→ change it. */
+export const SELECT_FOCUS_STYLE = { ...SELECT_TEXT_STYLE, color: '#9a1c08', fontStyle: 'bold' } as const;
 export const SELECT_VALUE_STYLE = { ...UI_TEXT, fontSize: byDevice('14px', '17px'), fontStyle: 'bold', color: '#1e1408' } as const;
 export const SELECT_NAME_STYLE = { ...UI_TEXT, fontSize: byDevice('15px', '17px'), fontStyle: 'bold', color: '#ffffff' } as const;
-/** Greys out the look arrows, which don't work yet. */
+/** Greys out the stat +/- buttons: stats come with the class. */
 export const SELECT_DISABLED_ARROWS = { x: 235, width: 44, alpha: 0.45, color: 0x8a7a60 } as const;

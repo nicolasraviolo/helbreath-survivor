@@ -155,12 +155,14 @@ export class HBSpriteFile {
         }
 
         const parsed = this.parseSprite(buffer);
-        const isTiles = this.spriteType === SpriteType.Tiles;
+        // Canvas textures keep their pixels readable: tiles need them, and so does the hair, which is copied with
+        // colour added (hb/additiveTint.ts, Fase 17B). Other sheets free them once on the GPU.
+        const keepPixels = this.spriteType === SpriteType.Tiles || this.spriteType === SpriteType.HairAndUndies;
 
         for (const sheet of parsed) {
             const image = await createImageFromPng(sheet.imageData);
             try {
-                this.spriteSheets.push(new HBSpriteSheet(scene, sheet.textureKey, sheet.frames, image, isTiles));
+                this.spriteSheets.push(new HBSpriteSheet(scene, sheet.textureKey, sheet.frames, image, keepPixels));
             } finally {
                 image.close();
             }
@@ -171,7 +173,7 @@ export class HBSpriteFile {
         );
         pivotsBySpriteKey.set(this.spriteKey, { spriteSheetPivots });
 
-        const isStatic = isTiles || this.spriteType === SpriteType.Interface
+        const isStatic = this.spriteType === SpriteType.Tiles || this.spriteType === SpriteType.Interface
             || this.spriteType === SpriteType.ItemGround || this.spriteType === SpriteType.ItemPack;
         if (!isStatic) {
             for (const sheet of this.spriteSheets) {

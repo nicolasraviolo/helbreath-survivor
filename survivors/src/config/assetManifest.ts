@@ -81,6 +81,29 @@ export const SPRITES = {
     'gear.skirt.w': { file: 'sprites/wskirt.spr', type: SpriteType.EquipmentPack },
     'gear.wand.w': { file: 'sprites/wstaff1.spr', type: SpriteType.Weapons },
 
+    // Fase 17B: el resto de pieles y la ropa del otro sexo (ver data/appearance.ts). Pesan ~6,5 MB: no se descargan al
+    // empezar, solo las del personaje que se dibuja (ON_DEMAND_SPRITES, systems/LookLoader.ts).
+    'player.body.ym': { file: 'sprites/ym.spr', type: SpriteType.Human },
+    'player.body.bm': { file: 'sprites/bm.spr', type: SpriteType.Human },
+    'player.body.yw': { file: 'sprites/yw.spr', type: SpriteType.Human },
+    'player.body.bw': { file: 'sprites/bw.spr', type: SpriteType.Human },
+    'gear.helm.wizardCap.m': { file: 'sprites/nmhelm3.spr', type: SpriteType.EquipmentPack },
+    'gear.shirt.w': { file: 'sprites/wshirt.spr', type: SpriteType.EquipmentPack },
+    'gear.trousers.w': { file: 'sprites/wtrouser.spr', type: SpriteType.EquipmentPack },
+    'gear.hauberk.w': { file: 'sprites/whauberk.spr', type: SpriteType.EquipmentPack },
+    'gear.armor.leather.w': { file: 'sprites/wlarmor.spr', type: SpriteType.EquipmentPack },
+    'gear.armor.scale.w': { file: 'sprites/wsmail.spr', type: SpriteType.EquipmentPack },
+    'gear.armor.chain.w': { file: 'sprites/wcmail.spr', type: SpriteType.EquipmentPack },
+    'gear.armor.plate.w': { file: 'sprites/wpmail.spr', type: SpriteType.EquipmentPack },
+    'gear.leggings.chain.w': { file: 'sprites/wchoses.spr', type: SpriteType.EquipmentPack },
+    'gear.leggings.plate.w': { file: 'sprites/wleggings.spr', type: SpriteType.EquipmentPack },
+    'gear.helm.basic.w': { file: 'sprites/whelm4.spr', type: SpriteType.EquipmentPack },
+    'gear.helm.full.w': { file: 'sprites/whelm1.spr', type: SpriteType.EquipmentPack },
+    'gear.helm.winged.w': { file: 'sprites/nwhelm2.spr', type: SpriteType.EquipmentPack },
+    'gear.helm.horned.w': { file: 'sprites/nwhelm1.spr', type: SpriteType.EquipmentPack },
+    'gear.swords.w': { file: 'sprites/wsw.spr', type: SpriteType.Weapons },
+    'gear.shields.w': { file: 'sprites/wsh.spr', type: SpriteType.Shields },
+
     // Efectos de hechizos (ver config/effects.ts para qué hoja y frames usa cada uno).
     'fx.effect': { file: 'sprites/effect.spr', type: SpriteType.Effect },
     // Hechizos de fuego y Energy Strike (ver config/effects.ts).
@@ -302,4 +325,18 @@ export type TilePack = (typeof TILE_PACKS)[number];
 export const ASSET_BASE_PATH = 'assets/';
 
 /** Only downloaded on phones (config/device.ts): the PC never shows them. */
+/**
+ * Fase 17B: character pieces downloaded only when a character needs them (systems/LookLoader.ts), not before the game
+ * starts. The looks used until then (Warrior man, Mage woman, light skin) stay upfront.
+ */
+export const ON_DEMAND_SPRITES: ReadonlySet<SpriteKey> = new Set<SpriteKey>([
+    'player.body.ym', 'player.body.bm', 'player.body.yw', 'player.body.bw',
+    'gear.helm.wizardCap.m',
+    'gear.shirt.w', 'gear.trousers.w', 'gear.hauberk.w',
+    'gear.armor.leather.w', 'gear.armor.scale.w', 'gear.armor.chain.w', 'gear.armor.plate.w',
+    'gear.leggings.chain.w', 'gear.leggings.plate.w',
+    'gear.helm.basic.w', 'gear.helm.full.w', 'gear.helm.winged.w', 'gear.helm.horned.w',
+    'gear.swords.w', 'gear.shields.w',
+]);
+
 export const PHONE_ONLY_SPRITES: ReadonlySet<SpriteKey> = new Set<SpriteKey>(['ui.v2']);

@@ -123,6 +123,8 @@ export class InputSystem {
      * screen, or pressed while this scene was paused (it doesn't update then), must not trigger anything here.
      */
     private syncHeldOnly = true;
+    /** False while a text box is being typed in (Fase 17A): the letters must not move menus or confirm. */
+    private keyboardEnabled = true;
 
     constructor(private readonly scene: Phaser.Scene) {
         const sync = () => {
@@ -164,6 +166,11 @@ export class InputSystem {
     /** Ignores mouse presses that start at or below this screen Y (over the HUD bar), for movement and Confirm. */
     public setPointerMaxY(y: number): void {
         this.pointerMaxY = y;
+    }
+
+    /** Turns the keyboard actions off while typing a name; the gamepad and the pointer keep working. */
+    public setKeyboardEnabled(enabled: boolean): void {
+        this.keyboardEnabled = enabled;
     }
 
     /** Call once per frame before reading actions. */
@@ -218,7 +225,9 @@ export class InputSystem {
 
     public justPressed(action: Action): boolean {
         const keys = this.actionKeys.get(action) ?? [];
-        if (keys.some((key) => Phaser.Input.Keyboard.JustDown(key))) {
+        // JustDown is read even when disabled, so a key typed into a text box doesn't fire once typing ends.
+        const keyPressed = keys.map((key) => Phaser.Input.Keyboard.JustDown(key)).some(Boolean);
+        if (keyPressed && this.keyboardEnabled) {
             this.lastDevice = 'keyboard';
             return true;
         }

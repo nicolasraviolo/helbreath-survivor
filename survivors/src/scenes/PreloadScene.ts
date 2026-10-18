@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { ASSET_BASE_PATH, MAPS, MINIMAPS, PHONE_ONLY_SPRITES, SOUNDS, SPRITES, type SpriteKey } from '../config/assetManifest';
+import { ASSET_BASE_PATH, MAPS, MINIMAPS, ON_DEMAND_SPRITES, PHONE_ONLY_SPRITES, SOUNDS, SPRITES, type SpriteKey } from '../config/assetManifest';
 import { DEBUG_START } from '../config/debugStart';
 import { COMPACT_UI } from '../config/device';
 import { registerEffectAnimations } from '../config/effects';
@@ -14,7 +14,7 @@ import { STREAMED_SPRITES } from '../systems/AssetStreamer';
 
 /** Sprites loaded here: all but the monsters that come later (systems/AssetStreamer.ts loads those in the background). */
 const UPFRONT_SPRITES = (Object.keys(SPRITES) as SpriteKey[])
-    .filter((key) => !STREAMED_SPRITES.has(key) && (COMPACT_UI || !PHONE_ONLY_SPRITES.has(key)));
+    .filter((key) => !STREAMED_SPRITES.has(key) && !ON_DEMAND_SPRITES.has(key) && (COMPACT_UI || !PHONE_ONLY_SPRITES.has(key)));
 
 const BAR_WIDTH = 400;
 const BAR_HEIGHT = 16;
@@ -76,7 +76,7 @@ export class PreloadScene extends Phaser.Scene {
         registerEffectAnimations(this.anims, this.textures);
         // ?play / ?debug= (solo en desarrollo, config/debugStart.ts): directo a la partida.
         if (DEBUG_START.character) this.registry.set(CHOSEN_CHARACTER_KEY, DEBUG_START.character);
-        this.scene.start(DEBUG_START.play ? 'Game' : DEBUG_START.open === 'CharacterSelect' ? 'CharacterSelect' : 'MainMenu');
+        this.scene.start(DEBUG_START.play ? 'Game' : DEBUG_START.open === 'CharacterSelect' || DEBUG_START.open === 'CharacterSlots' ? DEBUG_START.open : 'MainMenu');
     }
 
     private loadBinaries(files: Array<{ key: string; file: string }>): Promise<void> {

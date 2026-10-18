@@ -9,13 +9,13 @@ import { BootScene } from './scenes/BootScene';
 import { PreloadScene } from './scenes/PreloadScene';
 import { MainMenuScene } from './scenes/MainMenuScene';
 import { CharacterSelectScene } from './scenes/CharacterSelectScene';
+import { CharacterSlotsScene } from './scenes/CharacterSlotsScene';
 import { GameScene } from './scenes/GameScene';
 import { HudScene } from './scenes/HudScene';
 import { LevelUpScene } from './scenes/LevelUpScene';
 import { GameOverScene } from './scenes/GameOverScene';
 import { PauseScene } from './scenes/PauseScene';
 import { SettingsScene } from './scenes/SettingsScene';
-import { SaveSlotsScene } from './scenes/SaveSlotsScene';
 import { CreditsScene } from './scenes/CreditsScene';
 import { HowToPlayScene } from './scenes/HowToPlayScene';
 import { AchievementsScene } from './scenes/AchievementsScene';
@@ -38,8 +38,8 @@ function startGame(): void {
         disableContextMenu: true,
         // HudScene, LevelUpScene y los menús que se abren encima (pausa, ajustes...) van después para dibujarse encima.
         scene: [
-            BootScene, PreloadScene, MainMenuScene, CharacterSelectScene, GameScene, HudScene, LevelUpScene, GameOverScene,
-            PauseScene, SettingsScene, CreditsScene, AchievementsScene, HowToPlayScene, SaveSlotsScene, SpriteTestScene,
+            BootScene, PreloadScene, MainMenuScene, CharacterSlotsScene, CharacterSelectScene, GameScene, HudScene, LevelUpScene, GameOverScene,
+            PauseScene, SettingsScene, CreditsScene, AchievementsScene, HowToPlayScene, SpriteTestScene,
         ],
     });
 

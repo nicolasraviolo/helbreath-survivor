@@ -60,7 +60,7 @@ export interface RunReport {
     minHpPct: number;
     bosses: BossReport[];
     potions: number;
-    /** Zem used (Fase 19) and critical strikes done (Fase 18): always 0 until those phases. */
+    /** Zem used (Fase 20) and critical strikes done (Fase 19): always 0 until those phases. */
     zemUsed: number;
     crits: number;
     /** Mean FPS while playing, and the 10th percentile (how bad the slow moments are). */
