@@ -667,7 +667,7 @@ Tabla completa en `docs/REQUISITOS_HB.md`. Lo no obvio:
 - Imágenes ya hechas en `sp-client/public/assets/images/minimaps/<mapa>.jpg`, una por mapa y del mapa **entero** (bisle: 1500×1369 para 274×250 casillas, ~5,47 px por casilla en los dos ejes). sp-client marca bisle como `Minimap.NONE`, pero la imagen existe y cuadra con el mapa.
 - `ui/Minimap.ts` recorta la zona de juego como un frame de la textura (`playArea`), calculado con el tamaño de la imagen entre el del mapa: vale para cualquier mapa sin medir nada a mano.
 - `telescope.spr` (el GuideMap del original) no lo usa sp-client y no tiene índice documentado: no se usa.
-- Solo marca jugador y jefes (y tótems en el 16B), por decisión del propietario. En mapas con NPCs (Fase 22), también ellos.
+- Solo marca jugador y jefes (y tótems en el 16B), por decisión del propietario. En mapas con NPCs (Fase 23, la ciudad), también ellos.
 
 ## Tótems (Fase 16B)
 - `manastone.spr` tiene 40 hojas, pero todas son **la misma imagen** (56×100, base a 86 px del borde de arriba): se usa la hoja 0. sp-client no la usa.

@@ -24,6 +24,7 @@
 
 ## Fase actual
 **Para retomar (18-oct-2026): Fase 18 completada** (18A esquiva, 18B resistencia mágica), fusionada en `master` con la etiqueta `fase-18`. **Siguiente:** `/fase 19`, crits ("Gritos"), con su botón táctil en `TOUCH_RESERVED_CORNER`.
+- **Replanteo del objetivo (18-oct-2026, tras la Fase 18):** Level permanente (máx. 140, ~60 h) y **Power** en partida, equipo que se conserva, botín en partida, baúl compartido por los 4 personajes, oro, tienda y herrero, Zem protege el botín y la resurrección pasa a **Abaddon's Blood**. Las cartas dejan de dar armas en la Fase 20. Fases renumeradas: 19 crits y habilidad activa · 20 Level y equipo · 21 botín y baúl · 22 mapas · 23 ciudad · 24 oro · 25 más mapas y únicos · 26 bandos · 27 raids · 28 ranking. Todo en `docs/DESIGN.md` ("Progresión entre partidas") y `docs/PLAN-2.md`.
 - **Esquiva (18A):** golpes y flechas fallan según puntería del monstruo contra 2·Dex + armadura (`data/defense.ts`). Sin texto "Miss". Detalle en NOTES.md, "Esquiva física (Fase 18A)".
 - **Resistencia mágica (18B):** las bolas de fuego tiran puntería mágica contra Mag + ropa/escudo; si se resisten, sin daño y texto "Resist". El panel C y las cartas enseñan **% generales** (no por monstruo). Detalle en NOTES.md, "Resistencia mágica (Fase 18B)".
 - **Personajes (17):** 4 huecos (`scenes/CharacterSlotsScene.ts`, `systems/CharacterStore.ts`), una partida a medias por personaje, aspecto en `data/appearance.ts`. Ver NOTES.md, "Personajes guardados" y "Aspecto del personaje".
@@ -45,10 +46,10 @@
 - **Ajustes posibles del temblor**, si el propietario los pide (`data/feedback.ts`): acortar la pausa entre explosiones críticas (2,5 s), contar cualquier crítico de la explosión, o añadir temblor a los críticos cuerpo a cuerpo.
 - **Lo demás de la Fase 10 queda para la segunda etapa** (`docs/PLAN-2.md`, tabla "Traído de la Fase 10"):
   - vibración y reasignar controles → Fase 19;
-  - sombras → Fase 21;
-  - más mapas → Fases 21 y 24;
-  - récords locales → Fase 21; progresión entre partidas → Fase 23;
-  - límite de enemigos en el móvil → Fase 26, o antes si va lento;
+  - sombras → Fase 22;
+  - más mapas → Fases 22 y 25;
+  - récords locales → Fase 22; progresión entre partidas → Fases 20 y 21;
+  - límite de enemigos en el móvil → Fase 27, o antes si va lento;
   - equilibrio → Fase 13 y al cerrar cada fase de combate.
 
 ## Cómo probar

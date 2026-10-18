@@ -2,7 +2,42 @@
 
 Partida de 12–15 min. Movimiento libre, armas automáticas, oleadas, gemas de XP, elegir 1 de 3 mejoras al subir de nivel, jefe final. Alcance: 1 mapa, 3 personajes, ~8 armas, ~6 pasivas, ~25 enemigos, 2 minijefes, 1 jefe.
 
-Fuera de alcance: multijugador, cuentas, tienda, inventario estilo Helbreath, NPCs, varios mapas.
+Fuera de alcance **de la demo inicial**: multijugador, cuentas, tienda, inventario estilo Helbreath, NPCs, varios mapas. *Desde el 18-oct-2026 el objetivo a largo plazo sí incluye inventario, tienda, NPCs y varios mapas: ver "Progresión entre partidas". Multijugador y cuentas siguen fuera.*
+
+## Progresión entre partidas (decidido el 18-oct-2026)
+
+> Replanteo del objetivo del juego, acordado con el propietario tras la Fase 18. Fases y bloques en `docs/PLAN-2.md` (Fases 19–25). Donde este apartado choque con los de más abajo (cartas de arma y armadura, eslabones por Str, `REQ_SCALE`), **manda este**.
+
+### Personajes y baúl
+- Una partida local por dispositivo, con **hasta 4 personajes** (Fase 17A). En el futuro podrían ser "cuentas".
+- Los 4 comparten un **baúl** (stash). Cada personaje tiene su **inventario** con huecos: arma, escudo, casco, armadura, pantalones, botas, capa, **2 hechizos**, anillo, collar, ángel tutelar, **Zem** y **Abaddon's Blood**.
+
+### Level y Power
+- **Level** = progreso permanente del personaje. Sale en Select Character. Sube con la **EXP** de las partidas. Máximo **140**. Cada Level da **3 puntos** de stat que reparte el jugador; cada stat empieza en 10 y no pasa de **200**. Los puntos **no se reasignan**.
+- **Power** = progreso dentro de la partida (lo que antes era el "nivel" en partida). Empieza en 1 cada partida; al subir salen las cartas.
+- Nunca se usa "level" para la partida en los textos del juego.
+- **Curva objetivo:** Level 140 en **~60 h**. Primeros Levels muy rápidos (5–8 en la primera partida), ~30 a las 2 h, ~50 a las 6 h, ~80 a las 15–20 h, ~100 a las 30 h. Curva propia (no la tabla del original), pensada en tiempo por Level y ajustada con métricas.
+- **Motivación (investigación, 18-oct-2026):** barras de progreso visibles y "te falta X para..." al acabar; primeros niveles rápidos; varias pistas de progreso a la vez (Level lento + botín, logros, récords y mapas rápidos); botín aleatorio honesto (rangos visibles, protección contra la mala suerte, nada de castigar al que no juega a diario).
+
+### Equipo y requisitos
+- Lo que se puede equipar se mira con las **stats permanentes**: Str para armas y armaduras (como el original: Str = peso/100), Int para hechizos. Las armas y hechizos altos piden además un **Level mínimo**.
+- Se usan los requisitos del original como referencia: Long Sword 14, Claymore 40, Flameberge 60, **Battle Hammer 120**, Giant Sword 130, Barbarian Hammer y The_Devastator 200; Fire Ball 26, Meteor Strike 169, **Blizzard 195**.
+- **Escalones de equipo:** básico (tienda) → con atributos (cualquier monstruo) → top clásico (jefes; Battle Hammer hacia las 8–10 h, Blizzard hacia las 15–20 h) → **únicos** (un jefe o mapa concreto, Level ~100+, con protección contra la mala suerte; alargan el juego hasta las ~60 h).
+- **Atributos de arma** (de momento solo tres, como el original): **Sharp** +1 al dado de daño; **Ancient** +2 al dado y no se puede mejorar; **Poison** daño de veneno con el tiempo que nunca mata.
+
+### En la partida
+- Se empieza en Power 1 **con el equipo puesto**.
+- **Las cartas ya no dan armas ni armaduras.** Dan stats temporales (+3, solo esa partida), **Xelima** (+% daño del equipo en esa partida), **Merien** (+% defensa en esa partida) y pasivas.
+- **Las dos clases:** un ataque automático y una habilidad activa con el mismo botón. Guerrero: arma + **Critical Strike** (cargas). Mago: hechizo 1 (automático) + hechizo 2 (activo, con recarga).
+- **Botín:** caen objetos según tu Str/Int y una tirada: de tu escalón (~50%), del siguiente (~25%, motiva a subir de Level), peor (~15%, para vender) o un salto grande (~10%). Al cogerlo, carta de comparación con **"Equip"** o **"Keep in bag"**; si no cumples el requisito, solo se puede guardar.
+- **Al terminar:** si ganas, te quedas con todo. Si mueres **sin Zem**, pierdes los objetos encontrados en esa partida (nunca el equipo con el que saliste). Si mueres **con Zem**, conservas el botín y el Zem se gasta. **El oro se conserva siempre.**
+- **Abaddon's Blood** (resurrección, icono del Red Ball): al morir revives una vez con media vida; se gasta. Una por partida. No se vende: solo cae de jefes.
+
+### Economía
+- **Oro:** monedas de los monstruos, montones de los jefes, vender objetos (los atributos suben el precio) y algunos logros.
+- **Herrero:** mejoras permanentes +1, +2... con Xelima (armas) y Merien (armaduras) y oro. Si falla, se pierden la piedra y el oro, **nunca el objeto**.
+- **Tienda:** Zem, pociones para empezar la partida, equipo básico sin atributos. **Almacén:** ampliar el baúl.
+- **Sin durabilidad** ni reparaciones. Sin pagos reales (regla 8).
 
 ## Personajes
 | Personaje | Estilo Helbreath | Arma inicial | Bonus |
@@ -69,7 +104,7 @@ Cada nivel da **+1 Str y +1 Vit automáticos**. Además hay cartas de stat: "+3 
 - Las armas **no tienen nivel**. Mejoran por los stats del personaje y por cambiar de eslabón; al sustituir un arma por otra solo cambia el daño base.
 - Cada **familia** es un arma automática con su comportamiento (borrador): Espada (tajo en arco), Esgrima (estocadas rápidas), Hacha (gira alrededor), Martillo (onda de choque en área). El escudo no ataca.
 - Cada familia es una cadena de **eslabones reales de Helbreath** (ejemplo Espada: Short Sword → Long Sword → Claymore → Flameberge).
-- **Requisito único:** Str de *full swing* original × `REQ_SCALE` (0.4 al inicio, ajustable). Si no se cumple, el eslabón no aparece en las cartas. No hay uso progresivo. Solo cuenta el Str: no importa el nivel del personaje, ni hay nivel de arma (el "nivel mínimo" que piden algunos objetos del original no se usa).
+- *(Hasta la Fase 20; después, requisitos con stats permanentes y Level: ver "Progresión entre partidas".)* **Requisito único:** Str de *full swing* original × `REQ_SCALE` (0.4 al inicio, ajustable). Si no se cumple, el eslabón no aparece en las cartas. No hay uso progresivo. Solo cuenta el Str: no importa el nivel del personaje, ni hay nivel de arma (el "nivel mínimo" que piden algunos objetos del original no se usa).
 - Las armas a dos manos **no** bloquean el escudo.
 - Pendiente: cuántas familias a la vez (propuesta: 4).
 
@@ -77,6 +112,8 @@ Cada nivel da **+1 Str y +1 Vit automáticos**. Además hay cartas de stat: "+3 
 Tres huecos: **Cuerpo, Casco y Escudo** (las botas siguen siendo una pasiva). La carta ofrece la mejor pieza que el Str permite; al elegirla se equipa sola y cambia el aspecto.
 
 ### Cartas al subir de nivel (3 por subida)
+> **Desde la Fase 20** las cartas de arma, eslabón y armadura desaparecen: ver "Progresión entre partidas".
+
 | Carta | Qué ofrece |
 |---|---|
 | Stat | +3 puntos a un stat a elegir. Siempre disponible, así el reparto nunca se queda vacío |
