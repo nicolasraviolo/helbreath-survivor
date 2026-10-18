@@ -3,7 +3,7 @@
 // Al añadir un control nuevo (apuntado, crit, tótems...), se añade aquí.
 
 /** Gamepad buttons drawn as Xbox icons (scenes/HowToPlayScene.ts). */
-export type PadIcon = 'A' | 'B' | 'Y' | 'Start' | 'LeftStick' | 'Dpad';
+export type PadIcon = 'A' | 'B' | 'Y' | 'Start' | 'LeftStick' | 'RightStick' | 'Dpad';
 
 export interface ControlRow {
     /** Key, mouse or touch control, as text. */
@@ -28,6 +28,7 @@ export const HOW_TO_PLAY_PAGES: readonly HowToPlayPage[] = [
         lines: [
             'Move around and stay alive.',
             'Your weapons and spells attack on their own.',
+            'Right click, right stick or right half of the screen: aim yourself.',
             'Pick up the gems that enemies drop to gain experience.',
             'Each level up, choose one of the cards to grow stronger.',
             'Survive the waves and defeat the final boss to win.',
@@ -38,8 +39,8 @@ export const HOW_TO_PLAY_PAGES: readonly HowToPlayPage[] = [
         rows: [
             { control: 'WASD or arrow keys', action: 'Move' },
             { control: 'Hold left click', action: 'Walk towards the pointer' },
-            { control: 'C', action: 'Show or hide your stats' },
-            { control: 'Esc', action: 'Pause' },
+            { control: 'Hold right click', action: 'Aim your attacks at the pointer' },
+            { control: 'C / Esc', action: 'Show your stats / Pause' },
             { control: 'Arrows + Enter, or click', action: 'Choose in menus and cards' },
             { control: 'Esc or Backspace', action: 'Go back' },
         ],
@@ -48,6 +49,7 @@ export const HOW_TO_PLAY_PAGES: readonly HowToPlayPage[] = [
         name: 'Gamepad',
         rows: [
             { pad: ['LeftStick', 'Dpad'], action: 'Move' },
+            { pad: ['RightStick'], action: 'Aim your attacks' },
             { pad: ['Y'], action: 'Show or hide your stats' },
             { pad: ['Start'], action: 'Pause' },
             { pad: ['Dpad', 'A'], action: 'Choose in menus and cards' },
@@ -57,11 +59,12 @@ export const HOW_TO_PLAY_PAGES: readonly HowToPlayPage[] = [
     {
         name: 'Touch',
         rows: [
-            { control: 'Touch and drag anywhere', action: 'Move' },
-            { control: 'Stats button', action: 'Show or hide your stats' },
-            { control: 'Pause button', action: 'Pause' },
+            { control: 'Drag on the left half', action: 'Move' },
+            { control: 'Drag on the right half', action: 'Aim (let go: auto aim)' },
+            { control: 'Aim Stick off (Settings)', action: 'Drag anywhere to move' },
+            { control: 'Stats / Pause buttons', action: 'Show your stats / Pause' },
             { control: 'Tap a card or option', action: 'Choose it' },
-            { control: 'Fullscreen (top-right icon or Settings)', action: 'Hide the browser bar' },
+            { control: 'Top-right icon', action: 'Fullscreen' },
         ],
     },
 ];

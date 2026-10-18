@@ -4,6 +4,7 @@
 // Fase 11: los árboles grandes se pueden quitar, para ver mejor (Fase 12C: ya no hay modo "siempre transparentes";
 // con On se vuelven transparentes al pasar por detrás, y un 'transparent' guardado pasa a On al cargar).
 // Fase 14A: enviar estadísticas anónimas (activado de serie; se explica con una línea en Settings).
+// Fase 15C: en el móvil, stick de apuntar en la mitad derecha de la pantalla (activado de serie).
 // Se guardan en el navegador (localStorage), así que siguen ahí la próxima vez que se abre el juego.
 
 /** In-game HUD on phones: the original bottom bar, or a small block at the top (more of the map visible). */
@@ -31,6 +32,8 @@ export interface GameSettings {
     largeTrees: TreeMode;
     /** Send an anonymous summary of each run to tune the difficulty (Fase 14A, config/metrics.ts). */
     anonymousStats: boolean;
+    /** Touch screens only: the right half of the screen opens a second stick that aims (Fase 15C). Off = touch anywhere to move. */
+    aimStick: boolean;
 }
 
 export const DEFAULT_SETTINGS: Readonly<GameSettings> = {
@@ -41,6 +44,7 @@ export const DEFAULT_SETTINGS: Readonly<GameSettings> = {
     screenShake: true,
     largeTrees: 'on',
     anonymousStats: true,
+    aimStick: true,
 };
 
 /** Each press of ← / → changes a volume by this much. */

@@ -5,6 +5,7 @@
 // Fase 14A: casilla de estadísticas anónimas, con una línea abajo que explica para qué son.
 // Fase 12C (táctil): casillas para lo que es sí/no (el volumen sigue con flechas y número, como prefiere el propietario) y la pantalla completa (antes en el menú
 // principal); panel grande para que todo quepa dentro del marco.
+// Fase 15C (táctil): casilla del stick de apuntar.
 import Phaser from 'phaser';
 import { COMPACT_UI } from '../config/device';
 import { MENU_OVERLAY, SETTINGS_MENU } from '../config/menus';
@@ -31,7 +32,7 @@ export class SettingsScene extends MenuOverlayScene {
             onLeft: () => settings.set(key, stepVolume(settings.current[key], -1)),
             onRight: () => settings.set(key, stepVolume(settings.current[key], 1)),
         });
-        const checkbox = (key: 'showPlayerHealthBar' | 'screenShake' | 'anonymousStats'): Partial<MenuItem> => {
+        const checkbox = (key: 'showPlayerHealthBar' | 'screenShake' | 'anonymousStats' | 'aimStick'): Partial<MenuItem> => {
             const toggle = () => settings.set(key, !settings.current[key]);
             return { checked: () => settings.current[key], onConfirm: toggle, onLeft: toggle, onRight: toggle };
         };
@@ -40,6 +41,8 @@ export class SettingsScene extends MenuOverlayScene {
         const hudRow = COMPACT_UI
             ? [{ label: 'HUD', value: () => HUD_STYLE_NAMES[settings.current.hudStyle], onLeft: toggleHud, onRight: toggleHud }]
             : [];
+        // The aim stick only exists on touch screens (Fase 15C).
+        const aimStickRow = this.sys.game.device.input.touch ? [{ label: 'Aim Stick', ...checkbox('aimStick') }] : [];
         this.addList([
             { label: 'Music', ...volume('musicVolume') },
             { label: 'Sound', ...volume('sfxVolume') },
@@ -52,6 +55,7 @@ export class SettingsScene extends MenuOverlayScene {
                 onRight: toggleTrees,
             },
             ...hudRow,
+            ...aimStickRow,
             ...fullscreenCheckboxItem(this),
             { label: 'Anonymous Stats', ...checkbox('anonymousStats') },
             { label: 'Back', onConfirm: () => this.close() },

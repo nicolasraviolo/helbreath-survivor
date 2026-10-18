@@ -1,9 +1,12 @@
 // Proyectil reciclable: vuela en línea recta con su animación de efecto hasta chocar con un enemigo
 // o recorrer su distancia máxima. Lo crea, mueve y recicla WeaponSystem.
+// Si va dirigido a un jefe (Fase 15A), atraviesa a los demás monstruos y solo choca con él: si no, los pequeños que
+// lo rodean se comen todos los disparos.
 import type Phaser from 'phaser';
 import { effectAnimationKey } from '../config/effects';
 import { DEPTH_EFFECT_OFFSET } from '../config/gameConfig';
 import type { SpellDef } from '../data/spells';
+import type { Enemy } from './Enemy';
 import type { Poolable } from '../utils/Pool';
 
 export class Projectile implements Poolable {
@@ -11,6 +14,8 @@ export class Projectile implements Poolable {
     public x = 0;
     public y = 0;
     public def!: SpellDef;
+    /** Only enemy it can hit while alive (a boss); undefined = the first one it touches. */
+    public target: Enemy | undefined;
     private vx = 0;
     private vy = 0;
     private remaining = 0;
@@ -21,8 +26,9 @@ export class Projectile implements Poolable {
     }
 
     /** Starts flying from (x, y) towards (targetX, targetY), up to `maxDistance` pixels. */
-    public launch(def: SpellDef, x: number, y: number, targetX: number, targetY: number, maxDistance: number): void {
+    public launch(def: SpellDef, x: number, y: number, targetX: number, targetY: number, maxDistance: number, target?: Enemy): void {
         this.def = def;
+        this.target = target;
         this.x = x;
         this.y = y;
         const dx = targetX - x;
@@ -48,6 +54,7 @@ export class Projectile implements Poolable {
 
     public deactivate(): void {
         this.sprite.stop().setActive(false).setVisible(false);
+        this.target = undefined;
     }
 
     private syncDisplay(): void {

@@ -7,6 +7,8 @@
 //                      bosskill = saltar al jefe final y matarlo en cuanto salga (para ver el portal, Fase 13)
 //                      stampede = lanzar ya una estampida (la primera de data/waves.ts, Fase 13B)
 //                      resume = guardar y volver a cargar la partida, como con Continue (Fase 12)
+//                      aim = apuntar a mano hacia la derecha todo el rato (sin ratón ni mando, Fase 15B)
+//                      aimstick = un dedo de mentira en el stick de apuntar, empujado a la derecha (con --mobile, Fase 15C)
 //                      sim = partida simulada muy deprisa para medir el equilibrio (systems/SimRun.ts, Fase 13C)
 //   ?trees=off       → árboles grandes en ese modo solo en esta partida (on, off), sin guardarlo
 //   ?open=howtoplay  → abre esa pantalla de los menús (howtoplay, settings, credits, achievements, select = selección de personaje)
@@ -26,7 +28,7 @@ function isDebugScreen(value: string | null): value is DebugScreen {
 }
 
 /** Actions that ?debug= can run at the start of a run (the same ones as the debug keys of GameScene). */
-export const DEBUG_ACTIONS = ['horde', 'kill', 'levelup', 'levels', 'str', 'magic', 'pickups', 'minute', 'boss', 'finalboss', 'bosskill', 'stampede', 'god', 'resume', 'sim'] as const;
+export const DEBUG_ACTIONS = ['horde', 'kill', 'levelup', 'levels', 'str', 'magic', 'pickups', 'minute', 'boss', 'finalboss', 'bosskill', 'stampede', 'god', 'aim', 'aimstick', 'resume', 'sim'] as const;
 export type DebugAction = (typeof DEBUG_ACTIONS)[number];
 
 function isDebugAction(value: string): value is DebugAction {

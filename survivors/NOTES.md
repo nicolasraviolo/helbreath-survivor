@@ -48,6 +48,9 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Partida simulada y equilibrio (Fase 13C)
 - Logros (Fase 14B)
 - Métricas (Fase 14A)
+- Apuntado automático (Fase 15A)
+- Apuntado manual (Fase 15B)
+- Stick de apuntar en el móvil (Fase 15C)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -64,6 +67,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
   - Casillas de mapa: `map-tile-N`.
   - `HBAnimation` crea **una animación por hoja**, a 10 fps y en bucle. No lo hace con Tiles, Interface ni packs de items.
 - **Tipos (`SpriteType`):** Human, Monster, EquipmentPack, HairAndUndies, Bows, Weapons, Shields, Effect, Tiles, Interface, ItemPack, ItemGround.
+- **Visor de sprites (`sprites.html`, `src/tools/spriteViewer.ts`):** lee los `.spr` sin Phaser con `readSprFile` (`src/hb/HBSprite.ts`). Los nombres salen de `/sprite-catalog.json`, que `vite.config.ts` genera solo en desarrollo ejecutando los `.ts` de datos de sp-client (`scripts/spriteCatalog.ts`): `Items.ts` (icono en `item-pack.spr` = hoja `itemSheetIndex`, frame `itemSpriteIndex`), `Monsters.ts`, `NPCs.ts` y `Effects.ts`. No entra en el build.
 - **Origen:** `.pak` originales convertidos con `tools/PakToSprConverter`. Toma como transparente el color exacto del píxel (0,0), así que pueden quedar **bordes verdes o azules** en algunos sprites. Es una deducción nuestra; si molesta, se tapa con tinte o se reconvierte.
 
 ## Animaciones: frames por estado y dirección
@@ -629,3 +633,26 @@ Tabla completa en `docs/REQUISITOS_HB.md`. Lo no obvio:
 - **Seguridad:** el Worker solo acepta envíos desde github.io y localhost (cabecera Origin), máx. 8 KB, y comprueba cada campo. No guarda IP ni nada personal. Cuerpo `text/plain` para que el navegador no haga petición previa (CORS).
 - **Probar la página en local** con datos de mentira: `metrics-local` en `.claude/launch.json` (puerto 8787, clave `localtest`, base de datos local en `metrics-server/.wrangler/`).
 - **Ojo:** la red del propietario bloquea a veces las IPs de Cloudflare (LaLiga, Fase 9). Si la página no abre, probar con datos móviles o más tarde.
+
+## Apuntado automático (Fase 15A)
+- **Un solo sitio decide a quién se ataca:** `systems/Targeting.ts` (`findTarget`, `findTargets`), usado por todas las armas a través de `WeaponContext`. Un jefe (`def.boss`) a menos de `AUTO_AIM.bossPriorityRadius` (250 px, `data/targeting.ts`) y al alcance del arma va primero; si no, el más cercano. El apuntado manual del 15B debe entrar aquí, por encima de todo.
+- **Elegir al jefe no bastaba:** los proyectiles explotan con el primer monstruo que tocan, y los pequeños que rodean al jefe se comían casi todos (medido: 67 de daño al Ettin en 20 s con la Maga a nivel 1). Por eso un proyectil lanzado a un jefe lleva `Projectile.target` y **solo choca con él** (atraviesa a los demás); si el jefe muere en vuelo, vuelve a chocar con cualquiera. Con eso: 396 en 20 s.
+- **Ojo al medir con `pnpm check`:** sin `--cards` la partida se queda parada en la primera subida de nivel, y parece que el jefe no recibe daño.
+- La partida simulada (`levelpace`) no sirve para medir esto: el jugador simulado huye del jefe y casi nunca está a menos de 250 px.
+
+## Apuntado manual (Fase 15B)
+- **Quién lo lee:** `InputSystem.getManualAim()`, cada frame. El stick derecho (zona muerta `MANUAL_AIM.stickDeadzone`) va antes que el clic derecho; el clic derecho da además el punto del cursor. `GameScene` se lo pasa a `WeaponSystem.setManualAim` → `Targeting.manual`. La partida simulada y el jugador muerto nunca apuntan a mano.
+- **Qué hacen las armas:** si hay **algún** enemigo al alcance (`inReach`), atacan hacia `manualAimAngle` (desde su propio origen: el cuerpo en los tajos, los pies en los hechizos). Triple Energy Bolt sale en abanico (`fanDegrees`). Energy Strike cae en el cursor (como mucho a su alcance) o, con el stick, a `stickAreaDistance` × alcance. En manual los proyectiles **no** atraviesan monstruos aunque haya un jefe.
+- **Ratón:** solo el botón **izquierdo** mueve y confirma (`leftButtonDown()`; un dedo también cuenta como izquierdo). Antes cualquier botón movía. El menú del navegador está quitado con `disableContextMenu` en `main.ts`.
+- **Flecha:** `ui/AimArrow.ts`, un triángulo dibujado una vez y rotado; medidas en `data/targeting.ts`.
+- **Probar sin ratón:** `?debug=aim` apunta a la derecha todo el rato (se puede combinar con `boss` para ver que el manual manda sobre el jefe).
+
+## Stick de apuntar en el móvil (Fase 15C)
+- **Dos sticks, una clase:** `ui/TouchJoystick.ts` recibe su estilo (`TOUCH_JOYSTICK` o `TOUCH_AIM_STICK`, `config/touch.ts`) y una función `accepts(x, y, maxY)` que decide si un dedo que se apoya ahí le toca. `GameScene` crea los dos: con `settings.aimStick` la mitad izquierda (x < 400, también la franja negra izquierda) mueve y la derecha apunta; sin él, el de mover acepta todo y el de apuntar nada. La casilla se lee en cada toque, así que cambiarla en la Pausa vale al momento.
+- **Lectura:** `InputSystem.updateAim` mira el stick de apuntar justo después del stick derecho del mando. Solo cuenta cuando el dedo ya ha salido de la zona muerta (`pushed`); si vuelve al centro sin levantarse, se queda la última dirección. Sin punto (como el mando): Energy Strike cae a `stickAreaDistance` × alcance.
+- **Esquina reservada:** `TOUCH_RESERVED_CORNER` (abajo a la derecha de la zona de juego) no abre ningún stick: ahí irá el botón del crit (Fase 16). El botón de pausa es de la escena del HUD, que va encima y se queda el toque.
+- **Dedos:** `TOUCH_POINTERS = 3` (mover + apuntar + botón).
+- **Settings en el móvil:** con la fila "Aim Stick" son 11 filas; para que quepan en el marco, `SETTINGS_MENU.itemSpacing` en el móvil bajó a 33. Otra fila más ya no cabe: habría que quitar alguna o hacer dos páginas.
+- **How to Play en el móvil:** caben **6 filas** por página; la 7ª pisa el selector "Page". En el 15C se juntaron filas ("C / Esc", "Stats / Pause buttons") y se acortaron textos para que quepan.
+- **Probar:** `?debug=aimstick` (con `--mobile`) pone un dedo de mentira empujando a la derecha. Para dedos de verdad en `pnpm check --eval`, crear `Touch` con `clientX/pageX/screenX` (si falta `pageX`, Phaser lo lee como 0) y lanzar `touchstart` en el canvas y `touchmove/touchend` en `window`. Ojo: un `import('/src/...')` desde `--eval` carga **otra copia** del módulo (Vite lo sirve con `?t=...`); para tocar los ajustes de verdad hay que importar la URL exacta de `performance.getEntriesByType('resource')`.
+

@@ -5,9 +5,17 @@
 // la base se ve pegada al borde más cercano del juego y el mando se mueve igual que el dedo.
 // Phaser avisa de que el dedo se apoya también fuera del dibujo (POINTER_DOWN_OUTSIDE), pero ignora sus movimientos
 // fuera de él, así que el movimiento y el levantar el dedo se leen directamente de los eventos táctiles del navegador.
+// Fase 15C: la misma clase sirve para el stick de mover y el de apuntar; cada uno con su color y su zona de la
+// pantalla (`accepts` decide si un dedo que se apoya en (x, y) le toca a este stick).
 import Phaser from 'phaser';
 import { GAME_WIDTH } from '../config/gameConfig';
-import { TOUCH_JOYSTICK } from '../config/touch';
+import type { TouchStickStyle } from '../config/touch';
+
+/** Whether a finger landing at (x, y) (game pixels; x can be outside 0..GAME_WIDTH on the margins) opens this stick. */
+export type TouchStickZone = (x: number, y: number, maxY: number) => boolean;
+
+/** Fake finger id for ?debug=aimstick (browsers give real fingers ids from 0 up). */
+const DEBUG_TOUCH_ID = -1;
 
 export class TouchJoystick {
     private readonly base: Phaser.GameObjects.Graphics;
@@ -17,14 +25,18 @@ export class TouchJoystick {
     private readonly centre = new Phaser.Math.Vector2();
     /** Browser id of the finger on the joystick. */
     private touchId: number | undefined;
+    /** The finger left the deadzone at least once since it landed (the stick has given a direction). */
+    private wasPushed = false;
 
     constructor(
         private readonly scene: Phaser.Scene,
         /** The joystick only starts on touches above this screen Y (not on the HUD bar), or on the side margins. */
         private maxY: number,
         depth: number,
+        private readonly style: Readonly<TouchStickStyle>,
+        private readonly accepts: TouchStickZone = () => true,
     ) {
-        const j = TOUCH_JOYSTICK;
+        const j = style;
         this.base = scene.add.graphics()
             .fillStyle(j.baseColor, j.baseAlpha).fillCircle(0, 0, j.radius)
             .lineStyle(j.ringWidth, j.ringColor, j.ringAlpha).strokeCircle(0, 0, j.radius)
@@ -63,6 +75,20 @@ export class TouchJoystick {
         return this.touchId !== undefined;
     }
 
+    /** A finger is on it and has pushed it out of the deadzone at least once (it may be resting in the centre now). */
+    public get pushed(): boolean {
+        return this.wasPushed;
+    }
+
+    /** Development (?debug=aimstick): a pretend finger at (x, y) pushed by (dx, dy); it stays until a real one replaces it. */
+    public debugHold(x: number, y: number, dx: number, dy: number): void {
+        this.release();
+        this.touchId = DEBUG_TOUCH_ID;
+        this.centre.set(x, y);
+        this.base.setVisible(true);
+        this.knob.setVisible(true);
+        this.moveTo(x + dx, y + dy);
+    }
 
     /** The game area grew or shrank (the HUD style changed in the settings). */
     public setMaxY(maxY: number): void {
@@ -70,7 +96,9 @@ export class TouchJoystick {
     }
     private onDown(pointer: Phaser.Input.Pointer): void {
         const inMargin = pointer.x < 0 || pointer.x > GAME_WIDTH;
-        if (!pointer.wasTouch || this.touchId !== undefined || (pointer.y >= this.maxY && !inMargin)) return;
+        if (!pointer.wasTouch || (this.touchId !== undefined && this.touchId !== DEBUG_TOUCH_ID) || (pointer.y >= this.maxY && !inMargin)) return;
+        if (!this.accepts(pointer.x, pointer.y, this.maxY)) return;
+        this.wasPushed = false;
         this.touchId = pointer.identifier;
         this.centre.set(pointer.x, pointer.y);
         this.base.setVisible(true);
@@ -97,7 +125,7 @@ export class TouchJoystick {
 
     /** Finger at (x, y) in game pixels. */
     private moveTo(x: number, y: number): void {
-        const { radius, deadzone, baseFollows } = TOUCH_JOYSTICK;
+        const { radius, deadzone, baseFollows } = this.style;
         let dx = x - this.centre.x;
         let dy = y - this.centre.y;
         const distance = Math.hypot(dx, dy);
@@ -118,13 +146,14 @@ export class TouchJoystick {
         } else {
             const angle = Math.atan2(dy, dx);
             const strength = (length - deadzone) / (1 - deadzone);
+            this.wasPushed = true;
             this.value.set(Math.cos(angle) * strength, Math.sin(angle) * strength);
         }
     }
 
     /** Places the base (kept inside the game picture) and the knob at this offset from it. */
     private draw(knobX: number, knobY: number): void {
-        const { radius } = TOUCH_JOYSTICK;
+        const { radius } = this.style;
         const x = Phaser.Math.Clamp(this.centre.x, radius, GAME_WIDTH - radius);
         const y = Phaser.Math.Clamp(this.centre.y, radius, this.maxY - radius);
         this.base.setPosition(x, y);
@@ -133,6 +162,7 @@ export class TouchJoystick {
 
     private release(): void {
         this.touchId = undefined;
+        this.wasPushed = false;
         this.value.set(0, 0);
         this.base.setVisible(false);
         this.knob.setVisible(false);

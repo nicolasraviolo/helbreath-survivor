@@ -187,13 +187,13 @@ Hoy todas las armas apuntan solas al enemigo más cercano (`findNearestEnemies` 
 - **Al soltar,** vuelve al automático en el acto.
 - Un solo sitio del código decide "¿hacia dónde apunto?" y todas las armas lo usan: tajos, proyectiles y hechizos. Las armas que caen en zona (alrededor de enemigos) siguen igual o caen hacia donde apuntas.
 - Un indicador discreto (flecha o retícula) solo mientras apuntas a mano.
-- **En el móvil:** solo automático (no hay segundo stick, y el lado derecho será para el botón del crit).
+- **En el móvil (15C, decidido el 18-oct-2026):** segundo stick flotante en la mitad derecha de la pantalla para apuntar; la izquierda mueve. Casilla "Aim Stick" en Settings, activada de serie. El botón del crit (Fase 16) irá en la esquina de abajo a la derecha.
 - **Decisión del propietario:** el clic deja de servir para moverse (el ratón pasa a apuntar), o el clic izquierdo mueve y el derecho apunta.
 - Se explica en How to play.
 
 ### Aceptación
 - Con el mando, el stick derecho dirige los ataques; al soltarlo vuelven a buscar al más cercano.
-- Con el ratón, igual. En el móvil, todo sigue como ahora.
+- Con el ratón, igual (clic derecho). En el móvil, el stick de la derecha apunta; con la casilla apagada, todo como antes.
 
 ---
 

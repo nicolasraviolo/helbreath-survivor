@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sprite Viewer · Helbreath Survivors</title>
+    <link rel="icon" href="favicon.ico" sizes="48x48" />
+    <!-- Herramienta de desarrollo: visor de todos los .spr de sp-client. Solo existe con `pnpm dev` (no se publica). -->
+    <style>
+      :root { --bg: #15130f; --panel: #211d17; --line: #3a332a; --text: #e8dfc8; --dim: #9a8f78; --accent: #e0b050; }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.4 system-ui, sans-serif; }
+      button, select, input { font: inherit; color: var(--text); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 4px 10px; }
+      button { cursor: pointer; }
+      button:hover { border-color: var(--accent); }
+      button.on { background: var(--accent); color: #1a1408; border-color: var(--accent); }
+      header { position: sticky; top: 0; z-index: 2; background: var(--bg); border-bottom: 1px solid var(--line); padding: 10px 16px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+      header h1 { font-size: 16px; margin: 0 12px 0 0; color: var(--accent); }
+      header input[type=search] { margin-left: auto; min-width: 200px; }
+      main { padding: 16px; }
+      .hint { color: var(--dim); margin: 0 0 12px; }
+      .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; }
+      .card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 6px; text-align: center; cursor: pointer; }
+      .card:hover { border-color: var(--accent); }
+      .card canvas { display: block; margin: 0 auto 4px; width: 96px; height: 96px; image-rendering: pixelated; }
+      .card .title { font-size: 13px; }
+      .card .sub { font-size: 11px; color: var(--dim); word-break: break-all; }
+      .card.dim { opacity: 0.35; }
+      .card.current { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+      .toolbar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 8px 0; }
+      .toolbar label { color: var(--dim); margin-left: 8px; }
+      .stage { display: inline-block; border: 1px solid var(--line); border-radius: 8px; margin: 8px 0; max-width: 100%; overflow: auto; }
+      .stage canvas { display: block; image-rendering: pixelated; }
+      .bg-dark { background: #1d1a15; }
+      .bg-light { background: #d8d2c4; }
+      .bg-grass { background: #4b5a2c; }
+      .bg-checker { background: repeating-conic-gradient(#555 0 25%, #777 0 50%) 0 0 / 16px 16px; }
+      input.num { width: 80px; }
+      canvas.icon { image-rendering: pixelated; }
+      h2 { margin: 4px 0; font-size: 20px; }
+      h3 { margin: 20px 0 8px; font-size: 15px; color: var(--dim); }
+      .sheet-grid { grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); }
+      .sheet-grid .card canvas { width: 64px; height: 64px; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Sprite Viewer</h1>
+      <span id="tabs"></span>
+      <input id="search" type="search" placeholder="Search…" />
+    </header>
+    <main id="main"></main>
+    <script type="module" src="/src/tools/spriteViewer.ts"></script>
+  </body>
+</html>

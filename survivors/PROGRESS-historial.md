@@ -2,6 +2,38 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
+**Fase 15: revisión de código (`/revisar`, 2026-10-18).** 7 hallazgos pequeños. Arreglados: el atajo `?debug=aim` ya no se queda puesto al volver a jugar, comentario fuera de sitio en `GameScene`, y la división de pantalla del stick pasó a `TOUCH_AIM_ZONE_START` (`config/touch.ts`). Dejados a propósito (casi imposibles o solo de forma): un proyectil podría seguir a un jefe "de recambio" del mismo tipo que salga en el mismo frame; el stick de apuntar podría reutilizar una dirección vieja durante un frame; el `as EnemyDef` de `findNearestBoss`; `tools/spriteViewer.ts` largo (solo desarrollo).
+
+**Fase 15, bloque 15C: stick de apuntar en el móvil (2026-10-18).**
+- **Qué hace:** con la casilla **Aim Stick** (Settings, solo en pantallas táctiles, activada de serie), un dedo en la **mitad izquierda** mueve y otro en la **mitad derecha** abre un segundo stick **naranja** que apunta, como el stick derecho del mando (sale la misma flecha). Si el dedo vuelve al centro sin levantarse, se queda la última dirección; al soltarlo vuelve el automático. Con la casilla apagada, tocar en cualquier sitio mueve, como antes.
+- **Esquina reservada:** abajo a la derecha (130×130 px, `TOUCH_RESERVED_CORNER`) no abre ningún stick: ahí irá el botón del crit (Fase 16). Ahora se siguen 3 dedos a la vez (`TOUCH_POINTERS`).
+- **Código:** `ui/TouchJoystick.ts` sirve para los dos sticks (estilo y zona por parámetro); estilos en `config/touch.ts`; `InputSystem.setTouchAimStick`; los crea `GameScene`. Detalle en NOTES.md, "Stick de apuntar en el móvil".
+- **Pantallas:** Settings en el móvil con filas algo más juntas para que quepa la nueva (`SETTINGS_MENU.itemSpacing` 33). How to Play: página Touch reescrita (mitad izquierda / derecha, casilla apagada) y línea de Basics que nombra la mitad derecha; en el móvil caben 6 filas por página, así que se juntaron filas en Touch y en Keyboard (esta ya se salía desde el 15B).
+- **Atajo nuevo:** `?debug=aimstick` (con `--mobile`): dedo de mentira empujando el stick de apuntar a la derecha.
+- **Comprobado:** dedos simulados con eventos táctiles reales (izquierdo mueve hacia arriba mientras el derecho apunta a la izquierda; al soltar el derecho vuelve el automático; la esquina no abre nada; con la casilla apagada, la derecha mueve); capturas de Settings, How to Play y la partida; build y `check menu game levelup` y `game --mobile` sin errores. **El propietario lo probó en su móvil y le parece bien.**
+- **Cómo probar:** `pnpm --dir survivors dev` y abrir la dirección en el móvil (o Chrome en modo móvil): pulgar izquierdo mueve, pulgar derecho apunta; apagar "Aim Stick" en Settings para volver a lo de antes.
+
+**Fase 15, bloque 15B: apuntado manual (2026-10-18).**
+- **Qué hace:** mantener el **clic derecho** apunta todos los ataques hacia el cursor; el **stick derecho** del mando, hacia donde se empuja. Manda sobre el automático y sobre los jefes. Al soltar vuelve el automático en el acto. Solo atacan si hay algún enemigo al alcance (no hay tajos al aire). Triple Energy Bolt sale en abanico; Energy Strike cae en el cursor (como mucho a su alcance) o, con el stick, al 60% de su alcance en esa dirección. Flecha pequeña junto a los pies mientras se apunta (`ui/AimArrow.ts`).
+- **Ratón:** ahora **solo el clic izquierdo** mueve y confirma (antes cualquier botón movía). Sin menú del navegador al hacer clic derecho (`disableContextMenu` en `main.ts`).
+- **How to Play:** línea nueva en Basics y filas "Hold right click" (teclado) y stick derecho con icono "R" (mando).
+- **Números:** `MANUAL_AIM` en `data/targeting.ts` (zona muerta del stick, abanico, flecha). Detalle técnico en NOTES.md, "Apuntado manual".
+- **Atajo nuevo:** `?debug=aim` apunta a la derecha todo el rato (sin ratón).
+- **Comprobado:** clic derecho real con Playwright (apunta al cursor, el personaje no se mueve, sin menú del navegador, al soltar vuelve el automático); con `?debug=aim` y jefe en pantalla, Guerrero y Maga atacan siempre a la derecha; en móvil no se activa; build y `check menu levelup boss` y `game --mobile` sin errores. **El stick derecho no se ha probado con un mando de verdad.**
+- **Cómo probar:** `pnpm --dir survivors dev` → http://localhost:8090/?play, mantener el clic derecho en distintos sitios; con `?play&debug=boss,god`, apuntar lejos del jefe.
+
+**Herramienta: visor de sprites (2026-10-18, fuera de las fases).**
+- **Qué es:** página solo de desarrollo, http://localhost:8090/sprites.html con `pnpm dev`, para elegir diseños. Muestra todos los `.spr` de sp-client por categorías (armas y escudos, armaduras, otros objetos, hechizos y efectos, monstruos, personajes y NPCs, todos los archivos), con nombres sacados de los datos del cliente original. Al abrir uno se anima, con pose, dirección, hombre o mujer, velocidad, zoom y fondo; armas, escudos y armaduras se ven sobre el cuerpo.
+- **Archivos:** `sprites.html`, `src/tools/spriteViewer.ts`, `scripts/spriteCatalog.ts` (catálogo servido por un plugin de `vite.config.ts` solo con `pnpm dev`). `readSprFile` sacado de `src/hb/HBSprite.ts` para leer `.spr` sin Phaser.
+- **Privado:** no entra en el build ni en la web publicada (comprobado en `dist/`).
+- **Comprobado:** build sin errores; `check menu game` sin errores; en el navegador, todas las categorías dibujan, y la Long Sword, una armadura, el Orc y un hechizo se animan sin errores de consola.
+
+**Fase 15, bloque 15A: prioridad de jefes en el apuntado automático (2026-10-18).**
+- **Qué hace:** todas las armas preguntan a `systems/Targeting.ts` a quién atacar. Si hay un jefe (Ettin, Demon, Wyvern) a menos de 250 px (`data/targeting.ts`) y al alcance del arma, va a por él; si no, al más cercano, como antes. Espadas: solo si el jefe está a su alcance (el tajo sigue dando a todo el arco). Triple Energy Bolt: 1 disparo al jefe (`AUTO_AIM.bossShots`) y los demás a los más cercanos. Energy Strike: cae alrededor del jefe.
+- **Añadido sobre el plan:** los proyectiles lanzados a un jefe atraviesan a los demás monstruos y solo chocan con él (`Projectile.target`). Sin esto, los pequeños se comían los disparos.
+- **Comprobado:** Maga a nivel 1 junto al Ettin, 20 s: de 67 a 396 de daño. Partida simulada, cuánto vive cada jefe (Ettin/Demon/Wyvern), Guerrero 28 s/49 s/1:50 → 31 s/51 s/2:02 y Maga 42 s/41 s/3:33 → 43 s/75 s/1:36. No dice mucho: el jugador simulado huye del jefe. Niveles por partida sin cambio (26–27). Build y `check menu boss finalboss` sin errores.
+- **Cómo probar:** `pnpm --dir survivors dev` → http://localhost:8090/?play=mage&debug=god,boss, quieto: al acercarse el Ettin, los rayos atraviesan a los pequeños y su barra baja sin parar; al alejarte vuelven a los cercanos. Con `?play=warrior&debug=god,boss`, la espada solo va a por él cuando está pegado.
+
 **Fase 14 completada (2026-10-18)**: bloques 14A (métricas) y 14B (logros). Fusionada en `master`, etiqueta `fase-14` y publicada en https://nicolasraviolo.github.io/helbreath-survivor/. Base de datos de métricas vaciada de pruebas al publicar. Siguiente: `/fase 15`.
 
 **Fase 14, bloque 14A: métricas anónimas (2026-10-18, el propietario lo probó y funciona). Cierra la Fase 14.**

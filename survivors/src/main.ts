@@ -32,8 +32,10 @@ function startGame(): void {
         backgroundColor: BACKGROUND_COLOR,
         pixelArt: true,
         scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, fullscreenTarget: 'game' },
-        // Móvil: un dedo en el joystick y otro para la pausa o las cartas.
+        // Móvil: un dedo para moverse, otro para apuntar (Fase 15C) y otro para la pausa o las cartas.
         input: { activePointers: TOUCH_POINTERS },
+        // El clic derecho apunta (Fase 15B): sin el menú del navegador encima del juego.
+        disableContextMenu: true,
         // HudScene, LevelUpScene y los menús que se abren encima (pausa, ajustes...) van después para dibujarse encima.
         scene: [
             BootScene, PreloadScene, MainMenuScene, CharacterSelectScene, GameScene, HudScene, LevelUpScene, GameOverScene,

@@ -1,8 +1,10 @@
 // Arma cuerpo a cuerpo (Short Swords y Long Swords): cuando hay un enemigo a su alcance, el personaje da un tajo
 // en arco hacia él. El daño llega un poco después de empezar la animación, como en el original (frame 2 de 8).
+// Con apuntado manual (Fase 15B), el tajo va hacia donde apunta el jugador, si hay algún enemigo a su alcance.
 // Los números de cada arma viven en data/weapons.ts (MELEE_WEAPONS).
 import { MELEE_HIT_MOMENT, type MeleeWeaponDef, type MeleeWeaponId, MELEE_WEAPONS } from '../data/weapons';
 import { MELEE_ORIGIN_OFFSET_Y } from '../config/gameConfig';
+import { manualAimAngle } from '../systems/Targeting';
 import { Weapon, type WeaponContext } from './Weapon';
 
 /** Extra distance (beyond the blade) at which the swing starts, so it also catches enemies walking in. */
@@ -29,9 +31,17 @@ export class MeleeWeapon extends Weapon {
 
     protected fire(context: WeaponContext): boolean {
         const def = this.def;
-        const target = context.findNearestEnemy(def.range + TARGET_MARGIN_PX);
-        if (!target) return false;
-        const angle = Math.atan2(target.bodyY - (context.y - MELEE_ORIGIN_OFFSET_Y), target.x - context.x);
+        const reach = def.range + TARGET_MARGIN_PX;
+        const originY = context.y - MELEE_ORIGIN_OFFSET_Y;
+        let angle: number;
+        if (context.manualAim) {
+            if (!context.inReach(reach)) return false;
+            angle = manualAimAngle(context.manualAim, context.x, originY);
+        } else {
+            const target = context.findTarget(reach);
+            if (!target) return false;
+            angle = Math.atan2(target.bodyY - originY, target.x - context.x);
+        }
         const durationMs = def.swingMs * context.cooldownMultiplier;
         context.swingMelee(def, angle, durationMs);
         this.pendingHitMs = durationMs * MELEE_HIT_MOMENT;

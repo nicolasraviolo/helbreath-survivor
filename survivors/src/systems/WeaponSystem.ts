@@ -17,6 +17,7 @@ import type { AudioSystem } from './AudioSystem';
 import type { CombatSystem } from './CombatSystem';
 import type { EnemySystem } from './EnemySystem';
 import type { ScreenShake } from './ScreenShake';
+import { type ManualAim, Targeting } from './Targeting';
 
 /** Owner animation asked by a weapon: a melee swing or a cast. */
 export type OwnerAction = 'melee' | 'cast';
@@ -40,7 +41,7 @@ export class WeaponSystem {
     private readonly slash: Slash;
     private readonly bursts = new Pool(() => new PendingBurst());
     private readonly finishedBursts: PendingBurst[] = [];
-    private readonly nearest: Enemy[] = [];
+    private readonly targeting: Targeting;
     /** Plays the owner's swing or cast animation (set by the game scene). */
     private onOwnerAction: (action: OwnerAction, angle: number, durationMs: number) => void = () => undefined;
 
@@ -54,15 +55,21 @@ export class WeaponSystem {
         this.projectiles = new Pool(() => new Projectile(scene));
         this.effects = new Pool(() => new Effect(scene));
         this.slash = new Slash(scene);
+        const targeting = new Targeting(enemies);
+        this.targeting = targeting;
         this.context = {
             x: 0,
             y: 0,
             cooldownMultiplier: 1,
             audio,
-            findNearestEnemy: (maxDistance) => enemies.findNearest(this.context.x, this.context.y, maxDistance),
-            findNearestEnemies: (maxDistance, count) => enemies.findNearestSeveral(this.context.x, this.context.y, maxDistance, count, this.nearest),
-            launchProjectile: (def, fromX, fromY, toX, toY, maxDistance) => {
-                this.projectiles.acquire().launch(def, fromX, fromY, toX, toY, maxDistance);
+            findTarget: (maxDistance) => this.targeting.findTarget(this.context.x, this.context.y, maxDistance),
+            findTargets: (maxDistance, count) => this.targeting.findTargets(this.context.x, this.context.y, maxDistance, count),
+            get manualAim() {
+                return targeting.manual;
+            },
+            inReach: (maxDistance) => this.targeting.inReach(this.context.x, this.context.y, maxDistance),
+            launchProjectile: (def, fromX, fromY, toX, toY, maxDistance, target) => {
+                this.projectiles.acquire().launch(def, fromX, fromY, toX, toY, maxDistance, target);
             },
             castSpell: (angle, durationMs) => {
                 this.onOwnerAction('cast', angle, durationMs);
@@ -114,6 +121,11 @@ export class WeaponSystem {
         this.onOwnerAction = handler;
     }
 
+    /** Manual aim of this frame (InputSystem.getManualAim), or undefined for the automatic one. */
+    public setManualAim(aim: Readonly<ManualAim> | undefined): void {
+        this.targeting.manual = aim;
+    }
+
     public setCooldownMultiplier(value: number): void {
         this.context.cooldownMultiplier = value;
     }
@@ -128,7 +140,11 @@ export class WeaponSystem {
 
         for (const projectile of this.projectiles.active) {
             const stillFlying = projectile.update(deltaMs);
-            const hit = this.enemies.findTouching(projectile.x, projectile.y, projectile.def.projectileRadius);
+            if (projectile.target && !projectile.target.isAlive) projectile.target = undefined;
+            const radius = projectile.def.projectileRadius;
+            const hit = projectile.target
+                ? (this.enemies.isTouching(projectile.target, projectile.x, projectile.y, radius) ? projectile.target : undefined)
+                : this.enemies.findTouching(projectile.x, projectile.y, radius);
             if (hit || !stillFlying) {
                 this.explode(projectile.def, projectile.x, projectile.y, hit);
                 projectile.deactivate();
