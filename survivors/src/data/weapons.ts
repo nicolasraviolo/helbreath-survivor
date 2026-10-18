@@ -6,6 +6,7 @@ import type { SoundKey, SpriteKey } from '../config/assetManifest';
 // - Solo se lleva UNA arma en la mano. Las cartas ofrecen el siguiente eslabón de la familia o cambiar de familia.
 // - Números PROPIOS (no los del original): requisito de Str, daño, ritmo y alcance pensados para que haya que
 //   elegir: las cortas hacen más daño por segundo a un enemigo; las largas golpean a más enemigos y empujan más.
+// - Fase 13C: daño ×1,5 para igualar al Guerrero con la Maga (simulación `levelpace`).
 // - Las familias con `enabled: false` existen solo como datos: no salen en las cartas ni tienen ataque propio aún.
 
 export type MeleeFamilyId = 'shortSword' | 'longSword' | 'hammer' | 'fencing' | 'axe';
@@ -55,32 +56,32 @@ const SWORD_SPRITE: SpriteKey = 'gear.swords.m';
 export const MELEE_WEAPONS = {
     // Short Swords: rápidas, poco alcance, poco requisito.
     dagger: {
-        name: 'Dagger', family: 'shortSword', strRequired: 0, damage: 6, cooldownMs: 450, swingMs: 350,
+        name: 'Dagger', family: 'shortSword', strRequired: 0, damage: 9, cooldownMs: 450, swingMs: 350,
         range: 50, arcDegrees: 90, knockback: 60, sprite: { key: SWORD_SPRITE, startSheet: 0 },
     },
     shortSword: {
-        name: 'Short Sword', family: 'shortSword', strRequired: 17, damage: 9, cooldownMs: 450, swingMs: 350,
+        name: 'Short Sword', family: 'shortSword', strRequired: 17, damage: 13, cooldownMs: 450, swingMs: 350,
         range: 55, arcDegrees: 90, knockback: 70, sprite: { key: SWORD_SPRITE, startSheet: 56 },
     },
     falchion: {
-        name: 'Falchion', family: 'shortSword', strRequired: 24, damage: 13, cooldownMs: 500, swingMs: 380,
+        name: 'Falchion', family: 'shortSword', strRequired: 24, damage: 19, cooldownMs: 500, swingMs: 380,
         range: 60, arcDegrees: 100, knockback: 80, sprite: { key: SWORD_SPRITE, startSheet: 280 },
     },
     // Long Swords: lentas, arco amplio, empujan más.
     longSword: {
-        name: 'Long Sword', family: 'longSword', strRequired: 20, damage: 14, cooldownMs: 1000, swingMs: 560,
+        name: 'Long Sword', family: 'longSword', strRequired: 20, damage: 21, cooldownMs: 1000, swingMs: 560,
         range: 80, arcDegrees: 150, knockback: 150, sprite: { key: SWORD_SPRITE, startSheet: 112 },
     },
     broadSword: {
-        name: 'Broad Sword', family: 'longSword', strRequired: 28, damage: 20, cooldownMs: 1000, swingMs: 560,
+        name: 'Broad Sword', family: 'longSword', strRequired: 28, damage: 30, cooldownMs: 1000, swingMs: 560,
         range: 85, arcDegrees: 150, knockback: 165, sprite: { key: SWORD_SPRITE, startSheet: 392 },
     },
     greatSword: {
-        name: 'Great Sword', family: 'longSword', strRequired: 36, damage: 27, cooldownMs: 1100, swingMs: 600,
+        name: 'Great Sword', family: 'longSword', strRequired: 36, damage: 40, cooldownMs: 1100, swingMs: 600,
         range: 95, arcDegrees: 160, knockback: 180, sprite: { key: SWORD_SPRITE, startSheet: 560 },
     },
     flamberge: {
-        name: 'Flamberge', family: 'longSword', strRequired: 46, damage: 36, cooldownMs: 1100, swingMs: 600,
+        name: 'Flamberge', family: 'longSword', strRequired: 46, damage: 54, cooldownMs: 1100, swingMs: 600,
         range: 100, arcDegrees: 170, knockback: 200, sprite: { key: SWORD_SPRITE, startSheet: 616 },
     },
     // Desactivadas (solo datos, sin ataque propio ni sprite cargado todavía). Números provisionales.

@@ -115,8 +115,9 @@ export const SPELLS = {
     },
     energyStrike: {
         // wiki: 42 de área 5×5. Aquí: 8 descargas, una cada 80 ms, alrededor del enemigo (como en sp-client).
+        // Fase 13C: 8 por descarga (antes 14): a un jefe le caían casi todas y lo mataba en segundos.
         name: 'Energy Strike', family: 'energy', intRequired: 32,
-        directDamage: 0, areaDamage: 14, areaRadius: 44, cooldownMs: 1800,
+        directDamage: 0, areaDamage: 8, areaRadius: 44, cooldownMs: 1800,
         range: 360, maxDistance: 520, speed: 560, projectileRadius: 8, knockback: 120,
         shots: 8, shotIntervalMs: 80, aim: 'scatter', scatterRadius: 64,
         flyEffect: 'fx.energyStrike.fly',
