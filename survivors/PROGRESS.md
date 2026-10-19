@@ -4,11 +4,10 @@
 - 16-oct-2026: 0 Reconocimiento · 1 Esqueleto y primer sprite · 2 Mapa y jugador · 3 Enemigos · 4 Primera arma y combate · 5 Experiencia y subida de nivel · 6 Arsenal completo.
 - 17-oct-2026: 7 Oleadas, jefes y final · 8 Menús y personajes (solo menús; Arquero aplazado) · 9 Web, móvil y publicación · 10 Pulido (10A–10C).
 - 18-oct-2026: 11 Pulido de interfaz · 12 Móvil sin pérdidas (12A–12C) · 13 Jefe final y equilibrio (13A–13C) · 14 Métricas y logros (14A–14B) · 15 Apuntado híbrido (15A–15C) · 16 Minimapa y tótems (16A–16B) · 17 Selección de personaje (17A–17B) · 18 Esquiva y resistencia mágica (18A–18B).
-- 19-oct-2026: 19 Crits y habilidad activa (19A–19C).
-- 🔄 **20 — Level y equipo:** en curso (20A–20D hechos, 19-oct-2026).
+- 19-oct-2026: 19 Crits y habilidad activa (19A–19C) · 20 Level y equipo (20A–20D).
 
 ## Fase actual
-**Fase 20, bloques 20A–20D hechos** en la rama `fase-20` (sin fusionar). **Siguiente:** cerrar la fase (`/checkpoint fase`) y luego `/fase 21` (botín y baúl, `docs/PLAN-2.md`).
+**Fase 20 completada** y fusionada en `master` (etiqueta `fase-20`). **Siguiente:** `/fase 21` → botín y baúl (`docs/PLAN-2.md`).
 - **Pendiente:** que el propietario pruebe con su mando real la vibración y el stick derecho (apuntar).
 - **Ideas sin fecha:** monstruos al azar como evento especial; jefes más difíciles de esquivar (mínimo de acierto propio, nota en `data/defense.ts`).
 
