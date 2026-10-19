@@ -65,9 +65,9 @@ export const HUD_CRIT = {
     frame: 5,
     pressedFrame: 3,
     pressedMs: 350,
-    x: 466,
+    x: 464,
     y: 28,
-    numberX: 466,
+    numberX: 464,
     numberY: 28,
     emptyAlpha: 0.35,
     style: { ...HUD_TEXT_STYLE, fontSize: px(UI_FONT_SIZE.normal) },
@@ -107,6 +107,10 @@ export const HUD_BOSS = {
     /** Gap between the name and the bar. */
     nameY: 8,
     nameScale: byDevice(1, 1.3),
+    /** Bars shown at once, one under the other (bug list of 19-oct-2026, M1: one bar per boss). */
+    maxShown: 3,
+    /** From one boss's name and bar to the next one's. */
+    rowGap: byDevice(44, 52),
 } as const;
 
 /** Countdown of the portal after the final boss (Fase 13): in the place of the boss bar, in the sprite font. */

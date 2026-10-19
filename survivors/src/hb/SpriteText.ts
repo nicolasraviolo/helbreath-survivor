@@ -1,14 +1,14 @@
-// Texto con la fuente dibujada del Helbreath original (sprfonts.spr, hoja 0): la letra caligráfica del libro de
-// hechizos y de los avisos en pantalla. Cada carácter es un frame (código ASCII − 33, de '!' a 'z').
-// Como CGame::PutString_SprFont2 del cliente original (reference/Client.cpp ~7880): cada letra se pinta en negro
-// desplazada 1 px (a la derecha y abajo) y encima la letra de color, con el ancho propio de cada carácter.
+// Texto con las fuentes dibujadas del Helbreath original:
+// - 'calligraphy' (sprfonts.spr, hoja 0): la letra caligráfica del libro de hechizos y de los avisos en pantalla.
+//   Cada carácter es un frame (código ASCII − 33, de '!' a 'z'), con el avance de la tabla __cSpace.
+// - 'title' (interface2.spr, hoja 1, primer bloque): letra de los títulos de las cartas de Power (lista de bugs del
+//   19-oct-2026, M16). La hoja tiene 3 bloques de 95 letras (ASCII 32–126); cada letra avanza su propio ancho
+//   (CGame::PutString_SprFont3, reference/Client.cpp ~7905).
+// Como en el original: cada letra se pinta en negro desplazada 1 px (a la derecha y abajo) y encima la letra de color.
 // Las imágenes se reutilizan al cambiar el texto (sin crear objetos nuevos cada vez).
 import Phaser from 'phaser';
 import { getSheetKey } from './HBSprite';
 
-const FONT_TEXTURE = getSheetKey('ui.font', 0);
-const FIRST_CHAR = 33;
-const LAST_CHAR = 122;
 /** Advance of a space or of a character the font doesn't have. */
 const SPACE_ADVANCE = 5;
 /** Shadow copies, drawn under the coloured letter (PutString_SprFont2). */
@@ -25,6 +25,26 @@ const ADVANCE: readonly number[] = [
 
 export type SpriteTextAlign = 'left' | 'center' | 'right';
 
+interface SpriteFont {
+    texture: string;
+    firstChar: number;
+    lastChar: number;
+    /** Frame of the first character. */
+    firstFrame: number;
+    /** Advance of each character from firstChar; undefined = the width of its frame. */
+    advance?: readonly number[];
+}
+
+/** Which of the 3 blocks of 95 characters of interface2.spr sheet 1 (0 = the bold 13 px one). */
+const TITLE_FONT_BLOCK = 0;
+
+const FONTS = {
+    calligraphy: { texture: getSheetKey('ui.font', 0), firstChar: 33, lastChar: 122, firstFrame: 0, advance: ADVANCE },
+    title: { texture: getSheetKey('ui.font2', 1), firstChar: 32, lastChar: 126, firstFrame: 95 * TITLE_FONT_BLOCK },
+} as const satisfies Record<string, SpriteFont>;
+
+export type SpriteFontId = keyof typeof FONTS;
+
 export class SpriteText {
     /** Place, scale, fade or nest it like any container. */
     public readonly container: Phaser.GameObjects.Container;
@@ -33,6 +53,7 @@ export class SpriteText {
     private text = '';
     private color: number;
     private textWidth = 0;
+    private readonly font: SpriteFont;
 
     constructor(
         private readonly scene: Phaser.Scene,
@@ -41,7 +62,9 @@ export class SpriteText {
         text: string,
         color: number,
         private readonly align: SpriteTextAlign = 'left',
+        fontId: SpriteFontId = 'calligraphy',
     ) {
+        this.font = FONTS[fontId];
         this.container = scene.add.container(x, y);
         this.color = color;
         this.setText(text);
@@ -58,9 +81,11 @@ export class SpriteText {
         let x = 0;
         for (const char of text) {
             const code = char.charCodeAt(0);
-            if (code >= FIRST_CHAR && code <= LAST_CHAR) {
-                frames.push({ frame: code - FIRST_CHAR, x });
-                x += ADVANCE[code - FIRST_CHAR] ?? SPACE_ADVANCE;
+            const { firstChar, lastChar, firstFrame, advance } = this.font;
+            if (code >= firstChar && code <= lastChar) {
+                const frame = firstFrame + code - firstChar;
+                frames.push({ frame, x });
+                x += advance ? advance[code - firstChar] ?? SPACE_ADVANCE : this.frameWidth(frame);
             } else {
                 x += SPACE_ADVANCE;
             }
@@ -86,11 +111,15 @@ export class SpriteText {
         return this;
     }
 
+    private frameWidth(frame: number): number {
+        return this.scene.textures.getFrame(this.font.texture, frame)?.width ?? SPACE_ADVANCE;
+    }
+
     /** Image number `index` of a list, created the first time. The letters are drawn as a flat colour (tintFill). */
     private image(list: Phaser.GameObjects.Image[], index: number, color: number): Phaser.GameObjects.Image {
         let image = list[index];
         if (!image) {
-            image = this.scene.make.image({ x: 0, y: 0, key: FONT_TEXTURE, frame: 0 }, false).setOrigin(0, 0).setTintFill(color);
+            image = this.scene.make.image({ x: 0, y: 0, key: this.font.texture, frame: this.font.firstFrame }, false).setOrigin(0, 0).setTintFill(color);
             list.push(image);
             // Shadows are added before the coloured letters, so they always stay under them.
             if (list === this.shadows) this.container.addAt(image, 0);

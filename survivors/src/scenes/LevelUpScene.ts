@@ -3,6 +3,7 @@
 // llevan su dibujo (icono original de la piedra o imagen propia) en lugar del círculo de color.
 // Siempre hay una carta resaltada. Se elige con flechas/WASD, cruceta o stick + Enter/Espacio/A, o con el ratón.
 import Phaser from 'phaser';
+import { SpriteText } from '../hb/SpriteText';
 import { byDevice } from '../config/device';
 import { GAME_WIDTH, LEVEL_UP_INPUT_DELAY_MS } from '../config/gameConfig';
 import { HUD_TOP } from '../config/hud';
@@ -37,6 +38,10 @@ const CARD_TITLE_Y = byDevice(92, 102);
 const CARD_EFFECT_Y = byDevice(116, 128);
 /** Space left free at each side of the card's text. */
 const CARD_TEXT_MARGIN = byDevice(12, 10);
+/** Title in the original's drawn font (hb/SpriteText.ts, 'title'; 13 px letters): its scale, smaller if it doesn't fit. */
+const CARD_TITLE_SCALE = byDevice(1.5, 1.7);
+const CARD_TITLE_LETTER_HEIGHT = 13;
+const CARD_TITLE_COLOR = 0xffe080;
 // Phones: below the boss bar (a boss can be alive while choosing).
 const TITLE_Y = byDevice(70, 80);
 const SUBTITLE_Y = byDevice(108, 120);
@@ -140,9 +145,9 @@ export class LevelUpScene extends Phaser.Scene {
         const badgeText = this.add.text(0, top + CARD_BADGE_Y, picture ? '' : text.badge, {
             ...UI_TEXT, fontSize: px(UI_FONT_SIZE.normal), fontStyle: 'bold', color: '#ffffff', stroke: '#000000', strokeThickness: 3,
         }).setOrigin(0.5);
-        const title = this.add.text(0, top + CARD_TITLE_Y, text.title, {
-            ...UI_TEXT, fontSize: px(UI_FONT_SIZE.large), fontStyle: 'bold', color: '#ffe080',
-        }).setOrigin(0.5);
+        const title = new SpriteText(this, 0, 0, text.title, CARD_TITLE_COLOR, 'center', 'title');
+        const titleScale = Math.min(CARD_TITLE_SCALE, textWidth / Math.max(1, title.width));
+        title.container.setScale(titleScale).setY(top + CARD_TITLE_Y - (CARD_TITLE_LETTER_HEIGHT * titleScale) / 2);
         const effect = this.add.text(0, top + CARD_EFFECT_Y, text.effect, {
             ...UI_TEXT, fontSize: px(UI_FONT_SIZE.normal), color: '#a89870', align: 'center', wordWrap: { width: textWidth },
         }).setOrigin(0.5, 0);
@@ -151,7 +156,7 @@ export class LevelUpScene extends Phaser.Scene {
             ...UI_TEXT, fontSize: px(UI_FONT_SIZE.normal), color: TEXT_COLOR, align: 'center', lineSpacing: 2, wordWrap: { width: textWidth },
         }).setOrigin(0.5, 0);
 
-        const container = this.add.container(x, y, [frame, badge, badgeText, title, effect, changes]);
+        const container = this.add.container(x, y, [frame, badge, badgeText, title.container, effect, changes]);
         frame.setInteractive({ useHandCursor: true });
         frame.on(Phaser.Input.Events.POINTER_OVER, () => this.highlight(index));
         frame.on(Phaser.Input.Events.POINTER_DOWN, () => {
@@ -198,7 +203,8 @@ function describeCard(stats: CharacterStats, equipment: Equipment, choice: Level
         case 'stat': {
             const info = STAT_INFO[choice.stat];
             return {
-                badge: info.short, badgeColor: info.color, title: `+${choice.points} ${info.name}`, effect: info.effect,
+                badge: info.short, badgeColor: info.color, // "Blessing of Str": tells them apart from the permanent stat points of the Level (bug list of 19-oct-2026, M16).
+                title: `Blessing of ${info.short}`, effect: info.effect,
                 changes: describeStatChanges(stats, choice.stat, choice.points),
             };
         }

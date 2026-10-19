@@ -1,7 +1,7 @@
 // Objetos en el suelo: decide cuándo cae uno al morir un enemigo (los cofres los sueltan los minijefes), los recicla con un pool
 // y avisa al juego cuando el jugador recoge uno. Qué hace cada objeto lo decide GameScene (curar, imán, buff).
 import type Phaser from 'phaser';
-import { CHEST_DROP_SOUND, PICKUP_RADIUS, PICKUPS, type PickupId } from '../data/pickups';
+import { CHEST_DROP_SOUND, PICKUP_RADIUS, PICKUPS, type PickupDef, type PickupId } from '../data/pickups';
 import { Pickup } from '../entities/Pickup';
 import { Pool } from '../utils/Pool';
 import type { AudioSystem } from './AudioSystem';
@@ -36,10 +36,19 @@ export class PickupSystem {
         if (id === 'chest' || id === 'finalChest') this.audio.play(CHEST_DROP_SOUND);
     }
 
+    /** Magnet: the pickups it pulls (potions) start flying to the player. */
+    public attract(): void {
+        for (const pickup of this.pickups.active) {
+            const def: PickupDef = PICKUPS[pickup.id];
+            if (def.magnetPulls) pickup.flying = true;
+        }
+    }
+
     /** Ages the pickups and collects the ones the player at (x, y) (feet) touches. */
     public update(deltaMs: number, x: number, y: number, canCollect: boolean): void {
         const reachSq = PICKUP_RADIUS * PICKUP_RADIUS;
         for (const pickup of this.pickups.active) {
+            if (pickup.flying) pickup.flyTowards(x, y, deltaMs);
             const dx = pickup.x - x;
             const dy = pickup.y - y;
             if (canCollect && dx * dx + dy * dy <= reachSq) {

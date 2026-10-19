@@ -1,5 +1,6 @@
 // Novedades de cada fase, para la pantalla "What's new" del menú principal (scenes/ReleaseNotesScene.ts).
-// En inglés como todo el juego, contadas para el jugador (nada técnico). La más nueva va PRIMERO:
+// En inglés como todo el juego, contadas para el jugador (nada técnico). Frases CORTAS y de alto nivel, sin números
+// ni detalles ("Mage damage rebalanced", "Several bugs fixed"): deben caber en la caja. La más nueva va PRIMERO:
 // `/checkpoint fase` añade aquí la fase que se cierra.
 
 export interface ReleaseNote {
@@ -16,34 +17,20 @@ export const RELEASE_NOTES: readonly ReleaseNote[] = [
         version: 'Phase 20',
         date: 'Oct 19, 2026',
         changes: [
-            'Your characters now have a permanent Level: all the XP of each run goes to it, win or lose.',
-            'Each Level gives 3 stat points, kept forever. Assign them with "Level Set." in the character list.',
-            'New Character window, as in the original game: press C (or Y on the gamepad) during a run. The game pauses.',
-            'Inside a run your level is now called Power, and it starts at 1 every run.',
-            'The end screen shows the XP you earned and your progress to the next Level.',
-            'New Equipment screen in the character list: choose your weapon, shield, helmet, armor, leggings, boots and cape.',
-            'Every run starts with that equipment on. Better items need more Str (and some, a higher Level).',
-            'New items: Scimitar, Claymore, Wood Shield, Chain Hose, Plate Leggings, Shoes, Long Boots and Cape.',
-            'Level-up cards no longer give weapons, spells or armor: your equipment now comes from the Equipment screen.',
-            'New cards: Stone of Xelima (+10% damage this run) and Stone of Merien (−10% damage taken this run), up to 5 each.',
-            'Boots card removed. Stones and Magnet Amulet cards now show their picture.',
-            'Mage: choose two spells on the Equipment screen. Spell 1 casts itself; Spell 2 is your active spell (Space).',
-            'Spells need Int. Spell 1: Energy Bolt, Fire Ball, Fire Strike, Triple Energy Bolt.',
-            'New active spells: Energy Strike (the starting one) and Mass Fire Strike. Meteor Strike now needs Int 169.',
-            'Continuing a run uses the weapon and spells you have equipped now.',
+            'Permanent Level: every run now makes your character stronger.',
+            'New Character window to assign your stat points.',
+            'New Equipment screen: choose your gear and spells before each run.',
+            'New cards: Stone of Xelima and Stone of Merien.',
+            'Several bugs fixed and small improvements.',
         ],
     },
     {
         version: 'Phase 19',
         date: 'Oct 18, 2026',
         changes: [
-            'Warrior: Critical Strike, a powerful blow you trigger yourself (Space).',
-            'Mage: Meteor Strike, an active spell that rains fire on a whole area.',
-            'Gamepad: Critical Strike and Meteor Strike on R2.',
-            'New "What\'s new" screen: open it from the link at the bottom of the main menu.',
-            'Gamepad vibration when you get hit and when your Critical or Meteor Strike hits (Settings, Controls).',
-            'Change the keys and buttons for the Strike and the stats panel in Settings, Controls.',
-            'Balance: Meteor Strike hits a bit softer, and the Warrior gets a Critical Strike charge every 15 seconds.',
+            'Warrior: Critical Strike. Mage: Meteor Strike.',
+            'Gamepad vibration and custom controls.',
+            'New "What\'s new" screen.',
         ],
     },
     {

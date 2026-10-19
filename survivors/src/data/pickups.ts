@@ -1,5 +1,6 @@
 // Objetos que caen al suelo y buffs temporales (Fase 6, bloque 6C; plan aprobado por el propietario el 16-oct-2026).
-// - Red Potion: cura. Imán (dibujado con el Crystal: no hay sprite de imán): atrae todas las gemas de XP.
+// - Red Potion: cura. Imán (dibujado con el Crystal: no hay sprite de imán): atrae todas las gemas de XP y las pociones
+//   (lista de bugs del 19-oct-2026, M5).
 // - Cofre (dibujado con la bolsa de oro): desde la Fase 16B da una carta de mejora gratis (antes, un buff). Los cofres
 //   NO desaparecen. Los buffs los dan ahora los tótems (data/totems.ts).
 //   Los buffs se combinan; coger uno que ya tienes renueva su tiempo (systems/BuffSystem.ts).
@@ -21,11 +22,13 @@ export interface PickupDef {
     /** Time on the ground before it disappears (ms); undefined = it stays until picked up. */
     lifeMs?: number;
     pickupSound: SoundKey;
+    /** The Magnet also pulls it to the player, like the XP gems. */
+    magnetPulls?: boolean;
 }
 
 export const PICKUPS = {
     // Red Potion (item-ground 5/1). Al beber: C19, el sonido de consumirla en el original.
-    potion: { name: 'Red Potion', sheet: 5, frame: 1, scale: 1.5, dropChance: 0.015, lifeMs: 60000, pickupSound: 'sfx.drink' },
+    potion: { name: 'Red Potion', sheet: 5, frame: 1, scale: 1.5, dropChance: 0.015, lifeMs: 60000, pickupSound: 'sfx.drink', magnetPulls: true },
     // Imán: Crystal (item-ground 15/46), distinto de las gemas de XP (esmeralda, zafiro, rubí).
     magnet: { name: 'Magnet', sheet: 15, frame: 46, scale: 1.5, dropChance: 0.005, lifeMs: 60000, pickupSound: 'sfx.pickup' },
     // Cofre: Gold Pocket (item-ground 5/120). No desaparece (pedido por el propietario).

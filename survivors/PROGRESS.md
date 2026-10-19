@@ -7,7 +7,10 @@
 - 19-oct-2026: 19 Crits y habilidad activa (19A–19C) · 20 Level y equipo (20A–20D).
 
 ## Fase actual
-**Fase 20 completada** y fusionada en `master` (etiqueta `fase-20`). **Siguiente:** `/fase 21` → botín y baúl (`docs/PLAN-2.md`).
+**Fase 20 completada** y fusionada en `master` (etiqueta `fase-20`). Antes de la Fase 21, **ronda de bugs** del propietario: lista en `docs/BUGS.md` (marcar `[x]` al arreglar).
+- **Bloque A (arreglos rápidos): hecho** (19-oct-2026).
+- **Siguiente:** bloque B de `docs/BUGS.md` (combate: mini jefes y oleadas, sonido trabado, Defense Shield, Freeze, hechizos de varias bolas). Después, el bloque C (una sesión por punto) y `/fase 21` → botín y baúl (`docs/PLAN-2.md`).
+- **Dudas abiertas para el propietario** (en `docs/BUGS.md`): M4 (EXP del Level al salir de la partida) y M14 (hechizos de varias bolas).
 - **Pendiente:** que el propietario pruebe con su mando real la vibración y el stick derecho (apuntar).
 - **Ideas sin fecha:** monstruos al azar como evento especial; jefes más difíciles de esquivar (mínimo de acierto propio, nota en `data/defense.ts`).
 

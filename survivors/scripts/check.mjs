@@ -131,7 +131,7 @@ function readState() {
             time: Math.round(g.spawner.elapsed / 1000) + 's',
             enemies: g.enemies.alive,
             kills: g.combat.kills,
-            boss: g.bossInfo?.()?.name ?? null,
+            boss: (g.bossInfo?.() ?? []).map((b) => b.name).join(', ') || null,
         };
     }
     return state;

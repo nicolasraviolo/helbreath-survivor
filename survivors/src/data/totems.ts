@@ -3,9 +3,10 @@
 // efecto y se gastan; si nadie las coge, parpadean al final y desaparecen. Son 4: Berserk y Defense Shield (los buffs que
 // antes daban los cofres), Full HP (cura entera al instante) y Freeze (los monstruos que se ven en pantalla, jefes
 // incluidos, se quedan quietos unos segundos). Los cofres pasan a dar una carta de mejora (GameScene).
-// Dibujo: manastone.spr (una sola imagen, repetida en sus 40 hojas) con el Casting Circle de sp-client a sus pies
-// (effect5 hoja 7) teñido del color de su efecto. Se recogen pisando cualquier casilla que tape el dibujo (como mínimo
-// 2×2; pedido por el propietario). Lo maneja systems/TotemSystem.ts y el minimapa los marca con su color.
+// Dibujo: esfera de energía (effect5 hoja 0), igual para todos: no se sabe qué da hasta cogerlo (lista de bugs del
+// 19-oct-2026, M10 y M12; antes, la Mana Stone con un brillo del color de su efecto). Se recogen pisando cualquier casilla
+// que tape el dibujo (como mínimo 2×2; pedido por el propietario). Lo maneja systems/TotemSystem.ts y el minimapa los
+// marca todos con el mismo punto amarillo.
 import type { SoundKey } from '../config/assetManifest';
 import type { EffectKey } from '../config/effects';
 import type { BuffId } from './pickups';
@@ -73,13 +74,15 @@ export const TOTEM_SPAWN = {
     retryMs: 1000,
 } as const;
 
-/** Drawing: one image of manastone.spr and its glow (config/effects.ts → 'fx.totem.glow'). */
+/**
+ * Drawing: the energy orb (config/effects.ts → 'fx.totem.orb'), the same for every totem. `liftY`: its centre above the
+ * base (the sheet's pivots put the orb's bottom a little under the base).
+ */
 export const TOTEM_LOOK = {
-    sheet: 0,
-    glowEffect: 'fx.totem.glow',
-    glowScale: 1.6,
-    glowAlpha: 0.9,
-} as const satisfies { sheet: number; glowEffect: EffectKey; glowScale: number; glowAlpha: number };
+    effect: 'fx.totem.orb',
+    scale: 1.5,
+    liftY: 39,
+} as const satisfies { effect: EffectKey; scale: number; liftY: number };
 
 /**
  * Where it is picked up: every tile the stone's picture covers by at least `minOverlapPx` on both axes (so a few

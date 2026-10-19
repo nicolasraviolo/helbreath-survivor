@@ -121,14 +121,14 @@ export const SPRITES = {
     // Meteor Strike, hechizo activo del Mago (Fase 19B, data/activeSpells.ts). ~1,25 MB: se descarga solo al empezar
     // una partida de Mago (ON_DEMAND_SPRITES).
     'fx.crueffect1': { file: 'sprites/crueffect1.spr', type: SpriteType.Effect },
-    // Tótems (Fase 16B): la Mana Stone. Una sola imagen, repetida en sus 40 hojas (se usa la 0).
-    'object.manastone': { file: 'sprites/manastone.spr', type: SpriteType.Effect },
 
     // Interfaz: barra inferior original 800x600 (hoja 6; ver config/hud.ts para frames y posiciones)
     // y fondo de "Create New Character" 640x480 (hoja 9; ver config/characterSelect.ts).
     'ui.panel': { file: 'sprites/gamedialog86.spr', type: SpriteType.Interface },
     // Fuente dibujada del original (libro de hechizos, nombre del hechizo al lanzarlo): ver hb/SpriteText.ts.
     'ui.font': { file: 'sprites/sprfonts.spr', type: SpriteType.Interface },
+    // Segunda fuente dibujada (hoja 1: 3 tamaños × 95 letras ASCII): títulos de las cartas de Power. Ver hb/SpriteText.ts.
+    'ui.font2': { file: 'sprites/interface2.spr', type: SpriteType.Interface },
     // Botones con el texto ya dibujado (Warrior, Magician, Create, Cancel...), normal + iluminado.
     'ui.buttons': { file: 'sprites/dialogtext.spr', type: SpriteType.Interface },
     // Pantallas de título del original 640x480 (hoja 1 = "Helbreath The Heldenian", la del login; ver config/menus.ts).

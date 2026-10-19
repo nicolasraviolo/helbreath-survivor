@@ -413,6 +413,7 @@ export class GameScene extends Phaser.Scene {
                 break;
             case 'magnet':
                 this.xp.attractAll();
+                this.pickups.attract();
                 break;
             case 'chest':
                 this.chestCards++;
@@ -634,7 +635,7 @@ export class GameScene extends Phaser.Scene {
                 skillOrb: this.skillOrb(),
                 skillUses: this.critStrike.launched + (this.activeSpell?.casts ?? 0),
                 pauseLocked: this.player.isDead || this.levelUpOpen || this.runOver,
-                boss: this.bossInfo(),
+                bosses: this.bossInfo(),
                 portalSecondsLeft: this.portal ? Math.ceil(this.portal.timeLeft / 1000) : undefined,
                 stats: this.stats,
                 weaponName: this.meleeWeapon?.def.name ?? this.spellWeapon?.def.name,
@@ -1120,9 +1121,9 @@ export class GameScene extends Phaser.Scene {
     }
 
     /** Boss for the big health bar at the top, if any. */
-    private bossInfo(): HudState['boss'] {
-        const boss = this.bosses.shown;
-        return boss?.def.boss ? { name: boss.def.boss.title, hp: Math.max(0, boss.hp), maxHp: boss.def.maxHp } : undefined;
+    private bossInfo(): HudState['bosses'] {
+        return this.bosses.shownList.flatMap((boss) =>
+            boss.def.boss ? [{ name: boss.def.boss.title, hp: Math.max(0, boss.hp), maxHp: boss.def.maxHp }] : []);
     }
 
     /** Weapon, stats and cards of the simulated run, for its report. */

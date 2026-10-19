@@ -65,6 +65,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Equipo y pantalla Equipment (Fase 20B)
 - Cartas de Power (Fase 20C)
 - Hechizos equipables del Mago (Fase 20D)
+- Arreglos del bloque A de bugs (19-oct-2026)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -792,3 +793,10 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - Partida guardada: `activeSpell` junto a `spell`. Al continuar con un personaje guardado mandan el arma y los hechizos que lleva **ahora** (se pueden cambiar en Equipment con la partida a medias: Select Character continúa la partida al elegirlo). Solo las partidas sin personaje (atajos de prueba) recuperan los suyos.
 - Pruebas: `check equipmentmage` (Kaila, ejemplo, Level 25 con Int 86), `check activespell` y el atajo `?spells=fireBall,meteorStrike` (cualquier orden, sin mirar requisitos). Partida simulada con Energy Strike: Power 27 y jefe final muerto a las 13:54, como con Meteor.
 - Los hechizos aún no tienen dibujo: la casilla de la pantalla Equipment lleva el nombre (`EQUIPMENT_SPELL_NAME_STYLE`).
+
+## Arreglos del bloque A de bugs (19-oct-2026)
+- **`setFrame` y los pivotes:** algunas hojas de interfaz (la de Select Character, por ejemplo) traen pivotes en sus frames. `image.setFrame(n)` por defecto **cambia el tamaño y el origen** al pivote del frame nuevo: el dibujo puede seguir viéndose bien, pero la zona de clic se va lejos. Al iluminar un botón al pasar el ratón, usar `setFrame(n, false, false)`. Era el fallo de "Create New Character" y del resto de botones de esa columna.
+- **Fuente `interface2.spr` (hoja 1):** 3 bloques de 95 letras ASCII (32–126); frame = `95 × bloque + código − 32`; cada letra avanza su propio ancho. Bloque 0 = negrita de 13 px (títulos de las cartas), 1 = cursiva de 15 px y 2 = pequeña de 11 px. En `hb/SpriteText.ts`, fuente `'title'`.
+- **Tótems:** ahora son la esfera de energía `effect5` hoja 0 (aditiva, a ×1,5), igual para todos. En el minimapa salen todos con el mismo punto amarillo. Ya no se usa `manastone.spr`, que se quitó del manifiesto (190 KB menos al arrancar).
+- **Imán:** atrae también lo que tenga `magnetPulls` en `data/pickups.ts` (hoy, la poción).
+- **Barras de jefe:** una por jefe vivo, hasta `HUD_BOSS.maxShown` (3), con el final primero (`BossSystem.shownList`).

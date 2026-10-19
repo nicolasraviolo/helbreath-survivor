@@ -45,6 +45,12 @@ export class BossSystem {
         return this.bosses.find((boss) => boss.def.boss?.final) ?? this.bosses[0];
     }
 
+    /** Bosses alive for the HUD bars: the final boss first, then in order of arrival. */
+    public get shownList(): Enemy[] {
+        const alive = this.bosses.filter((boss) => boss.isAlive);
+        return [...alive.filter((boss) => boss.def.boss?.final), ...alive.filter((boss) => !boss.def.boss?.final)];
+    }
+
     /** Bosses being tracked (dead ones are dropped on the next update: check isAlive). For the minimap. */
     public get tracked(): readonly Enemy[] {
         return this.bosses;

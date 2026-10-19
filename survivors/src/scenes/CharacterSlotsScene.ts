@@ -26,7 +26,6 @@ import {
     SLOTS_INPUT_DELAY_MS,
     SLOTS_LAYOUT,
     SLOTS_NAME_STYLE,
-    SLOTS_POINTS_STYLE,
     SLOTS_SCALE,
     SLOTS_TEXT_STYLE,
     SLOTS_TEXTURE,
@@ -199,10 +198,6 @@ export class CharacterSlotsScene extends Phaser.Scene {
             [(totalExpForLevel(saved.level) + saved.exp).toLocaleString('en-US'), SLOTS_TEXT_STYLE],
         ];
         const texts = lines.map(([text, style], i) => this.add.text(s(textX + dx), s(textY[i] ?? 0), text, style).setOrigin(0.5));
-        if (saved.unspentPoints > 0) {
-            const { points } = SLOTS_LAYOUT;
-            texts.push(this.add.text(s(points.x + dx), s(points.y), `+${saved.unspentPoints}`, SLOTS_POINTS_STYLE).setOrigin(0.5));
-        }
         if (!this.canChoose(index)) {
             sprite.container.setAlpha(SLOTS_DIM_ALPHA);
             texts.forEach((text) => text.setAlpha(SLOTS_DIM_ALPHA));
@@ -221,8 +216,8 @@ export class CharacterSlotsScene extends Phaser.Scene {
         const { levelSet } = SLOTS_BUTTONS;
         const image = this.add.image(s(levelSet.x), s(levelSet.y), SLOTS_TEXTURE, levelSet.frame).setOrigin(0).setScale(SLOTS_SCALE);
         image.setInteractive({ useHandCursor: true });
-        image.on(Phaser.Input.Events.POINTER_OVER, () => image.setFrame(levelSet.litFrame));
-        image.on(Phaser.Input.Events.POINTER_OUT, () => image.setFrame(levelSet.frame));
+        image.on(Phaser.Input.Events.POINTER_OVER, () => image.setFrame(levelSet.litFrame, false, false));
+        image.on(Phaser.Input.Events.POINTER_OUT, () => image.setFrame(levelSet.frame, false, false));
         image.on(Phaser.Input.Events.POINTER_UP, () => {
             if (this.ready()) this.openCharacterInfo();
         });
@@ -272,8 +267,10 @@ export class CharacterSlotsScene extends Phaser.Scene {
         const pad = SLOTS_BUTTON_HIT_PAD;
         const hitArea = new Phaser.Geom.Rectangle(-pad.x, -pad.y, image.width + pad.x * 2, image.height + pad.y * 2);
         image.setInteractive({ hitArea, hitAreaCallback: Phaser.Geom.Rectangle.Contains, useHandCursor: true });
-        image.on(Phaser.Input.Events.POINTER_OVER, () => image.setFrame(frame + SLOTS_BUTTON_LIT_OFFSET));
-        image.on(Phaser.Input.Events.POINTER_OUT, () => image.setFrame(frame));
+        // setFrame(…, false, false): keeps size and origin. By default the lit frame's pivot would move the origin, and with
+        // it the click area, away from the button (only the first click worked; bug list of 19-oct-2026, M7).
+        image.on(Phaser.Input.Events.POINTER_OVER, () => image.setFrame(frame + SLOTS_BUTTON_LIT_OFFSET, false, false));
+        image.on(Phaser.Input.Events.POINTER_OUT, () => image.setFrame(frame, false, false));
         image.on(Phaser.Input.Events.POINTER_UP, () => {
             if (this.ready()) onClick();
         });

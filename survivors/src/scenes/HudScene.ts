@@ -62,7 +62,8 @@ export interface HudState extends HudBarState {
     /** Rank of each passive. */
     passiveRanks: Readonly<Record<keyof typeof PASSIVES, number>>;
     /** Boss shown on the big bar at the top, if one is alive. */
-    boss: { name: string; hp: number; maxHp: number } | undefined;
+    /** Bosses alive, the final one first (one bar each, up to HUD_BOSS.maxShown). */
+    bosses: ReadonlyArray<{ name: string; hp: number; maxHp: number }>;
     /** Seconds left to step into the portal after the final boss, if it is open. */
     portalSecondsLeft: number | undefined;
     /** Buffs from chests that are on (they can be combined), with their seconds left. */
@@ -95,9 +96,10 @@ export class HudScene extends Phaser.Scene {
     private inputSystem!: InputSystem;
     private bar!: HudBar;
     private barStyle!: HudStyle;
-    private bossName!: SpriteText;
+    private readonly bossNames: SpriteText[] = [];
     private bossBar!: Phaser.GameObjects.Graphics;
-    private shownBossRatio = -1;
+    /** Names and health of the bars drawn now, to redraw only when something changes. */
+    private shownBosses = '';
     private portalText!: SpriteText;
     private shownPortalSeconds = -1;
     private announce!: SpriteText;
@@ -183,7 +185,7 @@ export class HudScene extends Phaser.Scene {
     override update(_time: number, delta: number): void {
         this.inputSystem.update();
         const state = this.getState();
-        this.showBoss(state.boss);
+        this.showBosses(state.bosses);
         this.showPortal(state.portalSecondsLeft);
         this.updateAnnouncement(delta);
         this.updateAchievementNotice(delta);
@@ -210,13 +212,16 @@ export class HudScene extends Phaser.Scene {
         this.buffTexts.forEach((text, i) => {
             text.container.y = this.buffY(i);
         });
-        this.shownBossRatio = -1;
+        this.shownBosses = '';
         this.shownPortalSeconds = -1;
     }
 
     private createBossBar(): void {
-        this.bossName = new SpriteText(this, GAME_WIDTH / 2, 0, '', HUD_BOSS.nameColor, 'center');
-        this.bossName.container.setScale(HUD_BOSS.nameScale).setDepth(HUD_DEPTH_TEXT).setVisible(false);
+        for (let i = 0; i < HUD_BOSS.maxShown; i++) {
+            const name = new SpriteText(this, GAME_WIDTH / 2, 0, '', HUD_BOSS.nameColor, 'center');
+            name.container.setScale(HUD_BOSS.nameScale).setDepth(HUD_DEPTH_TEXT).setVisible(false);
+            this.bossNames.push(name);
+        }
         this.bossBar = this.add.graphics().setDepth(HUD_DEPTH_TEXT).setVisible(false);
         this.portalText = new SpriteText(this, GAME_WIDTH / 2, HUD_PORTAL.y, '', HUD_PORTAL.color, 'center');
         this.portalText.container.setScale(HUD_PORTAL.scale).setDepth(HUD_DEPTH_TEXT).setVisible(false);
@@ -232,30 +237,32 @@ export class HudScene extends Phaser.Scene {
         this.portalText.container.x = between ? HUD_COMPACT.top.bossCenterX : GAME_WIDTH / 2;
     }
 
-    /** Name and health of the boss; hidden when there is none. Redrawn only when its health changes. */
-    private showBoss(boss: HudState['boss']): void {
-        const visible = boss !== undefined;
-        this.bossName.container.setVisible(visible);
-        this.bossBar.setVisible(visible);
-        if (!boss) {
-            this.shownBossRatio = -1;
-            return;
-        }
-        const ratio = Phaser.Math.Clamp(boss.hp / boss.maxHp, 0, 1);
-        if (ratio === this.shownBossRatio) return;
-        this.shownBossRatio = ratio;
+    /** Name and health of each boss, one under the other; hidden when there is none. Redrawn only when something changes. */
+    private showBosses(all: HudState['bosses']): void {
+        const bosses = all.slice(0, HUD_BOSS.maxShown);
+        const key = bosses.map((boss) => `${boss.name}:${boss.hp}/${boss.maxHp}`).join('|');
+        if (key === this.shownBosses) return;
+        this.shownBosses = key;
+        this.bossBar.clear().setVisible(bosses.length > 0);
         // The compact HUD with its column at the top left (and buttons at the top right): the bar goes between them.
         const between = this.barStyle === 'compact' && HUD_COMPACT_LAYOUT === 'top';
         const centerX = between ? HUD_COMPACT.top.bossCenterX : GAME_WIDTH / 2;
         const width = between ? HUD_COMPACT.top.bossWidth : HUD_BOSS.width;
-        const { y, height } = HUD_BOSS;
+        const { height } = HUD_BOSS;
         const left = centerX - width / 2;
-        this.bossName.setText(boss.name);
-        this.bossName.container.setPosition(centerX, HUD_BOSS.nameY);
-        this.bossBar.clear()
-            .fillStyle(HUD_BOSS.backColor, 0.85).fillRect(left, y, width, height)
-            .fillStyle(HUD_BOSS.fillColor, 1).fillRect(left, y, width * ratio, height)
-            .lineStyle(2, HUD_BOSS.borderColor, 1).strokeRect(left - 1, y - 1, width + 2, height + 2);
+        this.bossNames.forEach((name, i) => {
+            const boss = bosses[i];
+            name.container.setVisible(boss !== undefined);
+            if (!boss) return;
+            const y = HUD_BOSS.y + i * HUD_BOSS.rowGap;
+            const ratio = Phaser.Math.Clamp(boss.hp / boss.maxHp, 0, 1);
+            name.setText(boss.name);
+            name.container.setPosition(centerX, HUD_BOSS.nameY + i * HUD_BOSS.rowGap);
+            this.bossBar
+                .fillStyle(HUD_BOSS.backColor, 0.85).fillRect(left, y, width, height)
+                .fillStyle(HUD_BOSS.fillColor, 1).fillRect(left, y, width * ratio, height)
+                .lineStyle(2, HUD_BOSS.borderColor, 1).strokeRect(left - 1, y - 1, width + 2, height + 2);
+        });
     }
 
     private showAnnouncement(message: string): void {

@@ -26,8 +26,6 @@ export const SLOTS_LAYOUT = {
     /** Name, Level and EXP, in the "Name", "Lev" and "Exp" boxes of the background (Fase 20A: Level and EXP are permanent). */
     textX: 157,
     textY: [184, 200, 216],
-    /** "+N" (points to assign), green, at the right of the Lev box. */
-    points: { x: 196, y: 200 },
 } as const;
 
 /** Right-hand buttons: lit frame = normal frame + 5. Position = the original's (pivot of the 176x24 frame). */
@@ -69,5 +67,4 @@ export const SLOTS_INPUT_DELAY_MS = 250;
 /** The original wrote in dark purple, RGB(51,0,51). */
 export const SLOTS_TEXT_STYLE = { ...UI_TEXT, fontSize: byDevice('14px', '17px'), color: '#330033' } as const;
 export const SLOTS_NAME_STYLE = { ...SLOTS_TEXT_STYLE, fontStyle: 'bold' } as const;
-export const SLOTS_POINTS_STYLE = { ...SLOTS_TEXT_STYLE, fontStyle: 'bold', color: '#106010' } as const;
 export const SLOTS_HELP_STYLE = { ...SELECT_TEXT_STYLE, align: 'center' } as const;
