@@ -58,6 +58,7 @@
 - Datos de Helbreath: `docs/hb-wiki/` (índice en `README.md`). Historial de bloques: `survivors/PROGRESS-historial.md` (grep, no leer entero).
 
 ## Problemas conocidos
+- Una vez (19-oct-2026), al **continuar** una partida, no salió ningún jefe (sin barra) y solo algunos monstruos; en otra partida, bien. No se reprodujo en local. Sospecha: descarga de sprites atascada (red con Cloudflare o caché). Si se repite: F1 → monstruos pendientes de descarga (`AssetStreamer`).
 - La red del propietario bloquea a veces las IPs de Cloudflare (LaLiga): métricas sin abrir ni recibir partidas. Probar con datos móviles o más tarde.
 - La partida simulada a veces falla: el jugador no alcanza a un jefe atascado y este vive hasta el final; descartarlas. Con el guerrero sale muy irregular (nivel 10–27 con el mismo código, 18-oct-2026), peor cuanto más deprisa (×400–500): repetir y usar la mediana.
 - Las flechas "→" de las cartas salen en otra fuente (Comic Neue no la tiene). No molesta.
