@@ -137,6 +137,14 @@ export const SPRITES = {
     // (hoja 0; ver config/hud.ts → HUD_COMPACT).
     'ui.v2': { file: 'sprites/dialogsv2.spr', type: SpriteType.Interface },
 
+    // Fase 20B: zapatos y capa (mmantle03 = la capa normal del original) para la pantalla de equipo, y los dibujos de
+    // los objetos del inventario (item-pack.spr, ~540 KB). Todo bajo demanda (ON_DEMAND_SPRITES).
+    'gear.shoes.m': { file: 'sprites/mshoes.spr', type: SpriteType.EquipmentPack },
+    'gear.shoes.w': { file: 'sprites/wshoes.spr', type: SpriteType.EquipmentPack },
+    'gear.cape.m': { file: 'sprites/mmantle03.spr', type: SpriteType.EquipmentPack },
+    'gear.cape.w': { file: 'sprites/wmantle03.spr', type: SpriteType.EquipmentPack },
+    'item.pack': { file: 'sprites/item-pack.spr', type: SpriteType.ItemPack },
+
     // Objetos en el suelo (gemas de XP: hoja 15, ver data/leveling.ts).
     'item.ground': { file: 'sprites/item-ground.spr', type: SpriteType.ItemGround },
 } as const satisfies Record<string, SpriteAsset>;
@@ -284,6 +292,14 @@ export const MINIMAPS = {
 
 export type MinimapKey = keyof typeof MINIMAPS;
 
+/** Imágenes propias de la interfaz (survivors/custom-assets/): dibujos de las cartas que el original no tiene (Fase 20C). */
+export const UI_IMAGES = {
+    // Magnet Amulet, aportada por el propietario.
+    'card.magnet': { file: 'image/magnetpng.png' },
+} as const satisfies Record<string, { file: string }>;
+
+export type UiImageKey = keyof typeof UI_IMAGES;
+
 /**
  * Paquetes de casillas de mapa (sp-client/src/constants/Assets.ts). Cada hoja del paquete es la
  * textura `map-tile-{start + hoja}`. Solo se cargan los que use el mapa (ver hb/mapAssets.ts).
@@ -346,6 +362,7 @@ export const ON_DEMAND_SPRITES: ReadonlySet<SpriteKey> = new Set<SpriteKey>([
     'gear.helm.basic.w', 'gear.helm.full.w', 'gear.helm.winged.w', 'gear.helm.horned.w',
     'gear.swords.w', 'gear.shields.w',
     'fx.crueffect1',
+    'gear.shoes.m', 'gear.shoes.w', 'gear.cape.m', 'gear.cape.w', 'item.pack',
 ]);
 
 export const PHONE_ONLY_SPRITES: ReadonlySet<SpriteKey> = new Set<SpriteKey>(['ui.v2']);

@@ -2,8 +2,8 @@
 // Calcula la defensa total, el bonus de daño mágico de la ropa y qué capas hay que dibujar al cambiar una pieza.
 import { ARMOR_BY_SET, ARMOR_PIECES, ARMOR_SLOT_IDS, getArmorPiece, MAX_DEFENSE, type ArmorPieceId, type ArmorSlotId } from '../data/armor';
 import type { CharacterDef } from '../data/characters';
-import { getPassive, type PassiveId } from '../data/passives';
-import type { SpellId } from '../data/spells';
+import { passiveBonus, type PassiveId } from '../data/passives';
+import type { AutoSpellId } from '../data/spells';
 import { getMeleeWeapon, type MeleeWeaponId } from '../data/weapons';
 import type { GearLayer, GearSlot } from '../hb/playerAppearance';
 
@@ -16,11 +16,11 @@ function pieceValue(piece: ArmorPieceId, key: ArmorTotal): number {
 
 export class Equipment {
     public weapon: MeleeWeaponId | undefined;
-    public spell: SpellId | undefined;
+    public spell: AutoSpellId | undefined;
     /** One piece per armor slot; changed only through wear(), which keeps `totals` up to date. */
     private readonly worn: Partial<Record<ArmorSlotId, ArmorPieceId>> = {};
     /** Rank of each passive (0 = not taken). */
-    public readonly passives: Record<PassiveId, number> = { boots: 0, magnetAmulet: 0 };
+    public readonly passives: Record<PassiveId, number> = { xelima: 0, merien: 0, magnetAmulet: 0 };
     /** Sum of each armor value over the pieces worn; recomputed only in wear() (read every frame). */
     private readonly totals: Record<ArmorTotal, number> = { defense: 0, defenseRatio: 0, magicResistance: 0, magicDamageBonus: 0 };
 
@@ -34,9 +34,9 @@ export class Equipment {
         this.spell = start.kind === 'spell' ? start.id : undefined;
     }
 
-    /** Total bonus of a passive at its current rank (or at `rank`), e.g. 0.16 = +16%. */
+    /** Total bonus of a passive at its current rank (or at `rank`), e.g. 0.3 = +30%. */
     public passiveBonus(id: PassiveId, rank = this.passives[id]): number {
-        return getPassive(id).perRank * rank;
+        return passiveBonus(id, rank);
     }
 
     /** A piece in every armor slot the class can wear (achievement "Fully Armored"). */
@@ -91,22 +91,32 @@ export class Equipment {
      */
     public wear(piece: ArmorPieceId): Array<[GearSlot, GearLayer | undefined]> {
         const slot = ARMOR_PIECES[piece].slot;
-        const old = this.armor[slot];
+        const changes = this.uncover(slot);
         this.worn[slot] = piece;
-        for (const key of Object.keys(this.totals) as ArmorTotal[]) {
-            let total = 0;
-            for (const id of Object.values(this.worn)) total += pieceValue(id, key);
-            this.totals[key] = total;
+        this.recompute();
+        for (const [gearSlot, layer] of Object.entries(ARMOR_PIECES[piece].look) as [GearSlot, GearLayer][]) {
+            changes.set(gearSlot, layer);
         }
+        return [...changes];
+    }
+
+    /** The layers the piece in that slot covers, back to the starting look. */
+    private uncover(slot: ArmorSlotId): Map<GearSlot, GearLayer | undefined> {
         const changes = new Map<GearSlot, GearLayer | undefined>();
+        const old = this.armor[slot];
         if (old) {
             for (const gearSlot of Object.keys(ARMOR_PIECES[old].look) as GearSlot[]) {
                 changes.set(gearSlot, this.def.appearance[gearSlot]);
             }
         }
-        for (const [gearSlot, layer] of Object.entries(ARMOR_PIECES[piece].look) as [GearSlot, GearLayer][]) {
-            changes.set(gearSlot, layer);
+        return changes;
+    }
+
+    private recompute(): void {
+        for (const key of Object.keys(this.totals) as ArmorTotal[]) {
+            let total = 0;
+            for (const id of Object.values(this.worn)) total += pieceValue(id, key);
+            this.totals[key] = total;
         }
-        return [...changes];
     }
 }

@@ -1,8 +1,8 @@
 // Interfaz de la partida: la barra (clásica abajo, o compacta arriba en el móvil: ui/ClassicHud.ts, ui/CompactHud.ts),
-// el panel de stats, la barra del jefe, los avisos, la cuenta atrás del portal (Fase 13), las mejoras activas de los cofres
+// la barra del jefe, los avisos, la cuenta atrás del portal (Fase 13), las mejoras activas de los cofres
 // el aviso de logro conseguido (Fase 14B, abajo a la izquierda) y el minimapa (Fase 16A, arriba a la derecha).
 // Corre como escena aparte por encima de la partida, así que no se mueve con la cámara.
-// El casco (o C / Y del mando) muestra el panel de stats, y el disquete o Esc / Start abren la pausa (PauseScene).
+// El casco (o C / Y del mando) pausa y abre la ventana Character del original (Fase 20A, CharacterInfoScene), y el disquete o Esc / Start abren la pausa (PauseScene).
 // Si se desconecta el mando en plena partida, la pausa se abre sola.
 // En pantallas táctiles hay además un botón de pausa arriba a la derecha, y la pausa se abre sola al poner el móvil
 // en vertical (el juego es apaisado y queda tapado por el aviso de girarlo), y el botón del Critical Strike (Fase 19A)
@@ -22,16 +22,13 @@ import {
     HUD_COMPACT_LAYOUT,
     HUD_DEPTH_TEXT,
     HUD_PORTAL,
-    HUD_STATS_PANEL,
-    HUD_STATS_STYLE,
-    HUD_STATS_TITLE_STYLE,
 } from '../config/hud';
 import type { HudStyle } from '../config/settings';
 import { TOUCH_PAUSE_BUTTON } from '../config/touch';
 import { ACHIEVEMENT_EVENT } from '../data/achievements';
 import { dodgeChance, resistChance } from '../data/defense';
 import { PASSIVE_IDS, PASSIVES } from '../data/passives';
-import { STAT_IDS, STAT_INFO } from '../data/stats';
+import type { CharacterId } from '../data/characters';
 import type { CharacterStats } from '../entities/CharacterStats';
 import { Action, InputSystem } from '../systems/InputSystem';
 import { SETTINGS_CHANGED, settings } from '../systems/Settings';
@@ -43,13 +40,14 @@ import { activeHudStyle, overlayBottom, type HudBar, type HudBarState } from '..
 import { Minimap, type MinimapInfo, type MinimapMarkers } from '../ui/Minimap';
 import { MINIMAP } from '../data/minimap';
 import { openOverlay } from './MenuOverlayScene';
+import type { CharacterInfoSceneData } from './CharacterInfoScene';
 import type { PauseSceneData } from './PauseScene';
 
 /** What the HUD shows, read every frame from the game. */
 export interface HudState extends HudBarState {
     /** True while the pause menu can't open (Game Over or level-up cards showing). */
     pauseLocked: boolean;
-    /** For the stats panel. */
+    /** For the Character window (tecla C). */
     stats: Readonly<CharacterStats>;
     /** Weapon or spell in hand. */
     weaponName: string | undefined;
@@ -80,6 +78,9 @@ export interface HudSceneData {
     minimap: MinimapInfo;
     /** The touch button of the Critical Strike was pressed. */
     launchCritStrike: () => void;
+    /** Saved character playing (its Level shows in the Character window); undefined in debug runs. */
+    characterUid: string | undefined;
+    classId: CharacterId;
 }
 
 export class HudScene extends Phaser.Scene {
@@ -87,6 +88,8 @@ export class HudScene extends Phaser.Scene {
     private gameSceneKey!: string;
     private minimapInfo!: MinimapInfo;
     private launchCritStrike!: () => void;
+    private characterUid: string | undefined;
+    private classId!: CharacterId;
     private critButton: CritButton | undefined;
     private minimap!: Minimap;
     private inputSystem!: InputSystem;
@@ -106,12 +109,6 @@ export class HudScene extends Phaser.Scene {
     private achievementWidth = 0;
     /** One line per active buff, created when first needed. */
     private readonly buffTexts: SpriteText[] = [];
-    private statsPanel!: Phaser.GameObjects.Container;
-    private statsTitle!: Phaser.GameObjects.Text;
-    private statCells: Phaser.GameObjects.Text[] = [];
-    private derivedLabels!: Phaser.GameObjects.Text;
-    private derivedValues!: Phaser.GameObjects.Text;
-    private statsPanelHeight = 0;
 
     constructor() {
         super('Hud');
@@ -122,13 +119,14 @@ export class HudScene extends Phaser.Scene {
         this.gameSceneKey = data.gameSceneKey;
         this.minimapInfo = data.minimap;
         this.launchCritStrike = data.launchCritStrike;
+        this.characterUid = data.characterUid;
+        this.classId = data.classId;
     }
 
     create(): void {
         this.buildBar();
-        this.createStatsPanel();
-        // ?debug=stats: the panel open from the start, to check it (src/config/debugStart.ts).
-        if (DEBUG_START.actions.includes('stats')) this.toggleStats();
+        // ?debug=stats: the Character window open from the start, to check it (src/config/debugStart.ts).
+        if (DEBUG_START.actions.includes('stats')) this.time.delayedCall(0, () => this.openCharacterInfo());
         this.createBossBar();
         this.announce = new SpriteText(this, GAME_WIDTH / 2, HUD_ANNOUNCE.y, '', HUD_ANNOUNCE.color, 'center');
         this.announce.container.setScale(HUD_ANNOUNCE.scale).setDepth(HUD_DEPTH_TEXT).setVisible(false);
@@ -190,8 +188,7 @@ export class HudScene extends Phaser.Scene {
         this.updateAnnouncement(delta);
         this.updateAchievementNotice(delta);
         if (this.inputSystem.justPressed(Action.Pause)) this.openPause();
-        if (this.inputSystem.justPressed(Action.ToggleStats)) this.toggleStats();
-        if (this.statsPanel.visible) this.refreshStats(state);
+        if (this.inputSystem.justPressed(Action.ToggleStats)) this.openCharacterInfo();
         this.bar.update(state);
         this.critButton?.update(state.skillOrb, state.skillUses);
         this.showBuffs(state.buffs);
@@ -201,7 +198,7 @@ export class HudScene extends Phaser.Scene {
     /** The bar of the style chosen in the settings (the PC always gets the classic one). */
     private buildBar(): void {
         this.barStyle = activeHudStyle();
-        const actions = { toggleStats: () => this.toggleStats(), openPause: () => this.openPause() };
+        const actions = { toggleStats: () => this.openCharacterInfo(), openPause: () => this.openPause() };
         this.bar = this.barStyle === 'classic' ? new ClassicHud(this, actions) : new CompactHud(this, actions);
     }
 
@@ -210,7 +207,6 @@ export class HudScene extends Phaser.Scene {
         this.bar.destroy();
         this.buildBar();
         this.critButton?.place(overlayBottom());
-        this.placeStatsPanel();
         this.buffTexts.forEach((text, i) => {
             text.container.y = this.buffY(i);
         });
@@ -337,51 +333,30 @@ export class HudScene extends Phaser.Scene {
         });
     }
 
-    /** Small panel (above the classic bar or under the compact block) with level, the six stats and what they give. Hidden until asked for. */
-    // The UI font is not monospaced, so the stats are laid out in fixed columns instead of padded strings.
-    private createStatsPanel(): void {
-        const { x, width, padding, columnWidth, gap } = HUD_STATS_PANEL;
-        this.statsTitle = this.add.text(padding, padding, ' ', HUD_STATS_TITLE_STYLE);
-        const lineHeight = this.statsTitle.height;
-        const gridTop = padding + lineHeight + gap;
-        this.statCells = STAT_IDS.map((_, i) => this.add.text(
-            padding + (i % 3) * columnWidth,
-            gridTop + Math.floor(i / 3) * lineHeight,
-            '',
-            HUD_STATS_STYLE,
-        ));
-        const derivedTop = gridTop + 2 * lineHeight + gap;
-        this.derivedLabels = this.add.text(padding, derivedTop, '', HUD_STATS_STYLE);
-        this.derivedValues = this.add.text(width - padding, derivedTop, '', { ...HUD_STATS_STYLE, align: 'right' }).setOrigin(1, 0);
-        // Filled once now so the panel height fits its rows at any font size.
-        this.refreshStats(this.getState());
-        const height = derivedTop + this.derivedLabels.height + padding;
-        const back = this.add.rectangle(0, 0, width, height, 0x1c140c, 0.9).setOrigin(0).setStrokeStyle(2, 0x8a7038);
-        this.statsPanelHeight = height;
-        this.statsPanel = this.add.container(x, 0, [
-            back, this.statsTitle, ...this.statCells, this.derivedLabels, this.derivedValues,
-        ]).setVisible(false);
-        this.placeStatsPanel();
-    }
-
-    /** Under the compact column at the top, or above the bar / row of gauges at the bottom. */
-    private placeStatsPanel(): void {
-        this.statsPanel.y = this.barStyle === 'compact' && HUD_COMPACT_LAYOUT === 'top'
-            ? HUD_COMPACT.top.statsPanelY
-            : overlayBottom() - this.statsPanelHeight - HUD_STATS_PANEL.marginY;
-    }
-
-    private refreshStats(state: HudState): void {
+    /**
+     * The original Character window (Fase 20A), with the game paused underneath: this run's stats and, beside them,
+     * what they and the gear give. Not while the cards or the end screen show.
+     */
+    private openCharacterInfo(): void {
+        const state = this.getState();
+        if (!this.scene.isActive() || state.pauseLocked) return;
         const stats = state.stats;
-        this.statsTitle.setText(`${stats.def.name} · Level ${stats.level}`);
-        STAT_IDS.forEach((id, i) => this.statCells[i]?.setText(`${STAT_INFO[id].short} ${stats.stats[id]}`));
-        const rows = describeDerived(state);
-        this.derivedLabels.setText(rows.map(([label]) => label));
-        this.derivedValues.setText(rows.map(([, value]) => value));
-    }
-
-    private toggleStats(): void {
-        this.statsPanel.setVisible(!this.statsPanel.visible);
+        const data: CharacterInfoSceneData = {
+            characterUid: this.characterUid,
+            classId: this.classId,
+            run: {
+                gameSceneKey: this.gameSceneKey,
+                power: stats.level,
+                stats: { ...stats.stats },
+                hp: state.hp,
+                maxHp: state.maxHp,
+                maxMana: state.maxMana,
+                kills: state.kills,
+                details: describeDerived(state),
+            },
+        };
+        this.scene.pause(this.gameSceneKey);
+        openOverlay(this, 'CharacterInfo', data);
     }
 
     /** Round "II" button for fingers (touch screens only). */
@@ -408,7 +383,7 @@ export class HudScene extends Phaser.Scene {
     }
 }
 
-/** Label / value rows under the stat grid. */
+/** Label / value rows of the details panel beside the Character window. */
 function describeDerived(state: HudState): [string, string][] {
     const stats = state.stats;
     const bonus = (multiplier: number) => `${multiplier >= 1 ? '+' : ''}${Math.round((multiplier - 1) * 100)}%`;

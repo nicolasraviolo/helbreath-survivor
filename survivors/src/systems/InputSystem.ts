@@ -41,6 +41,10 @@ export enum Action {
     MenuRight = 'menuRight',
     MenuUp = 'menuUp',
     MenuDown = 'menuDown',
+    /** Take back a point in the Character window (Fase 20A). */
+    Decrease = 'decrease',
+    /** Open the Equipment screen from Select Character (Fase 20B): I or gamepad X. */
+    OpenEquipment = 'openEquipment',
     /** Show / hide the stats panel: C or gamepad Y by default, changeable in Settings → Controls. */
     ToggleStats = 'toggleStats',
     ToggleDebug = 'toggleDebug',
@@ -79,6 +83,8 @@ const KEYBOARD_ACTIONS: Record<Action, number[]> = {
     [Action.MenuRight]: [KEY.RIGHT, KEY.D],
     [Action.MenuUp]: [KEY.UP, KEY.W],
     [Action.MenuDown]: [KEY.DOWN, KEY.S],
+    [Action.Decrease]: [KEY.MINUS, KEY.NUMPAD_SUBTRACT],
+    [Action.OpenEquipment]: [KEY.I],
     [Action.ToggleStats]: [DEFAULT_CONTROLS.keyboard.toggleStats],
     [Action.ToggleDebug]: [KEY.F1],
     [Action.OpenSpriteTest]: [KEY.T],
@@ -112,6 +118,8 @@ const GAMEPAD_ACTIONS: Partial<Record<Action, number[]>> = {
     [Action.MenuRight]: [GAMEPAD_BUTTON.DpadRight, STICK_BUTTON.Right],
     [Action.MenuUp]: [GAMEPAD_BUTTON.DpadUp, STICK_BUTTON.Up],
     [Action.MenuDown]: [GAMEPAD_BUTTON.DpadDown, STICK_BUTTON.Down],
+    [Action.Decrease]: [GAMEPAD_BUTTON.X],
+    [Action.OpenEquipment]: [GAMEPAD_BUTTON.X],
     [Action.ToggleStats]: [DEFAULT_CONTROLS.gamepad.toggleStats],
     [Action.ToggleDebug]: [GAMEPAD_BUTTON.View],
 };

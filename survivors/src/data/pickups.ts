@@ -43,7 +43,7 @@ export const PICKUP_BLINK_MS = 5000;
 export const PICKUP_BLINK_PERIOD_MS = 150;
 /** Sound when a chest appears on the ground (ITEM_DROPPED_SOUND). */
 export const CHEST_DROP_SOUND: SoundKey = 'sfx.itemDrop';
-/** Title of the cards a chest gives (instead of "Level N!"). */
+/** Title of the cards a chest gives (instead of "Power N!"). */
 export const CHEST_CARDS_TITLE = 'Treasure!';
 
 // --- Buffs (de los tótems desde la Fase 16B) ----------------------------------------------------------------

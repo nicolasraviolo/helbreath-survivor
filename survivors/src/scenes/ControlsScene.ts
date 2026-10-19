@@ -21,7 +21,7 @@ interface Waiting {
     control: RemappableControl;
 }
 
-const CONTROL_LABELS: Readonly<Record<RemappableControl, string>> = { critStrike: 'Crit', toggleStats: 'Stats' };
+const CONTROL_LABELS: Readonly<Record<RemappableControl, string>> = { critStrike: 'Crit', toggleStats: 'Character' };
 const DEVICE_LABELS: Readonly<Record<Device, string>> = { keyboard: 'Key', gamepad: 'Button' };
 /** Keys that stop waiting without changing anything (also read here: a very short press can miss Action.Back). */
 const CANCEL_KEYS: readonly number[] = [Phaser.Input.Keyboard.KeyCodes.ESC, Phaser.Input.Keyboard.KeyCodes.BACKSPACE];

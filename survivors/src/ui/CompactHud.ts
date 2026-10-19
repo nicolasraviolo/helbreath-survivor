@@ -68,7 +68,7 @@ export class CompactHud implements HudBar {
             this.mpText.setText(`${Math.ceil(state.mana)} / ${state.maxMana}`);
         }
         setGauge(this.xp, state.xpRatio);
-        this.infoText.setText(`Lv ${state.level}   ${formatTime(state.elapsedMs)}   ${state.kills} kills`);
+        this.infoText.setText(`Power ${state.level}   ${formatTime(state.elapsedMs)}   ${state.kills} kills`);
     }
 
     public destroy(): void {

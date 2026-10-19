@@ -6,8 +6,10 @@ description: Añadir una mejora nueva a las cartas de subida de nivel (un stat c
 # Añadir una mejora a las cartas de subida de nivel
 
 Una **mejora** es cada opción que aparece en `LevelUpScene` al subir de nivel (3 cartas, se elige 1).
-Hoy solo existe la carta **Stat** ("+3 a un stat"). Los tipos Arma nueva, Mejora de eslabón y Armadura
-llegan en la Fase 6 (`docs/DESIGN.md` → "Cartas al subir de nivel").
+Desde la Fase 20C hay dos tipos: **Stat** ("+3 a un stat", solo esa partida) y **Pasiva** (Stone of Xelima,
+Stone of Merien, Magnet Amulet; `data/passives.ts`, con rango, `stacking` e icono). Las cartas **ya no dan armas,
+hechizos ni armaduras**: eso es el equipo permanente (pantalla Equipment). Una pasiva nueva = una entrada en
+`PASSIVES` + su efecto donde toque; una carta de otro tipo, caso B.
 
 Antes de empezar: lee `survivors/PROGRESS.md` y presenta al propietario un plan corto. Espera su OK.
 
@@ -60,8 +62,8 @@ La primera vez que se haga, hay que generalizar (después solo se añaden casos)
    y que `createCard()` / `describeChanges()` hagan `switch (choice.kind)` para icono, título, efecto y líneas.
 2. Sacar la construcción de opciones de `GameScene.openLevelUp()` a `survivors/src/systems/UpgradePool.ts`
    (función pura: recibe `CharacterStats` + lo que ya tiene el jugador y devuelve `LevelUpChoice[]`).
-3. **Disponibilidad:** una carta solo entra si se puede usar. Para requisitos, siempre `meetsRequirement()`
-   de `utils/requirements.ts` (Str para armas y armaduras, Int para hechizos y equipo de mago).
+3. **Disponibilidad:** una carta solo entra si se puede usar (p. ej. una pasiva, si no está al máximo).
+   Las stats de las cartas nunca desbloquean equipo (Fase 20).
 4. **Relleno:** si no hay 3 opciones distintas, completar con cartas de stat (siempre disponibles). Sin duplicados.
 5. Aplicar la elección en `onChoose` con un `switch (choice.kind)` y llamar a `applyStats()` al final.
 6. Datos del tipo nuevo en su archivo de `data/` (`data/weapons.ts`, `data/armor.ts`…), nunca en la escena.

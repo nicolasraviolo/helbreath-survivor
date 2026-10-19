@@ -1,17 +1,15 @@
 // Pantalla de subida de nivel: la partida se pausa y se elige 1 de 3 cartas (las arma systems/UpgradePool.ts).
-// Tipos: stat ("+3 a un stat"), eslabón de arma, cambio de familia de arma y armadura.
+// Tipos (Fase 20C): stat ("+3 a un stat") y pasiva (Stone of Xelima, Stone of Merien, Magnet Amulet). Las pasivas
+// llevan su dibujo (icono original de la piedra o imagen propia) en lugar del círculo de color.
 // Siempre hay una carta resaltada. Se elige con flechas/WASD, cruceta o stick + Enter/Espacio/A, o con el ratón.
 import Phaser from 'phaser';
 import { byDevice } from '../config/device';
 import { GAME_WIDTH, LEVEL_UP_INPUT_DELAY_MS } from '../config/gameConfig';
 import { HUD_TOP } from '../config/hud';
 import { px, UI_TEXT, UI_FONT_SIZE } from '../config/ui';
-import { ARMOR_SLOT_NAMES, getArmorPiece } from '../data/armor';
-import { dodgeChance, playerDefenseRatio, playerMagicResistance, resistChance } from '../data/defense';
+import { itemPackTexture } from '../config/equipment';
 import { STAT_INFO, type StatId } from '../data/stats';
-import { getPassive } from '../data/passives';
-import { getSpell, SPELL_FAMILIES, type SpellDef } from '../data/spells';
-import { getMeleeWeapon, MELEE_FAMILIES, type MeleeWeaponDef } from '../data/weapons';
+import { getPassive, type PassiveIcon } from '../data/passives';
 import type { CharacterStats } from '../entities/CharacterStats';
 import type { Equipment } from '../entities/Equipment';
 import { Action, InputSystem } from '../systems/InputSystem';
@@ -25,7 +23,7 @@ export interface LevelUpSceneData {
     equipment: Equipment;
     choices: LevelUpChoice[];
     onChoose: (choice: LevelUpChoice) => void;
-    /** Title over the cards; default "Level N!" (a chest's cards say something else, Fase 16B). */
+    /** Title over the cards; default "Power N!" (a chest's cards say something else, Fase 16B). */
     title?: string;
 }
 
@@ -50,17 +48,18 @@ const CARD_BORDER = 0x8a7038;
 const CARD_HIGHLIGHT = 0xffe080;
 const HIGHLIGHT_SCALE = 1.05;
 const BADGE_RADIUS = byDevice(26, 30);
+/** Largest side of a passive's picture, drawn where the badge goes (small item icons grow up to ICON_MAX_SCALE). */
+const ICON_SIZE = byDevice(64, 72);
+const ICON_MAX_SCALE = 2;
 const TEXT_COLOR = '#e8d9a8';
-/** Badge of the weapon and armor cards. */
-const WEAPON_BADGE = { text: 'Wpn', color: 0x9a9a9a } as const;
-const ARMOR_BADGE = { text: 'Arm', color: 0x6a5030 } as const;
-const SPELL_BADGE = { text: 'Spl', color: 0x3858b0 } as const;
+/** Badge of a passive card while its picture is not loaded yet (item-pack.spr downloads when the run starts). */
 const PASSIVE_BADGE = { text: 'Pas', color: 0x508050 } as const;
 
-/** What a card shows: badge, title, one line of effect and the "before → after" lines. */
+/** What a card shows: badge (or picture), title, one line of effect and the "before → after" lines. */
 interface CardText {
     badge: string;
     badgeColor: number;
+    icon?: PassiveIcon;
     title: string;
     effect: string;
     changes: string[];
@@ -100,7 +99,7 @@ export class LevelUpScene extends Phaser.Scene {
         // Above the compact gauges when they run along the bottom.
         const cardsBottom = overlayBottom() - CARDS_BOTTOM_GAP;
         this.add.rectangle(0, 0, GAME_WIDTH, bottom, 0x000000, 0.6).setOrigin(0);
-        this.add.text(GAME_WIDTH / 2, TITLE_Y, title ?? `Level ${stats.level}!`, {
+        this.add.text(GAME_WIDTH / 2, TITLE_Y, title ?? `Power ${stats.level}!`, {
             ...UI_TEXT, fontSize: px(UI_FONT_SIZE.title), fontStyle: 'bold', color: '#ffe080', stroke: '#000000', strokeThickness: 4,
         }).setOrigin(0.5);
         this.add.text(GAME_WIDTH / 2, SUBTITLE_Y, 'Choose an upgrade', { ...UI_TEXT, fontSize: px(UI_FONT_SIZE.normal), color: TEXT_COLOR }).setOrigin(0.5);
@@ -136,8 +135,9 @@ export class LevelUpScene extends Phaser.Scene {
         const frame = this.add.rectangle(0, 0, CARD_WIDTH, CARD_HEIGHT, CARD_FILL, 0.95).setStrokeStyle(2, CARD_BORDER);
         const top = -CARD_HEIGHT / 2;
         const textWidth = CARD_WIDTH - CARD_TEXT_MARGIN * 2;
-        const badge = this.add.circle(0, top + CARD_BADGE_Y, BADGE_RADIUS, text.badgeColor).setStrokeStyle(2, 0x000000);
-        const badgeText = this.add.text(0, top + CARD_BADGE_Y, text.badge, {
+        const picture = text.icon ? this.picture(text.icon, top + CARD_BADGE_Y) : undefined;
+        const badge = picture ?? this.add.circle(0, top + CARD_BADGE_Y, BADGE_RADIUS, text.badgeColor).setStrokeStyle(2, 0x000000);
+        const badgeText = this.add.text(0, top + CARD_BADGE_Y, picture ? '' : text.badge, {
             ...UI_TEXT, fontSize: px(UI_FONT_SIZE.normal), fontStyle: 'bold', color: '#ffffff', stroke: '#000000', strokeThickness: 3,
         }).setOrigin(0.5);
         const title = this.add.text(0, top + CARD_TITLE_Y, text.title, {
@@ -163,6 +163,16 @@ export class LevelUpScene extends Phaser.Scene {
             this.pressedCard = -1;
         });
         return { container, frame };
+    }
+
+    /** A passive's picture fitted in ICON_SIZE, or undefined while its texture is not loaded. */
+    private picture(icon: PassiveIcon, y: number): Phaser.GameObjects.Image | undefined {
+        const texture = icon.kind === 'item' ? itemPackTexture(icon.sheet) : icon.key;
+        const frame = icon.kind === 'item' ? icon.frame : undefined;
+        if (!this.textures.exists(texture) || (frame !== undefined && !this.textures.get(texture).has(String(frame)))) return undefined;
+        const image = this.add.image(0, y, texture, frame);
+        const size = ICON_SIZE * (icon.kind === 'image' ? icon.size ?? 1 : 1);
+        return image.setScale(Math.min(ICON_MAX_SCALE, size / Math.max(image.width, image.height)));
     }
 
     private highlight(index: number): void {
@@ -192,83 +202,16 @@ function describeCard(stats: CharacterStats, equipment: Equipment, choice: Level
                 changes: describeStatChanges(stats, choice.stat, choice.points),
             };
         }
-        case 'weaponLink':
-        case 'weaponSwitch': {
-            const weapon = getMeleeWeapon(choice.weapon);
-            const from = getMeleeWeapon(choice.from);
-            const family = MELEE_FAMILIES[weapon.family].name;
-            return {
-                badge: WEAPON_BADGE.text, badgeColor: WEAPON_BADGE.color, title: weapon.name,
-                effect: choice.kind === 'weaponLink' ? `${family} · stronger link` : `${family} · replaces ${from.name}`,
-                changes: describeWeaponChanges(stats, from, weapon),
-            };
-        }
-        case 'spellLink':
-        case 'spellSwitch': {
-            const spell = getSpell(choice.spell);
-            const from = getSpell(choice.from);
-            const family = SPELL_FAMILIES[spell.family].name;
-            return {
-                badge: SPELL_BADGE.text, badgeColor: SPELL_BADGE.color, title: spell.name,
-                effect: choice.kind === 'spellLink' ? `${family} · stronger spell` : `${family} · replaces ${from.name}`,
-                changes: describeSpellChanges(stats, from, spell),
-            };
-        }
         case 'passive': {
             const passive = getPassive(choice.passive);
-            const pct = (rank: number) => `+${Math.round(equipment.passiveBonus(choice.passive, rank) * 100)}%`;
+            const pct = (rank: number) => `${passive.sign}${Math.round(equipment.passiveBonus(choice.passive, rank) * 100)}%`;
             return {
-                badge: PASSIVE_BADGE.text, badgeColor: PASSIVE_BADGE.color, title: `${passive.name} ${choice.rank}/${passive.maxRank}`,
+                badge: PASSIVE_BADGE.text, badgeColor: PASSIVE_BADGE.color, icon: passive.icon, title: `${passive.name} ${choice.rank}/${passive.maxRank}`,
                 effect: passive.effect,
                 changes: [`${passive.statLabel} ${pct(choice.rank - 1)} → ${pct(choice.rank)}`],
             };
         }
-        case 'armor': {
-            const piece = getArmorPiece(choice.piece);
-            const pct = (value: number) => `${Math.round(value * 100)}%`;
-            const changes = [`Damage taken −${pct(equipment.defense)} → −${pct(equipment.defenseWith(choice.piece))}`];
-            const magicAfter = equipment.totalWith(choice.piece, 'magicDamageBonus');
-            if (magicAfter !== equipment.magicDamageBonus) changes.push(`Magic damage +${pct(equipment.magicDamageBonus)} → +${pct(magicAfter)}`);
-            // General dodge and magic resist (Fases 18A and 18B), when the piece changes them.
-            const dodge = (armorRatio: number) => dodgeChance(playerDefenseRatio(stats.stats.dex, armorRatio));
-            const [dodgeBefore, dodgeAfter] = [dodge(equipment.defenseRatio), dodge(equipment.totalWith(choice.piece, 'defenseRatio'))];
-            if (pct(dodgeBefore) !== pct(dodgeAfter)) changes.push(`Dodge ${pct(dodgeBefore)} → ${pct(dodgeAfter)}`);
-            const resist = (armorResistance: number) => resistChance(playerMagicResistance(stats.stats.mag, armorResistance));
-            const [resistBefore, resistAfter] = [resist(equipment.magicResistance), resist(equipment.totalWith(choice.piece, 'magicResistance'))];
-            if (pct(resistBefore) !== pct(resistAfter)) changes.push(`Magic resist ${pct(resistBefore)} → ${pct(resistAfter)}`);
-            return {
-                badge: ARMOR_BADGE.text, badgeColor: ARMOR_BADGE.color, title: piece.name,
-                effect: choice.from ? `${ARMOR_SLOT_NAMES[piece.slot]} · replaces ${getArmorPiece(choice.from).name}` : ARMOR_SLOT_NAMES[piece.slot],
-                changes,
-            };
-        }
     }
-}
-
-/** Damage of one projectile on the enemy it hits (with the Mag bonus), rhythm, projectiles and area: spell in hand → new one. */
-function describeSpellChanges(stats: CharacterStats, from: SpellDef, to: SpellDef): string[] {
-    const damage = (spell: SpellDef) => Math.round((spell.directDamage + spell.areaDamage) * stats.damageMultiplier('magic'));
-    const every = (spell: SpellDef) => `${((spell.cooldownMs * stats.cooldownMultiplier) / 1000).toFixed(2)}s`;
-    const lines = [
-        `Damage ${damage(from)} → ${damage(to)}`,
-        `Cast every ${every(from)} → ${every(to)}`,
-    ];
-    if (from.shots !== to.shots) lines.push(`Projectiles ${from.shots} → ${to.shots}`);
-    if (from.areaRadius !== to.areaRadius) lines.push(`Area ${from.areaRadius} → ${to.areaRadius}`);
-    return lines;
-}
-
-/** Damage (with the Str bonus), attack rhythm, reach and width of the weapon in hand → the new one. */
-function describeWeaponChanges(stats: CharacterStats, from: MeleeWeaponDef, to: MeleeWeaponDef): string[] {
-    const damage = (weapon: MeleeWeaponDef) => Math.round(weapon.damage * stats.damageMultiplier('physical'));
-    const every = (weapon: MeleeWeaponDef) => `${((weapon.cooldownMs * stats.cooldownMultiplier) / 1000).toFixed(2)}s`;
-    const lines = [
-        `Damage ${damage(from)} → ${damage(to)}`,
-        `Attack every ${every(from)} → ${every(to)}`,
-        `Reach ${from.range} → ${to.range}`,
-    ];
-    if (from.arcDegrees !== to.arcDegrees) lines.push(`Width ${from.arcDegrees}° → ${to.arcDegrees}°`);
-    return lines;
 }
 
 /** "Before → after" lines for the stat and what it changes in play. */

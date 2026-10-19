@@ -30,7 +30,7 @@ export const HOW_TO_PLAY_PAGES: readonly HowToPlayPage[] = [
             'Your weapons and spells attack on their own.',
             'Right click, right stick or right half of the screen: aim yourself.',
             'Pick up the gems that enemies drop to gain experience.',
-            'Each level up, choose one of the cards to grow stronger.',
+            'Each time your Power goes up, choose a card to grow stronger.',
             'Step on the glowing Mana Stones for a power-up. Chests give a free card.',
             'Survive the waves and defeat the final boss to win.',
         ],
@@ -41,11 +41,11 @@ export const HOW_TO_PLAY_PAGES: readonly HowToPlayPage[] = [
             { control: 'WASD or arrow keys', action: 'Move' },
             { control: 'Hold left click', action: 'Walk towards the pointer' },
             { control: 'Hold right click', action: 'Aim your attacks at the pointer' },
-            { control: 'C / Esc', action: 'Show your stats / Pause' },
+            { control: 'C / Esc', action: 'Character window / Pause' },
             { control: 'Arrows + Enter, or click', action: 'Choose in menus and cards' },
             { control: 'Esc or Backspace', action: 'Go back' },
             // Fase 19C: se pueden cambiar la tecla del crit y la del panel de stats.
-            { control: 'Settings, Controls', action: 'Change the Crit and Stats keys' },
+            { control: 'Settings, Controls', action: 'Change the Crit and Character keys' },
         ],
     },
     {
@@ -53,11 +53,11 @@ export const HOW_TO_PLAY_PAGES: readonly HowToPlayPage[] = [
         rows: [
             { pad: ['LeftStick', 'Dpad'], action: 'Move' },
             { pad: ['RightStick'], action: 'Aim your attacks' },
-            { pad: ['Y'], action: 'Show or hide your stats' },
+            { pad: ['Y'], action: 'Character window' },
             { pad: ['Start'], action: 'Pause' },
             { pad: ['Dpad', 'A'], action: 'Choose in menus and cards' },
             { pad: ['B'], action: 'Go back' },
-            { control: 'Settings, Controls', action: 'Change the Crit and Stats buttons' },
+            { control: 'Settings, Controls', action: 'Change the Crit and Character buttons' },
         ],
     },
     {
@@ -66,23 +66,23 @@ export const HOW_TO_PLAY_PAGES: readonly HowToPlayPage[] = [
             { control: 'Drag on the left half', action: 'Move' },
             { control: 'Drag on the right half', action: 'Aim (let go: auto aim)' },
             { control: 'Aim Stick off (Settings)', action: 'Drag anywhere to move' },
-            { control: 'Stats / Pause buttons', action: 'Show your stats / Pause' },
+            { control: 'Helmet / Pause buttons', action: 'Character window / Pause' },
             { control: 'Tap a card or option', action: 'Choose it' },
             { control: 'Top-right icon', action: 'Fullscreen' },
         ],
     },
     {
-        // Fase 19A: Critical Strike del Guerrero; 19B: hechizo activo del Mago (Meteor Strike), con el mismo botón.
+        // Fase 19A: Critical Strike del Guerrero; 19B: hechizo activo del Mago (desde el 20D, el del hueco Spell 2), con el mismo botón.
         name: 'Crit',
         rows: [
             // Como mucho 7 filas: con 8, la última pisa el selector "Page".
-            { control: 'Space', action: 'Warrior: Critical Strike · Mage: Meteor Strike' },
-            { pad: ['R2'], action: 'Warrior: Critical Strike · Mage: Meteor Strike' },
-            { control: 'Red orb button (touch)', action: 'Warrior: Critical Strike · Mage: Meteor Strike' },
+            { control: 'Space', action: 'Warrior: Critical Strike · Mage: active spell (Spell 2)' },
+            { pad: ['R2'], action: 'Warrior: Critical Strike · Mage: active spell (Spell 2)' },
+            { control: 'Red orb button (touch)', action: 'Warrior: Critical Strike · Mage: active spell (Spell 2)' },
             { control: 'Number on the red orb', action: 'Warrior: charges (+1 each 15 s) · Mage: secs left' },
             { control: 'Getting hit', action: 'Warrior: also refills the charges' },
-            { control: 'Every 10 levels', action: 'Warrior: one more charge, and more damage' },
-            { control: 'More Mag', action: 'Mage: Meteor Strike recharges faster' },
+            { control: 'Every 10 Power', action: 'Warrior: one more charge, and more damage' },
+            { control: 'More Mag', action: 'Mage: the active spell recharges faster' },
         ],
     },
     {
@@ -96,6 +96,31 @@ export const HOW_TO_PLAY_PAGES: readonly HowToPlayPage[] = [
             // Fase 17B: Create New Character.
             { control: 'Create: arrows next to a row', action: 'Change your look' },
             { control: 'Create: arrow keys / pad', action: 'Up-Down: row, Left-Right: change' },
+        ],
+    },
+    {
+        // Fase 20A: Level permanente y Power de la partida. Como mucho 7 filas.
+        name: 'Level',
+        rows: [
+            { control: 'Power', action: 'Your level inside a run: it starts at 1 each run' },
+            { control: 'End of a run (win or lose)', action: 'All its XP goes to your character\'s Level' },
+            { control: 'Each Level', action: '3 stat points, kept forever' },
+            { control: 'Level Set. (Select Character)', action: 'Open the Character window to assign them' },
+            { control: '+ / − next to a stat', action: 'Add a point / take it back' },
+            { control: 'Ok', action: 'Confirm: points can never be moved again' },
+            { control: 'Arrows, Enter, − key or pad X', action: 'Choose a stat, add a point, take it back' },
+        ],
+    },
+    {
+        // Fase 20B: pantalla Equipment. Como mucho 7 filas.
+        name: 'Equipment',
+        rows: [
+            { control: 'Equipment (Select Character)', action: 'Choose what your character wears' },
+            { control: 'I key or pad X', action: 'Open it for the marked character' },
+            { control: 'Each run', action: 'Starts with that equipment on' },
+            { control: 'Requirements', action: 'Your permanent Str, Mag and Level: red = not met' },
+            { control: 'Left-Right / Down', action: 'Choose a slot / go down its list' },
+            { control: 'Enter, pad A or a click', action: 'Wear the item (saved at once)' },
         ],
     },
 ];

@@ -1,5 +1,6 @@
 // Pantalla de final de partida (Fase 7): victoria al matar al jefe final o derrota al morir. Se abre encima de la
-// partida, que queda pausada. Muestra tiempo, nivel, bajas, el arma o hechizo y la armadura que llevabas, y los logros
+// partida, que queda pausada. Muestra tiempo, Power, bajas, la EXP que ha ganado el personaje y su Level (Fase 20A; los
+// puntos nuevos se reparten en la ventana Character, desde Select Character), el arma o hechizo y la armadura que llevabas, y los logros
 // conseguidos en esta partida (Fase 14B; el aviso del HUD queda tapado por esta pantalla).
 // Botones originales (dialogtext.spr): Restart = otra partida con la misma clase; Change = volver a elegir clase;
 // Log Out = volver al menú principal.
@@ -9,6 +10,8 @@ import { GAME_HEIGHT, GAME_WIDTH } from '../config/gameConfig';
 import { GAME_OVER } from '../config/hud';
 import { px, UI_TEXT, UI_FONT_SIZE } from '../config/ui';
 import { SpriteText } from '../hb/SpriteText';
+import type { ExpResult } from '../systems/CharacterStore';
+import { STAT_POINTS_PER_LEVEL } from '../data/characterLevel';
 import { Action, InputSystem } from '../systems/InputSystem';
 import { formatTime } from '../utils/format';
 
@@ -24,6 +27,8 @@ export interface GameOverSceneData {
     armorNames: readonly string[];
     /** Achievements unlocked during this run, by name. */
     achievementNames: readonly string[];
+    /** What the run's EXP did to the character's Level (undefined for runs without a saved character). */
+    exp: ExpResult | undefined;
     onRestart: () => void;
     onChangeClass: () => void;
     onMainMenu: () => void;
@@ -63,7 +68,7 @@ export class GameOverScene extends Phaser.Scene {
         title.container.setScale(GAME_OVER.titleScale);
 
         const lines = [
-            `${p.className}  ·  Level ${p.level}`,
+            `${p.className}  ·  Power ${p.level}`,
             `Time ${formatTime(p.elapsedMs)}  ·  ${p.kills} kills`,
             '',
             p.weaponName,
@@ -79,6 +84,8 @@ export class GameOverScene extends Phaser.Scene {
                 stroke: '#000000', strokeThickness: 3, align: 'center', wordWrap: { width: GAME_OVER.achievementsWrap },
             }).setOrigin(0.5);
         }
+
+        if (p.exp) this.addExpBlock(p.exp);
 
         this.addButton(GAME_OVER.restartFrame, -1, p.onRestart);
         this.addButton(GAME_OVER.changeFrame, 0, p.onChangeClass);
@@ -97,6 +104,27 @@ export class GameOverScene extends Phaser.Scene {
         if (input.justPressed(Action.MenuLeft)) this.highlight((this.selected - 1 + count) % count);
         if (input.justPressed(Action.MenuRight)) this.highlight((this.selected + 1) % count);
         if (input.justPressed(Action.Pick)) this.choose(this.selected);
+    }
+
+    /** "+N EXP · Level N", the bar towards the next Level, and "Level up! +3 points" or what is left to the next one. */
+    private addExpBlock(exp: ExpResult): void {
+        const g = GAME_OVER;
+        const x = GAME_WIDTH / 2;
+        this.add.text(x, g.expY, `+${exp.gained.toLocaleString('en-US')} EXP  ·  Level ${exp.level}`, {
+            ...UI_TEXT, fontSize: px(UI_FONT_SIZE.large), color: '#e8d9a8', align: 'center',
+        }).setOrigin(0.5, 0);
+        const ratio = exp.expToNext > 0 ? exp.exp / exp.expToNext : 1;
+        const left = x - g.expBarWidth / 2;
+        this.add.rectangle(left, g.expBarY, g.expBarWidth, g.expBarHeight, g.expBarBack).setOrigin(0).setStrokeStyle(1, g.expBarBorder);
+        this.add.rectangle(left, g.expBarY, g.expBarWidth * ratio, g.expBarHeight, g.expBarFill).setOrigin(0);
+        const levelsUp = exp.level - exp.levelBefore;
+        const note = levelsUp > 0
+            ? `Level up! +${levelsUp * STAT_POINTS_PER_LEVEL} points`
+            : exp.expToNext > 0 ? `${(exp.expToNext - exp.exp).toLocaleString('en-US')} EXP to Level ${exp.level + 1}` : 'Max Level';
+        this.add.text(x, g.expNoteY, note, {
+            ...UI_TEXT, fontSize: px(UI_FONT_SIZE.normal), fontStyle: levelsUp > 0 ? 'bold' : 'normal',
+            color: levelsUp > 0 ? g.expLevelUpColor : g.expNoteColor, stroke: '#000000', strokeThickness: 3, align: 'center',
+        }).setOrigin(0.5, 0);
     }
 
     private ready(): boolean {

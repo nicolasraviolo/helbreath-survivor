@@ -7,7 +7,7 @@
 // abanico si son varios) y los que caen en zona caen en el cursor (sin pasar del alcance) o, con el stick, a una
 // distancia fija en esa dirección (data/targeting.ts → MANUAL_AIM).
 import Phaser from 'phaser';
-import { CAST_ANIMATION_MS, CAST_RELEASE_MOMENT, SPELLS, type SpellDef, type SpellId } from '../data/spells';
+import { CAST_ANIMATION_MS, CAST_RELEASE_MOMENT, SPELLS, type AutoSpellId, type SpellDef } from '../data/spells';
 import { MANUAL_AIM } from '../data/targeting';
 import type { Enemy } from '../entities/Enemy';
 import { type ManualAim, manualAimAngle } from '../systems/Targeting';
@@ -28,7 +28,7 @@ export class SpellWeapon extends Weapon {
     /** The boss they were aimed at, if it was one: the shots fly through the other monsters. */
     private aimBoss: Enemy | undefined;
 
-    constructor(public readonly id: SpellId) {
+    constructor(public readonly id: AutoSpellId) {
         super(SPELLS[id].cooldownMs);
         this.def = SPELLS[id];
     }

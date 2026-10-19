@@ -11,6 +11,7 @@ No sabe programar. Explica lo que haces en español sencillo, dile siempre **có
 - `sp-client/docs/` y `sp-client/.cursor/rules/` → documentación técnica del formato `.spr`, mapas `.amd`, animaciones, hechizos.
 - `multiplayer/`, `tools/`, `reference/` → ignorar salvo que se pida.
 - `docs/PLAN.md` → fases del proyecto. `docs/DESIGN.md` → diseño del juego (personajes, armas, enemigos, oleadas).
+- `docs/DECISIONES.md` → todas las decisiones del propietario (no leer entero; grep por fase o tema).
 - `survivors/PROGRESS.md` → estado actual y cómo probar. **Léelo al empezar cada sesión.** El historial de lo ya hecho está en `PROGRESS-historial.md` (no leerlo entero; buscar con grep).
 
 ## Reglas

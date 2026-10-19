@@ -24,7 +24,7 @@ export interface BossReport {
 
 /** What RunMetrics collects during the run; kept in the saved run so Continue does not lose it. */
 export interface RunMetricsState {
-    /** Cards picked on level up and how many times each ("stat:str", "spellLink:fireBall", ...). */
+    /** Cards picked on level up and how many times each ("stat:str", "passive:xelima", ...). */
     cards: Record<string, number>;
     /** Level reached at the end of minute 1, 2, 3... */
     levelByMinute: number[];

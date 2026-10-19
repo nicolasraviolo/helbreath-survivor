@@ -13,7 +13,8 @@ import { DEFAULT_MAP, MAPS_DATA, type MapId } from '../data/maps';
 import { PASSIVE_IDS, PASSIVES, type PassiveId } from '../data/passives';
 import { BUFFS, type BuffId } from '../data/pickups';
 import { SAVE_SLOT_COUNT } from '../data/saves';
-import { SPELLS, type SpellId } from '../data/spells';
+import { isAutoSpellId, type AutoSpellId } from '../data/spells';
+import { isActiveSpellId, type ActiveSpellId } from '../data/activeSpells';
 import { STAT_IDS, type Stats } from '../data/stats';
 import { MELEE_WEAPONS, type MeleeWeaponId } from '../data/weapons';
 
@@ -40,10 +41,17 @@ export interface RunSnapshot {
     /** Free cards from chests not chosen yet (Fase 16B). Saves from before have none. */
     chestCards: number;
     stats: Stats;
+    /**
+     * The character's permanent stats when the run started (Fase 20A): points assigned while the run waits are added
+     * on Continue. Saves from before have none: they started with the class's stats.
+     */
+    permanentStats: Stats | undefined;
     hp: number;
     kills: number;
     weapon: MeleeWeaponId | undefined;
-    spell: SpellId | undefined;
+    spell: AutoSpellId | undefined;
+    /** The Mage's active spell (Fase 20D). Saves from before have none: the one equipped now. */
+    activeSpell: ActiveSpellId | undefined;
     armor: Partial<Record<ArmorSlotId, ArmorPieceId>>;
     passives: Partial<Record<PassiveId, number>>;
     /** Milliseconds left of each active buff. */
@@ -150,13 +158,8 @@ function readSnapshot(entry: unknown): RunSnapshot | undefined {
     const elapsedMs = readNumber(entry.elapsedMs);
     const level = readNumber(entry.level);
     if (elapsedMs === undefined || level === undefined || level < 1) return undefined;
-    const stats = isRecord(entry.stats) ? entry.stats : {};
-    const statValues = {} as Stats;
-    for (const id of STAT_IDS) {
-        const value = readNumber(stats[id]);
-        if (value === undefined) return undefined;
-        statValues[id] = value;
-    }
+    const statValues = readStats(entry.stats);
+    if (!statValues) return undefined;
     const armor: Partial<Record<ArmorSlotId, ArmorPieceId>> = {};
     for (const piece of Object.values(isRecord(entry.armor) ? entry.armor : {})) {
         if (isKeyOf(ARMOR_PIECES, piece)) armor[ARMOR_PIECES[piece].slot] = piece;
@@ -184,10 +187,12 @@ function readSnapshot(entry: unknown): RunSnapshot | undefined {
         pendingLevelUps: readNumber(entry.pendingLevelUps) ?? 0,
         chestCards: readNumber(entry.chestCards) ?? 0,
         stats: statValues,
+        permanentStats: readStats(entry.permanentStats),
         hp: readNumber(entry.hp) ?? 1,
         kills: readNumber(entry.kills) ?? 0,
         weapon: isKeyOf(MELEE_WEAPONS, entry.weapon) ? entry.weapon : undefined,
-        spell: isKeyOf(SPELLS, entry.spell) ? entry.spell : undefined,
+        spell: typeof entry.spell === 'string' && isAutoSpellId(entry.spell) ? entry.spell : undefined,
+        activeSpell: typeof entry.activeSpell === 'string' && isActiveSpellId(entry.activeSpell) ? entry.activeSpell : undefined,
         armor,
         passives,
         buffs,
@@ -199,6 +204,18 @@ function readSnapshot(entry: unknown): RunSnapshot | undefined {
         spellCooldownMs: readNumber(entry.spellCooldownMs),
         metrics: readMetrics(entry.metrics),
     };
+}
+
+/** All six stats, or undefined if any is missing. */
+function readStats(value: unknown): Stats | undefined {
+    const stats = isRecord(value) ? value : {};
+    const values = {} as Stats;
+    for (const id of STAT_IDS) {
+        const n = readNumber(stats[id]);
+        if (n === undefined) return undefined;
+        values[id] = n;
+    }
+    return values;
 }
 
 function readMetrics(value: unknown): RunMetricsState | undefined {

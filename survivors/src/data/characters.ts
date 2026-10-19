@@ -5,11 +5,11 @@
 import type { Appearance } from '../hb/playerAppearance';
 import type { Stats } from './stats';
 import type { ArmorSetId } from './armor';
-import type { SpellId } from './spells';
+import type { AutoSpellId } from './spells';
 import type { MeleeWeaponId } from './weapons';
 
 /** Weapon the class starts with: a spell that shoots projectiles, or a melee weapon held in the hand. */
-export type StartWeapon = { kind: 'spell'; id: SpellId } | { kind: 'melee'; id: MeleeWeaponId };
+export type StartWeapon = { kind: 'spell'; id: AutoSpellId } | { kind: 'melee'; id: MeleeWeaponId };
 
 export interface CharacterDef {
     /** Class name. */

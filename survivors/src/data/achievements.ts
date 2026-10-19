@@ -28,8 +28,8 @@ export interface AchievementDef {
 export const ACHIEVEMENTS = {
     survive5: { name: 'Survivor', description: 'Survive 5 minutes.', goal: { kind: 'survive', minutes: 5 } },
     survive10: { name: 'Veteran', description: 'Survive 10 minutes.', goal: { kind: 'survive', minutes: 10 } },
-    level20: { name: 'Rising Star', description: 'Reach level 20.', goal: { kind: 'level', level: 20 } },
-    level30: { name: 'Legend', description: 'Reach level 30.', goal: { kind: 'level', level: 30 } },
+    level20: { name: 'Rising Star', description: 'Reach Power 20 in a run.', goal: { kind: 'level', level: 20 } },
+    level30: { name: 'Legend', description: 'Reach Power 30 in a run.', goal: { kind: 'level', level: 30 } },
     kills1000: { name: 'Slayer', description: 'Kill 1,000 monsters in one run.', goal: { kind: 'kills', count: 1000 } },
     kills3000: { name: 'Massacre', description: 'Kill 3,000 monsters in one run.', goal: { kind: 'kills', count: 3000 } },
     killEttin: { name: 'Ettin Slayer', description: 'Kill the Ettin.', goal: { kind: 'killBoss', enemy: 'ettin' } },

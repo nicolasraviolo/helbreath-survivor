@@ -61,6 +61,10 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Meteor Strike, hechizo activo del Mago (Fase 19B)
 - Vibración del mando y controles cambiables (Fase 19C)
 - Medir crit y meteoro (cierre Fase 19)
+- Ventana Character y Level permanente (Fase 20A)
+- Equipo y pantalla Equipment (Fase 20B)
+- Cartas de Power (Fase 20C)
+- Hechizos equipables del Mago (Fase 20D)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -482,6 +486,7 @@ Tabla completa en `docs/REQUISITOS_HB.md`. Lo no obvio:
     - opacidad 0,7.
 - **Disparos:** solo Dark Elf y Elf Master tienen `bowAttack` (`effect.spr` hoja 7, 16 frames direccionales). Las bolas del Fire Wyvern y del Mage-Orc son nuestras: reutilizan el Fire Ball.
 - **Música** (`public/assets/music`): abaddon, apocalypse, aresden, default, dungeon, elvine y middleland. sp-client la toca en bucle con `MusicManager`.
+- **Ajuste de oleadas (18-oct-2026, antes de la Fase 16):** un monstruo nuevo cada ~minuto (los débiles siguen saliendo poco, por variedad), tope de vivos 100→260, **con un jefe vivo no sale nadie de las oleadas** (`SpawnSystem`), monstruos normales con vida y XP ×2 y daño ×1,4 (jefes igual que antes). Simulación: 900–1.400 muertes por partida (antes 2.400–3.300), ~8% mueren de un golpe (antes 15–21%), nivel 25–26, Ettin ~30–65 s, Wyvern ~2:15–2:55. La partida simulada ahora da también `aliveByMinute` y `oneHitKillShare`.
 
 ## Ataques de monstruos y golpe (original)
 - **sp-client no guarda alcance de ataque por monstruo:** `attackDistance` viene del diálogo de pruebas.
@@ -584,6 +589,7 @@ Tabla completa en `docs/REQUISITOS_HB.md`. Lo no obvio:
 - **Golpe crítico en el original** (cuerpo a cuerpo): `CriticalStrikeProjectile`, effect.spr hoja 8 viajando del atacante al objetivo, con sonido C23 (hombre) o C24 (mujer). Aún no lo usamos.
 - **Sonidos:** muerte del jugador C14 (hombre) y C15 (mujer). sp-client **no** tiene sonido de subir de nivel. El propietario aportó las voces originales (hombre y mujer), que están en `survivors/custom-assets/sounds/`.
 - **Assets propios** (`survivors/custom-assets/`, con la misma estructura que `sp-client/public/assets`): en desarrollo los sirve un plugin de `vite.config.ts` y en el build los copia `scripts/sync-assets.mjs`, que los busca antes que en sp-client. Se registran en el manifest como cualquier otro (`sounds/level-up-male.mp3`).
+- **Ajustes posibles del temblor**, si el propietario los pide (`data/feedback.ts`): acortar la pausa entre explosiones críticas (2,5 s), contar cualquier crítico de la explosión, o añadir temblor a los críticos cuerpo a cuerpo.
 
 ## Interfaz (Fase 11)
 - La fuente dibujada de los menús (`SpriteText`) no tiene "&" (y quizá otros signos): en títulos y valores de menú, solo letras. Por eso la página es "Keyboard" y no "Keyboard & Mouse".
@@ -625,6 +631,7 @@ Tabla completa en `docs/REQUISITOS_HB.md`. Lo no obvio:
 - El Wyvern ataca desde 7 casillas: un jugador quieto no le da con la espada; hay que acercarse.
 - Los jefes no se recolocan si se atascan detrás de un obstáculo: el bot de la simulación los perseguía para siempre (de ahí el "se rinde a los 3 s").
 - Gema de diamante: `item-ground.spr` hoja 15, frame 42 (esmeralda 45, zafiro 44, rubí 43).
+- **Guerrero frente a Mago**, igualados en el 13C (18-oct-2026; con crit y meteoro, otra vez al cerrar la Fase 19): Str y Mag dan +3% de daño por punto, el Mago gana +1 Int y +1 Mag por nivel, espadas ×1,5 y Energy Strike 8 por descarga (antes 14). Simulación: Wyvern en ~2:50 (Guerrero) y ~2:10 (Mago), nivel 24–27 los dos.
 
 ## Logros (Fase 14B)
 - Lo que se guarda es el **id** de cada logro (`survive5`, `killWyvern`...), no su nombre: se puede cambiar el nombre o la descripción sin perder nada, pero **nunca el id**.
@@ -750,3 +757,38 @@ Tabla completa en `docs/REQUISITOS_HB.md`. Lo no obvio:
 ## Medir crit y meteoro (cierre Fase 19)
 La partida simulada no separa el daño por arma. Para saber cuánto aporta el crit o el meteoro se envuelve `g.combat.hitEnemy` desde `--eval` en `pnpm check "play=mage&debug=sim"`: el crit y el meteoro son los únicos golpes con `bigNumbers = true` (7.º argumento), así que basta con sumar la vida quitada (`hp` antes y después) y las muertes de esos golpes frente al resto, por tramos de 5 min con `g.spawner.elapsed`, y esperar a `window.__sim.done`. Contadores de usos: `g.critStrike.launchedCount` y `g.activeSpell.castCount`. Una partida de Guerrero de cada tres suele salir mala (atascado con un jefe): descartarla.
 
+
+## Ventana Character y Level permanente (Fase 20A)
+- **`dialogtext.spr` hoja 0** (23 frames) son ventanas enteras del original: el **frame 0** es "Character Info." (270×376). Recuadros oscuros medidos en la imagen: nombre (14,49) 241×33; Level/EXP/Next EXP/Health/Mana/Stamina en x 176–250, y 104/122/140/170/188/206 (15 de alto); Max.Load y EK.Count en y 237 y 255; stats en cajas de 33×16: Str (51,281), Int (134,281), Vit (218,281), Dex (51,300), Mag (134,300), Chr (218,300). El hueco del equipo (círculos) va de x≈17 a 117. Todo en `config/characterInfo.ts`.
+- **`gamedialog86.spr` hoja 3:** frame 4 = panel del reparto de puntos original (226×138, flechas ya dibujadas); **frames 5 y 6 = botoncitos naranjas + y − de 12×12**. En el original solo se pintaban al pasar el ratón; aquí siempre que hay puntos.
+- **`dialogtext.spr` hoja 1:** no hay botón grande "Character"; **frame 10 = "Level Set."** (74×20, iluminado 11), el que abría el reparto en el original. Va en Select Character encima de Change Password (tapado del todo: con la sombra al 55% se leían trozos). Ok 0, Cancel 16.
+- **Level y Power:** Level permanente (máx. 140) con curva en `data/characterLevel.ts` (una partida entera ≈ 70.000 EXP); toda la XP de la partida pasa al personaje al terminar (`CharacterStore.addExp`); 3 puntos por Level, que se reparten **solo** en la ventana Character (`scenes/CharacterInfoScene.ts`, `config/characterInfo.ts`), abierta con "Level Set." en Select Character o con C. En partida C **pausa** y la ventana solo se mira. El nivel de la partida se llama **Power** en todos los textos. En el 20B se llenarán los huecos Max.Load y el del equipo (círculos) de la ventana.
+- **EXP de la partida:** `CharacterStats.runXp` la calcula del Power y la XP actual (no hace falta guardarla aparte). Una partida entera da ~70.000 (Power 27). La simulación no da EXP al personaje.
+- **Partida a medias y puntos nuevos:** la partida guarda `permanentStats` (las stats permanentes con que empezó); al continuarla se suma lo repartido entretanto. Las guardadas antes de la 20A cuentan como stats de la clase.
+- **Atajos:** `?characters=demo` deja a Gorn con 60.000 EXP (Level 12) y sus puntos; con `?play=warrior` juega Gorn. `?open=charinfo` abre su ventana; `?debug=charexp` multiplica ×50 la EXP al terminar (`--eval="g.endRun(false)"` termina la partida). Situaciones del check: `charinfo`, `charinfogame`, `charexp`.
+
+## Equipo y pantalla Equipment (Fase 20B)
+- **Datos:** `data/items.ts` junta armas (`weapons.ts`) y armaduras (`armor.ts`) para la pantalla: huecos, catálogo, requisito (`equip`) e icono (`icon`). `strRequired` / `stat` / `required` / `set` son solo de las cartas (se van en el 20C).
+- **Requisitos del original:** en cada línea `Item = …` de `reference/Item*.cfg`, después del nombre: el 15.º valor es el peso (Str = peso/100) y el 18.º el Level mínimo (solo algunos: Giant Sword 100, Wings Helm 100, Horned Helm 120, Battle Hammer 110, Wizard Robe 80). Los 12.º y 13.º son Spr y SFrame del icono. La wiki (`docs/hb-wiki`) da otros Levels (servidor Olympia): no usarlos.
+- **Iconos:** `item-pack.spr` (~540 KB, bajo demanda: `item.pack`). Hoja = Spr − 1 del cfg, **salvo cascos (hoja 18, el cfg dice 21) y capa (17, el cfg dice 20)**: el archivo de sp-client tiene menos hojas; mandan los índices de `sp-client/src/constants/Items.ts`. Comprobado a ojo el 19-oct-2026. La ropa tiene otro icono para mujer (`icon.female`).
+- **Espadas en la mano:** `msw.spr`, bloque de 56 hojas por espada = (apprValue − 1) × 56 (16.º valor del cfg). Claymore 504; Scimitar y Falchion comparten el 280. Giant Sword va en `msw2.spr` (no cargado).
+- **Capa y zapatos:** `mmantle03`/`wmantle03` (la capa normal) y `mshoes`/`wshoes`, bajo demanda.
+- **Guardado:** `SavedCharacter.equipment` (versión 4 de `CharacterStore`); `characterStore.equip()` vuelve a comprobar el requisito. `CharacterSprite.wearEquipment()` viste al muñeco en Select Character, Character y Equipment; `GameScene` empieza con el arma y las piezas guardadas.
+- **Pantalla:** `scenes/EquipmentScene.ts` + `config/equipment.ts`. Ventana Character original a la izquierda (misma posición que en partida) y panel propio a la derecha: la bolsa original (`gamedialog.spr` hoja 7) no está en `gamedialog86` y pesa 1,9 MB.
+
+## Cartas de Power (Fase 20C)
+- Las cartas ya solo son de **stat** o de **pasiva** (`systems/UpgradePool.ts`). Xelima y Merien son pasivas más en `data/passives.ts` (con `stacking`: Xelima suma, Merien encadena `1 − 0,9^n`), así que guardado, métricas (`passive:xelima`) y panel C las cogen solas.
+- Xelima entra en `CharacterStats.damageMultiplier` (todo daño: arma, hechizo, crit y meteoro pasan por `CombatSystem`); Merien en `GameScene.reduceByArmor`. El "Damage taken" del panel C ya incluye Merien.
+- Iconos: piedras = `item-pack.spr` hoja 5, frames 128 (Xelima, roja) y 129 (Merien, **verde**) (`StoneOfXelima`/`StoneOfMerien` en `reference/Item3.cfg`, Spr 6). `item.pack` se pide al empezar la partida; si aún no ha llegado, la carta enseña el círculo "Pas". Magnet = `custom-assets/image/magnetpng.png` (`UI_IMAGES`, clave `card.magnet`).
+- `?debug=stones`: las cartas ofrecen todas las pasivas que no estén al máximo.
+- Fuera: `strRequired` / `intRequired` / `stat` / `required` de armas, hechizos y armaduras, `utils/requirements.ts` y `REQ_SCALE`. `runSprites` ya no descarga todas las armas y armaduras de la clase.
+
+## Hechizos equipables del Mago (Fase 20D)
+- Huecos `spell1` (automático, círculos 1–5: `AUTO_SPELL_IDS` en `data/spells.ts`) y `spell2` (activo, círculos 6–10: `ACTIVE_SPELLS` en `data/activeSpells.ts`). Son `ItemId` como las armas: `itemInfo`, `catalog`, `canEquip` y `readEquipment` de `data/items.ts` los tratan igual. Nunca se quedan vacíos (`canEmptySlot`): un Mago guardado de antes recibe los de salida al leerse, sin cambiar la versión del guardado.
+- Requisito: la **Int** del original (`int` y `circle` en cada hechizo; círculo = id de `Magic.cfg` / 10 + 1). Los de salida (Energy Bolt y Energy Strike) no piden nada (`FREE_SPELLS`). `EquipRequirement.str` pasa a opcional.
+- Activos de dos tipos (`kind`): `'meteor'` (Meteor Strike, como en el 19B) y `'barrage'`: `WeaponSystem.castBarrage` lanza `shots` proyectiles del hechizo `shot` de `data/spells.ts` alrededor del punto. El daño es el del proyectil × `damageScale` × el multiplicador de Power (`Projectile.damageScale`, con números grandes por `fromSkill`). Energy Strike y Mass Fire Strike siguen en `SPELLS` solo como proyectil.
+- Solo Meteor descarga sprite propio al empezar (`createActiveSpell`); los de ráfaga usan `effect.spr`, ya cargado, y están listos al momento.
+- La vibración del activo se llama ahora `activeSpell` en `GAMEPAD_RUMBLE` (antes `meteorStrike`). Se dispara con la primera explosión de la ráfaga que toca un monstruo.
+- Partida guardada: `activeSpell` junto a `spell`. Al continuar con un personaje guardado mandan el arma y los hechizos que lleva **ahora** (se pueden cambiar en Equipment con la partida a medias: Select Character continúa la partida al elegirlo). Solo las partidas sin personaje (atajos de prueba) recuperan los suyos.
+- Pruebas: `check equipmentmage` (Kaila, ejemplo, Level 25 con Int 86), `check activespell` y el atajo `?spells=fireBall,meteorStrike` (cualquier orden, sin mirar requisitos). Partida simulada con Energy Strike: Power 27 y jefe final muerto a las 13:54, como con Meteor.
+- Los hechizos aún no tienen dibujo: la casilla de la pantalla Equipment lleva el nombre (`EQUIPMENT_SPELL_NAME_STYLE`).

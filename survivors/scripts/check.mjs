@@ -58,6 +58,20 @@ const PRESETS = {
     achievementlist: 'achievements=all&open=achievements',
     // Select Character (Fase 17A): los 4 huecos con dos personajes de ejemplo (slotsempty = sin ninguno).
     slots: 'characters=demo&open=slots',
+    // Ventana Character (Fase 20A): Gorn (ejemplo) con puntos sin repartir, desde Select Character.
+    charinfo: 'characters=demo&open=charinfo',
+    // La misma ventana en partida (tecla C): pausa y panel de detalles al lado.
+    charinfogame: 'play=warrior&characters=demo&debug=god,stats',
+    // Fin de partida con el Level del personaje (Fase 20A): Gorn con unos Power de más y su XP ×50. Para terminarla:
+    // --eval="g.endRun(false)" (pantalla de derrota).
+    charexp: 'play=warrior&characters=demo&debug=god,levels,charexp',
+    // Pantalla Equipment (Fase 20B): la de Gorn (ejemplo, Guerrero) desde Select Character.
+    equipment: 'characters=demo&open=equipment',
+    // Pantalla Equipment de la Maga (Fase 20D): Kaila (ejemplo, Int 86) con sus 2 huecos de hechizo.
+    equipmentmage: 'characters=demo&open=equipment&class=mage',
+    // Hechizo activo del Mago (Fase 20D) con horda y sin recarga: Energy Strike, el de salida. Para lanzarlo:
+    // --eval="g.launchCritStrike()"; otro hechizo con atajo a mano: "play=mage&debug=god,horde,crits&spells=massFireStrike".
+    activespell: 'play=mage&debug=god,horde,crits',
     slotsempty: 'characters=reset&open=slots',
     // Pantalla "What's new" (novedades de cada fase), la que abre el link del pie del menú.
     news: 'open=releasenotes',
@@ -141,7 +155,7 @@ async function runScenario(browser, name) {
     page.on('pageerror', (err) => errors.push(`${err.name}: ${err.message}`));
 
     // ?open= (debugStart.ts) shows a menu screen: wait for it instead of the game.
-    const openKey = { howtoplay: 'HowToPlay', settings: 'Settings', controls: 'Controls', credits: 'Credits', releasenotes: 'ReleaseNotes', achievements: 'Achievements', select: 'CharacterSelect', slots: 'CharacterSlots' }[params.get('open') ?? ''];
+    const openKey = { howtoplay: 'HowToPlay', settings: 'Settings', controls: 'Controls', credits: 'Credits', releasenotes: 'ReleaseNotes', achievements: 'Achievements', select: 'CharacterSelect', slots: 'CharacterSlots', charinfo: 'CharacterInfo', equipment: 'Equipment' }[params.get('open') ?? ''];
     const target = openKey ?? (query ? 'Game' : 'MainMenu');
     await page.goto(url);
     const t0 = Date.now();

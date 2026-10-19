@@ -1,16 +1,17 @@
 import Phaser from 'phaser';
-import { ASSET_BASE_PATH, MAPS, MINIMAPS, ON_DEMAND_SPRITES, PHONE_ONLY_SPRITES, SOUNDS, SPRITES, type SpriteKey } from '../config/assetManifest';
+import { ASSET_BASE_PATH, MAPS, MINIMAPS, ON_DEMAND_SPRITES, PHONE_ONLY_SPRITES, SOUNDS, SPRITES, UI_IMAGES, type SpriteKey } from '../config/assetManifest';
 import { DEBUG_START } from '../config/debugStart';
 import { COMPACT_UI } from '../config/device';
 import { registerEffectAnimations } from '../config/effects';
 import { DEFAULT_ANIMATION_FRAME_RATE, GAME_HEIGHT, GAME_WIDTH } from '../config/gameConfig';
 import { px, UI_TEXT, UI_FONT_SIZE } from '../config/ui';
-import { CHOSEN_CHARACTER_KEY } from '../data/characters';
+import { CHOSEN_CHARACTER_KEY, DEFAULT_CHARACTER } from '../data/characters';
 import { DEFAULT_MAP, MAPS_DATA } from '../data/maps';
 import { getMap } from '../hb/HBMap';
 import { HBSpriteFile, SpriteType } from '../hb/HBSprite';
 import { getTilePacksForIndices } from '../hb/mapAssets';
 import { STREAMED_SPRITES } from '../systems/AssetStreamer';
+import { ACTIVE_CHARACTER_KEY, characterStore } from '../systems/CharacterStore';
 
 /** Sprites loaded here: all but the monsters that come later (systems/AssetStreamer.ts loads those in the background). */
 const UPFRONT_SPRITES = (Object.keys(SPRITES) as SpriteKey[])
@@ -54,6 +55,7 @@ export class PreloadScene extends Phaser.Scene {
         this.load.binary(mapAsset, MAPS[mapAsset].file);
         const minimap = MAPS_DATA[DEFAULT_MAP].minimap;
         this.load.image(minimap, MINIMAPS[minimap].file);
+        for (const [key, image] of Object.entries(UI_IMAGES)) this.load.image(key, image.file);
     }
 
     async create(): Promise<void> {
@@ -76,7 +78,14 @@ export class PreloadScene extends Phaser.Scene {
         registerEffectAnimations(this.anims, this.textures);
         // ?play / ?debug= (solo en desarrollo, config/debugStart.ts): directo a la partida.
         if (DEBUG_START.character) this.registry.set(CHOSEN_CHARACTER_KEY, DEBUG_START.character);
-        this.scene.start(DEBUG_START.play ? 'Game' : DEBUG_START.open === 'CharacterSelect' || DEBUG_START.open === 'CharacterSlots' ? DEBUG_START.open : 'MainMenu');
+        // With ?characters=demo the run is played by the example character of that class (to test its Level, Fase 20A).
+        if (DEBUG_START.play && DEBUG_START.characters === 'demo') {
+            const classId = DEBUG_START.character ?? DEFAULT_CHARACTER;
+            const demo = characterStore.all.find((c) => c?.classId === classId);
+            if (demo) this.registry.set(ACTIVE_CHARACTER_KEY, demo.uid);
+        }
+        const open = DEBUG_START.open === 'CharacterInfo' || DEBUG_START.open === 'Equipment' ? 'CharacterSlots' : DEBUG_START.open;
+        this.scene.start(DEBUG_START.play ? 'Game' : open === 'CharacterSelect' || open === 'CharacterSlots' ? open : 'MainMenu');
     }
 
     private loadBinaries(files: Array<{ key: string; file: string }>): Promise<void> {

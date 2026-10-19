@@ -1,5 +1,7 @@
-// Nivel, experiencia y stats del personaje, y todo lo que se calcula a partir de ellos
+// Power (el nivel de la partida), experiencia y stats del personaje, y todo lo que se calcula a partir de ellos
 // (vida y maná máximos, multiplicadores de daño y velocidad, crítico). Los números viven en data/stats.ts.
+// Desde la Fase 20A la partida empieza con las stats permanentes del personaje (clase + puntos de Level); `level`
+// es el Power de la partida, no el Level permanente (systems/CharacterStore.ts).
 import type { CharacterDef } from '../data/characters';
 import { xpToNextLevel } from '../data/leveling';
 import {
@@ -25,6 +27,7 @@ import {
 export type DamageType = 'physical' | 'magic';
 
 export class CharacterStats {
+    /** Power: the run's level (the character's permanent Level lives in CharacterStore). */
     public level = 1;
     /** XP gathered towards the next level. */
     public xp = 0;
@@ -33,11 +36,21 @@ export class CharacterStats {
     public readonly stats: Stats;
     /** Extra magic damage from the clothes worn (0.1 = +10%), set by the game when they change. */
     public gearMagicBonus = 0;
+    /** Extra damage of every kind from the Xelima cards of this run (0.2 = +20%, Fase 20C). */
+    public xelimaBonus = 0;
     /** Multiplies every kind of damage while a buff like Berserk lasts (1 = no buff). */
     public buffDamageMultiplier = 1;
 
-    constructor(public readonly def: CharacterDef) {
-        this.stats = { ...def.startStats };
+    /** `startStats`: the character's permanent stats (class + Level points); the class's alone if not given. */
+    constructor(public readonly def: CharacterDef, startStats: Readonly<Stats> = def.startStats) {
+        this.stats = { ...startStats };
+    }
+
+    /** All the XP gathered in this run (it goes to the character's Level when the run ends, Fase 20A). */
+    public get runXp(): number {
+        let total = this.xp;
+        for (let level = 1; level < this.level; level++) total += xpToNextLevel(level);
+        return total;
     }
 
     public get xpToNext(): number {
@@ -82,11 +95,12 @@ export class CharacterStats {
     }
 
     public damageMultiplier(type: DamageType): number {
+        const shared = (1 + this.xelimaBonus) * this.buffDamageMultiplier;
         if (type === 'physical') {
-            return this.def.physicalDamageMultiplier * (1 + PHYSICAL_DAMAGE_PER_STR * (this.stats.str - STAT_BASELINE)) * this.buffDamageMultiplier;
+            return this.def.physicalDamageMultiplier * (1 + PHYSICAL_DAMAGE_PER_STR * (this.stats.str - STAT_BASELINE)) * shared;
         }
         return this.def.magicDamageMultiplier * (1 + MAGIC_DAMAGE_PER_MAG * (this.stats.mag - STAT_BASELINE)) * (1 + this.gearMagicBonus)
-            * this.buffDamageMultiplier;
+            * shared;
     }
 
     public get moveSpeedMultiplier(): number {
@@ -105,9 +119,10 @@ export class CharacterStats {
 
     /** A copy of the stats with `points` more in `stat`, to preview a card. */
     public previewWith(stat: StatId, points: number): CharacterStats {
-        const copy = new CharacterStats(this.def);
+        const copy = new CharacterStats(this.def, this.stats);
         copy.level = this.level;
         copy.gearMagicBonus = this.gearMagicBonus;
+        copy.xelimaBonus = this.xelimaBonus;
         copy.buffDamageMultiplier = this.buffDamageMultiplier;
         for (const id of STAT_IDS) copy.stats[id] = this.stats[id];
         copy.stats[stat] += points;
