@@ -44,6 +44,8 @@ export const HOW_TO_PLAY_PAGES: readonly HowToPlayPage[] = [
             { control: 'C / Esc', action: 'Show your stats / Pause' },
             { control: 'Arrows + Enter, or click', action: 'Choose in menus and cards' },
             { control: 'Esc or Backspace', action: 'Go back' },
+            // Fase 19C: se pueden cambiar la tecla del crit y la del panel de stats.
+            { control: 'Settings, Controls', action: 'Change the Crit and Stats keys' },
         ],
     },
     {
@@ -55,6 +57,7 @@ export const HOW_TO_PLAY_PAGES: readonly HowToPlayPage[] = [
             { pad: ['Start'], action: 'Pause' },
             { pad: ['Dpad', 'A'], action: 'Choose in menus and cards' },
             { pad: ['B'], action: 'Go back' },
+            { control: 'Settings, Controls', action: 'Change the Crit and Stats buttons' },
         ],
     },
     {

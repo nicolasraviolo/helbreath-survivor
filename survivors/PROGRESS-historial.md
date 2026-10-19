@@ -2,6 +2,14 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
+**Fase 19, bloque 19C: vibración del mando y controles cambiables (2026-10-19).**
+- **Qué hace:** el mando vibra al recibir un golpe (suave y corto), más fuerte y largo con un golpe de jefe o uno que quita ≥15% de la vida, y al lanzar el Critical Strike o el Meteor Strike. Una vibración floja no corta una fuerte. Settings tiene una fila nueva **Controls** que abre una pantalla con: Crit Key, Crit Button, Stats Key, Stats Button (Enter/A/clic → "..." → pulsar la tecla o botón nuevo; Esc/B cancelan; si choca con la otra acción, se intercambian), la casilla **Vibration** (activada de serie) y **Reset to default**.
+- **Decisiones del propietario:** solo se cambian el crit/meteoro y el panel de stats (moverse, Enter, Esc, Backspace, A, B, Start y la cruceta quedan fijos para no quedarse atrapado); vibración solo en el mando (no el teléfono); How to Play enseña las teclas de serie con una línea "Settings, Controls" en las páginas Keyboard y Gamepad. La casilla Vibration acabó dentro de Controls porque en Settings no cabía. En la interfaz de móvil no sale la fila Controls (panel lleno, sin teclado).
+- **Código:** `systems/Rumble.ts`, `GAMEPAD_RUMBLE` en `data/feedback.ts`, `config/controls.ts` (teclas de serie, reservadas, nombres, intercambio), `scenes/ControlsScene.ts`, `vibration` y `controls` en los ajustes, `InputSystem` lee los controles en cada pulsación (`keysFor`/`buttonsFor`, `justPressedButton`, `readGamepad` exportado), `noArrows` en `MenuList`, `CONTROLS_MENU` y Settings un poco más junto en el PC (31 px).
+- **Truco:** `?open=controls`; situaciones `pnpm check controls` y `settings`.
+- **Comprobado:** build; `check menu game crit settings controls`, `settings --mobile` y How to Play sin errores; cambiar el crit a Q funciona en partida (Espacio deja de lanzarlo); intercambio Q↔C; Enter rechazada; Esc cancela; Reset vuelve a Space/R2/C/Y. Vibración con un mando simulado: crit, meteoro, golpe normal, golpe de jefe y golpe grande dan su efecto, y un golpe flojo durante uno fuerte no lo corta. **Sin probar con un mando real.**
+- **Probar:** `pnpm --dir survivors dev` → http://localhost:8090 → Settings → Controls. Con el mando (Chrome o Edge): http://localhost:8090/?play=warrior&debug=crits,horde y dejarse golpear / pulsar R2.
+
 **Fase 19, extra: pantalla "What's new" (2026-10-19).**
 - **Qué hace:** link amarillo subrayado "What's new" al final del pie del menú principal; abre un panel (tamaño Credits) con las novedades de cada fase, de la más nueva a la más vieja, con páginas ◄ ► si no caben.
 - **Código:** `scenes/ReleaseNotesScene.ts`, textos en `data/releaseNotes.ts` (inglés, para el jugador), números en `RELEASE_NOTES_SCREEN` y `MAIN_MENU_NEWS_LINK` (`config/menus.ts`). `/checkpoint` añade ahí lo que nota el jugador de cada bloque.

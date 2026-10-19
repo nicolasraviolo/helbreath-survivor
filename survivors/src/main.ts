@@ -16,6 +16,7 @@ import { LevelUpScene } from './scenes/LevelUpScene';
 import { GameOverScene } from './scenes/GameOverScene';
 import { PauseScene } from './scenes/PauseScene';
 import { SettingsScene } from './scenes/SettingsScene';
+import { ControlsScene } from './scenes/ControlsScene';
 import { CreditsScene } from './scenes/CreditsScene';
 import { ReleaseNotesScene } from './scenes/ReleaseNotesScene';
 import { HowToPlayScene } from './scenes/HowToPlayScene';
@@ -40,7 +41,7 @@ function startGame(): void {
         // HudScene, LevelUpScene y los menús que se abren encima (pausa, ajustes...) van después para dibujarse encima.
         scene: [
             BootScene, PreloadScene, MainMenuScene, CharacterSlotsScene, CharacterSelectScene, GameScene, HudScene, LevelUpScene, GameOverScene,
-            PauseScene, SettingsScene, CreditsScene, ReleaseNotesScene, AchievementsScene, HowToPlayScene, SpriteTestScene,
+            PauseScene, SettingsScene, ControlsScene, CreditsScene, ReleaseNotesScene, AchievementsScene, HowToPlayScene, SpriteTestScene,
         ],
     });
 

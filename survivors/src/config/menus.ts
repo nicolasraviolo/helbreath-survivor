@@ -87,12 +87,21 @@ export const MENU_CHECKBOX = {
 export const SETTINGS_MENU = {
     /** First row, from the usual content row. */
     firstRowOffset: byDevice(-38, -40),
-    itemSpacing: byDevice(34, 30),
+    // PC: 31 (before the 19C, 34) so the Controls row fits.
+    itemSpacing: byDevice(31, 30),
     /** Width of the value column (checkbox or "◄ Compact ►"). */
     valueBoxWidth: byDevice(150, 210),
     /** The one-line note about the anonymous stats (Fase 14A), just under the panel's bottom edge. */
     noticeOffsetY: byDevice(20, 22),
     noticeColor: '#d8cba8',
+} as const;
+
+/** Settings → Controls (Fase 19C): four "Crit Key  Space" rows, Vibration, Reset to default and Back. */
+export const CONTROLS_MENU = {
+    firstRowOffset: byDevice(0, -10),
+    itemSpacing: byDevice(40, 38),
+    /** Width of the value column (the key or button name). */
+    valueBoxWidth: byDevice(150, 210),
 } as const;
 
 /** Small fullscreen button in a corner of the main menu (Fase 12C; before, it was an option of the list). */

@@ -56,6 +56,8 @@ import { CombatSystem } from '../systems/CombatSystem';
 import { DamageNumbers } from '../systems/DamageNumbers';
 import { HitParticles } from '../systems/HitParticles';
 import { ScreenShake } from '../systems/ScreenShake';
+import { Rumble } from '../systems/Rumble';
+import { GAMEPAD_RUMBLE } from '../data/feedback';
 import { DebugSystem } from '../systems/DebugSystem';
 import { EnemySystem } from '../systems/EnemySystem';
 import { assetStreamer } from '../systems/AssetStreamer';
@@ -134,6 +136,7 @@ export class GameScene extends Phaser.Scene {
     private combat!: CombatSystem;
     private particles!: HitParticles;
     private screenShake!: ScreenShake;
+    private readonly rumble = new Rumble();
     private weapons!: WeaponSystem;
     /** Critical Strike of the Warrior (Fase 19A); the Mage has none until 19B. */
     private critStrike!: CritStrikeSystem;
@@ -769,7 +772,8 @@ export class GameScene extends Phaser.Scene {
         const weapon = this.meleeWeapon;
         const player = this.player;
         if (!weapon || player.isDead || this.levelUpOpen || this.runOver) return;
-        this.critStrike.launch(weapon.def, this.stats.level, player.look.gender, player.x, player.y, angleFromDirection(player.direction));
+        const launched = this.critStrike.launch(weapon.def, this.stats.level, player.look.gender, player.x, player.y, angleFromDirection(player.direction));
+        if (launched && !this.sim) this.rumble.play(GAMEPAD_RUMBLE.critStrike);
     }
 
     /** The HUD orb: the Warrior's Critical Strike charges, or the seconds left of the Mage's spell (blank when ready). */
@@ -814,7 +818,7 @@ export class GameScene extends Phaser.Scene {
     /** Casts the Mage's active spell now, if it is ready and the Mage is free to act. */
     private castActiveSpell(): void {
         if (!this.activeSpell || this.player.isDead || this.levelUpOpen || this.runOver) return;
-        this.activeSpell.cast(this.stats.level, this.stats.stats.mag);
+        if (this.activeSpell.cast(this.stats.level, this.stats.stats.mag) && !this.sim) this.rumble.play(GAMEPAD_RUMBLE.meteorStrike);
     }
 
     /** Opens the portal a moment after the final chest is picked up; true when the run is won (stepped in or time up). */
@@ -854,6 +858,10 @@ export class GameScene extends Phaser.Scene {
         if (!player.takeDamage(taken)) return;
         this.metrics.onHurt(source, taken, player.hp, player.maxHp);
         this.screenShake.hurt(byBoss);
+        if (!this.sim) {
+            const big = byBoss || taken >= player.maxHp * GAMEPAD_RUMBLE.bigHitShare;
+            this.rumble.play(big ? GAMEPAD_RUMBLE.bigHit : GAMEPAD_RUMBLE.hurt);
+        }
         this.critStrike.onHurt(this.stats.level);
         if (player.isDead) {
             this.audio.play(GENDER_SOUNDS[player.look.gender].death);

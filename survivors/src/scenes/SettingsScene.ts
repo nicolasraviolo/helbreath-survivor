@@ -6,6 +6,7 @@
 // Fase 12C (táctil): casillas para lo que es sí/no (el volumen sigue con flechas y número, como prefiere el propietario) y la pantalla completa (antes en el menú
 // principal); panel grande para que todo quepa dentro del marco.
 // Fase 15C (táctil): casilla del stick de apuntar.
+// Fase 19C: fila Controls, que abre ControlsScene (cambiar teclas y botones, y la vibración del mando).
 import Phaser from 'phaser';
 import { COMPACT_UI } from '../config/device';
 import { MENU_OVERLAY, SETTINGS_MENU } from '../config/menus';
@@ -15,7 +16,7 @@ import { UI_FONT_SIZE, UI_TEXT, px } from '../config/ui';
 import { settings } from '../systems/Settings';
 import { fullscreenCheckboxItem } from '../ui/fullscreen';
 import type { MenuItem } from '../ui/MenuList';
-import { MenuOverlayScene } from './MenuOverlayScene';
+import { MenuOverlayScene, openOverlay } from './MenuOverlayScene';
 
 export class SettingsScene extends MenuOverlayScene {
     protected readonly title = 'Settings';
@@ -43,6 +44,8 @@ export class SettingsScene extends MenuOverlayScene {
             : [];
         // The aim stick only exists on touch screens (Fase 15C).
         const aimStickRow = this.sys.game.device.input.touch ? [{ label: 'Aim Stick', ...checkbox('aimStick') }] : [];
+        // Phone interface (no keyboard, a gamepad is rare, and the panel is full): no Controls row (Fase 19C).
+        const controlsRow: MenuItem[] = COMPACT_UI ? [] : [{ label: 'Controls', onConfirm: () => openOverlay(this, 'Controls') }];
         this.addList([
             { label: 'Music', ...volume('musicVolume') },
             { label: 'Sound', ...volume('sfxVolume') },
@@ -57,6 +60,7 @@ export class SettingsScene extends MenuOverlayScene {
             },
             ...hudRow,
             ...aimStickRow,
+            ...controlsRow,
             ...fullscreenCheckboxItem(this),
             { label: 'Anonymous Stats', ...checkbox('anonymousStats') },
             { label: 'Back', onConfirm: () => this.close() },

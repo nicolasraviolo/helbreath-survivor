@@ -59,6 +59,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Resistencia mágica (Fase 18B)
 - Critical Strike (Fase 19A)
 - Meteor Strike, hechizo activo del Mago (Fase 19B)
+- Vibración del mando y controles cambiables (Fase 19C)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -738,3 +739,10 @@ Tabla completa en `docs/REQUISITOS_HB.md`. Lo no obvio:
 - Dibujo: `crueffect1.spr` (1,25 MB; hoja 0 = meteoro y orbes, 1 = impacto, 2 = explosión, 8 = explosión de suelo). Va en `ON_DEMAND_SPRITES` y se descarga al empezar una partida de Mago; después se vuelve a llamar a `registerEffectAnimations` (ahora salta los efectos cuyo .spr aún no está). Hasta que llega, el botón no hace nada.
 - Sin enemigos al alcance (420 px) y sin apuntar a mano, no sale y no gasta la recarga.
 - **sp-client se queda corto en el impacto.** El original (`reference/Client.cpp`, efectos 61/62/63/12) dibuja además una estela de humo al caer (crueffect1 hoja 0, frames 20–24, uno cada 25 ms), el fuego del suelo y la explosión **aditivos**, y 5 "Burst" (`effect2.spr` hoja 1, frames 10–15) repartidos. `m_pEffectSpr[n]`: effect.spr = 0–9, effect2.spr = 10–12, crueffect1 = 31–33 (`MakeEffectSpr`, C:4062). La explosión de suelo (hoja 8) es solo de sp-client; la dejamos.
+
+## Vibración del mando y controles cambiables (Fase 19C)
+- **Vibración:** `systems/Rumble.ts` usa `gamepad.vibrationActuator.playEffect('dual-rumble', …)` (Gamepad API). Va en Chrome/Edge; Firefox no tiene `vibrationActuator` y Safari depende del mando: entonces no hace nada. Un efecto nuevo **sustituye** al que esté sonando, por eso Rumble salta uno más flojo mientras dura uno más fuerte. Números en `data/feedback.ts` (`GAMEPAD_RUMBLE`). La partida simulada no vibra.
+- **Controles:** solo el crit/meteoro y el panel de stats se pueden cambiar (decisión del propietario). Lista, teclas de serie, teclas reservadas y nombres en `config/controls.ts`; se guardan dentro de los ajustes (`settings.current.controls`). `InputSystem` los lee en cada `justPressed`, así un cambio vale al momento aunque la partida esté en pausa debajo. `keyboard.addKey(code)` devuelve la tecla ya creada si existe; la tecla elegida se añade también en el constructor para no perder su primera pulsación.
+- **Capturar una tecla** (`scenes/ControlsScene.ts`): el `keydown` solo apunta la tecla y se aplica en el `update` siguiente, después de "tragarse" las acciones del menú de ese frame; si no, el Espacio recién elegido volvería a abrir la espera. Una pulsación sintética con keydown+keyup en el mismo instante no da `JustDown` en Phaser (keyup lo borra), por eso Esc/Backspace también se miran en el `keydown`.
+- **Probar sin mando:** en `--eval`, `navigator.getGamepads = () => [padFalso]` con un `vibrationActuator.playEffect` que apunte las llamadas.
+

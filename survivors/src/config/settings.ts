@@ -6,7 +6,10 @@
 // Fase 14A: enviar estadísticas anónimas (activado de serie; se explica con una línea en Settings).
 // Fase 15C: en el móvil, stick de apuntar en la mitad derecha de la pantalla (activado de serie).
 // Fase 16A: minimapa arriba a la derecha (activado de serie).
+// Fase 19C: vibración del mando (activada de serie) y los controles cambiados en Settings → Controls (config/controls.ts).
 // Se guardan en el navegador (localStorage), así que siguen ahí la próxima vez que se abre el juego.
+
+import { DEFAULT_CONTROLS, type ControlBindings } from './controls';
 
 /** In-game HUD on phones: the original bottom bar, or a small block at the top (more of the map visible). */
 export type HudStyle = 'classic' | 'compact';
@@ -37,6 +40,10 @@ export interface GameSettings {
     aimStick: boolean;
     /** Small map at the top right with the player, bosses and totems (Fase 16A, data/minimap.ts). */
     showMinimap: boolean;
+    /** Gamepad vibration when hurt and with the Critical / Meteor Strike (Fase 19C, data/feedback.ts). */
+    vibration: boolean;
+    /** Keys and buttons picked in Settings → Controls (Fase 19C). */
+    controls: ControlBindings;
 }
 
 export const DEFAULT_SETTINGS: Readonly<GameSettings> = {
@@ -49,6 +56,8 @@ export const DEFAULT_SETTINGS: Readonly<GameSettings> = {
     anonymousStats: true,
     aimStick: true,
     showMinimap: true,
+    vibration: true,
+    controls: DEFAULT_CONTROLS,
 };
 
 /** Each press of ← / → changes a volume by this much. */

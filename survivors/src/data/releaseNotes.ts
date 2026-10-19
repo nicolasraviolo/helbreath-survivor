@@ -20,6 +20,8 @@ export const RELEASE_NOTES: readonly ReleaseNote[] = [
             'Mage: Meteor Strike, an active spell that rains fire on a whole area.',
             'Gamepad: Critical Strike and Meteor Strike on R2.',
             'New "What\'s new" screen: open it from the link at the bottom of the main menu.',
+            'Gamepad vibration when you get hit and when you use your Critical or Meteor Strike (Settings, Controls).',
+            'Change the keys and buttons for the Strike and the stats panel in Settings, Controls.',
         ],
     },
     {

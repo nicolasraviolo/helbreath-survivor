@@ -17,6 +17,26 @@ export const SCREEN_SHAKE = {
     explosionCooldownMs: 2500,
 } as const;
 
+/** One gamepad vibration (Gamepad API 'dual-rumble'): magnitudes 0..1 of the big (strong) and small (weak) motors. */
+export interface RumbleDef {
+    durationMs: number;
+    strong: number;
+    weak: number;
+}
+
+// Vibración del mando (Fase 19C). Se puede quitar en Settings → Vibration. Una más floja no corta una más fuerte en marcha.
+export const GAMEPAD_RUMBLE = {
+    /** Any monster blow or arrow: short and soft. */
+    hurt: { durationMs: 120, strong: 0.15, weak: 0.4 },
+    /** A boss blow, or one that takes at least `bigHitShare` of the maximum life: longer and strong. */
+    bigHit: { durationMs: 320, strong: 0.8, weak: 0.6 },
+    bigHitShare: 0.15,
+    /** The Warrior's Critical Strike. */
+    critStrike: { durationMs: 180, strong: 0.5, weak: 0.7 },
+    /** The Mage's Meteor Strike, when it is cast. */
+    meteorStrike: { durationMs: 250, strong: 0.6, weak: 0.4 },
+} as const satisfies Record<string, RumbleDef | number>;
+
 export interface ParticleBurstDef {
     /** Particles per burst. */
     count: number;
