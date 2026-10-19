@@ -111,4 +111,16 @@ export const HOW_TO_PLAY_PAGES: readonly HowToPlayPage[] = [
             { control: 'Arrows, Enter, − key or pad X', action: 'Choose a stat, add a point, take it back' },
         ],
     },
+    {
+        // Fase 20B: pantalla Equipment. Como mucho 7 filas.
+        name: 'Equipment',
+        rows: [
+            { control: 'Equipment (Select Character)', action: 'Choose what your character wears' },
+            { control: 'I key or pad X', action: 'Open it for the marked character' },
+            { control: 'Each run', action: 'Starts with that equipment on' },
+            { control: 'Requirements', action: 'Your permanent Str, Mag and Level: red = not met' },
+            { control: 'Left-Right / Down', action: 'Choose a slot / go down its list' },
+            { control: 'Enter, pad A or a click', action: 'Wear the item (saved at once)' },
+        ],
+    },
 ];

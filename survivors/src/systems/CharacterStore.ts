@@ -4,11 +4,13 @@
 // Lleva número de versión, como SaveStore: si un día cambia la forma de guardar, se sube y migrate() convierte lo viejo.
 // Si el navegador no deja guardar (modo privado), los personajes duran hasta cerrar la página.
 // Desde la Fase 20A cada personaje tiene Level permanente, EXP y los puntos de stat que ha repartido (data/characterLevel.ts).
+// Desde la Fase 20B, además, su equipo (data/items.ts), que se pone en la pantalla Equipment y lleva a cada partida.
 import { DEBUG_START } from '../config/debugStart';
 import { CHARACTER_NAME_ALLOWED, CHARACTER_NAME_MAX_LENGTH, CHARACTER_SLOT_COUNT } from '../data/characterSlots';
 import { BODY_SPRITES, DEFAULT_LOOKS, GENDERS, HAIR_COLORS, HAIR_STYLE_COUNT, UNDERWEAR_COUNT, type CharacterLook } from '../data/appearance';
 import { CHARACTER_LEVEL_MAX, expToNextCharacterLevel, STAT_POINT_CAP, STAT_POINTS_PER_LEVEL } from '../data/characterLevel';
 import { CHARACTERS, isCharacterId, type CharacterId } from '../data/characters';
+import { canChangeSlot, canEmptySlot, canEquip, itemInfo, readEquipment, START_EQUIPMENT, type EquipSlotId, type ItemId, type SavedEquipment } from '../data/items';
 import { STAT_IDS, type StatId, type Stats } from '../data/stats';
 import { isRecord, readNumber, saveStore, type RunSnapshot } from './SaveStore';
 
@@ -16,7 +18,8 @@ const STORAGE_KEY = 'hb-survivors.characters';
 /** Raise it (and teach migrate() the old shape) whenever SavedCharacter changes in a way old data can't be read as. */
 /** 2 (Fase 17B): every character has a look. Version 1 characters get the look of their class until then. */
 /** 3 (Fase 20A): Level, EXP and stat points; bestLevel renamed bestPower. Older characters start at Level 1. */
-const CHARACTERS_VERSION = 3;
+/** 4 (Fase 20B): equipment. Older characters get their class's starting equipment. */
+const CHARACTERS_VERSION = 4;
 
 /** Registry key (game.registry) with the uid of the character that plays the next run. */
 export const ACTIVE_CHARACTER_KEY = 'activeCharacter';
@@ -38,6 +41,8 @@ export interface SavedCharacter {
     unspentPoints: number;
     /** Points assigned to each stat, on top of the class's start stats. They can never be taken back. */
     statPoints: Stats;
+    /** What the character wears into every run (Fase 20B). */
+    equipment: SavedEquipment;
     createdAt: number;
 }
 
@@ -107,6 +112,7 @@ class CharacterStoreImpl {
             exp: 0,
             unspentPoints: 0,
             statPoints: noStatPoints(),
+            equipment: { ...START_EQUIPMENT[classId] },
             createdAt: now,
         };
         this.slots[slot] = character;
@@ -198,6 +204,24 @@ class CharacterStoreImpl {
         return true;
     }
 
+    /**
+     * Puts an item on (or empties the slot with undefined). Refused (false, nothing changes) if the class can't change
+     * that slot, the item doesn't go there or the permanent stats and Level don't meet its requirement.
+     */
+    public equip(uid: string | undefined, slot: EquipSlotId, id: ItemId | undefined): boolean {
+        const character = this.slots.find((c) => c !== undefined && c.uid === uid);
+        if (!character || !canChangeSlot(character.classId, slot)) return false;
+        if (id === undefined) {
+            if (!canEmptySlot(slot)) return false;
+            delete character.equipment[slot];
+        } else {
+            if (itemInfo(id)?.slot !== slot || !canEquip(id, permanentStats(character), character.level)) return false;
+            character.equipment[slot] = id;
+        }
+        this.write();
+        return true;
+    }
+
     private write(): void {
         try {
             localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: CHARACTERS_VERSION, slots: this.slots.map((c) => c ?? null) }));
@@ -232,11 +256,11 @@ function load(): Slots {
 
 /**
  * Old shapes → today's list of slots. readCharacter() fills what old versions lack: the class's look (version 1),
- * and Level 1 without points, bestLevel read as bestPower (versions 1 and 2).
+ * Level 1 without points, bestLevel read as bestPower (versions 1 and 2), and the starting equipment (versions 1–3).
  */
 function migrate(data: unknown): unknown[] {
     if (!isRecord(data) || !Array.isArray(data.slots)) return [];
-    if (data.version === CHARACTERS_VERSION || data.version === 1 || data.version === 2) return data.slots;
+    if (data.version === CHARACTERS_VERSION || data.version === 1 || data.version === 2 || data.version === 3) return data.slots;
     // Saved by a newer version of the game (an older copy cached on the phone): leave it alone.
     return [];
 }
@@ -253,6 +277,7 @@ function readCharacter(entry: unknown): SavedCharacter | undefined {
         exp: Math.max(0, Math.floor(readNumber(entry.exp) ?? 0)),
         unspentPoints: Math.max(0, Math.floor(readNumber(entry.unspentPoints) ?? 0)),
         statPoints: readStatPoints(entry.statPoints),
+        equipment: readEquipment(entry.equipment, entry.classId),
         createdAt: readNumber(entry.createdAt) ?? 0,
     };
 }

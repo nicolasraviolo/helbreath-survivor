@@ -62,6 +62,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Vibración del mando y controles cambiables (Fase 19C)
 - Medir crit y meteoro (cierre Fase 19)
 - Ventana Character y Level permanente (Fase 20A)
+- Equipo y pantalla Equipment (Fase 20B)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -763,3 +764,12 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - **EXP de la partida:** `CharacterStats.runXp` la calcula del Power y la XP actual (no hace falta guardarla aparte). Una partida entera da ~70.000 (Power 27). La simulación no da EXP al personaje.
 - **Partida a medias y puntos nuevos:** la partida guarda `permanentStats` (las stats permanentes con que empezó); al continuarla se suma lo repartido entretanto. Las guardadas antes de la 20A cuentan como stats de la clase.
 - **Atajos:** `?characters=demo` deja a Gorn con 60.000 EXP (Level 12) y sus puntos; con `?play=warrior` juega Gorn. `?open=charinfo` abre su ventana; `?debug=charexp` multiplica ×50 la EXP al terminar (`--eval="g.endRun(false)"` termina la partida). Situaciones del check: `charinfo`, `charinfogame`, `charexp`.
+
+## Equipo y pantalla Equipment (Fase 20B)
+- **Datos:** `data/items.ts` junta armas (`weapons.ts`) y armaduras (`armor.ts`) para la pantalla: huecos, catálogo, requisito (`equip`) e icono (`icon`). `strRequired` / `stat` / `required` / `set` son solo de las cartas (se van en el 20C).
+- **Requisitos del original:** en cada línea `Item = …` de `reference/Item*.cfg`, después del nombre: el 15.º valor es el peso (Str = peso/100) y el 18.º el Level mínimo (solo algunos: Giant Sword 100, Wings Helm 100, Horned Helm 120, Battle Hammer 110, Wizard Robe 80). Los 12.º y 13.º son Spr y SFrame del icono. La wiki (`docs/hb-wiki`) da otros Levels (servidor Olympia): no usarlos.
+- **Iconos:** `item-pack.spr` (~540 KB, bajo demanda: `item.pack`). Hoja = Spr − 1 del cfg, **salvo cascos (hoja 18, el cfg dice 21) y capa (17, el cfg dice 20)**: el archivo de sp-client tiene menos hojas; mandan los índices de `sp-client/src/constants/Items.ts`. Comprobado a ojo el 19-oct-2026. La ropa tiene otro icono para mujer (`icon.female`).
+- **Espadas en la mano:** `msw.spr`, bloque de 56 hojas por espada = (apprValue − 1) × 56 (16.º valor del cfg). Claymore 504; Scimitar y Falchion comparten el 280. Giant Sword va en `msw2.spr` (no cargado).
+- **Capa y zapatos:** `mmantle03`/`wmantle03` (la capa normal) y `mshoes`/`wshoes`, bajo demanda.
+- **Guardado:** `SavedCharacter.equipment` (versión 4 de `CharacterStore`); `characterStore.equip()` vuelve a comprobar el requisito. `CharacterSprite.wearEquipment()` viste al muñeco en Select Character, Character y Equipment; `GameScene` empieza con el arma y las piezas guardadas.
+- **Pantalla:** `scenes/EquipmentScene.ts` + `config/equipment.ts`. Ventana Character original a la izquierda (misma posición que en partida) y panel propio a la derecha: la bolsa original (`gamedialog.spr` hoja 7) no está en `gamedialog86` y pesa 1,9 MB.

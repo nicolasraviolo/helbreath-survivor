@@ -96,6 +96,8 @@ const TO_FEMALE: Partial<Record<SpriteKey, SpriteKey>> = {
     'gear.helm.wizardCap.m': 'gear.helm.wizardCap.w',
     'gear.helm.wizard.m': 'gear.helm.wizardHat.w',
     'gear.wand.m': 'gear.wand.w',
+    'gear.shoes.m': 'gear.shoes.w',
+    'gear.cape.m': 'gear.cape.w',
 };
 const TO_MALE: Partial<Record<SpriteKey, SpriteKey>> = {
     ...Object.fromEntries(Object.entries(TO_FEMALE).map(([male, female]) => [female, male])),

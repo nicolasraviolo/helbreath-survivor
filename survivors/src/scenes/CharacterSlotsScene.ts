@@ -19,6 +19,8 @@ import {
     SLOTS_CHARACTER_SCALE,
     SLOTS_DIM_ALPHA,
     SLOTS_DISABLED_SHADE,
+    SLOTS_EQUIPMENT_LIT_COLOR,
+    SLOTS_EQUIPMENT_STYLE,
     SLOTS_HELP,
     SLOTS_HELP_STYLE,
     SLOTS_INPUT_DELAY_MS,
@@ -42,6 +44,7 @@ import { RESUME_SLOT_KEY, saveStore } from '../systems/SaveStore';
 import { formatTime } from '../utils/format';
 import { totalExpForLevel } from '../data/characterLevel';
 import type { CharacterInfoSceneData } from './CharacterInfoScene';
+import type { EquipmentSceneData } from './EquipmentScene';
 import type { CharacterSelectSceneData } from './CharacterSelectScene';
 import { openOverlay } from './MenuOverlayScene';
 
@@ -52,6 +55,8 @@ function s(value: number): number {
 
 /** ?open=charinfo opens the window only the first time the screen shows. */
 let debugInfoOpened = false;
+/** ?open=equipment opens the Equipment screen only the first time. */
+let debugEquipmentOpened = false;
 
 /** The original turns the characters this way round (m_cMenuDir 1..8). */
 const DIRECTIONS_CLOCKWISE = [
@@ -131,6 +136,13 @@ export class CharacterSlotsScene extends Phaser.Scene {
             this.focus(withPoints >= 0 ? withPoints : Math.max(0, first));
             this.time.delayedCall(0, () => this.openCharacterInfo());
         }
+        // ?open=equipment (development only): the Equipment screen of the warrior (or the first character), once.
+        if (DEBUG_START.open === 'Equipment' && !debugEquipmentOpened) {
+            debugEquipmentOpened = true;
+            const warrior = characterStore.all.findIndex((c) => c?.classId === 'warrior');
+            this.focus(warrior >= 0 ? warrior : Math.max(0, first));
+            this.time.delayedCall(0, () => this.openEquipment());
+        }
     }
 
     /** In Continue, characters without a run in progress (and empty slots) are greyed out and can't be chosen. */
@@ -158,6 +170,7 @@ export class CharacterSlotsScene extends Phaser.Scene {
         if (input.justPressed(Action.Confirm)) this.enter(this.focused);
         if (input.justPressed(Action.Back)) this.scene.start('MainMenu');
         if (input.justPressed(Action.ToggleStats)) this.openCharacterInfo();
+        if (input.justPressed(Action.OpenEquipment)) this.openEquipment();
         if (deletePressed) this.deleteFocused();
     }
 
@@ -176,6 +189,7 @@ export class CharacterSlotsScene extends Phaser.Scene {
         const def = CHARACTERS[saved.classId];
         const sprite = new CharacterSprite(this, def, saved.look, s(c.x + dx), s(c.y));
         sprite.container.setScale(SLOTS_CHARACTER_SCALE * SLOTS_SCALE);
+        sprite.wearEquipment(saved.equipment);
         sprite.setPose(PlayerState.Walk, Direction.South);
         const lines: Array<[string, Phaser.Types.GameObjects.Text.TextStyle]> = [
             [saved.name, SLOTS_NAME_STYLE],
@@ -210,6 +224,33 @@ export class CharacterSlotsScene extends Phaser.Scene {
         image.on(Phaser.Input.Events.POINTER_UP, () => {
             if (this.ready()) this.openCharacterInfo();
         });
+        const { equipment } = SLOTS_BUTTONS;
+        const frame = this.add.rectangle(s(equipment.x), s(equipment.y), s(equipment.width), s(equipment.height), SLOTS_DISABLED_SHADE.color)
+            .setOrigin(0).setStrokeStyle(1, SLOTS_DISABLED_SHADE.border);
+        const label = this.add.text(s(equipment.x + equipment.width / 2), s(equipment.y + equipment.height / 2), 'Equipment', SLOTS_EQUIPMENT_STYLE)
+            .setOrigin(0.5);
+        const pad = SLOTS_BUTTON_HIT_PAD;
+        frame.setInteractive({
+            hitArea: new Phaser.Geom.Rectangle(-pad.x, -pad.y, frame.width + pad.x * 2, frame.height + pad.y * 2),
+            hitAreaCallback: Phaser.Geom.Rectangle.Contains,
+            useHandCursor: true,
+        });
+        frame.on(Phaser.Input.Events.POINTER_OVER, () => label.setColor(SLOTS_EQUIPMENT_LIT_COLOR));
+        frame.on(Phaser.Input.Events.POINTER_OUT, () => label.setColor(SLOTS_EQUIPMENT_STYLE.color));
+        frame.on(Phaser.Input.Events.POINTER_UP, () => {
+            if (this.ready()) this.openEquipment();
+        });
+    }
+
+    /** The Equipment screen of the marked character (Fase 20B). */
+    private openEquipment(): void {
+        const saved = characterStore.get(this.focused);
+        if (!saved) {
+            this.setHelp('This slot is empty.');
+            return;
+        }
+        const data: EquipmentSceneData = { characterUid: saved.uid };
+        openOverlay(this, 'Equipment', data);
     }
 
     /** The original Character window of the marked character: its Level, stats and the points to assign (Fase 20A). */

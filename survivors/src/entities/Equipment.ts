@@ -91,22 +91,32 @@ export class Equipment {
      */
     public wear(piece: ArmorPieceId): Array<[GearSlot, GearLayer | undefined]> {
         const slot = ARMOR_PIECES[piece].slot;
-        const old = this.armor[slot];
+        const changes = this.uncover(slot);
         this.worn[slot] = piece;
-        for (const key of Object.keys(this.totals) as ArmorTotal[]) {
-            let total = 0;
-            for (const id of Object.values(this.worn)) total += pieceValue(id, key);
-            this.totals[key] = total;
+        this.recompute();
+        for (const [gearSlot, layer] of Object.entries(ARMOR_PIECES[piece].look) as [GearSlot, GearLayer][]) {
+            changes.set(gearSlot, layer);
         }
+        return [...changes];
+    }
+
+    /** The layers the piece in that slot covers, back to the starting look. */
+    private uncover(slot: ArmorSlotId): Map<GearSlot, GearLayer | undefined> {
         const changes = new Map<GearSlot, GearLayer | undefined>();
+        const old = this.armor[slot];
         if (old) {
             for (const gearSlot of Object.keys(ARMOR_PIECES[old].look) as GearSlot[]) {
                 changes.set(gearSlot, this.def.appearance[gearSlot]);
             }
         }
-        for (const [gearSlot, layer] of Object.entries(ARMOR_PIECES[piece].look) as [GearSlot, GearLayer][]) {
-            changes.set(gearSlot, layer);
+        return changes;
+    }
+
+    private recompute(): void {
+        for (const key of Object.keys(this.totals) as ArmorTotal[]) {
+            let total = 0;
+            for (const id of Object.values(this.worn)) total += pieceValue(id, key);
+            this.totals[key] = total;
         }
-        return [...changes];
     }
 }

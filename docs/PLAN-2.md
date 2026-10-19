@@ -427,8 +427,10 @@ Cada personaje guardado (hasta 4 por dispositivo, Fase 17A) **sube de Level de f
 
 ### Bloques
 - **20A:** Level, EXP al terminar la partida, reparto de puntos y nombre "Power" en partida.
-- **20B:** datos de objetos (todas las armas y armaduras originales con Str y Level), inventario y pantalla de equipo; equipo de salida en partida; las cartas de arma y armadura se cambian por las de Power (stat temporal, Xelima, Merien).
-- **20C:** hechizos equipables (2 huecos) para el Mago.
+- **20B:** datos de objetos (armas y armaduras originales con Str y Level), inventario y pantalla de equipo; equipo de salida en partida.
+- **20C:** las cartas de arma y armadura se cambian por las de Power (stat temporal, Xelima y Merien +10% hasta 5 cartas); fuera la carta Boots. Revisar logros ("Fully Armored"), métricas, cofres y partida simulada.
+- **20D:** hechizos equipables (2 huecos) para el Mago.
+- *(Partido en tres el 19-oct-2026 para que cada bloque quepa en una sesión.)*
 
 ### Aceptación
 - Termino una partida, el personaje sube de Level y reparto 3 puntos en Str. Con la Str suficiente, me equipo una Claymore desde Select Character y empiezo la siguiente partida con ella.

@@ -1,5 +1,6 @@
 // Armas cuerpo a cuerpo del Guerrero. Los hechizos de la Maga están en data/spells.ts.
 import type { SoundKey, SpriteKey } from '../config/assetManifest';
+import type { EquipRequirement, ItemIcon } from './itemTypes';
 
 // ---------------------------------------------------------------------------------------------------------
 // Armas cuerpo a cuerpo del Guerrero (Fase 6, bloque 6A; decidido con el propietario el 16-oct-2026).
@@ -8,6 +9,9 @@ import type { SoundKey, SpriteKey } from '../config/assetManifest';
 //   elegir: las cortas hacen más daño por segundo a un enemigo; las largas golpean a más enemigos y empujan más.
 // - Fase 13C: daño ×1,5 para igualar al Guerrero con la Maga (simulación `levelpace`).
 // - Las familias con `enabled: false` existen solo como datos: no salen en las cartas ni tienen ataque propio aún.
+// - Fase 20B: `equip` = requisito ORIGINAL para ponérsela en la pantalla de equipo (Str = peso/100 y Level mínimo de
+//   reference/Item*.cfg), con las stats permanentes del personaje. `strRequired` es solo para las cartas (se van en el 20C).
+//   `icon` = dibujo del objeto en item-pack.spr (hoja = Spr − 1, frame = SFrame del Item.cfg).
 
 export type MeleeFamilyId = 'shortSword' | 'longSword' | 'hammer' | 'fencing' | 'axe';
 
@@ -30,6 +34,10 @@ export interface MeleeWeaponDef {
     knockback: number;
     /** Weapon layer drawn in the hand (msw.spr: one block of 56 sheets per sword). Undefined = no sprite yet. */
     sprite?: { key: SpriteKey; startSheet: number };
+    /** What the Equipment screen asks of the permanent stats (Fase 20B). Undefined = not in the catalog. */
+    equip?: EquipRequirement;
+    /** Picture in item-pack.spr (Equipment screen). */
+    icon?: ItemIcon;
 }
 
 export interface MeleeFamilyDef {
@@ -58,31 +66,49 @@ export const MELEE_WEAPONS = {
     dagger: {
         name: 'Dagger', family: 'shortSword', strRequired: 0, damage: 9, cooldownMs: 450, swingMs: 350,
         range: 50, arcDegrees: 90, knockback: 60, sprite: { key: SWORD_SPRITE, startSheet: 0 },
+        equip: { str: 2 }, icon: { sheet: 0, frame: 0 },
     },
     shortSword: {
         name: 'Short Sword', family: 'shortSword', strRequired: 17, damage: 13, cooldownMs: 450, swingMs: 350,
         range: 55, arcDegrees: 90, knockback: 70, sprite: { key: SWORD_SPRITE, startSheet: 56 },
+        equip: { str: 8 }, icon: { sheet: 0, frame: 1 },
     },
     falchion: {
         name: 'Falchion', family: 'shortSword', strRequired: 24, damage: 19, cooldownMs: 500, swingMs: 380,
         range: 60, arcDegrees: 100, knockback: 80, sprite: { key: SWORD_SPRITE, startSheet: 280 },
+        equip: { str: 22 }, icon: { sheet: 0, frame: 5 },
     },
     // Long Swords: lentas, arco amplio, empujan más.
     longSword: {
         name: 'Long Sword', family: 'longSword', strRequired: 20, damage: 21, cooldownMs: 1000, swingMs: 560,
         range: 80, arcDegrees: 150, knockback: 150, sprite: { key: SWORD_SPRITE, startSheet: 112 },
+        equip: { str: 14 }, icon: { sheet: 0, frame: 2 },
+    },
+    // Fase 20B: Scimitar y Claymore, entre las que ya había (mismo dibujo en la mano que el original: bloques 6 y 10 de msw.spr).
+    scimitar: {
+        name: 'Scimitar', family: 'longSword', strRequired: 24, damage: 25, cooldownMs: 1000, swingMs: 560,
+        range: 82, arcDegrees: 150, knockback: 155, sprite: { key: SWORD_SPRITE, startSheet: 280 },
+        equip: { str: 18 }, icon: { sheet: 0, frame: 4 },
     },
     broadSword: {
         name: 'Broad Sword', family: 'longSword', strRequired: 28, damage: 30, cooldownMs: 1000, swingMs: 560,
         range: 85, arcDegrees: 150, knockback: 165, sprite: { key: SWORD_SPRITE, startSheet: 392 },
+        equip: { str: 28 }, icon: { sheet: 0, frame: 7 },
+    },
+    claymore: {
+        name: 'Claymore', family: 'longSword', strRequired: 32, damage: 35, cooldownMs: 1050, swingMs: 580,
+        range: 90, arcDegrees: 155, knockback: 170, sprite: { key: SWORD_SPRITE, startSheet: 504 },
+        equip: { str: 40 }, icon: { sheet: 0, frame: 9 },
     },
     greatSword: {
         name: 'Great Sword', family: 'longSword', strRequired: 36, damage: 40, cooldownMs: 1100, swingMs: 600,
         range: 95, arcDegrees: 160, knockback: 180, sprite: { key: SWORD_SPRITE, startSheet: 560 },
+        equip: { str: 52 }, icon: { sheet: 0, frame: 10 },
     },
     flamberge: {
         name: 'Flamberge', family: 'longSword', strRequired: 46, damage: 54, cooldownMs: 1100, swingMs: 600,
         range: 100, arcDegrees: 170, knockback: 200, sprite: { key: SWORD_SPRITE, startSheet: 616 },
+        equip: { str: 60 }, icon: { sheet: 0, frame: 11 },
     },
     // Desactivadas (solo datos, sin ataque propio ni sprite cargado todavía). Números provisionales.
     hammer: { name: 'Hammer', family: 'hammer', strRequired: 42, damage: 40, cooldownMs: 1600, swingMs: 700, range: 90, arcDegrees: 360, knockback: 260 },
@@ -99,7 +125,7 @@ export type MeleeWeaponId = keyof typeof MELEE_WEAPONS;
 
 export const MELEE_FAMILIES = {
     shortSword: { name: 'Short Swords', enabled: true, links: ['dagger', 'shortSword', 'falchion'] },
-    longSword: { name: 'Long Swords', enabled: true, links: ['longSword', 'broadSword', 'greatSword', 'flamberge'] },
+    longSword: { name: 'Long Swords', enabled: true, links: ['longSword', 'scimitar', 'broadSword', 'claymore', 'greatSword', 'flamberge'] },
     hammer: { name: 'Hammers', enabled: false, links: ['hammer', 'battleHammer'] },
     fencing: { name: 'Fencing', enabled: false, links: ['rapier'] },
     axe: { name: 'Axes', enabled: false, links: ['lightAxe', 'tomahawk', 'doubleAxe', 'warAxe', 'battleAxe'] },

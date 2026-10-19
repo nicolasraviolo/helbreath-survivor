@@ -21,6 +21,9 @@ export const RELEASE_NOTES: readonly ReleaseNote[] = [
             'New Character window, as in the original game: press C (or Y on the gamepad) during a run. The game pauses.',
             'Inside a run your level is now called Power, and it starts at 1 every run.',
             'The end screen shows the XP you earned and your progress to the next Level.',
+            'New Equipment screen in the character list: choose your weapon, shield, helmet, armor, leggings, boots and cape.',
+            'Every run starts with that equipment on. Better items need more Str (and some, a higher Level).',
+            'New items: Scimitar, Claymore, Wood Shield, Chain Hose, Plate Leggings, Shoes, Long Boots and Cape.',
         ],
     },
     {

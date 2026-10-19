@@ -5,6 +5,7 @@
 // sexo (gearForGender), las piezas que aún no se han descargado no se ven hasta que llegan (LookLoader), el pelo se
 // tiñe sumando color como en el original y se oculta con casco (como el original).
 import Phaser from 'phaser';
+import { equipmentLook, type SavedEquipment } from '../data/items';
 import { gearForGender, HAIR_COLOR_SCALE, HAIR_COLORS, lookLayers, type CharacterLook } from '../data/appearance';
 import type { CharacterDef } from '../data/characters';
 import { ensureAdditiveTexture, tintedKey } from '../hb/additiveTint';
@@ -91,6 +92,13 @@ export class CharacterSprite {
             this.orderKey = '';
             this.refresh(true);
         }
+    }
+
+    /** Draws a saved character's equipment over the class's clothes (Fase 20B). */
+    public wearEquipment(equipment: Readonly<SavedEquipment>): void {
+        for (const [slot, layer] of equipmentLook(equipment)) this.setLayer(slot, layer, false);
+        this.orderKey = '';
+        this.refresh(true);
     }
 
     /** Removes every layer (the preview of Create New Character is rebuilt when the look changes). */

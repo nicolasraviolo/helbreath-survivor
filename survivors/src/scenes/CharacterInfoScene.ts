@@ -205,6 +205,9 @@ export class CharacterInfoScene extends Phaser.Scene {
         const look = this.saved?.look ?? DEFAULT_LOOKS[this.params.classId];
         this.doll = new CharacterSprite(this, def, look, this.sx(CHARACTER_INFO_DOLL.x), this.sy(CHARACTER_INFO_DOLL.y));
         this.doll.container.setScale(CHARACTER_INFO_SCALE);
+        // Fase 20B: dressed in its equipment (in a run too: it is what the run started with).
+        const equipment = this.saved?.equipment;
+        if (equipment) this.doll.wearEquipment(equipment);
         this.doll.setPose(PlayerState.IdleCombat, Direction.South);
     }
 

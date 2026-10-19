@@ -5,15 +5,16 @@
 - 17-oct-2026: 7 Oleadas, jefes y final · 8 Menús y personajes (solo menús; Arquero aplazado) · 9 Web, móvil y publicación · 10 Pulido (10A–10C).
 - 18-oct-2026: 11 Pulido de interfaz · 12 Móvil sin pérdidas (12A–12C) · 13 Jefe final y equilibrio (13A–13C) · 14 Métricas y logros (14A–14B) · 15 Apuntado híbrido (15A–15C) · 16 Minimapa y tótems (16A–16B) · 17 Selección de personaje (17A–17B) · 18 Esquiva y resistencia mágica (18A–18B).
 - 19-oct-2026: 19 Crits y habilidad activa (19A–19C).
-- 🔄 **20 — Level y equipo:** en curso (20A hecho, 19-oct-2026).
+- 🔄 **20 — Level y equipo:** en curso (20A y 20B hechos, 19-oct-2026).
 
 ## Fase actual
-**Fase 20, bloque 20A hecho** en la rama `fase-20` (sin fusionar). **Siguiente:** `/fase 20` → **20B** (datos de objetos con Str y Level, inventario y pantalla de equipo, equipo de salida, cartas de Power: stat temporal, Xelima y Merien; `docs/PLAN-2.md`). Después **20C** (2 hechizos equipables del Mago).
+**Fase 20, bloques 20A y 20B hechos** en la rama `fase-20` (sin fusionar). **Siguiente:** `/fase 20` → **20C**: cartas de Power (stat temporal, Xelima y Merien +10% hasta 5 cartas), fuera las cartas de arma, armadura y Boots, y revisar logros ("Fully Armored"), métricas, cofres y partida simulada (`docs/PLAN-2.md`). Después **20D** (2 hechizos equipables del Mago).
 - **Pendiente:** que el propietario pruebe con su mando real la vibración y el stick derecho (apuntar).
 - **Ideas sin fecha:** monstruos al azar como evento especial; jefes más difíciles de esquivar (mínimo de acierto propio, nota en `data/defense.ts`).
 
 **Pistas para trabajar** (detalle en `survivors/NOTES.md`):
-- Level y Power: `data/characterLevel.ts`, `scenes/CharacterInfoScene.ts`; en el 20B se llenan Max.Load y el equipo. Ver NOTES.md, "Ventana Character y Level permanente".
+- Level y Power: `data/characterLevel.ts`, `scenes/CharacterInfoScene.ts`. Ver NOTES.md, "Ventana Character y Level permanente".
+- Equipo: `data/items.ts` (huecos, catálogo, requisitos), `scenes/EquipmentScene.ts`; en las cartas aún mandan `strRequired`/`required` (se van en el 20C). Ver NOTES.md, "Equipo y pantalla Equipment".
 - Hechizos activos: `data/activeSpells.ts` (en el 20C, equipables); Meteor usa la esfera del crit hasta tener icono. Ver NOTES.md, "Meteor Strike".
 - Crit y mando: `systems/CritStrikeSystem.ts`, `systems/Rumble.ts`. Ver NOTES.md, "Critical Strike (Fase 19A)" y "Vibración del mando".
 - Apuntado: todo pasa por `systems/Targeting.ts`. Ver NOTES.md, "Apuntado automático", "Apuntado manual" y "Stick de apuntar en el móvil".
@@ -35,16 +36,17 @@
 - Puntos: 3 por Level, ninguno al crear; se reparten **solo** en la ventana Character ("Level Set." o C). En partida, C pausa y solo se mira.
 - Esquiva y resistencia: siempre **% generales**, nunca contra un monstruo; esquiva sin "Miss", resistencia con "Resist".
 - Una partida guardada por personaje (4 huecos).
+- Equipo: catálogo libre hasta la Fase 21; requisitos del original con stats **permanentes** y Level.
 - El resto de decisiones, con fecha: `docs/DECISIONES.md` (grep por fase o tema).
 
 ## Cómo probar
 - Jugar: `pnpm --dir survivors dev` → http://localhost:8090
-- Comprobar: `pnpm --dir survivors check [situaciones] [--mobile]` → escenas, FPS, estado, errores y captura en `survivors/.check/`. Situaciones: `menu`, `news` (What's new), `settings`, `controls`, `game`, `minimap`, `achievements` (con `--cards`: desde cero hasta nivel 21), `achievementlist`, `levelup`, `boss`, `finalboss`, `portal`, `stampede`, `horde`, `pickups`, `totems`, `slots` (dos personajes de ejemplo), `slotsempty`, `crit` (Guerrero con horda y crits infinitos; `--eval="g.launchCritStrike()"`), `charinfo` / `charinfogame` (ventana Character en menú / en partida), `charexp` (fin con EXP ×50: `--eval="g.endRun(false)"`), `levelpace` (partida simulada rápida: nivel por minuto, vida de cada jefe y su golpe más fuerte; informe en `.check/levelpace.json`) o atajos a mano (`"play=warrior&debug=str,levels"`).
+- Comprobar: `pnpm --dir survivors check [situaciones] [--mobile]` → escenas, FPS, estado, errores y captura en `survivors/.check/`. Situaciones: `menu`, `news` (What's new), `settings`, `controls`, `game`, `minimap`, `achievements` (con `--cards`: desde cero hasta nivel 21), `achievementlist`, `levelup`, `boss`, `finalboss`, `portal`, `stampede`, `horde`, `pickups`, `totems`, `slots` (dos personajes de ejemplo), `slotsempty`, `crit` (Guerrero con horda y crits infinitos; `--eval="g.launchCritStrike()"`), `charinfo` / `charinfogame` (ventana Character en menú / en partida), `equipment` (pantalla Equipment de Gorn), `charexp` (fin con EXP ×50: `--eval="g.endRun(false)"`), `levelpace` (partida simulada rápida: nivel por minuto, vida de cada jefe y su golpe más fuerte; informe en `.check/levelpace.json`) o atajos a mano (`"play=warrior&debug=str,levels"`).
 - Opciones del check: `--eval="g.enemies.alive"` escribe cualquier dato (g = escena Game; si es una promesa, se espera); `--wait=5000` deja correr más; `--cards` elige la primera carta en cada subida.
 - Atajos en la dirección (solo desarrollo, `src/config/debugStart.ts`):
   - `?play`, `?play=warrior`, `?ui=compact` (interfaz de móvil), `?trees=off`, `?metrics=send` (envía la partida de verdad).
   - `?debug=boss,god`; acciones: horde, kill, levelup, levels, str, magic, pickups, totems, minute, boss, finalboss, bosskill, stampede, god, crits (infinitos, tecla H), dodge (mejor armadura de la clase), stats (panel abierto), aim (apuntar a la derecha), aimstick (dedo falso en el stick, con `--mobile`), resume (guardar y recargar como Continue), sim (partida simulada), charexp (EXP ×50).
-  - `?open=howtoplay` (también settings, controls, credits, achievements, select, slots, charinfo, releasenotes).
+  - `?open=howtoplay` (también settings, controls, credits, achievements, select, slots, charinfo, equipment, releasenotes).
   - `?achievements=reset|all`; `?characters=reset|demo` (demo: dos de ejemplo, Gorn con 60.000 EXP; con `?play=warrior` juega Gorn).
 - Teclas en partida: F1 panel · G invencible · N enemigos · L niveles · J +1 minuto, entre otras (`systems/InputSystem.ts`).
 - App instalable: solo en el build (`survivors/pwa/`). `pnpm build` y `pnpm preview` → http://localhost:4173.

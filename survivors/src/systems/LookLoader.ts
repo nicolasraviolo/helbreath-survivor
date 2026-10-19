@@ -8,6 +8,7 @@ import { ON_DEMAND_SPRITES, type SpriteKey } from '../config/assetManifest';
 import { ARMOR_BY_SET, ARMOR_PIECES } from '../data/armor';
 import { BODY_SPRITES, gearForGender, HAIR_SPRITE, UNDERWEAR_SPRITE, type CharacterLook } from '../data/appearance';
 import type { CharacterDef } from '../data/characters';
+import { equipmentLook, type SavedEquipment } from '../data/items';
 import { MELEE_WEAPONS } from '../data/weapons';
 import { getSheetKey } from '../hb/HBSprite';
 import { loadSprite } from './AssetStreamer';
@@ -38,9 +39,10 @@ class LookLoaderImpl {
     }
 }
 
-/** Every sprite a character of that class and look may wear during a run (starting look, armor and weapons). */
-export function runSprites(def: CharacterDef, look: CharacterLook): SpriteKey[] {
+/** Every sprite a character of that class and look may wear during a run (starting look, equipment, armor and weapons). */
+export function runSprites(def: CharacterDef, look: CharacterLook, equipment: Readonly<SavedEquipment> = {}): SpriteKey[] {
     const gear: SpriteKey[] = Object.values(def.appearance).map((layer) => layer.sprite);
+    for (const [, layer] of equipmentLook(equipment)) gear.push(layer.sprite);
     for (const pieces of Object.values(ARMOR_BY_SET[def.armorSet])) {
         for (const piece of pieces) {
             for (const layer of Object.values(ARMOR_PIECES[piece].look)) gear.push(layer.sprite);

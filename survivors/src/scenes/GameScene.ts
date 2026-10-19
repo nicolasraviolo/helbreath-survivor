@@ -15,6 +15,7 @@ import {
 import { TOUCH_AIM_STICK, TOUCH_AIM_ZONE_START, TOUCH_JOYSTICK, TOUCH_RESERVED_CORNER } from '../config/touch';
 import { ANNOUNCE_EVENT, QUIT_RUN_EVENT } from '../config/hud';
 import { getArmorPiece } from '../data/armor';
+import { isArmorPieceId, isMeleeWeaponId, START_EQUIPMENT } from '../data/items';
 import { MUSIC } from '../data/audio';
 import { PORTAL, type WaveEventDef } from '../data/waves';
 import type { Enemy } from '../entities/Enemy';
@@ -242,7 +243,9 @@ export class GameScene extends Phaser.Scene {
         const savedCharacter = characterStore.byUid(this.characterUid);
         const look = savedCharacter?.look ?? DEFAULT_LOOKS[this.characterId];
         // Everything this character may wear during the run (armor from the cards), so new pieces show at once.
-        void lookLoader.ensure(this, runSprites(character, look));
+        // Fase 20B: also what the saved character wears (shoes, cape...).
+        const startEquipment = savedCharacter?.equipment ?? START_EQUIPMENT[this.characterId];
+        void lookLoader.ensure(this, runSprites(character, look, startEquipment));
         this.player = new Player(this, (spawn.x + 0.5) * TILE_SIZE, (spawn.y + 0.5) * TILE_SIZE, character, look, map, areaPx);
         // Permanent stats (Fase 20A); debug runs without a character start with the class's.
         this.permanentAtStart = savedCharacter ? permanentStats(savedCharacter) : { ...character.startStats };
@@ -326,12 +329,18 @@ export class GameScene extends Phaser.Scene {
         this.meleeWeapon = undefined;
         this.spellWeapon = undefined;
         if (character.startWeapon.kind === 'melee') {
-            this.meleeWeapon = new MeleeWeapon(character.startWeapon.id);
+            // Fase 20B: the weapon of the saved character's equipment (the class's one in debug runs).
+            const weaponId = startEquipment.weapon !== undefined && isMeleeWeaponId(startEquipment.weapon) ? startEquipment.weapon : character.startWeapon.id;
+            this.meleeWeapon = new MeleeWeapon(weaponId);
+            this.equipment.weapon = weaponId;
             this.weapons.add(this.meleeWeapon);
             this.player.setGear('weapon', this.equipment.weaponLayer());
         } else {
             this.spellWeapon = new SpellWeapon(character.startWeapon.id);
             this.weapons.add(this.spellWeapon);
+        }
+        for (const id of Object.values(startEquipment)) {
+            if (isArmorPieceId(id)) for (const [slot, layer] of this.equipment.wear(id)) this.player.setGear(slot, layer);
         }
         this.weapons.setOwnerActionHandler((action, angle, durationMs) => {
             // Stands still until the blow lands or the spell leaves (as in the original), then can run again.
