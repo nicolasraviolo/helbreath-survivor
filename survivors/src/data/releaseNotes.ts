@@ -22,6 +22,7 @@ export const RELEASE_NOTES: readonly ReleaseNote[] = [
             'New "What\'s new" screen: open it from the link at the bottom of the main menu.',
             'Gamepad vibration when you get hit and when your Critical or Meteor Strike hits (Settings, Controls).',
             'Change the keys and buttons for the Strike and the stats panel in Settings, Controls.',
+            'Balance: Meteor Strike hits a bit softer, and the Warrior gets a Critical Strike charge every 15 seconds.',
         ],
     },
     {

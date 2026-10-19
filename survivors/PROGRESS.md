@@ -21,10 +21,11 @@
 | 16 — Minimapa y tótems | ✅ completada (16A y 16B) | 2026-10-18 |
 | 17 — Selección de personaje | ✅ completada (17A y 17B) | 2026-10-18 |
 | 18 — Esquiva y resistencia mágica | ✅ completada (18A y 18B) | 2026-10-18 |
-| 19 — Crits y habilidad activa | 🔨 en curso (19A, 19B y 19C hechos; falta cerrarla) | 2026-10-19 |
+| 19 — Crits y habilidad activa | ✅ completada (19A, 19B y 19C) | 2026-10-19 |
 
 ## Fase actual
-**Para retomar (19-oct-2026): Fase 19, bloques 19A, 19B y 19C hechos** (Critical Strike del Guerrero, Meteor Strike del Mago, vibración del mando y controles cambiables), más la pantalla "What's new", en la rama `fase-19`. **Siguiente:** que el propietario pruebe la vibración con su mando real; después, cerrar la fase con `/checkpoint fase` y repasar el equilibrio crit/meteoro.
+**Para retomar (19-oct-2026): Fase 19 cerrada** (Critical Strike del Guerrero, Meteor Strike del Mago, vibración del mando, controles cambiables y pantalla "What's new"), fusionada en `master` con la etiqueta `fase-19`. **Siguiente:** `/fase 20` (Level permanente y equipo, `docs/PLAN-2.md`). Pendiente: que el propietario pruebe la vibración con su mando real.
+- **Equilibrio al cerrar la 19 (19-oct-2026):** explosión del meteoro 40 → 20 y una carga de crit cada 15 s (antes 20). Simulación: los dos matan al jefe final a ~13½ min; el meteoro hace ~40% del daño del Mago desde el minuto 5 (antes 50–60%) y el crit ~20–25% del del Guerrero. Para medir cuánto aporta cada habilidad, ver NOTES.md, "Medir crit y meteoro".
 - **Vibración y controles (19C):** `systems/Rumble.ts` (números en `data/feedback.ts`, `GAMEPAD_RUMBLE`) y Settings → **Controls** (`scenes/ControlsScene.ts`, `config/controls.ts`): tecla y botón del crit/meteoro y del panel de stats, casilla **Vibration** y "Reset to default". En la interfaz de móvil no sale la fila Controls. Detalle en NOTES.md, "Vibración del mando y controles cambiables".
 - **Critical Strike (19A):** `data/critStrike.ts`, `systems/CritStrikeSystem.ts`, `ui/CritButton.ts`. Detalle en NOTES.md, "Critical Strike (Fase 19A)".
 - **What's new (19-oct-2026):** pantalla de novedades desde el link del pie del menú (`scenes/ReleaseNotesScene.ts`, textos en `data/releaseNotes.ts`, en inglés). Atajo `?open=releasenotes`, situación `news` del check. Cada `/checkpoint` añade ahí lo que nota el jugador.
@@ -70,7 +71,7 @@
 
 ## Problemas conocidos
 - Con un solo Energy Bolt, 300 enemigos sobrepasan al jugador. Las cartas de stat ayudan, pero la progresión real llega con las armas de la Fase 6.
-- Guerrero frente a Mago, igualados en el 13C (18-oct-2026): Str y Mag dan +3% de daño por punto, el Mago gana +1 Int y +1 Mag por nivel, espadas ×1,5 y Energy Strike 8 por descarga (antes 14). Simulación: Wyvern en ~2:50 (Guerrero) y ~2:10 (Mago), nivel 24–27 los dos. La guía (`docs/guia`) aún dice "+2 Mag": se actualiza con `/guia`.
+- Guerrero frente a Mago, igualados en el 13C (18-oct-2026; con crit y meteoro, otra vez al cerrar la Fase 19): Str y Mag dan +3% de daño por punto, el Mago gana +1 Int y +1 Mag por nivel, espadas ×1,5 y Energy Strike 8 por descarga (antes 14). Simulación: Wyvern en ~2:50 (Guerrero) y ~2:10 (Mago), nivel 24–27 los dos. La guía (`docs/guia`) aún dice "+2 Mag": se actualiza con `/guia`.
 - La red del propietario bloquea a veces las IPs de Cloudflare (LaLiga): la página de métricas puede no abrir y sus partidas no llegar. Probar con datos móviles o más tarde.
 - La partida simulada a veces no sirve: el jugador no alcanza a un jefe atascado y este vive hasta el final. Descartar esas partidas al medir. El 18-oct-2026 (cierre de la Fase 18) salió muy irregular con el guerrero (nivel 10–27 con el mismo código); parece ir peor cuanto más deprisa corre (×400–500). Repetir varias veces y fiarse de la mediana. (Que el jefe final no llegara a salir por no encontrar hueco ya está corregido en `SpawnSystem.ts`.)
 - Las flechas "→" de las cartas usan otra fuente: Comic Neue no tiene ese carácter. No molesta.

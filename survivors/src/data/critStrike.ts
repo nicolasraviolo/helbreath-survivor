@@ -23,8 +23,8 @@ export interface CritShape {
 }
 
 export const CRIT_STRIKE = {
-    /** One charge more every this many ms, up to the maximum (owner, 18-oct-2026: 20 s). */
-    rechargeMs: 20_000,
+    /** One charge more every this many ms, up to the maximum (owner, 18-oct-2026: 20 s; 19-oct-2026, closing phase 19: 15 s). */
+    rechargeMs: 15_000,
     /** And one more every this many blows taken (the original: ~14), rewarding standing in the horde. */
     hitsPerCharge: 15,
     /** Damage = weapon damage × (base + Power / perLevel) × (1 + family bonus). */

@@ -2,6 +2,11 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
+**Fase 19, cierre: equilibrio crit/meteoro (2026-10-19).**
+- **Medido** (partida simulada, 3 por clase): el meteoro hacía 45–59% del daño del Mago y 59–70% de sus muertes desde el minuto 5 (1.700–1.950 muertes por partida, jefe final a ~13–14 min); el crit, 3–23% del daño del Guerrero (550–710 muertes; el jefe final solo murió en una de tres).
+- **Cambiado (decisión del propietario):** `areaDamage` del meteoro 40 → 20 (`data/activeSpells.ts`) y `CRIT_STRIKE.rechargeMs` 20 → 15 s (`data/critStrike.ts`; How to Play dice "+1 each 15 s").
+- **Después** (2 por clase, una del Guerrero descartada por quedarse atascado con el Ettin): meteoro 36–48% del daño y 44–49% de las muertes; Mago mata al jefe final a 13:24–13:27; Guerrero a 13:39, con el crit en 20–25% del daño.
+
 **Fase 19, bloque 19C: vibración del mando y controles cambiables (2026-10-19).**
 - **Qué hace:** el mando vibra al recibir un golpe (suave y corto), más fuerte y largo con un golpe de jefe o uno que quita ≥15% de la vida, y cuando el Critical Strike o el Meteor Strike **impactan** en algún monstruo (no al lanzarlos; una sola vez por lanzamiento aunque golpee a muchos; si no toca a nadie, no vibra; corregido a petición del propietario). Una vibración floja no corta una fuerte. Settings tiene una fila nueva **Controls** que abre una pantalla con: Crit Key, Crit Button, Stats Key, Stats Button (Enter/A/clic → "..." → pulsar la tecla o botón nuevo; Esc/B cancelan; si choca con la otra acción, se intercambian), la casilla **Vibration** (activada de serie) y **Reset to default**.
 - **Decisiones del propietario:** solo se cambian el crit/meteoro y el panel de stats (moverse, Enter, Esc, Backspace, A, B, Start y la cruceta quedan fijos para no quedarse atrapado); vibración solo en el mando (no el teléfono); How to Play enseña las teclas de serie con una línea "Settings, Controls" en las páginas Keyboard y Gamepad. La casilla Vibration acabó dentro de Controls porque en Settings no cabía. En la interfaz de móvil no sale la fila Controls (panel lleno, sin teclado).

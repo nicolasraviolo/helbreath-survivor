@@ -79,7 +79,7 @@ export const HOW_TO_PLAY_PAGES: readonly HowToPlayPage[] = [
             { control: 'Space', action: 'Warrior: Critical Strike · Mage: Meteor Strike' },
             { pad: ['R2'], action: 'Warrior: Critical Strike · Mage: Meteor Strike' },
             { control: 'Red orb button (touch)', action: 'Warrior: Critical Strike · Mage: Meteor Strike' },
-            { control: 'Number on the red orb', action: 'Warrior: charges (+1 each 20 s) · Mage: secs left' },
+            { control: 'Number on the red orb', action: 'Warrior: charges (+1 each 15 s) · Mage: secs left' },
             { control: 'Getting hit', action: 'Warrior: also refills the charges' },
             { control: 'Every 10 levels', action: 'Warrior: one more charge, and more damage' },
             { control: 'More Mag', action: 'Mage: Meteor Strike recharges faster' },

@@ -84,7 +84,8 @@ export const ACTIVE_SPELLS: Record<ActiveSpellId, ActiveSpellDef> = {
         name: 'Meteor Strike',
         sprite: 'fx.crueffect1',
         directDamage: 30,
-        areaDamage: 40,
+        // Owner, 19-oct-2026 (closing phase 19): 40 → 20; the meteor did ~50–60% of the Mage's damage from minute 5.
+        areaDamage: 20,
         areaRadius: 128,
         directRadius: 24,
         knockback: 320,

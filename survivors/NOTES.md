@@ -60,6 +60,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Critical Strike (Fase 19A)
 - Meteor Strike, hechizo activo del Mago (Fase 19B)
 - Vibración del mando y controles cambiables (Fase 19C)
+- Medir crit y meteoro (cierre Fase 19)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -745,4 +746,7 @@ Tabla completa en `docs/REQUISITOS_HB.md`. Lo no obvio:
 - **Controles:** solo el crit/meteoro y el panel de stats se pueden cambiar (decisión del propietario). Lista, teclas de serie, teclas reservadas y nombres en `config/controls.ts`; se guardan dentro de los ajustes (`settings.current.controls`). `InputSystem` los lee en cada `justPressed`, así un cambio vale al momento aunque la partida esté en pausa debajo. `keyboard.addKey(code)` devuelve la tecla ya creada si existe; la tecla elegida se añade también en el constructor para no perder su primera pulsación.
 - **Capturar una tecla** (`scenes/ControlsScene.ts`): el `keydown` solo apunta la tecla y se aplica en el `update` siguiente, después de "tragarse" las acciones del menú de ese frame; si no, el Espacio recién elegido volvería a abrir la espera. Una pulsación sintética con keydown+keyup en el mismo instante no da `JustDown` en Phaser (keyup lo borra), por eso Esc/Backspace también se miran en el `keydown`.
 - **Probar sin mando:** en `--eval`, `navigator.getGamepads = () => [padFalso]` con un `vibrationActuator.playEffect` que apunte las llamadas.
+
+## Medir crit y meteoro (cierre Fase 19)
+La partida simulada no separa el daño por arma. Para saber cuánto aporta el crit o el meteoro se envuelve `g.combat.hitEnemy` desde `--eval` en `pnpm check "play=mage&debug=sim"`: el crit y el meteoro son los únicos golpes con `bigNumbers = true` (7.º argumento), así que basta con sumar la vida quitada (`hp` antes y después) y las muertes de esos golpes frente al resto, por tramos de 5 min con `g.spawner.elapsed`, y esperar a `window.__sim.done`. Contadores de usos: `g.critStrike.launchedCount` y `g.activeSpell.castCount`. Una partida de Guerrero de cada tres suele salir mala (atascado con un jefe): descartarla.
 
