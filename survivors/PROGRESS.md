@@ -5,17 +5,18 @@
 - 17-oct-2026: 7 Oleadas, jefes y final · 8 Menús y personajes (solo menús; Arquero aplazado) · 9 Web, móvil y publicación · 10 Pulido (10A–10C).
 - 18-oct-2026: 11 Pulido de interfaz · 12 Móvil sin pérdidas (12A–12C) · 13 Jefe final y equilibrio (13A–13C) · 14 Métricas y logros (14A–14B) · 15 Apuntado híbrido (15A–15C) · 16 Minimapa y tótems (16A–16B) · 17 Selección de personaje (17A–17B) · 18 Esquiva y resistencia mágica (18A–18B).
 - 19-oct-2026: 19 Crits y habilidad activa (19A–19C).
-- 🔄 **20 — Level y equipo:** en curso (20A y 20B hechos, 19-oct-2026).
+- 🔄 **20 — Level y equipo:** en curso (20A, 20B y 20C hechos, 19-oct-2026).
 
 ## Fase actual
-**Fase 20, bloques 20A y 20B hechos** en la rama `fase-20` (sin fusionar). **Siguiente:** `/fase 20` → **20C**: cartas de Power (stat temporal, Xelima y Merien +10% hasta 5 cartas), fuera las cartas de arma, armadura y Boots, y revisar logros ("Fully Armored"), métricas, cofres y partida simulada (`docs/PLAN-2.md`). Después **20D** (2 hechizos equipables del Mago).
+**Fase 20, bloques 20A, 20B y 20C hechos** en la rama `fase-20` (sin fusionar). **Siguiente:** `/fase 20` → **20D**: 2 hechizos equipables del Mago en Equipment (automático + activo; hoy su hechizo es fijo y las cartas ya no lo mejoran), con requisito de Int y Level (`docs/PLAN-2.md`). Después, cerrar la fase con `/checkpoint fase`.
 - **Pendiente:** que el propietario pruebe con su mando real la vibración y el stick derecho (apuntar).
 - **Ideas sin fecha:** monstruos al azar como evento especial; jefes más difíciles de esquivar (mínimo de acierto propio, nota en `data/defense.ts`).
 
 **Pistas para trabajar** (detalle en `survivors/NOTES.md`):
 - Level y Power: `data/characterLevel.ts`, `scenes/CharacterInfoScene.ts`. Ver NOTES.md, "Ventana Character y Level permanente".
-- Equipo: `data/items.ts` (huecos, catálogo, requisitos), `scenes/EquipmentScene.ts`; en las cartas aún mandan `strRequired`/`required` (se van en el 20C). Ver NOTES.md, "Equipo y pantalla Equipment".
-- Hechizos activos: `data/activeSpells.ts` (en el 20C, equipables); Meteor usa la esfera del crit hasta tener icono. Ver NOTES.md, "Meteor Strike".
+- Equipo: `data/items.ts` (huecos, catálogo, requisitos), `scenes/EquipmentScene.ts`. Ver NOTES.md, "Equipo y pantalla Equipment".
+- Cartas: stat o pasiva (Xelima, Merien, Magnet) en `systems/UpgradePool.ts` y `data/passives.ts`; `?debug=stones`. Ver NOTES.md, "Cartas de Power (Fase 20C)".
+- Hechizos activos: `data/activeSpells.ts` (en el 20D, equipables); Meteor usa la esfera del crit hasta tener icono. Ver NOTES.md, "Meteor Strike".
 - Crit y mando: `systems/CritStrikeSystem.ts`, `systems/Rumble.ts`. Ver NOTES.md, "Critical Strike (Fase 19A)" y "Vibración del mando".
 - Apuntado: todo pasa por `systems/Targeting.ts`. Ver NOTES.md, "Apuntado automático", "Apuntado manual" y "Stick de apuntar en el móvil".
 - Esquiva y resistencia: `data/defense.ts`. Ver NOTES.md, "Esquiva física" y "Resistencia mágica".
@@ -45,7 +46,7 @@
 - Opciones del check: `--eval="g.enemies.alive"` escribe cualquier dato (g = escena Game; si es una promesa, se espera); `--wait=5000` deja correr más; `--cards` elige la primera carta en cada subida.
 - Atajos en la dirección (solo desarrollo, `src/config/debugStart.ts`):
   - `?play`, `?play=warrior`, `?ui=compact` (interfaz de móvil), `?trees=off`, `?metrics=send` (envía la partida de verdad).
-  - `?debug=boss,god`; acciones: horde, kill, levelup, levels, str, magic, pickups, totems, minute, boss, finalboss, bosskill, stampede, god, crits (infinitos, tecla H), dodge (mejor armadura de la clase), stats (panel abierto), aim (apuntar a la derecha), aimstick (dedo falso en el stick, con `--mobile`), resume (guardar y recargar como Continue), sim (partida simulada), charexp (EXP ×50).
+  - `?debug=boss,god`; acciones: horde, kill, levelup, levels, str, magic, pickups, totems, minute, boss, finalboss, bosskill, stampede, god, crits (infinitos, tecla H), stones (cartas de Xelima, Merien y Magnet), dodge (mejor armadura de la clase), stats (panel abierto), aim (apuntar a la derecha), aimstick (dedo falso en el stick, con `--mobile`), resume (guardar y recargar como Continue), sim (partida simulada), charexp (EXP ×50).
   - `?open=howtoplay` (también settings, controls, credits, achievements, select, slots, charinfo, equipment, releasenotes).
   - `?achievements=reset|all`; `?characters=reset|demo` (demo: dos de ejemplo, Gorn con 60.000 EXP; con `?play=warrior` juega Gorn).
 - Teclas en partida: F1 panel · G invencible · N enemigos · L niveles · J +1 minuto, entre otras (`systems/InputSystem.ts`).

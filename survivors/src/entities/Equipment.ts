@@ -2,7 +2,7 @@
 // Calcula la defensa total, el bonus de daño mágico de la ropa y qué capas hay que dibujar al cambiar una pieza.
 import { ARMOR_BY_SET, ARMOR_PIECES, ARMOR_SLOT_IDS, getArmorPiece, MAX_DEFENSE, type ArmorPieceId, type ArmorSlotId } from '../data/armor';
 import type { CharacterDef } from '../data/characters';
-import { getPassive, type PassiveId } from '../data/passives';
+import { passiveBonus, type PassiveId } from '../data/passives';
 import type { SpellId } from '../data/spells';
 import { getMeleeWeapon, type MeleeWeaponId } from '../data/weapons';
 import type { GearLayer, GearSlot } from '../hb/playerAppearance';
@@ -20,7 +20,7 @@ export class Equipment {
     /** One piece per armor slot; changed only through wear(), which keeps `totals` up to date. */
     private readonly worn: Partial<Record<ArmorSlotId, ArmorPieceId>> = {};
     /** Rank of each passive (0 = not taken). */
-    public readonly passives: Record<PassiveId, number> = { boots: 0, magnetAmulet: 0 };
+    public readonly passives: Record<PassiveId, number> = { xelima: 0, merien: 0, magnetAmulet: 0 };
     /** Sum of each armor value over the pieces worn; recomputed only in wear() (read every frame). */
     private readonly totals: Record<ArmorTotal, number> = { defense: 0, defenseRatio: 0, magicResistance: 0, magicDamageBonus: 0 };
 
@@ -34,9 +34,9 @@ export class Equipment {
         this.spell = start.kind === 'spell' ? start.id : undefined;
     }
 
-    /** Total bonus of a passive at its current rank (or at `rank`), e.g. 0.16 = +16%. */
+    /** Total bonus of a passive at its current rank (or at `rank`), e.g. 0.3 = +30%. */
     public passiveBonus(id: PassiveId, rank = this.passives[id]): number {
-        return getPassive(id).perRank * rank;
+        return passiveBonus(id, rank);
     }
 
     /** A piece in every armor slot the class can wear (achievement "Fully Armored"). */

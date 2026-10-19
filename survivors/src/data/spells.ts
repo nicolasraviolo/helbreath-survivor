@@ -1,6 +1,6 @@
 // Hechizos de la Maga (Fase 6, bloque 6B; decidido con el propietario el 16-oct-2026).
-// - Igual que el Guerrero con su arma: UN solo hechizo "en la mano". Las cartas ofrecen el siguiente eslabón
-//   de la familia o cambiar de familia. Requisito: Int (números PROPIOS, no los del original).
+// - Igual que el Guerrero con su arma: UN solo hechizo "en la mano". Desde la Fase 20C las cartas
+//   ya no dan hechizos (en el 20D se eligen en la pantalla Equipment).
 // - Energy: rápido, a un objetivo. Fire: lento y en área.
 // - Visuales y sonidos de sp-client/src/game/spells/ y constants/Effects.ts (ver NOTES.md).
 // - Daños orientados por la wiki (docs/hb-wiki/hechizos.md), adaptados a un survivors.
@@ -21,8 +21,6 @@ export interface SpellBurst {
 export interface SpellDef {
     name: string;
     family: SpellFamilyId;
-    /** Int needed for the card to appear. */
-    intRequired: number;
     /** Damage to the enemy the projectile hits. */
     directDamage: number;
     /** Damage to every enemy inside the explosion (the hit enemy too, as in Helbreath). */
@@ -95,7 +93,7 @@ export const SPELLS = {
     // Energy: rápido, a un objetivo.
     energyBolt: {
         // wiki: 10 directo + 7 en área 3×3.
-        name: 'Energy Bolt', family: 'energy', intRequired: 0,
+        name: 'Energy Bolt', family: 'energy',
         directDamage: 10, areaDamage: 7, areaRadius: 48, cooldownMs: 1100,
         range: 320, maxDistance: 480, speed: 420, projectileRadius: 8, knockback: 160,
         shots: 1, shotIntervalMs: 0, aim: 'targets',
@@ -105,7 +103,7 @@ export const SPELLS = {
     },
     tripleEnergyBolt: {
         // wiki: 10 directo + 19 en área 5×5. Aquí: 3 bolas a 3 enemigos distintos.
-        name: 'Triple Energy Bolt', family: 'energy', intRequired: 20,
+        name: 'Triple Energy Bolt', family: 'energy',
         directDamage: 10, areaDamage: 9, areaRadius: 48, cooldownMs: 1200,
         range: 340, maxDistance: 500, speed: 440, projectileRadius: 8, knockback: 160,
         shots: 3, shotIntervalMs: 0, aim: 'targets',
@@ -116,7 +114,7 @@ export const SPELLS = {
     energyStrike: {
         // wiki: 42 de área 5×5. Aquí: 8 descargas, una cada 80 ms, alrededor del enemigo (como en sp-client).
         // Fase 13C: 8 por descarga (antes 14): a un jefe le caían casi todas y lo mataba en segundos.
-        name: 'Energy Strike', family: 'energy', intRequired: 32,
+        name: 'Energy Strike', family: 'energy',
         directDamage: 0, areaDamage: 8, areaRadius: 44, cooldownMs: 1800,
         range: 360, maxDistance: 520, speed: 560, projectileRadius: 8, knockback: 120,
         shots: 8, shotIntervalMs: 80, aim: 'scatter', scatterRadius: 64,
@@ -129,7 +127,7 @@ export const SPELLS = {
     },
     // Fire: lento, en área.
     fireBall: {
-        name: 'Fire Ball', family: 'fire', intRequired: 17,
+        name: 'Fire Ball', family: 'fire',
         directDamage: 8, areaDamage: 14, areaRadius: 64, cooldownMs: 1500,
         range: 320, maxDistance: 480, speed: 380, projectileRadius: 10, knockback: 200,
         shots: 1, shotIntervalMs: 0, aim: 'targets',
@@ -139,7 +137,7 @@ export const SPELLS = {
     },
     fireStrike: {
         // wiki: 8 directo + 13 en área 5×5.
-        name: 'Fire Strike', family: 'fire', intRequired: 24,
+        name: 'Fire Strike', family: 'fire',
         directDamage: 8, areaDamage: 20, areaRadius: 80, cooldownMs: 1600,
         range: 320, maxDistance: 480, speed: 380, projectileRadius: 10, knockback: 220,
         shots: 1, shotIntervalMs: 0, aim: 'targets',
@@ -147,7 +145,7 @@ export const SPELLS = {
     },
     massFireStrike: {
         // wiki: 11 directo + 43 en área 5×5.
-        name: 'Mass Fire Strike', family: 'fire', intRequired: 36,
+        name: 'Mass Fire Strike', family: 'fire',
         directDamage: 11, areaDamage: 32, areaRadius: 96, cooldownMs: 1800,
         range: 340, maxDistance: 500, speed: 380, projectileRadius: 10, knockback: 240,
         shots: 1, shotIntervalMs: 0, aim: 'targets',

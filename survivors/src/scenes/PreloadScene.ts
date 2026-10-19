@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { ASSET_BASE_PATH, MAPS, MINIMAPS, ON_DEMAND_SPRITES, PHONE_ONLY_SPRITES, SOUNDS, SPRITES, type SpriteKey } from '../config/assetManifest';
+import { ASSET_BASE_PATH, MAPS, MINIMAPS, ON_DEMAND_SPRITES, PHONE_ONLY_SPRITES, SOUNDS, SPRITES, UI_IMAGES, type SpriteKey } from '../config/assetManifest';
 import { DEBUG_START } from '../config/debugStart';
 import { COMPACT_UI } from '../config/device';
 import { registerEffectAnimations } from '../config/effects';
@@ -55,6 +55,7 @@ export class PreloadScene extends Phaser.Scene {
         this.load.binary(mapAsset, MAPS[mapAsset].file);
         const minimap = MAPS_DATA[DEFAULT_MAP].minimap;
         this.load.image(minimap, MINIMAPS[minimap].file);
+        for (const [key, image] of Object.entries(UI_IMAGES)) this.load.image(key, image.file);
     }
 
     async create(): Promise<void> {

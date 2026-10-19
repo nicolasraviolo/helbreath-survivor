@@ -15,6 +15,7 @@
 //                      aimstick = un dedo de mentira en el stick de apuntar, empujado a la derecha (con --mobile, Fase 15C)
 //                      charexp = la XP de la partida cuenta ×50 para el Level del personaje al terminarla (Fase 20A;
 //                                con ?characters=demo juega el personaje de ejemplo de esa clase)
+//                      stones = las cartas ofrecen siempre las pasivas (Xelima, Merien, Magnet) que no estén al máximo (Fase 20C)
 //                      sim = partida simulada muy deprisa para medir el equilibrio (systems/SimRun.ts, Fase 13C)
 //   ?trees=off       → árboles grandes en ese modo solo en esta partida (on, off), sin guardarlo
 //   ?open=howtoplay  → abre esa pantalla de los menús (howtoplay, settings, controls = Settings → Controls, credits, releasenotes = novedades, achievements, select = selección de personaje)
@@ -39,7 +40,7 @@ function isDebugScreen(value: string | null): value is DebugScreen {
 }
 
 /** Actions that ?debug= can run at the start of a run (the same ones as the debug keys of GameScene). */
-export const DEBUG_ACTIONS = ['horde', 'kill', 'levelup', 'levels', 'str', 'magic', 'pickups', 'totems', 'minute', 'boss', 'finalboss', 'bosskill', 'stampede', 'dodge', 'stats', 'god', 'crits', 'aim', 'aimstick', 'resume', 'sim', 'charexp'] as const;
+export const DEBUG_ACTIONS = ['horde', 'kill', 'levelup', 'levels', 'str', 'magic', 'pickups', 'totems', 'minute', 'boss', 'finalboss', 'bosskill', 'stampede', 'dodge', 'stats', 'god', 'crits', 'aim', 'aimstick', 'resume', 'sim', 'charexp', 'stones'] as const;
 export type DebugAction = (typeof DEBUG_ACTIONS)[number];
 
 function isDebugAction(value: string): value is DebugAction {

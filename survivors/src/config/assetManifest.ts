@@ -292,6 +292,14 @@ export const MINIMAPS = {
 
 export type MinimapKey = keyof typeof MINIMAPS;
 
+/** Imágenes propias de la interfaz (survivors/custom-assets/): dibujos de las cartas que el original no tiene (Fase 20C). */
+export const UI_IMAGES = {
+    // Magnet Amulet, aportada por el propietario.
+    'card.magnet': { file: 'image/magnetpng.png' },
+} as const satisfies Record<string, { file: string }>;
+
+export type UiImageKey = keyof typeof UI_IMAGES;
+
 /**
  * Paquetes de casillas de mapa (sp-client/src/constants/Assets.ts). Cada hoja del paquete es la
  * textura `map-tile-{start + hoja}`. Solo se cargan los que use el mapa (ver hb/mapAssets.ts).

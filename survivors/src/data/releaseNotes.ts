@@ -24,6 +24,9 @@ export const RELEASE_NOTES: readonly ReleaseNote[] = [
             'New Equipment screen in the character list: choose your weapon, shield, helmet, armor, leggings, boots and cape.',
             'Every run starts with that equipment on. Better items need more Str (and some, a higher Level).',
             'New items: Scimitar, Claymore, Wood Shield, Chain Hose, Plate Leggings, Shoes, Long Boots and Cape.',
+            'Level-up cards no longer give weapons, spells or armor: your equipment now comes from the Equipment screen.',
+            'New cards: Stone of Xelima (+10% damage this run) and Stone of Merien (−10% damage taken this run), up to 5 each.',
+            'Boots card removed. Stones and Magnet Amulet cards now show their picture.',
         ],
     },
     {

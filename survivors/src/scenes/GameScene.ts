@@ -242,10 +242,9 @@ export class GameScene extends Phaser.Scene {
         // Look of the saved character (Fase 17B); debug runs without one look as the class did before.
         const savedCharacter = characterStore.byUid(this.characterUid);
         const look = savedCharacter?.look ?? DEFAULT_LOOKS[this.characterId];
-        // Everything this character may wear during the run (armor from the cards), so new pieces show at once.
-        // Fase 20B: also what the saved character wears (shoes, cape...).
+        // What the saved character wears (Fase 20B), and the item icons for the Xelima and Merien cards (Fase 20C).
         const startEquipment = savedCharacter?.equipment ?? START_EQUIPMENT[this.characterId];
-        void lookLoader.ensure(this, runSprites(character, look, startEquipment));
+        void lookLoader.ensure(this, [...runSprites(character, look, startEquipment), 'item.pack']);
         this.player = new Player(this, (spawn.x + 0.5) * TILE_SIZE, (spawn.y + 0.5) * TILE_SIZE, character, look, map, areaPx);
         // Permanent stats (Fase 20A); debug runs without a character start with the class's.
         this.permanentAtStart = savedCharacter ? permanentStats(savedCharacter) : { ...character.startStats };
@@ -396,10 +395,11 @@ export class GameScene extends Phaser.Scene {
         const stats = this.stats;
         this.player.setMaxHp(stats.maxHp);
         this.player.regenPerSecond = stats.hpRegenPerSecond;
-        this.player.speedMultiplier = stats.moveSpeedMultiplier * (1 + this.equipment.passiveBonus('boots'));
+        this.player.speedMultiplier = stats.moveSpeedMultiplier;
         this.xp.magnetMultiplier = 1 + this.equipment.passiveBonus('magnetAmulet');
         this.weapons.setCooldownMultiplier(stats.cooldownMultiplier);
         stats.gearMagicBonus = this.equipment.magicDamageBonus;
+        stats.xelimaBonus = this.equipment.passiveBonus('xelima');
     }
 
     /** The player touched a pickup on the ground. */
@@ -454,7 +454,7 @@ export class GameScene extends Phaser.Scene {
         const data: LevelUpSceneData = {
             stats,
             equipment: this.equipment,
-            choices: buildLevelUpChoices(stats, this.equipment),
+            choices: buildLevelUpChoices(this.equipment, DEBUG_START.actions.includes('stones')),
             title: fromChest ? CHEST_CARDS_TITLE : undefined,
             onChoose: (choice) => {
                 this.chooseCard(choice, fromChest);
@@ -490,19 +490,8 @@ export class GameScene extends Phaser.Scene {
             case 'stat':
                 this.stats.addStat(choice.stat, choice.points);
                 break;
-            case 'weaponLink':
-            case 'weaponSwitch':
-                this.equipMelee(choice.weapon);
-                break;
-            case 'spellLink':
-            case 'spellSwitch':
-                this.equipSpell(choice.spell);
-                break;
             case 'passive':
                 this.equipment.passives[choice.passive] = choice.rank;
-                break;
-            case 'armor':
-                for (const [slot, layer] of this.equipment.wear(choice.piece)) this.player.setGear(slot, layer);
                 break;
         }
     }
@@ -642,7 +631,8 @@ export class GameScene extends Phaser.Scene {
                 stats: this.stats,
                 weaponName: this.meleeWeapon?.def.name ?? this.spellWeapon?.def.name,
                 skillRow: this.skillRow(),
-                defense: this.equipment.defense,
+                // Armor and Merien together: the share of each blow that never reaches the player.
+                defense: 1 - (1 - this.equipment.defense) * (1 - this.equipment.passiveBonus('merien')),
                 defenseRatio: this.defenseRatio,
                 magicResistance: this.magicResistance,
                 passiveRanks: this.equipment.passives,
@@ -767,11 +757,11 @@ export class GameScene extends Phaser.Scene {
 
         if (this.stats.pendingLevelUps > 0 && !this.levelUpOpen && !player.isDead) {
             if (this.finalBossDead) this.levelUpWithoutCards();
-            else if (this.sim) this.chooseCard(this.sim.pick(buildLevelUpChoices(this.stats, this.equipment)));
+            else if (this.sim) this.chooseCard(this.sim.pick(buildLevelUpChoices(this.equipment)));
             else this.openLevelUp(false);
         } else if (this.chestCards > 0 && !this.levelUpOpen && !player.isDead) {
             // A chest's card, even after the final boss (its chest gives one too).
-            if (this.sim) this.chooseCard(this.sim.pick(buildLevelUpChoices(this.stats, this.equipment)), true);
+            if (this.sim) this.chooseCard(this.sim.pick(buildLevelUpChoices(this.equipment)), true);
             else this.openLevelUp(true);
         }
         return true;
@@ -912,10 +902,11 @@ export class GameScene extends Phaser.Scene {
         this.sim?.onBlow(source, damage, landed);
     };
 
-    /** Armor and a Defense Shield remove part of each hit (0 stays 0: no enemy touching). */
+    /** Armor, the Merien cards and a Defense Shield remove part of each hit (0 stays 0: no enemy touching). */
     private reduceByArmor(damage: number): number {
         if (damage <= 0) return 0;
-        return Math.max(MIN_DAMAGE_TAKEN, Math.round(damage * (1 - this.equipment.defense) * this.buffs.damageTakenMultiplier));
+        const merien = 1 - this.equipment.passiveBonus('merien');
+        return Math.max(MIN_DAMAGE_TAKEN, Math.round(damage * (1 - this.equipment.defense) * merien * this.buffs.damageTakenMultiplier));
     }
 
     private gainXp(amount: number): void {
@@ -1038,6 +1029,9 @@ export class GameScene extends Phaser.Scene {
                 break;
             case 'stats':
                 // Opened by the Hud scene itself.
+                break;
+            case 'stones':
+                // Read when the cards are built (openLevelUp).
                 break;
             case 'charexp':
                 // Applied when the run ends (endRun).

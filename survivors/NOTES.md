@@ -63,6 +63,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Medir crit y meteoro (cierre Fase 19)
 - Ventana Character y Level permanente (Fase 20A)
 - Equipo y pantalla Equipment (Fase 20B)
+- Cartas de Power (Fase 20C)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -773,3 +774,10 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - **Capa y zapatos:** `mmantle03`/`wmantle03` (la capa normal) y `mshoes`/`wshoes`, bajo demanda.
 - **Guardado:** `SavedCharacter.equipment` (versión 4 de `CharacterStore`); `characterStore.equip()` vuelve a comprobar el requisito. `CharacterSprite.wearEquipment()` viste al muñeco en Select Character, Character y Equipment; `GameScene` empieza con el arma y las piezas guardadas.
 - **Pantalla:** `scenes/EquipmentScene.ts` + `config/equipment.ts`. Ventana Character original a la izquierda (misma posición que en partida) y panel propio a la derecha: la bolsa original (`gamedialog.spr` hoja 7) no está en `gamedialog86` y pesa 1,9 MB.
+
+## Cartas de Power (Fase 20C)
+- Las cartas ya solo son de **stat** o de **pasiva** (`systems/UpgradePool.ts`). Xelima y Merien son pasivas más en `data/passives.ts` (con `stacking`: Xelima suma, Merien encadena `1 − 0,9^n`), así que guardado, métricas (`passive:xelima`) y panel C las cogen solas.
+- Xelima entra en `CharacterStats.damageMultiplier` (todo daño: arma, hechizo, crit y meteoro pasan por `CombatSystem`); Merien en `GameScene.reduceByArmor`. El "Damage taken" del panel C ya incluye Merien.
+- Iconos: piedras = `item-pack.spr` hoja 5, frames 128 (Xelima, roja) y 129 (Merien, **verde**) (`StoneOfXelima`/`StoneOfMerien` en `reference/Item3.cfg`, Spr 6). `item.pack` se pide al empezar la partida; si aún no ha llegado, la carta enseña el círculo "Pas". Magnet = `custom-assets/image/magnetpng.png` (`UI_IMAGES`, clave `card.magnet`).
+- `?debug=stones`: las cartas ofrecen todas las pasivas que no estén al máximo.
+- Fuera: `strRequired` / `intRequired` / `stat` / `required` de armas, hechizos y armaduras, `utils/requirements.ts` y `REQ_SCALE`. `runSprites` ya no descarga todas las armas y armaduras de la clase.

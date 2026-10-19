@@ -120,14 +120,6 @@ function cardKey(choice: LevelUpChoice): string {
     switch (choice.kind) {
         case 'stat':
             return `stat:${choice.stat}`;
-        case 'weaponLink':
-        case 'weaponSwitch':
-            return `${choice.kind}:${choice.weapon}`;
-        case 'spellLink':
-        case 'spellSwitch':
-            return `${choice.kind}:${choice.spell}`;
-        case 'armor':
-            return `armor:${choice.piece}`;
         case 'passive':
             return `passive:${choice.passive}`;
     }

@@ -62,14 +62,8 @@ export const CRIT_CHANCE_PER_CHR = 0.01;
 export const CRIT_MAX_CHANCE = 0.75;
 export const CRIT_DAMAGE_MULTIPLIER = 2;
 
-/**
- * Requisitos: los números originales (docs/REQUISITOS_HB.md) se multiplican por esto,
- * porque una partida dura 12–15 min y no llega a los stats del juego original.
- */
-export const REQ_SCALE = 0.4;
-
 /** Cartas al subir de nivel: cuántas se muestran y cuántos puntos da la carta de stat. */
 export const LEVEL_UP_CHOICES = 3;
 export const STAT_CARD_POINTS = 3;
-/** Most weapon / armor cards among the choices: the rest are always stat cards (Fase 6). */
+/** Most passive cards (Xelima, Merien, Magnet Amulet) among the choices: the rest are always stat cards (Fase 20C). */
 export const MAX_ITEM_CARDS = 2;

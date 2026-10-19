@@ -1,15 +1,12 @@
 // Descarga bajo demanda de las piezas de personaje que no se cargan al empezar (Fase 17B, ON_DEMAND_SPRITES):
 // pieles morena y oscura y la ropa del otro sexo. CharacterSprite pide lo que dibuja y, mientras no llega, esa capa
-// no se ve. Al empezar una partida se pide además todo lo que el personaje puede llegar a ponerse (armaduras de las
-// cartas), para que una pieza nueva no tarde en verse.
+// no se ve. Al empezar una partida se pide lo que lleva puesto (desde la Fase 20C las cartas ya no cambian el equipo).
 // Es único para todo el juego: lo ya descargado sirve para todas las escenas.
 import type Phaser from 'phaser';
 import { ON_DEMAND_SPRITES, type SpriteKey } from '../config/assetManifest';
-import { ARMOR_BY_SET, ARMOR_PIECES } from '../data/armor';
 import { BODY_SPRITES, gearForGender, HAIR_SPRITE, UNDERWEAR_SPRITE, type CharacterLook } from '../data/appearance';
 import type { CharacterDef } from '../data/characters';
 import { equipmentLook, type SavedEquipment } from '../data/items';
-import { MELEE_WEAPONS } from '../data/weapons';
 import { getSheetKey } from '../hb/HBSprite';
 import { loadSprite } from './AssetStreamer';
 
@@ -39,18 +36,10 @@ class LookLoaderImpl {
     }
 }
 
-/** Every sprite a character of that class and look may wear during a run (starting look, equipment, armor and weapons). */
+/** Every sprite a character of that class and look wears (starting look and equipment). */
 export function runSprites(def: CharacterDef, look: CharacterLook, equipment: Readonly<SavedEquipment> = {}): SpriteKey[] {
     const gear: SpriteKey[] = Object.values(def.appearance).map((layer) => layer.sprite);
     for (const [, layer] of equipmentLook(equipment)) gear.push(layer.sprite);
-    for (const pieces of Object.values(ARMOR_BY_SET[def.armorSet])) {
-        for (const piece of pieces) {
-            for (const layer of Object.values(ARMOR_PIECES[piece].look)) gear.push(layer.sprite);
-        }
-    }
-    if (def.startWeapon.kind === 'melee') {
-        for (const weapon of Object.values(MELEE_WEAPONS)) if ('sprite' in weapon) gear.push(weapon.sprite.key);
-    }
     return [
         BODY_SPRITES[look.gender][look.skin] ?? BODY_SPRITES[look.gender][0] ?? 'player.body.wm',
         HAIR_SPRITE[look.gender],
