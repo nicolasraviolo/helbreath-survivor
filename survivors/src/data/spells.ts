@@ -1,6 +1,9 @@
 // Hechizos de la Maga (Fase 6, bloque 6B; decidido con el propietario el 16-oct-2026).
-// - Igual que el Guerrero con su arma: UN solo hechizo "en la mano". Desde la Fase 20C las cartas
-//   ya no dan hechizos (en el 20D se eligen en la pantalla Equipment).
+// - Igual que el Guerrero con su arma: UN solo hechizo automático "en la mano". Desde la Fase 20C las cartas ya no dan
+//   hechizos; desde el 20D se elige en la pantalla Equipment (hueco Spell 1, data/items.ts).
+// - Fase 20D (propietario, 19-oct-2026): los círculos 1–5 son automáticos (hueco 1) y los 6–10, activos (hueco 2,
+//   data/activeSpells.ts). Energy Strike y Mass Fire Strike (círculo 7) se quedan aquí solo como proyectil: los usa su
+//   versión activa. Requisito: la Int del original (reference/Magic.cfg), sin Level.
 // - Energy: rápido, a un objetivo. Fire: lento y en área.
 // - Visuales y sonidos de sp-client/src/game/spells/ y constants/Effects.ts (ver NOTES.md).
 // - Daños orientados por la wiki (docs/hb-wiki/hechizos.md), adaptados a un survivors.
@@ -21,6 +24,10 @@ export interface SpellBurst {
 export interface SpellDef {
     name: string;
     family: SpellFamilyId;
+    /** Circle of the original (Magic.cfg id / 10 + 1): 1–5 cast themselves, 6–10 are active spells. */
+    circle: number;
+    /** Permanent Int needed to equip it (the original's ReqInt). */
+    int: number;
     /** Damage to the enemy the projectile hits. */
     directDamage: number;
     /** Damage to every enemy inside the explosion (the hit enemy too, as in Helbreath). */
@@ -64,12 +71,6 @@ export interface SpellDef {
     impactShakePx?: number;
 }
 
-export interface SpellFamilyDef {
-    name: string;
-    enabled: boolean;
-    links: readonly SpellId[];
-}
-
 /** Fire Strike / Mass Fire Strike explosions (sp-client FireStrike.ts:84 and MassFireStrike.ts:222). */
 const FIRE_STRIKE_BURSTS: readonly SpellBurst[] = [
     { effect: 'fx.fireBall.explode', dx: 0, dy: 0, delayMs: 0, sound: 'sfx.explosion' },
@@ -93,7 +94,7 @@ export const SPELLS = {
     // Energy: rápido, a un objetivo.
     energyBolt: {
         // wiki: 10 directo + 7 en área 3×3.
-        name: 'Energy Bolt', family: 'energy',
+        name: 'Energy Bolt', family: 'energy', circle: 2, int: 24,
         directDamage: 10, areaDamage: 7, areaRadius: 48, cooldownMs: 1100,
         range: 320, maxDistance: 480, speed: 420, projectileRadius: 8, knockback: 160,
         shots: 1, shotIntervalMs: 0, aim: 'targets',
@@ -103,7 +104,7 @@ export const SPELLS = {
     },
     tripleEnergyBolt: {
         // wiki: 10 directo + 19 en área 5×5. Aquí: 3 bolas a 3 enemigos distintos.
-        name: 'Triple Energy Bolt', family: 'energy',
+        name: 'Triple Energy Bolt', family: 'energy', circle: 5, int: 45,
         directDamage: 10, areaDamage: 9, areaRadius: 48, cooldownMs: 1200,
         range: 340, maxDistance: 500, speed: 440, projectileRadius: 8, knockback: 160,
         shots: 3, shotIntervalMs: 0, aim: 'targets',
@@ -114,7 +115,7 @@ export const SPELLS = {
     energyStrike: {
         // wiki: 42 de área 5×5. Aquí: 8 descargas, una cada 80 ms, alrededor del enemigo (como en sp-client).
         // Fase 13C: 8 por descarga (antes 14): a un jefe le caían casi todas y lo mataba en segundos.
-        name: 'Energy Strike', family: 'energy',
+        name: 'Energy Strike', family: 'energy', circle: 7, int: 67,
         directDamage: 0, areaDamage: 8, areaRadius: 44, cooldownMs: 1800,
         range: 360, maxDistance: 520, speed: 560, projectileRadius: 8, knockback: 120,
         shots: 8, shotIntervalMs: 80, aim: 'scatter', scatterRadius: 64,
@@ -127,7 +128,7 @@ export const SPELLS = {
     },
     // Fire: lento, en área.
     fireBall: {
-        name: 'Fire Ball', family: 'fire',
+        name: 'Fire Ball', family: 'fire', circle: 3, int: 26,
         directDamage: 8, areaDamage: 14, areaRadius: 64, cooldownMs: 1500,
         range: 320, maxDistance: 480, speed: 380, projectileRadius: 10, knockback: 200,
         shots: 1, shotIntervalMs: 0, aim: 'targets',
@@ -137,7 +138,7 @@ export const SPELLS = {
     },
     fireStrike: {
         // wiki: 8 directo + 13 en área 5×5.
-        name: 'Fire Strike', family: 'fire',
+        name: 'Fire Strike', family: 'fire', circle: 4, int: 34,
         directDamage: 8, areaDamage: 20, areaRadius: 80, cooldownMs: 1600,
         range: 320, maxDistance: 480, speed: 380, projectileRadius: 10, knockback: 220,
         shots: 1, shotIntervalMs: 0, aim: 'targets',
@@ -145,7 +146,7 @@ export const SPELLS = {
     },
     massFireStrike: {
         // wiki: 11 directo + 43 en área 5×5.
-        name: 'Mass Fire Strike', family: 'fire',
+        name: 'Mass Fire Strike', family: 'fire', circle: 7, int: 85,
         directDamage: 11, areaDamage: 32, areaRadius: 96, cooldownMs: 1800,
         range: 340, maxDistance: 500, speed: 380, projectileRadius: 10, knockback: 240,
         shots: 1, shotIntervalMs: 0, aim: 'targets',
@@ -155,20 +156,13 @@ export const SPELLS = {
 
 export type SpellId = keyof typeof SPELLS;
 
-export const SPELL_FAMILIES = {
-    energy: { name: 'Energy', enabled: true, links: ['energyBolt', 'tripleEnergyBolt', 'energyStrike'] },
-    fire: { name: 'Fire', enabled: true, links: ['fireBall', 'fireStrike', 'massFireStrike'] },
-} as const satisfies Record<SpellFamilyId, SpellFamilyDef>;
+/** The spells of circles 1–5 (they go in the first slot and cast themselves), in the order of their requirement. */
+export const AUTO_SPELL_IDS = ['energyBolt', 'fireBall', 'fireStrike', 'tripleEnergyBolt'] as const satisfies readonly SpellId[];
+export type AutoSpellId = (typeof AUTO_SPELL_IDS)[number];
 
-/**
- * Familias previstas pero aún sin hacer (visuales más complejos). Solo como referencia de diseño:
- * no tienen datos de juego todavía. Int = requisito propio provisional.
- */
-export const PLANNED_SPELL_FAMILIES = [
-    { name: 'Lightning', links: [{ name: 'Lightning', int: 22 }, { name: 'Lightning Bolt', int: 30 }, { name: 'Lightning Strike', int: 44 }] },
-    { name: 'Ice', links: [{ name: 'Chill Wind', int: 20 }, { name: 'Ice Strike', int: 28 }, { name: 'Mass Ice Strike', int: 42 }] },
-    { name: 'Meteor', links: [{ name: 'Meteor Strike', int: 50 }] },
-] as const;
+export function isAutoSpellId(id: string): id is AutoSpellId {
+    return (AUTO_SPELL_IDS as readonly string[]).includes(id);
+}
 
 /**
  * Cast animation: the original takes 1500 ms (16 frames), far too slow for a survivors; it is squeezed to this.

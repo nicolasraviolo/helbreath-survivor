@@ -27,6 +27,10 @@ export const RELEASE_NOTES: readonly ReleaseNote[] = [
             'Level-up cards no longer give weapons, spells or armor: your equipment now comes from the Equipment screen.',
             'New cards: Stone of Xelima (+10% damage this run) and Stone of Merien (−10% damage taken this run), up to 5 each.',
             'Boots card removed. Stones and Magnet Amulet cards now show their picture.',
+            'Mage: choose two spells on the Equipment screen. Spell 1 casts itself; Spell 2 is your active spell (Space).',
+            'Spells need Int. Spell 1: Energy Bolt, Fire Ball, Fire Strike, Triple Energy Bolt.',
+            'New active spells: Energy Strike (the starting one) and Mass Fire Strike. Meteor Strike now needs Int 169.',
+            'Continuing a run uses the weapon and spells you have equipped now.',
         ],
     },
     {

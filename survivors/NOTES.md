@@ -64,6 +64,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Ventana Character y Level permanente (Fase 20A)
 - Equipo y pantalla Equipment (Fase 20B)
 - Cartas de Power (Fase 20C)
+- Hechizos equipables del Mago (Fase 20D)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -781,3 +782,13 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - Iconos: piedras = `item-pack.spr` hoja 5, frames 128 (Xelima, roja) y 129 (Merien, **verde**) (`StoneOfXelima`/`StoneOfMerien` en `reference/Item3.cfg`, Spr 6). `item.pack` se pide al empezar la partida; si aún no ha llegado, la carta enseña el círculo "Pas". Magnet = `custom-assets/image/magnetpng.png` (`UI_IMAGES`, clave `card.magnet`).
 - `?debug=stones`: las cartas ofrecen todas las pasivas que no estén al máximo.
 - Fuera: `strRequired` / `intRequired` / `stat` / `required` de armas, hechizos y armaduras, `utils/requirements.ts` y `REQ_SCALE`. `runSprites` ya no descarga todas las armas y armaduras de la clase.
+
+## Hechizos equipables del Mago (Fase 20D)
+- Huecos `spell1` (automático, círculos 1–5: `AUTO_SPELL_IDS` en `data/spells.ts`) y `spell2` (activo, círculos 6–10: `ACTIVE_SPELLS` en `data/activeSpells.ts`). Son `ItemId` como las armas: `itemInfo`, `catalog`, `canEquip` y `readEquipment` de `data/items.ts` los tratan igual. Nunca se quedan vacíos (`canEmptySlot`): un Mago guardado de antes recibe los de salida al leerse, sin cambiar la versión del guardado.
+- Requisito: la **Int** del original (`int` y `circle` en cada hechizo; círculo = id de `Magic.cfg` / 10 + 1). Los de salida (Energy Bolt y Energy Strike) no piden nada (`FREE_SPELLS`). `EquipRequirement.str` pasa a opcional.
+- Activos de dos tipos (`kind`): `'meteor'` (Meteor Strike, como en el 19B) y `'barrage'`: `WeaponSystem.castBarrage` lanza `shots` proyectiles del hechizo `shot` de `data/spells.ts` alrededor del punto. El daño es el del proyectil × `damageScale` × el multiplicador de Power (`Projectile.damageScale`, con números grandes por `fromSkill`). Energy Strike y Mass Fire Strike siguen en `SPELLS` solo como proyectil.
+- Solo Meteor descarga sprite propio al empezar (`createActiveSpell`); los de ráfaga usan `effect.spr`, ya cargado, y están listos al momento.
+- La vibración del activo se llama ahora `activeSpell` en `GAMEPAD_RUMBLE` (antes `meteorStrike`). Se dispara con la primera explosión de la ráfaga que toca un monstruo.
+- Partida guardada: `activeSpell` junto a `spell`. Al continuar con un personaje guardado mandan el arma y los hechizos que lleva **ahora** (se pueden cambiar en Equipment con la partida a medias: Select Character continúa la partida al elegirlo). Solo las partidas sin personaje (atajos de prueba) recuperan los suyos.
+- Pruebas: `check equipmentmage` (Kaila, ejemplo, Level 25 con Int 86), `check activespell` y el atajo `?spells=fireBall,meteorStrike` (cualquier orden, sin mirar requisitos). Partida simulada con Energy Strike: Power 27 y jefe final muerto a las 13:54, como con Meteor.
+- Los hechizos aún no tienen dibujo: la casilla de la pantalla Equipment lleva el nombre (`EQUIPMENT_SPELL_NAME_STYLE`).

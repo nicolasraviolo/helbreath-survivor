@@ -5,10 +5,10 @@
 - 17-oct-2026: 7 Oleadas, jefes y final · 8 Menús y personajes (solo menús; Arquero aplazado) · 9 Web, móvil y publicación · 10 Pulido (10A–10C).
 - 18-oct-2026: 11 Pulido de interfaz · 12 Móvil sin pérdidas (12A–12C) · 13 Jefe final y equilibrio (13A–13C) · 14 Métricas y logros (14A–14B) · 15 Apuntado híbrido (15A–15C) · 16 Minimapa y tótems (16A–16B) · 17 Selección de personaje (17A–17B) · 18 Esquiva y resistencia mágica (18A–18B).
 - 19-oct-2026: 19 Crits y habilidad activa (19A–19C).
-- 🔄 **20 — Level y equipo:** en curso (20A, 20B y 20C hechos, 19-oct-2026).
+- 🔄 **20 — Level y equipo:** en curso (20A–20D hechos, 19-oct-2026).
 
 ## Fase actual
-**Fase 20, bloques 20A, 20B y 20C hechos** en la rama `fase-20` (sin fusionar). **Siguiente:** `/fase 20` → **20D**: 2 hechizos equipables del Mago en Equipment (automático + activo; hoy su hechizo es fijo y las cartas ya no lo mejoran), con requisito de Int y Level (`docs/PLAN-2.md`). Después, cerrar la fase con `/checkpoint fase`.
+**Fase 20, bloques 20A–20D hechos** en la rama `fase-20` (sin fusionar). **Siguiente:** cerrar la fase (`/checkpoint fase`) y luego `/fase 21` (botín y baúl, `docs/PLAN-2.md`).
 - **Pendiente:** que el propietario pruebe con su mando real la vibración y el stick derecho (apuntar).
 - **Ideas sin fecha:** monstruos al azar como evento especial; jefes más difíciles de esquivar (mínimo de acierto propio, nota en `data/defense.ts`).
 
@@ -16,7 +16,7 @@
 - Level y Power: `data/characterLevel.ts`, `scenes/CharacterInfoScene.ts`. Ver NOTES.md, "Ventana Character y Level permanente".
 - Equipo: `data/items.ts` (huecos, catálogo, requisitos), `scenes/EquipmentScene.ts`. Ver NOTES.md, "Equipo y pantalla Equipment".
 - Cartas: stat o pasiva (Xelima, Merien, Magnet) en `systems/UpgradePool.ts` y `data/passives.ts`; `?debug=stones`. Ver NOTES.md, "Cartas de Power (Fase 20C)".
-- Hechizos activos: `data/activeSpells.ts` (en el 20D, equipables); Meteor usa la esfera del crit hasta tener icono. Ver NOTES.md, "Meteor Strike".
+- Hechizos del Mago: automáticos (círculos 1–5) en `data/spells.ts`, activos (6–10, meteorito o ráfaga) en `data/activeSpells.ts`; huecos `spell1`/`spell2` en `data/items.ts`. Usan la esfera del crit hasta tener icono. Ver NOTES.md, "Hechizos equipables del Mago (Fase 20D)" y "Meteor Strike".
 - Crit y mando: `systems/CritStrikeSystem.ts`, `systems/Rumble.ts`. Ver NOTES.md, "Critical Strike (Fase 19A)" y "Vibración del mando".
 - Apuntado: todo pasa por `systems/Targeting.ts`. Ver NOTES.md, "Apuntado automático", "Apuntado manual" y "Stick de apuntar en el móvil".
 - Esquiva y resistencia: `data/defense.ts`. Ver NOTES.md, "Esquiva física" y "Resistencia mágica".
@@ -37,18 +37,19 @@
 - Puntos: 3 por Level, ninguno al crear; se reparten **solo** en la ventana Character ("Level Set." o C). En partida, C pausa y solo se mira.
 - Esquiva y resistencia: siempre **% generales**, nunca contra un monstruo; esquiva sin "Miss", resistencia con "Resist".
 - Una partida guardada por personaje (4 huecos).
-- Equipo: catálogo libre hasta la Fase 21; requisitos del original con stats **permanentes** y Level.
+- Equipo: catálogo libre hasta la Fase 21; requisitos del original con stats **permanentes** y Level (hechizos: solo Int). Al continuar una partida mandan el arma y los hechizos equipados ahora.
 - El resto de decisiones, con fecha: `docs/DECISIONES.md` (grep por fase o tema).
 
 ## Cómo probar
 - Jugar: `pnpm --dir survivors dev` → http://localhost:8090
-- Comprobar: `pnpm --dir survivors check [situaciones] [--mobile]` → escenas, FPS, estado, errores y captura en `survivors/.check/`. Situaciones: `menu`, `news` (What's new), `settings`, `controls`, `game`, `minimap`, `achievements` (con `--cards`: desde cero hasta nivel 21), `achievementlist`, `levelup`, `boss`, `finalboss`, `portal`, `stampede`, `horde`, `pickups`, `totems`, `slots` (dos personajes de ejemplo), `slotsempty`, `crit` (Guerrero con horda y crits infinitos; `--eval="g.launchCritStrike()"`), `charinfo` / `charinfogame` (ventana Character en menú / en partida), `equipment` (pantalla Equipment de Gorn), `charexp` (fin con EXP ×50: `--eval="g.endRun(false)"`), `levelpace` (partida simulada rápida: nivel por minuto, vida de cada jefe y su golpe más fuerte; informe en `.check/levelpace.json`) o atajos a mano (`"play=warrior&debug=str,levels"`).
+- Comprobar: `pnpm --dir survivors check [situaciones] [--mobile]` → escenas, FPS, estado, errores y captura en `survivors/.check/`. Situaciones: `menu`, `news` (What's new), `settings`, `controls`, `game`, `minimap`, `achievements` (con `--cards`: desde cero hasta nivel 21), `achievementlist`, `levelup`, `boss`, `finalboss`, `portal`, `stampede`, `horde`, `pickups`, `totems`, `slots` (dos personajes de ejemplo), `slotsempty`, `crit` (Guerrero con horda y crits infinitos; `--eval="g.launchCritStrike()"`), `charinfo` / `charinfogame` (ventana Character en menú / en partida), `equipment` (pantalla Equipment de Gorn), `equipmentmage` (la de Kaila, Int 86), `activespell` (Maga con horda y activo sin recarga; `--eval="g.launchCritStrike()"`), `charexp` (fin con EXP ×50: `--eval="g.endRun(false)"`), `levelpace` (partida simulada rápida: nivel por minuto, vida de cada jefe y su golpe más fuerte; informe en `.check/levelpace.json`) o atajos a mano (`"play=warrior&debug=str,levels"`).
 - Opciones del check: `--eval="g.enemies.alive"` escribe cualquier dato (g = escena Game; si es una promesa, se espera); `--wait=5000` deja correr más; `--cards` elige la primera carta en cada subida.
 - Atajos en la dirección (solo desarrollo, `src/config/debugStart.ts`):
   - `?play`, `?play=warrior`, `?ui=compact` (interfaz de móvil), `?trees=off`, `?metrics=send` (envía la partida de verdad).
-  - `?debug=boss,god`; acciones: horde, kill, levelup, levels, str, magic, pickups, totems, minute, boss, finalboss, bosskill, stampede, god, crits (infinitos, tecla H), stones (cartas de Xelima, Merien y Magnet), dodge (mejor armadura de la clase), stats (panel abierto), aim (apuntar a la derecha), aimstick (dedo falso en el stick, con `--mobile`), resume (guardar y recargar como Continue), sim (partida simulada), charexp (EXP ×50).
-  - `?open=howtoplay` (también settings, controls, credits, achievements, select, slots, charinfo, equipment, releasenotes).
-  - `?achievements=reset|all`; `?characters=reset|demo` (demo: dos de ejemplo, Gorn con 60.000 EXP; con `?play=warrior` juega Gorn).
+  - `?debug=boss,god`; acciones: horde, kill, levelup, levels, str, magic, pickups, totems, minute, boss, finalboss, bosskill, stampede, god, crits (infinitos, tecla H; también el activo del Mago sin recarga), stones (cartas de Xelima, Merien y Magnet), dodge (mejor armadura de la clase), stats (panel abierto), aim (apuntar a la derecha), aimstick (dedo falso en el stick, con `--mobile`), resume (guardar y recargar como Continue), sim (partida simulada), charexp (EXP ×50).
+  - `?open=howtoplay` (también settings, controls, credits, achievements, select, slots, charinfo, equipment, releasenotes); `?open=equipment&class=mage` abre la de la Maga.
+  - `?spells=fireBall,meteorStrike`: hechizos del Mago en esa partida, sin requisitos.
+  - `?achievements=reset|all`; `?characters=reset|demo` (demo: dos de ejemplo, Gorn con 60.000 EXP y Kaila Level 25 con Int 86; con `?play=warrior` juega Gorn).
 - Teclas en partida: F1 panel · G invencible · N enemigos · L niveles · J +1 minuto, entre otras (`systems/InputSystem.ts`).
 - App instalable: solo en el build (`survivors/pwa/`). `pnpm build` y `pnpm preview` → http://localhost:4173.
 - Visor de sprites (desarrollo): http://localhost:8090/sprites.html → todos los `.spr` por categorías, animados, con armas y armaduras sobre el cuerpo. Enlaces: `#weapons`, `#item/Long%20Sword`, `#file/orc/4`.

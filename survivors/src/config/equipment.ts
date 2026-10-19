@@ -53,6 +53,8 @@ export const EQUIPMENT_OK = { texture: getSheetKey('ui.buttons', 1), frame: 0, l
 
 export const EQUIPMENT_TITLE_STYLE = { ...UI_TEXT, fontSize: byDevice('18px', '21px'), fontStyle: 'bold', color: '#e8c060' } as const;
 export const EQUIPMENT_LABEL_STYLE = { ...UI_TEXT, fontSize: byDevice('11px', '13px'), color: '#c8b88a' } as const;
+/** Spell name written inside its slot box (spells have no picture yet, Fase 20D). */
+export const EQUIPMENT_SPELL_NAME_STYLE = { ...UI_TEXT, fontSize: byDevice('10px', '12px'), color: '#e8d9a8', align: 'center' } as const;
 export const EQUIPMENT_ROW_STYLE = { ...UI_TEXT, fontSize: byDevice('15px', '17px'), color: '#e8d9a8' } as const;
 export const EQUIPMENT_DETAIL_STYLE = { ...UI_TEXT, fontSize: byDevice('13px', '15px'), color: '#b8a878' } as const;
 /** Requirement not met. */

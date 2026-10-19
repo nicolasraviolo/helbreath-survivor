@@ -17,18 +17,23 @@
 //                                con ?characters=demo juega el personaje de ejemplo de esa clase)
 //                      stones = las cartas ofrecen siempre las pasivas (Xelima, Merien, Magnet) que no estén al máximo (Fase 20C)
 //                      sim = partida simulada muy deprisa para medir el equilibrio (systems/SimRun.ts, Fase 13C)
+//   ?spells=fireBall,meteorStrike → hechizos del Mago en esta partida (uno automático y/o uno activo, en cualquier
+//                      orden; los ids de data/spells.ts y data/activeSpells.ts), sin mirar requisitos (Fase 20D)
 //   ?trees=off       → árboles grandes en ese modo solo en esta partida (on, off), sin guardarlo
 //   ?open=howtoplay  → abre esa pantalla de los menús (howtoplay, settings, controls = Settings → Controls, credits, releasenotes = novedades, achievements, select = selección de personaje)
 //   ?open=slots      → abre la pantalla de los 4 personajes guardados (Fase 17A)
 //   ?open=charinfo   → Select Character con la ventana Character abierta (Fase 20A), del primer personaje con puntos
-//   ?open=equipment  → Select Character con la pantalla Equipment abierta (Fase 20B), del Guerrero (o el primero)
+//   ?open=equipment  → Select Character con la pantalla Equipment abierta (Fase 20B), del Guerrero (o el primero;
+//                      con &class=mage, de la Maga)
 //                      sin repartir (o del primero); con ?characters=demo, Gorn tiene puntos
 //   ?characters=reset → borra los personajes guardados al cargar (demo = deja dos de ejemplo; Fase 17A)
 //   ?achievements=reset → borra los logros conseguidos al cargar (all = los da todos, para ver la pantalla llena; Fase 14B)
 //   ?metrics=send    → enviar las métricas de esta partida al servidor de verdad (en desarrollo no se envían; Fase 14A)
 //   Se combina con ?ui=compact (interfaz de móvil).
 // En el build publicado no hace nada.
+import { isActiveSpellId, type ActiveSpellId } from '../data/activeSpells';
 import { isCharacterId, type CharacterId } from '../data/characters';
+import { isAutoSpellId, type AutoSpellId } from '../data/spells';
 import { TREE_MODES, type TreeMode } from './settings';
 
 /** Menu screens that ?open= shows straight away, and the scene of each one. */
@@ -64,10 +69,17 @@ interface DebugStart {
     characters: 'reset' | 'demo' | undefined;
     /** Send this run's anonymous stats even in development. */
     sendMetrics: boolean;
+    /** The Mage's spells for the run, instead of the equipped ones. */
+    spells: { auto: AutoSpellId | undefined; active: ActiveSpellId | undefined };
+    /** Class whose Equipment screen ?open=equipment shows (?class=mage; the Warrior if none). */
+    openClass: CharacterId | undefined;
 }
 
 function readDebugStart(): DebugStart {
-    const none: DebugStart = { play: false, character: undefined, actions: [], trees: undefined, open: undefined, achievements: undefined, characters: undefined, sendMetrics: false };
+    const none: DebugStart = {
+        play: false, character: undefined, actions: [], trees: undefined, open: undefined, achievements: undefined, characters: undefined,
+        sendMetrics: false, spells: { auto: undefined, active: undefined }, openClass: undefined,
+    };
     if (!import.meta.env.DEV) return none;
     const params = new URLSearchParams(window.location.search);
     const play = params.get('play');
@@ -76,6 +88,8 @@ function readDebugStart(): DebugStart {
     const characters = params.get('characters');
     const trees = TREE_MODES.find((mode) => mode === params.get('trees'));
     const actions = (params.get('debug') ?? '').split(',').map((a) => a.trim()).filter(isDebugAction);
+    const spells = (params.get('spells') ?? '').split(',').map((s) => s.trim());
+    const openClass = params.get('class');
     return {
         play: play !== null || actions.length > 0 || trees !== undefined,
         character: isCharacterId(play) ? play : undefined,
@@ -85,6 +99,8 @@ function readDebugStart(): DebugStart {
         achievements: achievements === 'reset' || achievements === 'all' ? achievements : undefined,
         characters: characters === 'reset' || characters === 'demo' ? characters : undefined,
         sendMetrics: params.get('metrics') === 'send',
+        spells: { auto: spells.find(isAutoSpellId), active: spells.find(isActiveSpellId) },
+        openClass: isCharacterId(openClass) ? openClass : undefined,
     };
 }
 

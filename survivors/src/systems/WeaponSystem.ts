@@ -2,14 +2,15 @@
 // y lanza las explosiones (algunas con retraso, como Fire Strike), cuyo daño aplica CombatSystem una sola vez.
 // También los tajos cuerpo a cuerpo (animación, estela y daño) y el Critical Strike del Guerrero (Fase 19A): un golpe de
 // área inmediato cuya forma depende de la familia del arma (data/critStrike.ts); lo pide systems/CritStrikeSystem.ts.
-// Y el meteorito del hechizo activo del Mago (Fase 19B, data/activeSpells.ts); lo pide systems/ActiveSpellSystem.ts.
+// Y los hechizos activos del Mago (Fase 19B y 20D, data/activeSpells.ts): el meteorito o una ráfaga de proyectiles;
+// los pide systems/ActiveSpellSystem.ts.
 import Phaser from 'phaser';
 import { MELEE_ORIGIN_OFFSET_Y } from '../config/gameConfig';
 import { SWING_SOUND_MS } from '../data/audio';
 import type { EffectKey } from '../config/effects';
-import { CAST_SOUND, type SpellBurst, type SpellDef } from '../data/spells';
+import { CAST_RELEASE_MOMENT, CAST_SOUND, SPELLS, type SpellBurst, type SpellDef } from '../data/spells';
 import { critReach, type CritShape } from '../data/critStrike';
-import { METEOR_LOOK, type ActiveSpellDef } from '../data/activeSpells';
+import { METEOR_LOOK, type BarrageSpellDef, type MeteorSpellDef } from '../data/activeSpells';
 import { MELEE_HIT_MOMENT, MELEE_HIT_SOUND, MELEE_SWING_SOUND, type MeleeWeaponDef } from '../data/weapons';
 import { Effect } from '../entities/Effect';
 import type { Enemy } from '../entities/Enemy';
@@ -50,9 +51,11 @@ export class WeaponSystem {
     private readonly finishedBursts: PendingBurst[] = [];
     private readonly targeting: Targeting;
     /** Critical Strike under way: blows still to land (axes spin twice) and when the next one lands. */
-    /** Fase 19C: the Critical Strike or the Meteor Strike hit at least one monster (once per launch; the gamepad vibrates). */
-    public onSkillHit: ((skill: 'critStrike' | 'meteorStrike') => void) | undefined;
+    /** Fase 19C: the Critical Strike or the Mage's active spell hit at least one monster (once per launch; the gamepad vibrates). */
+    public onSkillHit: ((skill: 'critStrike' | 'activeSpell') => void) | undefined;
     private readonly strike = { hitsLeft: 0, landed: false, waitMs: 0, angle: 0, radius: 0, arc: 0, damage: 0, knockback: 0, repeatMs: 0, swingMs: 0 };
+    /** Active spell barrage under way (Fase 20D): shots still to throw around (x, y), and when the next one goes. */
+    private readonly barrage = { def: undefined as BarrageSpellDef | undefined, shotsLeft: 0, waitMs: 0, x: 0, y: 0, damageScale: 1, landed: false };
     /** Plays the owner's swing or cast animation (set by the game scene). */
     private onOwnerAction: (action: OwnerAction, angle: number, durationMs: number) => void = () => undefined;
 
@@ -187,10 +190,27 @@ export class WeaponSystem {
     }
 
     /** Meteor Strike (Fase 19B): a meteor starts falling on (x, y); it explodes in update() when it lands. */
-    public castMeteor(def: ActiveSpellDef, powerMultiplier: number, x: number, y: number): void {
+    public castMeteor(def: MeteorSpellDef, powerMultiplier: number, x: number, y: number): void {
         this.onOwnerAction('cast', Math.atan2(y - this.context.y, x - this.context.x), def.castMs);
         if (def.castSound) this.audio.play(def.castSound);
         this.meteors.acquire().launch(def, powerMultiplier, x, y);
+    }
+
+    /**
+     * Barrage (Fase 20D, Energy Strike / Mass Fire Strike): the cast animation, then `shots` projectiles of its spell to
+     * random points around (x, y), each one's damage × `damageScale` × `powerMultiplier`, every number big.
+     */
+    public castBarrage(def: BarrageSpellDef, powerMultiplier: number, x: number, y: number): void {
+        this.onOwnerAction('cast', Math.atan2(y - this.context.y, x - this.context.x), def.castMs);
+        this.audio.play(CAST_SOUND, def.castMs);
+        const barrage = this.barrage;
+        barrage.def = def;
+        barrage.shotsLeft = def.shots;
+        barrage.waitMs = def.castMs * CAST_RELEASE_MOMENT;
+        barrage.x = x;
+        barrage.y = y;
+        barrage.damageScale = def.damageScale * powerMultiplier;
+        barrage.landed = false;
     }
 
     public setCooldownMultiplier(value: number): void {
@@ -213,7 +233,7 @@ export class WeaponSystem {
                 ? (this.enemies.isTouching(projectile.target, projectile.x, projectile.y, radius) ? projectile.target : undefined)
                 : this.enemies.findTouching(projectile.x, projectile.y, radius);
             if (hit || !stillFlying) {
-                this.explode(projectile.def, projectile.x, projectile.y, hit);
+                this.explode(projectile, hit);
                 projectile.deactivate();
                 this.finishedProjectiles.push(projectile);
             }
@@ -233,6 +253,7 @@ export class WeaponSystem {
         for (const meteor of this.finishedMeteors) this.meteors.release(meteor);
         this.finishedMeteors.length = 0;
         this.updateStrike(deltaMs);
+        this.updateBarrage(deltaMs);
         this.slash.update(deltaMs);
         for (const pending of this.bursts.active) {
             pending.waitMs -= deltaMs;
@@ -285,6 +306,30 @@ export class WeaponSystem {
         }
     }
 
+    /** Throws the shots of the barrage when their time comes, from the Mage's hands to around the chosen point. */
+    private updateBarrage(deltaMs: number): void {
+        const barrage = this.barrage;
+        const def = barrage.def;
+        if (!def || barrage.shotsLeft <= 0) return;
+        barrage.waitMs -= deltaMs;
+        while (barrage.shotsLeft > 0 && barrage.waitMs <= 0) {
+            barrage.shotsLeft--;
+            barrage.waitMs += def.shotIntervalMs;
+            const shot: SpellDef = SPELLS[def.shot];
+            const angle = Math.random() * Math.PI * 2;
+            const distance = Math.sqrt(Math.random()) * def.scatterRadius;
+            const toX = barrage.x + Math.cos(angle) * distance;
+            const toY = barrage.y + Math.sin(angle) * distance;
+            const { x } = this.context;
+            const fromY = this.context.y - shot.originOffsetY;
+            const projectile = this.projectiles.acquire();
+            projectile.launch(shot, x, fromY, toX, toY, Phaser.Math.Distance.Between(x, fromY, toX, toY));
+            projectile.damageScale = barrage.damageScale;
+            projectile.fromSkill = true;
+            if (shot.castSound) this.audio.play(shot.castSound);
+        }
+    }
+
     /** The meteor landed: its three explosions at once, a big shake and the damage, every number big. */
     private landMeteor(meteor: Meteor): void {
         const { def, targetX: x, targetY: y } = meteor;
@@ -295,11 +340,7 @@ export class WeaponSystem {
         }
         this.audio.play(def.impactSound);
         this.screenShake.shake(def.shakePx, def.shakeMs);
-        let touched = false;
-        this.enemies.forEachInRadius(x, y, def.areaRadius, () => {
-            touched = true;
-        });
-        if (touched) this.onSkillHit?.('meteorStrike');
+        if (this.touchesAny(x, y, def.areaRadius)) this.onSkillHit?.('activeSpell');
         this.combat.hitArea({
             damageType: 'magic',
             x,
@@ -314,7 +355,8 @@ export class WeaponSystem {
     }
 
     /** Impact: the damage lands once; the explosions are drawn now or after their delay. */
-    private explode(def: SpellDef, x: number, y: number, direct: Enemy | undefined): void {
+    private explode(projectile: Projectile, direct: Enemy | undefined): void {
+        const { def, x, y, damageScale, fromSkill } = projectile;
         // The original hit spark on the enemy the spell hits, as with the melee blows.
         if (direct?.isAlive) this.spawnEffect('fx.hit', direct.x, direct.bodyY);
         for (const burst of def.bursts) {
@@ -333,12 +375,26 @@ export class WeaponSystem {
             x,
             y,
             radius: def.areaRadius,
-            areaDamage: def.areaDamage,
+            areaDamage: def.areaDamage * damageScale,
             direct,
-            directDamage: def.directDamage,
+            directDamage: def.directDamage * damageScale,
             knockback: def.knockback,
+            bigNumbers: fromSkill,
         });
+        // The first shot of a barrage that touches a monster: the gamepad vibrates once per cast.
+        if (fromSkill && !this.barrage.landed && this.touchesAny(x, y, def.areaRadius)) {
+            this.barrage.landed = true;
+            this.onSkillHit?.('activeSpell');
+        }
         if (critical && def.impactShakePx) this.screenShake.criticalExplosion(def.impactShakePx);
+    }
+
+    private touchesAny(x: number, y: number, radius: number): boolean {
+        let touched = false;
+        this.enemies.forEachInRadius(x, y, radius, () => {
+            touched = true;
+        });
+        return touched;
     }
 
     private drawBurst(burst: SpellBurst, x: number, y: number): void {

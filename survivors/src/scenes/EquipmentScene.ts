@@ -1,9 +1,10 @@
 // Pantalla Equipment (Fase 20B; medidas en config/equipment.ts). Se abre desde Select Character (botón "Equipment",
 // tecla I o X del mando) con el personaje marcado:
 // - Izquierda: la ventana Character original con el muñeco vestido con su equipo, su Level y sus stats permanentes.
-// - Derecha: los huecos (arma, escudo, casco, armadura, pantalones, botas y capa; debajo, apagados, los que llegarán:
-//   hechizos, anillo, collar, ángel, Zem y Abaddon's Blood) y la lista de objetos del hueco elegido (data/items.ts).
-//   Cada objeto enseña su requisito; en rojo lo que el personaje no cumple, y entonces no se puede poner.
+// - Derecha: los huecos (arma, escudo, casco, armadura, pantalones, botas y capa; debajo, los 2 hechizos del Mago,
+//   Fase 20D, y apagados los que llegarán: anillo, collar, ángel, Zem y Abaddon's Blood) y la lista de objetos del hueco
+//   elegido (data/items.ts). Cada objeto enseña su requisito; en rojo lo que el personaje no cumple, y entonces no se
+//   puede poner. Los hechizos aún no tienen dibujo: su casilla lleva el nombre.
 // - Ponerse o quitarse algo se guarda al momento (characterStore.equip). Ok, Esc o B cierran.
 // Teclado y mando: izquierda/derecha eligen hueco, abajo entra en la lista, Enter / A se pone el objeto marcado.
 import Phaser from 'phaser';
@@ -33,11 +34,13 @@ import {
     EQUIPMENT_PANEL,
     EQUIPMENT_ROW_STYLE,
     EQUIPMENT_SLOTS,
+    EQUIPMENT_SPELL_NAME_STYLE,
     EQUIPMENT_TITLE_STYLE,
     EQUIPMENT_UNMET_COLOR,
     itemPackTexture,
 } from '../config/equipment';
 import { GAME_HEIGHT, GAME_WIDTH } from '../config/gameConfig';
+import { ACTIVE_SPELLS, activeSpellCooldownMs, isActiveSpellId } from '../data/activeSpells';
 import { ARMOR_PIECES } from '../data/armor';
 import { totalExpForLevel, CHARACTER_LEVEL_MAX } from '../data/characterLevel';
 import { CHARACTERS } from '../data/characters';
@@ -48,13 +51,17 @@ import {
     EQUIP_SLOT_IDS,
     EQUIP_SLOT_NAMES,
     FUTURE_SLOT_NAMES,
+    GEAR_SLOT_IDS,
     isMeleeWeaponId,
+    isSpellItemId,
+    SPELL_SLOT_IDS,
     itemIcon,
     itemInfo,
     requirementChecks,
     type EquipSlotId,
     type ItemId,
 } from '../data/items';
+import { SPELLS } from '../data/spells';
 import { STAT_IDS } from '../data/stats';
 import { getMeleeWeapon } from '../data/weapons';
 import { CharacterSprite } from '../entities/CharacterSprite';
@@ -86,7 +93,7 @@ export class EquipmentScene extends Phaser.Scene {
     private openedAt = 0;
     private slot: EquipSlotId = 'weapon';
     private focus: Focus = { kind: 'slot' };
-    private slotBoxes = new Map<EquipSlotId, { box: Phaser.GameObjects.Rectangle; icon: Phaser.GameObjects.Image }>();
+    private slotBoxes = new Map<EquipSlotId, { box: Phaser.GameObjects.Rectangle; icon: Phaser.GameObjects.Image; name: Phaser.GameObjects.Text }>();
     private rows: Row[] = [];
     private doll: CharacterSprite | undefined;
     private okButton!: Phaser.GameObjects.Image;
@@ -130,7 +137,7 @@ export class EquipmentScene extends Phaser.Scene {
         this.focusFrame = this.add.rectangle(0, 0, 1, 1).setOrigin(0).setStrokeStyle(2, EQUIPMENT_LIST.focusColor).setDepth(2);
         const bottom = y + CHARACTER_INFO_SIZE.height * CHARACTER_INFO_SCALE;
         this.helpText = this.add.text(x + (CHARACTER_INFO_SIZE.width * CHARACTER_INFO_SCALE) / 2, bottom + CHARACTER_INFO_HELP_GAP, '', {
-            ...CHARACTER_INFO_HELP_STYLE, wordWrap: { width: GAME_WIDTH - 24 },
+            ...CHARACTER_INFO_HELP_STYLE, align: 'center', wordWrap: { width: CHARACTER_INFO_SIZE.width * CHARACTER_INFO_SCALE },
         }).setOrigin(0.5, 0);
 
         this.inputSystem = new InputSystem(this);
@@ -214,7 +221,7 @@ export class EquipmentScene extends Phaser.Scene {
 
     private slotPosition(index: number, row: number): { x: number; y: number } {
         const s = EQUIPMENT_SLOTS;
-        const count = EQUIP_SLOT_IDS.length;
+        const count = GEAR_SLOT_IDS.length;
         const rowWidth = count * s.size + (count - 1) * s.gap;
         return {
             x: EQUIPMENT_PANEL.x + (EQUIPMENT_PANEL.width - rowWidth) / 2 + index * (s.size + s.gap),
@@ -225,10 +232,17 @@ export class EquipmentScene extends Phaser.Scene {
     private createSlots(): void {
         const s = EQUIPMENT_SLOTS;
         const character = this.character;
-        EQUIP_SLOT_IDS.forEach((slot, i) => {
-            const { x, y } = this.slotPosition(i, 0);
+        // Gear on the first row; the spells start the second one, before the slots still to come.
+        const places: Array<[EquipSlotId, number, number]> = [
+            ...GEAR_SLOT_IDS.map((slot, i): [EquipSlotId, number, number] => [slot, i, 0]),
+            ...SPELL_SLOT_IDS.map((slot, i): [EquipSlotId, number, number] => [slot, i, 1]),
+        ];
+        for (const [slot, index, row] of places) {
+            const { x, y } = this.slotPosition(index, row);
             const box = this.add.rectangle(x, y, s.size, s.size, s.background).setOrigin(0).setStrokeStyle(2, s.border);
             const icon = this.add.image(x + s.size / 2, y + s.size / 2, '__DEFAULT').setVisible(false);
+            const name = this.add.text(x + s.size / 2, y + s.size / 2, '', { ...EQUIPMENT_SPELL_NAME_STYLE, wordWrap: { width: s.size - 4 } })
+                .setOrigin(0.5);
             const label = this.slotLabel(x, y, EQUIP_SLOT_NAMES[slot]);
             if (character && !canChangeSlot(character.classId, slot)) {
                 box.setAlpha(s.futureAlpha);
@@ -240,10 +254,10 @@ export class EquipmentScene extends Phaser.Scene {
                 this.showSlot(slot);
                 this.setFocus({ kind: 'slot' });
             });
-            this.slotBoxes.set(slot, { box, icon });
-        });
+            this.slotBoxes.set(slot, { box, icon, name });
+        }
         FUTURE_SLOT_NAMES.forEach((name, i) => {
-            const { x, y } = this.slotPosition(i, 1);
+            const { x, y } = this.slotPosition(SPELL_SLOT_IDS.length + i, 1);
             this.add.rectangle(x, y, s.size, s.size, s.background).setOrigin(0).setStrokeStyle(2, s.border).setAlpha(s.futureAlpha);
             this.slotLabel(x, y, name).setAlpha(s.futureAlpha);
         });
@@ -260,9 +274,10 @@ export class EquipmentScene extends Phaser.Scene {
     private refreshSlotIcons(): void {
         const character = this.character;
         if (!character) return;
-        for (const [slot, { icon }] of this.slotBoxes) {
+        for (const [slot, { icon, name }] of this.slotBoxes) {
             const id = character.equipment[slot];
             this.setIcon(icon, id, EQUIPMENT_SLOTS.iconSize);
+            name.setText(id && isSpellItemId(id) ? (itemInfo(id)?.name ?? '') : '');
         }
     }
 
@@ -368,7 +383,9 @@ export class EquipmentScene extends Phaser.Scene {
         if (!character) return '';
         if (this.focus.kind === 'ok') return 'Your equipment is saved as you change it.';
         if (this.focus.kind === 'slot') {
-            if (!canChangeSlot(character.classId, this.slot)) return 'The Mage fights with spells: the wand stays in hand.';
+            if (!canChangeSlot(character.classId, this.slot)) {
+                return this.slot === 'weapon' ? 'The Mage fights with spells: the wand stays in hand.' : 'Only the Mage casts spells.';
+            }
             const id = character.equipment[this.slot];
             return `${EQUIP_SLOT_NAMES[this.slot]}: ${id ? (itemInfo(id)?.name ?? id) : 'nothing'}.`;
         }
@@ -440,8 +457,17 @@ export class EquipmentScene extends Phaser.Scene {
     }
 }
 
-/** What an item gives, in a few words ("Damage 35", "Defense 14%, Magic resistance 8"). */
+/** What an item gives, in a few words ("Damage 35", "Defense 14%, Magic resistance 8", "Circle 3, casts itself"). */
 function describeItem(id: ItemId): string {
+    if (isActiveSpellId(id)) {
+        const def = ACTIVE_SPELLS[id];
+        return `Circle ${def.circle}, skill button, ${Math.round(activeSpellCooldownMs(def, 0) / 1000)} s recharge (less with Mag)`;
+    }
+    if (isSpellItemId(id)) {
+        const spell = SPELLS[id];
+        const shots = spell.shots > 1 ? ` ×${spell.shots}` : '';
+        return `Circle ${spell.circle}, casts itself, damage ${spell.directDamage} + ${spell.areaDamage} area${shots}`;
+    }
     if (isMeleeWeaponId(id)) return `Damage ${getMeleeWeapon(id).damage}`;
     const piece = ARMOR_PIECES[id];
     const parts = [`Defense ${Math.round(piece.defense * 100)}%`];

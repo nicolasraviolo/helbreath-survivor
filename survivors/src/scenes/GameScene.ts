@@ -15,7 +15,7 @@ import {
 import { TOUCH_AIM_STICK, TOUCH_AIM_ZONE_START, TOUCH_JOYSTICK, TOUCH_RESERVED_CORNER } from '../config/touch';
 import { ANNOUNCE_EVENT, QUIT_RUN_EVENT } from '../config/hud';
 import { getArmorPiece } from '../data/armor';
-import { isArmorPieceId, isMeleeWeaponId, START_EQUIPMENT } from '../data/items';
+import { isArmorPieceId, isMeleeWeaponId, START_EQUIPMENT, type SavedEquipment } from '../data/items';
 import { MUSIC } from '../data/audio';
 import { PORTAL, type WaveEventDef } from '../data/waves';
 import type { Enemy } from '../entities/Enemy';
@@ -30,7 +30,7 @@ import { DEFAULT_MAP, MAPS_DATA, type MapId } from '../data/maps';
 import { AUTOSAVE_EVERY_MS, RESUME_CALM_MS } from '../data/saves';
 import { STAT_IDS, type Stats } from '../data/stats';
 import type { MeleeWeaponId } from '../data/weapons';
-import type { SpellId } from '../data/spells';
+import { isAutoSpellId, type AutoSpellId } from '../data/spells';
 import { RESUME_SLOT_KEY, saveStore, type RunSnapshot } from '../systems/SaveStore';
 import { ACTIVE_CHARACTER_KEY, characterStore, permanentStats } from '../systems/CharacterStore';
 import { lookLoader, runSprites } from '../systems/LookLoader';
@@ -72,7 +72,7 @@ import { WeaponSystem } from '../systems/WeaponSystem';
 import { CritStrikeSystem } from '../systems/CritStrikeSystem';
 import { maxCritCharges } from '../data/critStrike';
 import { ActiveSpellSystem } from '../systems/ActiveSpellSystem';
-import { DEFAULT_ACTIVE_SPELL } from '../data/activeSpells';
+import { DEFAULT_ACTIVE_SPELL, isActiveSpellId, type ActiveSpellId } from '../data/activeSpells';
 import { registerEffectAnimations } from '../config/effects';
 import type { SkillOrb } from '../ui/hudLayout';
 import { XpSystem } from '../systems/XpSystem';
@@ -293,7 +293,7 @@ export class GameScene extends Phaser.Scene {
             if (!this.sim) this.rumble.play(GAMEPAD_RUMBLE[skill]);
         };
         this.critStrike = new CritStrikeSystem(this.weapons, this.audio, this.screenShake);
-        this.activeSpell = this.createActiveSpell();
+        this.activeSpell = this.createActiveSpell(startSpells(startEquipment).active);
         this.aimArrow = new AimArrow(this);
         this.buffs = new BuffSystem(this, this.player, this.audio, (key, x, y) => this.weapons.spawnEffect(key, x, y));
         this.totems = new TotemSystem(this, map, areaPx, this.audio, (id) => this.collectTotem(id));
@@ -335,7 +335,9 @@ export class GameScene extends Phaser.Scene {
             this.weapons.add(this.meleeWeapon);
             this.player.setGear('weapon', this.equipment.weaponLayer());
         } else {
-            this.spellWeapon = new SpellWeapon(character.startWeapon.id);
+            // Fase 20D: the spell of the Spell 1 slot (debug ?spells= may change it).
+            this.spellWeapon = new SpellWeapon(startSpells(startEquipment).auto ?? character.startWeapon.id);
+            this.equipment.spell = this.spellWeapon.id;
             this.weapons.add(this.spellWeapon);
         }
         for (const id of Object.values(startEquipment)) {
@@ -507,7 +509,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     /** One spell in hand, like the Warrior's weapon. The wand stays: it is only for looks. */
-    private equipSpell(id: SpellId): void {
+    private equipSpell(id: AutoSpellId): void {
         const spell = new SpellWeapon(id);
         if (this.spellWeapon) this.weapons.replace(this.spellWeapon, spell);
         else this.weapons.add(spell);
@@ -525,8 +527,13 @@ export class GameScene extends Phaser.Scene {
         // Points assigned in the Character window while the run waited are added on top (Fase 20A).
         const permanentThen = run.permanentStats ?? stats.def.startStats;
         for (const id of STAT_IDS) stats.stats[id] = run.stats[id] + this.permanentAtStart[id] - permanentThen[id];
-        if (run.weapon && run.weapon !== this.equipment.weapon) this.equipMelee(run.weapon);
-        if (run.spell && run.spell !== this.equipment.spell) this.equipSpell(run.spell);
+        // With a saved character, the weapon and spells are the ones it wears NOW: changes made in Equipment while the run
+        // waited count (owner, 19-oct-2026). Runs without a character (debug) keep the ones they were saved with.
+        if (!this.characterUid) {
+            if (run.weapon && run.weapon !== this.equipment.weapon) this.equipMelee(run.weapon);
+            if (run.spell && run.spell !== this.equipment.spell) this.equipSpell(run.spell);
+            if (run.activeSpell && this.activeSpell && run.activeSpell !== this.activeSpell.id) this.activeSpell = this.createActiveSpell(run.activeSpell);
+        }
         for (const piece of Object.values(run.armor)) {
             for (const [slot, layer] of this.equipment.wear(piece)) this.player.setGear(slot, layer);
         }
@@ -569,6 +576,7 @@ export class GameScene extends Phaser.Scene {
             kills: this.combat.kills,
             weapon: equipment.weapon,
             spell: equipment.spell,
+            activeSpell: this.activeSpell?.id,
             armor: { ...equipment.armor },
             passives: { ...equipment.passives },
             buffs: this.buffs.remaining,
@@ -808,14 +816,20 @@ export class GameScene extends Phaser.Scene {
         return ['Critical Strikes', `${maxCritCharges(this.stats.level)} max`];
     }
 
-    /** Mage only: their active spell (Fase 19B), its sprite downloaded now (it is big; ON_DEMAND_SPRITES). */
-    private createActiveSpell(): ActiveSpellSystem | undefined {
+    /**
+     * Mage only: their active spell (Fase 19B; since 20D, the one in the Spell 2 slot). Meteor Strike's sprite is
+     * downloaded now (it is big; ON_DEMAND_SPRITES).
+     */
+    private createActiveSpell(id: ActiveSpellId | undefined): ActiveSpellSystem | undefined {
         if (CHARACTERS[this.characterId].startWeapon.kind !== 'spell') return undefined;
-        const spell = new ActiveSpellSystem(this.weapons, DEFAULT_ACTIVE_SPELL);
-        void lookLoader.ensure(this, [spell.def.sprite]).then(() => {
-            registerEffectAnimations(this.anims, this.textures);
-            spell.loaded = lookLoader.isReady(this, spell.def.sprite);
-        });
+        const spell = new ActiveSpellSystem(this.weapons, id ?? DEFAULT_ACTIVE_SPELL);
+        const def = spell.def;
+        if (def.kind === 'meteor') {
+            void lookLoader.ensure(this, [def.sprite]).then(() => {
+                registerEffectAnimations(this.anims, this.textures);
+                spell.loaded = lookLoader.isReady(this, def.sprite);
+            });
+        }
         return spell;
     }
 
@@ -1113,7 +1127,7 @@ export class GameScene extends Phaser.Scene {
 
     /** Weapon, stats and cards of the simulated run, for its report. */
     private simBuild(): string {
-        const weapon = this.meleeWeapon?.def.name ?? this.spellWeapon?.def.name ?? '';
+        const weapon = [this.meleeWeapon?.def.name ?? this.spellWeapon?.def.name, this.activeSpell?.def.name].filter(Boolean).join(' + ');
         const stats = STAT_IDS.map((id) => `${id} ${this.stats.stats[id]}`).join(', ');
         const cards = [...(this.sim?.cards ?? [])].map(([kind, count]) => `${kind} ×${count}`).join(', ');
         return `${weapon} · ${stats} · cards: ${cards}`;
@@ -1126,7 +1140,7 @@ export class GameScene extends Phaser.Scene {
         const armor = Object.values(equipment.armor).map((id) => getArmorPiece(id).name);
         const passives = PASSIVE_IDS.filter((id) => equipment.passives[id] > 0)
             .map((id) => `${getPassive(id).name} ${equipment.passives[id]}`);
-        const gear = [this.meleeWeapon?.def.name, this.spellWeapon?.def.name, ...armor, ...passives]
+        const gear = [this.meleeWeapon?.def.name, this.spellWeapon?.def.name, this.activeSpell?.def.name, ...armor, ...passives]
             .filter((name): name is string => !!name);
         sendRunReport(this.metrics.report({
             version: GAME_VERSION,
@@ -1200,4 +1214,11 @@ function findSpawnTile(map: HBMap, tx: number, ty: number): { x: number; y: numb
         }
     }
     throw new Error('The map has no walkable tile');
+}
+
+/** The Mage's spells for this run (Fase 20D): the saved character's two slots, or the debug ?spells= ones. */
+function startSpells(equipment: Readonly<SavedEquipment>): { auto: AutoSpellId | undefined; active: ActiveSpellId | undefined } {
+    const auto = equipment.spell1 !== undefined && isAutoSpellId(equipment.spell1) ? equipment.spell1 : undefined;
+    const active = equipment.spell2 !== undefined && isActiveSpellId(equipment.spell2) ? equipment.spell2 : undefined;
+    return { auto: DEBUG_START.spells.auto ?? auto, active: DEBUG_START.spells.active ?? active };
 }

@@ -136,11 +136,13 @@ export class CharacterSlotsScene extends Phaser.Scene {
             this.focus(withPoints >= 0 ? withPoints : Math.max(0, first));
             this.time.delayedCall(0, () => this.openCharacterInfo());
         }
-        // ?open=equipment (development only): the Equipment screen of the warrior (or the first character), once.
+        // ?open=equipment (development only): the Equipment screen of the warrior (&class=mage: the mage; or the first
+        // character), once.
         if (DEBUG_START.open === 'Equipment' && !debugEquipmentOpened) {
             debugEquipmentOpened = true;
-            const warrior = characterStore.all.findIndex((c) => c?.classId === 'warrior');
-            this.focus(warrior >= 0 ? warrior : Math.max(0, first));
+            const wanted = DEBUG_START.openClass ?? 'warrior';
+            const index = characterStore.all.findIndex((c) => c?.classId === wanted);
+            this.focus(index >= 0 ? index : Math.max(0, first));
             this.time.delayedCall(0, () => this.openEquipment());
         }
     }

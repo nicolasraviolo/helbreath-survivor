@@ -8,7 +8,7 @@
 import { DEBUG_START } from '../config/debugStart';
 import { CHARACTER_NAME_ALLOWED, CHARACTER_NAME_MAX_LENGTH, CHARACTER_SLOT_COUNT } from '../data/characterSlots';
 import { BODY_SPRITES, DEFAULT_LOOKS, GENDERS, HAIR_COLORS, HAIR_STYLE_COUNT, UNDERWEAR_COUNT, type CharacterLook } from '../data/appearance';
-import { CHARACTER_LEVEL_MAX, expToNextCharacterLevel, STAT_POINT_CAP, STAT_POINTS_PER_LEVEL } from '../data/characterLevel';
+import { CHARACTER_LEVEL_MAX, expToNextCharacterLevel, STAT_POINT_CAP, STAT_POINTS_PER_LEVEL, totalExpForLevel } from '../data/characterLevel';
 import { CHARACTERS, isCharacterId, type CharacterId } from '../data/characters';
 import { canChangeSlot, canEmptySlot, canEquip, itemInfo, readEquipment, START_EQUIPMENT, type EquipSlotId, type ItemId, type SavedEquipment } from '../data/items';
 import { STAT_IDS, type StatId, type Stats } from '../data/stats';
@@ -59,6 +59,9 @@ export interface ExpResult {
 
 type Slots = Array<SavedCharacter | undefined>;
 
+/** Level of the example Mage of ?characters=demo (development only). */
+const DEMO_MAGE_LEVEL = 25;
+
 class CharacterStoreImpl {
     private slots: Slots = load();
 
@@ -72,6 +75,10 @@ class CharacterStoreImpl {
             this.create(1, 'Gorn', 'warrior', { gender: 'male', skin: 2, hairStyle: 2, hairColor: 0, underwear: 5 });
             this.recordPower(this.slots[1]?.uid, 17);
             this.addExp(this.slots[1]?.uid, 60000);
+            // Kaila (Fase 20D): Level 25 with every point in Int (86), enough for Mass Fire Strike but not Meteor Strike.
+            const kaila = this.slots[0]?.uid;
+            this.addExp(kaila, totalExpForLevel(DEMO_MAGE_LEVEL));
+            this.assignPoints(kaila, { int: this.byUid(kaila)?.unspentPoints ?? 0 });
         }
         if (DEBUG_START.characters) this.write();
     }

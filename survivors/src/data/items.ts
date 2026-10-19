@@ -1,29 +1,37 @@
 // Equipo permanente del personaje (Fase 20B; docs/DESIGN.md, "Progresión entre partidas"):
-// - Huecos que ya funcionan: arma, escudo, casco, armadura, pantalones, botas y capa. Los demás (2 hechizos, anillo,
-//   collar, ángel, Zem y Abaddon's Blood) se ven vacíos en la pantalla de equipo hasta el 20D y la Fase 21.
+// - Huecos que ya funcionan: arma, escudo, casco, armadura, pantalones, botas, capa y, solo el Mago, 2 hechizos (20D:
+//   Spell 1 automático, círculos 1–5; Spell 2 activo, círculos 6–10). Los demás (anillo, collar, ángel, Zem y Abaddon's
+//   Blood) se ven vacíos en la pantalla de equipo hasta la Fase 21.
 // - Catálogo libre (decidido el 19-oct-2026, provisional hasta el botín de la Fase 21): se puede poner cualquier objeto
 //   cuyo requisito cumplan las stats PERMANENTES y el Level (números del original, en weapons.ts y armor.ts).
-// - El Mago no cambia de arma: su varita es fija hasta que lleve hechizos equipables (20D).
-// - Equipo de salida: el Guerrero, la daga; el Mago, nada (su ropa de siempre se ve con los huecos vacíos).
+// - El Mago no cambia de arma: su varita es fija (solo se ve); lucha con los hechizos.
+// - Equipo de salida: el Guerrero, la daga; el Mago, Energy Bolt y Energy Strike, que no piden nada (propietario,
+//   19-oct-2026). Los huecos de hechizo y el del arma nunca se quedan vacíos.
 import type { GearLayer, GearSlot } from '../hb/playerAppearance';
+import { ACTIVE_SPELL_IDS, ACTIVE_SPELLS, isActiveSpellId, type ActiveSpellId } from './activeSpells';
 import type { Gender } from './appearance';
 import { ARMOR_PIECES, ARMOR_SLOT_NAMES, type ArmorPieceId, type ArmorSlotId } from './armor';
 import type { CharacterId } from './characters';
 import type { EquipRequirement, ItemIcon, ItemIconFrame } from './itemTypes';
+import { AUTO_SPELL_IDS, isAutoSpellId, SPELLS, type AutoSpellId } from './spells';
 import type { Stats } from './stats';
 import { getMeleeWeapon, MELEE_FAMILIES, MELEE_WEAPONS, type MeleeWeaponId } from './weapons';
 
-export type EquipSlotId = 'weapon' | ArmorSlotId;
+export type SpellSlotId = 'spell1' | 'spell2';
+export type EquipSlotId = 'weapon' | ArmorSlotId | SpellSlotId;
 
-/** Order of the slots on the Equipment screen. */
-export const EQUIP_SLOT_IDS = ['weapon', 'shield', 'helm', 'body', 'legs', 'boots', 'cape'] as const satisfies readonly EquipSlotId[];
+/** Slots on the Equipment screen: gear on the first row, spells starting the second one. */
+export const GEAR_SLOT_IDS = ['weapon', 'shield', 'helm', 'body', 'legs', 'boots', 'cape'] as const satisfies readonly EquipSlotId[];
+export const SPELL_SLOT_IDS = ['spell1', 'spell2'] as const satisfies readonly SpellSlotId[];
+export const EQUIP_SLOT_IDS: readonly EquipSlotId[] = [...GEAR_SLOT_IDS, ...SPELL_SLOT_IDS];
 
-export const EQUIP_SLOT_NAMES: Readonly<Record<EquipSlotId, string>> = { weapon: 'Weapon', ...ARMOR_SLOT_NAMES };
+export const EQUIP_SLOT_NAMES: Readonly<Record<EquipSlotId, string>> = { weapon: 'Weapon', ...ARMOR_SLOT_NAMES, spell1: 'Spell 1', spell2: 'Spell 2' };
 
-/** Slots shown empty until they work (Fase 20D: spells; Fase 21: the rest). */
-export const FUTURE_SLOT_NAMES = ['Spell 1', 'Spell 2', 'Ring', 'Necklace', 'Angel', 'Zem', "Abaddon's Blood"] as const;
+/** Slots shown empty after the spell slots until they work (Fase 21). */
+export const FUTURE_SLOT_NAMES = ['Ring', 'Necklace', 'Angel', 'Zem', "Abaddon's Blood"] as const;
 
-export type ItemId = MeleeWeaponId | ArmorPieceId;
+export type SpellItemId = AutoSpellId | ActiveSpellId;
+export type ItemId = MeleeWeaponId | ArmorPieceId | SpellItemId;
 
 /** What a saved character wears: one item per slot (a missing slot is empty). */
 export type SavedEquipment = Partial<Record<EquipSlotId, ItemId>>;
@@ -32,19 +40,23 @@ export interface ItemInfo {
     name: string;
     slot: EquipSlotId;
     equip: EquipRequirement;
-    icon: ItemIcon;
+    /** Spells have no picture yet: the screen writes their name. */
+    icon?: ItemIcon;
 }
 
 export const START_EQUIPMENT: Readonly<Record<CharacterId, Readonly<SavedEquipment>>> = {
     warrior: { weapon: 'dagger' },
-    mage: {},
+    mage: { spell1: 'energyBolt', spell2: 'energyStrike' },
 };
 
 /** Slots each class can change on the Equipment screen. */
 const CLASS_SLOTS: Readonly<Record<CharacterId, readonly EquipSlotId[]>> = {
-    warrior: EQUIP_SLOT_IDS,
+    warrior: GEAR_SLOT_IDS,
     mage: EQUIP_SLOT_IDS.filter((slot) => slot !== 'weapon'),
 };
+
+/** The Mage's starting spells ask for nothing (owner, 19-oct-2026), like the Warrior's dagger. */
+const FREE_SPELLS: ReadonlySet<ItemId> = new Set(Object.values(START_EQUIPMENT.mage));
 
 export function isMeleeWeaponId(id: string): id is MeleeWeaponId {
     return Object.prototype.hasOwnProperty.call(MELEE_WEAPONS, id);
@@ -54,8 +66,21 @@ export function isArmorPieceId(id: string): id is ArmorPieceId {
     return Object.prototype.hasOwnProperty.call(ARMOR_PIECES, id);
 }
 
+export function isSpellItemId(id: string): id is SpellItemId {
+    return isAutoSpellId(id) || isActiveSpellId(id);
+}
+
+function isItemId(id: string): id is ItemId {
+    return isMeleeWeaponId(id) || isArmorPieceId(id) || isSpellItemId(id);
+}
+
 /** Name, slot, requirement and picture; undefined for weapons that are only data (no requirement or picture yet). */
 export function itemInfo(id: ItemId): ItemInfo | undefined {
+    if (isSpellItemId(id)) {
+        const auto = isAutoSpellId(id);
+        const spell = auto ? SPELLS[id] : ACTIVE_SPELLS[id];
+        return { name: spell.name, slot: auto ? 'spell1' : 'spell2', equip: FREE_SPELLS.has(id) ? {} : { int: spell.int } };
+    }
     if (isMeleeWeaponId(id)) {
         const weapon = getMeleeWeapon(id);
         return weapon.equip && weapon.icon ? { name: weapon.name, slot: 'weapon', equip: weapon.equip, icon: weapon.icon } : undefined;
@@ -68,21 +93,25 @@ export function canChangeSlot(classId: CharacterId, slot: EquipSlotId): boolean 
     return CLASS_SLOTS[classId].includes(slot);
 }
 
-/** Whether a slot can be left empty (the Warrior always holds a weapon). */
+/** Whether a slot can be left empty (the Warrior always holds a weapon, the Mage two spells). */
 export function canEmptySlot(slot: EquipSlotId): boolean {
-    return slot !== 'weapon';
+    return slot !== 'weapon' && slot !== 'spell1' && slot !== 'spell2';
 }
 
 function requirementOrder(id: ItemId): number {
     const req = itemInfo(id)?.equip;
-    return req ? (req.level ?? 0) * 1000 + (req.mag ?? 0) * 10 + req.str : 0;
+    return req ? (req.level ?? 0) * 1000 + ((req.mag ?? 0) + (req.int ?? 0)) * 10 + (req.str ?? 0) : 0;
 }
 
 /** Everything the class can put in that slot, from the easiest requirement to the hardest. */
 export function catalog(classId: CharacterId, slot: EquipSlotId): ItemId[] {
     if (!canChangeSlot(classId, slot)) return [];
     let ids: ItemId[];
-    if (slot === 'weapon') {
+    if (slot === 'spell1') {
+        ids = [...AUTO_SPELL_IDS];
+    } else if (slot === 'spell2') {
+        ids = [...ACTIVE_SPELL_IDS];
+    } else if (slot === 'weapon') {
         ids = Object.values(MELEE_FAMILIES).filter((family) => family.enabled).flatMap((family): ItemId[] => [...family.links]);
     } else {
         ids = (Object.keys(ARMOR_PIECES) as ArmorPieceId[]).filter((id) => ARMOR_PIECES[id].slot === slot);
@@ -99,7 +128,9 @@ export interface RequirementCheck {
 export function requirementChecks(id: ItemId, stats: Readonly<Stats>, level: number): RequirementCheck[] {
     const req = itemInfo(id)?.equip;
     if (!req) return [];
-    const checks: RequirementCheck[] = [{ label: `Str ${req.str}`, met: stats.str >= req.str }];
+    const checks: RequirementCheck[] = [];
+    if (req.str !== undefined) checks.push({ label: `Str ${req.str}`, met: stats.str >= req.str });
+    if (req.int !== undefined) checks.push({ label: `Int ${req.int}`, met: stats.int >= req.int });
     if (req.mag !== undefined) checks.push({ label: `Mag ${req.mag}`, met: stats.mag >= req.mag });
     if (req.level !== undefined) checks.push({ label: `Level ${req.level}`, met: level >= req.level });
     return checks;
@@ -120,6 +151,7 @@ export function itemIcon(id: ItemId, gender: Gender): ItemIconFrame | undefined 
 export function equipmentLook(equipment: Readonly<SavedEquipment>): Array<[GearSlot, GearLayer]> {
     const layers: Array<[GearSlot, GearLayer]> = [];
     for (const id of Object.values(equipment)) {
+        if (isSpellItemId(id)) continue;
         if (isMeleeWeaponId(id)) {
             const sprite = getMeleeWeapon(id).sprite;
             if (sprite) layers.push(['weapon', { sprite: sprite.key, startSheet: sprite.startSheet }]);
@@ -136,7 +168,7 @@ export function readEquipment(value: unknown, classId: CharacterId): SavedEquipm
     if (typeof value !== 'object' || value === null) return equipment;
     for (const slot of EQUIP_SLOT_IDS) {
         const id: unknown = (value as Record<string, unknown>)[slot];
-        if (typeof id !== 'string' || !(isMeleeWeaponId(id) || isArmorPieceId(id))) {
+        if (typeof id !== 'string' || !isItemId(id)) {
             if (canEmptySlot(slot)) delete equipment[slot];
             continue;
         }

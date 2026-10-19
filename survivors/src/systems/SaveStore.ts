@@ -13,7 +13,8 @@ import { DEFAULT_MAP, MAPS_DATA, type MapId } from '../data/maps';
 import { PASSIVE_IDS, PASSIVES, type PassiveId } from '../data/passives';
 import { BUFFS, type BuffId } from '../data/pickups';
 import { SAVE_SLOT_COUNT } from '../data/saves';
-import { SPELLS, type SpellId } from '../data/spells';
+import { isAutoSpellId, type AutoSpellId } from '../data/spells';
+import { isActiveSpellId, type ActiveSpellId } from '../data/activeSpells';
 import { STAT_IDS, type Stats } from '../data/stats';
 import { MELEE_WEAPONS, type MeleeWeaponId } from '../data/weapons';
 
@@ -48,7 +49,9 @@ export interface RunSnapshot {
     hp: number;
     kills: number;
     weapon: MeleeWeaponId | undefined;
-    spell: SpellId | undefined;
+    spell: AutoSpellId | undefined;
+    /** The Mage's active spell (Fase 20D). Saves from before have none: the one equipped now. */
+    activeSpell: ActiveSpellId | undefined;
     armor: Partial<Record<ArmorSlotId, ArmorPieceId>>;
     passives: Partial<Record<PassiveId, number>>;
     /** Milliseconds left of each active buff. */
@@ -188,7 +191,8 @@ function readSnapshot(entry: unknown): RunSnapshot | undefined {
         hp: readNumber(entry.hp) ?? 1,
         kills: readNumber(entry.kills) ?? 0,
         weapon: isKeyOf(MELEE_WEAPONS, entry.weapon) ? entry.weapon : undefined,
-        spell: isKeyOf(SPELLS, entry.spell) ? entry.spell : undefined,
+        spell: typeof entry.spell === 'string' && isAutoSpellId(entry.spell) ? entry.spell : undefined,
+        activeSpell: typeof entry.activeSpell === 'string' && isActiveSpellId(entry.activeSpell) ? entry.activeSpell : undefined,
         armor,
         passives,
         buffs,

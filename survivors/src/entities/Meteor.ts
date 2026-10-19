@@ -4,12 +4,12 @@
 // Diferencias con sp-client: va con pool (regla 5) y lo mueve WeaponSystem en vez de su propio evento 'update'.
 import type Phaser from 'phaser';
 import { DEPTH_EFFECT_OFFSET } from '../config/gameConfig';
-import type { ActiveSpellDef, MeteorLook } from '../data/activeSpells';
+import type { MeteorSpellDef, MeteorLook } from '../data/activeSpells';
 import type { Poolable } from '../utils/Pool';
 
 export class Meteor implements Poolable {
     public poolIndex = -1;
-    public def!: ActiveSpellDef;
+    public def!: MeteorSpellDef;
     /** Damage multiplier of this cast (Power), applied when it lands. */
     public powerMultiplier = 1;
     public targetX = 0;
@@ -31,7 +31,7 @@ export class Meteor implements Poolable {
     }
 
     /** Starts falling towards (x, y). */
-    public launch(def: ActiveSpellDef, powerMultiplier: number, x: number, y: number): void {
+    public launch(def: MeteorSpellDef, powerMultiplier: number, x: number, y: number): void {
         this.def = def;
         this.powerMultiplier = powerMultiplier;
         this.targetX = x;

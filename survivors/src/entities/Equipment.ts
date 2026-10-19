@@ -3,7 +3,7 @@
 import { ARMOR_BY_SET, ARMOR_PIECES, ARMOR_SLOT_IDS, getArmorPiece, MAX_DEFENSE, type ArmorPieceId, type ArmorSlotId } from '../data/armor';
 import type { CharacterDef } from '../data/characters';
 import { passiveBonus, type PassiveId } from '../data/passives';
-import type { SpellId } from '../data/spells';
+import type { AutoSpellId } from '../data/spells';
 import { getMeleeWeapon, type MeleeWeaponId } from '../data/weapons';
 import type { GearLayer, GearSlot } from '../hb/playerAppearance';
 
@@ -16,7 +16,7 @@ function pieceValue(piece: ArmorPieceId, key: ArmorTotal): number {
 
 export class Equipment {
     public weapon: MeleeWeaponId | undefined;
-    public spell: SpellId | undefined;
+    public spell: AutoSpellId | undefined;
     /** One piece per armor slot; changed only through wear(), which keeps `totals` up to date. */
     private readonly worn: Partial<Record<ArmorSlotId, ArmorPieceId>> = {};
     /** Rank of each passive (0 = not taken). */

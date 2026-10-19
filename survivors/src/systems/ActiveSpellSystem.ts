@@ -1,7 +1,8 @@
 // Hechizo activo del Mago (Fase 19B): recarga y lanzamiento. Lo pide el jugador con el mismo botón que el Critical
 // Strike del Guerrero (Espacio, R2 del mando o el botón táctil). Cae donde apunta, o sobre el objetivo automático; sin
 // nada a su alcance no sale y no gasta la recarga. La recarga baja con la Mag (data/activeSpells.ts).
-// Su dibujo se descarga al empezar la partida (ON_DEMAND_SPRITES): hasta que llega no se puede lanzar.
+// Desde el 20D es el que lleve en el hueco Spell 2: Meteor Strike (meteorito) o una ráfaga (Energy / Mass Fire Strike).
+// El meteorito se descarga al empezar la partida (ON_DEMAND_SPRITES): hasta que llega no se puede lanzar.
 // Con `infinite` (truco ?debug=crits o la tecla H) no hay recarga: para probarlo sin esperar.
 import {
     ACTIVE_SPELLS,
@@ -19,11 +20,12 @@ export class ActiveSpellSystem {
     private castCount = 0;
     /** Debug: no recharge. */
     public infinite = false;
-    /** False until its sprite is downloaded. */
-    public loaded = false;
+    /** False until its sprite is downloaded (only Meteor Strike has one of its own). */
+    public loaded: boolean;
 
-    constructor(private readonly weapons: WeaponSystem, id: ActiveSpellId) {
+    constructor(private readonly weapons: WeaponSystem, public readonly id: ActiveSpellId) {
         this.def = ACTIVE_SPELLS[id];
+        this.loaded = this.def.kind !== 'meteor';
     }
 
     public get ready(): boolean {
@@ -59,7 +61,9 @@ export class ActiveSpellSystem {
         if (!this.loaded || (this.waitMs > 0 && !this.infinite)) return false;
         const target = this.weapons.activeSpellTarget(this.def.range, this.def.stickShare);
         if (!target) return false;
-        this.weapons.castMeteor(this.def, activeSpellPowerMultiplier(level), target.x, target.y);
+        const power = activeSpellPowerMultiplier(level);
+        if (this.def.kind === 'meteor') this.weapons.castMeteor(this.def, power, target.x, target.y);
+        else this.weapons.castBarrage(this.def, power, target.x, target.y);
         if (!this.infinite) this.waitMs = this.cooldownMs(mag);
         this.castCount++;
         return true;

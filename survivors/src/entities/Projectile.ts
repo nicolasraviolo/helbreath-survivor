@@ -16,6 +16,9 @@ export class Projectile implements Poolable {
     public def!: SpellDef;
     /** Only enemy it can hit while alive (a boss); undefined = the first one it touches. */
     public target: Enemy | undefined;
+    /** Multiplies the spell's damage; set (with big numbers) for the shots of an active spell (Fase 20D). */
+    public damageScale = 1;
+    public fromSkill = false;
     private vx = 0;
     private vy = 0;
     private remaining = 0;
@@ -29,6 +32,8 @@ export class Projectile implements Poolable {
     public launch(def: SpellDef, x: number, y: number, targetX: number, targetY: number, maxDistance: number, target?: Enemy): void {
         this.def = def;
         this.target = target;
+        this.damageScale = 1;
+        this.fromSkill = false;
         this.x = x;
         this.y = y;
         const dx = targetX - x;

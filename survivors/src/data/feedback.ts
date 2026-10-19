@@ -34,8 +34,8 @@ export const GAMEPAD_RUMBLE = {
     bigHitShare: 0.15,
     /** The Warrior's Critical Strike, when it hits a monster (once per strike, however many it hits). */
     critStrike: { durationMs: 180, strong: 0.5, weak: 0.7 },
-    /** The Mage's Meteor Strike, when it lands on a monster (once per meteor). */
-    meteorStrike: { durationMs: 250, strong: 0.6, weak: 0.4 },
+    /** The Mage's active spell, when it lands on a monster (once per cast). */
+    activeSpell: { durationMs: 250, strong: 0.6, weak: 0.4 },
 } as const satisfies Record<string, RumbleDef | number>;
 
 export interface ParticleBurstDef {
