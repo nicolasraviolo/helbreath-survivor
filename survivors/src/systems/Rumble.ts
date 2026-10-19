@@ -1,5 +1,5 @@
-// Vibración del mando (Fase 19C): al recibir daño (más fuerte con golpes de jefe o grandes) y al lanzar el
-// Critical Strike o el Meteor Strike. Números en data/feedback.ts (GAMEPAD_RUMBLE). Se puede quitar en Settings → Vibration.
+// Vibración del mando (Fase 19C): al recibir daño (más fuerte con golpes de jefe o grandes) y cuando el
+// Critical Strike o el Meteor Strike impactan en algún monstruo (una vez por lanzamiento). Números en data/feedback.ts (GAMEPAD_RUMBLE). Se puede quitar en Settings → Controls → Vibration.
 // Usa la Gamepad API del navegador ('dual-rumble'): vibra en Chrome y Edge; donde el navegador o el mando no lo
 // permiten (Firefox, algunos mandos en Safari), simplemente no hace nada.
 import type { RumbleDef } from '../data/feedback';

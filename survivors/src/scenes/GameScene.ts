@@ -279,6 +279,10 @@ export class GameScene extends Phaser.Scene {
             this.onEnemyKilled(enemy);
         });
         this.weapons = new WeaponSystem(this, this.enemies, this.combat, this.audio, this.screenShake);
+        // Fase 19C: the gamepad vibrates when the Critical / Meteor Strike hits (not when it is launched), once per launch.
+        this.weapons.onSkillHit = (skill) => {
+            if (!this.sim) this.rumble.play(GAMEPAD_RUMBLE[skill]);
+        };
         this.critStrike = new CritStrikeSystem(this.weapons, this.audio, this.screenShake);
         this.activeSpell = this.createActiveSpell();
         this.aimArrow = new AimArrow(this);
@@ -772,8 +776,7 @@ export class GameScene extends Phaser.Scene {
         const weapon = this.meleeWeapon;
         const player = this.player;
         if (!weapon || player.isDead || this.levelUpOpen || this.runOver) return;
-        const launched = this.critStrike.launch(weapon.def, this.stats.level, player.look.gender, player.x, player.y, angleFromDirection(player.direction));
-        if (launched && !this.sim) this.rumble.play(GAMEPAD_RUMBLE.critStrike);
+        this.critStrike.launch(weapon.def, this.stats.level, player.look.gender, player.x, player.y, angleFromDirection(player.direction));
     }
 
     /** The HUD orb: the Warrior's Critical Strike charges, or the seconds left of the Mage's spell (blank when ready). */
@@ -818,7 +821,7 @@ export class GameScene extends Phaser.Scene {
     /** Casts the Mage's active spell now, if it is ready and the Mage is free to act. */
     private castActiveSpell(): void {
         if (!this.activeSpell || this.player.isDead || this.levelUpOpen || this.runOver) return;
-        if (this.activeSpell.cast(this.stats.level, this.stats.stats.mag) && !this.sim) this.rumble.play(GAMEPAD_RUMBLE.meteorStrike);
+        this.activeSpell.cast(this.stats.level, this.stats.stats.mag);
     }
 
     /** Opens the portal a moment after the final chest is picked up; true when the run is won (stepped in or time up). */

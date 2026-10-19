@@ -50,7 +50,9 @@ export class WeaponSystem {
     private readonly finishedBursts: PendingBurst[] = [];
     private readonly targeting: Targeting;
     /** Critical Strike under way: blows still to land (axes spin twice) and when the next one lands. */
-    private readonly strike = { hitsLeft: 0, waitMs: 0, angle: 0, radius: 0, arc: 0, damage: 0, knockback: 0, repeatMs: 0, swingMs: 0 };
+    /** Fase 19C: the Critical Strike or the Meteor Strike hit at least one monster (once per launch; the gamepad vibrates). */
+    public onSkillHit: ((skill: 'critStrike' | 'meteorStrike') => void) | undefined;
+    private readonly strike = { hitsLeft: 0, landed: false, waitMs: 0, angle: 0, radius: 0, arc: 0, damage: 0, knockback: 0, repeatMs: 0, swingMs: 0 };
     /** Plays the owner's swing or cast animation (set by the game scene). */
     private onOwnerAction: (action: OwnerAction, angle: number, durationMs: number) => void = () => undefined;
 
@@ -155,6 +157,7 @@ export class WeaponSystem {
         const swingMs = def.swingMs * this.context.cooldownMultiplier;
         const strike = this.strike;
         strike.hitsLeft = shape.hits;
+        strike.landed = false;
         strike.waitMs = swingMs * MELEE_HIT_MOMENT;
         strike.angle = angle;
         strike.radius = radius;
@@ -271,6 +274,11 @@ export class WeaponSystem {
             bigNumbers: true,
         }, (enemy) => this.spawnEffect('fx.hit', enemy.x, enemy.bodyY));
         if (hits > 0) this.audio.play(MELEE_HIT_SOUND);
+        // Only the first blow that touches a monster (an axe spins twice): the gamepad vibrates once per strike.
+        if (hits > 0 && !strike.landed) {
+            strike.landed = true;
+            this.onSkillHit?.('critStrike');
+        }
         if (strike.hitsLeft > 0) {
             strike.waitMs = strike.repeatMs;
             this.onOwnerAction('melee', strike.angle, strike.swingMs);
@@ -287,6 +295,11 @@ export class WeaponSystem {
         }
         this.audio.play(def.impactSound);
         this.screenShake.shake(def.shakePx, def.shakeMs);
+        let touched = false;
+        this.enemies.forEachInRadius(x, y, def.areaRadius, () => {
+            touched = true;
+        });
+        if (touched) this.onSkillHit?.('meteorStrike');
         this.combat.hitArea({
             damageType: 'magic',
             x,
