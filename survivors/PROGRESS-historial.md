@@ -2,6 +2,13 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
+**Fase 19, extra: pantalla "What's new" (2026-10-19).**
+- **Qué hace:** link amarillo subrayado "What's new" al final del pie del menú principal; abre un panel (tamaño Credits) con las novedades de cada fase, de la más nueva a la más vieja, con páginas ◄ ► si no caben.
+- **Código:** `scenes/ReleaseNotesScene.ts`, textos en `data/releaseNotes.ts` (inglés, para el jugador), números en `RELEASE_NOTES_SCREEN` y `MAIN_MENU_NEWS_LINK` (`config/menus.ts`). `/checkpoint` añade ahí lo que nota el jugador de cada bloque.
+- **Truco:** `?open=releasenotes`; situación `pnpm check news`.
+- **Comprobado:** build; `check menu news` sin errores y captura del panel (6 páginas).
+- **Probar:** `pnpm --dir survivors dev` → http://localhost:8090 y pinchar "What's new" abajo.
+
 **Fase 19, bloque 19B: Meteor Strike, hechizo activo del Mago (2026-10-18).**
 - **Qué hace:** con el **mismo botón** que el crit del Guerrero (Espacio, X del mando, botón táctil), el Mago lanza **Meteor Strike**: un meteorito cae en diagonal donde apuntas (cursor, hasta 420 px; con el stick, a media distancia) o sobre el objetivo automático (un jefe cercano primero). Al caer: fuego y explosión brillantes, 5 explosiones pequeñas, estela de humo, temblor fuerte y daño en área (radio 128 px) con números grandes. Sin nada al alcance no sale y no gasta la recarga.
 - **Números (propietario):** recarga **20 s × (1 − 1% por punto de Mag)**, mínimo 8 s (Mag inicial 14 → 17,2 s). Daño 30 directo + 40 en área × (2 + Power/30), y luego el multiplicador de magia. A Power 1 hace ~105 por monstruo: mata todo lo de los primeros minutos. El equilibrio con los crits queda para después (decisión del propietario).

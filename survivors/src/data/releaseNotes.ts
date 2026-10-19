@@ -18,6 +18,8 @@ export const RELEASE_NOTES: readonly ReleaseNote[] = [
         changes: [
             'Warrior: Critical Strike, a powerful blow you trigger yourself (Space).',
             'Mage: Meteor Strike, an active spell that rains fire on a whole area.',
+            'Gamepad: Critical Strike and Meteor Strike on R2.',
+            'New "What\'s new" screen: open it from the link at the bottom of the main menu.',
         ],
     },
     {
