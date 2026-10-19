@@ -87,12 +87,21 @@ export const MENU_CHECKBOX = {
 export const SETTINGS_MENU = {
     /** First row, from the usual content row. */
     firstRowOffset: byDevice(-38, -40),
-    itemSpacing: byDevice(34, 30),
+    // PC: 31 (before the 19C, 34) so the Controls row fits.
+    itemSpacing: byDevice(31, 30),
     /** Width of the value column (checkbox or "◄ Compact ►"). */
     valueBoxWidth: byDevice(150, 210),
     /** The one-line note about the anonymous stats (Fase 14A), just under the panel's bottom edge. */
     noticeOffsetY: byDevice(20, 22),
     noticeColor: '#d8cba8',
+} as const;
+
+/** Settings → Controls (Fase 19C): four "Crit Key  Space" rows, Vibration, Reset to default and Back. */
+export const CONTROLS_MENU = {
+    firstRowOffset: byDevice(0, -10),
+    itemSpacing: byDevice(40, 38),
+    /** Width of the value column (the key or button name). */
+    valueBoxWidth: byDevice(150, 210),
 } as const;
 
 /** Small fullscreen button in a corner of the main menu (Fase 12C; before, it was an option of the list). */
@@ -165,7 +174,35 @@ export const PAD_ICON = {
     gap: byDevice(8, 10),
     fill: 0x202020,
     outline: 0xc8b88a,
-    letterColor: { A: '#6cc04a', B: '#e04a3a', Y: '#f0c030' },
+    letterColor: { A: '#6cc04a', B: '#e04a3a', X: '#3a8fe0', Y: '#f0c030' },
     /** Start, stick and d-pad are drawn in this colour. */
     shapeColor: 0xe8dcc0,
+} as const;
+
+/**
+ * What's new (scenes/ReleaseNotesScene.ts): the Credits-size panel with each phase's changes, newest first, split into
+ * pages that fit above the page selector and Back.
+ */
+export const RELEASE_NOTES_SCREEN = {
+    /** Top of the notes, from the usual content row (a bit higher, close under the title). */
+    notesOffsetY: byDevice(-40, -42),
+    /** Changes wrap at this width. */
+    wrapWidth: byDevice(560, 640),
+    /** Space between a phase's title and its first change, and between changes. */
+    lineGap: byDevice(2, 3),
+    /** Space after the last change of a phase, before the next phase. */
+    entryGap: byDevice(10, 12),
+    pageBoxWidth: byDevice(130, 160),
+    titleColor: '#ffd860',
+    dateColor: '#c8b88a',
+    changeColor: '#f0e6c8',
+} as const;
+
+/** "What's new" link at the end of the main menu footer (opens ReleaseNotesScene). */
+export const MAIN_MENU_NEWS_LINK = {
+    label: "What's new",
+    color: '#ffd860',
+    hoverColor: '#ffffff',
+    /** Extra click area around the text, for fingers (screen pixels). */
+    hitPadding: byDevice(8, 14),
 } as const;

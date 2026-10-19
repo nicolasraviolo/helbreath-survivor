@@ -58,6 +58,24 @@ export const EFFECTS = {
     'fx.totem.glow': { sprite: 'fx.effect5', sheet: 7, frameRate: 10, loop: true, additive: true, depthOffset: -1 },
     'fx.fullHp.cast': { sprite: 'fx.effect11', sheet: 10, frameRate: 15, loop: false },
     'fx.freeze.cast': { sprite: 'fx.effect8', sheet: 5, frameRate: 10, loop: false, depthOffset: -1 },
+    // Critical Strike (Fase 19A, elegido por el propietario en el visor de sprites): effect6.spr hoja 1, la espiral del
+    // Earthworm Strike (sp-client "Earth Worm Attack Helix"), 13 frames a 20 fps, una vez, alrededor del jugador.
+    'fx.crit.strike': { sprite: 'fx.effect6', sheet: 1, frameRate: 20, loop: false, fadeFromFrame: 9 },
+    // Meteor Strike, hechizo activo del Mago (Fase 19B): sp-client Meteor Falling y sus tres orbes (crueffect1.spr hoja 0,
+    // en bucle mientras cae) y, al caer, Meteor Strike Impact (hoja 1), Meteor Ground Explosion (hoja 8) y Meteor
+    // Explosion (hoja 2), todos a la vez. Su .spr se descarga al empezar una partida de Mago (ON_DEMAND_SPRITES).
+    'fx.meteor.fall': { sprite: 'fx.crueffect1', sheet: 0, frames: [0, 4], frameRate: 20, loop: true },
+    'fx.meteor.blueOrb': { sprite: 'fx.crueffect1', sheet: 0, frames: [5, 9], frameRate: 10, loop: true },
+    'fx.meteor.whiteOrb': { sprite: 'fx.crueffect1', sheet: 0, frames: [10, 14], frameRate: 10, loop: true },
+    'fx.meteor.fireOrb': { sprite: 'fx.crueffect1', sheet: 0, frames: [15, 19], frameRate: 10, loop: true },
+    // El original (reference/Client.cpp, efectos 61 y 63) dibuja el fuego del suelo y la explosión con brillo (aditivos).
+    'fx.meteor.impact': { sprite: 'fx.crueffect1', sheet: 1, frameRate: 20, loop: false, additive: true },
+    'fx.meteor.groundExplosion': { sprite: 'fx.crueffect1', sheet: 8, frameRate: 30, loop: false, depthOffset: -1 },
+    'fx.meteor.explosion': { sprite: 'fx.crueffect1', sheet: 2, frameRate: 20, loop: false, additive: true },
+    // También del original y no de sp-client: estela de humo mientras cae (efecto 62, crueffect1 hoja 0 frames 20–24,
+    // uno cada 25 ms) y cinco explosiones pequeñas al caer (efecto 12 "Burst", effect2.spr hoja 1 frames 10–15).
+    'fx.meteor.smoke': { sprite: 'fx.crueffect1', sheet: 0, frames: [20, 24], frameRate: 10, loop: false, fadeFromFrame: 1 },
+    'fx.meteor.burst': { sprite: 'fx.effect2', sheet: 1, frames: [10, 15], frameRate: 20, loop: false },
     'fx.footsteps':{ sprite: 'fx.effect2', sheet: 1, frames: [28, 32], frameRate: 10, loop: false, depthOffset: -1 },
 } as const satisfies Record<string, EffectDef>;
 
@@ -73,10 +91,14 @@ export function effectAnimationKey(key: EffectKey, dx = 0, dy = 0): string {
     return `${key}.${directionFromVector(dx, dy) ?? 2}`;
 }
 
-/** Creates the Phaser animations of every effect (one per direction for directional ones). Call once the sprites are loaded. */
+/**
+ * Creates the Phaser animations of every effect (one per direction for directional ones) whose sprite is loaded.
+ * Call once the sprites are loaded, and again after downloading one later (ON_DEMAND_SPRITES): the rest are skipped.
+ */
 export function registerEffectAnimations(anims: Phaser.Animations.AnimationManager, textures: Phaser.Textures.TextureManager): void {
     for (const [key, def] of Object.entries(EFFECTS) as [EffectKey, EffectDef][]) {
         const textureKey = getSheetKey(def.sprite, def.sheet);
+        if (!textures.exists(textureKey)) continue;
         const create = (animKey: string, first: number, last: number) => {
             if (anims.exists(animKey)) return;
             const frames: Phaser.Types.Animations.AnimationFrame[] = [];

@@ -5,18 +5,33 @@
 // donde se empuja (`getManualAim()`). El clic izquierdo sigue moviendo.
 // Fase 15C: en el táctil, el segundo stick (mitad derecha, `setTouchAimStick`) apunta igual que el stick derecho.
 //
+// Fase 19C: el Critical Strike y el panel de stats usan la tecla y el botón elegidos en Settings → Controls
+// (config/controls.ts); se leen de los ajustes en cada pulsación, así que un cambio vale al momento.
+//
 // El mando se lee directamente de la Gamepad API del navegador en lugar del plugin de Phaser:
 // el plugin descarta el mando si su `timestamp` es anterior al momento en que lo detectó, y en
 // algunos navegadores/mandos ese reloj no coincide, así que nunca se movía.
 import Phaser from 'phaser';
+import { DEFAULT_CONTROLS, GAMEPAD_BUTTON, type RemappableControl } from '../config/controls';
 import { GAMEPAD_DEADZONE, POINTER_DEADZONE_PX, POINTER_FULL_SPEED_PX } from '../config/gameConfig';
 import { MANUAL_AIM } from '../data/targeting';
+import { settings } from './Settings';
 import type { ManualAim } from './Targeting';
 import type { TouchJoystick } from '../ui/TouchJoystick';
 
 export enum Action {
     /** Accept / continue: Enter, Space, gamepad A or a mouse click. */
     Confirm = 'confirm',
+    /**
+     * Pick a level-up card or a Game Over option: like Confirm but without Space, which launches the Critical Strike
+     * during the run (a Space mashed as the cards open must not pick one).
+     */
+    Pick = 'pick',
+    /**
+     * Critical Strike of the Warrior (Fase 19A) / Meteor Strike of the Mage: Space or gamepad R2 by default, changeable in
+     * Settings → Controls (the touch button calls the game directly).
+     */
+    CritStrike = 'critStrike',
     /** Open / close the pause menu: Esc or gamepad Start. */
     Pause = 'pause',
     /** Go back / close a menu: Esc, Backspace or gamepad B. */
@@ -26,7 +41,7 @@ export enum Action {
     MenuRight = 'menuRight',
     MenuUp = 'menuUp',
     MenuDown = 'menuDown',
-    /** Show / hide the stats panel: C or gamepad Y. */
+    /** Show / hide the stats panel: C or gamepad Y by default, changeable in Settings → Controls. */
     ToggleStats = 'toggleStats',
     ToggleDebug = 'toggleDebug',
     OpenSpriteTest = 'openSpriteTest',
@@ -40,22 +55,31 @@ export enum Action {
     DebugSkipMinute = 'debugSkipMinute',
     DebugGiveLevels = 'debugGiveLevels',
     DebugNextBoss = 'debugNextBoss',
+    DebugInfiniteCrits = 'debugInfiniteCrits',
 }
 
 export type InputDevice = 'keyboard' | 'mouse' | 'gamepad' | 'touch' | 'none';
 
 const KEY = Phaser.Input.Keyboard.KeyCodes;
 
+/** Actions whose key and button come from Settings → Controls (the lists below hold the defaults). */
+const REMAPPABLE_ACTIONS: Partial<Record<Action, RemappableControl>> = {
+    [Action.CritStrike]: 'critStrike',
+    [Action.ToggleStats]: 'toggleStats',
+};
+
 /** Keys per action. F1 is captured so the browser does not open its help page. */
 const KEYBOARD_ACTIONS: Record<Action, number[]> = {
     [Action.Confirm]: [KEY.ENTER, KEY.SPACE],
+    [Action.Pick]: [KEY.ENTER],
+    [Action.CritStrike]: [DEFAULT_CONTROLS.keyboard.critStrike],
     [Action.Pause]: [KEY.ESC],
     [Action.Back]: [KEY.ESC, KEY.BACKSPACE],
     [Action.MenuLeft]: [KEY.LEFT, KEY.A],
     [Action.MenuRight]: [KEY.RIGHT, KEY.D],
     [Action.MenuUp]: [KEY.UP, KEY.W],
     [Action.MenuDown]: [KEY.DOWN, KEY.S],
-    [Action.ToggleStats]: [KEY.C],
+    [Action.ToggleStats]: [DEFAULT_CONTROLS.keyboard.toggleStats],
     [Action.ToggleDebug]: [KEY.F1],
     [Action.OpenSpriteTest]: [KEY.T],
     [Action.DebugSpawnMany]: [KEY.N],
@@ -68,10 +92,9 @@ const KEYBOARD_ACTIONS: Record<Action, number[]> = {
     [Action.DebugSkipMinute]: [KEY.J],
     [Action.DebugGiveLevels]: [KEY.L],
     [Action.DebugNextBoss]: [KEY.M],
+    [Action.DebugInfiniteCrits]: [KEY.H],
 };
 
-/** Standard Gamepad API button indices (Xbox layout). */
-const GAMEPAD_BUTTON = { A: 0, B: 1, Y: 3, View: 8, Start: 9, DpadUp: 12, DpadDown: 13, DpadLeft: 14, DpadRight: 15 } as const;
 const GAMEPAD_AXIS = { LeftX: 0, LeftY: 1, RightX: 2, RightY: 3 } as const;
 /** Fake button ids for "the left stick was just pushed left/right/up/down" (menus). */
 const STICK_BUTTON = { Left: 100, Right: 101, Up: 102, Down: 103 } as const;
@@ -80,18 +103,21 @@ const STICK_MENU_THRESHOLD = 0.5;
 
 const GAMEPAD_ACTIONS: Partial<Record<Action, number[]>> = {
     [Action.Confirm]: [GAMEPAD_BUTTON.A],
+    [Action.Pick]: [GAMEPAD_BUTTON.A],
+    // R2 = right trigger (standard mapping): `pressed` once pushed past the browser's threshold.
+    [Action.CritStrike]: [DEFAULT_CONTROLS.gamepad.critStrike],
     [Action.Pause]: [GAMEPAD_BUTTON.Start],
     [Action.Back]: [GAMEPAD_BUTTON.B],
     [Action.MenuLeft]: [GAMEPAD_BUTTON.DpadLeft, STICK_BUTTON.Left],
     [Action.MenuRight]: [GAMEPAD_BUTTON.DpadRight, STICK_BUTTON.Right],
     [Action.MenuUp]: [GAMEPAD_BUTTON.DpadUp, STICK_BUTTON.Up],
     [Action.MenuDown]: [GAMEPAD_BUTTON.DpadDown, STICK_BUTTON.Down],
-    [Action.ToggleStats]: [GAMEPAD_BUTTON.Y],
+    [Action.ToggleStats]: [DEFAULT_CONTROLS.gamepad.toggleStats],
     [Action.ToggleDebug]: [GAMEPAD_BUTTON.View],
 };
 
 /** Actions also triggered by a mouse click. */
-const POINTER_ACTIONS: ReadonlySet<Action> = new Set([Action.Confirm]);
+const POINTER_ACTIONS: ReadonlySet<Action> = new Set([Action.Confirm, Action.Pick]);
 
 /** World position the mouse movement is measured from (the player's feet). */
 export type PointerAnchor = () => { x: number; y: number };
@@ -145,6 +171,8 @@ export class InputSystem {
             for (const [action, codes] of Object.entries(KEYBOARD_ACTIONS) as [Action, number[]][]) {
                 this.actionKeys.set(action, codes.map((code) => keyboard.addKey(code)));
             }
+            // The keys picked in Settings → Controls, added now so their first press is not missed.
+            for (const action of Object.keys(REMAPPABLE_ACTIONS) as Action[]) this.keysFor(action);
         }
     }
 
@@ -224,14 +252,14 @@ export class InputSystem {
     }
 
     public justPressed(action: Action): boolean {
-        const keys = this.actionKeys.get(action) ?? [];
+        const keys = this.keysFor(action);
         // JustDown is read even when disabled, so a key typed into a text box doesn't fire once typing ends.
         const keyPressed = keys.map((key) => Phaser.Input.Keyboard.JustDown(key)).some(Boolean);
         if (keyPressed && this.keyboardEnabled) {
             this.lastDevice = 'keyboard';
             return true;
         }
-        if ((GAMEPAD_ACTIONS[action] ?? []).some((button) => this.padJustPressed.has(button))) {
+        if (this.buttonsFor(action).some((button) => this.padJustPressed.has(button))) {
             this.lastDevice = 'gamepad';
             return true;
         }
@@ -240,6 +268,28 @@ export class InputSystem {
             return true;
         }
         return false;
+    }
+
+    /** Settings → Controls (Fase 19C): the first real gamepad button pressed this frame, or undefined. */
+    public justPressedButton(): number | undefined {
+        for (const index of this.padJustPressed) {
+            if (index < STICK_BUTTON.Left) return index;
+        }
+        return undefined;
+    }
+
+    /** Keys of an action: the one picked in Settings → Controls for the remappable ones. */
+    private keysFor(action: Action): Phaser.Input.Keyboard.Key[] {
+        const control = REMAPPABLE_ACTIONS[action];
+        const keyboard = this.scene.input.keyboard;
+        if (!control || !keyboard) return this.actionKeys.get(action) ?? [];
+        // addKey hands back the key already added for that code.
+        return [keyboard.addKey(settings.current.controls.keyboard[control])];
+    }
+
+    private buttonsFor(action: Action): readonly number[] {
+        const control = REMAPPABLE_ACTIONS[action];
+        return control ? [settings.current.controls.gamepad[control]] : GAMEPAD_ACTIONS[action] ?? [];
     }
 
     /** True while a gamepad is connected (browsers only report it after a button press). */
@@ -359,7 +409,7 @@ export class InputSystem {
 }
 
 /** First connected gamepad, preferring the standard (Xbox-like) mapping. */
-function readGamepad(): Gamepad | undefined {
+export function readGamepad(): Gamepad | undefined {
     if (typeof navigator.getGamepads !== 'function') return undefined;
     const pads = navigator.getGamepads().filter((pad): pad is Gamepad => pad !== null && pad.connected);
     return pads.find((pad) => pad.mapping === 'standard') ?? pads[0];

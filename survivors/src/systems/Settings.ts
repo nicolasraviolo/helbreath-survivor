@@ -2,6 +2,7 @@
 // (evento SETTINGS_CHANGED) para que la música, los efectos y la barra de vida se actualicen al momento.
 // Si el navegador no deja guardar (modo privado, almacenamiento bloqueado), funcionan igual durante la sesión.
 import Phaser from 'phaser';
+import { readControls } from '../config/controls';
 import { DEFAULT_SETTINGS, HUD_STYLES, SETTINGS_STORAGE_KEY, TREE_MODES, type GameSettings, type HudStyle, type TreeMode } from '../config/settings';
 
 export const SETTINGS_CHANGED = 'settings-changed';
@@ -39,6 +40,8 @@ function load(): GameSettings {
             anonymousStats: typeof stored.anonymousStats === 'boolean' ? stored.anonymousStats : DEFAULT_SETTINGS.anonymousStats,
             aimStick: typeof stored.aimStick === 'boolean' ? stored.aimStick : DEFAULT_SETTINGS.aimStick,
             showMinimap: typeof stored.showMinimap === 'boolean' ? stored.showMinimap : DEFAULT_SETTINGS.showMinimap,
+            vibration: typeof stored.vibration === 'boolean' ? stored.vibration : DEFAULT_SETTINGS.vibration,
+            controls: readControls(stored.controls),
         };
     } catch {
         return { ...DEFAULT_SETTINGS };

@@ -57,6 +57,10 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Aspecto del personaje (Fase 17B)
 - Esquiva física (Fase 18A)
 - Resistencia mágica (Fase 18B)
+- Critical Strike (Fase 19A)
+- Meteor Strike, hechizo activo del Mago (Fase 19B)
+- Vibración del mando y controles cambiables (Fase 19C)
+- Medir crit y meteoro (cierre Fase 19)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -539,7 +543,7 @@ Tabla completa en `docs/REQUISITOS_HB.md`. Lo no obvio:
 - Cloudflare Pages: 25 MiB máximo por archivo (el mayor es `tile489-522.spr`, 5,2 MB) y 20 000 archivos por despliegue.
 
 ## Assets para la segunda etapa (investigado el 17-oct-2026, ver `docs/PLAN-2.md`)
-- **Crítico del original:** se lanza con Alt; cargas = nivel/10, +1 cada ~13 s (S:4117). Grito `C23` (hombre) / `C24` (mujer). Icono del HUD al mantener Alt: GameDialog hoja 6 frame 3.
+- **Crítico del original:** se lanza con Alt; cargas = nivel/10, +1 cada ~13 s (S:4117). Grito `C23` (hombre) / `C24` (mujer). Icono del HUD al mantener Alt: GameDialog hoja 6 frame 3 (el icono rojo con el número es el frame 5; ver "Critical Strike (Fase 19A)").
 - **Zem** (Zemstone of Sacrifice): `item-ground`/`item-pack` hoja 15 frame 39. Efecto Resurrection: `effect11` hoja 10 (21 frames; el código pide 30).
 - **Minimapa original:** `telescope.spr` hoja 0, miniaturas de 128×128. Frame por mapa: huntzone2 9, middleland 4, arefarm 6, elvfarm 5, dglv4 14, icebound 24, druncncity 25. Punto del jugador: GameDialog hoja 4 frame 37. También hay `images/minimaps/<mapa>.jpg` (1500×1500).
 - **Bolsa original:** GameDialog hoja 7 frame 0 (226×188); objetos dibujados en (32+x, 44+y).
@@ -717,3 +721,32 @@ Tabla completa en `docs/REQUISITOS_HB.md`. Lo no obvio:
 - La partida simulada cuenta los hechizos junto a los golpes (`blows`).
 - Varios "Resist" casi a la vez (las 3 bolas del Wyvern) se apilan hacia arriba (`WORD_STACK_MS`/`WORD_STACK_PX` en `DamageNumbers.ts`).
 - `Equipment` guarda los totales de la armadura (`totals`) y los recalcula solo en `wear()`, porque se leen cada frame. La armadura solo se cambia con `wear()` (`armor` es de solo lectura). Para la vista previa de las cartas: `totalWith(pieza, 'magicResistance')`, etc.
+
+## Critical Strike (Fase 19A)
+- **Iconos de `gamedialog86.spr` hoja 6** (la del HUD): frames 0/1/2 = espadas azul / roja / gris en un rectángulo (36×44); frames 3/4/5 = esferas violeta / amarilla / **roja** con espada (32×32). El propietario eligió la **roja (5)** con las cargas encima, que pasa a la **violeta (3)** un momento al lanzar ("pulsada"). Va centrada en el hueco cuadrado de la barra, a la izquierda de los botones (x≈448–484).
+- Esos frames traen el punto de anclaje del original: con `origin` por defecto quedan descolocados. Usar `setOrigin(0.5)` y `setFrame(f, false, false)` (si no, `setFrame` vuelve a poner el anclaje del frame).
+- Efecto: `effect6.spr` **hoja 1** (elegida en el visor). En sp-client esa hoja es "Earth Worm Attack Helix"; la tarjeta del visor dice "Base" porque "Base" es la hoja 4 del mismo archivo. `effect6.spr` pesa ~0,48 MB y se carga al principio.
+- Números de daño: el `!` va solo en el golpe que mata (como el original); el crítico de Chr sigue amarillo y grande.
+- Grito: `C23.mp3` hombre / `C24.mp3` mujer.
+- Forma del golpe por familia en `data/critStrike.ts` (`CRIT_SHAPES`): alcance = alcance del arma + N casillas. Hachas y martillos ya tienen la suya aunque estén apagados.
+- Con las cartas abiertas el crit no se lanza; las cartas y el Game Over se eligen con Enter / A / clic, **no con Espacio** (`Action.Pick`), para que un Espacio pulsado de más no elija carta.
+- El botón táctil (`ui/CritButton.ts`) y la esquina reservada se miden desde `overlayBottom()`: con la barra compacta abajo quedan por encima de las barras.
+- La partida simulada lanza un crit en cuanto tiene carga.
+
+## Meteor Strike, hechizo activo del Mago (Fase 19B)
+- Números en `data/activeSpells.ts` (lista de hechizos activos: en la Fase 20 serán equipables). Lógica en `systems/ActiveSpellSystem.ts`; el meteorito (`entities/Meteor.ts`, con pool) lo mueve `WeaponSystem`.
+- Mismo botón que el Critical Strike: con el Mago, `GameScene.launchCritStrike()` lanza el meteoro. La esfera roja del HUD es la misma (`HudBarState.skillOrb`): con el Mago enseña los segundos que faltan. El propietario quiere un icono propio para el Mago más adelante (`hudIcon` en los datos).
+- Recarga: 20 s × (1 − 1% por punto de Mag), mínimo 8 s. Daño × (2 + Power/30), igual que el crit; todos los números salen grandes.
+- Dibujo: `crueffect1.spr` (1,25 MB; hoja 0 = meteoro y orbes, 1 = impacto, 2 = explosión, 8 = explosión de suelo). Va en `ON_DEMAND_SPRITES` y se descarga al empezar una partida de Mago; después se vuelve a llamar a `registerEffectAnimations` (ahora salta los efectos cuyo .spr aún no está). Hasta que llega, el botón no hace nada.
+- Sin enemigos al alcance (420 px) y sin apuntar a mano, no sale y no gasta la recarga.
+- **sp-client se queda corto en el impacto.** El original (`reference/Client.cpp`, efectos 61/62/63/12) dibuja además una estela de humo al caer (crueffect1 hoja 0, frames 20–24, uno cada 25 ms), el fuego del suelo y la explosión **aditivos**, y 5 "Burst" (`effect2.spr` hoja 1, frames 10–15) repartidos. `m_pEffectSpr[n]`: effect.spr = 0–9, effect2.spr = 10–12, crueffect1 = 31–33 (`MakeEffectSpr`, C:4062). La explosión de suelo (hoja 8) es solo de sp-client; la dejamos.
+
+## Vibración del mando y controles cambiables (Fase 19C)
+- **Vibración:** `systems/Rumble.ts` usa `gamepad.vibrationActuator.playEffect('dual-rumble', …)` (Gamepad API). Va en Chrome/Edge; Firefox no tiene `vibrationActuator` y Safari depende del mando: entonces no hace nada. Un efecto nuevo **sustituye** al que esté sonando, por eso Rumble salta uno más flojo mientras dura uno más fuerte. Números en `data/feedback.ts` (`GAMEPAD_RUMBLE`). La partida simulada no vibra. El crit y el meteoro vibran al **impactar**: `WeaponSystem.onSkillHit` avisa una vez por lanzamiento (el primer golpe del crit que toca a alguien; el meteoro si cae con algún monstruo en su radio).
+- **Controles:** solo el crit/meteoro y el panel de stats se pueden cambiar (decisión del propietario). Lista, teclas de serie, teclas reservadas y nombres en `config/controls.ts`; se guardan dentro de los ajustes (`settings.current.controls`). `InputSystem` los lee en cada `justPressed`, así un cambio vale al momento aunque la partida esté en pausa debajo. `keyboard.addKey(code)` devuelve la tecla ya creada si existe; la tecla elegida se añade también en el constructor para no perder su primera pulsación.
+- **Capturar una tecla** (`scenes/ControlsScene.ts`): el `keydown` solo apunta la tecla y se aplica en el `update` siguiente, después de "tragarse" las acciones del menú de ese frame; si no, el Espacio recién elegido volvería a abrir la espera. Una pulsación sintética con keydown+keyup en el mismo instante no da `JustDown` en Phaser (keyup lo borra), por eso Esc/Backspace también se miran en el `keydown`.
+- **Probar sin mando:** en `--eval`, `navigator.getGamepads = () => [padFalso]` con un `vibrationActuator.playEffect` que apunte las llamadas.
+
+## Medir crit y meteoro (cierre Fase 19)
+La partida simulada no separa el daño por arma. Para saber cuánto aporta el crit o el meteoro se envuelve `g.combat.hitEnemy` desde `--eval` en `pnpm check "play=mage&debug=sim"`: el crit y el meteoro son los únicos golpes con `bigNumbers = true` (7.º argumento), así que basta con sumar la vida quitada (`hp` antes y después) y las muertes de esos golpes frente al resto, por tramos de 5 min con `g.spawner.elapsed`, y esperar a `window.__sim.done`. Contadores de usos: `g.critStrike.launchedCount` y `g.activeSpell.castCount`. Una partida de Guerrero de cada tres suele salir mala (atascado con un jefe): descartarla.
+

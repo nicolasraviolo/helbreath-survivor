@@ -56,6 +56,10 @@ export interface RunSnapshot {
     portalMsLeft: number | undefined;
     /** Potions drunk so far (Fase 14B, achievement "Iron Will"). Saves from before count as none. */
     potionsDrunk: number;
+    /** Critical Strike charges held (Fase 19A). Saves from before have none: they start full. */
+    critCharges: number | undefined;
+    /** Recharge left of the Mage's active spell, in ms (Fase 19B). Saves from before have none: it starts ready. */
+    spellCooldownMs: number | undefined;
     /** What the anonymous stats collected so far (Fase 14A). Saves from before have none. */
     metrics: RunMetricsState | undefined;
 }
@@ -191,6 +195,8 @@ function readSnapshot(entry: unknown): RunSnapshot | undefined {
         finalBossDead: entry.finalBossDead === true,
         portalMsLeft: readNumber(entry.portalMsLeft),
         potionsDrunk: readNumber(entry.potionsDrunk) ?? 0,
+        critCharges: readNumber(entry.critCharges),
+        spellCooldownMs: readNumber(entry.spellCooldownMs),
         metrics: readMetrics(entry.metrics),
     };
 }

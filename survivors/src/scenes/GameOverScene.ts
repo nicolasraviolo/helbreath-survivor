@@ -96,7 +96,7 @@ export class GameOverScene extends Phaser.Scene {
         const count = this.buttons.length;
         if (input.justPressed(Action.MenuLeft)) this.highlight((this.selected - 1 + count) % count);
         if (input.justPressed(Action.MenuRight)) this.highlight((this.selected + 1) % count);
-        if (input.justPressed(Action.Confirm)) this.choose(this.selected);
+        if (input.justPressed(Action.Pick)) this.choose(this.selected);
     }
 
     private ready(): boolean {

@@ -3,7 +3,7 @@
 // Al añadir un control nuevo (apuntado, crit, tótems...), se añade aquí.
 
 /** Gamepad buttons drawn as Xbox icons (scenes/HowToPlayScene.ts). */
-export type PadIcon = 'A' | 'B' | 'Y' | 'Start' | 'LeftStick' | 'RightStick' | 'Dpad';
+export type PadIcon = 'A' | 'B' | 'X' | 'Y' | 'R2' | 'Start' | 'LeftStick' | 'RightStick' | 'Dpad';
 
 export interface ControlRow {
     /** Key, mouse or touch control, as text. */
@@ -44,6 +44,8 @@ export const HOW_TO_PLAY_PAGES: readonly HowToPlayPage[] = [
             { control: 'C / Esc', action: 'Show your stats / Pause' },
             { control: 'Arrows + Enter, or click', action: 'Choose in menus and cards' },
             { control: 'Esc or Backspace', action: 'Go back' },
+            // Fase 19C: se pueden cambiar la tecla del crit y la del panel de stats.
+            { control: 'Settings, Controls', action: 'Change the Crit and Stats keys' },
         ],
     },
     {
@@ -55,6 +57,7 @@ export const HOW_TO_PLAY_PAGES: readonly HowToPlayPage[] = [
             { pad: ['Start'], action: 'Pause' },
             { pad: ['Dpad', 'A'], action: 'Choose in menus and cards' },
             { pad: ['B'], action: 'Go back' },
+            { control: 'Settings, Controls', action: 'Change the Crit and Stats buttons' },
         ],
     },
     {
@@ -66,6 +69,20 @@ export const HOW_TO_PLAY_PAGES: readonly HowToPlayPage[] = [
             { control: 'Stats / Pause buttons', action: 'Show your stats / Pause' },
             { control: 'Tap a card or option', action: 'Choose it' },
             { control: 'Top-right icon', action: 'Fullscreen' },
+        ],
+    },
+    {
+        // Fase 19A: Critical Strike del Guerrero; 19B: hechizo activo del Mago (Meteor Strike), con el mismo botón.
+        name: 'Crit',
+        rows: [
+            // Como mucho 7 filas: con 8, la última pisa el selector "Page".
+            { control: 'Space', action: 'Warrior: Critical Strike · Mage: Meteor Strike' },
+            { pad: ['R2'], action: 'Warrior: Critical Strike · Mage: Meteor Strike' },
+            { control: 'Red orb button (touch)', action: 'Warrior: Critical Strike · Mage: Meteor Strike' },
+            { control: 'Number on the red orb', action: 'Warrior: charges (+1 each 15 s) · Mage: secs left' },
+            { control: 'Getting hit', action: 'Warrior: also refills the charges' },
+            { control: 'Every 10 levels', action: 'Warrior: one more charge, and more damage' },
+            { control: 'More Mag', action: 'Mage: Meteor Strike recharges faster' },
         ],
     },
     {

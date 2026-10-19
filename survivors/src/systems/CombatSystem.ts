@@ -21,6 +21,8 @@ export interface AreaHit {
     direct: Enemy | undefined;
     directDamage: number;
     knockback: number;
+    /** Every number shown big, as a critical hit (the Mage's active spell, Fase 19B). */
+    bigNumbers?: boolean;
 }
 
 export interface ArcHit {
@@ -34,6 +36,8 @@ export interface ArcHit {
     arc: number;
     damage: number;
     knockback: number;
+    /** Every number shown big, as a critical hit (the Critical Strike, Fase 19A). */
+    bigNumbers?: boolean;
 }
 
 /** Enemies this close to the centre are hit whatever the angle (they are on top of the player). */
@@ -72,11 +76,11 @@ export class CombatSystem {
         this.enemies.forEachInRadius(hit.x, hit.y, hit.radius, (enemy) => {
             const isDirect = enemy === direct;
             directInArea ||= isDirect;
-            const critical = this.hitEnemy(enemy, hit.damageType, hit.areaDamage + (isDirect ? hit.directDamage : 0), hit.x, hit.y, hit.knockback);
+            const critical = this.hitEnemy(enemy, hit.damageType, hit.areaDamage + (isDirect ? hit.directDamage : 0), hit.x, hit.y, hit.knockback, hit.bigNumbers);
             if (isDirect || (!direct && mainCritical === undefined)) mainCritical = critical;
         });
         if (direct && !directInArea) {
-            mainCritical = this.hitEnemy(direct, hit.damageType, hit.directDamage, hit.x, hit.y, hit.knockback);
+            mainCritical = this.hitEnemy(direct, hit.damageType, hit.directDamage, hit.x, hit.y, hit.knockback, hit.bigNumbers);
         }
         return mainCritical ?? false;
     }
@@ -93,7 +97,7 @@ export class CombatSystem {
             if (!inside) return;
             count++;
             onHit?.(enemy);
-            this.hitEnemy(enemy, hit.damageType, hit.damage, hit.x, hit.y, hit.knockback);
+            this.hitEnemy(enemy, hit.damageType, hit.damage, hit.x, hit.y, hit.knockback, hit.bigNumbers);
         });
         return count;
     }
@@ -125,14 +129,17 @@ export class CombatSystem {
         for (const cry of cries) this.audio.play(cry);
     }
 
-    /** One hit on one enemy, pushed away from (fromX, fromY). `baseDamage` is scaled by the attacker's stats. Returns true on a critical hit. */
-    public hitEnemy(enemy: Enemy, type: DamageType, baseDamage: number, fromX: number, fromY: number, knockback: number): boolean {
+    /**
+     * One hit on one enemy, pushed away from (fromX, fromY). `baseDamage` is scaled by the attacker's stats. Returns true
+     * on a critical hit. `bigNumber` shows the number as a critical one even when the Chr roll fails.
+     */
+    public hitEnemy(enemy: Enemy, type: DamageType, baseDamage: number, fromX: number, fromY: number, knockback: number, bigNumber = false): boolean {
         if (!enemy.isAlive || baseDamage <= 0) return false;
         const critical = Math.random() < this.attacker.critChance;
         const scaled = baseDamage * this.attacker.damageMultiplier(type) * (critical ? CRIT_DAMAGE_MULTIPLIER : 1);
         const damage = Math.max(1, Math.round(scaled));
         const killed = enemy.takeDamage(damage, fromX, fromY, knockback);
-        this.numbers.show(enemy.x, enemy.bodyY - enemy.def.bodyOffsetY, damage, critical);
+        this.numbers.show(enemy.x, enemy.bodyY - enemy.def.bodyOffsetY, damage, critical || bigNumber, killed);
         if (killed) {
             this.killCount++;
             this.particles.death(enemy.x, enemy.y, enemy.bodyY);

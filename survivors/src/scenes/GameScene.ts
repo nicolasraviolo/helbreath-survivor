@@ -56,23 +56,31 @@ import { CombatSystem } from '../systems/CombatSystem';
 import { DamageNumbers } from '../systems/DamageNumbers';
 import { HitParticles } from '../systems/HitParticles';
 import { ScreenShake } from '../systems/ScreenShake';
+import { Rumble } from '../systems/Rumble';
+import { GAMEPAD_RUMBLE } from '../data/feedback';
 import { DebugSystem } from '../systems/DebugSystem';
 import { EnemySystem } from '../systems/EnemySystem';
 import { assetStreamer } from '../systems/AssetStreamer';
 import { Action, InputSystem } from '../systems/InputSystem';
 import { SETTINGS_CHANGED, settings } from '../systems/Settings';
 import { AimArrow } from '../ui/AimArrow';
-import { playAreaBottom } from '../ui/hudLayout';
+import { overlayBottom, playAreaBottom } from '../ui/hudLayout';
 import { TouchJoystick } from '../ui/TouchJoystick';
 import { SpawnSystem } from '../systems/SpawnSystem';
 import { WeaponSystem } from '../systems/WeaponSystem';
+import { CritStrikeSystem } from '../systems/CritStrikeSystem';
+import { maxCritCharges } from '../data/critStrike';
+import { ActiveSpellSystem } from '../systems/ActiveSpellSystem';
+import { DEFAULT_ACTIVE_SPELL } from '../data/activeSpells';
+import { registerEffectAnimations } from '../config/effects';
+import type { SkillOrb } from '../ui/hudLayout';
 import { XpSystem } from '../systems/XpSystem';
 import { canStandAt } from '../utils/collision';
 import { formatTime } from '../utils/format';
 import { SpellWeapon } from '../weapons/SpellWeapon';
 import { PlayerState } from '../hb/playerAppearance';
 import { MeleeWeapon } from '../weapons/MeleeWeapon';
-import { directionFromVector } from '../hb/directions';
+import { angleFromDirection, directionFromVector } from '../hb/directions';
 import { buildLevelUpChoices } from '../systems/UpgradePool';
 import type { HudSceneData, HudState } from './HudScene';
 import type { LevelUpChoice, LevelUpSceneData } from './LevelUpScene';
@@ -128,7 +136,12 @@ export class GameScene extends Phaser.Scene {
     private combat!: CombatSystem;
     private particles!: HitParticles;
     private screenShake!: ScreenShake;
+    private readonly rumble = new Rumble();
     private weapons!: WeaponSystem;
+    /** Critical Strike of the Warrior (Fase 19A); the Mage has none until 19B. */
+    private critStrike!: CritStrikeSystem;
+    /** The Mage's active spell (Fase 19B); undefined for the Warrior. */
+    private activeSpell: ActiveSpellSystem | undefined;
     private aimArrow!: AimArrow;
     private debug!: DebugSystem;
     /** ?debug=aim / debug key: aiming to the right by itself (reset at the start of each run). */
@@ -266,6 +279,12 @@ export class GameScene extends Phaser.Scene {
             this.onEnemyKilled(enemy);
         });
         this.weapons = new WeaponSystem(this, this.enemies, this.combat, this.audio, this.screenShake);
+        // Fase 19C: the gamepad vibrates when the Critical / Meteor Strike hits (not when it is launched), once per launch.
+        this.weapons.onSkillHit = (skill) => {
+            if (!this.sim) this.rumble.play(GAMEPAD_RUMBLE[skill]);
+        };
+        this.critStrike = new CritStrikeSystem(this.weapons, this.audio, this.screenShake);
+        this.activeSpell = this.createActiveSpell();
         this.aimArrow = new AimArrow(this);
         this.buffs = new BuffSystem(this, this.player, this.audio, (key, x, y) => this.weapons.spawnEffect(key, x, y));
         this.totems = new TotemSystem(this, map, areaPx, this.audio, (id) => this.collectTotem(id));
@@ -324,12 +343,13 @@ export class GameScene extends Phaser.Scene {
         if (this.sys.game.device.input.touch) {
             // With the aim stick on (Fase 15C) the left half moves and the right half aims; off, anywhere moves.
             const aimSide = (x: number): boolean => settings.current.aimStick && x >= GAME_WIDTH * TOUCH_AIM_ZONE_START;
-            const critCorner = (x: number, y: number, maxY: number): boolean =>
-                x >= GAME_WIDTH - TOUCH_RESERVED_CORNER.width && y >= maxY - TOUCH_RESERVED_CORNER.height;
+            // The Critical Strike button (Fase 19A) sits there, over the compact gauges if they run along the bottom.
+            const critCorner = (x: number, y: number): boolean =>
+                x >= GAME_WIDTH - TOUCH_RESERVED_CORNER.width && y >= overlayBottom() - TOUCH_RESERVED_CORNER.height;
             this.joystick = new TouchJoystick(this, playAreaBottom(), DEPTH_DEBUG - 2, TOUCH_JOYSTICK,
-                (x, y, maxY) => !aimSide(x) && !critCorner(x, y, maxY));
+                (x, y) => !aimSide(x) && !critCorner(x, y));
             this.aimStick = new TouchJoystick(this, playAreaBottom(), DEPTH_DEBUG - 2, TOUCH_AIM_STICK,
-                (x, y, maxY) => aimSide(x) && !critCorner(x, y, maxY));
+                (x, y) => aimSide(x) && !critCorner(x, y));
             this.inputSystem.setTouchJoystick(this.joystick);
             this.inputSystem.setTouchAimStick(this.aimStick);
         }
@@ -510,6 +530,9 @@ export class GameScene extends Phaser.Scene {
         this.combat.restoreKills(run.kills);
         this.achievements.potionsDrunk = run.potionsDrunk;
         this.buffs.restore(run.buffs);
+        if (run.critCharges !== undefined) this.critStrike.restore(run.critCharges, stats.level);
+        else this.critStrike.restore(maxCritCharges(stats.level), stats.level);
+        this.activeSpell?.restore(run.spellCooldownMs ?? 0, stats.stats.mag);
         this.spawner.resumeAt(run.elapsedMs, RESUME_CALM_MS, run.bosses);
         // Saved after the final boss: the player starts somewhere else, so its chest (or the portal) appears next to them.
         if (run.finalBossDead) {
@@ -545,6 +568,8 @@ export class GameScene extends Phaser.Scene {
             finalBossDead: this.finalBossDead,
             portalMsLeft: this.portal?.timeLeft ?? (this.portalInMs >= 0 ? PORTAL.durationMs : undefined),
             potionsDrunk: this.achievements.potionsDrunk,
+            critCharges: this.critStrike.charges,
+            spellCooldownMs: this.activeSpell?.cooldownLeftMs,
             metrics: this.metrics.snapshot(),
         };
     }
@@ -577,6 +602,7 @@ export class GameScene extends Phaser.Scene {
         const data: HudSceneData = {
             gameSceneKey: this.scene.key,
             minimap: { key: mapDef.minimap, mapWidth: map.width, mapHeight: map.height, playArea: mapDef.playArea },
+            launchCritStrike: () => this.launchCritStrike(),
             getState: () => ({
                 hp: this.player.hp,
                 maxHp: this.player.maxHp,
@@ -587,11 +613,14 @@ export class GameScene extends Phaser.Scene {
                 level: this.stats.level,
                 elapsedMs: this.spawner.elapsed,
                 kills: this.combat.kills,
+                skillOrb: this.skillOrb(),
+                skillUses: this.critStrike.launched + (this.activeSpell?.casts ?? 0),
                 pauseLocked: this.player.isDead || this.levelUpOpen || this.runOver,
                 boss: this.bossInfo(),
                 portalSecondsLeft: this.portal ? Math.ceil(this.portal.timeLeft / 1000) : undefined,
                 stats: this.stats,
                 weaponName: this.meleeWeapon?.def.name ?? this.spellWeapon?.def.name,
+                skillRow: this.skillRow(),
                 defense: this.equipment.defense,
                 defenseRatio: this.defenseRatio,
                 magicResistance: this.magicResistance,
@@ -667,6 +696,8 @@ export class GameScene extends Phaser.Scene {
         // Manual aim (right click / right stick) wins over the automatic one; the simulated run always aims on its own.
         const manualAim = this.sim || player.isDead ? undefined : input.getManualAim();
         this.weapons.setManualAim(manualAim);
+        this.updateCritStrike(delta);
+        this.updateActiveSpell(delta);
         this.weapons.update(delta, player.x, player.y, !player.isDead);
         this.aimArrow.update(manualAim, player.x, player.y);
         this.damageNumbers.update(delta);
@@ -724,6 +755,75 @@ export class GameScene extends Phaser.Scene {
         return true;
     }
 
+    /**
+     * Critical Strike (Fase 19A): recharges, and goes off with Space / gamepad R2 (the touch button calls
+     * launchCritStrike from the HUD). The simulated run launches one as soon as it has a charge, to measure the balance.
+     */
+    private updateCritStrike(delta: number): void {
+        if (!this.meleeWeapon || this.player.isDead) return;
+        this.critStrike.update(delta, this.stats.level);
+        if (this.sim ? this.critStrike.charges > 0 && this.enemies.alive > 0 : this.inputSystem.justPressed(Action.CritStrike)) {
+            this.launchCritStrike();
+        }
+    }
+
+    /** Launches a Critical Strike now, if the Warrior has a charge and is free to act. */
+    public launchCritStrike(): void {
+        if (this.activeSpell) {
+            this.castActiveSpell();
+            return;
+        }
+        const weapon = this.meleeWeapon;
+        const player = this.player;
+        if (!weapon || player.isDead || this.levelUpOpen || this.runOver) return;
+        this.critStrike.launch(weapon.def, this.stats.level, player.look.gender, player.x, player.y, angleFromDirection(player.direction));
+    }
+
+    /** The HUD orb: the Warrior's Critical Strike charges, or the seconds left of the Mage's spell (blank when ready). */
+    private skillOrb(): SkillOrb | undefined {
+        const spell = this.activeSpell;
+        if (spell) return { text: spell.ready ? '' : String(Math.ceil(spell.cooldownLeftMs / 1000) || ''), ready: spell.ready };
+        if (!this.meleeWeapon) return undefined;
+        const charges = this.critStrike.charges;
+        return { text: String(charges), ready: charges > 0 };
+    }
+
+    /** Stats panel: the Mage's spell with its recharge at this Mag, or the Warrior's maximum Critical Strike charges. */
+    private skillRow(): [string, string] | undefined {
+        const spell = this.activeSpell;
+        if (spell) return [spell.def.name, `${(spell.cooldownMs(this.stats.stats.mag) / 1000).toFixed(1)} s`];
+        if (!this.meleeWeapon) return undefined;
+        return ['Critical Strikes', `${maxCritCharges(this.stats.level)} max`];
+    }
+
+    /** Mage only: their active spell (Fase 19B), its sprite downloaded now (it is big; ON_DEMAND_SPRITES). */
+    private createActiveSpell(): ActiveSpellSystem | undefined {
+        if (CHARACTERS[this.characterId].startWeapon.kind !== 'spell') return undefined;
+        const spell = new ActiveSpellSystem(this.weapons, DEFAULT_ACTIVE_SPELL);
+        void lookLoader.ensure(this, [spell.def.sprite]).then(() => {
+            registerEffectAnimations(this.anims, this.textures);
+            spell.loaded = lookLoader.isReady(this, spell.def.sprite);
+        });
+        return spell;
+    }
+
+    /**
+     * The Mage's active spell (Fase 19B): recharges, and goes off with the Critical Strike button (Space / gamepad R2 /
+     * the touch button, which calls launchCritStrike). The simulated run casts it as soon as it is ready.
+     */
+    private updateActiveSpell(delta: number): void {
+        const spell = this.activeSpell;
+        if (!spell || this.player.isDead) return;
+        spell.update(delta);
+        if (this.sim ? spell.ready : this.inputSystem.justPressed(Action.CritStrike)) this.castActiveSpell();
+    }
+
+    /** Casts the Mage's active spell now, if it is ready and the Mage is free to act. */
+    private castActiveSpell(): void {
+        if (!this.activeSpell || this.player.isDead || this.levelUpOpen || this.runOver) return;
+        this.activeSpell.cast(this.stats.level, this.stats.stats.mag);
+    }
+
     /** Opens the portal a moment after the final chest is picked up; true when the run is won (stepped in or time up). */
     private updatePortal(delta: number): boolean {
         if (this.portalInMs >= 0 && (this.portalInMs -= delta) < 0) {
@@ -761,6 +861,11 @@ export class GameScene extends Phaser.Scene {
         if (!player.takeDamage(taken)) return;
         this.metrics.onHurt(source, taken, player.hp, player.maxHp);
         this.screenShake.hurt(byBoss);
+        if (!this.sim) {
+            const big = byBoss || taken >= player.maxHp * GAMEPAD_RUMBLE.bigHitShare;
+            this.rumble.play(big ? GAMEPAD_RUMBLE.bigHit : GAMEPAD_RUMBLE.hurt);
+        }
+        this.critStrike.onHurt(this.stats.level);
         if (player.isDead) {
             this.audio.play(GENDER_SOUNDS[player.look.gender].death);
             return;
@@ -815,6 +920,7 @@ export class GameScene extends Phaser.Scene {
             [Action.DebugSkipMinute, 'minute'],
             [Action.DebugNextBoss, 'boss'],
             [Action.DebugGodMode, 'god'],
+            [Action.DebugInfiniteCrits, 'crits'],
         ];
         const finalBoss = this.killFinalBossPending ? this.bosses.finalBoss : undefined;
         if (finalBoss) {
@@ -902,6 +1008,11 @@ export class GameScene extends Phaser.Scene {
                     const best = pieces[pieces.length - 1];
                     if (best) for (const [slot, layer] of this.equipment.wear(best)) this.player.setGear(slot, layer);
                 }
+                break;
+            case 'crits':
+                // Critical Strikes without spending charges and the Mage's spell without recharge, until pressed again (Fases 19A and 19B).
+                this.critStrike.infinite = !this.critStrike.infinite;
+                if (this.activeSpell) this.activeSpell.infinite = this.critStrike.infinite;
                 break;
             case 'stats':
                 // Opened by the Hud scene itself.

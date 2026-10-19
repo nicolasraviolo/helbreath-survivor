@@ -3,6 +3,7 @@
 // Con el ratón: pasar por encima la ilumina; clic la elige. En las de valor ("< 80% >"), clic en la flecha < baja y en
 // la flecha > sube.
 // Fase 12C (Settings táctil): filas con casilla (sí/no): un toque en la fila la cambia; con teclado o mando, Enter.
+// Fase 19C (Settings → Controls): filas con valor sin flechas (`noArrows`), para la tecla elegida.
 import Phaser from 'phaser';
 import { MENU_ARROW, MENU_CHECKBOX, MENU_ITEM } from '../config/menus';
 import { SpriteText } from '../hb/SpriteText';
@@ -17,6 +18,8 @@ export interface MenuItem {
     onRight?: () => void;
     /** Yes/no row: a checkbox in the value column, ticked while this returns true. Use onConfirm to toggle it. */
     checked?: () => boolean;
+    /** Value row without the ◄ ► arrows (a value picked another way, like a key in Settings → Controls). */
+    noArrows?: boolean;
 }
 
 export interface MenuListLayout {
@@ -64,6 +67,9 @@ export class MenuList {
             const boxWidth = layout.valueBoxWidth ?? MENU_ITEM.valueBoxWidth;
             if (twoColumns && item.checked) {
                 this.addCheckbox(row, layout.x + half - boxWidth / 2, y, item.checked);
+            } else if (twoColumns && item.noArrows) {
+                row.value = this.addText(layout.x + half - boxWidth / 2, y, '', 'center');
+                row.value.container.y = label.container.y;
             } else if (twoColumns) {
                 // "◄  value  ►": the value centred between the original's arrow buttons, each with its own click area on top.
                 const arrowHalf = (MENU_ARROW.size * MENU_ARROW.scale) / 2;
