@@ -43,16 +43,6 @@ export const HUD_MENU_BUTTON = 5;
 /** Index of the character (helmet) button, which shows the stats panel. */
 export const HUD_CHARACTER_BUTTON = 0;
 
-/** Stats panel, above the bar on the left. */
-export const HUD_STATS_PANEL = { x: 8, width: byDevice(250, 330), padding: 10, marginY: 8, columnWidth: byDevice(78, 100), gap: 6 } as const;
-export const HUD_STATS_STYLE = {
-    ...UI_TEXT,
-    fontSize: px(UI_FONT_SIZE.normal),
-    color: '#e8d9a8',
-    lineSpacing: 2,
-} as const;
-export const HUD_STATS_TITLE_STYLE = { ...HUD_STATS_STYLE, color: '#ffe080' } as const;
-
 export const HUD_DEPTH_TEXT = 10;
 /** Numbers on the gauges: the boxes are 16 px tall, so the small size. */
 export const HUD_TEXT_STYLE = {
@@ -197,6 +187,17 @@ export const GAME_OVER = {
     achievementsY: 182,
     achievementsColor: '#ffd860',
     achievementsWrap: 700,
+    /** Character Level block (Fase 20A): "+N EXP · Level N", the bar towards the next Level and a note under it. */
+    expY: 362,
+    expBarY: 390,
+    expBarWidth: 300,
+    expBarHeight: 8,
+    expBarBack: 0x2a2014,
+    expBarFill: 0xd8b048,
+    expBarBorder: 0x8a7038,
+    expNoteY: 400,
+    expLevelUpColor: '#60e060',
+    expNoteColor: '#c8b888',
     buttonsY: 440,
     /** Distance between the centres of two buttons. */
     buttonGap: 140,

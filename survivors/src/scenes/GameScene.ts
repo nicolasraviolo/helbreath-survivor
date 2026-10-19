@@ -27,11 +27,11 @@ import { DEFAULT_LOOKS, GENDER_SOUNDS } from '../data/appearance';
 import { CHARACTERS, CHOSEN_CHARACTER_KEY, DEFAULT_CHARACTER, isCharacterId, type CharacterId } from '../data/characters';
 import { DEFAULT_MAP, MAPS_DATA, type MapId } from '../data/maps';
 import { AUTOSAVE_EVERY_MS, RESUME_CALM_MS } from '../data/saves';
-import { STAT_IDS } from '../data/stats';
+import { STAT_IDS, type Stats } from '../data/stats';
 import type { MeleeWeaponId } from '../data/weapons';
 import type { SpellId } from '../data/spells';
 import { RESUME_SLOT_KEY, saveStore, type RunSnapshot } from '../systems/SaveStore';
-import { ACTIVE_CHARACTER_KEY, characterStore } from '../systems/CharacterStore';
+import { ACTIVE_CHARACTER_KEY, characterStore, permanentStats } from '../systems/CharacterStore';
 import { lookLoader, runSprites } from '../systems/LookLoader';
 import { MIN_DAMAGE_TAKEN } from '../data/armor';
 import { MELEE_ROOT_MOMENT } from '../data/weapons';
@@ -106,6 +106,8 @@ const DEBUG_TOTEM_SPACING = 120;
 const DEBUG_SKIP_MS = 60000;
 /** Levels given by the debug key L (one card per level). */
 const DEBUG_LEVELS = 5;
+/** ?debug=charexp: the run's XP counts this many times for the character's Level (to test the Level up quickly). */
+const DEBUG_CHAR_EXP_MULTIPLIER = 50;
 /** Wait after the run starts before the ?debug= actions (debugStart.ts). */
 const DEBUG_START_DELAY_MS = 500;
 
@@ -194,6 +196,8 @@ export class GameScene extends Phaser.Scene {
     private characterId: CharacterId = DEFAULT_CHARACTER;
     /** Saved character playing this run (Fase 17A), to keep its best level; undefined in old saves and debug runs. */
     private characterUid: string | undefined;
+    /** The character's permanent stats when this run started (class + Level points, Fase 20A). */
+    private permanentAtStart!: Stats;
     /** Save slot of this run (SaveStore). */
     private saveSlot = 0;
     private autosaveInMs = AUTOSAVE_EVERY_MS;
@@ -235,11 +239,14 @@ export class GameScene extends Phaser.Scene {
         this.characterId = resume?.character ?? (isCharacterId(chosen) ? chosen : DEFAULT_CHARACTER);
         const character = CHARACTERS[this.characterId];
         // Look of the saved character (Fase 17B); debug runs without one look as the class did before.
-        const look = characterStore.byUid(this.characterUid)?.look ?? DEFAULT_LOOKS[this.characterId];
+        const savedCharacter = characterStore.byUid(this.characterUid);
+        const look = savedCharacter?.look ?? DEFAULT_LOOKS[this.characterId];
         // Everything this character may wear during the run (armor from the cards), so new pieces show at once.
         void lookLoader.ensure(this, runSprites(character, look));
         this.player = new Player(this, (spawn.x + 0.5) * TILE_SIZE, (spawn.y + 0.5) * TILE_SIZE, character, look, map, areaPx);
-        this.stats = new CharacterStats(character);
+        // Permanent stats (Fase 20A); debug runs without a character start with the class's.
+        this.permanentAtStart = savedCharacter ? permanentStats(savedCharacter) : { ...character.startStats };
+        this.stats = new CharacterStats(character, this.permanentAtStart);
         this.levelUpOpen = false;
         this.sim = undefined;
         this.debugAimForced = false;
@@ -517,7 +524,9 @@ export class GameScene extends Phaser.Scene {
         stats.xp = run.xp;
         stats.pendingLevelUps = run.pendingLevelUps;
         this.chestCards = run.chestCards;
-        for (const id of STAT_IDS) stats.stats[id] = run.stats[id];
+        // Points assigned in the Character window while the run waited are added on top (Fase 20A).
+        const permanentThen = run.permanentStats ?? stats.def.startStats;
+        for (const id of STAT_IDS) stats.stats[id] = run.stats[id] + this.permanentAtStart[id] - permanentThen[id];
         if (run.weapon && run.weapon !== this.equipment.weapon) this.equipMelee(run.weapon);
         if (run.spell && run.spell !== this.equipment.spell) this.equipSpell(run.spell);
         for (const piece of Object.values(run.armor)) {
@@ -557,6 +566,7 @@ export class GameScene extends Phaser.Scene {
             pendingLevelUps: stats.pendingLevelUps,
             chestCards: this.chestCards,
             stats: { ...stats.stats },
+            permanentStats: { ...this.permanentAtStart },
             hp: this.player.hp,
             kills: this.combat.kills,
             weapon: equipment.weapon,
@@ -603,6 +613,8 @@ export class GameScene extends Phaser.Scene {
             gameSceneKey: this.scene.key,
             minimap: { key: mapDef.minimap, mapWidth: map.width, mapHeight: map.height, playArea: mapDef.playArea },
             launchCritStrike: () => this.launchCritStrike(),
+            characterUid: this.characterUid,
+            classId: this.characterId,
             getState: () => ({
                 hp: this.player.hp,
                 maxHp: this.player.maxHp,
@@ -635,6 +647,7 @@ export class GameScene extends Phaser.Scene {
             this.scene.stop('LevelUp');
             this.scene.stop('GameOver');
             this.scene.stop('Pause');
+            this.scene.stop('CharacterInfo');
             this.scene.stop('Settings');
         });
     }
@@ -652,8 +665,8 @@ export class GameScene extends Phaser.Scene {
         const sim = this.sim;
         if (!sim) {
             this.step(delta);
-            // The character's best level (shown on the select screen); cheap when it isn't a new best.
-            characterStore.recordLevel(this.characterUid, this.stats.level);
+            // The character's best Power (shown on the select screen); cheap when it isn't a new best.
+            characterStore.recordPower(this.characterUid, this.stats.level);
             return;
         }
         // Simulated run: many short steps per drawn frame.
@@ -1017,6 +1030,9 @@ export class GameScene extends Phaser.Scene {
             case 'stats':
                 // Opened by the Hud scene itself.
                 break;
+            case 'charexp':
+                // Applied when the run ends (endRun).
+                break;
             case 'sim':
                 this.sim = new SimRun(this.stats.def.name);
                 this.achievements.enabled = false;
@@ -1132,6 +1148,9 @@ export class GameScene extends Phaser.Scene {
         if (victory) this.achievements.onWin();
         this.sim?.finish(victory ? 'portal' : 'died', this.stats.level, this.spawner.elapsed, this.combat.kills, this.simBuild());
         saveStore.clear(this.saveSlot);
+        // All the run's XP goes to the character's permanent Level, won or lost (Fase 20A). Not for simulated runs.
+        const runXp = this.stats.runXp * (DEBUG_START.actions.includes('charexp') ? DEBUG_CHAR_EXP_MULTIPLIER : 1);
+        const exp = this.sim ? undefined : characterStore.addExp(this.characterUid, runXp);
         const armor = Object.values(this.equipment.armor).map((id) => getArmorPiece(id).name);
         this.sendMetrics(victory ? 'win' : 'death');
         const data: GameOverSceneData = {
@@ -1143,6 +1162,7 @@ export class GameScene extends Phaser.Scene {
             weaponName: this.meleeWeapon?.def.name ?? this.spellWeapon?.def.name ?? '',
             armorNames: armor,
             achievementNames: this.achievementsThisRun,
+            exp,
             onRestart: () => {
                 this.scene.stop('GameOver');
                 this.scene.restart();

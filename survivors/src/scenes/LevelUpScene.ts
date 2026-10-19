@@ -25,7 +25,7 @@ export interface LevelUpSceneData {
     equipment: Equipment;
     choices: LevelUpChoice[];
     onChoose: (choice: LevelUpChoice) => void;
-    /** Title over the cards; default "Level N!" (a chest's cards say something else, Fase 16B). */
+    /** Title over the cards; default "Power N!" (a chest's cards say something else, Fase 16B). */
     title?: string;
 }
 
@@ -100,7 +100,7 @@ export class LevelUpScene extends Phaser.Scene {
         // Above the compact gauges when they run along the bottom.
         const cardsBottom = overlayBottom() - CARDS_BOTTOM_GAP;
         this.add.rectangle(0, 0, GAME_WIDTH, bottom, 0x000000, 0.6).setOrigin(0);
-        this.add.text(GAME_WIDTH / 2, TITLE_Y, title ?? `Level ${stats.level}!`, {
+        this.add.text(GAME_WIDTH / 2, TITLE_Y, title ?? `Power ${stats.level}!`, {
             ...UI_TEXT, fontSize: px(UI_FONT_SIZE.title), fontStyle: 'bold', color: '#ffe080', stroke: '#000000', strokeThickness: 4,
         }).setOrigin(0.5);
         this.add.text(GAME_WIDTH / 2, SUBTITLE_Y, 'Choose an upgrade', { ...UI_TEXT, fontSize: px(UI_FONT_SIZE.normal), color: TEXT_COLOR }).setOrigin(0.5);

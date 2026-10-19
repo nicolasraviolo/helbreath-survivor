@@ -61,6 +61,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Meteor Strike, hechizo activo del Mago (Fase 19B)
 - Vibración del mando y controles cambiables (Fase 19C)
 - Medir crit y meteoro (cierre Fase 19)
+- Ventana Character y Level permanente (Fase 20A)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -750,3 +751,11 @@ Tabla completa en `docs/REQUISITOS_HB.md`. Lo no obvio:
 ## Medir crit y meteoro (cierre Fase 19)
 La partida simulada no separa el daño por arma. Para saber cuánto aporta el crit o el meteoro se envuelve `g.combat.hitEnemy` desde `--eval` en `pnpm check "play=mage&debug=sim"`: el crit y el meteoro son los únicos golpes con `bigNumbers = true` (7.º argumento), así que basta con sumar la vida quitada (`hp` antes y después) y las muertes de esos golpes frente al resto, por tramos de 5 min con `g.spawner.elapsed`, y esperar a `window.__sim.done`. Contadores de usos: `g.critStrike.launchedCount` y `g.activeSpell.castCount`. Una partida de Guerrero de cada tres suele salir mala (atascado con un jefe): descartarla.
 
+
+## Ventana Character y Level permanente (Fase 20A)
+- **`dialogtext.spr` hoja 0** (23 frames) son ventanas enteras del original: el **frame 0** es "Character Info." (270×376). Recuadros oscuros medidos en la imagen: nombre (14,49) 241×33; Level/EXP/Next EXP/Health/Mana/Stamina en x 176–250, y 104/122/140/170/188/206 (15 de alto); Max.Load y EK.Count en y 237 y 255; stats en cajas de 33×16: Str (51,281), Int (134,281), Vit (218,281), Dex (51,300), Mag (134,300), Chr (218,300). El hueco del equipo (círculos) va de x≈17 a 117. Todo en `config/characterInfo.ts`.
+- **`gamedialog86.spr` hoja 3:** frame 4 = panel del reparto de puntos original (226×138, flechas ya dibujadas); **frames 5 y 6 = botoncitos naranjas + y − de 12×12**. En el original solo se pintaban al pasar el ratón; aquí siempre que hay puntos.
+- **`dialogtext.spr` hoja 1:** no hay botón grande "Character"; **frame 10 = "Level Set."** (74×20, iluminado 11), el que abría el reparto en el original. Va en Select Character encima de Change Password (tapado del todo: con la sombra al 55% se leían trozos). Ok 0, Cancel 16.
+- **EXP de la partida:** `CharacterStats.runXp` la calcula del Power y la XP actual (no hace falta guardarla aparte). Una partida entera da ~70.000 (Power 27). La simulación no da EXP al personaje.
+- **Partida a medias y puntos nuevos:** la partida guarda `permanentStats` (las stats permanentes con que empezó); al continuarla se suma lo repartido entretanto. Las guardadas antes de la 20A cuentan como stats de la clase.
+- **Atajos:** `?characters=demo` deja a Gorn con 60.000 EXP (Level 12) y sus puntos; con `?play=warrior` juega Gorn. `?open=charinfo` abre su ventana; `?debug=charexp` multiplica ×50 la EXP al terminar (`--eval="g.endRun(false)"` termina la partida). Situaciones del check: `charinfo`, `charinfogame`, `charexp`.

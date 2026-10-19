@@ -2,11 +2,14 @@
 // Una partida guardada por personaje (SaveStore, mismo número de hueco): elegir un personaje con partida a medias la
 // continúa, también desde Play. En Continue solo se pueden elegir esos; los demás se ven apagados.
 // Cuatro huecos en fila; en cada uno, el personaje guardado (CharacterStore) caminando en el sitio y girando, con su
-// nombre y su mejor nivel debajo. Un hueco vacío lleva a Create Character (CharacterSelectScene).
+// nombre, su Level y su EXP debajo (Fase 20A), y "+N" en verde si tiene puntos sin repartir. Un hueco vacío lleva a
+// Create Character (CharacterSelectScene).
 // Como en el original: un clic marca el hueco y otro clic en el mismo empieza la partida (con el dedo, igual).
 // A la derecha, los botones del original: Start, Create New Character, Delete Character (pide pulsarlo otra vez para
-// confirmar) y Log Out, que aquí vuelve al menú principal. Change Password no tiene sentido sin cuentas: se ve apagado.
-// Teclado: ←/→ cambia de hueco, Enter juega (o crea si está vacío), Supr borra, Esc vuelve. Mando: cruceta/stick, A y B.
+// confirmar) y Log Out, que aquí vuelve al menú principal. Change Password no tiene sentido sin cuentas: se ve apagado,
+// y encima va "Level Set." (Fase 20A), que abre la ventana Character del personaje marcado para repartir sus puntos.
+// Teclado: ←/→ cambia de hueco, Enter juega (o crea si está vacío), C abre la ventana Character, Supr borra, Esc vuelve.
+// Mando: cruceta/stick, A, Y (Character) y B.
 import Phaser from 'phaser';
 import {
     SLOTS_BACKGROUND,
@@ -21,11 +24,13 @@ import {
     SLOTS_INPUT_DELAY_MS,
     SLOTS_LAYOUT,
     SLOTS_NAME_STYLE,
+    SLOTS_POINTS_STYLE,
     SLOTS_SCALE,
     SLOTS_TEXT_STYLE,
     SLOTS_TEXTURE,
     SLOTS_TURN_MS,
 } from '../config/characterSlots';
+import { DEBUG_START } from '../config/debugStart';
 import { CHARACTER_SLOT_COUNT } from '../data/characterSlots';
 import { CHARACTERS, CHOSEN_CHARACTER_KEY } from '../data/characters';
 import { CharacterSprite } from '../entities/CharacterSprite';
@@ -35,12 +40,18 @@ import { ACTIVE_CHARACTER_KEY, characterStore } from '../systems/CharacterStore'
 import { Action, InputSystem } from '../systems/InputSystem';
 import { RESUME_SLOT_KEY, saveStore } from '../systems/SaveStore';
 import { formatTime } from '../utils/format';
+import { totalExpForLevel } from '../data/characterLevel';
+import type { CharacterInfoSceneData } from './CharacterInfoScene';
 import type { CharacterSelectSceneData } from './CharacterSelectScene';
+import { openOverlay } from './MenuOverlayScene';
 
 /** 640x480 coordinates of the original image → screen pixels. */
 function s(value: number): number {
     return Math.round(value * SLOTS_SCALE);
 }
+
+/** ?open=charinfo opens the window only the first time the screen shows. */
+let debugInfoOpened = false;
 
 /** The original turns the characters this way round (m_cMenuDir 1..8). */
 const DIRECTIONS_CLOCKWISE = [
@@ -61,6 +72,8 @@ interface Button {
 /** Play: every slot can be chosen. Continue: only the characters with a run in progress. */
 export interface CharacterSlotsSceneData {
     mode?: 'play' | 'continue';
+    /** Slot marked when the screen opens (back from the Character window). */
+    focus?: number;
 }
 
 export class CharacterSlotsScene extends Phaser.Scene {
@@ -74,6 +87,7 @@ export class CharacterSlotsScene extends Phaser.Scene {
     private helpText!: Phaser.GameObjects.Text;
     private openedAt = 0;
     private walkTime = 0;
+    private initialFocus: number | undefined;
 
     constructor() {
         super('CharacterSlots');
@@ -81,6 +95,7 @@ export class CharacterSlotsScene extends Phaser.Scene {
 
     init(data: CharacterSlotsSceneData): void {
         this.mode = data.mode ?? 'play';
+        this.initialFocus = data.focus;
     }
 
     create(): void {
@@ -100,9 +115,22 @@ export class CharacterSlotsScene extends Phaser.Scene {
         this.inputSystem.setPointerMaxY(-1);
         this.deleteKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.DELETE);
 
+        // Back from the Character window: drawn again (Level, points) with the same slot marked.
+        const onResume = () => this.scene.restart({ mode: this.mode, focus: this.focused });
+        this.events.on(Phaser.Scenes.Events.RESUME, onResume);
+        this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.events.off(Phaser.Scenes.Events.RESUME, onResume));
+
         // Start on the latest run in Continue; otherwise on the first character (or the first slot if there is none).
-        const first = this.mode === 'continue' ? saveStore.newest : characterStore.all.findIndex((c) => c !== undefined);
+        const first = this.initialFocus ?? (this.mode === 'continue' ? saveStore.newest : characterStore.all.findIndex((c) => c !== undefined));
         this.focus(Math.max(0, first));
+
+        // ?open=charinfo (development only): the Character window of the first character with points, once.
+        if (DEBUG_START.open === 'CharacterInfo' && !debugInfoOpened) {
+            debugInfoOpened = true;
+            const withPoints = characterStore.all.findIndex((c) => (c?.unspentPoints ?? 0) > 0);
+            this.focus(withPoints >= 0 ? withPoints : Math.max(0, first));
+            this.time.delayedCall(0, () => this.openCharacterInfo());
+        }
     }
 
     /** In Continue, characters without a run in progress (and empty slots) are greyed out and can't be chosen. */
@@ -129,6 +157,7 @@ export class CharacterSlotsScene extends Phaser.Scene {
         if (input.justPressed(Action.MenuRight)) this.focus(this.step(1));
         if (input.justPressed(Action.Confirm)) this.enter(this.focused);
         if (input.justPressed(Action.Back)) this.scene.start('MainMenu');
+        if (input.justPressed(Action.ToggleStats)) this.openCharacterInfo();
         if (deletePressed) this.deleteFocused();
     }
 
@@ -150,9 +179,14 @@ export class CharacterSlotsScene extends Phaser.Scene {
         sprite.setPose(PlayerState.Walk, Direction.South);
         const lines: Array<[string, Phaser.Types.GameObjects.Text.TextStyle]> = [
             [saved.name, SLOTS_NAME_STYLE],
-            [String(saved.bestLevel), SLOTS_TEXT_STYLE],
+            [String(saved.level), SLOTS_TEXT_STYLE],
+            [(totalExpForLevel(saved.level) + saved.exp).toLocaleString('en-US'), SLOTS_TEXT_STYLE],
         ];
         const texts = lines.map(([text, style], i) => this.add.text(s(textX + dx), s(textY[i] ?? 0), text, style).setOrigin(0.5));
+        if (saved.unspentPoints > 0) {
+            const { points } = SLOTS_LAYOUT;
+            texts.push(this.add.text(s(points.x + dx), s(points.y), `+${saved.unspentPoints}`, SLOTS_POINTS_STYLE).setOrigin(0.5));
+        }
         if (!this.canChoose(index)) {
             sprite.container.setAlpha(SLOTS_DIM_ALPHA);
             texts.forEach((text) => text.setAlpha(SLOTS_DIM_ALPHA));
@@ -166,7 +200,27 @@ export class CharacterSlotsScene extends Phaser.Scene {
         this.addButton(x, newCharacter.y, newCharacter.frame, () => this.newCharacter());
         this.addButton(x, del.y, del.frame, () => this.deleteFocused());
         this.addButton(x, back.y, back.frame, () => this.scene.start('MainMenu'));
-        this.add.rectangle(s(x), s(unused.y), s(unused.width), s(unused.height), SLOTS_DISABLED_SHADE.color, SLOTS_DISABLED_SHADE.alpha).setOrigin(0);
+        this.add.rectangle(s(x), s(unused.y), s(unused.width), s(unused.height), SLOTS_DISABLED_SHADE.color, SLOTS_DISABLED_SHADE.alpha)
+            .setOrigin(0).setStrokeStyle(1, SLOTS_DISABLED_SHADE.border);
+        const { levelSet } = SLOTS_BUTTONS;
+        const image = this.add.image(s(levelSet.x), s(levelSet.y), SLOTS_TEXTURE, levelSet.frame).setOrigin(0).setScale(SLOTS_SCALE);
+        image.setInteractive({ useHandCursor: true });
+        image.on(Phaser.Input.Events.POINTER_OVER, () => image.setFrame(levelSet.litFrame));
+        image.on(Phaser.Input.Events.POINTER_OUT, () => image.setFrame(levelSet.frame));
+        image.on(Phaser.Input.Events.POINTER_UP, () => {
+            if (this.ready()) this.openCharacterInfo();
+        });
+    }
+
+    /** The original Character window of the marked character: its Level, stats and the points to assign (Fase 20A). */
+    private openCharacterInfo(): void {
+        const saved = characterStore.get(this.focused);
+        if (!saved) {
+            this.setHelp('This slot is empty.');
+            return;
+        }
+        const data: CharacterInfoSceneData = { characterUid: saved.uid, classId: saved.classId };
+        openOverlay(this, 'CharacterInfo', data);
     }
 
     private addButton(x: number, y: number, frame: number, onClick: () => void): Button {
@@ -200,9 +254,10 @@ export class CharacterSlotsScene extends Phaser.Scene {
         const saved = characterStore.get(index);
         const run = saveStore.get(index);
         const lines = saved
-            ? [`${saved.name}, ${CHARACTERS[saved.classId].name}.`, `Best level: ${saved.bestLevel}.`]
+            ? [`${saved.name}, ${CHARACTERS[saved.classId].name}, Level ${saved.level}.`, `Best Power: ${saved.bestPower}.`]
             : ['Empty slot.'];
-        if (saved && run) lines.push(`Saved run: level ${run.level}, ${formatTime(run.elapsedMs)}.`);
+        if (saved && saved.unspentPoints > 0) lines.push(`${saved.unspentPoints} points to assign: Level Set.`);
+        if (saved && run) lines.push(`Saved run: Power ${run.level}, ${formatTime(run.elapsedMs)}.`);
         else if (saved && this.mode === 'continue') lines.push('No saved run.');
         this.setHelp(lines.join('\n'));
     }

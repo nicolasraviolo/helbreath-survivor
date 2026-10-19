@@ -13,6 +13,17 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: readonly ReleaseNote[] = [
     {
+        version: 'Phase 20',
+        date: 'Oct 19, 2026',
+        changes: [
+            'Your characters now have a permanent Level: all the XP of each run goes to it, win or lose.',
+            'Each Level gives 3 stat points, kept forever. Assign them with "Level Set." in the character list.',
+            'New Character window, as in the original game: press C (or Y on the gamepad) during a run. The game pauses.',
+            'Inside a run your level is now called Power, and it starts at 1 every run.',
+            'The end screen shows the XP you earned and your progress to the next Level.',
+        ],
+    },
+    {
         version: 'Phase 19',
         date: 'Oct 18, 2026',
         changes: [
