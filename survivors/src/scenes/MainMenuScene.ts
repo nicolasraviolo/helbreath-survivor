@@ -1,5 +1,5 @@
 // Menú principal (Fase 8): la pantalla de título del Helbreath original con un panel de opciones a la derecha.
-// Continue (Fase 12, si hay partidas guardadas) y Play → los 4 personajes (CharacterSlotsScene, Fase 17A); How to Play (Fase 11), Achievements, Settings y Credits se abren encima; Install
+// Continue (Fase 12, si hay partidas guardadas) y Play → los 4 personajes (CharacterSlotsScene, Fase 17A); How to Play (Fase 11), Achievements, Settings y Credits se abren encima, y "What's new" (novedades) desde el link del pie; Install
 // (Fase 12), si el navegador lo permite. Pantalla completa: icono pequeño arriba a la derecha (Fase 12C). Suena la música por defecto del original.
 // Se maneja con ↑/↓ (cruceta o stick) + Enter/A, o con el ratón.
 import Phaser from 'phaser';
@@ -9,6 +9,7 @@ import { GAME_VERSION } from '../config/version';
 import {
     MAIN_MENU,
     MAIN_MENU_FOOTER_Y,
+    MAIN_MENU_NEWS_LINK,
     MENU_BACKGROUND,
     MENU_BACKGROUND_SCALE,
     MENU_FOOTER_STYLE,
@@ -42,7 +43,7 @@ export class MainMenuScene extends Phaser.Scene {
         this.openedAt = this.time.now;
         this.add.image(0, 0, MENU_BACKGROUND.texture, MENU_BACKGROUND.frame).setOrigin(0).setScale(MENU_BACKGROUND_SCALE);
         this.add.rectangle(0, GAME_HEIGHT - MAIN_MENU.footerHeight, GAME_WIDTH, MAIN_MENU.footerHeight, 0x000000).setOrigin(0);
-        this.add.text(GAME_WIDTH / 2, MAIN_MENU_FOOTER_Y, MAIN_MENU.footerText + MAIN_MENU.footerSeparator + GAME_VERSION, MENU_FOOTER_STYLE).setOrigin(0.5);
+        this.addFooter();
 
         this.add.image(MAIN_MENU.panelX, MAIN_MENU.panelY, MENU_PANEL.texture, MENU_PANEL.frame)
             .setOrigin(0.5).setScale(MAIN_MENU.panelScale);
@@ -96,6 +97,33 @@ export class MainMenuScene extends Phaser.Scene {
         const firstY = MAIN_MENU.panelY - ((items.length - 1) * spacing) / 2;
         this.list = new MenuList(this, items, { x: MAIN_MENU.panelX, y: firstY, spacing });
         this.list.setReadyCheck(() => this.ready());
+    }
+
+    /** Footer text and version, then the "What's new" link (ReleaseNotesScene), all centred together. */
+    private addFooter(): void {
+        const footer = this.add.text(0, MAIN_MENU_FOOTER_Y, MAIN_MENU.footerText + MAIN_MENU.footerSeparator + GAME_VERSION + MAIN_MENU.footerSeparator, MENU_FOOTER_STYLE)
+            .setOrigin(0, 0.5);
+        const link = this.add.text(0, MAIN_MENU_FOOTER_Y, MAIN_MENU_NEWS_LINK.label, { ...MENU_FOOTER_STYLE, color: MAIN_MENU_NEWS_LINK.color })
+            .setOrigin(0, 0.5);
+        footer.x = (GAME_WIDTH - footer.width - link.width) / 2;
+        link.x = footer.x + footer.width;
+        const underline = this.add.rectangle(link.x, MAIN_MENU_FOOTER_Y + link.height / 2 - 2, link.width, 1, Phaser.Display.Color.HexStringToColor(MAIN_MENU_NEWS_LINK.color).color)
+            .setOrigin(0, 0.5);
+        // The click area is a bit bigger than the text, for fingers.
+        const pad = MAIN_MENU_NEWS_LINK.hitPadding;
+        const zone = this.add.zone(link.x - pad, MAIN_MENU_FOOTER_Y, link.width + pad * 2, link.height + pad * 2)
+            .setOrigin(0, 0.5).setInteractive({ useHandCursor: true });
+        const paint = (color: string) => {
+            link.setColor(color);
+            underline.setFillStyle(Phaser.Display.Color.HexStringToColor(color).color);
+        };
+        zone.on(Phaser.Input.Events.POINTER_OVER, () => paint(MAIN_MENU_NEWS_LINK.hoverColor));
+        zone.on(Phaser.Input.Events.POINTER_OUT, () => paint(MAIN_MENU_NEWS_LINK.color));
+        zone.on(Phaser.Input.Events.POINTER_UP, () => {
+            if (!this.ready()) return;
+            paint(MAIN_MENU_NEWS_LINK.color);
+            openOverlay(this, 'ReleaseNotes');
+        });
     }
 
     private ready(): boolean {

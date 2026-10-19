@@ -169,3 +169,31 @@ export const PAD_ICON = {
     /** Start, stick and d-pad are drawn in this colour. */
     shapeColor: 0xe8dcc0,
 } as const;
+
+/**
+ * What's new (scenes/ReleaseNotesScene.ts): the Credits-size panel with each phase's changes, newest first, split into
+ * pages that fit above the page selector and Back.
+ */
+export const RELEASE_NOTES_SCREEN = {
+    /** Top of the notes, from the usual content row (a bit higher, close under the title). */
+    notesOffsetY: byDevice(-40, -42),
+    /** Changes wrap at this width. */
+    wrapWidth: byDevice(560, 640),
+    /** Space between a phase's title and its first change, and between changes. */
+    lineGap: byDevice(2, 3),
+    /** Space after the last change of a phase, before the next phase. */
+    entryGap: byDevice(10, 12),
+    pageBoxWidth: byDevice(130, 160),
+    titleColor: '#ffd860',
+    dateColor: '#c8b88a',
+    changeColor: '#f0e6c8',
+} as const;
+
+/** "What's new" link at the end of the main menu footer (opens ReleaseNotesScene). */
+export const MAIN_MENU_NEWS_LINK = {
+    label: "What's new",
+    color: '#ffd860',
+    hoverColor: '#ffffff',
+    /** Extra click area around the text, for fingers (screen pixels). */
+    hitPadding: byDevice(8, 14),
+} as const;

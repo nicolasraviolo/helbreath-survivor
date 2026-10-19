@@ -59,6 +59,8 @@ const PRESETS = {
     // Select Character (Fase 17A): los 4 huecos con dos personajes de ejemplo (slotsempty = sin ninguno).
     slots: 'characters=demo&open=slots',
     slotsempty: 'characters=reset&open=slots',
+    // Pantalla "What's new" (novedades de cada fase), la que abre el link del pie del menú.
+    news: 'open=releasenotes',
 };
 /** Most real time a simulated run may take (ms). */
 const SIM_TIMEOUT_MS = 8 * 60000;
@@ -136,7 +138,7 @@ async function runScenario(browser, name) {
     page.on('pageerror', (err) => errors.push(`${err.name}: ${err.message}`));
 
     // ?open= (debugStart.ts) shows a menu screen: wait for it instead of the game.
-    const openKey = { howtoplay: 'HowToPlay', settings: 'Settings', credits: 'Credits', achievements: 'Achievements', select: 'CharacterSelect', slots: 'CharacterSlots' }[params.get('open') ?? ''];
+    const openKey = { howtoplay: 'HowToPlay', settings: 'Settings', credits: 'Credits', releasenotes: 'ReleaseNotes', achievements: 'Achievements', select: 'CharacterSelect', slots: 'CharacterSlots' }[params.get('open') ?? ''];
     const target = openKey ?? (query ? 'Game' : 'MainMenu');
     await page.goto(url);
     const t0 = Date.now();

@@ -15,7 +15,7 @@
 //                      aimstick = un dedo de mentira en el stick de apuntar, empujado a la derecha (con --mobile, Fase 15C)
 //                      sim = partida simulada muy deprisa para medir el equilibrio (systems/SimRun.ts, Fase 13C)
 //   ?trees=off       → árboles grandes en ese modo solo en esta partida (on, off), sin guardarlo
-//   ?open=howtoplay  → abre esa pantalla de los menús (howtoplay, settings, credits, achievements, select = selección de personaje)
+//   ?open=howtoplay  → abre esa pantalla de los menús (howtoplay, settings, credits, releasenotes = novedades, achievements, select = selección de personaje)
 //   ?open=slots      → abre la pantalla de los 4 personajes guardados (Fase 17A)
 //   ?characters=reset → borra los personajes guardados al cargar (demo = deja dos de ejemplo; Fase 17A)
 //   ?achievements=reset → borra los logros conseguidos al cargar (all = los da todos, para ver la pantalla llena; Fase 14B)
@@ -26,7 +26,7 @@ import { isCharacterId, type CharacterId } from '../data/characters';
 import { TREE_MODES, type TreeMode } from './settings';
 
 /** Menu screens that ?open= shows straight away, and the scene of each one. */
-const DEBUG_SCREENS = { howtoplay: 'HowToPlay', settings: 'Settings', credits: 'Credits', achievements: 'Achievements', select: 'CharacterSelect', slots: 'CharacterSlots' } as const;
+const DEBUG_SCREENS = { howtoplay: 'HowToPlay', settings: 'Settings', credits: 'Credits', releasenotes: 'ReleaseNotes', achievements: 'Achievements', select: 'CharacterSelect', slots: 'CharacterSlots' } as const;
 type DebugScreen = keyof typeof DEBUG_SCREENS;
 
 function isDebugScreen(value: string | null): value is DebugScreen {
