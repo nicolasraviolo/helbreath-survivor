@@ -18,7 +18,7 @@ export class Effect implements Poolable {
         const def: EffectDef = EFFECTS[key];
         this.def = def;
         this.sprite.setBlendMode(def.additive ? Phaser.BlendModes.ADD : Phaser.BlendModes.NORMAL);
-        this.sprite.setPosition(x + (def.offsetX ?? 0), y + (def.offsetY ?? 0)).setDepth(y + (def.depthOffset ?? DEPTH_EFFECT_OFFSET)).setAlpha(1).setActive(true).setVisible(true).play(key);
+        this.sprite.setPosition(x + (def.offsetX ?? 0), y + (def.offsetY ?? 0)).setDepth(y + (def.depthOffset ?? DEPTH_EFFECT_OFFSET)).setScale(def.scale ?? 1).setAlpha(1).setActive(true).setVisible(true).play(key);
     }
 
     /** Returns false when the animation has finished (the effect must go back to the pool). */
