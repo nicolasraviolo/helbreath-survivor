@@ -21,7 +21,7 @@ export const RELEASE_NOTES: readonly ReleaseNote[] = [
             'New Character window to assign your stat points.',
             'New Equipment screen: choose your gear and spells before each run.',
             'New cards: Stone of Xelima and Stone of Merien.',
-            'Stronger totems, several bugs fixed and small improvements.',
+            'New sword slash, stronger totems and several bugs fixed.',
         ],
     },
     {

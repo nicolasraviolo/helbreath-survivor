@@ -2,6 +2,12 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
+**Ronda de bugs, bloque C, M15: estela del tajo del guerrero (2026-10-20).**
+- **Qué hace:** 5 estilos de estela en `data/slash.ts`; el propietario eligió **Thin edge + sparks** (filo fino que baja de arriba abajo en 0,08 s, con chispas en la punta de abajo). Los otros se guardan.
+- **Código:** `entities/Slash.ts` por rebanadas con grosor y alfa propios, brillo aditivo y chispas en arrays fijos; `show()` invierte el arco para empezar siempre por la punta de arriba. Constantes `SLASH_*` salen de `gameConfig.ts`. Desarrollo: `?slash=N`, tecla Y (`Action.DebugSlashStyle`) y letrero en `GameScene`.
+- **Comprobado:** build; `check` con horda y crit (giro completo) a 60 FPS, también `--mobile`, sin errores; capturas congeladas de cada estilo y del barrido hacia la izquierda.
+- **Probar:** `pnpm --dir survivors dev` → `?play=warrior&debug=god,horde` (Y cambia de estilo con `&slash=0`).
+
 **Ronda de bugs, bloque B: combate (2026-10-20).**
 - **Qué hace:** con un mini jefe vivo las oleadas siguen a medio ritmo y medio tope (solo el jefe final las para); sin sonidos pedidos con la pestaña oculta y efectos cortados al ocultarla (B4); Defense Shield bloquea todo el daño 15 s; Freeze 10 s en un área del doble de la pantalla; Triple Energy Bolt cae en zona pequeña (objetivo + 2 diagonales a 32 px), como el original.
 - **Decisiones del propietario:** M14 como el original (zona pequeña); escudo de 15 s.

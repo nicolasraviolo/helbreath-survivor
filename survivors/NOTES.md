@@ -66,6 +66,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Cartas de Power (Fase 20C)
 - Hechizos equipables del Mago (Fase 20D)
 - Arreglos del bloque A de bugs (19-oct-2026)
+- Estela del tajo del guerrero (M15, 20-oct-2026)
 - Bugs del bloque B (20-oct-2026)
 
 ## Sprites (`.spr`): formato y carga
@@ -806,4 +807,10 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - **Sonido en segundo plano:** con la pestaña oculta el navegador congela el audio y los sonidos pedidos entonces salían de golpe al volver. `AudioSystem` no pide sonidos con la pestaña oculta o el `AudioContext` parado, y al ocultarla corta efectos y bucles (la música no). Para probarlo en el check: sobrescribir `document.visibilityState` y lanzar `visibilitychange`.
 - **Defense Shield:** `damageTakenMultiplier: 0` = no se recibe nada (ni el daño mínimo ni la animación de herido); 15 s. **Freeze:** 10 s, en un área de `rangeScreens` × la pantalla (2).
 - Para probar golpes al jugador sin depender de la horda: `--eval="g.hurtPlayer(50, true, 'test')"`.
+
+## Estela del tajo del guerrero (M15, 20-oct-2026)
+- `entities/Slash.ts` dibuja el arco por **rebanadas** (`SLASH_SLICES`): cada una es un cuadrilátero con su grosor (media luna con `taper`) y su alfa (estela del barrido con `sweepMs` y `trail`). El brillo va en un segundo `Graphics` con `BlendModes.ADD`. Las chispas son líneas en arrays fijos (sin objetos nuevos por golpe).
+- **Siempre de arriba abajo:** `show()` empieza por la punta más alta en pantalla (`sin` menor) y, si hace falta, invierte el arco (`arc` negativo). Las chispas esperan a que el barrido llegue a la punta de abajo.
+- Estilos en `data/slash.ts` (Classic, Crescent, Sweep, Crescent + sweep, Thin edge + sparks); el elegido es el último (`DEFAULT_SLASH_STYLE`). Los demás se guardan a petición del propietario. Probar: `?slash=N` y tecla **Y** en partida (solo desarrollo; letrero amarillo arriba a la derecha).
+- Para ver un instante concreto en el check: `--eval` con `g.scene.pause()`, `g.weapons.slashEffect.show(...)` y `.update(ms)`.
 

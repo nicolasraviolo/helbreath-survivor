@@ -29,10 +29,6 @@ export const DEPTH_DEBUG = 1000000;
 export const DEPTH_EFFECT_OFFSET = 80;
 /** Melee swings are measured from this many pixels above the feet (the chest), like enemy bodies. */
 export const MELEE_ORIGIN_OFFSET_Y = 24;
-/** Melee slash drawing: how long it stays and its colour. */
-export const SLASH_LIFE_MS = 160;
-export const SLASH_COLOR = 0xf0ead8;
-export const SLASH_WIDTH = 5;
 /** Damage numbers float above every character and effect. */
 export const DEPTH_DAMAGE_NUMBERS = 500000;
 

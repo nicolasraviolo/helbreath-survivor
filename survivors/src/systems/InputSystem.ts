@@ -60,6 +60,7 @@ export enum Action {
     DebugGiveLevels = 'debugGiveLevels',
     DebugNextBoss = 'debugNextBoss',
     DebugInfiniteCrits = 'debugInfiniteCrits',
+    DebugSlashStyle = 'debugSlashStyle',
 }
 
 export type InputDevice = 'keyboard' | 'mouse' | 'gamepad' | 'touch' | 'none';
@@ -99,6 +100,7 @@ const KEYBOARD_ACTIONS: Record<Action, number[]> = {
     [Action.DebugGiveLevels]: [KEY.L],
     [Action.DebugNextBoss]: [KEY.M],
     [Action.DebugInfiniteCrits]: [KEY.H],
+    [Action.DebugSlashStyle]: [KEY.Y],
 };
 
 const GAMEPAD_AXIS = { LeftX: 0, LeftY: 1, RightX: 2, RightY: 3 } as const;

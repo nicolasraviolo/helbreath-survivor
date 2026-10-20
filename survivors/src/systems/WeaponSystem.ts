@@ -218,6 +218,11 @@ export class WeaponSystem {
     }
 
     /** Fires the weapons from the owner's feet at (x, y), unless `firing` is false (the owner is dead). */
+    /** Development (M15): the melee slash style being compared, by its number in data/slash.ts. */
+    public get slashEffect(): Slash {
+        return this.slash;
+    }
+
     public update(deltaMs: number, x: number, y: number, firing: boolean): void {
         this.context.x = x;
         this.context.y = y;

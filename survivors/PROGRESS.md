@@ -8,8 +8,8 @@
 
 ## Fase actual
 **Fase 20 completada** y fusionada en `master` (etiqueta `fase-20`). Antes de la Fase 21, **ronda de bugs** del propietario: lista en `docs/BUGS.md` (marcar `[x]` al arreglar).
-- **Bloque A (arreglos rápidos): hecho** (19-oct-2026). **Bloque B (combate): hecho** (20-oct-2026).
-- **Siguiente:** bloque C de `docs/BUGS.md` (una sesión por punto: arco del guerrero, élites, pantallas de carga, equipo sobre el cuerpo, opciones móvil/web). Después, `/fase 21` → botín y baúl (`docs/PLAN-2.md`).
+- **Bloque A (arreglos rápidos): hecho** (19-oct-2026). **Bloque B (combate): hecho** (20-oct-2026). **Bloque C:** M15 (arco del guerrero) hecho (20-oct-2026).
+- **Siguiente:** resto del bloque C de `docs/BUGS.md` (una sesión por punto: élites, pantallas de carga, equipo sobre el cuerpo, opciones móvil/web). Después, `/fase 21` → botín y baúl (`docs/PLAN-2.md`).
 - **Duda abierta para el propietario** (en `docs/BUGS.md`): M4 (EXP del Level al salir de la partida).
 - **Pendiente de probar por el propietario:** cambiar de pestaña en partida y volver, sin sonidos trabados (B4; simulado en el check, no probado de verdad).
 - **Pendiente:** que el propietario pruebe con su mando real la vibración y el stick derecho (apuntar).
@@ -17,6 +17,7 @@
 
 **Pistas para trabajar** (detalle en `survivors/NOTES.md`):
 - Level y Power: `data/characterLevel.ts`, `scenes/CharacterInfoScene.ts`. Ver NOTES.md, "Ventana Character y Level permanente".
+- Estela del tajo: estilos en `data/slash.ts` (`?slash=N`, tecla Y). Ver NOTES.md, "Estela del tajo del guerrero".
 - Equipo: `data/items.ts` (huecos, catálogo, requisitos), `scenes/EquipmentScene.ts`. Ver NOTES.md, "Equipo y pantalla Equipment".
 - Cartas: stat o pasiva (Xelima, Merien, Magnet) en `systems/UpgradePool.ts` y `data/passives.ts`; `?debug=stones`. Ver NOTES.md, "Cartas de Power (Fase 20C)".
 - Hechizos del Mago: automáticos (círculos 1–5) en `data/spells.ts`, activos (6–10, meteorito o ráfaga) en `data/activeSpells.ts`; huecos `spell1`/`spell2` en `data/items.ts`. Usan la esfera del crit hasta tener icono. Ver NOTES.md, "Hechizos equipables del Mago (Fase 20D)" y "Meteor Strike".
@@ -50,6 +51,7 @@
 - Atajos en la dirección (solo desarrollo, `src/config/debugStart.ts`):
   - `?play`, `?play=warrior`, `?ui=compact` (interfaz de móvil), `?trees=off`, `?metrics=send` (envía la partida de verdad).
   - `?debug=boss,god`; acciones: horde, kill, levelup, levels, str, magic, pickups, totems, minute, boss, finalboss, bosskill, stampede, god, crits (infinitos, tecla H; también el activo del Mago sin recarga), stones (cartas de Xelima, Merien y Magnet), dodge (mejor armadura de la clase), stats (panel abierto), aim (apuntar a la derecha), aimstick (dedo falso en el stick, con `--mobile`), resume (guardar y recargar como Continue), sim (partida simulada), charexp (EXP ×50).
+  - `?slash=N`: estilo de la estela del tajo (0–4, `data/slash.ts`); tecla Y para el siguiente.
   - `?open=howtoplay` (también settings, controls, credits, achievements, select, slots, charinfo, equipment, releasenotes); `?open=equipment&class=mage` abre la de la Maga.
   - `?spells=fireBall,meteorStrike`: hechizos del Mago en esa partida, sin requisitos.
   - `?achievements=reset|all`; `?characters=reset|demo` (demo: dos de ejemplo, Gorn con 60.000 EXP y Kaila Level 25 con Int 86; con `?play=warrior` juega Gorn).

@@ -19,6 +19,7 @@
 //                      sim = partida simulada muy deprisa para medir el equilibrio (systems/SimRun.ts, Fase 13C)
 //   ?spells=fireBall,meteorStrike → hechizos del Mago en esta partida (uno automático y/o uno activo, en cualquier
 //                      orden; los ids de data/spells.ts y data/activeSpells.ts), sin mirar requisitos (Fase 20D)
+//   ?slash=2         → estilo de la estela del tajo (número en data/slash.ts; tecla Y para pasar al siguiente; M15)
 //   ?trees=off       → árboles grandes en ese modo solo en esta partida (on, off), sin guardarlo
 //   ?open=howtoplay  → abre esa pantalla de los menús (howtoplay, settings, controls = Settings → Controls, credits, releasenotes = novedades, achievements, select = selección de personaje)
 //   ?open=slots      → abre la pantalla de los 4 personajes guardados (Fase 17A)
@@ -73,12 +74,14 @@ interface DebugStart {
     spells: { auto: AutoSpellId | undefined; active: ActiveSpellId | undefined };
     /** Class whose Equipment screen ?open=equipment shows (?class=mage; the Warrior if none). */
     openClass: CharacterId | undefined;
+    /** Melee slash style to compare (its number in data/slash.ts), if one was given. */
+    slash: number | undefined;
 }
 
 function readDebugStart(): DebugStart {
     const none: DebugStart = {
         play: false, character: undefined, actions: [], trees: undefined, open: undefined, achievements: undefined, characters: undefined,
-        sendMetrics: false, spells: { auto: undefined, active: undefined }, openClass: undefined,
+        sendMetrics: false, spells: { auto: undefined, active: undefined }, openClass: undefined, slash: undefined,
     };
     if (!import.meta.env.DEV) return none;
     const params = new URLSearchParams(window.location.search);
@@ -90,8 +93,9 @@ function readDebugStart(): DebugStart {
     const actions = (params.get('debug') ?? '').split(',').map((a) => a.trim()).filter(isDebugAction);
     const spells = (params.get('spells') ?? '').split(',').map((s) => s.trim());
     const openClass = params.get('class');
+    const slash = params.get('slash');
     return {
-        play: play !== null || actions.length > 0 || trees !== undefined,
+        play: play !== null || actions.length > 0 || trees !== undefined || slash !== null,
         character: isCharacterId(play) ? play : undefined,
         actions,
         trees,
@@ -101,6 +105,7 @@ function readDebugStart(): DebugStart {
         sendMetrics: params.get('metrics') === 'send',
         spells: { auto: spells.find(isAutoSpellId), active: spells.find(isActiveSpellId) },
         openClass: isCharacterId(openClass) ? openClass : undefined,
+        slash: slash !== null && /^\d+$/.test(slash) ? Number(slash) : undefined,
     };
 }
 

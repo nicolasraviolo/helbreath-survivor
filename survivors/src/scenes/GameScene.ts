@@ -171,6 +171,8 @@ export class GameScene extends Phaser.Scene {
     /** The end screen is open (victory or defeat). */
     private runOver = false;
     private godModeLabel!: Phaser.GameObjects.Text;
+    /** Development (M15): which slash style is on, shown once one is picked with ?slash= or Y. */
+    private slashLabel!: Phaser.GameObjects.Text;
     private stats!: CharacterStats;
     private xp!: XpSystem;
     private pickups!: PickupSystem;
@@ -389,6 +391,10 @@ export class GameScene extends Phaser.Scene {
         this.godModeLabel = this.add.text(GAME_WIDTH - 10, 10, 'INVINCIBLE (G)', {
             fontFamily: 'monospace', fontSize: '14px', color: '#ffd860', backgroundColor: '#000000a0', padding: { x: 6, y: 3 },
         }).setOrigin(1, 0).setScrollFactor(0).setDepth(DEPTH_DEBUG).setVisible(false);
+        this.slashLabel = this.add.text(GAME_WIDTH - 10, 36, '', {
+            fontFamily: 'monospace', fontSize: '14px', color: '#ffd860', backgroundColor: '#000000a0', padding: { x: 6, y: 3 },
+        }).setOrigin(1, 0).setScrollFactor(0).setDepth(DEPTH_DEBUG).setVisible(false);
+        if (DEBUG_START.slash !== undefined) this.setSlashStyle(DEBUG_START.slash);
         this.launchHud();
     }
 
@@ -961,11 +967,19 @@ export class GameScene extends Phaser.Scene {
         for (const [action, debugAction] of keys) {
             if (input.justPressed(action)) this.runDebugAction(debugAction);
         }
+        if (input.justPressed(Action.DebugSlashStyle)) this.setSlashStyle(this.weapons.slashEffect.styleNumber + 1);
         // Not on the first frame: the camera has not placed its view yet and the horde would find no room around it.
         if (this.debugStartPending && (this.debugStartWaitMs -= delta) <= 0) {
             this.debugStartPending = false;
             for (const action of DEBUG_START.actions) this.runDebugAction(action);
         }
+    }
+
+    /** Development (M15): changes the melee slash style and says which one it is. */
+    private setSlashStyle(index: number): void {
+        const slash = this.weapons.slashEffect;
+        slash.setStyle(index);
+        this.slashLabel.setText(`SLASH ${slash.styleNumber}: ${slash.style.name} (Y)`).setVisible(true);
     }
 
     private runDebugAction(action: DebugAction): void {

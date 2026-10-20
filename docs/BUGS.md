@@ -29,7 +29,7 @@ Número original entre paréntesis: **B** = bug, **M** = mejora.
 - [x] (M14) Hechizos de varias bolas (Triple Energy Ball, Mass Fire Strike): una al objetivo y las demás alrededor de él; no buscan objetivos distintos. Decidido (20-oct-2026): como el original, en una zona pequeña. Mass Fire Strike ya era así.
 
 ## Bloque C: cosas nuevas (una sesión cada una)
-- [ ] (M15) El arco del golpe del guerrero es tosco: proponer varias opciones más bonitas y el propietario elige.
+- [x] (M15) El arco del golpe del guerrero es tosco: proponer varias opciones más bonitas y el propietario elige. Elegido "Thin edge + sparks", de arriba abajo; los demás guardados en `data/slash.ts`.
 - [ ] (M2) Monstruos élite al azar con más daño (probabilidad muy baja o baja según lo duro que sea el monstruo o lo fácil que vaya la partida). Otro color o un aura sutil.
 - [ ] (M8) Pantallas de carga: fondo negro, solo la barra y "Loading"; logo de HB pequeño abajo a la derecha que gira o aparece y desaparece.
 - [ ] (M17) Ventana del personaje: dibujar el equipo sobre el cuerpo con los gráficos `item-equipm`/`item-equipw`, como en el original.
