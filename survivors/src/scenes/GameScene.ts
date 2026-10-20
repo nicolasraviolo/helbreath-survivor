@@ -306,8 +306,8 @@ export class GameScene extends Phaser.Scene {
             camera, this.enemies, map, areaPx, getTimeline(this.mapId), (event, spawned) => this.onWaveEvent(event, spawned),
             (id) => assetStreamer.isReady(id), (id) => assetStreamer.hurry(id),
         );
-        // Normally already running since the main menu; this covers starting a run any other way.
-        assetStreamer.start(this);
+        // Normally already started by the map's loading screen (Fase 22B); this covers starting a run any other way.
+        assetStreamer.start(this, this.mapId);
         this.damageNumbers = new DamageNumbers(this);
         this.xp = new XpSystem(this, this.audio);
         this.pickups = new PickupSystem(this, this.audio, (id) => this.collectPickup(id));

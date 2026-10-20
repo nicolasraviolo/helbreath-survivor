@@ -2,6 +2,7 @@
 // El Mago dispara Energy Bolt; el Guerrero lleva un arma cuerpo a cuerpo y armadura (Fase 6, data/weapons.ts y data/armor.ts).
 // Stats iniciales fijos por clase (decidido por el propietario el 16-oct-2026). Desde la Fase 17B el sexo, la piel y el
 // pelo los elige el jugador (data/appearance.ts): el aspecto de aquí es la ropa de salida, que se dibuja para su sexo.
+import type { SpriteKey } from '../config/assetManifest';
 import type { Appearance } from '../hb/playerAppearance';
 import type { Stats } from './stats';
 import type { ArmorSetId } from './armor';
@@ -49,6 +50,11 @@ export interface CharacterDef {
     startWeapon: StartWeapon;
     /** Which pieces of data/armor.ts the class can wear (their cards only show up for it). */
     armorSet: ArmorSetId;
+    /**
+     * Effects only this class uses (Fase 22B): downloaded with the map, after RUN_SPRITES (config/assetManifest.ts).
+     * Big ones that depend on what is equipped (Meteor Strike) are downloaded during the run instead (ON_DEMAND_SPRITES).
+     */
+    runSprites: readonly SpriteKey[];
 }
 
 /** Guerrero al empezar: camisa, pantalón, botas altas y daga. La armadura se gana con las cartas (data/armor.ts). */
@@ -114,6 +120,8 @@ export const CHARACTERS = {
         appearance: MAGE_FEMALE_LOOK,
         startWeapon: { kind: 'spell', id: 'energyBolt' },
         armorSet: 'mage',
+        // Explosions of Fire Ball and the other spells (config/effects.ts, fx.explosion1–3).
+        runSprites: ['fx.effect3'],
     },
     warrior: {
         ...COMMON,
@@ -130,6 +138,7 @@ export const CHARACTERS = {
         appearance: WARRIOR_LOOK,
         startWeapon: { kind: 'melee', id: 'dagger' },
         armorSet: 'warrior',
+        runSprites: [],
     },
 } as const satisfies Record<string, CharacterDef>;
 

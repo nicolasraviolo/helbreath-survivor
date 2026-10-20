@@ -489,7 +489,7 @@ Los objetos que caen en la partida se pueden **equipar al momento** o **guardar 
 
 ### Replanteo del 20-oct-2026 (al empezar la fase)
 - **Mapas, en este orden:** Traveler Zone (`default`, introducción) → Bleeding Isle → Elvine Garden (`elvuni`) → Middleland. **Icebound pasa a la Fase 25.**
-- **Bloques:** 22A sistema de mapas + Select Map + Traveler Zone ✅ · 22B carga por mapa (medir antes/después) · 22C Traveler Zone completa (Cat, repaso tras jugarla) · 22D Elvine Garden · 22E Middleland (Troll, Werewolf, Hellhound, Stalker, Hellclaw) · 22F récords locales · 22G sombras y skill `anadir-mapa`.
+- **Bloques:** 22A sistema de mapas + Select Map + Traveler Zone ✅ · 22B carga por mapa ✅ · 22C Traveler Zone completa (Cat, repaso tras jugarla) · 22D Elvine Garden · 22E Middleland (Troll, Werewolf, Hellhound, Stalker, Hellclaw) · 22F récords locales · 22G sombras y skill `anadir-mapa`.
 - Desbloqueo: ganar el anterior **o** llegar al Level recomendado. Música de Bleeding Isle en todos.
 
 ### 22A. Sistema de mapas ✅ (21-oct-2026)
@@ -500,7 +500,7 @@ Hoy todo está pensado para un solo mapa (`huntzone2`). Hay que:
 - **Desbloqueo:** ganar un mapa abre el siguiente (guardado en el navegador). Una tecla de pruebas los abre todos.
 - **Descargas:** ver "Carga por mapa" abajo.
 
-### Carga por mapa *(idea del propietario, 18-oct-2026)*
+### Carga por mapa *(idea del propietario, 18-oct-2026)* ✅ (bloque 22B, 21-oct-2026)
 Hoy la primera carga ronda unos **25 MB** de golpe (medido el 18-oct-2026; con un solo mapa no hacía falta más). Ya se hace: monstruos por oleada en segundo plano (`AssetStreamer`, Fase 9), ropa y armas del personaje bajo demanda (`ON_DEMAND_SPRITES`) y solo las casillas que usa el mapa. Con varios mapas, la carga se parte en dos:
 - **Carga inicial (antes del menú):** solo lo común: interfaz, sonidos, fuentes, jugador base. Nada de mapas ni monstruos.
 - **Carga del mapa (al elegirlo en Select Map, con su propia pantalla de carga):** el `.amd`, sus casillas, su minimapa, su música y los monstruos de su primera oleada. El resto de sus monstruos sigue en segundo plano con `AssetStreamer`, en el orden de **sus** oleadas.
@@ -509,7 +509,7 @@ Hoy la primera carga ronda unos **25 MB** de golpe (medido el 18-oct-2026; con u
 - **Medir antes y después:** cronometrar por separado la descarga y la preparación ("Preparing…", la conversión de `.spr` a texturas), en ordenador y móvil. Si lo lento es preparar, la solución es otra (preparar en segundo plano o por partes).
 - En la Fase 23 la ciudad usa la misma idea: su propia carga (NPCs y su mapa), sin bajar los mapas de caza.
 
-### 22B. Récords locales (antes en la Fase 18)
+### 22F. Récords locales (antes en la Fase 18)
 - Top 10 por **mapa** y **clase**, guardado en el navegador.
 - **Orden:** victoria primero; después, menos tiempo para ganar; si no se ganó, más tiempo sobrevivido. Muestra nivel y bajas.
 - Pantalla "Records" en el menú principal y tu mejor marca en Select Map. En la pantalla final: "New record!" (sonido E23).

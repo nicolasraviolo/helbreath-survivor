@@ -1,18 +1,27 @@
-// Carga de un mapa al elegirlo (Fase 22A), con la misma pantalla de carga del principio y su nombre de título:
-// el .amd, su minimapa y solo los paquetes de casillas que usa; luego empieza la partida. Lo ya cargado (otra partida
-// en el mismo mapa, Restart) no se vuelve a bajar, y entonces pasa casi sin verse.
-// Sus monstruos pasan delante en la cola de AssetStreamer. Repartir del todo la carga por mapa es el bloque 22B.
+// Carga de un mapa al elegirlo (Fase 22A), con la misma pantalla de carga del principio y su nombre de título.
+// Fase 22B: aquí se baja todo lo que la partida necesita y los menús no:
+// - el .amd, su minimapa y solo los paquetes de casillas que usa;
+// - los monstruos de su primera oleada (los demás, después, en segundo plano: systems/AssetStreamer.ts);
+// - los efectos de partida (RUN_SPRITES) y los propios de la clase elegida (runSprites en data/characters.ts);
+// - los objetos del suelo (gemas, botín, pociones).
+// Lo ya cargado (otra partida, Restart, otro mapa que comparte cosas) no se vuelve a bajar: si no falta nada, pasa
+// casi sin verse.
 import Phaser from 'phaser';
-import { ASSET_BASE_PATH, MAPS, MINIMAPS } from '../config/assetManifest';
+import { ASSET_BASE_PATH, MAPS, MINIMAPS, RUN_SPRITES, SPRITES, type SpriteKey } from '../config/assetManifest';
+import { registerEffectAnimations } from '../config/effects';
 import { DEFAULT_ANIMATION_FRAME_RATE } from '../config/gameConfig';
+import { CHARACTERS, CHOSEN_CHARACTER_KEY, DEFAULT_CHARACTER, isCharacterId } from '../data/characters';
+import { ENEMIES } from '../data/enemies';
 import { CHOSEN_MAP_KEY, MAPS_DATA, type MapId } from '../data/maps';
 import { getMap, hasMap } from '../hb/HBMap';
-import { HBSpriteFile, SpriteType } from '../hb/HBSprite';
+import { getSheetKey, HBSpriteFile, SpriteType } from '../hb/HBSprite';
 import { getTilePacksForIndices, getTileTextureKey } from '../hb/mapAssets';
-import { assetStreamer } from '../systems/AssetStreamer';
+import { assetStreamer, firstWaveEnemies } from '../systems/AssetStreamer';
+import { loadTimer } from '../systems/LoadTimer';
 import { LoadingScreen } from '../ui/LoadingScreen';
 
-/** Share of the bar used by the downloads; the rest is turning the tiles into textures. */
+/** Share of the bar used by the downloads (the first batch, then the tiles); the rest is preparing them. */
+const FIRST_DOWNLOAD_SHARE = 0.4;
 const DOWNLOAD_SHARE = 0.5;
 
 export interface MapLoadSceneData {
@@ -22,6 +31,8 @@ export interface MapLoadSceneData {
 export class MapLoadScene extends Phaser.Scene {
     private mapId: MapId = 'traveler';
     private screen!: LoadingScreen;
+    /** Sprites of this run still to prepare (downloaded in preload). */
+    private sprites: SpriteKey[] = [];
 
     constructor() {
         super('MapLoad');
@@ -30,16 +41,20 @@ export class MapLoadScene extends Phaser.Scene {
     init(data: MapLoadSceneData): void {
         this.mapId = data.map;
         this.registry.set(CHOSEN_MAP_KEY, data.map);
-        assetStreamer.prioritize(data.map);
     }
 
     preload(): void {
         const def = MAPS_DATA[this.mapId];
         this.screen = new LoadingScreen(this, def.name, 'Loading map');
+        loadTimer.start(this.timerName);
         this.load.setPath(ASSET_BASE_PATH);
         if (!hasMap(def.asset)) this.load.binary(def.asset, MAPS[def.asset].file);
         if (!this.textures.exists(def.minimap)) this.load.image(def.minimap, MINIMAPS[def.minimap].file);
-        this.trackProgress(0, DOWNLOAD_SHARE / 2);
+        this.sprites = this.runSprites().filter((key) => !this.textures.exists(getSheetKey(key, 0)));
+        for (const key of this.sprites) {
+            if (!this.cache.binary.exists(key)) this.load.binary(key, SPRITES[key].file);
+        }
+        this.trackProgress(0, FIRST_DOWNLOAD_SHARE);
     }
 
     async create(): Promise<void> {
@@ -47,23 +62,47 @@ export class MapLoadScene extends Phaser.Scene {
         const map = getMap(this, def.asset);
         const packs = getTilePacksForIndices(map.requiredTileIndices()).filter((pack) => !this.textures.exists(getTileTextureKey(pack.start)));
         if (packs.length > 0) {
-            this.trackProgress(DOWNLOAD_SHARE / 2, DOWNLOAD_SHARE / 2);
+            this.trackProgress(FIRST_DOWNLOAD_SHARE, DOWNLOAD_SHARE - FIRST_DOWNLOAD_SHARE);
             await new Promise<void>((resolve) => {
                 this.load.once(Phaser.Loader.Events.COMPLETE, () => resolve());
                 for (const pack of packs) this.load.binary(pack.key, pack.file);
                 this.load.start();
             });
-            for (const [i, pack] of packs.entries()) {
-                await new HBSpriteFile(pack.key, SpriteType.Tiles, DEFAULT_ANIMATION_FRAME_RATE, pack.start).load(this);
-                this.screen.setProgress(DOWNLOAD_SHARE + ((i + 1) / packs.length) * (1 - DOWNLOAD_SHARE));
-            }
         }
+        loadTimer.downloaded(this.timerName);
+        const jobs = [
+            ...packs.map((pack) => new HBSpriteFile(pack.key, SpriteType.Tiles, DEFAULT_ANIMATION_FRAME_RATE, pack.start)),
+            ...this.sprites.map((key) => new HBSpriteFile(key, SPRITES[key].type, DEFAULT_ANIMATION_FRAME_RATE)),
+        ];
+        for (const [i, job] of jobs.entries()) {
+            await job.load(this);
+            this.screen.setProgress(DOWNLOAD_SHARE + ((i + 1) / jobs.length) * (1 - DOWNLOAD_SHARE));
+        }
+        registerEffectAnimations(this.anims, this.textures);
+        // The rest of this map's monsters, in the order of its waves, while it plays.
+        assetStreamer.start(this, this.mapId);
+        loadTimer.end(this.timerName);
         this.scene.start('Game');
+    }
+
+    /** What this run needs besides the map: first-wave monsters, run effects (common and of the class), items on the ground. */
+    private runSprites(): SpriteKey[] {
+        const chosen: unknown = this.registry.get(CHOSEN_CHARACTER_KEY);
+        const classId = isCharacterId(chosen) ? chosen : DEFAULT_CHARACTER;
+        return [...new Set<SpriteKey>([
+            ...firstWaveEnemies(this.mapId).map((id) => ENEMIES[id].sprite),
+            ...RUN_SPRITES,
+            ...CHARACTERS[classId].runSprites,
+        ])];
     }
 
     /** The loader's progress moves the bar from `from` over `share` of it. */
     private trackProgress(from: number, share: number): void {
         this.load.off(Phaser.Loader.Events.PROGRESS);
         this.load.on(Phaser.Loader.Events.PROGRESS, (value: number) => this.screen.setProgress(from + value * share));
+    }
+
+    private get timerName(): string {
+        return `MapLoad:${this.mapId}`;
     }
 }

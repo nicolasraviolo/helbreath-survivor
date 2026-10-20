@@ -20,8 +20,8 @@ export const RELEASE_NOTES: readonly ReleaseNote[] = [
             'New Select Map screen: choose where to fight.',
             'New map: Traveler Zone, a short first adventure with lots of weak monsters.',
             'Win a map, or reach its Level, to open the next one.',
-            'Two new bosses: a giant Stone Golem and the Training Dummy.',
-            'New achievements: First Steps and n0000b.',
+            'Two new bosses, a giant Stone Golem and the Training Dummy, and two new achievements.',
+            'Faster start: each map now loads only what it needs.',
         ],
     },
     {

@@ -400,4 +400,14 @@ export const ON_DEMAND_SPRITES: ReadonlySet<SpriteKey> = new Set<SpriteKey>([
     'gear.wand.berserk.m', 'gear.wand.berserk.w', 'gear.wand.kloness.m', 'gear.wand.kloness.w',
 ]);
 
+/**
+ * Fase 22B: what every run needs and the menus don't. It is downloaded with the map (MapLoadScene), not before the
+ * menu: the effects of weapons, totems, chests and the portal, and the items on the ground (gems, loot, potions).
+ * Monsters (SpriteType.Monster) are never loaded before the menu either: each map loads its own.
+ * Effects only one class uses go in its `runSprites` (data/characters.ts).
+ */
+export const RUN_SPRITES: ReadonlySet<SpriteKey> = new Set<SpriteKey>([
+    'fx.effect', 'fx.effect2', 'fx.effect5', 'fx.effect6', 'fx.effect8', 'fx.effect9', 'fx.effect11', 'item.ground',
+]);
+
 export const PHONE_ONLY_SPRITES: ReadonlySet<SpriteKey> = new Set<SpriteKey>(['ui.v2']);
