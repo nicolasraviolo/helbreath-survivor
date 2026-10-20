@@ -74,6 +74,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Equipo sobre el cuerpo en la ventana Character (M17)
 - Botín en partida (Fase 21A)
 - Atributos y varitas (Fase 21B)
+- Baúl, "solo lo que tienes" y Zem (Fase 21D)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -872,4 +873,13 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - **Varitas:** en el original **no pedían Int ni Mag**, solo Level (y Str 10 por peso, que ignoramos). Item.cfg da Level 30/40/50/90/95/100/120; el propietario prefirió los de la wiki (0/15/35/60/70/120). Berserk Wand no subía el daño por un error (`*(int)1.3` = ×1) y Kloness sumaba según la reputación: usamos +40% y +20% del propietario.
 - **Mana Save (para el futuro):** `WandDef.manaSave` (0,1 = 10%) aún no lo lee nadie; la carta lo enseña en gris "(soon)" junto a "Weapon". Al pasar la Spell 2 a maná: leer `getWand(equipment.wand).manaSave` en `ActiveSpellSystem` y quitar "(soon)" en `LootScene`.
 - **Probar:** `?attr=sharp|poison|ancient` (el arma de salida y todo el botín, siempre armas, con ese atributo), `pnpm check lootsharp`, `lootancient`, `poison`. `?gear=sharp:longSword` (con `?characters=demo`) mete esa arma en el inventario para verla en Equipment.
+
+## Baúl, "solo lo que tienes" y Zem (Fase 21D)
+- **Solo lo que tienes:** `isFreeItem(classId, id)` (`data/items.ts`) = equipo de salida de la clase o hechizo que no está en `MANUAL_SPELL_IDS` (hoy ninguno). Lo libre nunca se acaba ni entra en el inventario; todo lo demás sale del inventario al ponérselo (`characterStore.equip`) y vuelve al quitárselo (`takeOff`). Equipment lista: libres + lo puesto + `characterStore.ownedFor(uid, slot)` (una fila por objeto y atributo), ordenado como `catalog()`. Si no caben, la lista se desplaza (rueda, flechas; ▲/▼).
+- **Botín:** `isLootDrop(id)` quita de la tirada el Zem y los hechizos que se saben con la Int. Hoy la Maga solo recibe varitas y armaduras.
+- **Al terminar la partida:** `characterStore.finishRun(uid, loot, won)` (antes `takeRunLoot`) devuelve `RunLootResult` (`found`, `lost`, `zemUsed`) para la pantalla final. Muerte sin Zem: no toca el personaje. Con Zem: borra `equipment.zem` y guarda todo. Sin nada encontrado, el Zem no se gasta. Mira el Zem que lleva el personaje **al morir** (como el arma al continuar).
+- **Zem:** `data/consumables.ts` (`ZEM_ID = 'zemstone'`, icono item-pack 15/39 = Item3.cfg:31, también en `item-ground`). Hueco `zem` en `EQUIP_SLOT_IDS` y en las dos clases; en Equipment, segunda fila según `SECOND_ROW_SLOTS`. Cae aparte en `LootSystem.onBossKill` (`LOOT_ZEM_BOSS_CHANCE`); `LOOT_SLOT_WEIGHTS.zem = 0`. Encontrado en partida va directo a la bolsa (sin carta, `GameScene.openLoot`). `sources` prepara la tienda de la Fase 24.
+- **Baúl:** `data/warehouse.ts` (50), `systems/WarehouseStore.ts` (clave `hb-survivors.warehouse`, versión 1), `scenes/WarehouseScene.ts`. Mover pasa por `characterStore.takeFromInventory` / `addToInventory`. Botón "Warehouse" en la caja vacía de abajo a la izquierda de Select Character (`SLOTS_BUTTONS.warehouse`), tecla O, R1 del mando. Se puede guardar lo que la clase no usa ("Mage only").
+- **Guardado:** personajes versión 7 (solo añade el hueco Zem; nada que migrar).
+- **Probar:** `pnpm check warehouse`, `equipmentowned`, `deathnozem` / `deathzem` con `--wait=7000 --eval="(g.debugPickUpLoot(), g.debugKeepLoot(), g.endRun(false))"`. Atajos: `?open=warehouse`, `?debug=zem` (todo jefe suelta Zem), `?gear=inv:plateMail` (al inventario sin atributo) y `?gear=zemstone` (con `?characters=demo`). `?characters=demo|reset` también reinicia el baúl (demo: 4 objetos).
 

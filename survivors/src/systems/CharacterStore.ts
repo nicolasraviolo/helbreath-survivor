@@ -6,8 +6,10 @@
 // Desde la Fase 20A cada personaje tiene Level permanente, EXP y los puntos de stat que ha repartido (data/characterLevel.ts).
 // Desde la Fase 20B, además, su equipo (data/items.ts), que se pone en la pantalla Equipment y lleva a cada partida.
 // Desde la Fase 21A, su inventario: lo que trae de la bolsa de cada partida y lo que el botín equipado le quitó.
-// Desde la Fase 21B, el atributo (Sharp, Poison, Ancient) de lo que lleva puesto. El catálogo sigue libre hasta el 21C,
-// pero un objeto CON atributo solo se puede poner si está en el inventario (sale de él al ponérselo y vuelve al quitárselo).
+// Desde la Fase 21B, el atributo (Sharp, Poison, Ancient) de lo que lleva puesto.
+// Fase 21D, "solo lo que tienes": todo se pone sacándolo del inventario y vuelve a él al quitárselo, salvo el equipo de
+// salida y los hechizos que se saben con la Int (isFreeItem). Al terminar una partida, finishRun aplica las reglas al
+// morir (sin Zem se pierde lo encontrado). El baúl compartido (WarehouseStore) mueve objetos del inventario y al revés.
 import { DEBUG_START } from '../config/debugStart';
 import { CHARACTER_NAME_ALLOWED, CHARACTER_NAME_MAX_LENGTH, CHARACTER_SLOT_COUNT } from '../data/characterSlots';
 import { BODY_SPRITES, DEFAULT_LOOKS, GENDERS, HAIR_COLORS, HAIR_STYLE_COUNT, UNDERWEAR_COUNT, type CharacterLook } from '../data/appearance';
@@ -15,8 +17,8 @@ import { CHARACTER_LEVEL_MAX, expToNextCharacterLevel, STAT_POINT_CAP, STAT_POIN
 import { CHARACTERS, isCharacterId, type CharacterId } from '../data/characters';
 import { isItemAttribute, type ItemAttribute } from '../data/attributes';
 import {
-    canChangeSlot, canHaveAttribute, canEmptySlot, canEquip, classCanWear, EQUIP_SLOT_IDS, isItemId, itemInfo, readEquipment, START_EQUIPMENT, type EquipSlotId, type ItemId,
-    type SavedEquipment,
+    canChangeSlot, canHaveAttribute, canEmptySlot, canEquip, classCanWear, EQUIP_SLOT_IDS, isFreeItem, isItemId, itemInfo, readEquipment, START_EQUIPMENT,
+    type EquipSlotId, type ItemId, type SavedEquipment,
 } from '../data/items';
 import { STAT_IDS, type StatId, type Stats } from '../data/stats';
 import type { OwnedItem } from '../data/loot';
@@ -30,7 +32,8 @@ const STORAGE_KEY = 'hb-survivors.characters';
 /** 4 (Fase 20B): equipment. Older characters get their class's starting equipment. */
 /** 5 (Fase 21A): inventory. Older characters start with it empty. */
 /** 6 (Fase 21B): attributes of the gear worn. Older characters wear everything without one. */
-const CHARACTERS_VERSION = 6;
+/** 7 (Fase 21D): the Zem slot. Older characters have it empty; what they wear stays theirs. */
+const CHARACTERS_VERSION = 7;
 
 /** Registry key (game.registry) with the uid of the character that plays the next run. */
 export const ACTIVE_CHARACTER_KEY = 'activeCharacter';
@@ -72,6 +75,16 @@ export interface ExpResult {
     unspentPoints: number;
 }
 
+/** What happened to a finished run's loot (Fase 21D, end screen). */
+export interface RunLootResult {
+    /** Items found in the run (bag, put on, card not chosen). */
+    found: number;
+    /** Died without a Zem: all of them lost. */
+    lost: boolean;
+    /** Died with a Zem, which saved them and was used up. */
+    zemUsed: boolean;
+}
+
 type Slots = Array<SavedCharacter | undefined>;
 
 /** Level of the example Mage of ?characters=demo (development only). */
@@ -104,12 +117,12 @@ class CharacterStoreImpl {
         for (const character of this.slots) {
             if (!character) continue;
             for (const entry of DEBUG_START.gear) {
-                // "sharp:longSword": into the inventory with that attribute (Fase 21B).
+                // "sharp:longSword": into the inventory with that attribute (Fase 21B); "inv:plateMail", without (21D).
                 const [attribute, owned] = entry.split(':');
                 if (owned !== undefined) {
-                    if (isItemId(owned) && classCanWear(character.classId, owned) && isItemAttribute(attribute) && canHaveAttribute(owned, attribute)) {
-                        character.inventory.push({ id: owned, attribute });
-                    }
+                    if (!isItemId(owned) || !classCanWear(character.classId, owned)) continue;
+                    if (attribute === 'inv') character.inventory.push({ id: owned });
+                    else if (isItemAttribute(attribute) && canHaveAttribute(owned, attribute)) character.inventory.push({ id: owned, attribute });
                     continue;
                 }
                 const id = entry;
@@ -252,7 +265,8 @@ class CharacterStoreImpl {
 
     /**
      * Puts an item on (or empties the slot with undefined). Refused (false, nothing changes) if the class can't change
-     * that slot, the item doesn't go there or the permanent stats and Level don't meet its requirement.
+     * that slot, the item doesn't go there, the permanent stats and Level don't meet its requirement or (Fase 21D) the
+     * character doesn't have it: it comes out of the inventory, unless it is a free item (isFreeItem).
      */
     public equip(uid: string | undefined, slot: EquipSlotId, id: ItemId | undefined, attribute?: ItemAttribute): boolean {
         const character = this.slots.find((c) => c !== undefined && c.uid === uid);
@@ -263,9 +277,10 @@ class CharacterStoreImpl {
             delete character.equipment[slot];
         } else {
             if (itemInfo(id)?.slot !== slot || !classCanWear(character.classId, id) || !canEquip(id, permanentStats(character), character.level)) return false;
-            // Fase 21B: an item with an attribute comes out of the inventory (there must be one).
-            const owned = attribute ? character.inventory.findIndex((item) => item.id === id && item.attribute === attribute) : -1;
-            if (attribute && owned < 0) return false;
+            if (character.equipment[slot] === id && character.attributes[slot] === attribute) return true;
+            const free = !attribute && isFreeItem(character.classId, id);
+            const owned = free ? -1 : character.inventory.findIndex((item) => item.id === id && item.attribute === attribute);
+            if (!free && owned < 0) return false;
             this.takeOff(character, slot);
             if (owned >= 0) character.inventory.splice(owned, 1);
             character.equipment[slot] = id;
@@ -281,11 +296,13 @@ class CharacterStoreImpl {
         return character ? wornItem(character, slot) : undefined;
     }
 
-    /** The items with an attribute the character keeps for that slot, one entry per kind, with how many (Fase 21B). */
-    public ownedWithAttribute(uid: string | undefined, slot: EquipSlotId): Array<{ item: OwnedItem; count: number }> {
+    /** The items of the inventory the character could put in that slot, one entry per kind, with how many (Fase 21D). */
+    public ownedFor(uid: string | undefined, slot: EquipSlotId): Array<{ item: OwnedItem; count: number }> {
+        const character = this.byUid(uid);
         const entries: Array<{ item: OwnedItem; count: number }> = [];
-        for (const item of this.byUid(uid)?.inventory ?? []) {
-            if (!item.attribute || itemInfo(item.id)?.slot !== slot) continue;
+        if (!character) return entries;
+        for (const item of character.inventory) {
+            if (itemInfo(item.id)?.slot !== slot || !classCanWear(character.classId, item.id)) continue;
             const entry = entries.find((e) => e.item.id === item.id && e.item.attribute === item.attribute);
             if (entry) entry.count++;
             else entries.push({ item: { ...item }, count: 1 });
@@ -293,33 +310,62 @@ class CharacterStoreImpl {
         return entries;
     }
 
-    /** Before something else goes in the slot: a worn item with an attribute goes back to the inventory. */
+    /** Before something else goes in the slot: what it wore goes back to the inventory (free items just vanish). */
     private takeOff(character: SavedCharacter, slot: EquipSlotId): void {
-        const id = character.equipment[slot];
-        const attribute = character.attributes[slot];
-        if (id !== undefined && attribute) character.inventory.push({ id, attribute });
+        const worn = wornItem(character, slot);
+        if (worn && (worn.attribute || !isFreeItem(character.classId, worn.id))) character.inventory.push(worn);
         delete character.attributes[slot];
     }
 
     /**
-     * A finished run's loot (Fase 21A): the found items put on replace what the character wears in that slot (which goes
-     * to the inventory), and the bag goes to the inventory. False without that character.
+     * A finished run's loot (Fase 21A; rules at death, Fase 21D). Won, or died with a Zem (used up only if something was
+     * found): the found items put on replace what the character wears in that slot (which goes to the inventory), and
+     * the bag goes to the inventory. Died without a Zem: everything found is lost; the gear it set out with never is.
      */
-    public takeRunLoot(uid: string | undefined, loot: Readonly<RunLootState>): boolean {
+    public finishRun(uid: string | undefined, loot: Readonly<RunLootState>, won: boolean): RunLootResult | undefined {
         const character = this.slots.find((c) => c !== undefined && c.uid === uid);
-        if (!character) return false;
-        for (const [slot, item] of Object.entries(loot.equipped) as Array<[EquipSlotId, OwnedItem]>) {
+        if (!character) return undefined;
+        const equipped = Object.entries(loot.equipped) as Array<[EquipSlotId, OwnedItem]>;
+        const found = equipped.length + loot.bag.length + loot.pending.length;
+        const result: RunLootResult = { found, lost: false, zemUsed: false };
+        if (found === 0) return result;
+        if (!won) {
+            if (character.equipment.zem === undefined) {
+                result.lost = true;
+                return result;
+            }
+            delete character.equipment.zem;
+            result.zemUsed = true;
+        }
+        for (const [slot, item] of equipped) {
             if (!classCanWear(character.classId, item.id) || itemInfo(item.id)?.slot !== slot) {
                 character.inventory.push(item);
                 continue;
             }
-            const previous = wornItem(character, slot);
-            if (previous) character.inventory.push(previous);
+            this.takeOff(character, slot);
             character.equipment[slot] = item.id;
             if (item.attribute) character.attributes[slot] = item.attribute;
-            else delete character.attributes[slot];
         }
         character.inventory.push(...loot.bag, ...loot.pending);
+        this.write();
+        return result;
+    }
+
+    /** Takes the item at that place of the inventory out of it (to the warehouse, Fase 21D). */
+    public takeFromInventory(uid: string | undefined, index: number): OwnedItem | undefined {
+        const character = this.slots.find((c) => c !== undefined && c.uid === uid);
+        const item = character?.inventory[index];
+        if (!character || !item) return undefined;
+        character.inventory.splice(index, 1);
+        this.write();
+        return item;
+    }
+
+    /** Puts an item in the inventory (from the warehouse, Fase 21D). False without that character. */
+    public addToInventory(uid: string | undefined, item: OwnedItem): boolean {
+        const character = this.slots.find((c) => c !== undefined && c.uid === uid);
+        if (!character) return false;
+        character.inventory.push({ ...item });
         this.write();
         return true;
     }
@@ -364,7 +410,7 @@ function load(): Slots {
 /**
  * Old shapes → today's list of slots. readCharacter() fills what old versions lack: the class's look (version 1),
  * Level 1 without points, bestLevel read as bestPower (versions 1 and 2), the starting equipment (versions 1–3), an
- * empty inventory (versions 1–4) and gear without attributes (versions 1–5).
+ * empty inventory (versions 1–4), gear without attributes (versions 1–5) and no Zem (versions 1–6).
  */
 function migrate(data: unknown): unknown[] {
     if (!isRecord(data) || !Array.isArray(data.slots)) return [];

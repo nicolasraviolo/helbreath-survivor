@@ -118,6 +118,7 @@ export const HOW_TO_PLAY_PAGES: readonly HowToPlayPage[] = [
             { control: 'Equipment (Select Character)', action: 'Choose what your character wears' },
             { control: 'I key or pad X', action: 'Open it for the marked character' },
             { control: 'Each run', action: 'Starts with that equipment on' },
+            { control: 'The lists', action: 'Only what you own: your starting gear and your loot' },
             { control: 'Requirements', action: 'Your permanent Str, Mag and Level: red = not met' },
             { control: 'Left-Right / Down', action: 'Choose a slot / go down its list' },
             { control: 'Enter, pad A or a click', action: 'Wear the item (saved at once)' },
@@ -133,7 +134,19 @@ export const HOW_TO_PLAY_PAGES: readonly HowToPlayPage[] = [
             { control: 'Equip', action: 'Wear it now, for the rest of the run' },
             { control: 'Keep in bag', action: 'Take it with you for later' },
             { control: 'Red requirement', action: 'Too strong for you yet: keep it' },
-            { control: 'End of the run', action: 'Your loot goes to your character' },
+            { control: 'Win, or die wearing a Zem', action: 'Your loot goes to your character' },
+        ],
+    },
+    {
+        // Fase 21D: baúl compartido y Zem. Como mucho 7 filas.
+        name: 'Warehouse',
+        rows: [
+            { control: 'Warehouse (Select Character)', action: 'A chest shared by all your characters' },
+            { control: 'O key or pad R1', action: 'Open it for the marked character' },
+            { control: 'Click, Enter or pad A', action: 'Move one item to the other side' },
+            { control: 'Die without a Zem', action: 'You lose the items found in that run' },
+            { control: 'Zem slot (Equipment)', action: 'Wear a Zem to keep them: it is used up' },
+            { control: 'Bosses', action: 'Sometimes drop a Zem' },
         ],
     },
 ];

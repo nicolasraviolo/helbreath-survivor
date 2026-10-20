@@ -520,6 +520,8 @@ export class GameScene extends Phaser.Scene {
                     return this.equipment.spell;
                 case 'spell2':
                     return this.activeSpell?.id;
+                case 'zem':
+                    return undefined;
                 default:
                     return this.equipment.armor[slot];
             }
@@ -533,8 +535,13 @@ export class GameScene extends Phaser.Scene {
     private openLoot(): void {
         const item = this.runLoot.nextPending();
         const slot = item ? itemInfo(item.id)?.slot : undefined;
-        if (!item || !slot) {
+        // Fase 21D: a Zem found goes straight to the bag (it is put on before a run, never during one).
+        if (!item || !slot || slot === 'zem') {
             if (item) this.runLoot.keep(item);
+            if (slot === 'zem') {
+                this.audio.play(LOOT_SOUNDS.bag);
+                this.saveRun();
+            }
             return;
         }
         this.levelUpOpen = true;
@@ -930,6 +937,12 @@ export class GameScene extends Phaser.Scene {
     /** Development (pnpm check loot): picks up every item on the ground, as if the player had stepped on them. */
     public debugPickUpLoot(): void {
         if (import.meta.env.DEV) this.loot.pickUpAll();
+    }
+
+    /** Development (check deathzem): every item waiting for its card goes to the bag, without showing it. */
+    public debugKeepLoot(): void {
+        if (!import.meta.env.DEV) return;
+        for (let item = this.runLoot.nextPending(); item; item = this.runLoot.nextPending()) this.runLoot.keep(item);
     }
 
     /** Launches a Critical Strike now, if the Warrior has a charge and is free to act. */
@@ -1343,8 +1356,8 @@ export class GameScene extends Phaser.Scene {
         // All the run's XP goes to the character's permanent Level, won or lost (Fase 20A). Not for simulated runs.
         const runXp = this.stats.runXp * (DEBUG_START.actions.includes('charexp') ? DEBUG_CHAR_EXP_MULTIPLIER : 1);
         const exp = this.sim ? undefined : characterStore.addExp(this.characterUid, runXp);
-        // Fase 21A: what was found goes to the character (in 21C, only if the run is won or a Zem protects it).
-        if (!this.sim) characterStore.takeRunLoot(this.characterUid, this.runLoot.snapshot());
+        // Fase 21A: what was found goes to the character; Fase 21D: only if the run is won or a Zem saves it.
+        const lootResult = this.sim ? undefined : characterStore.finishRun(this.characterUid, this.runLoot.snapshot(), victory);
         const armor = Object.values(this.equipment.armor).map((id) => getArmorPiece(id).name);
         this.sendMetrics(victory ? 'win' : 'death');
         const data: GameOverSceneData = {
@@ -1358,6 +1371,7 @@ export class GameScene extends Phaser.Scene {
             achievementNames: this.achievementsThisRun,
             exp,
             loot: [...this.runLoot.found],
+            lootResult,
             gender: this.player.look.gender,
             onRestart: () => {
                 this.scene.stop('GameOver');

@@ -1,6 +1,6 @@
 // Lo que la partida lleva de botín (Fase 21A): todo lo encontrado (para la pantalla final), la bolsa, lo encontrado que
 // se ha equipado (por hueco) y lo cogido cuyo carta aún no se ha elegido. Se guarda con la partida (SaveStore) y, al
-// terminar, CharacterStore.takeRunLoot lo pasa al personaje. En el 21C: al morir sin Zem se pierde todo esto.
+// terminar, CharacterStore.finishRun lo pasa al personaje; al morir sin Zem se pierde todo esto (Fase 21D).
 import type { EquipSlotId } from '../data/items';
 import type { OwnedItem } from '../data/loot';
 

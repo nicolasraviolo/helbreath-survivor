@@ -18,6 +18,7 @@
 //                      stones = las cartas ofrecen siempre las pasivas (Xelima, Merien, Magnet) que no estén al máximo (Fase 20C)
 //                      elites = todos los monstruos (menos los jefes) salen élite, con el brillo rojo (M2)
 //                      loot = cae un objeto de botín junto al jugador ahora y cada pocos segundos (Fase 21A)
+//                      zem = cada jefe suelta también un Zem (Fase 21D)
 //                      sim = partida simulada muy deprisa para medir el equilibrio (systems/SimRun.ts, Fase 13C)
 //   ?spells=fireBall,meteorStrike → hechizos del Mago en esta partida (uno automático y/o uno activo, en cualquier
 //                      orden; los ids de data/spells.ts y data/activeSpells.ts), sin mirar requisitos (Fase 20D)
@@ -36,7 +37,9 @@
 //   ?gear=plateMail,helmet → con ?characters=demo, los dos de ejemplo llevan esos objetos (los que su clase pueda
 //                      ponerse, sin mirar requisitos; ids de data/weapons.ts y data/armor.ts). Para ver el equipo
 //                      dibujado en la ventana Character (M17). "sharp:longSword" lo mete en el inventario con ese
-//                      atributo (Fase 21B), para verlo en Equipment.
+//                      atributo (Fase 21B), para verlo en Equipment; "inv:plateMail", sin atributo (Fase 21D).
+//                      "zemstone" les pone un Zem (Fase 21D).
+//   ?open=warehouse  → Select Character con el baúl compartido abierto (Fase 21D), del personaje marcado
 //   ?characters=reset → borra los personajes guardados al cargar (demo = deja dos de ejemplo; Fase 17A)
 //   ?achievements=reset → borra los logros conseguidos al cargar (all = los da todos, para ver la pantalla llena; Fase 14B)
 //   ?metrics=send    → enviar las métricas de esta partida al servidor de verdad (en desarrollo no se envían; Fase 14A)
@@ -49,7 +52,7 @@ import { isAutoSpellId, type AutoSpellId } from '../data/spells';
 import { TREE_MODES, type TreeMode } from './settings';
 
 /** Menu screens that ?open= shows straight away, and the scene of each one. */
-const DEBUG_SCREENS = { howtoplay: 'HowToPlay', settings: 'Settings', controls: 'Controls', credits: 'Credits', releasenotes: 'ReleaseNotes', achievements: 'Achievements', select: 'CharacterSelect', slots: 'CharacterSlots', charinfo: 'CharacterInfo', equipment: 'Equipment' } as const;
+const DEBUG_SCREENS = { howtoplay: 'HowToPlay', settings: 'Settings', controls: 'Controls', credits: 'Credits', releasenotes: 'ReleaseNotes', achievements: 'Achievements', select: 'CharacterSelect', slots: 'CharacterSlots', charinfo: 'CharacterInfo', equipment: 'Equipment', warehouse: 'Warehouse' } as const;
 type DebugScreen = keyof typeof DEBUG_SCREENS;
 
 function isDebugScreen(value: string | null): value is DebugScreen {
@@ -57,7 +60,7 @@ function isDebugScreen(value: string | null): value is DebugScreen {
 }
 
 /** Actions that ?debug= can run at the start of a run (the same ones as the debug keys of GameScene). */
-export const DEBUG_ACTIONS = ['horde', 'kill', 'levelup', 'levels', 'str', 'magic', 'pickups', 'totems', 'minute', 'boss', 'finalboss', 'bosskill', 'stampede', 'dodge', 'stats', 'god', 'crits', 'aim', 'aimstick', 'resume', 'sim', 'charexp', 'stones', 'elites', 'loot'] as const;
+export const DEBUG_ACTIONS = ['horde', 'kill', 'levelup', 'levels', 'str', 'magic', 'pickups', 'totems', 'minute', 'boss', 'finalboss', 'bosskill', 'stampede', 'dodge', 'stats', 'god', 'crits', 'aim', 'aimstick', 'resume', 'sim', 'charexp', 'stones', 'elites', 'loot', 'zem'] as const;
 export type DebugAction = (typeof DEBUG_ACTIONS)[number];
 
 function isDebugAction(value: string): value is DebugAction {

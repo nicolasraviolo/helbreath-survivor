@@ -45,6 +45,8 @@ export enum Action {
     Decrease = 'decrease',
     /** Open the Equipment screen from Select Character (Fase 20B): I or gamepad X. */
     OpenEquipment = 'openEquipment',
+    /** Open the shared warehouse from Select Character (Fase 21D): O or gamepad R1. */
+    OpenWarehouse = 'openWarehouse',
     /** Show / hide the stats panel: C or gamepad Y by default, changeable in Settings → Controls. */
     ToggleStats = 'toggleStats',
     ToggleDebug = 'toggleDebug',
@@ -86,6 +88,7 @@ const KEYBOARD_ACTIONS: Record<Action, number[]> = {
     [Action.MenuDown]: [KEY.DOWN, KEY.S],
     [Action.Decrease]: [KEY.MINUS, KEY.NUMPAD_SUBTRACT],
     [Action.OpenEquipment]: [KEY.I],
+    [Action.OpenWarehouse]: [KEY.O],
     [Action.ToggleStats]: [DEFAULT_CONTROLS.keyboard.toggleStats],
     [Action.ToggleDebug]: [KEY.F1],
     [Action.OpenSpriteTest]: [KEY.T],
@@ -122,6 +125,7 @@ const GAMEPAD_ACTIONS: Partial<Record<Action, number[]>> = {
     [Action.MenuDown]: [GAMEPAD_BUTTON.DpadDown, STICK_BUTTON.Down],
     [Action.Decrease]: [GAMEPAD_BUTTON.X],
     [Action.OpenEquipment]: [GAMEPAD_BUTTON.X],
+    [Action.OpenWarehouse]: [GAMEPAD_BUTTON.R1],
     [Action.ToggleStats]: [DEFAULT_CONTROLS.gamepad.toggleStats],
     [Action.ToggleDebug]: [GAMEPAD_BUTTON.View],
 };

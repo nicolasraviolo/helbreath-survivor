@@ -81,6 +81,14 @@ const PRESETS = {
     // Atributos (Fase 21B): botín que siempre es arma con ese atributo (Sharp el Guerrero, Ancient la Maga).
     lootsharp: 'play=warrior&characters=demo&debug=god,loot&attr=sharp',
     lootancient: 'play=mage&characters=demo&debug=god,loot&attr=ancient',
+    // Baúl compartido (Fase 21D): Kaila (ejemplo) con dos piezas en su inventario y el baúl de ejemplo.
+    warehouse: 'characters=demo&open=warehouse&gear=inv:plateMail,inv:helmet',
+    // Equipment "solo lo que tienes" (Fase 21D): Gorn con un Plate Mail y un Helmet en el inventario.
+    equipmentowned: 'characters=demo&open=equipment&gear=inv:plateMail,inv:helmet,inv:zemstone',
+    // Reglas al morir (Fase 21D): Gorn sin Zem / con Zem. Coger el botín y morir:
+    // --wait=7000 --eval="(g.debugPickUpLoot(), g.debugKeepLoot(), g.endRun(false))".
+    deathnozem: 'play=warrior&characters=demo&debug=god,loot',
+    deathzem: 'play=warrior&characters=demo&debug=god,loot&gear=zemstone',
     // Veneno (Fase 21B): Gorn con su arma Poison en una horda; números verdes que nunca matan.
     poison: 'play=warrior&characters=demo&debug=god,horde&attr=poison',
     slotsempty: 'characters=reset&open=slots',
@@ -168,7 +176,7 @@ async function runScenario(browser, name) {
     page.on('pageerror', (err) => errors.push(`${err.name}: ${err.message}`));
 
     // ?open= (debugStart.ts) shows a menu screen: wait for it instead of the game.
-    const openKey = { howtoplay: 'HowToPlay', settings: 'Settings', controls: 'Controls', credits: 'Credits', releasenotes: 'ReleaseNotes', achievements: 'Achievements', select: 'CharacterSelect', slots: 'CharacterSlots', charinfo: 'CharacterInfo', equipment: 'Equipment' }[params.get('open') ?? ''];
+    const openKey = { howtoplay: 'HowToPlay', settings: 'Settings', controls: 'Controls', credits: 'Credits', releasenotes: 'ReleaseNotes', achievements: 'Achievements', select: 'CharacterSelect', slots: 'CharacterSlots', charinfo: 'CharacterInfo', equipment: 'Equipment', warehouse: 'Warehouse' }[params.get('open') ?? ''];
     const target = params.has('loading') ? 'Preload' : openKey ?? (query ? 'Game' : 'MainMenu');
     await page.goto(url);
     const t0 = Date.now();

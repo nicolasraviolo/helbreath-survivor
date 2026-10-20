@@ -211,6 +211,11 @@ export const GAME_OVER = {
     lootNoneColor: '#a89870',
     lootSlotFill: 0x2e2216,
     lootSlotBorder: 0x8a7038,
+    /** Fase 21D: line under the pictures when the run is lost ("Lost: ..." in red, the lost pictures dimmed) or a Zem saved it. */
+    lootNoteY: 479,
+    lootLostColor: '#ff6050',
+    lootSavedColor: '#9ccf7a',
+    lootLostAlpha: 0.4,
     buttonsY: 510,
     /** Distance between the centres of two buttons. */
     buttonGap: 140,

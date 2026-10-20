@@ -44,6 +44,7 @@ import { formatTime } from '../utils/format';
 import { totalExpForLevel } from '../data/characterLevel';
 import type { CharacterInfoSceneData } from './CharacterInfoScene';
 import type { EquipmentSceneData } from './EquipmentScene';
+import type { WarehouseSceneData } from './WarehouseScene';
 import type { CharacterSelectSceneData } from './CharacterSelectScene';
 import { openOverlay } from './MenuOverlayScene';
 
@@ -56,6 +57,7 @@ function s(value: number): number {
 let debugInfoOpened = false;
 /** ?open=equipment opens the Equipment screen only the first time. */
 let debugEquipmentOpened = false;
+let debugWarehouseOpened = false;
 
 /** The original turns the characters this way round (m_cMenuDir 1..8). */
 const DIRECTIONS_CLOCKWISE = [
@@ -144,6 +146,11 @@ export class CharacterSlotsScene extends Phaser.Scene {
             this.focus(index >= 0 ? index : Math.max(0, first));
             this.time.delayedCall(0, () => this.openEquipment());
         }
+        // ?open=warehouse (development only): the warehouse, with the marked character, once.
+        if (DEBUG_START.open === 'Warehouse' && !debugWarehouseOpened) {
+            debugWarehouseOpened = true;
+            this.time.delayedCall(0, () => this.openWarehouse());
+        }
     }
 
     /** In Continue, characters without a run in progress (and empty slots) are greyed out and can't be chosen. */
@@ -172,6 +179,7 @@ export class CharacterSlotsScene extends Phaser.Scene {
         if (input.justPressed(Action.Back)) this.scene.start('MainMenu');
         if (input.justPressed(Action.ToggleStats)) this.openCharacterInfo();
         if (input.justPressed(Action.OpenEquipment)) this.openEquipment();
+        if (input.justPressed(Action.OpenWarehouse)) this.openWarehouse();
         if (deletePressed) this.deleteFocused();
     }
 
@@ -221,10 +229,15 @@ export class CharacterSlotsScene extends Phaser.Scene {
         image.on(Phaser.Input.Events.POINTER_UP, () => {
             if (this.ready()) this.openCharacterInfo();
         });
-        const { equipment } = SLOTS_BUTTONS;
-        const frame = this.add.rectangle(s(equipment.x), s(equipment.y), s(equipment.width), s(equipment.height), SLOTS_DISABLED_SHADE.color)
+        this.addTextButton(SLOTS_BUTTONS.equipment, 'Equipment', () => this.openEquipment());
+        this.addTextButton(SLOTS_BUTTONS.warehouse, 'Warehouse', () => this.openWarehouse());
+    }
+
+    /** A button the original doesn't have (Equipment, Warehouse): text in a thin frame, lit under the pointer. */
+    private addTextButton(place: { x: number; y: number; width: number; height: number }, text: string, action: () => void): void {
+        const frame = this.add.rectangle(s(place.x), s(place.y), s(place.width), s(place.height), SLOTS_DISABLED_SHADE.color)
             .setOrigin(0).setStrokeStyle(1, SLOTS_DISABLED_SHADE.border);
-        const label = this.add.text(s(equipment.x + equipment.width / 2), s(equipment.y + equipment.height / 2), 'Equipment', SLOTS_EQUIPMENT_STYLE)
+        const label = this.add.text(s(place.x + place.width / 2), s(place.y + place.height / 2), text, SLOTS_EQUIPMENT_STYLE)
             .setOrigin(0.5);
         const pad = SLOTS_BUTTON_HIT_PAD;
         frame.setInteractive({
@@ -235,8 +248,19 @@ export class CharacterSlotsScene extends Phaser.Scene {
         frame.on(Phaser.Input.Events.POINTER_OVER, () => label.setColor(SLOTS_EQUIPMENT_LIT_COLOR));
         frame.on(Phaser.Input.Events.POINTER_OUT, () => label.setColor(SLOTS_EQUIPMENT_STYLE.color));
         frame.on(Phaser.Input.Events.POINTER_UP, () => {
-            if (this.ready()) this.openEquipment();
+            if (this.ready()) action();
         });
+    }
+
+    /** The shared warehouse, with the inventory of the marked character (Fase 21D). */
+    private openWarehouse(): void {
+        const saved = characterStore.get(this.focused);
+        if (!saved) {
+            this.setHelp('This slot is empty.');
+            return;
+        }
+        const data: WarehouseSceneData = { characterUid: saved.uid };
+        openOverlay(this, 'Warehouse', data);
     }
 
     /** The Equipment screen of the marked character (Fase 20B). */

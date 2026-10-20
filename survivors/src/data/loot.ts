@@ -5,8 +5,9 @@
 //   su clase puede usar y, en ese hueco, su "escalón" = el mejor objeto que ya podría ponerse. Reparto decidido por el
 //   propietario (20-oct-2026): 50% de su escalón, 25% del siguiente, 15% peor, 10% un salto grande.
 // - Al cogerlo, carta de comparación (scenes/LootScene.ts): "Equip" o "Keep in bag".
-// - La bolsa va al inventario del personaje al terminar la partida (propietario, 20-oct-2026). En el 21C: baúl
-//   compartido, y al morir sin Zem se pierde lo encontrado.
+// - La bolsa va al inventario del personaje al terminar la partida (propietario, 20-oct-2026). Fase 21D: al morir sin
+//   Zem se pierde lo encontrado; el baúl compartido se llena a mano desde Select Character (data/warehouse.ts).
+// - Fase 21D: los hechizos solo caen si piden Manual (ninguno de los de hoy); el Zem cae aparte, de los jefes.
 // - Atributos (21B, decididos el 20-oct-2026): Sharp 10%, Poison 5%, Ancient 1%, solo en armas y varitas
 //   (data/attributes.ts). Las varitas de la Maga caen menos que sus hechizos, y Berserk y Kloness muchísimo menos.
 import type { SoundKey } from '../config/assetManifest';
@@ -33,6 +34,9 @@ export const LOOT_BOSS_DROPS = {
     finalBoss: { count: 2, extraChance: 0 },
 } as const;
 
+/** Chance that each boss also drops a Zemstone of Sacrifice (owner, 20-oct-2026: 10%). ?debug=zem makes it always. */
+export const LOOT_ZEM_BOSS_CHANCE = 0.1;
+
 /** How far apart the items of one boss fall (px). */
 export const LOOT_BOSS_SPREAD = 40;
 
@@ -56,6 +60,8 @@ export const LOOT_SLOT_WEIGHTS: Readonly<Record<EquipSlotId, number>> = {
     cape: 1,
     spell1: 2,
     spell2: 2,
+    // Never from the normal roll: it has its own (LOOT_ZEM_BOSS_CHANCE).
+    zem: 0,
 };
 
 /** Class exceptions to LOOT_SLOT_WEIGHTS: the Mage's wands come out less than its spells (Fase 21B). */

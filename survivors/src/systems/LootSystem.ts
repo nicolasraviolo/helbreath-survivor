@@ -2,9 +2,11 @@
 // (LootRoller), lo recicla con un pool y avisa al juego cuando el jugador lo coge. Qué pasa después (la carta Equip /
 // Keep in bag) lo decide GameScene.
 import type Phaser from 'phaser';
+import { DEBUG_START } from '../config/debugStart';
+import { ZEM_ID } from '../data/consumables';
 import type { Gender } from '../data/appearance';
 import type { CharacterId } from '../data/characters';
-import { LOOT_BOSS_DROPS, LOOT_BOSS_SPREAD, LOOT_DROP_CHANCE, LOOT_GROUND, LOOT_SOUNDS, type OwnedItem } from '../data/loot';
+import { LOOT_BOSS_DROPS, LOOT_BOSS_SPREAD, LOOT_DROP_CHANCE, LOOT_GROUND, LOOT_SOUNDS, LOOT_ZEM_BOSS_CHANCE, type OwnedItem } from '../data/loot';
 import type { Stats } from '../data/stats';
 import { LootDrop } from '../entities/LootDrop';
 import { Pool } from '../utils/Pool';
@@ -44,15 +46,16 @@ export class LootSystem {
         if (Math.random() < (elite ? LOOT_DROP_CHANCE.elite : LOOT_DROP_CHANCE.normal)) this.dropRolled(x, y);
     }
 
-    /** A boss died there: its items fall in a small circle. */
+    /** A boss died there: its items (and, sometimes, a Zem: Fase 21D) fall in a small circle. */
     public onBossKill(x: number, y: number, final: boolean): void {
         const drops = final ? LOOT_BOSS_DROPS.finalBoss : LOOT_BOSS_DROPS.miniBoss;
         const count = drops.count + (Math.random() < drops.extraChance ? 1 : 0);
-        for (let i = 0; i < count; i++) {
-            const angle = (i / count) * Math.PI * 2;
-            const spread = count > 1 ? LOOT_BOSS_SPREAD : 0;
-            this.dropRolled(x + Math.cos(angle) * spread, y + Math.sin(angle) * spread);
-        }
+        const zem = this.enabled && (DEBUG_START.actions.includes('zem') || Math.random() < LOOT_ZEM_BOSS_CHANCE);
+        const total = count + (zem ? 1 : 0);
+        const spread = total > 1 ? LOOT_BOSS_SPREAD : 0;
+        const at = (i: number): [number, number] => [x + Math.cos((i / total) * Math.PI * 2) * spread, y + Math.sin((i / total) * Math.PI * 2) * spread];
+        for (let i = 0; i < count; i++) this.dropRolled(...at(i));
+        if (zem) this.drop({ id: ZEM_ID }, ...at(count));
     }
 
     /** A rolled item at (x, y). */

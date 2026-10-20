@@ -1,9 +1,11 @@
 // Equipo permanente del personaje (Fase 20B; docs/DESIGN.md, "Progresión entre partidas"):
 // - Huecos que ya funcionan: arma, escudo, casco, armadura, pantalones, botas, capa y, solo el Mago, 2 hechizos (20D:
 //   Spell 1 automático, círculos 1–5; Spell 2 activo, círculos 6–10). Los demás (anillo, collar, ángel, Zem y Abaddon's
-//   Blood) se ven vacíos en la pantalla de equipo hasta la Fase 21.
-// - Catálogo libre (decidido el 19-oct-2026, provisional hasta el botín de la Fase 21): se puede poner cualquier objeto
-//   cuyo requisito cumplan las stats PERMANENTES y el Level (números del original, en weapons.ts y armor.ts).
+//   Blood) se ven vacíos en la pantalla de equipo hasta la Fase 21. El Zem funciona desde el 21D (data/consumables.ts).
+// - Fase 21D, "solo lo que tienes": armas, varitas, armaduras y el Zem solo se ponen si están en el inventario (o se
+//   llevan puestos). El equipo de salida (la daga, la varita MS0 y los dos hechizos de la Maga) nunca se acaba. Los
+//   hechizos se saben con la Int; los que estén en MANUAL_SPELL_IDS piden además haberlos encontrado (su Manual).
+//   Requisitos del original con las stats PERMANENTES y el Level (números en weapons.ts y armor.ts).
 // - Fase 21B: el Mago lleva varita en el hueco Weapon (data/wands.ts); el Guerrero, armas cuerpo a cuerpo. Cada clase
 //   solo ve y solo puede ponerse las suyas (classCanWear).
 // - Equipo de salida: el Guerrero, la daga; el Mago, Energy Bolt y Energy Strike, que no piden nada (propietario,
@@ -14,6 +16,7 @@ import type { Gender } from './appearance';
 import { ARMOR_PIECES, ARMOR_SLOT_NAMES, type ArmorPieceId, type ArmorSlotId } from './armor';
 import { attributeColor, ATTRIBUTES, attributeDamageBonus, type ItemAttribute } from './attributes';
 import type { CharacterId } from './characters';
+import { CONSUMABLES, isConsumableId, ZEM_ID, type ConsumableId } from './consumables';
 import type { EquipRequirement, ItemIcon, ItemIconFrame } from './itemTypes';
 import { SPELL_ITEM_ICON, type OwnedItem } from './loot';
 import { AUTO_SPELL_IDS, isAutoSpellId, SPELLS, type AutoSpellId } from './spells';
@@ -22,20 +25,25 @@ import { getWand, isWandId, WAND_IDS, type WandId } from './wands';
 import { getMeleeWeapon, MELEE_FAMILIES, MELEE_WEAPONS, type MeleeWeaponId } from './weapons';
 
 export type SpellSlotId = 'spell1' | 'spell2';
-export type EquipSlotId = 'weapon' | ArmorSlotId | SpellSlotId;
+export type EquipSlotId = 'weapon' | ArmorSlotId | SpellSlotId | 'zem';
 
 /** Slots on the Equipment screen: gear on the first row, spells starting the second one. */
 export const GEAR_SLOT_IDS = ['weapon', 'shield', 'helm', 'body', 'legs', 'boots', 'cape'] as const satisfies readonly EquipSlotId[];
 export const SPELL_SLOT_IDS = ['spell1', 'spell2'] as const satisfies readonly SpellSlotId[];
-export const EQUIP_SLOT_IDS: readonly EquipSlotId[] = [...GEAR_SLOT_IDS, ...SPELL_SLOT_IDS];
+export const EQUIP_SLOT_IDS: readonly EquipSlotId[] = [...GEAR_SLOT_IDS, ...SPELL_SLOT_IDS, 'zem'];
 
-export const EQUIP_SLOT_NAMES: Readonly<Record<EquipSlotId, string>> = { weapon: 'Weapon', ...ARMOR_SLOT_NAMES, spell1: 'Spell 1', spell2: 'Spell 2' };
+export const EQUIP_SLOT_NAMES: Readonly<Record<EquipSlotId, string>> = { weapon: 'Weapon', ...ARMOR_SLOT_NAMES, spell1: 'Spell 1', spell2: 'Spell 2', zem: 'Zem' };
 
-/** Slots shown empty after the spell slots until they work (Fase 21). */
-export const FUTURE_SLOT_NAMES = ['Ring', 'Necklace', 'Angel', 'Zem', "Abaddon's Blood"] as const;
+/**
+ * Second row of the Equipment screen: the spells, the slots still to come (shown empty, with their name) and the Zem
+ * (Fase 21D).
+ */
+export const SECOND_ROW_SLOTS: ReadonlyArray<EquipSlotId | { future: string }> = [
+    'spell1', 'spell2', { future: 'Ring' }, { future: 'Necklace' }, { future: 'Angel' }, 'zem', { future: "Abaddon's Blood" },
+];
 
 export type SpellItemId = AutoSpellId | ActiveSpellId;
-export type ItemId = MeleeWeaponId | WandId | ArmorPieceId | SpellItemId;
+export type ItemId = MeleeWeaponId | WandId | ArmorPieceId | SpellItemId | ConsumableId;
 
 /** What a saved character wears: one item per slot (a missing slot is empty). */
 export type SavedEquipment = Partial<Record<EquipSlotId, ItemId>>;
@@ -55,12 +63,33 @@ export const START_EQUIPMENT: Readonly<Record<CharacterId, Readonly<SavedEquipme
 
 /** Slots each class can change on the Equipment screen. */
 const CLASS_SLOTS: Readonly<Record<CharacterId, readonly EquipSlotId[]>> = {
-    warrior: GEAR_SLOT_IDS,
+    warrior: [...GEAR_SLOT_IDS, 'zem'],
     mage: EQUIP_SLOT_IDS,
 };
 
 /** The Mage's starting spells ask for nothing (owner, 19-oct-2026), like the Warrior's dagger. */
 const FREE_SPELLS: ReadonlySet<ItemId> = new Set(Object.values(START_EQUIPMENT.mage));
+
+/**
+ * Spells that must be found (their Manual drops) besides having the Int (owner, 20-oct-2026). None of today's: the
+ * ones to come (Blizzard, Lightning Strike, Bloody Shock Wave, Earth Shock Wave...) go here. Only these drop as loot.
+ */
+export const MANUAL_SPELL_IDS: ReadonlySet<SpellItemId> = new Set<SpellItemId>([]);
+
+/**
+ * Items that never run out and are never kept in the inventory (Fase 21D): the class's starting equipment and the
+ * spells known with the Int alone.
+ */
+export function isFreeItem(classId: CharacterId, id: ItemId): boolean {
+    if (Object.values(START_EQUIPMENT[classId]).includes(id)) return true;
+    return isSpellItemId(id) && !MANUAL_SPELL_IDS.has(id);
+}
+
+/** Whether the normal loot roll may give it: never the Zem (it has its own boss roll), and only spells that need finding. */
+export function isLootDrop(id: ItemId): boolean {
+    if (isConsumableId(id)) return false;
+    return !isSpellItemId(id) || MANUAL_SPELL_IDS.has(id);
+}
 
 export function isMeleeWeaponId(id: string): id is MeleeWeaponId {
     return Object.prototype.hasOwnProperty.call(MELEE_WEAPONS, id);
@@ -75,7 +104,7 @@ export function isSpellItemId(id: string): id is SpellItemId {
 }
 
 export function isItemId(id: string): id is ItemId {
-    return isMeleeWeaponId(id) || isWandId(id) || isArmorPieceId(id) || isSpellItemId(id);
+    return isMeleeWeaponId(id) || isWandId(id) || isArmorPieceId(id) || isSpellItemId(id) || isConsumableId(id);
 }
 
 /** Name, slot, requirement and picture; undefined for weapons that are only data (no requirement or picture yet). */
@@ -93,6 +122,7 @@ export function itemInfo(id: ItemId): ItemInfo | undefined {
         const wand = getWand(id);
         return { name: wand.name, slot: 'weapon', equip: wand.equip, icon: wand.icon };
     }
+    if (isConsumableId(id)) return { name: CONSUMABLES[id].name, slot: 'zem', equip: {}, icon: CONSUMABLES[id].icon };
     const piece = ARMOR_PIECES[id];
     return { name: piece.name, slot: piece.slot, equip: piece.equip, icon: piece.icon };
 }
@@ -127,6 +157,8 @@ export function catalog(classId: CharacterId, slot: EquipSlotId): ItemId[] {
         ids = [...AUTO_SPELL_IDS];
     } else if (slot === 'spell2') {
         ids = [...ACTIVE_SPELL_IDS];
+    } else if (slot === 'zem') {
+        ids = [ZEM_ID];
     } else if (slot === 'weapon' && classId === 'mage') {
         ids = [...WAND_IDS];
     } else if (slot === 'weapon') {
@@ -179,7 +211,7 @@ export function equipmentLook(equipment: Readonly<SavedEquipment>, attributes: R
     const added = attributeColor(attributes.weapon);
     const colour = added ? { added } : {};
     for (const id of Object.values(equipment)) {
-        if (isSpellItemId(id)) continue;
+        if (isSpellItemId(id) || isConsumableId(id)) continue;
         if (isWandId(id)) {
             layers.push(['weapon', { sprite: getWand(id).sprite, ...colour }]);
         } else if (isMeleeWeaponId(id)) {
@@ -219,6 +251,7 @@ export function describeItem(id: ItemId): string {
         return `Circle ${spell.circle}, casts itself, damage ${spell.directDamage} + ${spell.areaDamage} area${shots}`;
     }
     if (isMeleeWeaponId(id)) return `Damage ${getMeleeWeapon(id).damage}`;
+    if (isConsumableId(id)) return CONSUMABLES[id].description;
     if (isWandId(id)) {
         const bonus = getWand(id).magicDamageBonus;
         return bonus > 0 ? `Magic damage +${Math.round(bonus * 100)}%` : 'No extra damage';
@@ -248,6 +281,7 @@ export function itemPower(id: ItemId): ItemPower {
     }
     if (isMeleeWeaponId(id)) return { label: 'Damage', value: getMeleeWeapon(id).damage, unit: '' };
     if (isWandId(id)) return { label: 'Magic', value: Math.round(getWand(id).magicDamageBonus * 100), unit: '%', prefix: '+' };
+    if (isConsumableId(id)) return { label: 'Uses', value: 1, unit: '' };
     return { label: 'Defense', value: Math.round(ARMOR_PIECES[id].defense * 100), unit: '%' };
 }
 

@@ -19,6 +19,7 @@ import { itemInfo, itemPicture } from '../data/items';
 import type { OwnedItem } from '../data/loot';
 import { attributeColor, ATTRIBUTES } from '../data/attributes';
 import { setColouredTexture } from '../hb/additiveTint';
+import type { RunLootResult } from '../systems/CharacterStore';
 import { Action, InputSystem } from '../systems/InputSystem';
 import { formatTime } from '../utils/format';
 
@@ -38,6 +39,8 @@ export interface GameOverSceneData {
     exp: ExpResult | undefined;
     /** Every item picked up this run (Fase 21A), and the gender its pictures are drawn for. */
     loot: readonly OwnedItem[];
+    /** What happened to it (Fase 21D): lost (died without a Zem) or saved by a Zem. Undefined: kept as usual. */
+    lootResult: RunLootResult | undefined;
     gender: Gender;
     onRestart: () => void;
     onChangeClass: () => void;
@@ -97,6 +100,7 @@ export class GameOverScene extends Phaser.Scene {
 
         if (p.exp) this.addExpBlock(p.exp);
         this.addLootRow(p.loot);
+        this.addLootNote(p.lootResult);
 
         this.addButton(GAME_OVER.restartFrame, -1, p.onRestart);
         this.addButton(GAME_OVER.changeFrame, 0, p.onChangeClass);
@@ -138,7 +142,19 @@ export class GameOverScene extends Phaser.Scene {
         }).setOrigin(0.5, 0);
     }
 
-    /** "Loot" and the pictures of the items found, centred; "+N" if there are more than fit. */
+    /** Fase 21D: "Lost: N items (no Zem)" or "Your Zem saved N items", under the pictures. */
+    private addLootNote(result: RunLootResult | undefined): void {
+        if (!result || (!result.lost && !result.zemUsed)) return;
+        const g = GAME_OVER;
+        const items = `${result.found} item${result.found === 1 ? '' : 's'}`;
+        const text = result.lost ? `Lost: ${items} (no Zem equipped)` : `Your Zem saved ${items}`;
+        this.add.text(GAME_WIDTH / 2, g.lootNoteY, text, {
+            ...UI_TEXT, fontSize: px(UI_FONT_SIZE.normal), fontStyle: 'bold', stroke: '#000000', strokeThickness: 3,
+            color: result.lost ? g.lootLostColor : g.lootSavedColor,
+        }).setOrigin(0.5);
+    }
+
+    /** "Loot" and the pictures of the items found, centred; "+N" if there are more than fit. Dimmed if they were lost. */
     private addLootRow(loot: readonly OwnedItem[]): void {
         const g = GAME_OVER;
         const style = { ...UI_TEXT, fontSize: px(UI_FONT_SIZE.normal), fontStyle: 'bold', stroke: '#000000', strokeThickness: 3 };
@@ -156,7 +172,9 @@ export class GameOverScene extends Phaser.Scene {
         let x = (GAME_WIDTH - width) / 2;
         label.setX(x);
         x += label.width + g.lootGap * 2;
+        const lost = this.params.lootResult?.lost === true;
         for (const item of shown) {
+            const first = this.children.length;
             const centre = x + g.lootIconSize / 2;
             // Fase 21B: an item with an attribute gets a frame of its colour.
             const border = item.attribute ? ATTRIBUTES[item.attribute].color : g.lootSlotBorder;
@@ -169,6 +187,11 @@ export class GameOverScene extends Phaser.Scene {
                 image.destroy();
                 // Picture not loaded: the first letters of its name.
                 this.add.text(centre, g.lootY, (itemInfo(item.id)?.name ?? '?').slice(0, 3), { ...UI_TEXT, fontSize: px(UI_FONT_SIZE.small), color: '#e8d9a8' }).setOrigin(0.5);
+            }
+            if (lost) {
+                for (const object of this.children.list.slice(first)) {
+                    if (object instanceof Phaser.GameObjects.Image || object instanceof Phaser.GameObjects.Rectangle || object instanceof Phaser.GameObjects.Text) object.setAlpha(g.lootLostAlpha);
+                }
             }
             x += step;
         }

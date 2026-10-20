@@ -3,9 +3,10 @@
 // El escalón del personaje es el mejor objeto que sus stats PERMANENTES y su Level ya le dejan poner.
 // Fase 21B: los objetos raros (Berserk y Kloness Wand) casi siempre se cambian por el mejor no raro de debajo, y las
 // armas y varitas tiran su atributo (data/attributes.ts).
+// Fase 21D: la escalera solo lleva lo que puede caer (isLootDrop: ni el Zem ni los hechizos que se saben con la Int).
 import { DEBUG_START } from '../config/debugStart';
 import { ATTRIBUTE_ROLL_ORDER, ATTRIBUTES, type ItemAttribute } from '../data/attributes';
-import { catalog, canChangeSlot, canEquip, EQUIP_SLOT_IDS, type EquipSlotId, type ItemId } from '../data/items';
+import { catalog, canChangeSlot, canEquip, EQUIP_SLOT_IDS, isLootDrop, type EquipSlotId, type ItemId } from '../data/items';
 import type { CharacterId } from '../data/characters';
 import {
     LOOT_JUMP_STEPS, LOOT_RARE_KEEP_CHANCE, LOOT_SLOT_WEIGHTS, LOOT_SLOT_WEIGHTS_BY_CLASS, LOOT_TIER_WEIGHTS, type LootTier, type OwnedItem,
@@ -76,12 +77,13 @@ export function rollAttribute(id: ItemId): ItemAttribute | undefined {
 export function rollLoot(classId: CharacterId, stats: Readonly<Stats>, level: number): OwnedItem | undefined {
     const weights = { ...LOOT_SLOT_WEIGHTS, ...LOOT_SLOT_WEIGHTS_BY_CLASS[classId] };
     // ?attr= (debug): only weapons drop, to see the attribute every time.
-    const slots = EQUIP_SLOT_IDS.filter((slot) => canChangeSlot(classId, slot) && catalog(classId, slot).length > 0)
+    const ladderOf = (slot: EquipSlotId): ItemId[] => catalog(classId, slot).filter(isLootDrop);
+    const slots = EQUIP_SLOT_IDS.filter((slot) => canChangeSlot(classId, slot) && weights[slot] > 0 && ladderOf(slot).length > 0)
         .filter((slot) => !DEBUG_START.attribute || slot === 'weapon')
         .map((slot): [EquipSlotId, number] => [slot, weights[slot]]);
     const slot = pickWeighted(slots);
     if (!slot) return undefined;
-    const ladder: ItemId[] = catalog(classId, slot);
+    const ladder = ladderOf(slot);
     // Its own step: the best item it can already wear (the first one if it can wear none).
     let own = 0;
     ladder.forEach((id, index) => {

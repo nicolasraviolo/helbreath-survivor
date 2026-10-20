@@ -41,6 +41,8 @@ export const SLOTS_BUTTONS = {
     levelSet: { frame: 10, litFrame: 11, x: 368, y: 380 },
     /** "Equipment" on its right (Fase 20B): drawn with text, the original has no such button. */
     equipment: { x: 446, y: 380, width: 90, height: 20 },
+    /** "Warehouse" (Fase 21D), drawn like Equipment, in the empty box under the help text. */
+    warehouse: { x: 174, y: 410, width: 110, height: 20 },
 } as const;
 export const SLOTS_BUTTON_LIT_OFFSET = 5;
 /** Empty slots, and in Continue the characters without a saved run. */
