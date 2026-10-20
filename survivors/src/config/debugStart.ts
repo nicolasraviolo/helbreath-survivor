@@ -3,6 +3,7 @@
 //   ?play            → empieza la partida directamente (con la clase por defecto)
 //   ?play=warrior    → con esa clase
 //   ?debug=boss,god  → acciones al empezar, separadas por comas (se pueden repetir: minute,minute)
+//                      onehp = el jugador se queda con 1 de vida (tecla U en partida), para probar morir y Abaddon's Blood
 //                      finalboss = saltar directamente al jefe final (con sus esbirros)
 //                      bosskill = saltar al jefe final y matarlo en cuanto salga (para ver el portal, Fase 13)
 //                      totems = los 4 tótems en fila debajo del jugador (Fase 16B)
@@ -62,7 +63,7 @@ function isDebugScreen(value: string | null): value is DebugScreen {
 }
 
 /** Actions that ?debug= can run at the start of a run (the same ones as the debug keys of GameScene). */
-export const DEBUG_ACTIONS = ['horde', 'kill', 'levelup', 'levels', 'str', 'magic', 'pickups', 'totems', 'minute', 'boss', 'finalboss', 'bosskill', 'stampede', 'dodge', 'stats', 'god', 'crits', 'aim', 'aimstick', 'resume', 'sim', 'charexp', 'stones', 'elites', 'loot', 'zem'] as const;
+export const DEBUG_ACTIONS = ['horde', 'kill', 'levelup', 'levels', 'str', 'magic', 'pickups', 'totems', 'minute', 'boss', 'finalboss', 'bosskill', 'stampede', 'dodge', 'stats', 'god', 'crits', 'aim', 'aimstick', 'resume', 'sim', 'charexp', 'stones', 'elites', 'loot', 'zem', 'onehp'] as const;
 export type DebugAction = (typeof DEBUG_ACTIONS)[number];
 
 function isDebugAction(value: string): value is DebugAction {

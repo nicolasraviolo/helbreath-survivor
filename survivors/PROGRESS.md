@@ -60,7 +60,7 @@
 - Opciones del check: `--eval="g.enemies.alive"` escribe cualquier dato (g = escena Game; si es una promesa, se espera); `--wait=5000` deja correr más; `--cards` elige la primera carta en cada subida.
 - Atajos en la dirección (solo desarrollo, `src/config/debugStart.ts`):
   - `?play`, `?play=warrior`, `?ui=compact` (interfaz de móvil), `?trees=off`, `?metrics=send` (envía la partida de verdad).
-  - `?debug=boss,god`; acciones: horde, kill, levelup, levels, str, magic, pickups, totems, minute, boss, finalboss, bosskill, stampede, god, crits (infinitos, tecla H; también el activo del Mago sin recarga), stones (cartas de Xelima, Merien y Magnet), dodge (mejor armadura de la clase), stats (panel abierto), aim (apuntar a la derecha), aimstick (dedo falso en el stick, con `--mobile`), resume (guardar y recargar como Continue), sim (partida simulada), charexp (EXP ×50), elites (todos élite), loot (botín junto al jugador cada 6 s), zem (los jefes sueltan Zem).
+  - `?debug=boss,god`; acciones: horde, kill, levelup, levels, str, magic, pickups, totems, minute, boss, finalboss, bosskill, stampede, onehp (1 de vida, para probar morir), god, crits (infinitos, tecla H; también el activo del Mago sin recarga), stones (cartas de Xelima, Merien y Magnet), dodge (mejor armadura de la clase), stats (panel abierto), aim (apuntar a la derecha), aimstick (dedo falso en el stick, con `--mobile`), resume (guardar y recargar como Continue), sim (partida simulada), charexp (EXP ×50), elites (todos élite), loot (botín junto al jugador cada 6 s), zem (los jefes sueltan Zem).
   - `?loading=hold`: la pantalla de carga se para a la mitad.
   - `?gear=plateMail,helmet,...`: con `?characters=demo`, los de ejemplo llevan esos objetos sin mirar requisitos; `sharp:longSword` lo mete en su inventario con ese atributo, `inv:plateMail` sin atributo, `zemstone` les pone un Zem. `?characters=` también reinicia el baúl.
   - `?attr=sharp|poison|ancient`: el arma de salida y todo el botín (siempre armas) con ese atributo.
@@ -68,7 +68,7 @@
   - `?open=howtoplay` (también settings, controls, credits, achievements, select, slots, charinfo, equipment, warehouse, releasenotes); `?open=equipment&class=mage` abre la de la Maga.
   - `?spells=fireBall,meteorStrike`: hechizos del Mago en esa partida, sin requisitos.
   - `?unlocks=abaddon|reset` (Abaddon's Blood desbloqueado o no, Fase 21E); `?achievements=reset|all`; `?characters=reset|demo` (demo: dos de ejemplo, Gorn con 60.000 EXP y Kaila Level 25 con Int 86; con `?play=warrior` juega Gorn).
-- Teclas en partida: F1 panel · G invencible · N enemigos · L niveles · J +1 minuto, entre otras (`systems/InputSystem.ts`).
+- Teclas en partida: F1 panel · G invencible · N enemigos · L niveles · J +1 minuto · U quedarse con 1 de vida, entre otras (`systems/InputSystem.ts`).
 - App instalable: solo en el build (`survivors/pwa/`). `pnpm build` y `pnpm preview` → http://localhost:4173.
 - Visor de sprites (desarrollo): http://localhost:8090/sprites.html → todos los `.spr` por categorías, animados, con armas y armaduras sobre el cuerpo. Enlaces: `#weapons`, `#item/Long%20Sword`, `#file/orc/4`.
 - Datos de Helbreath: `docs/hb-wiki/` (índice en `README.md`). Historial de bloques: `survivors/PROGRESS-historial.md` (grep, no leer entero).

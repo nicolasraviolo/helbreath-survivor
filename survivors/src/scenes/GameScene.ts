@@ -1125,6 +1125,7 @@ export class GameScene extends Phaser.Scene {
             [Action.DebugNextBoss, 'boss'],
             [Action.DebugGodMode, 'god'],
             [Action.DebugInfiniteCrits, 'crits'],
+            [Action.DebugOneHp, 'onehp'],
         ];
         const finalBoss = this.killFinalBossPending ? this.bosses.finalBoss : undefined;
         if (finalBoss) {
@@ -1252,6 +1253,10 @@ export class GameScene extends Phaser.Scene {
                 break;
             case 'charexp':
                 // Applied when the run ends (endRun).
+                break;
+            case 'onehp':
+                // 1 health left, to test dying (Abaddon's Blood) without waiting for the horde to get through potions.
+                this.player.restoreHp(1);
                 break;
             case 'sim':
                 this.sim = new SimRun(this.stats.def.name);

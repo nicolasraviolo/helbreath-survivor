@@ -63,6 +63,8 @@ export enum Action {
     DebugNextBoss = 'debugNextBoss',
     DebugInfiniteCrits = 'debugInfiniteCrits',
     DebugSlashStyle = 'debugSlashStyle',
+    /** Left with 1 health, to test dying (Abaddon's Blood). */
+    DebugOneHp = 'debugOneHp',
 }
 
 export type InputDevice = 'keyboard' | 'mouse' | 'gamepad' | 'touch' | 'none';
@@ -104,6 +106,7 @@ const KEYBOARD_ACTIONS: Record<Action, number[]> = {
     [Action.DebugNextBoss]: [KEY.M],
     [Action.DebugInfiniteCrits]: [KEY.H],
     [Action.DebugSlashStyle]: [KEY.Y],
+    [Action.DebugOneHp]: [KEY.U],
 };
 
 const GAMEPAD_AXIS = { LeftX: 0, LeftY: 1, RightX: 2, RightY: 3 } as const;
