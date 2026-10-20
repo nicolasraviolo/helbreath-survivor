@@ -72,6 +72,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Bugs del bloque B (20-oct-2026)
 - Pantalla de carga (M8)
 - Equipo sobre el cuerpo en la ventana Character (M17)
+- Botín en partida (Fase 21A)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -843,3 +844,13 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - Posiciones del original en píxeles de la ventana (su pivote es 0,0); cada frame trae su pivote. Orden: cuerpo, pelo (no con casco), ropa interior, capa, pantalón, camisa/cota, botas, armadura, escudo, arma, casco. Con falda, las botas van antes del pantalón.
 - Código: `data/paperDoll.ts` (tabla por sprite del juego, así sale también la ropa de la clase) y `entities/PaperDoll.ts`. Bajo demanda (`item.equip.m/w`, tipo `PaperDoll` = canvas, para el pelo); mientras llega se ve el muñeco animado.
 - Probar: `?characters=demo&open=charinfo&gear=plateMail,hornedHelmet,towerShield,cape,claymore` (`?gear=` viste a los dos de ejemplo sin mirar requisitos); `&open=equipment&class=mage` para la mujer.
+
+## Botín en partida (Fase 21A)
+- **Datos:** `data/loot.ts` (probabilidades, reparto 50/25/15/10, pesos por hueco, aspecto en el suelo, sonidos). Qué cae: `systems/LootRoller.ts` (escalón = mejor objeto de `catalog()` que las stats **permanentes** y el Level ya dejan poner). En el suelo: `systems/LootSystem.ts` + `entities/LootDrop.ts` (pool). Estado de la partida: `systems/RunLoot.ts` (found, bag, equipped por hueco, pending). Carta: `scenes/LootScene.ts`.
+- **En el suelo** se usa `item-ground.spr` con **la misma hoja y frame que el icono de `item-pack`** (como `sp-client/src/game/objects/GroundItem.ts`; los índices de sp-client, también para cascos 18 y capa 17), a escala 1,5 como las pociones. Comprobado el 20-oct-2026: existen todos los de nuestro catálogo, también los de mujer y el Manual 5/92. El propietario quiere **solo** ese estilo en el suelo, nunca el icono del inventario. La carta y la pantalla final sí usan `item-pack`.
+- **Hechizos:** no tienen icono; usan el **Manual** del original (`item-pack` 5/92), un libro (`SPELL_ITEM_ICON`).
+- **Sonidos:** coger E20, equipar E28 (`sfx.itemEquip`), a la bolsa E29 (`sfx.itemBag`), caer E12.
+- **Equipar en partida** no toca el personaje guardado: va a `RunLoot.equipped` y se guarda con la partida. Al continuar se vuelve a poner encima de lo que lleve el personaje. Al terminar (ganar o morir, de momento), `characterStore.takeRunLoot` lo pone en el personaje (lo que llevaba pasa al inventario) y la bolsa va al inventario. Así el 21C solo tiene que no llamarlo al morir sin Zem.
+- **Guardado:** personajes versión 5 (`inventory: OwnedItem[]`); partidas con `loot` opcional (sin subir versión). `OwnedItem` es un objeto `{ id }` para que el 21B le añada el atributo sin migrar.
+- **Probar:** `?debug=loot` (un objeto a la derecha del jugador cada 6 s), `pnpm check loot` / `lootmage`, y `--eval="g.debugPickUpLoot()"` para cogerlos todos. La carta se contesta con `game.scene.getScene('Loot').sys.settings.data.onEquip()` / `onKeep()`.
+- En las capturas `.check` (jpg al 60%) un "+" pequeño parece "-": mirar el texto con `--eval` antes de dar por malo un signo.

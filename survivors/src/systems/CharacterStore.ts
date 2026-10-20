@@ -5,6 +5,7 @@
 // Si el navegador no deja guardar (modo privado), los personajes duran hasta cerrar la página.
 // Desde la Fase 20A cada personaje tiene Level permanente, EXP y los puntos de stat que ha repartido (data/characterLevel.ts).
 // Desde la Fase 20B, además, su equipo (data/items.ts), que se pone en la pantalla Equipment y lleva a cada partida.
+// Desde la Fase 21A, su inventario: lo que trae de la bolsa de cada partida y lo que el botín equipado le quitó.
 import { DEBUG_START } from '../config/debugStart';
 import { CHARACTER_NAME_ALLOWED, CHARACTER_NAME_MAX_LENGTH, CHARACTER_SLOT_COUNT } from '../data/characterSlots';
 import { BODY_SPRITES, DEFAULT_LOOKS, GENDERS, HAIR_COLORS, HAIR_STYLE_COUNT, UNDERWEAR_COUNT, type CharacterLook } from '../data/appearance';
@@ -12,14 +13,17 @@ import { CHARACTER_LEVEL_MAX, expToNextCharacterLevel, STAT_POINT_CAP, STAT_POIN
 import { CHARACTERS, isCharacterId, type CharacterId } from '../data/characters';
 import { canChangeSlot, canEmptySlot, canEquip, isItemId, itemInfo, readEquipment, START_EQUIPMENT, type EquipSlotId, type ItemId, type SavedEquipment } from '../data/items';
 import { STAT_IDS, type StatId, type Stats } from '../data/stats';
-import { isRecord, readNumber, saveStore, type RunSnapshot } from './SaveStore';
+import type { OwnedItem } from '../data/loot';
+import type { RunLootState } from './RunLoot';
+import { isRecord, readNumber, readOwnedItems, saveStore, type RunSnapshot } from './SaveStore';
 
 const STORAGE_KEY = 'hb-survivors.characters';
 /** Raise it (and teach migrate() the old shape) whenever SavedCharacter changes in a way old data can't be read as. */
 /** 2 (Fase 17B): every character has a look. Version 1 characters get the look of their class until then. */
 /** 3 (Fase 20A): Level, EXP and stat points; bestLevel renamed bestPower. Older characters start at Level 1. */
 /** 4 (Fase 20B): equipment. Older characters get their class's starting equipment. */
-const CHARACTERS_VERSION = 4;
+/** 5 (Fase 21A): inventory. Older characters start with it empty. */
+const CHARACTERS_VERSION = 5;
 
 /** Registry key (game.registry) with the uid of the character that plays the next run. */
 export const ACTIVE_CHARACTER_KEY = 'activeCharacter';
@@ -43,6 +47,8 @@ export interface SavedCharacter {
     statPoints: Stats;
     /** What the character wears into every run (Fase 20B). */
     equipment: SavedEquipment;
+    /** Items kept from the runs (Fase 21A): the bag, and the gear that found items replaced. */
+    inventory: OwnedItem[];
     createdAt: number;
 }
 
@@ -133,6 +139,7 @@ class CharacterStoreImpl {
             unspentPoints: 0,
             statPoints: noStatPoints(),
             equipment: { ...START_EQUIPMENT[classId] },
+            inventory: [],
             createdAt: now,
         };
         this.slots[slot] = character;
@@ -242,6 +249,32 @@ class CharacterStoreImpl {
         return true;
     }
 
+    /**
+     * A finished run's loot (Fase 21A): the found items put on replace what the character wears in that slot (which goes
+     * to the inventory), and the bag goes to the inventory. False without that character.
+     */
+    public takeRunLoot(uid: string | undefined, loot: Readonly<RunLootState>): boolean {
+        const character = this.slots.find((c) => c !== undefined && c.uid === uid);
+        if (!character) return false;
+        for (const [slot, item] of Object.entries(loot.equipped) as Array<[EquipSlotId, OwnedItem]>) {
+            if (!canChangeSlot(character.classId, slot) || itemInfo(item.id)?.slot !== slot) {
+                character.inventory.push(item);
+                continue;
+            }
+            const previous = character.equipment[slot];
+            if (previous !== undefined) character.inventory.push({ id: previous });
+            character.equipment[slot] = item.id;
+        }
+        character.inventory.push(...loot.bag, ...loot.pending);
+        this.write();
+        return true;
+    }
+
+    /** How many of that item the character keeps in its inventory. */
+    public ownedCount(uid: string | undefined, id: ItemId): number {
+        return this.byUid(uid)?.inventory.filter((item) => item.id === id).length ?? 0;
+    }
+
     private write(): void {
         try {
             localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: CHARACTERS_VERSION, slots: this.slots.map((c) => c ?? null) }));
@@ -276,11 +309,12 @@ function load(): Slots {
 
 /**
  * Old shapes → today's list of slots. readCharacter() fills what old versions lack: the class's look (version 1),
- * Level 1 without points, bestLevel read as bestPower (versions 1 and 2), and the starting equipment (versions 1–3).
+ * Level 1 without points, bestLevel read as bestPower (versions 1 and 2), the starting equipment (versions 1–3) and an
+ * empty inventory (versions 1–4).
  */
 function migrate(data: unknown): unknown[] {
     if (!isRecord(data) || !Array.isArray(data.slots)) return [];
-    if (data.version === CHARACTERS_VERSION || data.version === 1 || data.version === 2 || data.version === 3) return data.slots;
+    if (data.version === CHARACTERS_VERSION || data.version === 1 || data.version === 2 || data.version === 3 || data.version === 4) return data.slots;
     // Saved by a newer version of the game (an older copy cached on the phone): leave it alone.
     return [];
 }
@@ -298,6 +332,7 @@ function readCharacter(entry: unknown): SavedCharacter | undefined {
         unspentPoints: Math.max(0, Math.floor(readNumber(entry.unspentPoints) ?? 0)),
         statPoints: readStatPoints(entry.statPoints),
         equipment: readEquipment(entry.equipment, entry.classId),
+        inventory: readOwnedItems(entry.inventory),
         createdAt: readNumber(entry.createdAt) ?? 0,
     };
 }

@@ -7,14 +7,15 @@
 - 19-oct-2026: 19 Crits y habilidad activa (19A–19C) · 20 Level y equipo (20A–20D).
 
 ## Fase actual
-**Fase 20 completada** y fusionada en `master` (etiqueta `fase-20`). Antes de la Fase 21, **ronda de bugs** del propietario: lista en `docs/BUGS.md` (marcar `[x]` al arreglar).
-- **Bloque A (arreglos rápidos): hecho** (19-oct-2026). **Bloque B (combate): hecho** (20-oct-2026). **Bloque C: hecho** (20-oct-2026): M15, M2, M8, M17 y M13 (Settings en dos pestañas). Ronda de bugs terminada salvo los puntos para fases futuras.
-- **Siguiente:** `/fase 21` → botín y baúl (`docs/PLAN-2.md`).
-- **Pendiente de probar por el propietario:** cambiar de pestaña en partida y volver, sin sonidos trabados (B4; simulado en el check, no probado de verdad).
-- **Pendiente:** que el propietario pruebe con su mando real la vibración y el stick derecho (apuntar).
+**Fase 21 (botín y baúl), rama `fase-21`.** Ronda de bugs del propietario terminada (`docs/BUGS.md`).
+- **21A (botín en partida): hecho** (20-oct-2026). Detalle en `PROGRESS-historial.md`.
+- **Siguiente:** `/fase 21` → **21B**: atributos Sharp 10%, Poison 5%, Ancient 1% (en el nombre y la carta; Poison = daño verde que no mata) y anillos y collares (movidos desde el 21A). Luego **21C**: baúl compartido, Equipment "solo lo que tienes", reglas al morir, Zem y Abaddon's Blood.
+- **Decisiones de la Fase 21 (20-oct-2026):** reparto 50/25/15/10; la bolsa va al **inventario del personaje** (el baúl llega en el 21C); Equipment pasará a "solo lo que tienes" en el 21C; en el suelo solo dibujos de `item-ground`.
+- **Pendiente de probar por el propietario:** el botín en una partida normal (frecuencia de caída); cambiar de pestaña en partida y volver, sin sonidos trabados (B4); mando real (vibración y stick derecho).
 - **Ideas sin fecha:** monstruos al azar como evento especial; jefes más difíciles de esquivar (mínimo de acierto propio, nota en `data/defense.ts`).
 
 **Pistas para trabajar** (detalle en `survivors/NOTES.md`):
+- Botín: `data/loot.ts`, `systems/LootRoller.ts`, `LootSystem`, `RunLoot`, `scenes/LootScene.ts`; inventario en `CharacterStore` (`takeRunLoot`). Ver NOTES.md, "Botín en partida (Fase 21A)".
 - Level y Power: `data/characterLevel.ts`, `scenes/CharacterInfoScene.ts`. Ver NOTES.md, "Ventana Character y Level permanente".
 - Equipo sobre el cuerpo (ventana Character): `data/paperDoll.ts`, `entities/PaperDoll.ts`, `?gear=`. Ver NOTES.md, "Equipo sobre el cuerpo en la ventana Character (M17)".
 - Settings: dos pestañas en `scenes/SettingsScene.ts` (`?open=settings&tab=gameplay`). Ver NOTES.md, "Pestañas de Settings (M13)".
@@ -44,16 +45,16 @@
 - Puntos: 3 por Level, ninguno al crear; se reparten **solo** en la ventana Character ("Level Set." o C). En partida, C pausa y solo se mira.
 - Esquiva y resistencia: siempre **% generales**, nunca contra un monstruo; esquiva sin "Miss", resistencia con "Resist".
 - Una partida guardada por personaje (4 huecos).
-- Equipo: catálogo libre hasta la Fase 21; requisitos del original con stats **permanentes** y Level (hechizos: solo Int). Al continuar una partida mandan el arma y los hechizos equipados ahora.
+- Equipo: catálogo libre hasta el 21C (Equipment marca ×N lo del inventario); requisitos del original con stats **permanentes** y Level (hechizos: solo Int). Al continuar una partida mandan el arma y los hechizos equipados ahora.
 - El resto de decisiones, con fecha: `docs/DECISIONES.md` (grep por fase o tema).
 
 ## Cómo probar
 - Jugar: `pnpm --dir survivors dev` → http://localhost:8090
-- Comprobar: `pnpm --dir survivors check [situaciones] [--mobile]` → escenas, FPS, estado, errores y captura en `survivors/.check/`. Situaciones: `menu`, `loading` (pantalla de carga parada a la mitad), `news` (What's new), `settings`, `controls`, `game`, `minimap`, `achievements` (con `--cards`: desde cero hasta nivel 21), `achievementlist`, `levelup`, `boss`, `finalboss`, `portal`, `stampede`, `horde`, `elites` (todos los monstruos élite), `pickups`, `totems`, `slots` (dos personajes de ejemplo), `slotsempty`, `crit` (Guerrero con horda y crits infinitos; `--eval="g.launchCritStrike()"`), `charinfo` / `charinfogame` (ventana Character en menú / en partida), `equipment` (pantalla Equipment de Gorn), `equipmentmage` (la de Kaila, Int 86), `activespell` (Maga con horda y activo sin recarga; `--eval="g.launchCritStrike()"`), `charexp` (fin con EXP ×50: `--eval="g.endRun(false)"`), `levelpace` (partida simulada rápida: nivel por minuto, vida de cada jefe y su golpe más fuerte; informe en `.check/levelpace.json`) o atajos a mano (`"play=warrior&debug=str,levels"`).
+- Comprobar: `pnpm --dir survivors check [situaciones] [--mobile]` → escenas, FPS, estado, errores y captura en `survivors/.check/`. Situaciones: `menu`, `loading` (pantalla de carga parada a la mitad), `news` (What's new), `settings`, `controls`, `game`, `minimap`, `achievements` (con `--cards`: desde cero hasta nivel 21), `achievementlist`, `levelup`, `boss`, `finalboss`, `portal`, `stampede`, `horde`, `elites` (todos los monstruos élite), `pickups`, `totems`, `slots` (dos personajes de ejemplo), `slotsempty`, `crit` (Guerrero con horda y crits infinitos; `--eval="g.launchCritStrike()"`), `charinfo` / `charinfogame` (ventana Character en menú / en partida), `equipment` (pantalla Equipment de Gorn), `equipmentmage` (la de Kaila, Int 86), `activespell` (Maga con horda y activo sin recarga; `--eval="g.launchCritStrike()"`), `charexp` (fin con EXP ×50: `--eval="g.endRun(false)"`), `loot` / `lootmage` (cae botín cada 6 s; `--eval="g.debugPickUpLoot()"` lo coge), `levelpace` (partida simulada rápida: nivel por minuto, vida de cada jefe y su golpe más fuerte; informe en `.check/levelpace.json`) o atajos a mano (`"play=warrior&debug=str,levels"`).
 - Opciones del check: `--eval="g.enemies.alive"` escribe cualquier dato (g = escena Game; si es una promesa, se espera); `--wait=5000` deja correr más; `--cards` elige la primera carta en cada subida.
 - Atajos en la dirección (solo desarrollo, `src/config/debugStart.ts`):
   - `?play`, `?play=warrior`, `?ui=compact` (interfaz de móvil), `?trees=off`, `?metrics=send` (envía la partida de verdad).
-  - `?debug=boss,god`; acciones: horde, kill, levelup, levels, str, magic, pickups, totems, minute, boss, finalboss, bosskill, stampede, god, crits (infinitos, tecla H; también el activo del Mago sin recarga), stones (cartas de Xelima, Merien y Magnet), dodge (mejor armadura de la clase), stats (panel abierto), aim (apuntar a la derecha), aimstick (dedo falso en el stick, con `--mobile`), resume (guardar y recargar como Continue), sim (partida simulada), charexp (EXP ×50), elites (todos élite).
+  - `?debug=boss,god`; acciones: horde, kill, levelup, levels, str, magic, pickups, totems, minute, boss, finalboss, bosskill, stampede, god, crits (infinitos, tecla H; también el activo del Mago sin recarga), stones (cartas de Xelima, Merien y Magnet), dodge (mejor armadura de la clase), stats (panel abierto), aim (apuntar a la derecha), aimstick (dedo falso en el stick, con `--mobile`), resume (guardar y recargar como Continue), sim (partida simulada), charexp (EXP ×50), elites (todos élite), loot (botín junto al jugador cada 6 s).
   - `?loading=hold`: la pantalla de carga se para a la mitad.
   - `?gear=plateMail,helmet,...`: con `?characters=demo`, los de ejemplo llevan esos objetos sin mirar requisitos.
   - `?slash=N`: estilo de la estela del tajo (0–4, `data/slash.ts`); tecla Y para el siguiente.

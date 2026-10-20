@@ -1,7 +1,8 @@
 // Pantalla de final de partida (Fase 7): victoria al matar al jefe final o derrota al morir. Se abre encima de la
 // partida, que queda pausada. Muestra tiempo, Power, bajas, la EXP que ha ganado el personaje y su Level (Fase 20A; los
 // puntos nuevos se reparten en la ventana Character, desde Select Character), el arma o hechizo y la armadura que llevabas, y los logros
-// conseguidos en esta partida (Fase 14B; el aviso del HUD queda tapado por esta pantalla).
+// conseguidos en esta partida (Fase 14B; el aviso del HUD queda tapado por esta pantalla) y las miniaturas del botín
+// encontrado (Fase 21A, petición del propietario del 20-oct-2026).
 // Botones originales (dialogtext.spr): Restart = otra partida con la misma clase; Change = volver a elegir clase;
 // Log Out = volver al menú principal.
 // Se maneja con ←/→ o cruceta + Enter/A, o con el ratón.
@@ -12,6 +13,10 @@ import { px, UI_TEXT, UI_FONT_SIZE } from '../config/ui';
 import { SpriteText } from '../hb/SpriteText';
 import type { ExpResult } from '../systems/CharacterStore';
 import { STAT_POINTS_PER_LEVEL } from '../data/characterLevel';
+import { itemPackTexture } from '../config/equipment';
+import type { Gender } from '../data/appearance';
+import { itemInfo, itemPicture } from '../data/items';
+import type { OwnedItem } from '../data/loot';
 import { Action, InputSystem } from '../systems/InputSystem';
 import { formatTime } from '../utils/format';
 
@@ -29,6 +34,9 @@ export interface GameOverSceneData {
     achievementNames: readonly string[];
     /** What the run's EXP did to the character's Level (undefined for runs without a saved character). */
     exp: ExpResult | undefined;
+    /** Every item picked up this run (Fase 21A), and the gender its pictures are drawn for. */
+    loot: readonly OwnedItem[];
+    gender: Gender;
     onRestart: () => void;
     onChangeClass: () => void;
     onMainMenu: () => void;
@@ -86,6 +94,7 @@ export class GameOverScene extends Phaser.Scene {
         }
 
         if (p.exp) this.addExpBlock(p.exp);
+        this.addLootRow(p.loot);
 
         this.addButton(GAME_OVER.restartFrame, -1, p.onRestart);
         this.addButton(GAME_OVER.changeFrame, 0, p.onChangeClass);
@@ -125,6 +134,41 @@ export class GameOverScene extends Phaser.Scene {
             ...UI_TEXT, fontSize: px(UI_FONT_SIZE.normal), fontStyle: levelsUp > 0 ? 'bold' : 'normal',
             color: levelsUp > 0 ? g.expLevelUpColor : g.expNoteColor, stroke: '#000000', strokeThickness: 3, align: 'center',
         }).setOrigin(0.5, 0);
+    }
+
+    /** "Loot" and the pictures of the items found, centred; "+N" if there are more than fit. */
+    private addLootRow(loot: readonly OwnedItem[]): void {
+        const g = GAME_OVER;
+        const style = { ...UI_TEXT, fontSize: px(UI_FONT_SIZE.normal), fontStyle: 'bold', stroke: '#000000', strokeThickness: 3 };
+        if (loot.length === 0) {
+            this.add.text(GAME_WIDTH / 2, g.lootY, 'No loot this run', { ...style, fontStyle: 'normal', color: g.lootNoneColor }).setOrigin(0.5);
+            return;
+        }
+        const shown = loot.slice(0, g.lootMax);
+        const label = this.add.text(0, g.lootY, 'Loot', { ...style, color: g.lootLabelColor }).setOrigin(0, 0.5);
+        const more = loot.length > shown.length
+            ? this.add.text(0, g.lootY, `+${loot.length - shown.length}`, { ...style, color: g.lootLabelColor }).setOrigin(0, 0.5)
+            : undefined;
+        const step = g.lootIconSize + g.lootGap;
+        const width = label.width + g.lootGap * 2 + shown.length * step - g.lootGap + (more ? g.lootGap + more.width : 0);
+        let x = (GAME_WIDTH - width) / 2;
+        label.setX(x);
+        x += label.width + g.lootGap * 2;
+        for (const item of shown) {
+            const centre = x + g.lootIconSize / 2;
+            this.add.rectangle(centre, g.lootY, g.lootIconSize, g.lootIconSize, g.lootSlotFill).setStrokeStyle(1, g.lootSlotBorder);
+            const frame = itemPicture(item.id, this.params.gender);
+            const texture = frame ? itemPackTexture(frame.sheet) : '';
+            if (frame && this.textures.exists(texture) && this.textures.get(texture).has(String(frame.frame))) {
+                const image = this.add.image(centre, g.lootY, texture, frame.frame);
+                image.setScale(Math.min(1, (g.lootIconSize - 4) / Math.max(image.width, image.height)));
+            } else {
+                // Picture not loaded: the first letters of its name.
+                this.add.text(centre, g.lootY, (itemInfo(item.id)?.name ?? '?').slice(0, 3), { ...UI_TEXT, fontSize: px(UI_FONT_SIZE.small), color: '#e8d9a8' }).setOrigin(0.5);
+            }
+            x += step;
+        }
+        more?.setX(x);
     }
 
     private ready(): boolean {

@@ -17,6 +17,7 @@
 //                                con ?characters=demo juega el personaje de ejemplo de esa clase)
 //                      stones = las cartas ofrecen siempre las pasivas (Xelima, Merien, Magnet) que no estén al máximo (Fase 20C)
 //                      elites = todos los monstruos (menos los jefes) salen élite, con el brillo rojo (M2)
+//                      loot = cae un objeto de botín junto al jugador ahora y cada pocos segundos (Fase 21A)
 //                      sim = partida simulada muy deprisa para medir el equilibrio (systems/SimRun.ts, Fase 13C)
 //   ?spells=fireBall,meteorStrike → hechizos del Mago en esta partida (uno automático y/o uno activo, en cualquier
 //                      orden; los ids de data/spells.ts y data/activeSpells.ts), sin mirar requisitos (Fase 20D)
@@ -52,7 +53,7 @@ function isDebugScreen(value: string | null): value is DebugScreen {
 }
 
 /** Actions that ?debug= can run at the start of a run (the same ones as the debug keys of GameScene). */
-export const DEBUG_ACTIONS = ['horde', 'kill', 'levelup', 'levels', 'str', 'magic', 'pickups', 'totems', 'minute', 'boss', 'finalboss', 'bosskill', 'stampede', 'dodge', 'stats', 'god', 'crits', 'aim', 'aimstick', 'resume', 'sim', 'charexp', 'stones', 'elites'] as const;
+export const DEBUG_ACTIONS = ['horde', 'kill', 'levelup', 'levels', 'str', 'magic', 'pickups', 'totems', 'minute', 'boss', 'finalboss', 'bosskill', 'stampede', 'dodge', 'stats', 'god', 'crits', 'aim', 'aimstick', 'resume', 'sim', 'charexp', 'stones', 'elites', 'loot'] as const;
 export type DebugAction = (typeof DEBUG_ACTIONS)[number];
 
 function isDebugAction(value: string): value is DebugAction {

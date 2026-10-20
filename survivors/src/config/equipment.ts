@@ -60,3 +60,5 @@ export const EQUIPMENT_DETAIL_STYLE = { ...UI_TEXT, fontSize: byDevice('13px', '
 /** Requirement not met. */
 export const EQUIPMENT_UNMET_COLOR = '#ff6050';
 export const EQUIPMENT_MET_COLOR = '#9ccf7a';
+/** "×N" after an item the character keeps in its inventory (Fase 21A). */
+export const EQUIPMENT_OWNED_COLOR = '#ffd860';

@@ -202,7 +202,16 @@ export const GAME_OVER = {
     expNoteY: 400,
     expLevelUpColor: '#60e060',
     expNoteColor: '#c8b888',
-    buttonsY: 440,
+    /** Loot found this run (Fase 21A): "Loot" and a row of item pictures (with "+N" past the maximum). */
+    lootY: 448,
+    lootIconSize: 34,
+    lootGap: 8,
+    lootMax: 12,
+    lootLabelColor: '#ffd860',
+    lootNoneColor: '#a89870',
+    lootSlotFill: 0x2e2216,
+    lootSlotBorder: 0x8a7038,
+    buttonsY: 510,
     /** Distance between the centres of two buttons. */
     buttonGap: 140,
     buttonScale: 1.6,

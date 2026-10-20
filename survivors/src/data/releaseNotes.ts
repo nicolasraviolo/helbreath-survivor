@@ -14,6 +14,14 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: readonly ReleaseNote[] = [
     {
+        version: 'Phase 21',
+        date: 'Oct 20, 2026',
+        changes: [
+            'Loot: monsters and bosses now drop gear. Equip it at once or keep it in your bag.',
+            'Your loot stays with your character when the run ends.',
+        ],
+    },
+    {
         version: 'Phase 20',
         date: 'Oct 19, 2026',
         changes: [

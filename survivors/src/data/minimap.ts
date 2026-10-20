@@ -1,6 +1,6 @@
 // Minimapa (Fase 16A; plan aprobado por el propietario el 18-oct-2026).
-// Cuadro arriba a la derecha con la zona de juego en pequeño. Solo enseña al jugador, los jefes y (16B) los tótems:
-// ni monstruos normales, ni pociones, ni cofres. En otros mapas se marcarán también los NPCs (Fase 22).
+// Cuadro arriba a la derecha con la zona de juego en pequeño. Solo enseña al jugador, los jefes, (16B) los tótems y
+// (21A) los objetos de botín del suelo: ni monstruos normales, ni pociones, ni cofres. En otros mapas se marcarán también los NPCs (Fase 22).
 // Se apaga en Settings → Minimap. Lo dibuja ui/Minimap.ts.
 import { byDevice } from '../config/device';
 
@@ -33,4 +33,6 @@ export const MINIMAP_DOTS = {
     boss: { radius: 3, color: 0xff3020, outline: 0x000000, blinkMs: 400 },
     // Tótems (Fase 16B): todos amarillos, sin revelar qué dan (M10).
     totem: { radius: 3, color: 0xffd800, outline: 0x000000, blinkMs: 0 },
+    // Botín en el suelo (Fase 21A): más pequeño, blanco azulado y parpadeando despacio, para no confundirlo con los tótems.
+    loot: { radius: 2, color: 0x9ff0ff, outline: 0x000000, blinkMs: 600 },
 } as const satisfies Record<string, MinimapDotStyle>;

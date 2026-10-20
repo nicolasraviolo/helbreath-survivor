@@ -17,6 +17,9 @@ import { isAutoSpellId, type AutoSpellId } from '../data/spells';
 import { isActiveSpellId, type ActiveSpellId } from '../data/activeSpells';
 import { STAT_IDS, type Stats } from '../data/stats';
 import { MELEE_WEAPONS, type MeleeWeaponId } from '../data/weapons';
+import { EQUIP_SLOT_IDS, isItemId, itemInfo, type EquipSlotId } from '../data/items';
+import type { OwnedItem } from '../data/loot';
+import type { RunLootState } from './RunLoot';
 
 const STORAGE_KEY = 'hb-survivors.runs';
 /** Raise it (and teach migrate() the old shape) whenever RunSnapshot changes in a way old saves can't be read as. */
@@ -70,6 +73,8 @@ export interface RunSnapshot {
     spellCooldownMs: number | undefined;
     /** What the anonymous stats collected so far (Fase 14A). Saves from before have none. */
     metrics: RunMetricsState | undefined;
+    /** Items found, in the bag and put on (Fase 21A). Saves from before have none. */
+    loot: RunLootState | undefined;
 }
 
 type Slots = Array<RunSnapshot | undefined>;
@@ -203,7 +208,28 @@ function readSnapshot(entry: unknown): RunSnapshot | undefined {
         critCharges: readNumber(entry.critCharges),
         spellCooldownMs: readNumber(entry.spellCooldownMs),
         metrics: readMetrics(entry.metrics),
+        loot: readLoot(entry.loot),
     };
+}
+
+/** An owned item as saved, or undefined if it no longer exists (Fase 21A; CharacterStore reads them the same way). */
+export function readOwnedItem(value: unknown): OwnedItem | undefined {
+    return isRecord(value) && typeof value.id === 'string' && isItemId(value.id) ? { id: value.id } : undefined;
+}
+
+export function readOwnedItems(value: unknown): OwnedItem[] {
+    return Array.isArray(value) ? value.map(readOwnedItem).filter((item): item is OwnedItem => item !== undefined) : [];
+}
+
+function readLoot(value: unknown): RunLootState | undefined {
+    if (!isRecord(value)) return undefined;
+    const equippedIn = isRecord(value.equipped) ? value.equipped : {};
+    const equipped: Partial<Record<EquipSlotId, OwnedItem>> = {};
+    for (const slot of EQUIP_SLOT_IDS) {
+        const item = readOwnedItem(equippedIn[slot]);
+        if (item && itemInfo(item.id)?.slot === slot) equipped[slot] = item;
+    }
+    return { found: readOwnedItems(value.found), bag: readOwnedItems(value.bag), equipped, pending: readOwnedItems(value.pending) };
 }
 
 /** All six stats, or undefined if any is missing. */

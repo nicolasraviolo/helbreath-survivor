@@ -8,11 +8,12 @@
 // - Equipo de salida: el Guerrero, la daga; el Mago, Energy Bolt y Energy Strike, que no piden nada (propietario,
 //   19-oct-2026). Los huecos de hechizo y el del arma nunca se quedan vacíos.
 import type { GearLayer, GearSlot } from '../hb/playerAppearance';
-import { ACTIVE_SPELL_IDS, ACTIVE_SPELLS, isActiveSpellId, type ActiveSpellId } from './activeSpells';
+import { ACTIVE_SPELL_IDS, ACTIVE_SPELLS, activeSpellCooldownMs, isActiveSpellId, type ActiveSpellId } from './activeSpells';
 import type { Gender } from './appearance';
 import { ARMOR_PIECES, ARMOR_SLOT_NAMES, type ArmorPieceId, type ArmorSlotId } from './armor';
 import type { CharacterId } from './characters';
 import type { EquipRequirement, ItemIcon, ItemIconFrame } from './itemTypes';
+import { SPELL_ITEM_ICON } from './loot';
 import { AUTO_SPELL_IDS, isAutoSpellId, SPELLS, type AutoSpellId } from './spells';
 import type { Stats } from './stats';
 import { getMeleeWeapon, MELEE_FAMILIES, MELEE_WEAPONS, type MeleeWeaponId } from './weapons';
@@ -147,6 +148,11 @@ export function itemIcon(id: ItemId, gender: Gender): ItemIconFrame | undefined 
     return gender === 'female' && icon.female ? icon.female : icon;
 }
 
+/** Picture of any item, spells included (they use the original's "Manual" until they have their own; Fase 21A). */
+export function itemPicture(id: ItemId, gender: Gender): ItemIconFrame | undefined {
+    return isSpellItemId(id) ? SPELL_ITEM_ICON : itemIcon(id, gender);
+}
+
 /** Layers the equipment draws on the body (men's sprites: CharacterSprite turns them into women's ones). */
 export function equipmentLook(equipment: Readonly<SavedEquipment>): Array<[GearSlot, GearLayer]> {
     const layers: Array<[GearSlot, GearLayer]> = [];
@@ -175,4 +181,41 @@ export function readEquipment(value: unknown, classId: CharacterId): SavedEquipm
         if (itemInfo(id)?.slot === slot && canChangeSlot(classId, slot)) equipment[slot] = id;
     }
     return equipment;
+}
+
+/** What an item gives, in a few words ("Damage 35", "Defense 14%, Magic resistance 8", "Circle 3, casts itself"). */
+export function describeItem(id: ItemId): string {
+    if (isActiveSpellId(id)) {
+        const def = ACTIVE_SPELLS[id];
+        return `Circle ${def.circle}, skill button, ${Math.round(activeSpellCooldownMs(def, 0) / 1000)} s recharge (less with Mag)`;
+    }
+    if (isSpellItemId(id)) {
+        const spell = SPELLS[id];
+        const shots = spell.shots > 1 ? ` ×${spell.shots}` : '';
+        return `Circle ${spell.circle}, casts itself, damage ${spell.directDamage} + ${spell.areaDamage} area${shots}`;
+    }
+    if (isMeleeWeaponId(id)) return `Damage ${getMeleeWeapon(id).damage}`;
+    const piece = ARMOR_PIECES[id];
+    const parts = [`Defense ${Math.round(piece.defense * 100)}%`];
+    if ('magicResistance' in piece) parts.push(`Magic resistance ${piece.magicResistance}`);
+    if ('magicDamageBonus' in piece) parts.push(`Magic damage +${Math.round(piece.magicDamageBonus * 100)}%`);
+    return parts.join(', ');
+}
+
+/** The number that says whether an item is better than another of its slot (Fase 21A, loot card). */
+export interface ItemPower {
+    label: string;
+    value: number;
+    /** Written after the number ("%" for defense). */
+    unit: string;
+}
+
+export function itemPower(id: ItemId): ItemPower {
+    if (isActiveSpellId(id)) return { label: 'Circle', value: ACTIVE_SPELLS[id].circle, unit: '' };
+    if (isSpellItemId(id)) {
+        const spell = SPELLS[id];
+        return { label: 'Damage', value: (spell.directDamage + spell.areaDamage) * spell.shots, unit: '' };
+    }
+    if (isMeleeWeaponId(id)) return { label: 'Damage', value: getMeleeWeapon(id).damage, unit: '' };
+    return { label: 'Defense', value: Math.round(ARMOR_PIECES[id].defense * 100), unit: '%' };
 }

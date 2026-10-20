@@ -275,6 +275,9 @@ export const SOUNDS = {
     'sfx.footsteps': { file: 'sounds/C10.mp3' },
     // Recoger una gema: el sonido de "objeto añadido" del original (sp-client SoundFileNames.ts, ITEM_ADDED_SOUND).
     'sfx.pickup': { file: 'sounds/E20.mp3' },
+    // Botín (Fase 21A): equipar un objeto (E28) y guardarlo en la bolsa (E29), como en el inventario del original.
+    'sfx.itemEquip': { file: 'sounds/E28.mp3' },
+    'sfx.itemBag': { file: 'sounds/E29.mp3' },
 } as const satisfies Record<string, { file: string }>;
 
 export type SoundKey = keyof typeof SOUNDS;

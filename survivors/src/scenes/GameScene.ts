@@ -15,8 +15,13 @@ import {
 import { TOUCH_AIM_STICK, TOUCH_AIM_ZONE_START, TOUCH_JOYSTICK, TOUCH_RESERVED_CORNER } from '../config/touch';
 import { ANNOUNCE_EVENT, QUIT_RUN_EVENT } from '../config/hud';
 import { getArmorPiece } from '../data/armor';
-import { isArmorPieceId, isMeleeWeaponId, START_EQUIPMENT, type SavedEquipment } from '../data/items';
+import { isArmorPieceId, isMeleeWeaponId, itemInfo, START_EQUIPMENT, type EquipSlotId, type ItemId, type SavedEquipment } from '../data/items';
+import { LOOT_DEBUG, LOOT_SOUNDS, type OwnedItem } from '../data/loot';
+import { LootSystem } from '../systems/LootSystem';
+import { RunLoot } from '../systems/RunLoot';
+import type { LootSceneData } from './LootScene';
 import { MUSIC } from '../data/audio';
+import type { SoundKey } from '../config/assetManifest';
 import { PORTAL, type WaveEventDef } from '../data/waves';
 import type { Enemy } from '../entities/Enemy';
 import { Portal } from '../entities/Portal';
@@ -176,6 +181,12 @@ export class GameScene extends Phaser.Scene {
     private stats!: CharacterStats;
     private xp!: XpSystem;
     private pickups!: PickupSystem;
+    /** Items on the ground (Fase 21A). */
+    private loot!: LootSystem;
+    /** Items found, in the bag and put on this run (Fase 21A). */
+    private runLoot!: RunLoot;
+    /** ?debug=loot: an item falls by the player every few seconds (counted down here; negative = off). */
+    private lootDebugInMs = -1;
     private buffs!: BuffSystem;
     private totems!: TotemSystem;
     /** Free cards from chests not chosen yet (Fase 16B): they show after any level-up cards. */
@@ -185,6 +196,7 @@ export class GameScene extends Phaser.Scene {
     private meleeWeapon: MeleeWeapon | undefined;
     /** Spell in hand (Mage); undefined for melee classes. */
     private spellWeapon: SpellWeapon | undefined;
+    /** A card is showing (level up, chest or loot): the run is paused under it. */
     private levelUpOpen = false;
     /** Simulated run to measure the balance (?debug=sim, development only). */
     private sim: SimRun | undefined;
@@ -201,6 +213,8 @@ export class GameScene extends Phaser.Scene {
     private characterUid: string | undefined;
     /** The character's permanent stats when this run started (class + Level points, Fase 20A). */
     private permanentAtStart!: Stats;
+    /** The character's Level (1 in debug runs without one): loot requirements are checked against it (Fase 21A). */
+    private characterLevel = 1;
     /** Save slot of this run (SaveStore). */
     private saveSlot = 0;
     private autosaveInMs = AUTOSAVE_EVERY_MS;
@@ -251,6 +265,7 @@ export class GameScene extends Phaser.Scene {
         // Permanent stats (Fase 20A); debug runs without a character start with the class's.
         this.permanentAtStart = savedCharacter ? permanentStats(savedCharacter) : { ...character.startStats };
         this.stats = new CharacterStats(character, this.permanentAtStart);
+        this.characterLevel = savedCharacter?.level ?? 1;
         this.levelUpOpen = false;
         this.sim = undefined;
         this.debugAimForced = false;
@@ -283,6 +298,11 @@ export class GameScene extends Phaser.Scene {
         this.damageNumbers = new DamageNumbers(this);
         this.xp = new XpSystem(this, this.audio);
         this.pickups = new PickupSystem(this, this.audio, (id) => this.collectPickup(id));
+        this.runLoot = new RunLoot();
+        this.lootDebugInMs = -1;
+        this.loot = new LootSystem(this, this.audio, {
+            classId: this.characterId, gender: look.gender, stats: this.permanentAtStart, level: this.characterLevel,
+        }, (item) => this.runLoot.pickUp(item));
         this.particles = new HitParticles(this);
         this.screenShake = new ScreenShake(camera);
         this.combat = new CombatSystem(this.enemies, this.damageNumbers, this.audio, this.particles, this.stats, (enemy) => {
@@ -480,6 +500,76 @@ export class GameScene extends Phaser.Scene {
         this.scene.launch('LevelUp', data);
     }
 
+    /** What the player wears now in that slot (Fase 21A, for the loot card). */
+    private wornIn(slot: EquipSlotId): ItemId | undefined {
+        switch (slot) {
+            case 'weapon':
+                return this.equipment.weapon;
+            case 'spell1':
+                return this.equipment.spell;
+            case 'spell2':
+                return this.activeSpell?.id;
+            default:
+                return this.equipment.armor[slot];
+        }
+    }
+
+    /** Pauses the game and shows the card of the next item picked up (Fase 21A): Equip or Keep in bag. */
+    private openLoot(): void {
+        const item = this.runLoot.nextPending();
+        const slot = item ? itemInfo(item.id)?.slot : undefined;
+        if (!item || !slot) {
+            if (item) this.runLoot.keep(item);
+            return;
+        }
+        this.levelUpOpen = true;
+        const close = (sound: SoundKey) => {
+            this.audio.play(sound);
+            this.levelUpOpen = false;
+            this.scene.stop('Loot');
+            this.scene.resume();
+            this.saveRun();
+        };
+        const data: LootSceneData = {
+            item,
+            current: this.wornIn(slot),
+            gender: this.player.look.gender,
+            stats: this.permanentAtStart,
+            level: this.characterLevel,
+            onEquip: () => {
+                this.runLoot.equip(item, slot);
+                this.wearLoot(item);
+                close(LOOT_SOUNDS.equip);
+            },
+            onKeep: () => {
+                this.runLoot.keep(item);
+                close(LOOT_SOUNDS.bag);
+            },
+        };
+        this.scene.pause();
+        this.scene.launch('Loot', data);
+    }
+
+    /** Puts a found item on in this run: weapon, spell or armor piece (Fase 21A). */
+    private wearLoot(item: OwnedItem): void {
+        const id = item.id;
+        if (isMeleeWeaponId(id)) {
+            if (this.meleeWeapon) this.equipMelee(id);
+        } else if (isAutoSpellId(id)) {
+            if (this.spellWeapon) this.equipSpell(id);
+        } else if (isActiveSpellId(id)) {
+            const old = this.activeSpell;
+            if (!old || old.id === id) return;
+            const spell = this.createActiveSpell(id);
+            spell?.restore(old.cooldownLeftMs, this.stats.stats.mag);
+            if (spell) spell.infinite = old.infinite;
+            this.activeSpell = spell;
+        } else if (isArmorPieceId(id)) {
+            for (const [slot, layer] of this.equipment.wear(id)) this.player.setGear(slot, layer);
+        }
+        this.applyStats();
+    }
+
     /** After the final boss (Fase 13C): the levels still count (and their automatic points), but no cards come out. */
     private levelUpWithoutCards(): void {
         this.audio.play(GENDER_SOUNDS[this.player.look.gender].levelUp);
@@ -553,6 +643,11 @@ export class GameScene extends Phaser.Scene {
         this.applyStats();
         this.player.restoreHp(run.hp);
         this.combat.restoreKills(run.kills);
+        // Fase 21A: the bag, and the found items put on (over what the character wears now).
+        if (run.loot) {
+            this.runLoot.restore(run.loot);
+            for (const item of Object.values(this.runLoot.equipped)) this.wearLoot(item);
+        }
         this.achievements.potionsDrunk = run.potionsDrunk;
         this.buffs.restore(run.buffs);
         if (run.critCharges !== undefined) this.critStrike.restore(run.critCharges, stats.level);
@@ -598,6 +693,7 @@ export class GameScene extends Phaser.Scene {
             critCharges: this.critStrike.charges,
             spellCooldownMs: this.activeSpell?.cooldownLeftMs,
             metrics: this.metrics.snapshot(),
+            loot: this.runLoot.snapshot(),
         };
     }
 
@@ -656,13 +752,14 @@ export class GameScene extends Phaser.Scene {
                 magicResistance: this.magicResistance,
                 passiveRanks: this.equipment.passives,
                 buffs: this.buffs.active.map(({ def, secondsLeft }) => ({ name: def.name, secondsLeft, color: def.color })),
-                minimap: { player: this.player, bosses: this.bosses.tracked.filter((boss) => boss.isAlive), totems: this.totems.active },
+                minimap: { player: this.player, bosses: this.bosses.tracked.filter((boss) => boss.isAlive), totems: this.totems.active, loot: this.loot.active },
             }),
         };
         this.scene.launch('Hud', data);
         this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
             this.scene.stop('Hud');
             this.scene.stop('LevelUp');
+            this.scene.stop('Loot');
             this.scene.stop('GameOver');
             this.scene.stop('Pause');
             this.scene.stop('CharacterInfo');
@@ -737,6 +834,7 @@ export class GameScene extends Phaser.Scene {
             this.gainXp(this.xp.update(delta, player.x, player.y));
         }
         this.pickups.update(delta, player.x, player.y, !player.isDead);
+        this.loot.update(delta, player.x, player.y, !player.isDead);
         this.totems.enabled = !player.isDead && !this.finalBossDead;
         this.totems.update(delta, player.x, player.y, !player.isDead);
         this.buffs.update(delta);
@@ -774,7 +872,10 @@ export class GameScene extends Phaser.Scene {
             this.saveRun();
         }
 
-        if (this.stats.pendingLevelUps > 0 && !this.levelUpOpen && !player.isDead) {
+        if (this.runLoot.hasPending && !this.levelUpOpen && !player.isDead && !this.sim) {
+            // An item just picked up: its card first (Fase 21A).
+            this.openLoot();
+        } else if (this.stats.pendingLevelUps > 0 && !this.levelUpOpen && !player.isDead) {
             if (this.finalBossDead) this.levelUpWithoutCards();
             else if (this.sim) this.chooseCard(this.sim.pick(buildLevelUpChoices(this.equipment)));
             else this.openLevelUp(false);
@@ -796,6 +897,11 @@ export class GameScene extends Phaser.Scene {
         if (this.sim ? this.critStrike.charges > 0 && this.enemies.alive > 0 : this.inputSystem.justPressed(Action.CritStrike)) {
             this.launchCritStrike();
         }
+    }
+
+    /** Development (pnpm check loot): picks up every item on the ground, as if the player had stepped on them. */
+    public debugPickUpLoot(): void {
+        if (import.meta.env.DEV) this.loot.pickUpAll();
     }
 
     /** Launches a Critical Strike now, if the Warrior has a charge and is free to act. */
@@ -968,12 +1074,21 @@ export class GameScene extends Phaser.Scene {
         for (const [action, debugAction] of keys) {
             if (input.justPressed(action)) this.runDebugAction(debugAction);
         }
+        if (this.lootDebugInMs >= 0 && (this.lootDebugInMs -= delta) < 0) {
+            this.dropDebugLoot();
+            this.lootDebugInMs = LOOT_DEBUG.everyMs;
+        }
         if (input.justPressed(Action.DebugSlashStyle)) this.setSlashStyle(this.weapons.slashEffect.styleNumber + 1);
         // Not on the first frame: the camera has not placed its view yet and the horde would find no room around it.
         if (this.debugStartPending && (this.debugStartWaitMs -= delta) <= 0) {
             this.debugStartPending = false;
             for (const action of DEBUG_START.actions) this.runDebugAction(action);
         }
+    }
+
+    /** ?debug=loot: a rolled item a little to the right of the player. */
+    private dropDebugLoot(): void {
+        if (!this.player.isDead) this.loot.dropRolled(this.player.x + LOOT_DEBUG.distance, this.player.y);
     }
 
     /** Development (M15): changes the melee slash style and says which one it is. */
@@ -1066,6 +1181,11 @@ export class GameScene extends Phaser.Scene {
             case 'stones':
                 // Read when the cards are built (openLevelUp).
                 break;
+            case 'loot':
+                // An item by the player now and every few seconds (Fase 21A).
+                this.dropDebugLoot();
+                this.lootDebugInMs = LOOT_DEBUG.everyMs;
+                break;
             case 'elites':
                 // Every monster that is not a boss comes out elite (M2).
                 this.enemies.allElite = true;
@@ -1075,6 +1195,7 @@ export class GameScene extends Phaser.Scene {
                 break;
             case 'sim':
                 this.sim = new SimRun(this.stats.def.name);
+                this.loot.enabled = false;
                 this.achievements.enabled = false;
                 if (!this.player.godMode) this.runDebugAction('god');
                 break;
@@ -1106,8 +1227,11 @@ export class GameScene extends Phaser.Scene {
         const boss = enemy.def.boss;
         if (!boss) {
             this.sim?.onKill(enemy.hitsTaken);
+            this.loot.onKill(enemy.x, enemy.y, enemy.elite);
             return;
         }
+        // Bosses always drop loot (Fase 21A); the final one, more.
+        this.loot.onBossKill(enemy.x, enemy.y, boss.final);
         this.sim?.onBossDead(enemy.def.name, this.spawner.elapsed);
         this.metrics.onBossDead(enemy.def.name, this.spawner.elapsed);
         this.achievements.onBossKilled(enemy.def);
@@ -1191,6 +1315,8 @@ export class GameScene extends Phaser.Scene {
         // All the run's XP goes to the character's permanent Level, won or lost (Fase 20A). Not for simulated runs.
         const runXp = this.stats.runXp * (DEBUG_START.actions.includes('charexp') ? DEBUG_CHAR_EXP_MULTIPLIER : 1);
         const exp = this.sim ? undefined : characterStore.addExp(this.characterUid, runXp);
+        // Fase 21A: what was found goes to the character (in 21C, only if the run is won or a Zem protects it).
+        if (!this.sim) characterStore.takeRunLoot(this.characterUid, this.runLoot.snapshot());
         const armor = Object.values(this.equipment.armor).map((id) => getArmorPiece(id).name);
         this.sendMetrics(victory ? 'win' : 'death');
         const data: GameOverSceneData = {
@@ -1203,6 +1329,8 @@ export class GameScene extends Phaser.Scene {
             armorNames: armor,
             achievementNames: this.achievementsThisRun,
             exp,
+            loot: [...this.runLoot.found],
+            gender: this.player.look.gender,
             onRestart: () => {
                 this.scene.stop('GameOver');
                 this.scene.restart();

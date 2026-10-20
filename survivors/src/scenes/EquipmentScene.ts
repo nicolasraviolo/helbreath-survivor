@@ -31,6 +31,7 @@ import {
     EQUIPMENT_LIST,
     EQUIPMENT_MET_COLOR,
     EQUIPMENT_OK,
+    EQUIPMENT_OWNED_COLOR,
     EQUIPMENT_PANEL,
     EQUIPMENT_ROW_STYLE,
     EQUIPMENT_SLOTS,
@@ -40,19 +41,17 @@ import {
     itemPackTexture,
 } from '../config/equipment';
 import { GAME_HEIGHT, GAME_WIDTH } from '../config/gameConfig';
-import { ACTIVE_SPELLS, activeSpellCooldownMs, isActiveSpellId } from '../data/activeSpells';
-import { ARMOR_PIECES } from '../data/armor';
 import { totalExpForLevel, CHARACTER_LEVEL_MAX } from '../data/characterLevel';
 import { CHARACTERS } from '../data/characters';
 import {
     canChangeSlot,
     canEmptySlot,
     catalog,
+    describeItem,
     EQUIP_SLOT_IDS,
     EQUIP_SLOT_NAMES,
     FUTURE_SLOT_NAMES,
     GEAR_SLOT_IDS,
-    isMeleeWeaponId,
     isSpellItemId,
     SPELL_SLOT_IDS,
     itemIcon,
@@ -61,9 +60,7 @@ import {
     type EquipSlotId,
     type ItemId,
 } from '../data/items';
-import { SPELLS } from '../data/spells';
 import { STAT_IDS } from '../data/stats';
-import { getMeleeWeapon } from '../data/weapons';
 import { PaperDoll } from '../entities/PaperDoll';
 import { CharacterStats } from '../entities/CharacterStats';
 import { characterStore, permanentStats, type SavedCharacter } from '../systems/CharacterStore';
@@ -325,7 +322,14 @@ export class EquipmentScene extends Phaser.Scene {
         this.setIcon(icon, id, l.iconSize);
         objects.push(icon);
         const name = id ? (itemInfo(id)?.name ?? id) : 'Nothing';
-        objects.push(this.add.text(x + l.iconSize + 12, middle, name, EQUIPMENT_ROW_STYLE).setOrigin(0, 0.5));
+        const nameText = this.add.text(x + l.iconSize + 12, middle, name, EQUIPMENT_ROW_STYLE).setOrigin(0, 0.5);
+        objects.push(nameText);
+        // Fase 21A: how many the character keeps in its inventory (the catalog stays free until 21C).
+        const owned = id ? characterStore.ownedCount(this.uid, id) : 0;
+        if (owned > 0) {
+            objects.push(this.add.text(nameText.x + nameText.width + 6, middle, `×${owned}`, { ...EQUIPMENT_DETAIL_STYLE, color: EQUIPMENT_OWNED_COLOR })
+                .setOrigin(0, 0.5));
+        }
         if (id) {
             // Requirements on the right: green if met, red if not.
             let right = x + width - 6;
@@ -392,7 +396,9 @@ export class EquipmentScene extends Phaser.Scene {
         const info = itemInfo(id);
         const unmet = requirementChecks(id, permanentStats(character), character.level).filter((check) => !check.met);
         const needs = unmet.length > 0 ? ` Needs ${unmet.map((check) => check.label).join(', ')}.` : '';
-        return `${info?.name ?? id}: ${describeItem(id)}.${needs}`;
+        const owned = characterStore.ownedCount(this.uid, id);
+        const kept = owned > 0 ? ` You keep ${owned} in your inventory.` : '';
+        return `${info?.name ?? id}: ${describeItem(id)}.${needs}${kept}`;
     }
 
     private moveSideways(dx: number): void {
@@ -453,23 +459,4 @@ export class EquipmentScene extends Phaser.Scene {
     private ready(): boolean {
         return this.time.now - this.openedAt >= CHARACTER_INFO_INPUT_DELAY_MS;
     }
-}
-
-/** What an item gives, in a few words ("Damage 35", "Defense 14%, Magic resistance 8", "Circle 3, casts itself"). */
-function describeItem(id: ItemId): string {
-    if (isActiveSpellId(id)) {
-        const def = ACTIVE_SPELLS[id];
-        return `Circle ${def.circle}, skill button, ${Math.round(activeSpellCooldownMs(def, 0) / 1000)} s recharge (less with Mag)`;
-    }
-    if (isSpellItemId(id)) {
-        const spell = SPELLS[id];
-        const shots = spell.shots > 1 ? ` ×${spell.shots}` : '';
-        return `Circle ${spell.circle}, casts itself, damage ${spell.directDamage} + ${spell.areaDamage} area${shots}`;
-    }
-    if (isMeleeWeaponId(id)) return `Damage ${getMeleeWeapon(id).damage}`;
-    const piece = ARMOR_PIECES[id];
-    const parts = [`Defense ${Math.round(piece.defense * 100)}%`];
-    if ('magicResistance' in piece) parts.push(`Magic resistance ${piece.magicResistance}`);
-    if ('magicDamageBonus' in piece) parts.push(`Magic damage +${Math.round(piece.magicDamageBonus * 100)}%`);
-    return parts.join(', ');
 }

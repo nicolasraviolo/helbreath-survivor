@@ -123,4 +123,17 @@ export const HOW_TO_PLAY_PAGES: readonly HowToPlayPage[] = [
             { control: 'Enter, pad A or a click', action: 'Wear the item (saved at once)' },
         ],
     },
+    {
+        // Fase 21A: botín en partida. Como mucho 7 filas.
+        name: 'Loot',
+        rows: [
+            { control: 'Glowing items on the ground', action: 'Loot: monsters drop it now and then' },
+            { control: 'Bosses', action: 'Always drop loot' },
+            { control: 'Step on it', action: 'Compare it with what you wear' },
+            { control: 'Equip', action: 'Wear it now, for the rest of the run' },
+            { control: 'Keep in bag', action: 'Take it with you for later' },
+            { control: 'Red requirement', action: 'Too strong for you yet: keep it' },
+            { control: 'End of the run', action: 'Your loot goes to your character' },
+        ],
+    },
 ];
