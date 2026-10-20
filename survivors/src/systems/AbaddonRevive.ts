@@ -24,6 +24,8 @@ export class AbaddonRevive {
     private readonly banner: Phaser.GameObjects.Text;
     private waveMs = -1;
     private bannerMs = -1;
+    /** The chosen effect's file has arrived (GameScene downloads it when the run starts). */
+    public effectLoaded = false;
 
     constructor(
         scene: Phaser.Scene,
@@ -36,6 +38,11 @@ export class AbaddonRevive {
         this.banner = scene.add.text(0, 0, ABADDON.banner, {
             ...UI_TEXT, fontSize: px(UI_FONT_SIZE.large), color: ABADDON.bannerColor, stroke: '#000000', strokeThickness: 4,
         }).setOrigin(0.5).setDepth(DEPTH_DAMAGE_NUMBERS).setVisible(false);
+    }
+
+    /** Unlocked on this device: GameScene then downloads the effect's file. */
+    public get isUnlocked(): boolean {
+        return this.unlocked;
     }
 
     /** Whether dying now would bring the character back. */
@@ -67,7 +74,7 @@ export class AbaddonRevive {
         if (player.deadForMs < ABADDON.reviveDelayMs) return true;
         this.used = true;
         player.revive(player.maxHp * ABADDON.reviveHpShare, ABADDON.invulnerableMs);
-        this.spawnEffect(ABADDON.effect, player.x, player.y);
+        this.spawnEffect(this.effectLoaded ? ABADDON.effect : ABADDON.fallbackEffect, player.x, player.y);
         this.audio.play(GENDER_SOUNDS[player.look.gender].revive);
         this.audio.play(ABADDON.sound);
         this.enemies.forEachInRadius(player.x, player.y, ABADDON.waveRadius, (enemy) => enemy.push(player.x, player.y, ABADDON.wavePush));

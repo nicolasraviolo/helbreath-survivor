@@ -1,6 +1,6 @@
 // Icono de Abaddon's Blood en la interfaz de partida (Fase 21E): el Red Ball en un círculo oscuro con borde dorado
-// mientras te queda la resurrección; oscuro cuando ya se usó; oculto si no está desbloqueado. Lo usan la barra
-// clásica y la compacta (cada una lo coloca a su manera, HUD_REVIVE).
+// mientras te queda la resurrección, con un brillo de fuego que late detrás; oscuro cuando ya se usó; oculto si no
+// está desbloqueado. Lo usan la barra clásica y la compacta (cada una lo coloca a su manera, HUD_REVIVE).
 // El dibujo viene de item-pack.spr, que se pide al empezar la partida: si aún no ha llegado, sale solo el círculo.
 import Phaser from 'phaser';
 import { itemPackTexture } from '../config/equipment';
@@ -10,21 +10,31 @@ import type { ReviveHudState } from '../systems/AbaddonRevive';
 
 export class ReviveIcon {
     private readonly back: Phaser.GameObjects.Arc;
+    /** Additive fire glow that beats while it is ready. */
+    private readonly glow: Phaser.GameObjects.Arc;
     private icon: Phaser.GameObjects.Image | undefined;
     private shown: ReviveHudState | null = null;
 
     constructor(private readonly scene: Phaser.Scene, private readonly x: number, private readonly y: number, private readonly parent?: Phaser.GameObjects.Container, private readonly depth = 0) {
         const r = HUD_REVIVE;
+        this.glow = scene.add.circle(x, y, r.glow.radius, r.glow.color, 1).setBlendMode(Phaser.BlendModes.ADD).setDepth(depth).setVisible(false);
+        parent?.add(this.glow);
         this.back = scene.add.circle(x, y, r.radius, r.backColor, r.backAlpha).setDepth(depth).setVisible(false);
         parent?.add(this.back);
     }
 
     public update(state: ReviveHudState): void {
         if (!this.icon) this.tryCreateIcon();
+        if (state === 'ready') {
+            const g = HUD_REVIVE.glow;
+            const beat = 0.5 - 0.5 * Math.cos((this.scene.time.now / g.periodMs) * Math.PI * 2);
+            this.glow.setAlpha(g.minAlpha + (g.maxAlpha - g.minAlpha) * beat);
+        }
         if (state === this.shown && (this.icon || state === undefined)) return;
         this.shown = state;
         const r = HUD_REVIVE;
         const ready = state === 'ready';
+        this.glow.setVisible(ready);
         this.back.setVisible(state !== undefined).setStrokeStyle(r.borderWidth, ready ? r.readyBorder : r.usedBorder);
         if (!this.icon) return;
         this.icon.setVisible(state !== undefined).setAlpha(ready ? 1 : r.usedAlpha);
@@ -33,6 +43,7 @@ export class ReviveIcon {
     }
 
     public destroy(): void {
+        this.glow.destroy();
         this.back.destroy();
         this.icon?.destroy();
     }

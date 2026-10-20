@@ -3,8 +3,9 @@
 // una onda que aparta a los monstruos sin hacerles daño. No es un objeto: no se equipa ni se gasta.
 // Hasta la Fase 24 solo se desbloquea con el atajo ?unlocks=abaddon; en la 24 la venderá la tienda (UnlockStore).
 // Icono: Red Ball (objeto 652 del original, Item3.cfg:33, Spr 6 → hoja 5 de item-pack, frame 124).
-// Efecto: Resurrection de effect11.spr hoja 10 (el mismo que el tótem Full HP; el propietario lo dio por bueno).
-import type { SoundKey } from '../config/assetManifest';
+// Efecto: "Abaddon Spirit 10" de yseffect3.spr hoja 11 (elegido por el propietario en el visor, 20-oct-2026; 5,6 MB,
+// bajo demanda). Mientras no ha llegado, el Resurrection de effect11 hoja 10 (el del tótem Full HP).
+import type { SoundKey, SpriteKey } from '../config/assetManifest';
 import type { EffectKey } from '../config/effects';
 import type { ItemIconFrame } from './itemTypes';
 
@@ -26,7 +27,11 @@ export interface AbaddonDef {
     waveColor: number;
     waveWidth: number;
     waveMs: number;
+    /** Effect when it gets up (big file: downloaded at the start of the run, only if unlocked). */
     effect: EffectKey;
+    effectSprite: SpriteKey;
+    /** Used instead while that file is still downloading. */
+    fallbackEffect: EffectKey;
     /** Played with the voice (GENDER_SOUNDS.revive, C21/C22). */
     sound: SoundKey;
     /** Words over the character when it gets up. */
@@ -48,7 +53,9 @@ export const ABADDON: AbaddonDef = {
     waveColor: 0xff3030,
     waveWidth: 6,
     waveMs: 450,
-    effect: 'fx.resurrection',
+    effect: 'fx.abaddon.spirit',
+    effectSprite: 'fx.yseffect3',
+    fallbackEffect: 'fx.resurrection',
     sound: 'sfx.buff',
     banner: "Abaddon's Blood!",
     bannerColor: '#ff5050',

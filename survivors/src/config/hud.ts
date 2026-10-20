@@ -91,6 +91,8 @@ export const HUD_REVIVE = {
     usedBorder: 0x6a5a3a,
     usedTint: 0x555555,
     usedAlpha: 0.6,
+    /** While ready, a fire glow behind it beats slowly (owner, 20-oct-2026: "that it shows it is active"). */
+    glow: { color: 0xff5020, radius: 24, minAlpha: 0.15, maxAlpha: 0.75, periodMs: 1600 },
 } as const;
 
 /**

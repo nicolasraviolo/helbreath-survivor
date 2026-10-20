@@ -59,6 +59,7 @@ import type { EnemyWorld } from '../entities/Enemy';
 import { Player } from '../entities/Player';
 import { getMap, type HBMap } from '../hb/HBMap';
 import { MapView } from '../hb/mapRenderer';
+import { ABADDON } from '../data/abaddon';
 import { AbaddonRevive } from '../systems/AbaddonRevive';
 import { AudioSystem } from '../systems/AudioSystem';
 import { CombatSystem } from '../systems/CombatSystem';
@@ -327,6 +328,13 @@ export class GameScene extends Phaser.Scene {
         this.aimArrow = new AimArrow(this);
         this.buffs = new BuffSystem(this, this.player, this.audio, (key, x, y) => this.weapons.spawnEffect(key, x, y));
         this.abaddon = new AbaddonRevive(this, this.audio, this.enemies, (key, x, y) => this.weapons.spawnEffect(key, x, y));
+        // Its effect is a big file (5,6 MB): only when it is unlocked, while the run plays.
+        if (this.abaddon.isUnlocked) {
+            void lookLoader.ensure(this, [ABADDON.effectSprite]).then(() => {
+                registerEffectAnimations(this.anims, this.textures);
+                this.abaddon.effectLoaded = lookLoader.isReady(this, ABADDON.effectSprite);
+            });
+        }
         this.totems = new TotemSystem(this, map, areaPx, this.audio, (id) => this.collectTotem(id));
         this.chestCards = 0;
         this.enemyShots = new EnemyProjectileSystem(this, this.audio, (key, x, y) => this.weapons.spawnEffect(key, x, y),

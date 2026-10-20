@@ -126,6 +126,9 @@ export const SPRITES = {
     // Meteor Strike, hechizo activo del Mago (Fase 19B, data/activeSpells.ts). ~1,25 MB: se descarga solo al empezar
     // una partida de Mago (ON_DEMAND_SPRITES).
     'fx.crueffect1': { file: 'sprites/crueffect1.spr', type: SpriteType.Effect },
+    // Abaddon's Blood (Fase 21E): "Abaddon Spirit 10" (sp-client Effects.ts), yseffect3.spr hoja 11, elegido por el
+    // propietario en el visor. El archivo pesa 5,6 MB: se descarga solo si está desbloqueado, al empezar la partida.
+    'fx.yseffect3': { file: 'sprites/yseffect3.spr', type: SpriteType.Effect },
 
     // Interfaz: barra inferior original 800x600 (hoja 6; ver config/hud.ts para frames y posiciones)
     // y fondo de "Create New Character" 640x480 (hoja 9; ver config/characterSelect.ts).
@@ -382,7 +385,7 @@ export const ON_DEMAND_SPRITES: ReadonlySet<SpriteKey> = new Set<SpriteKey>([
     'gear.leggings.chain.w', 'gear.leggings.plate.w',
     'gear.helm.basic.w', 'gear.helm.full.w', 'gear.helm.winged.w', 'gear.helm.horned.w',
     'gear.swords.w', 'gear.shields.w',
-    'fx.crueffect1',
+    'fx.crueffect1', 'fx.yseffect3',
     'gear.shoes.m', 'gear.shoes.w', 'gear.cape.m', 'gear.cape.w', 'item.pack',
     'item.equip.m', 'item.equip.w',
     'gear.wand.berserk.m', 'gear.wand.berserk.w', 'gear.wand.kloness.m', 'gear.wand.kloness.w',

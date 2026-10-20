@@ -8,6 +8,7 @@ Bloques y fases ya terminados, el más reciente arriba. El estado actual está e
 - **Decidido por mí (ajustable en `data/abaddon.ts`):** 0,8 s en el suelo antes de levantarse, radio y fuerza de la onda, nombre del logro, `sfx.buff` junto a la voz.
 - **Código:** `data/abaddon.ts`, `systems/UnlockStore.ts`, `systems/AbaddonRevive.ts`, `ui/ReviveIcon.ts`; `Player.revive`, `Enemy.push`; `RunSnapshot.abaddonUsed`; `HudBarState.revive`, `HUD_REVIVE`; `fx.resurrection`, `sfx.revive.m/w`; logro `revive`; fuera el hueco apagado de `SECOND_ROW_SLOTS`. Atajo `?unlocks=abaddon|reset`; situación `check revive`.
 - **Comprobado:** build; `check revive` (PC y `--mobile`): muere, revive con 65/130, icono "used", logro; segunda muerte → GameOver; con `?unlocks=reset` → GameOver a la primera; la partida guardada lleva `abaddonUsed`. Sin errores de consola. Capturas de PC y móvil.
+- **Después, a petición del propietario:** efecto al revivir "Abaddon Spirit 10" (`yseffect3` hoja 11, 5,6 MB, solo se descarga si está desbloqueado) y la bola de la barra late con brillo de fuego mientras está lista.
 - **Después, a petición del propietario:** pociones al **0,4%** por monstruo (antes 1,5%), porque rodeado te curabas solo y no se podía morir (`data/pickups.ts`). Pendiente: mirar el equilibrio con la partida simulada y las métricas.
 - **Probar:** `pnpm --dir survivors dev` → `?play=warrior&unlocks=abaddon`, pulsar N y dejarse matar (sin G). Sin el `&unlocks=abaddon` (o con `?unlocks=reset`) se muere a la primera.
 
