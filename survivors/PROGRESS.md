@@ -9,7 +9,7 @@
 ## Fase actual
 **Fase 21 (botín y baúl), rama `fase-21`.** Ronda de bugs del propietario terminada (`docs/BUGS.md`).
 - **21A (botín), 21B (atributos y varitas), 21D (baúl, "solo lo que tienes", reglas al morir y Zem) y 21E (Abaddon's Blood): hechos** (20-oct-2026). Detalle en `PROGRESS-historial.md`.
-- **Siguiente:** que el propietario pruebe el 21E y, si da el OK, `/checkpoint fase` (cerrar la Fase 21: fusionar `fase-21` en `master`). Esta sesión trabajó en `claude/epic-galileo-lfu0o5` (= `fase-21` + 21E): fusionar esa rama.
+- **Siguiente:** que el propietario pruebe el 21E y, si da el OK, `/checkpoint fase` (cerrar la Fase 21: fusionar `fase-21` en `master`). Todo está en `fase-21` (también el 21E).
 - **21C (anillos y collares) aplazado** por el propietario para más adelante.
 - **Plan del propietario:** la Spell 2 gastará **maná** en vez de esperar recarga; las varitas ya guardan su Mana Save (ver NOTES.md, "Atributos y varitas").
 - **Abaddon's Blood (21E, 20-oct-2026):** mejora **permanente** para los 4 personajes, no un objeto; revive una vez por partida. Hasta la tienda (Fase 24) solo con `?unlocks=abaddon`.
