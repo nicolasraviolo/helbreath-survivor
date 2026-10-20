@@ -28,7 +28,9 @@ export interface PickupDef {
 
 export const PICKUPS = {
     // Red Potion (item-ground 5/1). Al beber: C19, el sonido de consumirla en el original.
-    potion: { name: 'Red Potion', sheet: 5, frame: 1, scale: 1.5, dropChance: 0.015, lifeMs: 60000, pickupSound: 'sfx.drink', magnetPulls: true },
+    // 0,4% por monstruo (propietario, 20-oct-2026; antes 1,5%): ~12 por partida de 3.000 bajas. Con más, rodeado de
+    // monstruos te curabas solo con las que caían a tus pies y no se podía morir.
+    potion: { name: 'Red Potion', sheet: 5, frame: 1, scale: 1.5, dropChance: 0.004, lifeMs: 60000, pickupSound: 'sfx.drink', magnetPulls: true },
     // Imán: Crystal (item-ground 15/46), distinto de las gemas de XP (esmeralda, zafiro, rubí).
     magnet: { name: 'Magnet', sheet: 15, frame: 46, scale: 1.5, dropChance: 0.005, lifeMs: 60000, pickupSound: 'sfx.pickup' },
     // Cofre: Gold Pocket (item-ground 5/120). No desaparece (pedido por el propietario).

@@ -14,7 +14,7 @@
 - **Plan del propietario:** la Spell 2 gastará **maná** en vez de esperar recarga; las varitas ya guardan su Mana Save (ver NOTES.md, "Atributos y varitas").
 - **Abaddon's Blood (21E, 20-oct-2026):** mejora **permanente** para los 4 personajes, no un objeto; revive una vez por partida. Hasta la tienda (Fase 24) solo con `?unlocks=abaddon`.
 - **Decisiones de la Fase 21 (20-oct-2026):** reparto 50/25/15/10; la bolsa va al **inventario del personaje**; baúl de 50 que se llena a mano; Zem del 10% de los jefes (también se venderá en la Fase 24); hechizos actuales libres por Int, los futuros con Manual; en el suelo solo dibujos de `item-ground`.
-- **Pendiente de probar por el propietario:** revivir con Abaddon's Blood (21E); baúl, Equipment "solo lo que tienes" y morir con/sin Zem (21D); el botín en una partida normal (frecuencia de caída); cambiar de pestaña en partida y volver, sin sonidos trabados (B4); mando real (vibración y stick derecho).
+- **Pendiente de probar por el propietario:** revivir con Abaddon's Blood (21E) y pociones al 0,4% (antes 1,5%; ¿la partida queda demasiado difícil?); baúl, Equipment "solo lo que tienes" y morir con/sin Zem (21D); el botín en una partida normal (frecuencia de caída); cambiar de pestaña en partida y volver, sin sonidos trabados (B4); mando real (vibración y stick derecho).
 - **Ideas sin fecha:** monstruos al azar como evento especial; jefes más difíciles de esquivar (mínimo de acierto propio, nota en `data/defense.ts`).
 
 **Pistas para trabajar** (detalle en `survivors/NOTES.md`):
