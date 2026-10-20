@@ -10,7 +10,6 @@
 **Fase 20 completada** y fusionada en `master` (etiqueta `fase-20`). Antes de la Fase 21, **ronda de bugs** del propietario: lista en `docs/BUGS.md` (marcar `[x]` al arreglar).
 - **Bloque A (arreglos rápidos): hecho** (19-oct-2026). **Bloque B (combate): hecho** (20-oct-2026). **Bloque C:** M15 (arco del guerrero), M2 (monstruos élite) y M8 (pantalla de carga) hechos (20-oct-2026).
 - **Siguiente:** resto del bloque C de `docs/BUGS.md` (una sesión por punto: equipo sobre el cuerpo (M17), opciones móvil/web (M13)). Después, `/fase 21` → botín y baúl (`docs/PLAN-2.md`).
-- **Duda abierta para el propietario** (en `docs/BUGS.md`): M4 (EXP del Level al salir de la partida).
 - **Pendiente de probar por el propietario:** cambiar de pestaña en partida y volver, sin sonidos trabados (B4; simulado en el check, no probado de verdad).
 - **Pendiente:** que el propietario pruebe con su mando real la vibración y el stick derecho (apuntar).
 - **Ideas sin fecha:** monstruos al azar como evento especial; jefes más difíciles de esquivar (mínimo de acierto propio, nota en `data/defense.ts`).
@@ -39,7 +38,7 @@
 - Fuente: **Comic Neue** (15; 12 en la barra inferior). Números de daño en Georgia.
 - Controles: nunca en pantalla; se explican en **How to Play** (`data/howToPlay.ts`).
 - Settings: sí/no con casilla (`MenuList`, `checked`); volumen y opciones de varios valores, con flechas ◄ ►.
-- **Level** permanente (máx. 140): recibe **toda** la EXP de la partida, ganes o mueras. El nivel de la partida se llama **Power** en todos los textos.
+- **Level** permanente (máx. 140): recibe **toda** la EXP de la partida, ganes o mueras; si sales, espera guardada con la partida (M4). El nivel de la partida se llama **Power** en todos los textos.
 - Puntos: 3 por Level, ninguno al crear; se reparten **solo** en la ventana Character ("Level Set." o C). En partida, C pausa y solo se mira.
 - Esquiva y resistencia: siempre **% generales**, nunca contra un monstruo; esquiva sin "Miss", resistencia con "Resist".
 - Una partida guardada por personaje (4 huecos).

@@ -35,5 +35,5 @@ Número original entre paréntesis: **B** = bug, **M** = mejora.
 - [ ] (M17) Ventana del personaje: dibujar el equipo sobre el cuerpo con los gráficos `item-equipm`/`item-equipw`, como en el original.
 - [ ] (M13) Menús de opciones distintos para móvil y para web (mejor experiencia en cada uno).
 
-## Dudas abiertas
-- (M4) La EXP del Level se suma solo al morir, ganar o hacer "quit" (aún no existe); si el jugador sale o pausa, no la recibe. Así funciona hoy. **Duda:** ¿es la descripción de cómo debe ser o hay que cambiarlo?
+## Dudas resueltas
+- (M4) La EXP del Level se entrega solo al morir o ganar. Si sales, se queda guardada con la partida hasta que termine (propietario, 20-oct-2026). Ya funcionaba así: sin cambios.

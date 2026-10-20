@@ -42,3 +42,5 @@ Todas las decisiones tomadas, ordenadas por fecha (las del mismo día, en el ord
 - 2026-10-20 · Bugs M15: estela del tajo = **Thin edge + sparks** (estilo 4), siempre **de arriba abajo** con un barrido rápido. Los otros estilos se **guardan** (`data/slash.ts`) por si quiere cambiar.
 - 2026-10-20 · Bugs M2: los élites son monstruos **Berserk** con **el mismo brillo rojo que el buff Berserk del jugador**. Probabilidad 1/50 (flojos) a 1/200 (duros), ×2 con vida > 75 %, ninguno con vida < 35 %; pegan ×1,5, vida ×2, EXP ×3. Jefes nunca.
 
+- 2026-10-20 · Bugs M8: pantalla de carga negra con **"Helbreath Survivors" en letra caligráfica** sobre la barra, "Loading" debajo y **el logo del propietario** abajo a la derecha con **latido** (no giro). El icono "HS" de la app se probó y se descartó ahí.
+- 2026-10-20 · Bugs M4: la EXP del Level se entrega **solo al morir o ganar**. Si el jugador sale, la EXP se queda **guardada con la partida** (on-hold) hasta que esa partida termine. Ya funcionaba así: la partida guardada conserva Power y EXP, y al elegir el personaje siempre se continúa (solo se pierde si se borra el personaje).
