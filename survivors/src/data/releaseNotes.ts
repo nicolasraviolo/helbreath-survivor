@@ -19,6 +19,8 @@ export const RELEASE_NOTES: readonly ReleaseNote[] = [
         changes: [
             'Loot: monsters and bosses now drop gear. Equip it at once or keep it in your bag.',
             'Your loot stays with your character when the run ends.',
+            'Rare weapons: Sharp, Poison and Ancient, each with its own colour.',
+            'The Mage can now find and equip wands.',
         ],
     },
     {

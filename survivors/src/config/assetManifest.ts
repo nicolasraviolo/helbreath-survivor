@@ -63,10 +63,13 @@ export const SPRITES = {
     'gear.armor.plate.m': { file: 'sprites/mpmail.spr', type: SpriteType.EquipmentPack },
     'gear.swords.m': { file: 'sprites/msw.spr', type: SpriteType.Weapons },
     'gear.shields.m': { file: 'sprites/msh.spr', type: SpriteType.Shields },
-    // Mago: túnica, sombrero de mago (Wizard Hat) y varita (Magic Wand 2).
+    // Mago: túnica, sombrero de mago (Wizard Hat) y varita. Fase 21B: las varitas son las del original (data/wands.ts);
+    // todas las Magic Wand y Wizard Staff se dibujan con mstaff2 (Appr 36 del Item.cfg).
     'gear.armor.robe.m': { file: 'sprites/mrobe1.spr', type: SpriteType.EquipmentPack },
     'gear.helm.wizard.m': { file: 'sprites/nmhelm4.spr', type: SpriteType.EquipmentPack },
-    'gear.wand.m': { file: 'sprites/mstaff1.spr', type: SpriteType.Weapons },
+    'gear.wand.m': { file: 'sprites/mstaff2.spr', type: SpriteType.Weapons },
+    'gear.wand.berserk.m': { file: 'sprites/mberserkwand.spr', type: SpriteType.Weapons },
+    'gear.wand.kloness.m': { file: 'sprites/mklonesswand.spr', type: SpriteType.Weapons },
 
     // Capas de mujer (la Maga): mismas tablas de hojas que las de hombre.
     'player.body.ww': { file: 'sprites/ww.spr', type: SpriteType.Human },
@@ -79,7 +82,9 @@ export const SPRITES = {
     // Ropa básica de la Maga al empezar (Bodice y Skirt).
     'gear.bodice.w': { file: 'sprites/wbodice1.spr', type: SpriteType.EquipmentPack },
     'gear.skirt.w': { file: 'sprites/wskirt.spr', type: SpriteType.EquipmentPack },
-    'gear.wand.w': { file: 'sprites/wstaff1.spr', type: SpriteType.Weapons },
+    'gear.wand.w': { file: 'sprites/wstaff2.spr', type: SpriteType.Weapons },
+    'gear.wand.berserk.w': { file: 'sprites/wberserkwand.spr', type: SpriteType.Weapons },
+    'gear.wand.kloness.w': { file: 'sprites/wklonesswand.spr', type: SpriteType.Weapons },
 
     // Fase 17B: el resto de pieles y la ropa del otro sexo (ver data/appearance.ts). Pesan ~6,5 MB: no se descargan al
     // empezar, solo las del personaje que se dibuja (ON_DEMAND_SPRITES, systems/LookLoader.ts).
@@ -376,6 +381,7 @@ export const ON_DEMAND_SPRITES: ReadonlySet<SpriteKey> = new Set<SpriteKey>([
     'fx.crueffect1',
     'gear.shoes.m', 'gear.shoes.w', 'gear.cape.m', 'gear.cape.w', 'item.pack',
     'item.equip.m', 'item.equip.w',
+    'gear.wand.berserk.m', 'gear.wand.berserk.w', 'gear.wand.kloness.m', 'gear.wand.kloness.w',
 ]);
 
 export const PHONE_ONLY_SPRITES: ReadonlySet<SpriteKey> = new Set<SpriteKey>(['ui.v2']);

@@ -5,10 +5,11 @@
 // sexo (gearForGender), las piezas que aún no se han descargado no se ven hasta que llegan (LookLoader), el pelo se
 // tiñe sumando color como en el original y se oculta con casco (como el original).
 import Phaser from 'phaser';
-import { equipmentLook, type SavedEquipment } from '../data/items';
+import type { ItemAttribute } from '../data/attributes';
+import { equipmentLook, type EquipSlotId, type SavedEquipment } from '../data/items';
 import { gearForGender, HAIR_COLOR_SCALE, HAIR_COLORS, lookLayers, type CharacterLook } from '../data/appearance';
 import type { CharacterDef } from '../data/characters';
-import { ensureAdditiveTexture, tintedKey } from '../hb/additiveTint';
+import { colouredTexture, ensureAdditiveTexture, tintedKey } from '../hb/additiveTint';
 import { Direction } from '../hb/directions';
 import {
     PLAYER_FRAMES_PER_DIRECTION,
@@ -94,9 +95,9 @@ export class CharacterSprite {
         }
     }
 
-    /** Draws a saved character's equipment over the class's clothes (Fase 20B). */
-    public wearEquipment(equipment: Readonly<SavedEquipment>): void {
-        for (const [slot, layer] of equipmentLook(equipment)) this.setLayer(slot, layer, false);
+    /** Draws a saved character's equipment over the class's clothes (Fase 20B), the weapon in its attribute's colour (21B). */
+    public wearEquipment(equipment: Readonly<SavedEquipment>, attributes: Readonly<Partial<Record<EquipSlotId, ItemAttribute>>> = {}): void {
+        for (const [slot, layer] of equipmentLook(equipment, attributes)) this.setLayer(slot, layer, false);
         this.orderKey = '';
         this.refresh(true);
     }
@@ -186,9 +187,10 @@ export class CharacterSprite {
         this.applyRenderOrder();
     }
 
-    /** Texture to draw (the hair's tinted copy), or undefined while it isn't loaded. */
+    /** Texture to draw (the hair's or the weapon's tinted copy), or undefined while it isn't loaded. */
     private textureOf(layer: GearLayer, baseKey: string): string | undefined {
         const textures = this.scene.sys.textures;
+        if (layer.added) return colouredTexture(textures, baseKey, layer.added);
         const color = layer.hairColor === undefined ? undefined : HAIR_COLORS[layer.hairColor];
         if (!color) return textures.exists(baseKey) ? baseKey : undefined;
         const key = tintedKey(baseKey, `hair${layer.hairColor}`);

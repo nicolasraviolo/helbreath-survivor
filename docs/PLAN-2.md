@@ -472,8 +472,10 @@ Los objetos que caen en la partida se pueden **equipar al momento** o **guardar 
 
 ### Bloques
 - **21A:** botín y carta Equip / Keep in bag.
-- **21B:** Sharp, Ancient y Poison.
-- **21C:** baúl compartido, reglas al morir, Zem y Abaddon's Blood.
+- **21B:** Sharp, Ancient y Poison, y varitas de la Maga (con su Mana Save guardado para cuando haya maná).
+- **21C:** anillos y collares: collares Defense (DF+10…+30) y Magic Resistance (MR+10…+30); anillos de fuerza (Ogre, Demon, Dragon power) y de mago (Wizard, Mage, Grand Mage, Arcmage). Piden Level.
+- **21D:** baúl compartido, reglas al morir, Zem y Abaddon's Blood.
+- *(Partido el 20-oct-2026: las varitas y las joyas no cabían con los atributos en una sesión.)*
 
 ### Aceptación
 - Mato al Ettin, cae una espada Sharp: la carta la compara con la mía y la equipo al momento; sigo jugando con ella.

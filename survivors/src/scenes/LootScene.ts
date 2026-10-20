@@ -2,6 +2,8 @@
 // hueco: a la izquierda lo equipado, a la derecha lo encontrado (con la diferencia de daño o defensa en verde o rojo).
 // Dos botones: "Equip" (se lo pone ya; lo encontrado que llevaba antes va a la bolsa) y "Keep in bag".
 // Si las stats permanentes o el Level no llegan al requisito, sale en rojo y solo se puede guardar.
+// Fase 21B: el nombre lleva el atributo delante y en su color, con una línea que dice qué hace; las varitas enseñan en
+// gris su Mana Save, que funcionará cuando los hechizos gasten maná.
 // Se elige con ←/→, cruceta o stick + Enter/A, o con el ratón o el dedo (en el móvil, todo más grande).
 import Phaser from 'phaser';
 import { itemPackTexture } from '../config/equipment';
@@ -9,7 +11,9 @@ import { byDevice } from '../config/device';
 import { GAME_WIDTH, LEVEL_UP_INPUT_DELAY_MS } from '../config/gameConfig';
 import { px, UI_FONT_SIZE, UI_TEXT } from '../config/ui';
 import type { Gender } from '../data/appearance';
-import { describeItem, EQUIP_SLOT_NAMES, itemInfo, itemPicture, itemPower, requirementChecks, type ItemId } from '../data/items';
+import { attributeColor, ATTRIBUTES } from '../data/attributes';
+import { setColouredTexture } from '../hb/additiveTint';
+import { describeItem, EQUIP_SLOT_NAMES, itemInfo, itemPicture, ownedItemName, ownedItemPower, requirementChecks, wandManaSave } from '../data/items';
 import type { OwnedItem } from '../data/loot';
 import type { Stats } from '../data/stats';
 import { SpriteText } from '../hb/SpriteText';
@@ -19,7 +23,7 @@ import { overlayBottom, playAreaBottom } from '../ui/hudLayout';
 export interface LootSceneData {
     item: OwnedItem;
     /** What the player wears in that slot now (undefined = nothing). */
-    current: ItemId | undefined;
+    current: OwnedItem | undefined;
     gender: Gender;
     /** Permanent stats and Level: the requirement is checked against them, as in the Equipment screen. */
     stats: Readonly<Stats>;
@@ -32,7 +36,7 @@ const L = {
     titleY: byDevice(70, 60),
     subtitleY: byDevice(106, 98),
     cardWidth: byDevice(230, 262),
-    cardHeight: byDevice(250, 250),
+    cardHeight: byDevice(250, 272),
     cardGap: byDevice(40, 24),
     /** From the card's top: the "Equipped" / "Found" label, the picture's centre, the name, the rest of the text. */
     labelY: 16,
@@ -107,7 +111,7 @@ export class LootScene extends Phaser.Scene {
         const cardY = top + L.cardHeight / 2;
         const offset = (L.cardWidth + L.cardGap) / 2;
         this.createCard(GAME_WIDTH / 2 - offset, cardY, 'Equipped', p.current, false);
-        this.createCard(GAME_WIDTH / 2 + offset, cardY, 'Found', p.item.id, true);
+        this.createCard(GAME_WIDTH / 2 + offset, cardY, 'Found', p.item, true);
 
         const buttonsY = top + L.cardHeight + L.buttonsGap + L.buttonHeight / 2;
         const buttonOffset = (L.buttonWidth + L.buttonGap) / 2;
@@ -133,8 +137,10 @@ export class LootScene extends Phaser.Scene {
         return !this.chosen && this.time.now - this.openedAt >= LEVEL_UP_INPUT_DELAY_MS;
     }
 
-    private createCard(x: number, y: number, label: string, id: ItemId | undefined, found: boolean): void {
+    private createCard(x: number, y: number, label: string, item: OwnedItem | undefined, found: boolean): void {
         const p = this.params;
+        const id = item?.id;
+        const attribute = item?.attribute ? ATTRIBUTES[item.attribute] : undefined;
         const top = -L.cardHeight / 2;
         const textWidth = L.cardWidth - L.textMargin * 2;
         const objects: Phaser.GameObjects.GameObject[] = [
@@ -144,10 +150,10 @@ export class LootScene extends Phaser.Scene {
             }).setOrigin(0.5, 0),
         ];
         if (id) {
-            const picture = this.picture(id, top + L.pictureY);
+            const picture = this.picture(item, top + L.pictureY);
             if (picture) objects.push(picture);
         }
-        const name = new SpriteText(this, 0, 0, id ? (itemInfo(id)?.name ?? id) : 'Nothing', L.nameColor, 'center', 'title');
+        const name = new SpriteText(this, 0, 0, item ? ownedItemName(item) : 'Nothing', attribute?.color ?? L.nameColor, 'center', 'title');
         const nameScale = Math.min(L.nameScale, textWidth / Math.max(1, name.width));
         name.container.setScale(nameScale).setY(top + L.nameY - (L.nameLetterHeight * nameScale) / 2);
         objects.push(name.container);
@@ -155,15 +161,19 @@ export class LootScene extends Phaser.Scene {
         const lines: Array<{ text: string; color: string }> = [];
         if (id) {
             const slot = itemInfo(id)?.slot;
-            if (slot) lines.push({ text: EQUIP_SLOT_NAMES[slot], color: L.dimColor });
+            // A wand's Mana Save goes with the slot, in grey: it does nothing until the spells cost mana.
+            const manaSave = wandManaSave(id);
+            const mana = manaSave ? ` · Mana save ${Math.round(manaSave * 100)}% (soon)` : '';
+            if (slot) lines.push({ text: `${EQUIP_SLOT_NAMES[slot]}${mana}`, color: L.dimColor });
             lines.push({ text: describeItem(id), color: L.textColor });
+            if (attribute) lines.push({ text: attribute.description, color: colorString(attribute.color) });
             const checks = requirementChecks(id, p.stats, p.level);
             if (checks.length > 0) {
                 const unmet = checks.some((check) => !check.met);
                 lines.push({ text: `Needs ${checks.map((check) => check.label).join(', ')}`, color: unmet ? L.unmetColor : L.metColor });
             }
-            if (found) {
-                const compare = this.comparison(id);
+            if (found && item) {
+                const compare = this.comparison(item);
                 if (compare) lines.push(compare);
             }
         }
@@ -178,24 +188,27 @@ export class LootScene extends Phaser.Scene {
         this.add.container(x, y, objects);
     }
 
-    /** "Damage 9 → 20" in green if better, red if worse (against what is worn now). */
-    private comparison(id: ItemId): { text: string; color: string } | undefined {
-        const after = itemPower(id);
+    /** "Damage 9 → 20" in green if better, red if worse (against what is worn now), counting the attributes. */
+    private comparison(item: OwnedItem): { text: string; color: string } | undefined {
+        const after = ownedItemPower(item);
         const current = this.params.current;
-        const before = current ? itemPower(current) : undefined;
+        const before = current ? ownedItemPower(current) : undefined;
         const beforeValue = before && before.label === after.label ? before.value : 0;
         const diff = after.value - beforeValue;
         const color = diff > 0 ? L.betterColor : diff < 0 ? L.worseColor : L.dimColor;
-        return { text: `${after.label} ${beforeValue}${after.unit} → ${after.value}${after.unit}`, color };
+        const sign = after.prefix ?? '';
+        return { text: `${after.label} ${sign}${beforeValue}${after.unit} → ${sign}${after.value}${after.unit}`, color };
     }
 
-    /** The item's picture fitted in pictureSize, or undefined while its texture is not loaded. */
-    private picture(id: ItemId, y: number): Phaser.GameObjects.Image | undefined {
-        const frame = itemPicture(id, this.params.gender);
+    /** The item's picture (in its attribute's colour) fitted in pictureSize, or undefined while its texture is not loaded. */
+    private picture(item: OwnedItem, y: number): Phaser.GameObjects.Image | undefined {
+        const frame = itemPicture(item.id, this.params.gender);
         if (!frame) return undefined;
-        const texture = itemPackTexture(frame.sheet);
-        if (!this.textures.exists(texture) || !this.textures.get(texture).has(String(frame.frame))) return undefined;
-        const image = this.add.image(0, y, texture, frame.frame);
+        const image = this.add.image(0, y, '__DEFAULT');
+        if (!setColouredTexture(image, itemPackTexture(frame.sheet), frame.frame, attributeColor(item.attribute))) {
+            image.destroy();
+            return undefined;
+        }
         return image.setScale(Math.min(2, L.pictureSize / Math.max(image.width, image.height)));
     }
 
@@ -244,4 +257,9 @@ export class LootScene extends Phaser.Scene {
         this.chosen = true;
         button.action();
     }
+}
+
+/** 0xff8040 → '#ff8040'. */
+function colorString(color: number): string {
+    return `#${color.toString(16).padStart(6, '0')}`;
 }

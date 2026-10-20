@@ -38,6 +38,8 @@ export class CharacterStats {
     public gearMagicBonus = 0;
     /** Extra damage of every kind from the Xelima cards of this run (0.2 = +20%, Fase 20C). */
     public xelimaBonus = 0;
+    /** Extra damage of every kind from the weapon's attribute: Sharp, Ancient (Fase 21B; the Mage's wand, her spells). */
+    public attributeBonus = 0;
     /** Multiplies every kind of damage while a buff like Berserk lasts (1 = no buff). */
     public buffDamageMultiplier = 1;
 
@@ -95,7 +97,7 @@ export class CharacterStats {
     }
 
     public damageMultiplier(type: DamageType): number {
-        const shared = (1 + this.xelimaBonus) * this.buffDamageMultiplier;
+        const shared = (1 + this.xelimaBonus) * (1 + this.attributeBonus) * this.buffDamageMultiplier;
         if (type === 'physical') {
             return this.def.physicalDamageMultiplier * (1 + PHYSICAL_DAMAGE_PER_STR * (this.stats.str - STAT_BASELINE)) * shared;
         }
@@ -123,6 +125,7 @@ export class CharacterStats {
         copy.level = this.level;
         copy.gearMagicBonus = this.gearMagicBonus;
         copy.xelimaBonus = this.xelimaBonus;
+        copy.attributeBonus = this.attributeBonus;
         copy.buffDamageMultiplier = this.buffDamageMultiplier;
         for (const id of STAT_IDS) copy.stats[id] = this.stats[id];
         copy.stats[stat] += points;

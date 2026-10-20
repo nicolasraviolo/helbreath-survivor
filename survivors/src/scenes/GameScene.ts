@@ -15,7 +15,9 @@ import {
 import { TOUCH_AIM_STICK, TOUCH_AIM_ZONE_START, TOUCH_JOYSTICK, TOUCH_RESERVED_CORNER } from '../config/touch';
 import { ANNOUNCE_EVENT, QUIT_RUN_EVENT } from '../config/hud';
 import { getArmorPiece } from '../data/armor';
-import { isArmorPieceId, isMeleeWeaponId, itemInfo, START_EQUIPMENT, type EquipSlotId, type ItemId, type SavedEquipment } from '../data/items';
+import { canHaveAttribute, isArmorPieceId, isMeleeWeaponId, itemInfo, START_EQUIPMENT, type EquipSlotId, type SavedEquipment } from '../data/items';
+import type { ItemAttribute } from '../data/attributes';
+import { isWandId, type WandId } from '../data/wands';
 import { LOOT_DEBUG, LOOT_SOUNDS, type OwnedItem } from '../data/loot';
 import { LootSystem } from '../systems/LootSystem';
 import { RunLoot } from '../systems/RunLoot';
@@ -260,6 +262,8 @@ export class GameScene extends Phaser.Scene {
         const look = savedCharacter?.look ?? DEFAULT_LOOKS[this.characterId];
         // What the saved character wears (Fase 20B), and the item icons for the Xelima and Merien cards (Fase 20C).
         const startEquipment = savedCharacter?.equipment ?? START_EQUIPMENT[this.characterId];
+        // Fase 21B: the attribute of the weapon or wand worn (?attr= gives one to any starting weapon that can have it).
+        const startAttribute = savedCharacter?.attributes.weapon ?? DEBUG_START.attribute;
         void lookLoader.ensure(this, [...runSprites(character, look, startEquipment), 'item.pack']);
         this.player = new Player(this, (spawn.x + 0.5) * TILE_SIZE, (spawn.y + 0.5) * TILE_SIZE, character, look, map, areaPx);
         // Permanent stats (Fase 20A); debug runs without a character start with the class's.
@@ -355,9 +359,13 @@ export class GameScene extends Phaser.Scene {
             const weaponId = startEquipment.weapon !== undefined && isMeleeWeaponId(startEquipment.weapon) ? startEquipment.weapon : character.startWeapon.id;
             this.meleeWeapon = new MeleeWeapon(weaponId);
             this.equipment.weapon = weaponId;
+            this.equipment.weaponAttribute = startAttribute && canHaveAttribute(weaponId, startAttribute) ? startAttribute : undefined;
             this.weapons.add(this.meleeWeapon);
             this.player.setGear('weapon', this.equipment.weaponLayer());
         } else {
+            // Fase 21B: the Mage's wand (the starting one in debug runs).
+            const wand = startEquipment.weapon !== undefined && isWandId(startEquipment.weapon) ? startEquipment.weapon : START_EQUIPMENT.mage.weapon;
+            if (wand !== undefined && isWandId(wand)) this.equipWand(wand, startAttribute && canHaveAttribute(wand, startAttribute) ? startAttribute : undefined);
             // Fase 20D: the spell of the Spell 1 slot (debug ?spells= may change it).
             this.spellWeapon = new SpellWeapon(startSpells(startEquipment).auto ?? character.startWeapon.id);
             this.equipment.spell = this.spellWeapon.id;
@@ -429,6 +437,8 @@ export class GameScene extends Phaser.Scene {
         this.weapons.setCooldownMultiplier(stats.cooldownMultiplier);
         stats.gearMagicBonus = this.equipment.magicDamageBonus;
         stats.xelimaBonus = this.equipment.passiveBonus('xelima');
+        stats.attributeBonus = this.equipment.attributeDamageBonus;
+        this.combat.poisonOnHit = this.equipment.poisons;
     }
 
     /** The player touched a pickup on the ground. */
@@ -500,18 +510,23 @@ export class GameScene extends Phaser.Scene {
         this.scene.launch('LevelUp', data);
     }
 
-    /** What the player wears now in that slot (Fase 21A, for the loot card). */
-    private wornIn(slot: EquipSlotId): ItemId | undefined {
-        switch (slot) {
-            case 'weapon':
-                return this.equipment.weapon;
-            case 'spell1':
-                return this.equipment.spell;
-            case 'spell2':
-                return this.activeSpell?.id;
-            default:
-                return this.equipment.armor[slot];
-        }
+    /** What the player wears now in that slot (Fase 21A, for the loot card), with its attribute (Fase 21B). */
+    private wornIn(slot: EquipSlotId): OwnedItem | undefined {
+        const id = (() => {
+            switch (slot) {
+                case 'weapon':
+                    return this.equipment.weapon ?? this.equipment.wand;
+                case 'spell1':
+                    return this.equipment.spell;
+                case 'spell2':
+                    return this.activeSpell?.id;
+                default:
+                    return this.equipment.armor[slot];
+            }
+        })();
+        if (id === undefined) return undefined;
+        const attribute = slot === 'weapon' ? this.equipment.weaponAttribute : undefined;
+        return attribute ? { id, attribute } : { id };
     }
 
     /** Pauses the game and shows the card of the next item picked up (Fase 21A): Equip or Keep in bag. */
@@ -554,7 +569,12 @@ export class GameScene extends Phaser.Scene {
     private wearLoot(item: OwnedItem): void {
         const id = item.id;
         if (isMeleeWeaponId(id)) {
-            if (this.meleeWeapon) this.equipMelee(id);
+            if (this.meleeWeapon) {
+                this.equipment.weaponAttribute = item.attribute;
+                this.equipMelee(id);
+            }
+        } else if (isWandId(id)) {
+            if (this.spellWeapon) this.equipWand(id, item.attribute);
         } else if (isAutoSpellId(id)) {
             if (this.spellWeapon) this.equipSpell(id);
         } else if (isActiveSpellId(id)) {
@@ -609,7 +629,14 @@ export class GameScene extends Phaser.Scene {
         this.player.setGear('weapon', this.equipment.weaponLayer());
     }
 
-    /** One spell in hand, like the Warrior's weapon. The wand stays: it is only for looks. */
+    /** The Mage's wand (Fase 21B): its look, its extra magic damage (Berserk, Kloness) and its attribute. */
+    private equipWand(id: WandId, attribute: ItemAttribute | undefined): void {
+        this.equipment.wand = id;
+        this.equipment.weaponAttribute = attribute;
+        this.player.setGear('weapon', this.equipment.weaponLayer());
+    }
+
+    /** One spell in hand, like the Warrior's weapon. */
     private equipSpell(id: AutoSpellId): void {
         const spell = new SpellWeapon(id);
         if (this.spellWeapon) this.weapons.replace(this.spellWeapon, spell);
@@ -827,6 +854,7 @@ export class GameScene extends Phaser.Scene {
         this.updateCritStrike(delta);
         this.updateActiveSpell(delta);
         this.weapons.update(delta, player.x, player.y, !player.isDead);
+        this.combat.updatePoison(delta);
         this.aimArrow.update(manualAim, player.x, player.y);
         this.damageNumbers.update(delta);
         this.screenShake.update(delta);

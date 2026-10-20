@@ -7,6 +7,8 @@ import type { Gender } from '../data/appearance';
 import { itemPicture } from '../data/items';
 import { LOOT_GROUND, type OwnedItem } from '../data/loot';
 import { getSheetKey } from '../hb/HBSprite';
+import { setColouredTexture } from '../hb/additiveTint';
+import { attributeColor } from '../data/attributes';
 import type { Poolable } from '../utils/Pool';
 
 export class LootDrop implements Poolable {
@@ -21,7 +23,7 @@ export class LootDrop implements Poolable {
     private readonly glow: Phaser.GameObjects.Arc;
     private readonly image: Phaser.GameObjects.Image;
 
-    constructor(private readonly scene: Phaser.Scene) {
+    constructor(scene: Phaser.Scene) {
         const g = LOOT_GROUND;
         // Under the XP gems and the potions: a gem on top of it still shows.
         this.glow = scene.add.circle(0, 0, g.glowRadius, g.glowColor).setBlendMode(Phaser.BlendModes.ADD)
@@ -60,9 +62,9 @@ export class LootDrop implements Poolable {
     private trySetPicture(): void {
         const frame = itemPicture(this.item.id, this.gender);
         if (!frame) return;
-        const texture = getSheetKey('item.ground', frame.sheet);
-        if (!this.scene.textures.exists(texture) || !this.scene.textures.get(texture).has(String(frame.frame))) return;
-        this.image.setTexture(texture, frame.frame).setVisible(true);
+        // Fase 21B: in its attribute's colour, as the original drew weapons on the ground.
+        if (!setColouredTexture(this.image, getSheetKey('item.ground', frame.sheet), frame.frame, attributeColor(this.item.attribute))) return;
+        this.image.setVisible(true);
         this.image.setScale(LOOT_GROUND.scale);
         this.pictureSet = true;
     }

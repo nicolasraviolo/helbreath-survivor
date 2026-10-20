@@ -22,6 +22,7 @@ const WORD_SCALE = 0.85;
 /** Words shown at almost the same time (the Wyvern's 3 fireballs) stack upwards instead of overlapping. */
 const WORD_STACK_MS = 400;
 const WORD_STACK_PX = 14;
+import { POISON } from '../data/attributes';
 import { Pool, type Poolable } from '../utils/Pool';
 
 class DamageNumber implements Poolable {
@@ -65,6 +66,17 @@ export class DamageNumbers {
         number.text.setText(lethal ? `-${amount}!` : `-${amount}`)
             .setColor(critical ? CRITICAL_COLOR : NORMAL_COLOR)
             .setScale(critical ? CRITICAL_SCALE : 1)
+            .setPosition(x + spread, y).setAlpha(1).setActive(true).setVisible(true);
+    }
+
+    /** Poison damage (Fase 21B): green, with "!" if it killed. */
+    public showPoison(x: number, y: number, amount: number, lethal = false): void {
+        if (this.pool.active.length >= DAMAGE_NUMBER_MAX) return;
+        const number = this.pool.acquire();
+        number.ageMs = 0;
+        number.isWord = false;
+        const spread = (Math.random() - 0.5) * DAMAGE_NUMBER_SPREAD_PX;
+        number.text.setText(lethal ? `-${amount}!` : `-${amount}`).setColor(POISON.numberColor).setScale(1)
             .setPosition(x + spread, y).setAlpha(1).setActive(true).setVisible(true);
     }
 

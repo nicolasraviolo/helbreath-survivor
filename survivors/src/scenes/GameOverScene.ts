@@ -17,6 +17,8 @@ import { itemPackTexture } from '../config/equipment';
 import type { Gender } from '../data/appearance';
 import { itemInfo, itemPicture } from '../data/items';
 import type { OwnedItem } from '../data/loot';
+import { attributeColor, ATTRIBUTES } from '../data/attributes';
+import { setColouredTexture } from '../hb/additiveTint';
 import { Action, InputSystem } from '../systems/InputSystem';
 import { formatTime } from '../utils/format';
 
@@ -156,13 +158,15 @@ export class GameOverScene extends Phaser.Scene {
         x += label.width + g.lootGap * 2;
         for (const item of shown) {
             const centre = x + g.lootIconSize / 2;
-            this.add.rectangle(centre, g.lootY, g.lootIconSize, g.lootIconSize, g.lootSlotFill).setStrokeStyle(1, g.lootSlotBorder);
+            // Fase 21B: an item with an attribute gets a frame of its colour.
+            const border = item.attribute ? ATTRIBUTES[item.attribute].color : g.lootSlotBorder;
+            this.add.rectangle(centre, g.lootY, g.lootIconSize, g.lootIconSize, g.lootSlotFill).setStrokeStyle(item.attribute ? 2 : 1, border);
             const frame = itemPicture(item.id, this.params.gender);
-            const texture = frame ? itemPackTexture(frame.sheet) : '';
-            if (frame && this.textures.exists(texture) && this.textures.get(texture).has(String(frame.frame))) {
-                const image = this.add.image(centre, g.lootY, texture, frame.frame);
+            const image = this.add.image(centre, g.lootY, '__DEFAULT');
+            if (frame && setColouredTexture(image, itemPackTexture(frame.sheet), frame.frame, attributeColor(item.attribute))) {
                 image.setScale(Math.min(1, (g.lootIconSize - 4) / Math.max(image.width, image.height)));
             } else {
+                image.destroy();
                 // Picture not loaded: the first letters of its name.
                 this.add.text(centre, g.lootY, (itemInfo(item.id)?.name ?? '?').slice(0, 3), { ...UI_TEXT, fontSize: px(UI_FONT_SIZE.small), color: '#e8d9a8' }).setOrigin(0.5);
             }

@@ -77,6 +77,11 @@ export const EFFECTS = {
     // uno cada 25 ms) y cinco explosiones pequeñas al caer (efecto 12 "Burst", effect2.spr hoja 1 frames 10–15).
     'fx.meteor.smoke': { sprite: 'fx.crueffect1', sheet: 0, frames: [20, 24], frameRate: 10, loop: false, fadeFromFrame: 1 },
     'fx.meteor.burst': { sprite: 'fx.effect2', sheet: 1, frames: [10, 15], frameRate: 20, loop: false },
+    // Veneno (Fase 21B): la nube verde que el original dibuja sobre quien está envenenado mientras dura (Client.cpp:42148,
+    // CheckActiveAura2; sp-client EFFECT_POISON_DEBUFF): effect9 hoja 15, 21 frames en bucle, al 70%. Sus pivotes,
+    // como los del aura de la hoja 14, apuntan lejos del ancla: se devuelve al cuerpo (Enemy.syncPoisonCloud; medido en
+    // partida, +115 como el sX+115 del original).
+    'fx.poison.cloud': { sprite: 'fx.effect9', sheet: 15, frameRate: 10, loop: true, offsetX: 115, offsetY: 149 },
     'fx.footsteps':{ sprite: 'fx.effect2', sheet: 1, frames: [28, 32], frameRate: 10, loop: false, depthOffset: -1 },
 } as const satisfies Record<string, EffectDef>;
 

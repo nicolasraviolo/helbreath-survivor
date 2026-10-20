@@ -108,6 +108,14 @@ export interface GearLayer {
     tint?: number;
     /** Hair only: index in HAIR_COLORS (data/appearance.ts), added to the hair as in the original. */
     hairColor?: number;
+    /** Colour added to every pixel, as the original's PutSpriteRGB (weapon attributes, Fase 21B). */
+    added?: AddedColor;
+}
+
+/** A colour added to a picture: `id` names its tinted copy (hb/additiveTint.ts), `add` is 0..255 per channel (±). */
+export interface AddedColor {
+    id: string;
+    add: readonly [number, number, number];
 }
 
 export type Appearance = Partial<Record<GearSlot, GearLayer>>;

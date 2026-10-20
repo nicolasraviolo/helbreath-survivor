@@ -42,6 +42,10 @@ export const EQUIPMENT_SLOTS = {
 export const EQUIPMENT_LIST = {
     top: 200,
     rowHeight: 32,
+    /** Rows shrink down to this when there are too many for the panel (Fase 21B). */
+    minRowHeight: 22,
+    /** Space kept between the last row and the Ok button. */
+    bottomGap: 6,
     iconSize: 28,
     /** Row of the item worn now. */
     wornColor: 0x4a3818,

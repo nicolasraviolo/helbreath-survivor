@@ -17,7 +17,8 @@ import { isAutoSpellId, type AutoSpellId } from '../data/spells';
 import { isActiveSpellId, type ActiveSpellId } from '../data/activeSpells';
 import { STAT_IDS, type Stats } from '../data/stats';
 import { MELEE_WEAPONS, type MeleeWeaponId } from '../data/weapons';
-import { EQUIP_SLOT_IDS, isItemId, itemInfo, type EquipSlotId } from '../data/items';
+import { isItemAttribute, type ItemAttribute } from '../data/attributes';
+import { canHaveAttribute, EQUIP_SLOT_IDS, isItemId, itemInfo, type EquipSlotId, type ItemId } from '../data/items';
 import type { OwnedItem } from '../data/loot';
 import type { RunLootState } from './RunLoot';
 
@@ -213,8 +214,16 @@ function readSnapshot(entry: unknown): RunSnapshot | undefined {
 }
 
 /** An owned item as saved, or undefined if it no longer exists (Fase 21A; CharacterStore reads them the same way). */
+/** One saved item; an attribute that item can't have (Poison on a wand, any on armor) is dropped (Fase 21B). */
 export function readOwnedItem(value: unknown): OwnedItem | undefined {
-    return isRecord(value) && typeof value.id === 'string' && isItemId(value.id) ? { id: value.id } : undefined;
+    if (!isRecord(value) || typeof value.id !== 'string' || !isItemId(value.id)) return undefined;
+    const attribute = readAttribute(value.id, value.attribute);
+    return attribute ? { id: value.id, attribute } : { id: value.id };
+}
+
+/** An attribute read back, if that item can have it. */
+export function readAttribute(id: ItemId, value: unknown): ItemAttribute | undefined {
+    return isItemAttribute(value) && canHaveAttribute(id, value) ? value : undefined;
 }
 
 export function readOwnedItems(value: unknown): OwnedItem[] {

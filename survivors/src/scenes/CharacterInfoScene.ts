@@ -207,7 +207,7 @@ export class CharacterInfoScene extends Phaser.Scene {
         this.doll = new PaperDoll(this, CHARACTERS[classId], look, equipment, {
             x: this.originX, y: this.originY, scale: CHARACTER_INFO_SCALE,
             standInX: this.sx(CHARACTER_INFO_DOLL.x), standInY: this.sy(CHARACTER_INFO_DOLL.y),
-        });
+        }, this.saved?.attributes);
     }
 
     /** Name, Level, EXP and the other boxes on the right. They don't change while the window is open. */

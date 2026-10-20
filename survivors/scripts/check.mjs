@@ -78,6 +78,11 @@ const PRESETS = {
     // Equip / Keep in bag. Para cogerlo: --eval="g.debugPickUpLoot()".
     loot: 'play=warrior&characters=demo&debug=god,loot',
     lootmage: 'play=mage&characters=demo&debug=god,loot',
+    // Atributos (Fase 21B): botín que siempre es arma con ese atributo (Sharp el Guerrero, Ancient la Maga).
+    lootsharp: 'play=warrior&characters=demo&debug=god,loot&attr=sharp',
+    lootancient: 'play=mage&characters=demo&debug=god,loot&attr=ancient',
+    // Veneno (Fase 21B): Gorn con su arma Poison en una horda; números verdes que nunca matan.
+    poison: 'play=warrior&characters=demo&debug=god,horde&attr=poison',
     slotsempty: 'characters=reset&open=slots',
     // Pantalla de carga (M8), parada a medias para verla: barra, "Loading" y el logo que late.
     loading: 'loading=hold',

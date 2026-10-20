@@ -4,18 +4,21 @@
 //   Blood) se ven vacíos en la pantalla de equipo hasta la Fase 21.
 // - Catálogo libre (decidido el 19-oct-2026, provisional hasta el botín de la Fase 21): se puede poner cualquier objeto
 //   cuyo requisito cumplan las stats PERMANENTES y el Level (números del original, en weapons.ts y armor.ts).
-// - El Mago no cambia de arma: su varita es fija (solo se ve); lucha con los hechizos.
+// - Fase 21B: el Mago lleva varita en el hueco Weapon (data/wands.ts); el Guerrero, armas cuerpo a cuerpo. Cada clase
+//   solo ve y solo puede ponerse las suyas (classCanWear).
 // - Equipo de salida: el Guerrero, la daga; el Mago, Energy Bolt y Energy Strike, que no piden nada (propietario,
 //   19-oct-2026). Los huecos de hechizo y el del arma nunca se quedan vacíos.
 import type { GearLayer, GearSlot } from '../hb/playerAppearance';
 import { ACTIVE_SPELL_IDS, ACTIVE_SPELLS, activeSpellCooldownMs, isActiveSpellId, type ActiveSpellId } from './activeSpells';
 import type { Gender } from './appearance';
 import { ARMOR_PIECES, ARMOR_SLOT_NAMES, type ArmorPieceId, type ArmorSlotId } from './armor';
+import { attributeColor, ATTRIBUTES, attributeDamageBonus, type ItemAttribute } from './attributes';
 import type { CharacterId } from './characters';
 import type { EquipRequirement, ItemIcon, ItemIconFrame } from './itemTypes';
-import { SPELL_ITEM_ICON } from './loot';
+import { SPELL_ITEM_ICON, type OwnedItem } from './loot';
 import { AUTO_SPELL_IDS, isAutoSpellId, SPELLS, type AutoSpellId } from './spells';
 import type { Stats } from './stats';
+import { getWand, isWandId, WAND_IDS, type WandId } from './wands';
 import { getMeleeWeapon, MELEE_FAMILIES, MELEE_WEAPONS, type MeleeWeaponId } from './weapons';
 
 export type SpellSlotId = 'spell1' | 'spell2';
@@ -32,7 +35,7 @@ export const EQUIP_SLOT_NAMES: Readonly<Record<EquipSlotId, string>> = { weapon:
 export const FUTURE_SLOT_NAMES = ['Ring', 'Necklace', 'Angel', 'Zem', "Abaddon's Blood"] as const;
 
 export type SpellItemId = AutoSpellId | ActiveSpellId;
-export type ItemId = MeleeWeaponId | ArmorPieceId | SpellItemId;
+export type ItemId = MeleeWeaponId | WandId | ArmorPieceId | SpellItemId;
 
 /** What a saved character wears: one item per slot (a missing slot is empty). */
 export type SavedEquipment = Partial<Record<EquipSlotId, ItemId>>;
@@ -47,13 +50,13 @@ export interface ItemInfo {
 
 export const START_EQUIPMENT: Readonly<Record<CharacterId, Readonly<SavedEquipment>>> = {
     warrior: { weapon: 'dagger' },
-    mage: { spell1: 'energyBolt', spell2: 'energyStrike' },
+    mage: { weapon: 'magicWandMS0', spell1: 'energyBolt', spell2: 'energyStrike' },
 };
 
 /** Slots each class can change on the Equipment screen. */
 const CLASS_SLOTS: Readonly<Record<CharacterId, readonly EquipSlotId[]>> = {
     warrior: GEAR_SLOT_IDS,
-    mage: EQUIP_SLOT_IDS.filter((slot) => slot !== 'weapon'),
+    mage: EQUIP_SLOT_IDS,
 };
 
 /** The Mage's starting spells ask for nothing (owner, 19-oct-2026), like the Warrior's dagger. */
@@ -72,7 +75,7 @@ export function isSpellItemId(id: string): id is SpellItemId {
 }
 
 export function isItemId(id: string): id is ItemId {
-    return isMeleeWeaponId(id) || isArmorPieceId(id) || isSpellItemId(id);
+    return isMeleeWeaponId(id) || isWandId(id) || isArmorPieceId(id) || isSpellItemId(id);
 }
 
 /** Name, slot, requirement and picture; undefined for weapons that are only data (no requirement or picture yet). */
@@ -86,12 +89,24 @@ export function itemInfo(id: ItemId): ItemInfo | undefined {
         const weapon = getMeleeWeapon(id);
         return weapon.equip && weapon.icon ? { name: weapon.name, slot: 'weapon', equip: weapon.equip, icon: weapon.icon } : undefined;
     }
+    if (isWandId(id)) {
+        const wand = getWand(id);
+        return { name: wand.name, slot: 'weapon', equip: wand.equip, icon: wand.icon };
+    }
     const piece = ARMOR_PIECES[id];
     return { name: piece.name, slot: piece.slot, equip: piece.equip, icon: piece.icon };
 }
 
 export function canChangeSlot(classId: CharacterId, slot: EquipSlotId): boolean {
     return CLASS_SLOTS[classId].includes(slot);
+}
+
+/** Whether the class may put that item on at all (requirements apart): its slot, and wands only for the Mage. */
+export function classCanWear(classId: CharacterId, id: ItemId): boolean {
+    const slot = itemInfo(id)?.slot;
+    if (!slot || !canChangeSlot(classId, slot)) return false;
+    if (slot !== 'weapon') return true;
+    return isWandId(id) === (classId === 'mage');
 }
 
 /** Whether a slot can be left empty (the Warrior always holds a weapon, the Mage two spells). */
@@ -112,6 +127,8 @@ export function catalog(classId: CharacterId, slot: EquipSlotId): ItemId[] {
         ids = [...AUTO_SPELL_IDS];
     } else if (slot === 'spell2') {
         ids = [...ACTIVE_SPELL_IDS];
+    } else if (slot === 'weapon' && classId === 'mage') {
+        ids = [...WAND_IDS];
     } else if (slot === 'weapon') {
         ids = Object.values(MELEE_FAMILIES).filter((family) => family.enabled).flatMap((family): ItemId[] => [...family.links]);
     } else {
@@ -153,14 +170,21 @@ export function itemPicture(id: ItemId, gender: Gender): ItemIconFrame | undefin
     return isSpellItemId(id) ? SPELL_ITEM_ICON : itemIcon(id, gender);
 }
 
-/** Layers the equipment draws on the body (men's sprites: CharacterSprite turns them into women's ones). */
-export function equipmentLook(equipment: Readonly<SavedEquipment>): Array<[GearSlot, GearLayer]> {
+/**
+ * Layers the equipment draws on the body (men's sprites: CharacterSprite turns them into women's ones). The weapon gets
+ * its attribute's colour (Fase 21B).
+ */
+export function equipmentLook(equipment: Readonly<SavedEquipment>, attributes: Readonly<Partial<Record<EquipSlotId, ItemAttribute>>> = {}): Array<[GearSlot, GearLayer]> {
     const layers: Array<[GearSlot, GearLayer]> = [];
+    const added = attributeColor(attributes.weapon);
+    const colour = added ? { added } : {};
     for (const id of Object.values(equipment)) {
         if (isSpellItemId(id)) continue;
-        if (isMeleeWeaponId(id)) {
+        if (isWandId(id)) {
+            layers.push(['weapon', { sprite: getWand(id).sprite, ...colour }]);
+        } else if (isMeleeWeaponId(id)) {
             const sprite = getMeleeWeapon(id).sprite;
-            if (sprite) layers.push(['weapon', { sprite: sprite.key, startSheet: sprite.startSheet }]);
+            if (sprite) layers.push(['weapon', { sprite: sprite.key, startSheet: sprite.startSheet, ...colour }]);
         } else {
             layers.push(...(Object.entries(ARMOR_PIECES[id].look) as Array<[GearSlot, GearLayer]>));
         }
@@ -178,7 +202,7 @@ export function readEquipment(value: unknown, classId: CharacterId): SavedEquipm
             if (canEmptySlot(slot)) delete equipment[slot];
             continue;
         }
-        if (itemInfo(id)?.slot === slot && canChangeSlot(classId, slot)) equipment[slot] = id;
+        if (itemInfo(id)?.slot === slot && classCanWear(classId, id)) equipment[slot] = id;
     }
     return equipment;
 }
@@ -195,6 +219,10 @@ export function describeItem(id: ItemId): string {
         return `Circle ${spell.circle}, casts itself, damage ${spell.directDamage} + ${spell.areaDamage} area${shots}`;
     }
     if (isMeleeWeaponId(id)) return `Damage ${getMeleeWeapon(id).damage}`;
+    if (isWandId(id)) {
+        const bonus = getWand(id).magicDamageBonus;
+        return bonus > 0 ? `Magic damage +${Math.round(bonus * 100)}%` : 'No extra damage';
+    }
     const piece = ARMOR_PIECES[id];
     const parts = [`Defense ${Math.round(piece.defense * 100)}%`];
     if ('magicResistance' in piece) parts.push(`Magic resistance ${piece.magicResistance}`);
@@ -208,6 +236,8 @@ export interface ItemPower {
     value: number;
     /** Written after the number ("%" for defense). */
     unit: string;
+    /** Written before the number ("+" for a wand's extra magic damage). */
+    prefix?: string;
 }
 
 export function itemPower(id: ItemId): ItemPower {
@@ -217,5 +247,38 @@ export function itemPower(id: ItemId): ItemPower {
         return { label: 'Damage', value: (spell.directDamage + spell.areaDamage) * spell.shots, unit: '' };
     }
     if (isMeleeWeaponId(id)) return { label: 'Damage', value: getMeleeWeapon(id).damage, unit: '' };
+    if (isWandId(id)) return { label: 'Magic', value: Math.round(getWand(id).magicDamageBonus * 100), unit: '%', prefix: '+' };
     return { label: 'Defense', value: Math.round(ARMOR_PIECES[id].defense * 100), unit: '%' };
+}
+
+// ---- Atributos (Fase 21B, data/attributes.ts) ----
+
+/** Only weapons and wands have attributes, and wands are never Poison. */
+export function canHaveAttribute(id: ItemId, attribute: ItemAttribute): boolean {
+    if (isWandId(id)) return ATTRIBUTES[attribute].onWands;
+    return isMeleeWeaponId(id);
+}
+
+/** Name with its attribute in front ("Sharp Long Sword"). */
+export function ownedItemName(item: Readonly<OwnedItem>): string {
+    const name = itemInfo(item.id)?.name ?? item.id;
+    return item.attribute ? `${ATTRIBUTES[item.attribute].name} ${name}` : name;
+}
+
+/**
+ * itemPower counting the attribute: a weapon's damage grows by it; a wand's "+% magic damage" becomes the total extra
+ * of the wand and the attribute together (Berserk +40% and Sharp: ×1.4 × 1.1 → +54%).
+ */
+export function ownedItemPower(item: Readonly<OwnedItem>): ItemPower {
+    const power = itemPower(item.id);
+    const bonus = attributeDamageBonus(item.attribute);
+    if (bonus === 0) return power;
+    if (isMeleeWeaponId(item.id)) return { ...power, value: Math.round(power.value * (1 + bonus)) };
+    if (isWandId(item.id)) return { ...power, value: Math.round(((1 + power.value / 100) * (1 + bonus) - 1) * 100) };
+    return power;
+}
+
+/** A wand's Mana Save, for the grey "(soon)" line (Fase 21B: kept for when the spells cost mana). */
+export function wandManaSave(id: ItemId): number | undefined {
+    return isWandId(id) ? getWand(id).manaSave : undefined;
 }

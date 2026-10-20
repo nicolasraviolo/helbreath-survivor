@@ -73,6 +73,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Pantalla de carga (M8)
 - Equipo sobre el cuerpo en la ventana Character (M17)
 - Botín en partida (Fase 21A)
+- Atributos y varitas (Fase 21B)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -854,3 +855,21 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - **Guardado:** personajes versión 5 (`inventory: OwnedItem[]`); partidas con `loot` opcional (sin subir versión). `OwnedItem` es un objeto `{ id }` para que el 21B le añada el atributo sin migrar.
 - **Probar:** `?debug=loot` (un objeto a la derecha del jugador cada 6 s), `pnpm check loot` / `lootmage`, y `--eval="g.debugPickUpLoot()"` para cogerlos todos. La carta se contesta con `game.scene.getScene('Loot').sys.settings.data.onEquip()` / `onKeep()`.
 - En las capturas `.check` (jpg al 60%) un "+" pequeño parece "-": mirar el texto con `--eval` antes de dar por malo un signo.
+
+## Atributos y varitas (Fase 21B)
+- **Datos:** `data/attributes.ts` (Sharp, Poison, Ancient: probabilidad, daño, color, texto, y los números del veneno) y `data/wands.ts` (varitas del original: Level, Mana Save, daño extra de Berserk y Kloness, `rare`).
+- **Quién los tiene:** solo el hueco Weapon (`canHaveAttribute` en `data/items.ts`); las varitas nunca Poison. La tirada va en `systems/LootRoller.ts` (`rollAttribute`). Los objetos `rare` (Berserk, Kloness) solo se quedan con `LOOT_RARE_KEEP_CHANCE`; si no, cae el mejor no raro de debajo. Las varitas de la Maga caen con peso 1 (`LOOT_SLOT_WEIGHTS_BY_CLASS`).
+- **Daño:** `CharacterStats.attributeBonus` multiplica todo el daño (al Guerrero, sus golpes; a la Maga, sus hechizos). El +40/+20% de Berserk y Kloness va sumado a la ropa en `Equipment.magicDamageBonus`.
+- **Veneno (como el de los jugadores del original, `PoisonEffect`, Server.cpp:33105):** `Enemy.poison(nivel)` (no se renueva si ya está envenenado) y `tickPoison()`: cada segundo 1d(nivel) y un 10% de curarse solo (sin duración fija). **Puede matar** (propietario): `CombatSystem.updatePoison()` lo cuenta como muerte (`slay`). Nivel = 40% del golpe que envenenó. Solo golpes físicos con `combat.poisonOnHit`. Números verdes (`DamageNumbers.showPoison`).
+  - En el original el veneno de un arma **no hacía nada a los monstruos** (código vacío, "not yet implemented"); a los jugadores nunca los mataba. Solo el hechizo Poison Cloud mataba monstruos.
+  - **Nube verde** del original sobre el envenenado (`fx.poison.cloud`: effect9 hoja 15, 21 frames, al 70%; `CheckActiveAura2`, Client.cpp:42148). Un sprite por enemigo del pool, creado la primera vez. Sus pivotes apuntan lejos: offset (115, 149) desde `bodyY`, medido en partida (el original usa sX+115). El original no tiñe de verde el cuerpo.
+- **Color del arma por atributo (Server.cpp:48721, Client.cpp:702-710):** el original **tiñe el dibujo** (en la mano, icono, suelo y ventana Character), sumando a cada píxel el color de su tabla de armas menos RGB(100,100,100): Sharp "Heavy-blue" (−58,−47,+11), Poisoning "Green" (−30,0,−30), Ancient "Violet" (+20,0,+20, rosa-lila). El **nombre** en el original era el mismo verde para todos los especiales; aquí cada uno en su color (`ATTRIBUTES[x].color`).
+  - `GearLayer.added` / `PaperDollPiece.added` y `hb/additiveTint.ts`: `colouredTexture` (capas que se redibujan) y `setColouredTexture` (imágenes quietas: se cambia a la teñida cuando está lista).
+  - Las armas e iconos **no guardan sus píxeles** (las espadas costarían ~16 MB): la hoja que hace falta se vuelve a leer de su `.spr` (caché del navegador), se decodifica y se tiñe; mientras tanto se ve sin teñir un instante.
+- **Dibujo de las varitas:** el "Appr" del Item.cfg (Client.cpp:3847): **todas** las Magic Wand y Wizard Staff usan `mstaff2` (34 = BerserkWand, 39 = KlonessWand). `gear.wand.m` pasó de `mstaff1` a `mstaff2` (el de la MS0 del original). Iconos: `item-pack` hoja 16, frames 1 (Magic/Wizard), 4 (Berserk), 5 (Kloness). Ojo: los nombres de sp-client ("Magic Wand 1/2") no coinciden con el original.
+- **Guardado:** personajes versión 6: `attributes` = atributo de lo puesto, por hueco (los objetos del inventario lo llevan en `OwnedItem.attribute`). En Equipment, el catálogo sigue libre, pero lo que tiene atributo sale del inventario al ponérselo y vuelve al quitárselo (`characterStore.equip(uid, slot, id, attribute)`). Las filas se estrechan si no caben (`EQUIPMENT_LIST.minRowHeight`).
+- **Equipment:** lo que se lleva puesto con atributo sale también en la lista (marcado), aunque ya no esté en el inventario.
+- **Varitas:** en el original **no pedían Int ni Mag**, solo Level (y Str 10 por peso, que ignoramos). Item.cfg da Level 30/40/50/90/95/100/120; el propietario prefirió los de la wiki (0/15/35/60/70/120). Berserk Wand no subía el daño por un error (`*(int)1.3` = ×1) y Kloness sumaba según la reputación: usamos +40% y +20% del propietario.
+- **Mana Save (para el futuro):** `WandDef.manaSave` (0,1 = 10%) aún no lo lee nadie; la carta lo enseña en gris "(soon)" junto a "Weapon". Al pasar la Spell 2 a maná: leer `getWand(equipment.wand).manaSave` en `ActiveSpellSystem` y quitar "(soon)" en `LootScene`.
+- **Probar:** `?attr=sharp|poison|ancient` (el arma de salida y todo el botín, siempre armas, con ese atributo), `pnpm check lootsharp`, `lootancient`, `poison`. `?gear=sharp:longSword` (con `?characters=demo`) mete esa arma en el inventario para verla en Equipment.
+

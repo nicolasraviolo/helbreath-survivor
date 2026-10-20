@@ -1,6 +1,8 @@
 // Aplica el daño de las armas a los enemigos (explosiones en círculo y tajos en arco): lo escala con los stats del jugador (Str o Mag), tira el crítico (Chr),
 // resta vida, destello y retroceso (en Enemy), número de daño, chispas o polvo (Fase 10), sonido de golpe o de muerte, y cuenta las muertes.
+// Fase 21B: con un arma Poison, los golpes físicos envenenan (data/attributes.ts); updatePoison() hace correr el veneno.
 import Phaser from 'phaser';
+import { POISON } from '../data/attributes';
 import { CRIT_DAMAGE_MULTIPLIER } from '../data/stats';
 import type { CharacterStats, DamageType } from '../entities/CharacterStats';
 import type { Enemy } from '../entities/Enemy';
@@ -45,6 +47,8 @@ const ARC_ALWAYS_HIT_PX = 14;
 
 export class CombatSystem {
     private killCount = 0;
+    /** The weapon in hand is Poison: physical hits poison the monsters they don't kill (Fase 21B). */
+    public poisonOnHit = false;
 
     constructor(
         private readonly enemies: EnemySystem,
@@ -102,6 +106,17 @@ export class CombatSystem {
         return count;
     }
 
+    /** The poison of every poisoned monster takes its health, with green numbers; it may kill (counted as a kill). */
+    public updatePoison(deltaMs: number): void {
+        this.enemies.forEachAlive((enemy) => {
+            const damage = enemy.tickPoison(deltaMs);
+            if (damage <= 0) return;
+            const killed = enemy.hp <= 0;
+            this.numbers.showPoison(enemy.x, enemy.bodyY - enemy.def.bodyOffsetY, damage, killed);
+            if (killed) this.slay(enemy);
+        });
+    }
+
     /** Kills one enemy outright, as if hit (debug: ?debug=bosskill). */
     public slay(enemy: Enemy): void {
         if (!enemy.kill()) return;
@@ -140,6 +155,7 @@ export class CombatSystem {
         const damage = Math.max(1, Math.round(scaled));
         const killed = enemy.takeDamage(damage, fromX, fromY, knockback);
         this.numbers.show(enemy.x, enemy.bodyY - enemy.def.bodyOffsetY, damage, critical || bigNumber, killed);
+        if (!killed && this.poisonOnHit && type === 'physical') enemy.poison(Math.max(1, Math.round(damage * POISON.levelShare)));
         if (killed) {
             this.killCount++;
             this.particles.death(enemy.x, enemy.y, enemy.bodyY);

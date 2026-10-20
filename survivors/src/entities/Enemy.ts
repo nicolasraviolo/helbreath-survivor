@@ -19,8 +19,10 @@ import type { AudioSystem } from '../systems/AudioSystem';
 import { enemySpeed, MONSTER_AI, MONSTER_DAMAGE, type EnemyDef } from '../data/enemies';
 import { hitChance } from '../data/defense';
 import { ELITE } from '../data/elites';
+import { POISON } from '../data/attributes';
+import { EFFECTS } from '../config/effects';
 import { FREEZE_TINT } from '../data/totems';
-import { TILE_SIZE } from '../config/gameConfig';
+import { DEPTH_EFFECT_OFFSET, TILE_SIZE } from '../config/gameConfig';
 import { HBAsset } from '../hb/HBAsset';
 import type { HBMap } from '../hb/HBMap';
 import { getSheetKey } from '../hb/HBSprite';
@@ -32,6 +34,8 @@ import { moveAxis } from '../utils/collision';
 import type { Poolable } from '../utils/Pool';
 
 /** Texture key suffix of a sheet's red copy for the elites (hb/additiveTint.ts → tintedKey). */
+/** The poison cloud's animation (config/effects.ts). */
+const POISON_CLOUD_EFFECT = 'fx.poison.cloud';
 const ELITE_GLOW_SUFFIX = tintedKey('', 'elite');
 
 export enum EnemyPhase {
@@ -104,6 +108,11 @@ export class Enemy implements Poolable {
     private frozenMs = 0;
     /** Elite (data/elites.ts): hits harder, has more health and gives more XP; glows red like the player's Berserk. */
     public elite = false;
+    /** Poison (Fase 21B, data/attributes.ts): its level (0 = not poisoned) and the time to the next tick. */
+    private poisonLevel = 0;
+    private poisonTickMs = 0;
+    /** The original's green cloud over it while poisoned; made the first time this (pooled) enemy is poisoned. */
+    private poisonCloud: Phaser.GameObjects.Sprite | undefined;
 
     constructor(scene: Phaser.Scene, public readonly def: EnemyDef, private readonly audio: AudioSystem) {
         const scale = def.scale ?? 1;
@@ -147,6 +156,7 @@ export class Enemy implements Poolable {
         this.braveryChecked = false;
         this.chargeMs = 0;
         this.frozenMs = 0;
+        this.cure();
         this.sprite.anims.resume();
         const roll = Phaser.Math.Between(1, MONSTER_AI.strategyDie);
         this.strategy = roll === MONSTER_AI.hitAndRunRoll ? 'hitAndRun' : roll === MONSTER_AI.twoHitsAndRunRoll ? 'twoHitsAndRun' : 'normal';
@@ -233,10 +243,57 @@ export class Enemy implements Poolable {
         return true;
     }
 
+    public get isPoisoned(): boolean {
+        return this.poisonLevel > 0;
+    }
+
+    /** Poisoned by a Poison weapon: only if it is not poisoned already, as in the original (reference/Server.cpp:54261). */
+    public poison(level: number): void {
+        if (!this.isAlive || this.isPoisoned || level <= 0) return;
+        this.poisonLevel = level;
+        this.poisonTickMs = POISON.tickMs;
+        if (!this.poisonCloud) {
+            this.poisonCloud = this.sprite.scene.add.sprite(0, 0, '__DEFAULT').setAlpha(POISON.cloudAlpha);
+        }
+        if (this.sprite.scene.anims.exists(POISON_CLOUD_EFFECT)) this.poisonCloud.setActive(true).setVisible(true).play(POISON_CLOUD_EFFECT);
+        this.syncPoisonCloud();
+    }
+
+    /**
+     * Runs the poison: the health it took this frame (0 most frames). Each tick takes 1d(level) and may cure it
+     * (PoisonEffect, Server.cpp:33105). It may kill: the caller checks hp.
+     */
+    public tickPoison(deltaMs: number): number {
+        if (!this.isPoisoned) return 0;
+        if (!this.isAlive) {
+            this.cure();
+            return 0;
+        }
+        this.syncPoisonCloud();
+        this.poisonTickMs -= deltaMs;
+        if (this.poisonTickMs > 0) return 0;
+        this.poisonTickMs += POISON.tickMs;
+        const damage = Phaser.Math.Between(1, this.poisonLevel);
+        this.hp -= damage;
+        if (Math.random() < POISON.cureChance) this.cure();
+        return damage;
+    }
+
+    private cure(): void {
+        this.poisonLevel = 0;
+        this.poisonCloud?.stop().setActive(false).setVisible(false);
+    }
+
+    private syncPoisonCloud(): void {
+        const def = EFFECTS[POISON_CLOUD_EFFECT];
+        this.poisonCloud?.setPosition(this.x + def.offsetX, this.bodyY + def.offsetY).setDepth(this.y + DEPTH_EFFECT_OFFSET);
+    }
+
     /** Starts the death animation. Returns false if it was already dead. */
     public kill(): boolean {
         if (!this.isAlive) return false;
         this.phase = EnemyPhase.Dying;
+        this.cure();
         if (this.isFrozen) this.thaw();
         this.shadow?.setVisible(false);
         this.play(MonsterState.Dead, true);

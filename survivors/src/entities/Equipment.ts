@@ -1,9 +1,12 @@
 // Lo que lleva puesto el personaje: el arma cuerpo a cuerpo o el hechizo "en la mano" y una pieza por hueco de armadura.
 // Calcula la defensa total, el bonus de daño mágico de la ropa y qué capas hay que dibujar al cambiar una pieza.
+// Fase 21B: la varita de la Maga (data/wands.ts) y el atributo del arma o la varita en la mano (data/attributes.ts).
+import { attributeColor, attributeDamageBonus, type ItemAttribute } from '../data/attributes';
 import { ARMOR_BY_SET, ARMOR_PIECES, ARMOR_SLOT_IDS, getArmorPiece, MAX_DEFENSE, type ArmorPieceId, type ArmorSlotId } from '../data/armor';
 import type { CharacterDef } from '../data/characters';
 import { passiveBonus, type PassiveId } from '../data/passives';
 import type { AutoSpellId } from '../data/spells';
+import { getWand, type WandId } from '../data/wands';
 import { getMeleeWeapon, type MeleeWeaponId } from '../data/weapons';
 import type { GearLayer, GearSlot } from '../hb/playerAppearance';
 
@@ -17,6 +20,10 @@ function pieceValue(piece: ArmorPieceId, key: ArmorTotal): number {
 export class Equipment {
     public weapon: MeleeWeaponId | undefined;
     public spell: AutoSpellId | undefined;
+    /** The Mage's wand (Fase 21B): only for looks, except the Berserk and Kloness wands' extra magic damage. */
+    public wand: WandId | undefined;
+    /** Sharp, Poison or Ancient of the weapon or wand in hand (Fase 21B). */
+    public weaponAttribute: ItemAttribute | undefined;
     /** One piece per armor slot; changed only through wear(), which keeps `totals` up to date. */
     private readonly worn: Partial<Record<ArmorSlotId, ArmorPieceId>> = {};
     /** Rank of each passive (0 = not taken). */
@@ -60,9 +67,19 @@ export class Equipment {
         return this.totals.magicResistance;
     }
 
-    /** Extra magic damage from the clothes worn (0.1 = +10%). */
+    /** Extra magic damage from the clothes worn and the wand (0.1 = +10%). */
     public get magicDamageBonus(): number {
-        return this.totals.magicDamageBonus;
+        return this.totals.magicDamageBonus + (this.wand ? getWand(this.wand).magicDamageBonus : 0);
+    }
+
+    /** Extra damage of the weapon's attribute (Sharp +10%, Ancient +20%); for the Mage, of her spells. */
+    public get attributeDamageBonus(): number {
+        return attributeDamageBonus(this.weaponAttribute);
+    }
+
+    /** Hits poison the monsters (a Poison weapon). */
+    public get poisons(): boolean {
+        return this.weaponAttribute === 'poison';
     }
 
     /**
@@ -81,8 +98,12 @@ export class Equipment {
 
     /** Layer drawn for the weapon in hand (undefined if the weapon has no sprite). */
     public weaponLayer(): GearLayer | undefined {
+        // Fase 21B: in its attribute's colour (set weaponAttribute before asking for the layer).
+        const added = attributeColor(this.weaponAttribute);
+        const colour = added ? { added } : {};
+        if (this.wand) return { sprite: getWand(this.wand).sprite, ...colour };
         const sprite = this.weapon ? getMeleeWeapon(this.weapon).sprite : undefined;
-        return sprite ? { sprite: sprite.key, startSheet: sprite.startSheet } : undefined;
+        return sprite ? { sprite: sprite.key, startSheet: sprite.startSheet, ...colour } : undefined;
     }
 
     /**

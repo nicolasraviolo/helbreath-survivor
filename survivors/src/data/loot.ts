@@ -7,14 +7,18 @@
 // - Al cogerlo, carta de comparación (scenes/LootScene.ts): "Equip" o "Keep in bag".
 // - La bolsa va al inventario del personaje al terminar la partida (propietario, 20-oct-2026). En el 21C: baúl
 //   compartido, y al morir sin Zem se pierde lo encontrado.
-// - Atributos (21B, decididos el 20-oct-2026): Sharp 10%, Poison 5%, Ancient 1%. Aún no se usan.
+// - Atributos (21B, decididos el 20-oct-2026): Sharp 10%, Poison 5%, Ancient 1%, solo en armas y varitas
+//   (data/attributes.ts). Las varitas de la Maga caen menos que sus hechizos, y Berserk y Kloness muchísimo menos.
 import type { SoundKey } from '../config/assetManifest';
+import type { ItemAttribute } from './attributes';
+import type { CharacterId } from './characters';
 import type { ItemIconFrame } from './itemTypes';
 import type { EquipSlotId, ItemId } from './items';
 
-/** One item the character owns or found (21B will add its attribute: Sharp, Ancient or Poison). */
+/** One item the character owns or found, with its attribute if it has one (Fase 21B). */
 export interface OwnedItem {
     id: ItemId;
+    attribute?: ItemAttribute;
 }
 
 /** Chance that a monster drops an item when it dies (0..1). */
@@ -54,8 +58,16 @@ export const LOOT_SLOT_WEIGHTS: Readonly<Record<EquipSlotId, number>> = {
     spell2: 2,
 };
 
-/** Attributes for 21B (owner, 20-oct-2026): chance of each, from the rarest. Not used yet. */
-export const LOOT_ATTRIBUTE_CHANCE = { ancient: 0.01, poison: 0.05, sharp: 0.1 } as const;
+/** Class exceptions to LOOT_SLOT_WEIGHTS: the Mage's wands come out less than its spells (Fase 21B). */
+export const LOOT_SLOT_WEIGHTS_BY_CLASS: Readonly<Partial<Record<CharacterId, Partial<Record<EquipSlotId, number>>>>> = {
+    mage: { weapon: 1 },
+};
+
+/**
+ * Rare items (the Berserk and Kloness wands, owner 20-oct-2026): when the roll lands on one, it is kept only with this
+ * chance; otherwise the best item below it that is not rare drops instead.
+ */
+export const LOOT_RARE_KEEP_CHANCE = 0.1;
 
 /** Picture of the spells (they have no icon of their own yet): the original's "Manual", a book (item-pack and item-ground 5/92). */
 export const SPELL_ITEM_ICON: ItemIconFrame = { sheet: 5, frame: 92 };

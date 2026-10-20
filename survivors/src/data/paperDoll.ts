@@ -8,10 +8,11 @@
 // - Se parte de las mismas capas que el muñeco animado (ropa de la clase + equipo, data/items.ts → equipmentLook), así
 //   que la ropa de salida (camisa, pantalón, corpiño, falda, botas, varita) también sale.
 import type { SpriteKey } from '../config/assetManifest';
-import type { GearLayer, GearSlot } from '../hb/playerAppearance';
+import type { ItemAttribute } from './attributes';
+import type { AddedColor, GearLayer, GearSlot } from '../hb/playerAppearance';
 import { gearForGender, type CharacterLook, type Gender } from './appearance';
 import type { CharacterDef } from './characters';
-import { equipmentLook, isMeleeWeaponId, type SavedEquipment } from './items';
+import { equipmentLook, isMeleeWeaponId, type EquipSlotId, type SavedEquipment } from './items';
 import { getMeleeWeapon } from './weapons';
 
 export const PAPER_DOLL_SPRITES: Record<Gender, SpriteKey> = { male: 'item.equip.m', female: 'item.equip.w' };
@@ -56,8 +57,10 @@ const CLOTHES: Partial<Record<SpriteKey, CfgPicture>> = {
     'gear.helm.winged.m': { spr: 21, frame: 3 }, 'gear.helm.winged.w': { spr: 21, frame: 3 },
     'gear.helm.wizardCap.m': { spr: 21, frame: 4 }, 'gear.helm.wizardCap.w': { spr: 21, frame: 4 },
     'gear.helm.wizard.m': { spr: 21, frame: 5 }, 'gear.helm.wizardHat.w': { spr: 21, frame: 5 },
-    // MagicWand(MS0): the Mage's fixed wand.
+    // Wands (Fase 21B, data/wands.ts): Magic Wand and Wizard Staff, Berserk Wand, Kloness Wand.
     'gear.wand.m': { spr: 17, frame: 1 }, 'gear.wand.w': { spr: 17, frame: 1 },
+    'gear.wand.berserk.m': { spr: 17, frame: 4 }, 'gear.wand.berserk.w': { spr: 17, frame: 4 },
+    'gear.wand.kloness.m': { spr: 17, frame: 5 }, 'gear.wand.kloness.w': { spr: 17, frame: 5 },
 };
 const SHIELD_SPR = 3;
 /** msh/wsh.spr have 7 sheets per shield, in the Item.cfg frame order. */
@@ -88,6 +91,8 @@ export interface PaperDollPiece {
     tint?: number;
     /** Hair only: index in HAIR_COLORS, added as in the original. */
     hairColor?: number;
+    /** The weapon's attribute colour, added as in the game (Fase 21B). */
+    added?: AddedColor;
 }
 
 function picture(slot: GearSlot, layer: GearLayer, equipment: Readonly<SavedEquipment>): CfgPicture | undefined {
@@ -101,11 +106,13 @@ function picture(slot: GearSlot, layer: GearLayer, equipment: Readonly<SavedEqui
 }
 
 /** Every picture of the character's window, from the bottom one to the top one. */
-export function paperDollPieces(def: CharacterDef, look: CharacterLook, equipment: Readonly<SavedEquipment>): PaperDollPiece[] {
+export function paperDollPieces(
+    def: CharacterDef, look: CharacterLook, equipment: Readonly<SavedEquipment>, attributes: Readonly<Partial<Record<EquipSlotId, ItemAttribute>>> = {},
+): PaperDollPiece[] {
     const { gender } = look;
     const places = PLACES[gender];
     const layers: Partial<Record<GearSlot, GearLayer>> = { ...def.appearance };
-    for (const [slot, layer] of equipmentLook(equipment)) layers[slot] = layer;
+    for (const [slot, layer] of equipmentLook(equipment, attributes)) layers[slot] = layer;
     const body = places.body;
     const pieces: PaperDollPiece[] = [{ sheet: BODY_SHEET, frame: BODY_FRAME_BY_SKIN[look.skin] ?? 1, ...body }];
     if (!layers.helm) pieces.push({ sheet: HAIR_SHEET, frame: look.hairStyle, ...body, hairColor: look.hairColor });
@@ -118,7 +125,9 @@ export function paperDollPieces(def: CharacterDef, look: CharacterLook, equipmen
         const pic = picture(slot, { ...layer, sprite }, equipment);
         const sheet = pic && SPR_TO_SHEET[gender][pic.spr];
         if (!pic || sheet === undefined) return;
-        pieces.push({ sheet, frame: pic.frame, ...places[place], ...(layer.tint !== undefined ? { tint: layer.tint } : {}) });
+        pieces.push({
+            sheet, frame: pic.frame, ...places[place], ...(layer.tint !== undefined ? { tint: layer.tint } : {}), ...(layer.added ? { added: layer.added } : {}),
+        });
     };
     // The original draws a woman's boots under a skirt (right after the cape).
     const skirt = gender === 'female' && layers.leggings !== undefined && gearForGender(layers.leggings.sprite, gender) === 'gear.skirt.w';

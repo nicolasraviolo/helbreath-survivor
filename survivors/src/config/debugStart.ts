@@ -21,6 +21,8 @@
 //                      sim = partida simulada muy deprisa para medir el equilibrio (systems/SimRun.ts, Fase 13C)
 //   ?spells=fireBall,meteorStrike → hechizos del Mago en esta partida (uno automático y/o uno activo, en cualquier
 //                      orden; los ids de data/spells.ts y data/activeSpells.ts), sin mirar requisitos (Fase 20D)
+//   ?attr=sharp      → el arma de salida y todo el botín (que siempre es un arma) con ese atributo: sharp, poison o
+//                      ancient (Fase 21B; las varitas nunca son poison)
 //   ?slash=2         → estilo de la estela del tajo (número en data/slash.ts; tecla Y para pasar al siguiente; M15)
 //   ?loading=hold    → la pantalla de carga se queda a medias, para verla con calma (M8)
 //   ?trees=off       → árboles grandes en ese modo solo en esta partida (on, off), sin guardarlo
@@ -33,13 +35,15 @@
 //                      sin repartir (o del primero); con ?characters=demo, Gorn tiene puntos
 //   ?gear=plateMail,helmet → con ?characters=demo, los dos de ejemplo llevan esos objetos (los que su clase pueda
 //                      ponerse, sin mirar requisitos; ids de data/weapons.ts y data/armor.ts). Para ver el equipo
-//                      dibujado en la ventana Character (M17).
+//                      dibujado en la ventana Character (M17). "sharp:longSword" lo mete en el inventario con ese
+//                      atributo (Fase 21B), para verlo en Equipment.
 //   ?characters=reset → borra los personajes guardados al cargar (demo = deja dos de ejemplo; Fase 17A)
 //   ?achievements=reset → borra los logros conseguidos al cargar (all = los da todos, para ver la pantalla llena; Fase 14B)
 //   ?metrics=send    → enviar las métricas de esta partida al servidor de verdad (en desarrollo no se envían; Fase 14A)
 //   Se combina con ?ui=compact (interfaz de móvil).
 // En el build publicado no hace nada.
 import { isActiveSpellId, type ActiveSpellId } from '../data/activeSpells';
+import { isItemAttribute, type ItemAttribute } from '../data/attributes';
 import { isCharacterId, type CharacterId } from '../data/characters';
 import { isAutoSpellId, type AutoSpellId } from '../data/spells';
 import { TREE_MODES, type TreeMode } from './settings';
@@ -89,13 +93,15 @@ interface DebugStart {
     gear: string[];
     /** Settings tab to open first: the start of its name, in lower case (?tab=gameplay; M13). */
     settingsTab: string | undefined;
+    /** ?attr=: the starting weapon and every drop (always a weapon) get that attribute (Fase 21B). */
+    attribute: ItemAttribute | undefined;
 }
 
 function readDebugStart(): DebugStart {
     const none: DebugStart = {
         play: false, character: undefined, actions: [], trees: undefined, open: undefined, achievements: undefined, characters: undefined,
         sendMetrics: false, spells: { auto: undefined, active: undefined }, openClass: undefined, slash: undefined,
-        holdLoading: false, gear: [], settingsTab: undefined,
+        holdLoading: false, gear: [], settingsTab: undefined, attribute: undefined,
     };
     if (!import.meta.env.DEV) return none;
     const params = new URLSearchParams(window.location.search);
@@ -108,6 +114,7 @@ function readDebugStart(): DebugStart {
     const spells = (params.get('spells') ?? '').split(',').map((s) => s.trim());
     const openClass = params.get('class');
     const slash = params.get('slash');
+    const attribute = params.get('attr');
     return {
         play: play !== null || actions.length > 0 || trees !== undefined || slash !== null,
         character: isCharacterId(play) ? play : undefined,
@@ -123,6 +130,7 @@ function readDebugStart(): DebugStart {
         holdLoading: params.get('loading') === 'hold',
         gear: (params.get('gear') ?? '').split(',').map((g) => g.trim()).filter((g) => g.length > 0),
         settingsTab: params.get('tab')?.toLowerCase() ?? undefined,
+        attribute: isItemAttribute(attribute) ? attribute : undefined,
     };
 }
 

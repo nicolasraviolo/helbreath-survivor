@@ -4,9 +4,10 @@
 import Phaser from 'phaser';
 import { HAIR_COLOR_SCALE, HAIR_COLORS, type CharacterLook } from '../data/appearance';
 import type { CharacterDef } from '../data/characters';
-import type { SavedEquipment } from '../data/items';
+import type { ItemAttribute } from '../data/attributes';
+import type { EquipSlotId, SavedEquipment } from '../data/items';
 import { PAPER_DOLL_SPRITES, paperDollPieces, type PaperDollPiece } from '../data/paperDoll';
-import { ensureAdditiveTexture, tintedKey } from '../hb/additiveTint';
+import { colouredTexture, ensureAdditiveTexture, tintedKey } from '../hb/additiveTint';
 import { Direction } from '../hb/directions';
 import { getSheetKey } from '../hb/HBSprite';
 import { PlayerState } from '../hb/playerAppearance';
@@ -33,17 +34,19 @@ export class PaperDoll {
         look: CharacterLook,
         equipment: Readonly<SavedEquipment>,
         place: PaperDollPlacement,
+        /** Attributes of the gear worn (Fase 21B): the weapon in its colour. */
+        attributes: Readonly<Partial<Record<EquipSlotId, ItemAttribute>>> = {},
     ) {
         this.container = scene.add.container(place.x, place.y).setScale(place.scale);
         const key = PAPER_DOLL_SPRITES[look.gender];
-        const pieces = paperDollPieces(def, look, equipment);
+        const pieces = paperDollPieces(def, look, equipment, attributes);
         if (lookLoader.isReady(scene, key)) {
             this.draw(key, pieces);
             return;
         }
         this.standIn = new CharacterSprite(scene, def, look, place.standInX, place.standInY);
         this.standIn.container.setScale(place.scale);
-        this.standIn.wearEquipment(equipment);
+        this.standIn.wearEquipment(equipment, attributes);
         this.standIn.setPose(PlayerState.IdleCombat, Direction.South);
         void lookLoader.ensure(scene, [key]).then(() => {
             if (!this.container.active || !lookLoader.isReady(scene, key)) return;
@@ -73,9 +76,10 @@ export class PaperDoll {
         }
     }
 
-    /** The sheet, or the hair's copy with its colour added (as CharacterSprite does). */
+    /** The sheet, or the hair's or weapon's copy with its colour added (as CharacterSprite does). */
     private textureOf(baseKey: string, piece: PaperDollPiece): string | undefined {
         const textures = this.scene.sys.textures;
+        if (piece.added) return colouredTexture(textures, baseKey, piece.added);
         const color = piece.hairColor === undefined ? undefined : HAIR_COLORS[piece.hairColor];
         if (!color) return textures.exists(baseKey) ? baseKey : undefined;
         const key = tintedKey(baseKey, `hair${piece.hairColor}`);

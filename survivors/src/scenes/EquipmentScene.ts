@@ -6,6 +6,9 @@
 //   elegido (data/items.ts). Cada objeto enseña su requisito; en rojo lo que el personaje no cumple, y entonces no se
 //   puede poner. Los hechizos aún no tienen dibujo: su casilla lleva el nombre.
 // - Ponerse o quitarse algo se guarda al momento (characterStore.equip). Ok, Esc o B cierran.
+// - Fase 21B: la Maga elige varita en el hueco Weapon. Debajo del catálogo salen las armas con atributo del inventario
+//   ("Sharp Long Sword ×1"), con el nombre en su color; ponérsela la saca del inventario. Si no caben, las filas se
+//   estrechan.
 // Teclado y mando: izquierda/derecha eligen hueco, abajo entra en la lista, Enter / A se pone el objeto marcado.
 import Phaser from 'phaser';
 import {
@@ -43,6 +46,9 @@ import {
 import { GAME_HEIGHT, GAME_WIDTH } from '../config/gameConfig';
 import { totalExpForLevel, CHARACTER_LEVEL_MAX } from '../data/characterLevel';
 import { CHARACTERS } from '../data/characters';
+import { attributeColor, ATTRIBUTES, type ItemAttribute } from '../data/attributes';
+import { setColouredTexture } from '../hb/additiveTint';
+import type { OwnedItem } from '../data/loot';
 import {
     canChangeSlot,
     canEmptySlot,
@@ -56,6 +62,7 @@ import {
     SPELL_SLOT_IDS,
     itemIcon,
     itemInfo,
+    ownedItemName,
     requirementChecks,
     type EquipSlotId,
     type ItemId,
@@ -75,6 +82,8 @@ export interface EquipmentSceneData {
 /** A row of the list: an item, or undefined for "Nothing" (empty the slot). */
 interface Row {
     id: ItemId | undefined;
+    /** An item with an attribute from the inventory (Fase 21B). */
+    attribute: ItemAttribute | undefined;
     background: Phaser.GameObjects.Rectangle;
     objects: Phaser.GameObjects.GameObject[];
 }
@@ -90,6 +99,8 @@ export class EquipmentScene extends Phaser.Scene {
     private focus: Focus = { kind: 'slot' };
     private slotBoxes = new Map<EquipSlotId, { box: Phaser.GameObjects.Rectangle; icon: Phaser.GameObjects.Image; name: Phaser.GameObjects.Text }>();
     private rows: Row[] = [];
+    /** Height of each row of the list: smaller when the items don't fit (Fase 21B). */
+    private rowHeight: number = EQUIPMENT_LIST.rowHeight;
     private doll: PaperDoll | undefined;
     private okButton!: Phaser.GameObjects.Image;
     private focusFrame!: Phaser.GameObjects.Rectangle;
@@ -209,7 +220,7 @@ export class EquipmentScene extends Phaser.Scene {
         this.doll = new PaperDoll(this, CHARACTERS[character.classId], character.look, character.equipment, {
             x: this.sx(0), y: this.sy(0), scale: CHARACTER_INFO_SCALE,
             standInX: this.sx(CHARACTER_INFO_DOLL.x), standInY: this.sy(CHARACTER_INFO_DOLL.y),
-        });
+        }, character.attributes);
     }
 
     // ---- Slots (top of the panel) ----
@@ -271,21 +282,21 @@ export class EquipmentScene extends Phaser.Scene {
         if (!character) return;
         for (const [slot, { icon, name }] of this.slotBoxes) {
             const id = character.equipment[slot];
-            this.setIcon(icon, id, EQUIPMENT_SLOTS.iconSize);
+            this.setIcon(icon, id, EQUIPMENT_SLOTS.iconSize, character.attributes[slot]);
             name.setText(id && isSpellItemId(id) ? (itemInfo(id)?.name ?? '') : '');
         }
     }
 
     /** Shows an item's picture fitted inside `size` (hidden while item-pack.spr is downloading, or without an item). */
-    private setIcon(image: Phaser.GameObjects.Image, id: ItemId | undefined, size: number): void {
+    private setIcon(image: Phaser.GameObjects.Image, id: ItemId | undefined, size: number, attribute?: ItemAttribute): void {
         const character = this.character;
         const frame = id && character ? itemIcon(id, character.look.gender) : undefined;
-        const texture = frame ? itemPackTexture(frame.sheet) : '';
-        if (!frame || !this.iconsReady || !this.textures.exists(texture)) {
+        // Fase 21B: a weapon with an attribute in its colour.
+        if (!frame || !this.iconsReady || !setColouredTexture(image, itemPackTexture(frame.sheet), frame.frame, attributeColor(attribute))) {
             image.setVisible(false);
             return;
         }
-        image.setTexture(texture, frame.frame).setVisible(true);
+        image.setVisible(true);
         image.setScale(Math.min(1, size / Math.max(image.frame.width, image.frame.height)));
     }
 
@@ -303,29 +314,44 @@ export class EquipmentScene extends Phaser.Scene {
         }
         const character = this.character;
         if (!character) return;
-        const ids: Array<ItemId | undefined> = catalog(character.classId, slot);
-        if (ids.length > 0 && canEmptySlot(slot)) ids.unshift(undefined);
-        this.rows = ids.map((id, index) => this.createRow(character, id, index));
+        const items: Array<OwnedItem | undefined> = catalog(character.classId, slot).map((id) => ({ id }));
+        if (items.length > 0 && canEmptySlot(slot)) items.unshift(undefined);
+        // Fase 21B: the items with an attribute kept in the inventory, after the catalog.
+        // What it wears with an attribute is listed too (it is no longer in the inventory), first.
+        const worn = characterStore.worn(this.uid, slot);
+        if (worn?.attribute) items.push(worn);
+        const owned = characterStore.ownedWithAttribute(this.uid, slot)
+            .filter((entry) => entry.item.id !== worn?.id || entry.item.attribute !== worn.attribute);
+        items.push(...owned.map((entry) => entry.item));
+        const okTop = EQUIPMENT_PANEL.y + EQUIPMENT_PANEL.height - EQUIPMENT_OK.bottom - EQUIPMENT_OK.height * EQUIPMENT_OK.scale;
+        const room = okTop - (EQUIPMENT_PANEL.y + EQUIPMENT_LIST.top) - EQUIPMENT_LIST.bottomGap;
+        this.rowHeight = Math.max(EQUIPMENT_LIST.minRowHeight, Math.min(EQUIPMENT_LIST.rowHeight, Math.floor(room / Math.max(1, items.length))));
+        this.rows = items.map((item, index) => this.createRow(character, item, index));
     }
 
-    private createRow(character: Readonly<SavedCharacter>, id: ItemId | undefined, index: number): Row {
+    private createRow(character: Readonly<SavedCharacter>, item: OwnedItem | undefined, index: number): Row {
         const l = EQUIPMENT_LIST;
         const p = EQUIPMENT_PANEL;
+        const id = item?.id;
+        const attribute = item?.attribute;
+        const rowHeight = this.rowHeight;
+        const iconSize = Math.min(l.iconSize, rowHeight - 4);
         const x = p.x + p.padding;
-        const y = p.y + l.top + index * l.rowHeight;
+        const y = p.y + l.top + index * rowHeight;
         const width = p.width - p.padding * 2;
-        const worn = character.equipment[this.slot] === id;
-        const background = this.add.rectangle(x, y, width, l.rowHeight - 2, l.wornColor, worn ? 1 : 0).setOrigin(0);
+        const worn = character.equipment[this.slot] === id && character.attributes[this.slot] === attribute;
+        const background = this.add.rectangle(x, y, width, rowHeight - 2, l.wornColor, worn ? 1 : 0).setOrigin(0);
         const objects: Phaser.GameObjects.GameObject[] = [];
-        const middle = y + (l.rowHeight - 2) / 2;
-        const icon = this.add.image(x + l.iconSize / 2 + 4, middle, '__DEFAULT');
-        this.setIcon(icon, id, l.iconSize);
+        const middle = y + (rowHeight - 2) / 2;
+        const icon = this.add.image(x + iconSize / 2 + 4, middle, '__DEFAULT');
+        this.setIcon(icon, id, iconSize, attribute);
         objects.push(icon);
-        const name = id ? (itemInfo(id)?.name ?? id) : 'Nothing';
-        const nameText = this.add.text(x + l.iconSize + 12, middle, name, EQUIPMENT_ROW_STYLE).setOrigin(0, 0.5);
+        const name = item ? ownedItemName(item) : 'Nothing';
+        const color = attribute ? `#${ATTRIBUTES[attribute].color.toString(16).padStart(6, '0')}` : EQUIPMENT_ROW_STYLE.color;
+        const nameText = this.add.text(x + l.iconSize + 12, middle, name, { ...EQUIPMENT_ROW_STYLE, color }).setOrigin(0, 0.5);
         objects.push(nameText);
         // Fase 21A: how many the character keeps in its inventory (the catalog stays free until 21C).
-        const owned = id ? characterStore.ownedCount(this.uid, id) : 0;
+        const owned = id ? characterStore.ownedCount(this.uid, id, attribute) : 0;
         if (owned > 0) {
             objects.push(this.add.text(nameText.x + nameText.width + 6, middle, `×${owned}`, { ...EQUIPMENT_DETAIL_STYLE, color: EQUIPMENT_OWNED_COLOR })
                 .setOrigin(0, 0.5));
@@ -347,7 +373,7 @@ export class EquipmentScene extends Phaser.Scene {
             this.setFocus({ kind: 'row', index });
             this.wear(index);
         });
-        return { id, background, objects };
+        return { id, attribute, background, objects };
     }
 
     private createOk(): void {
@@ -385,20 +411,19 @@ export class EquipmentScene extends Phaser.Scene {
         if (!character) return '';
         if (this.focus.kind === 'ok') return 'Your equipment is saved as you change it.';
         if (this.focus.kind === 'slot') {
-            if (!canChangeSlot(character.classId, this.slot)) {
-                return this.slot === 'weapon' ? 'The Mage fights with spells: the wand stays in hand.' : 'Only the Mage casts spells.';
-            }
-            const id = character.equipment[this.slot];
-            return `${EQUIP_SLOT_NAMES[this.slot]}: ${id ? (itemInfo(id)?.name ?? id) : 'nothing'}.`;
+            if (!canChangeSlot(character.classId, this.slot)) return 'Only the Mage casts spells.';
+            const worn = characterStore.worn(this.uid, this.slot);
+            return `${EQUIP_SLOT_NAMES[this.slot]}: ${worn ? ownedItemName(worn) : 'nothing'}.`;
         }
-        const id = this.rows[this.focus.index]?.id;
-        if (!id) return `Take off what you wear in this slot.`;
-        const info = itemInfo(id);
+        const row = this.rows[this.focus.index];
+        const id = row?.id;
+        if (!row || !id) return `Take off what you wear in this slot.`;
         const unmet = requirementChecks(id, permanentStats(character), character.level).filter((check) => !check.met);
         const needs = unmet.length > 0 ? ` Needs ${unmet.map((check) => check.label).join(', ')}.` : '';
-        const owned = characterStore.ownedCount(this.uid, id);
+        const owned = characterStore.ownedCount(this.uid, id, row.attribute);
         const kept = owned > 0 ? ` You keep ${owned} in your inventory.` : '';
-        return `${info?.name ?? id}: ${describeItem(id)}.${needs}${kept}`;
+        const attribute = row.attribute ? ` ${ATTRIBUTES[row.attribute].description}.` : '';
+        return `${ownedItemName({ id, attribute: row.attribute })}: ${describeItem(id)}.${attribute}${needs}${kept}`;
     }
 
     private moveSideways(dx: number): void {
@@ -428,7 +453,8 @@ export class EquipmentScene extends Phaser.Scene {
     /** Row of the item worn now (the first one if the slot holds nothing listed). */
     private wornRow(): number {
         const worn = this.character?.equipment[this.slot];
-        return Math.max(0, this.rows.findIndex((row) => row.id === worn));
+        const attribute = this.character?.attributes[this.slot];
+        return Math.max(0, this.rows.findIndex((row) => row.id === worn && row.attribute === attribute));
     }
 
     private press(): void {
@@ -441,7 +467,10 @@ export class EquipmentScene extends Phaser.Scene {
     private wear(index: number): void {
         const row = this.rows[index];
         if (!row) return;
-        if (!characterStore.equip(this.uid, this.slot, row.id)) {
+        // Already worn (an item with an attribute can't be put on again: it is no longer in the inventory).
+        const character = this.character;
+        if (row.id !== undefined && character?.equipment[this.slot] === row.id && character.attributes[this.slot] === row.attribute) return;
+        if (!characterStore.equip(this.uid, this.slot, row.id, row.attribute)) {
             this.helpText.setText(`${this.describeFocus()} Assign points with Level Set.`);
             return;
         }
