@@ -70,6 +70,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Monstruos élite (M2)
 - Bugs del bloque B (20-oct-2026)
 - Pantalla de carga (M8)
+- Equipo sobre el cuerpo en la ventana Character (M17)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -829,3 +830,10 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - El original del propietario era un JPG con el cuadriculado de "transparente" pintado: se recortó quitando los píxeles grises (poca saturación) y conservando los muy oscuros de la cola (el fondo nunca baja de brillo ~85; la sombra, ~68, se descarta).
 - `?loading=hold` / `check loading`: la carga se para a la mitad para poder verla.
 - `sp-client/.../loadingbg.spr` no tiene logo: siluetas (casco, hacha, árbol), nubes y fondos de 1920×1080 sin uso en el cliente.
+
+## Equipo sobre el cuerpo en la ventana Character (M17)
+- `item-equipm.spr` / `item-equipw.spr` (15 hojas): dibujos grandes y quietos del original (`DrawDialogBox_Character`, `reference/Client.cpp:32648`; sp-client no lo tiene). Hoja 0 cuerpo (frame por piel: **1 clara, 2 morena, 0 oscura**), 9 pelo (frame = peinado, teñido sumando), 10 ropa interior; el resto, por el grupo "Spr" de `Item*.cfg` con `SPR_TO_SHEET` (hombre y mujer reparten distinto: Client.cpp:3559-3611).
+- El frame es el "SFrame" del cfg: **los mismos dos números que el icono de item-pack** (icono = Spr − 1, salvo cascos y capa). Escudos: frame = startSheet / 7. Espadas: el frame de su icono.
+- Posiciones del original en píxeles de la ventana (su pivote es 0,0); cada frame trae su pivote. Orden: cuerpo, pelo (no con casco), ropa interior, capa, pantalón, camisa/cota, botas, armadura, escudo, arma, casco. Con falda, las botas van antes del pantalón.
+- Código: `data/paperDoll.ts` (tabla por sprite del juego, así sale también la ropa de la clase) y `entities/PaperDoll.ts`. Bajo demanda (`item.equip.m/w`, tipo `PaperDoll` = canvas, para el pelo); mientras llega se ve el muñeco animado.
+- Probar: `?characters=demo&open=charinfo&gear=plateMail,hornedHelmet,towerShield,cape,claymore` (`?gear=` viste a los dos de ejemplo sin mirar requisitos); `&open=equipment&class=mage` para la mujer.

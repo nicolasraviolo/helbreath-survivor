@@ -19,7 +19,7 @@ export const RELEASE_NOTES: readonly ReleaseNote[] = [
         changes: [
             'Permanent Level: every run now makes your character stronger.',
             'New Character window to assign your stat points.',
-            'New Equipment screen: choose your gear and spells before each run.',
+            'New Equipment screen: choose your gear and see it on your character.',
             'New cards: Stone of Xelima and Stone of Merien.',
             'New sword slash, rare elite monsters, a new loading screen and many fixes.',
         ],

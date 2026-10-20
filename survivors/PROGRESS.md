@@ -8,14 +8,15 @@
 
 ## Fase actual
 **Fase 20 completada** y fusionada en `master` (etiqueta `fase-20`). Antes de la Fase 21, **ronda de bugs** del propietario: lista en `docs/BUGS.md` (marcar `[x]` al arreglar).
-- **Bloque A (arreglos rápidos): hecho** (19-oct-2026). **Bloque B (combate): hecho** (20-oct-2026). **Bloque C:** M15 (arco del guerrero), M2 (monstruos élite) y M8 (pantalla de carga) hechos (20-oct-2026).
-- **Siguiente:** resto del bloque C de `docs/BUGS.md` (una sesión por punto: equipo sobre el cuerpo (M17), opciones móvil/web (M13)). Después, `/fase 21` → botín y baúl (`docs/PLAN-2.md`).
+- **Bloque A (arreglos rápidos): hecho** (19-oct-2026). **Bloque B (combate): hecho** (20-oct-2026). **Bloque C:** M15 (arco del guerrero), M2 (monstruos élite), M8 (pantalla de carga) y M17 (equipo sobre el cuerpo) hechos (20-oct-2026).
+- **Siguiente:** último punto del bloque C de `docs/BUGS.md`: opciones distintas para móvil y web (M13). Después, `/fase 21` → botín y baúl (`docs/PLAN-2.md`).
 - **Pendiente de probar por el propietario:** cambiar de pestaña en partida y volver, sin sonidos trabados (B4; simulado en el check, no probado de verdad).
 - **Pendiente:** que el propietario pruebe con su mando real la vibración y el stick derecho (apuntar).
 - **Ideas sin fecha:** monstruos al azar como evento especial; jefes más difíciles de esquivar (mínimo de acierto propio, nota en `data/defense.ts`).
 
 **Pistas para trabajar** (detalle en `survivors/NOTES.md`):
 - Level y Power: `data/characterLevel.ts`, `scenes/CharacterInfoScene.ts`. Ver NOTES.md, "Ventana Character y Level permanente".
+- Equipo sobre el cuerpo (ventana Character): `data/paperDoll.ts`, `entities/PaperDoll.ts`, `?gear=`. Ver NOTES.md, "Equipo sobre el cuerpo en la ventana Character (M17)".
 - Pantalla de carga: `scenes/PreloadScene.ts`, `?loading=hold`, `check loading`. Ver NOTES.md, "Pantalla de carga (M8)".
 - Élites: `data/elites.ts`, `?debug=elites`, `check elites`. Ver NOTES.md, "Monstruos élite (M2)".
 - Estela del tajo: estilos en `data/slash.ts` (`?slash=N`, tecla Y). Ver NOTES.md, "Estela del tajo del guerrero".
@@ -53,6 +54,7 @@
   - `?play`, `?play=warrior`, `?ui=compact` (interfaz de móvil), `?trees=off`, `?metrics=send` (envía la partida de verdad).
   - `?debug=boss,god`; acciones: horde, kill, levelup, levels, str, magic, pickups, totems, minute, boss, finalboss, bosskill, stampede, god, crits (infinitos, tecla H; también el activo del Mago sin recarga), stones (cartas de Xelima, Merien y Magnet), dodge (mejor armadura de la clase), stats (panel abierto), aim (apuntar a la derecha), aimstick (dedo falso en el stick, con `--mobile`), resume (guardar y recargar como Continue), sim (partida simulada), charexp (EXP ×50), elites (todos élite).
   - `?loading=hold`: la pantalla de carga se para a la mitad.
+  - `?gear=plateMail,helmet,...`: con `?characters=demo`, los de ejemplo llevan esos objetos sin mirar requisitos.
   - `?slash=N`: estilo de la estela del tajo (0–4, `data/slash.ts`); tecla Y para el siguiente.
   - `?open=howtoplay` (también settings, controls, credits, achievements, select, slots, charinfo, equipment, releasenotes); `?open=equipment&class=mage` abre la de la Maga.
   - `?spells=fireBall,meteorStrike`: hechizos del Mago en esa partida, sin requisitos.

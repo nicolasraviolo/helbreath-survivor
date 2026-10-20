@@ -10,7 +10,7 @@ import { CHARACTER_NAME_ALLOWED, CHARACTER_NAME_MAX_LENGTH, CHARACTER_SLOT_COUNT
 import { BODY_SPRITES, DEFAULT_LOOKS, GENDERS, HAIR_COLORS, HAIR_STYLE_COUNT, UNDERWEAR_COUNT, type CharacterLook } from '../data/appearance';
 import { CHARACTER_LEVEL_MAX, expToNextCharacterLevel, STAT_POINT_CAP, STAT_POINTS_PER_LEVEL, totalExpForLevel } from '../data/characterLevel';
 import { CHARACTERS, isCharacterId, type CharacterId } from '../data/characters';
-import { canChangeSlot, canEmptySlot, canEquip, itemInfo, readEquipment, START_EQUIPMENT, type EquipSlotId, type ItemId, type SavedEquipment } from '../data/items';
+import { canChangeSlot, canEmptySlot, canEquip, isItemId, itemInfo, readEquipment, START_EQUIPMENT, type EquipSlotId, type ItemId, type SavedEquipment } from '../data/items';
 import { STAT_IDS, type StatId, type Stats } from '../data/stats';
 import { isRecord, readNumber, saveStore, type RunSnapshot } from './SaveStore';
 
@@ -79,8 +79,21 @@ class CharacterStoreImpl {
             const kaila = this.slots[0]?.uid;
             this.addExp(kaila, totalExpForLevel(DEMO_MAGE_LEVEL));
             this.assignPoints(kaila, { int: this.byUid(kaila)?.unspentPoints ?? 0 });
+            this.wearDebugGear();
         }
         if (DEBUG_START.characters) this.write();
+    }
+
+    /** ?gear=... (debugStart.ts): the examples wear those items, whatever they ask for (M17). */
+    private wearDebugGear(): void {
+        for (const character of this.slots) {
+            if (!character) continue;
+            for (const id of DEBUG_START.gear) {
+                if (!isItemId(id)) continue;
+                const slot = itemInfo(id)?.slot;
+                if (slot && canChangeSlot(character.classId, slot)) character.equipment[slot] = id;
+            }
+        }
     }
 
     /** One entry per slot (undefined = free). */

@@ -64,10 +64,8 @@ import {
 import { SPELLS } from '../data/spells';
 import { STAT_IDS } from '../data/stats';
 import { getMeleeWeapon } from '../data/weapons';
-import { CharacterSprite } from '../entities/CharacterSprite';
+import { PaperDoll } from '../entities/PaperDoll';
 import { CharacterStats } from '../entities/CharacterStats';
-import { Direction } from '../hb/directions';
-import { PlayerState } from '../hb/playerAppearance';
 import { characterStore, permanentStats, type SavedCharacter } from '../systems/CharacterStore';
 import { Action, InputSystem } from '../systems/InputSystem';
 import { lookLoader } from '../systems/LookLoader';
@@ -95,7 +93,7 @@ export class EquipmentScene extends Phaser.Scene {
     private focus: Focus = { kind: 'slot' };
     private slotBoxes = new Map<EquipSlotId, { box: Phaser.GameObjects.Rectangle; icon: Phaser.GameObjects.Image; name: Phaser.GameObjects.Text }>();
     private rows: Row[] = [];
-    private doll: CharacterSprite | undefined;
+    private doll: PaperDoll | undefined;
     private okButton!: Phaser.GameObjects.Image;
     private focusFrame!: Phaser.GameObjects.Rectangle;
     private helpText!: Phaser.GameObjects.Text;
@@ -211,10 +209,10 @@ export class EquipmentScene extends Phaser.Scene {
         const character = this.character;
         if (!character) return;
         this.doll?.destroy();
-        this.doll = new CharacterSprite(this, CHARACTERS[character.classId], character.look, this.sx(CHARACTER_INFO_DOLL.x), this.sy(CHARACTER_INFO_DOLL.y));
-        this.doll.container.setScale(CHARACTER_INFO_SCALE);
-        this.doll.wearEquipment(character.equipment);
-        this.doll.setPose(PlayerState.IdleCombat, Direction.South);
+        this.doll = new PaperDoll(this, CHARACTERS[character.classId], character.look, character.equipment, {
+            x: this.sx(0), y: this.sy(0), scale: CHARACTER_INFO_SCALE,
+            standInX: this.sx(CHARACTER_INFO_DOLL.x), standInY: this.sy(CHARACTER_INFO_DOLL.y),
+        });
     }
 
     // ---- Slots (top of the panel) ----

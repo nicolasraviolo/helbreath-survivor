@@ -144,6 +144,10 @@ export const SPRITES = {
     'gear.cape.m': { file: 'sprites/mmantle03.spr', type: SpriteType.EquipmentPack },
     'gear.cape.w': { file: 'sprites/wmantle03.spr', type: SpriteType.EquipmentPack },
     'item.pack': { file: 'sprites/item-pack.spr', type: SpriteType.ItemPack },
+    // M17: el equipo dibujado grande sobre el cuerpo en la ventana Character (data/paperDoll.ts). ~290 + 250 KB, bajo
+    // demanda. Como canvas (PaperDoll), para teñir el pelo.
+    'item.equip.m': { file: 'sprites/item-equipm.spr', type: SpriteType.PaperDoll },
+    'item.equip.w': { file: 'sprites/item-equipw.spr', type: SpriteType.PaperDoll },
 
     // Objetos en el suelo (gemas de XP: hoja 15, ver data/leveling.ts).
     'item.ground': { file: 'sprites/item-ground.spr', type: SpriteType.ItemGround },
@@ -368,6 +372,7 @@ export const ON_DEMAND_SPRITES: ReadonlySet<SpriteKey> = new Set<SpriteKey>([
     'gear.swords.w', 'gear.shields.w',
     'fx.crueffect1',
     'gear.shoes.m', 'gear.shoes.w', 'gear.cape.m', 'gear.cape.w', 'item.pack',
+    'item.equip.m', 'item.equip.w',
 ]);
 
 export const PHONE_ONLY_SPRITES: ReadonlySet<SpriteKey> = new Set<SpriteKey>(['ui.v2']);

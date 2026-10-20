@@ -2,6 +2,12 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
+**Ronda de bugs, bloque C, M17: equipo sobre el cuerpo en la ventana Character (2026-10-20).**
+- **Qué hace:** las ventanas Character y Equipment dibujan al personaje como el original: cuerpo grande y quieto (`item-equipm/w.spr`) con pelo (teñido, oculto con casco), ropa interior, ropa de la clase y todo el equipo en sus posiciones originales. Select Character sigue con el muñeco animado.
+- **Código:** `data/paperDoll.ts` (grupo y frame de `Item*.cfg`, hojas, posiciones y orden de `DrawDialogBox_Character`), `entities/PaperDoll.ts` (mientras se descargan los dibujos, ~250–290 KB, se ve el muñeco animado). Tipo de sprite `PaperDoll` (canvas, para teñir el pelo). Atajo nuevo `?gear=ids` para vestir a los de ejemplo sin requisitos.
+- **Comprobado:** build; `check charinfo equipment equipmentmage charinfogame slots` sin errores a 60 FPS; capturas de Gorn (ropa de salida y armadura completa) y Kaila (vestido, Wizard Robe y gorro, Plate Mail).
+- **Probar:** `pnpm --dir survivors dev` → `?characters=demo&open=charinfo&gear=plateMail,hornedHelmet,towerShield,cape,claymore` · `?characters=demo&open=equipment&class=mage`.
+
 **Ronda de bugs, bloque C, M8: pantalla de carga (2026-10-20).**
 - **Qué hace:** fondo negro; "Helbreath Survivors" en dorado con la letra caligráfica del libro de hechizos encima de la barra; debajo, "Loading" fijo (sin los mensajes técnicos); abajo a la derecha, el logo del propietario (112 px) con un latido lento.
 - **Decisiones del propietario:** su logo (no el "HS" de la app), latido en vez de giro, doble de tamaño; el icono "HS" encima de la barra se probó y se cambió por el título en letra caligráfica.

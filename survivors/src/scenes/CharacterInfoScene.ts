@@ -36,11 +36,10 @@ import { GAME_HEIGHT, GAME_WIDTH } from '../config/gameConfig';
 import { STAT_POINT_CAP, totalExpForLevel, CHARACTER_LEVEL_MAX } from '../data/characterLevel';
 import { CHARACTERS, type CharacterId } from '../data/characters';
 import { DEFAULT_LOOKS } from '../data/appearance';
+import { START_EQUIPMENT } from '../data/items';
 import { STAT_IDS, STAT_INFO, type StatId, type Stats } from '../data/stats';
-import { CharacterSprite } from '../entities/CharacterSprite';
+import { PaperDoll } from '../entities/PaperDoll';
 import { CharacterStats } from '../entities/CharacterStats';
-import { Direction } from '../hb/directions';
-import { PlayerState } from '../hb/playerAppearance';
 import { characterStore, permanentStats } from '../systems/CharacterStore';
 import { Action, InputSystem } from '../systems/InputSystem';
 import type { MenuOverlayData } from './MenuOverlayScene';
@@ -96,7 +95,7 @@ export class CharacterInfoScene extends Phaser.Scene {
     private focusFrame!: Phaser.GameObjects.Rectangle;
     private pointsText: Phaser.GameObjects.Text | undefined;
     private helpText!: Phaser.GameObjects.Text;
-    private doll: CharacterSprite | undefined;
+    private doll: PaperDoll | undefined;
     /** Menu: health and mana a new run would start with (they change with Vit, Int and Mag). */
     private startTexts: { health: Phaser.GameObjects.Text; mana: Phaser.GameObjects.Text } | undefined;
     private openedAt = 0;
@@ -201,14 +200,14 @@ export class CharacterInfoScene extends Phaser.Scene {
     }
 
     private addDoll(): void {
-        const def = CHARACTERS[this.params.classId];
-        const look = this.saved?.look ?? DEFAULT_LOOKS[this.params.classId];
-        this.doll = new CharacterSprite(this, def, look, this.sx(CHARACTER_INFO_DOLL.x), this.sy(CHARACTER_INFO_DOLL.y));
-        this.doll.container.setScale(CHARACTER_INFO_SCALE);
-        // Fase 20B: dressed in its equipment (in a run too: it is what the run started with).
-        const equipment = this.saved?.equipment;
-        if (equipment) this.doll.wearEquipment(equipment);
-        this.doll.setPose(PlayerState.IdleCombat, Direction.South);
+        const classId = this.params.classId;
+        const look = this.saved?.look ?? DEFAULT_LOOKS[classId];
+        // Fase 20B: dressed in its equipment (in a run too: it is what the run started with). M17: drawn as the original.
+        const equipment = this.saved?.equipment ?? START_EQUIPMENT[classId];
+        this.doll = new PaperDoll(this, CHARACTERS[classId], look, equipment, {
+            x: this.originX, y: this.originY, scale: CHARACTER_INFO_SCALE,
+            standInX: this.sx(CHARACTER_INFO_DOLL.x), standInY: this.sy(CHARACTER_INFO_DOLL.y),
+        });
     }
 
     /** Name, Level, EXP and the other boxes on the right. They don't change while the window is open. */

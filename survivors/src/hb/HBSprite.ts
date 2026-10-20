@@ -23,6 +23,8 @@ export enum SpriteType {
     Interface = 'Interface',
     ItemPack = 'ItemPack',
     ItemGround = 'ItemGround',
+    /** item-equipm/w (M17): big still pictures of the Character window, kept readable for the hair colour. */
+    PaperDoll = 'PaperDoll',
 }
 
 interface DecodedSpriteImage {
@@ -156,8 +158,10 @@ export class HBSpriteFile {
 
         const parsed = this.parseSprite(buffer);
         // Canvas textures keep their pixels readable: tiles need them, and so does the hair, which is copied with
-        // colour added (hb/additiveTint.ts, Fase 17B). Other sheets free them once on the GPU.
-        const keepPixels = this.spriteType === SpriteType.Tiles || this.spriteType === SpriteType.HairAndUndies;
+        // colour added (hb/additiveTint.ts, Fase 17B), also the big one of the Character window (M17). Other sheets free
+        // them once on the GPU.
+        const keepPixels = this.spriteType === SpriteType.Tiles || this.spriteType === SpriteType.HairAndUndies
+            || this.spriteType === SpriteType.PaperDoll;
 
         for (const sheet of parsed) {
             const image = await createImageFromPng(sheet.imageData);
@@ -174,7 +178,8 @@ export class HBSpriteFile {
         pivotsBySpriteKey.set(this.spriteKey, { spriteSheetPivots });
 
         const isStatic = this.spriteType === SpriteType.Tiles || this.spriteType === SpriteType.Interface
-            || this.spriteType === SpriteType.ItemGround || this.spriteType === SpriteType.ItemPack;
+            || this.spriteType === SpriteType.ItemGround || this.spriteType === SpriteType.ItemPack
+            || this.spriteType === SpriteType.PaperDoll;
         if (!isStatic) {
             for (const sheet of this.spriteSheets) {
                 registerSheetAnimation(scene, sheet, this.frameRate);

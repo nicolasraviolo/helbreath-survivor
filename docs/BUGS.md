@@ -32,7 +32,7 @@ Número original entre paréntesis: **B** = bug, **M** = mejora.
 - [x] (M15) El arco del golpe del guerrero es tosco: proponer varias opciones más bonitas y el propietario elige. Elegido "Thin edge + sparks", de arriba abajo; los demás guardados en `data/slash.ts`.
 - [x] (M2) Monstruos élite al azar con más daño (probabilidad muy baja o baja según lo duro que sea el monstruo o lo fácil que vaya la partida). Otro color o un aura sutil. Hecho: "Berserk" con el mismo brillo rojo que el buff del jugador (`data/elites.ts`).
 - [x] (M8) Pantallas de carga: fondo negro, solo la barra y "Loading"; logo de HB pequeño abajo a la derecha que gira o aparece y desaparece. Hecho: logo del propietario con latido abajo a la derecha y "Helbreath Survivors" con la letra caligráfica encima de la barra (`?loading=hold`).
-- [ ] (M17) Ventana del personaje: dibujar el equipo sobre el cuerpo con los gráficos `item-equipm`/`item-equipw`, como en el original.
+- [x] (M17) Ventana del personaje: dibujar el equipo sobre el cuerpo con los gráficos `item-equipm`/`item-equipw`, como en el original. Hecho: ventanas Character y Equipment (`data/paperDoll.ts`).
 - [ ] (M13) Menús de opciones distintos para móvil y para web (mejor experiencia en cada uno).
 
 ## Dudas resueltas

@@ -70,7 +70,7 @@ export function isSpellItemId(id: string): id is SpellItemId {
     return isAutoSpellId(id) || isActiveSpellId(id);
 }
 
-function isItemId(id: string): id is ItemId {
+export function isItemId(id: string): id is ItemId {
     return isMeleeWeaponId(id) || isArmorPieceId(id) || isSpellItemId(id);
 }
 

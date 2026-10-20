@@ -29,6 +29,9 @@
 //   ?open=equipment  → Select Character con la pantalla Equipment abierta (Fase 20B), del Guerrero (o el primero;
 //                      con &class=mage, de la Maga)
 //                      sin repartir (o del primero); con ?characters=demo, Gorn tiene puntos
+//   ?gear=plateMail,helmet → con ?characters=demo, los dos de ejemplo llevan esos objetos (los que su clase pueda
+//                      ponerse, sin mirar requisitos; ids de data/weapons.ts y data/armor.ts). Para ver el equipo
+//                      dibujado en la ventana Character (M17).
 //   ?characters=reset → borra los personajes guardados al cargar (demo = deja dos de ejemplo; Fase 17A)
 //   ?achievements=reset → borra los logros conseguidos al cargar (all = los da todos, para ver la pantalla llena; Fase 14B)
 //   ?metrics=send    → enviar las métricas de esta partida al servidor de verdad (en desarrollo no se envían; Fase 14A)
@@ -80,13 +83,15 @@ interface DebugStart {
     slash: number | undefined;
     /** ?loading=hold: the loading screen stops halfway (to look at it). */
     holdLoading: boolean;
+    /** Items the ?characters=demo examples wear (checked in CharacterStore). */
+    gear: string[];
 }
 
 function readDebugStart(): DebugStart {
     const none: DebugStart = {
         play: false, character: undefined, actions: [], trees: undefined, open: undefined, achievements: undefined, characters: undefined,
         sendMetrics: false, spells: { auto: undefined, active: undefined }, openClass: undefined, slash: undefined,
-        holdLoading: false,
+        holdLoading: false, gear: [],
     };
     if (!import.meta.env.DEV) return none;
     const params = new URLSearchParams(window.location.search);
@@ -112,6 +117,7 @@ function readDebugStart(): DebugStart {
         openClass: isCharacterId(openClass) ? openClass : undefined,
         slash: slash !== null && /^\d+$/.test(slash) ? Number(slash) : undefined,
         holdLoading: params.get('loading') === 'hold',
+        gear: (params.get('gear') ?? '').split(',').map((g) => g.trim()).filter((g) => g.length > 0),
     };
 }
 
