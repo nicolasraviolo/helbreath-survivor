@@ -19,6 +19,7 @@ import type { AudioSystem } from '../systems/AudioSystem';
 import { enemySpeed, MONSTER_AI, MONSTER_DAMAGE, type EnemyDef } from '../data/enemies';
 import { hitChance } from '../data/defense';
 import { ELITE } from '../data/elites';
+import { NO_DIFFICULTY, type MapDifficulty } from '../data/maps';
 import { POISON } from '../data/attributes';
 import { EFFECTS } from '../config/effects';
 import { FREEZE_TINT } from '../data/totems';
@@ -108,6 +109,8 @@ export class Enemy implements Poolable {
     private frozenMs = 0;
     /** Elite (data/elites.ts): hits harder, has more health and gives more XP; glows red like the player's Berserk. */
     public elite = false;
+    /** The map's multipliers for normal monsters (data/maps.ts → difficulty, Fase 22A); 1 for bosses. */
+    private difficulty: MapDifficulty = NO_DIFFICULTY;
     /** Poison (Fase 21B, data/attributes.ts): its level (0 = not poisoned) and the time to the next tick. */
     private poisonLevel = 0;
     private poisonTickMs = 0;
@@ -134,10 +137,11 @@ export class Enemy implements Poolable {
         return this.phase === EnemyPhase.Alive;
     }
 
-    public spawn(x: number, y: number, elite = false): void {
+    public spawn(x: number, y: number, elite = false, difficulty: MapDifficulty = NO_DIFFICULTY): void {
         this.x = x;
         this.y = y;
         this.elite = elite;
+        this.difficulty = difficulty;
         this.hp = this.maxHp;
         this.hitsTaken = 0;
         this.phase = EnemyPhase.Alive;
@@ -194,12 +198,14 @@ export class Enemy implements Poolable {
 
     /** Full health: the elites have more. */
     public get maxHp(): number {
-        return this.elite ? Math.round(this.def.maxHp * ELITE.hpMultiplier) : this.def.maxHp;
+        const hp = this.def.maxHp * this.difficulty.hp;
+        return Math.max(1, Math.round(this.elite ? hp * ELITE.hpMultiplier : hp));
     }
 
     /** XP of the gem it drops: the elites give more. */
     public get xp(): number {
-        return this.elite ? Math.round(this.def.xp * ELITE.xpMultiplier) : this.def.xp;
+        const xp = this.def.xp * this.difficulty.hp;
+        return Math.max(1, Math.round(this.elite ? xp * ELITE.xpMultiplier : xp));
     }
 
     public get isFrozen(): boolean {
@@ -495,13 +501,14 @@ export class Enemy implements Poolable {
 
     /** One blow: the original dice, compressed for our health scale (data/enemies.ts → MONSTER_DAMAGE), softer for bosses. */
     private rollDamage(): number {
+        if (this.def.fixedDamage !== undefined) return this.def.fixedDamage;
         const [count, sides] = this.def.damageDice;
         let roll = 0;
         for (let i = 0; i < count; i++) roll += Phaser.Math.Between(1, sides);
         const average = (count * (sides + 1)) / 2;
         const blow = MONSTER_DAMAGE.scale * average ** MONSTER_DAMAGE.exponent * (roll / average);
         const elite = this.elite ? ELITE.damageMultiplier : 1;
-        return Math.max(1, Math.round(blow * (this.def.damageScale ?? 1) * elite));
+        return Math.max(1, Math.round(blow * (this.def.damageScale ?? 1) * elite * this.difficulty.damage));
     }
 
     /** Frames of the attack animation for the current direction. */

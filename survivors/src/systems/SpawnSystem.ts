@@ -10,7 +10,7 @@
 import Phaser from 'phaser';
 import { ENEMY_WALL_HALF_SIZE } from '../config/gameConfig';
 import type { EnemyId } from '../data/enemies';
-import { SPAWN, WAVE_EVENTS, WAVES, type WaveDef, type WaveEventDef } from '../data/waves';
+import { SPAWN, type MapTimeline, type WaveDef, type WaveEventDef } from '../data/waves';
 import type { Enemy } from '../entities/Enemy';
 import type { HBMap } from '../hb/HBMap';
 import { canStandAt } from '../utils/collision';
@@ -26,7 +26,7 @@ export class SpawnSystem {
     private elapsedMs = 0;
     private timerMs = 0;
     private relocateTimerMs = 0;
-    /** Index of the next event of WAVE_EVENTS still to happen. */
+    /** Index of the next event of the map's timeline still to happen. */
     private nextEvent = 0;
     /** Continue: bosses that were alive, brought back when the calm ends. */
     private bossesToReturn: EnemyId[] = [];
@@ -41,6 +41,8 @@ export class SpawnSystem {
         private readonly enemies: EnemySystem,
         private readonly map: HBMap,
         private readonly area: Phaser.Geom.Rectangle,
+        /** Waves and events of the map being played (data/waves.ts → TIMELINES, Fase 22A). */
+        private readonly timeline: MapTimeline,
         /** Called when an event happens, with the enemies it created (the boss first). */
         private readonly onEvent: (event: WaveEventDef, spawned: readonly Enemy[]) => void,
         /** False while a monster's sprite is still downloading. */
@@ -57,8 +59,8 @@ export class SpawnSystem {
     /** The wave playing now. */
     public get wave(): WaveDef {
         const minutes = this.elapsedMs / MS_PER_MINUTE;
-        let current = WAVES[0];
-        for (const wave of WAVES) {
+        let current = this.timeline.waves[0];
+        for (const wave of this.timeline.waves) {
             if (wave.fromMinute <= minutes) current = wave;
         }
         if (!current) throw new Error('data/waves.ts has no waves');
@@ -66,7 +68,7 @@ export class SpawnSystem {
     }
 
     public get waveNumber(): number {
-        return WAVES.indexOf(this.wave) + 1;
+        return this.timeline.waves.indexOf(this.wave) + 1;
     }
 
     public update(deltaMs: number): void {
@@ -91,7 +93,7 @@ export class SpawnSystem {
     /** Seconds between spawn events right now: goes from the wave's start interval to its end interval. */
     public currentInterval(): number {
         const wave = this.wave;
-        const next = WAVES[WAVES.indexOf(wave) + 1];
+        const next = this.timeline.waves[this.timeline.waves.indexOf(wave) + 1];
         if (!next) return wave.endInterval;
         const minutes = this.elapsedMs / MS_PER_MINUTE;
         const t = Phaser.Math.Clamp((minutes - wave.fromMinute) / (next.fromMinute - wave.fromMinute), 0, 1);
@@ -117,9 +119,9 @@ export class SpawnSystem {
     public resumeAt(elapsedMs: number, calmMs: number, bosses: readonly EnemyId[]): void {
         this.elapsedMs = elapsedMs;
         const minutes = elapsedMs / MS_PER_MINUTE;
-        this.nextEvent = WAVE_EVENTS.findIndex((event) => event.atMinute > minutes);
-        if (this.nextEvent < 0) this.nextEvent = WAVE_EVENTS.length;
-        this.wavesOver = WAVE_EVENTS.some((event) => event.kind === 'finalBoss' && event.atMinute <= minutes);
+        this.nextEvent = this.timeline.events.findIndex((event) => event.atMinute > minutes);
+        if (this.nextEvent < 0) this.nextEvent = this.timeline.events.length;
+        this.wavesOver = this.timeline.events.some((event) => event.kind === 'finalBoss' && event.atMinute <= minutes);
         this.timerMs = calmMs;
         this.bossesToReturn = [...bosses];
     }
@@ -140,7 +142,7 @@ export class SpawnSystem {
                 continue;
             }
             // Its own event, for the warning (the last one with this monster that already happened).
-            const event = [...WAVE_EVENTS].reverse().find((e) => e.enemy === id && isBossEvent(e) && e.atMinute <= minutes);
+            const event = [...this.timeline.events].reverse().find((e) => e.enemy === id && isBossEvent(e) && e.atMinute <= minutes);
             const point = this.findBossPoint();
             // No room anywhere yet: it tries again with the next spawn.
             if (!point) {
@@ -161,13 +163,13 @@ export class SpawnSystem {
 
     /** Debug: jumps to the next boss event (or to the final boss's one). */
     public skipToNextBoss(finalOnly = false): void {
-        const next = WAVE_EVENTS.slice(this.nextEvent).find((event) => (finalOnly ? event.kind === 'finalBoss' : isBossEvent(event)));
+        const next = this.timeline.events.slice(this.nextEvent).find((event) => (finalOnly ? event.kind === 'finalBoss' : isBossEvent(event)));
         if (next) this.skip(Math.max(0, next.atMinute * MS_PER_MINUTE - this.elapsedMs));
     }
 
     /** Debug: runs the first event of this kind out of the timeline, as soon as its monster is downloaded. */
     public runFirstEvent(kind: WaveEventDef['kind']): void {
-        this.debugEvent = WAVE_EVENTS.find((e) => e.kind === kind);
+        this.debugEvent = this.timeline.events.find((e) => e.kind === kind);
         this.runDebugEvent();
     }
 
@@ -186,7 +188,7 @@ export class SpawnSystem {
 
     private runDueEvents(): void {
         const minutes = this.elapsedMs / MS_PER_MINUTE;
-        let event = WAVE_EVENTS[this.nextEvent];
+        let event = this.timeline.events[this.nextEvent];
         while (event && event.atMinute <= minutes) {
             if (!this.isReady(event.enemy)) {
                 this.hurry(event.enemy);
@@ -197,7 +199,7 @@ export class SpawnSystem {
             if (!spawned) return;
             this.nextEvent++;
             this.onEvent(event, spawned);
-            event = WAVE_EVENTS[this.nextEvent];
+            event = this.timeline.events[this.nextEvent];
         }
     }
 

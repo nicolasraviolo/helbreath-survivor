@@ -106,6 +106,11 @@ function readHeaderValue(header: string, name: string): number {
 const parsedMaps = new Map<string, HBMap>();
 
 /** Parses a map binary loaded with `load.binary(key, …)` once and keeps it for later scenes. */
+/** True once the map was read (its buffer is no longer in the cache then). Added for Fase 22A. */
+export function hasMap(key: string): boolean {
+    return parsedMaps.has(key);
+}
+
 export function getMap(scene: Scene, key: string): HBMap {
     let map = parsedMaps.get(key);
     if (!map) {

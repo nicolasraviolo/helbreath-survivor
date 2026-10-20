@@ -84,6 +84,8 @@ export interface EnemyDef {
      * 1–2 blows; a Mage of the level you usually have when it appears should take about 5.
      */
     damageScale?: number;
+    /** Every blow does exactly this much, whatever the dice and the map (the Dummy's 1, Fase 22A). */
+    fixedDamage?: number;
     /**
      * Original physical hit ratio (docs/hb-wiki/monstruos.md, without the dash attack): the higher, the more often its
      * blows land despite the player's defense (data/defense.ts). Hellhound is not in the wiki: about a Troll's.
@@ -310,6 +312,23 @@ export const ENEMIES = {
         scale: 1.3, knockbackTaken: 0, damageScale: 0.54,
         boss: { title: 'Demon', dropsChest: true, final: false },
     },
+    // Jefes de Traveler Zone (Fase 22A, mapa de introducción). El Stone Golem jefe es el de siempre, más grande y con más
+    // vida; pega flojo para ser el primer jefe que ve un jugador nuevo.
+    stoneGolemBoss: {
+        name: 'Stone Golem', sprite: 'enemy.stoneGolem', temporalCoefficient: 0.5, hasShadow: true, maxHp: 2500, xp: 120, radius: 20, bodyOffsetY: 44,
+        actionTimeMs: 1200, attackRange: 1, bravery: 100, damageDice: [7, 4], hitRatio: 135, hitSound: 'sfx.stoneGolem.hit', deathSound: 'sfx.stoneGolem.death', attackSound: 'sfx.stoneGolem.attack',
+        scale: 1.4, knockbackTaken: 0, damageScale: 0.35,
+        boss: { title: 'Stone Golem', dropsChest: true, final: false },
+    },
+    // Muñeco de prácticas del original (dummy.spr, 40 hojas estándar de 4 frames; 200.000 de vida y no ataca). Aquí
+    // (propietario, 20-oct-2026) es el jefe final de Traveler Zone: anda muy despacio y pega, pero siempre 1 de daño.
+    // Sin sonidos propios en sp-client: los del Clay Golem. ATime nuestro (2600 ms ≈ más lento que un Slime).
+    dummy: {
+        name: 'Dummy', sprite: 'enemy.dummy', temporalCoefficient: 0.5, hasShadow: true, maxHp: 5000, xp: 600, radius: 16, bodyOffsetY: 40,
+        actionTimeMs: 2600, attackRange: 1, bravery: 100, damageDice: [1, 1], hitRatio: 100, hitSound: 'sfx.clayGolem.hit', deathSound: 'sfx.clayGolem.death', attackSound: 'sfx.clayGolem.attack',
+        scale: 1.6, knockbackTaken: 0, fixedDamage: 1,
+        boss: { title: 'Dummy', dropsChest: true, final: true },
+    },
     fireWyvern: {
         // sp-client: andar = hojas 8+ estándar; ataque = hoja 0 desde el frame 3, 4 frames (otros valores rompen Phaser);
         // morir = hojas 16+ (no 32); opacidad 0,7. No tiene sonido de golpe: usamos el de la Liche.
@@ -359,4 +378,6 @@ export interface BossMinions {
 // Fase 13: el jefe final corta las oleadas; solo quedan él y sus esbirros (los del último tramo antes de él).
 export const BOSS_MINIONS: Partial<Record<EnemyId, BossMinions>> = {
     fireWyvern: { enemies: ['stoneGolem', 'frog'], everyMs: 8000, count: 6, maxAlive: 24, radius: 110 },
+    // Traveler Zone: el Dummy no se queda solo; lo rodean bichos flojos mientras le pegas.
+    dummy: { enemies: ['slime', 'bunny', 'ant'], everyMs: 6000, count: 8, maxAlive: 40, radius: 110 },
 };

@@ -2,6 +2,15 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
+**Fase 22, bloque 22A: sistema de mapas, Select Map y Traveler Zone (2026-10-21).**
+- **Qué hace:** pantalla **Select Map** tras elegir o crear personaje (Continue va directo al mapa de su partida). Cuatro mapas en orden: **Traveler Zone → Bleeding Isle → Elvine Garden → Middleland** (los dos últimos "Coming soon"). Un mapa se abre al **ganar el anterior o al llegar a su Recommended Level** (1/10/25/40); victorias por dispositivo. Quien ya jugaba conserva Bleeding Isle. Cada mapa se carga al elegirlo (`MapLoadScene`); la carga inicial ya no baja mapas. Pantalla final: "New map: …".
+- **Traveler Zone** (mapa de introducción, `default.amd`): unos 8 min; Slime, Bunny, Ant y Snake con vida ×0,5 y daño ×0,4; dos encerronas suaves; **Stone Golem** gigante (minuto 4) y **Dummy** de jefe final (minuto 7): lento, siempre 1 de daño, rodeado de bichos. Logros **First Steps** (ganarla) y **n0000b** (morir en ella).
+- **Decisiones del propietario:** orden de mapas; Traveler Zone corta, muchos bichos débiles, jefes Stone Golem y Dummy; Dummy lento y de 1 de daño; acceso por victoria o Level; música de Bleeding Isle en todos; en la Fase 23 Select Map se abrirá desde un portal de la ciudad; logro n0000b. Icebound pasa a la Fase 25.
+- **Decidido por mí (ajustable):** Levels 1/10/25/40; dificultad de Traveler (`data/maps.ts`); vida de los jefes 2.500 / 5.000 (medido con la partida simulada); nombre "First Steps"; zonas de juego de los 4 mapas.
+- **Código:** `data/maps.ts` (MapDef ampliado), `data/waves.ts` (`TIMELINES` por mapa), `systems/MapUnlockStore.ts`, `scenes/MapSelectScene.ts`, `config/mapSelect.ts`, `scenes/MapLoadScene.ts`, `ui/LoadingScreen.ts` (sacado de PreloadScene); `stoneGolemBoss`, `dummy`, `fixedDamage`; dificultad en `Enemy.spawn`; `assetStreamer.prioritize`; logro `die`. Visor de mapas `survivors/maps.html`.
+- **Comprobado:** build; `check menu mapselect mapsall mapsnew traveler travelerboss game boss finalboss portal` (Select Map también `--mobile`) sin errores; recorrido Select Map → Play → MapLoad → Game; ganar abre Bleeding Isle y da First Steps; morir da n0000b; partidas simuladas en Traveler (Maga Power 17, Guerrero Power 16).
+- **Probar:** `pnpm --dir survivors dev` → Play → personaje → Select Map → Traveler Zone. Atajos: `?maps=all|reset`, `?map=traveler`, `?open=mapselect`.
+
 **Fase 21 cerrada (2026-10-20).** Bloques 21A, 21B, 21D y 21E; el 21C (anillos y collares) queda aplazado. Comprobado al cerrar: build y `check menu game revive loot warehouse equipment` sin errores. Fusionada en `master` con la etiqueta `fase-21`.
 
 **Fase 21, bloque 21E: Abaddon's Blood (2026-10-20).**

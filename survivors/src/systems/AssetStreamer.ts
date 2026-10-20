@@ -3,29 +3,36 @@
 // menú principal). Mientras un monstruo no está listo no aparece; un jefe espera a que lo esté (y pasa delante en la
 // cola). Así la descarga inicial baja mucho: los Wyverns, por ejemplo, pesan casi 4 MB cada uno.
 // Es único para todo el juego: lo ya cargado sirve para todas las partidas.
+// Fase 22A: la cola junta las oleadas de todos los mapas; al elegir uno (prioritize), los suyos pasan delante.
+// Repartir la carga por mapa del todo es el bloque 22B.
 import type Phaser from 'phaser';
 import { ASSET_BASE_PATH, SPRITES, type SpriteKey } from '../config/assetManifest';
 import { DEFAULT_ANIMATION_FRAME_RATE } from '../config/gameConfig';
 import { BOSS_MINIONS, ENEMIES, type EnemyId } from '../data/enemies';
-import { WAVE_EVENTS, WAVES } from '../data/waves';
+import type { MapId } from '../data/maps';
+import { TIMELINES, type MapTimeline } from '../data/waves';
 import { getSheetKey, HBSpriteFile } from '../hb/HBSprite';
 
-/** Monsters of the first wave: loaded with everything else before the game starts. */
-export const UPFRONT_ENEMIES: ReadonlySet<EnemyId> = new Set(WAVES[0]?.enemies.map((entry) => entry.enemy) ?? []);
+const ALL_TIMELINES: readonly MapTimeline[] = Object.values(TIMELINES);
+
+/** Monsters of the first wave of every map: loaded with everything else before the game starts. */
+export const UPFRONT_ENEMIES: ReadonlySet<EnemyId> = new Set(
+    ALL_TIMELINES.flatMap((timeline) => timeline.waves[0]?.enemies.map((entry) => entry.enemy) ?? []),
+);
 
 /** Sprites loaded later, during menus and play. */
 export const STREAMED_SPRITES: ReadonlySet<SpriteKey> = new Set(
     streamOrder().map((id) => ENEMIES[id].sprite),
 );
 
-/** Every enemy not in the first wave, in the order it first appears (waves and events by minute). */
-function streamOrder(): EnemyId[] {
-    const appearances: Array<{ minute: number; enemy: EnemyId }> = [
-        ...WAVES.flatMap((wave) => wave.enemies.map((entry) => ({ minute: wave.fromMinute, enemy: entry.enemy }))),
-        ...WAVE_EVENTS.map((event) => ({ minute: event.atMinute, enemy: event.enemy })),
+/** Every enemy not in a first wave, in the order it first appears (waves and events by minute) on these maps. */
+function streamOrder(timelines: readonly MapTimeline[] = ALL_TIMELINES): EnemyId[] {
+    const appearances: Array<{ minute: number; enemy: EnemyId }> = timelines.flatMap(({ waves, events }) => [
+        ...waves.flatMap((wave) => wave.enemies.map((entry) => ({ minute: wave.fromMinute, enemy: entry.enemy }))),
+        ...events.map((event) => ({ minute: event.atMinute, enemy: event.enemy })),
         // A boss's minions, with the boss.
-        ...WAVE_EVENTS.flatMap((event) => (BOSS_MINIONS[event.enemy]?.enemies ?? []).map((enemy) => ({ minute: event.atMinute, enemy }))),
-    ];
+        ...events.flatMap((event) => (BOSS_MINIONS[event.enemy]?.enemies ?? []).map((enemy) => ({ minute: event.atMinute, enemy }))),
+    ]);
     appearances.sort((a, b) => a.minute - b.minute);
     const order: EnemyId[] = [];
     for (const { enemy } of appearances) {
@@ -59,6 +66,15 @@ class Streamer {
             this.queue.splice(index, 1);
             this.queue.unshift(id);
         }
+    }
+
+    /** A map was chosen: its monsters go first, in the order of its waves (Fase 22A). */
+    public prioritize(map: MapId): void {
+        const timeline = TIMELINES[map];
+        if (!timeline) return;
+        const mine = streamOrder([timeline]).filter((id) => this.queue.includes(id));
+        const rest = this.queue.filter((id) => !mine.includes(id));
+        this.queue.splice(0, this.queue.length, ...mine, ...rest);
     }
 
     /** Monsters still waiting to load (debug panel). */

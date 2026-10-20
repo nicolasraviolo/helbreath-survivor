@@ -33,7 +33,8 @@ import { MusicSystem } from '../systems/MusicSystem';
 import type { GameOverSceneData } from './GameOverScene';
 import { DEFAULT_LOOKS, GENDER_SOUNDS } from '../data/appearance';
 import { CHARACTERS, CHOSEN_CHARACTER_KEY, DEFAULT_CHARACTER, isCharacterId, type CharacterId } from '../data/characters';
-import { DEFAULT_MAP, MAPS_DATA, type MapId } from '../data/maps';
+import { CHOSEN_MAP_KEY, DEFAULT_MAP, isMapId, MAPS_DATA, type MapId } from '../data/maps';
+import { getTimeline } from '../data/waves';
 import { AUTOSAVE_EVERY_MS, RESUME_CALM_MS } from '../data/saves';
 import { STAT_IDS, type Stats } from '../data/stats';
 import type { MeleeWeaponId } from '../data/weapons';
@@ -71,6 +72,7 @@ import { GAMEPAD_RUMBLE } from '../data/feedback';
 import { DebugSystem } from '../systems/DebugSystem';
 import { EnemySystem } from '../systems/EnemySystem';
 import { assetStreamer } from '../systems/AssetStreamer';
+import { mapUnlockStore } from '../systems/MapUnlockStore';
 import { Action, InputSystem } from '../systems/InputSystem';
 import { SETTINGS_CHANGED, settings } from '../systems/Settings';
 import { AimArrow } from '../ui/AimArrow';
@@ -243,7 +245,9 @@ export class GameScene extends Phaser.Scene {
         const characterSlot = characterStore.slotOf(this.characterUid);
         this.saveSlot = resume && typeof resumeSlot === 'number' ? resumeSlot : characterSlot >= 0 ? characterSlot : characterStore.firstFree;
         this.autosaveInMs = AUTOSAVE_EVERY_MS;
-        this.mapId = resume?.map ?? DEFAULT_MAP;
+        // Fase 22A: the map of the saved run, or the one chosen in Select Map (it stays for Restart); debug runs: ?map= or Bleeding Isle.
+        const chosenMap: unknown = this.registry.get(CHOSEN_MAP_KEY);
+        this.mapId = resume?.map ?? (isMapId(chosenMap) ? chosenMap : DEFAULT_MAP);
         const mapDef = MAPS_DATA[this.mapId];
         const map = getMap(this, mapDef.asset);
         const area = mapDef.playArea;
@@ -297,8 +301,9 @@ export class GameScene extends Phaser.Scene {
         this.audio = new AudioSystem(this);
         this.enemies = new EnemySystem(this, this.audio);
         this.enemies.setPlayerHealthShare(() => this.player.hp / this.player.maxHp);
+        this.enemies.difficulty = mapDef.difficulty;
         this.spawner = new SpawnSystem(
-            camera, this.enemies, map, areaPx, (event, spawned) => this.onWaveEvent(event, spawned),
+            camera, this.enemies, map, areaPx, getTimeline(this.mapId), (event, spawned) => this.onWaveEvent(event, spawned),
             (id) => assetStreamer.isReady(id), (id) => assetStreamer.hurry(id),
         );
         // Normally already running since the main menu; this covers starting a run any other way.
@@ -1328,7 +1333,7 @@ export class GameScene extends Phaser.Scene {
 
     private updateMusic(): void {
         const moment = this.bosses.music;
-        this.music.play(moment === 'finalBoss' ? MUSIC.finalBoss : moment === 'miniBoss' ? MUSIC.miniBoss : MUSIC.normal);
+        this.music.play(moment === 'finalBoss' ? MUSIC.finalBoss : moment === 'miniBoss' ? MUSIC.miniBoss : MAPS_DATA[this.mapId].music);
     }
 
     /** Boss for the big health bar at the top, if any. */
@@ -1375,6 +1380,11 @@ export class GameScene extends Phaser.Scene {
         if (this.runOver) return;
         this.runOver = true;
         if (victory) this.achievements.onWin();
+        else this.achievements.onDeath();
+        // Fase 22A: a win opens the next map in Select Map (for every character of the device).
+        const levelBefore = characterStore.byUid(this.characterUid)?.level ?? 1;
+        const newMaps = victory && !this.sim ? mapUnlockStore.openedBy(this.mapId, levelBefore).map((id) => MAPS_DATA[id].name) : [];
+        if (victory && !this.sim) mapUnlockStore.recordWin(this.mapId);
         this.sim?.finish(victory ? 'portal' : 'died', this.stats.level, this.spawner.elapsed, this.combat.kills, this.simBuild());
         saveStore.clear(this.saveSlot);
         // All the run's XP goes to the character's permanent Level, won or lost (Fase 20A). Not for simulated runs.
@@ -1393,6 +1403,7 @@ export class GameScene extends Phaser.Scene {
             weaponName: this.meleeWeapon?.def.name ?? this.spellWeapon?.def.name ?? '',
             armorNames: armor,
             achievementNames: this.achievementsThisRun,
+            newMaps,
             exp,
             loot: [...this.runLoot.found],
             lootResult,

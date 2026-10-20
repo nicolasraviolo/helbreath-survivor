@@ -32,6 +32,8 @@ export const SPRITES = {
     'enemy.hellclaw': { file: 'sprites/hellclaw.spr', type: SpriteType.Monster },
     // Fase 13B: esenciales y monstruos de Bleeding Isle nuevos. El Mage-Orc usa el sprite del Orc (enemy.orc).
     'enemy.clayGolem': { file: 'sprites/cla.spr', type: SpriteType.Monster },
+    // Muñeco de prácticas (Fase 22A): jefe final de Traveler Zone. Sin sonidos propios en sp-client (usa los del Clay Golem).
+    'enemy.dummy': { file: 'sprites/dummy.spr', type: SpriteType.Monster },
     'enemy.stoneGolem': { file: 'sprites/gol.spr', type: SpriteType.Monster },
     'enemy.mountainGiant': { file: 'sprites/mtgiant.spr', type: SpriteType.Monster },
     'enemy.cannibalPlant': { file: 'sprites/canplant.spr', type: SpriteType.Monster },
@@ -297,6 +299,10 @@ export type SoundKey = keyof typeof SOUNDS;
 export const MAPS = {
     'map.huntzone2': { file: 'maps/huntzone2.amd' },
     'map.bisle': { file: 'maps/bisle.amd' },
+    // Fase 22A: Traveler Zone (`default.amd`), Elvine Garden y Middleland. Se cargan al elegir el mapa (MapLoadScene).
+    'map.traveler': { file: 'maps/default.amd' },
+    'map.elvineGarden': { file: 'maps/elvuni.amd' },
+    'map.middleland': { file: 'maps/middleland.amd' },
 } as const satisfies Record<string, { file: string }>;
 
 export type MapKey = keyof typeof MAPS;
@@ -307,6 +313,9 @@ export type MapKey = keyof typeof MAPS;
  */
 export const MINIMAPS = {
     'minimap.bisle': { file: 'images/minimaps/bisle.jpg' },
+    'minimap.traveler': { file: 'images/minimaps/default.jpg' },
+    'minimap.elvineGarden': { file: 'images/minimaps/elvuni.jpg' },
+    'minimap.middleland': { file: 'images/minimaps/middleland.jpg' },
 } as const satisfies Record<string, { file: string }>;
 
 export type MinimapKey = keyof typeof MINIMAPS;

@@ -46,6 +46,7 @@ import type { CharacterInfoSceneData } from './CharacterInfoScene';
 import type { EquipmentSceneData } from './EquipmentScene';
 import type { WarehouseSceneData } from './WarehouseScene';
 import type { CharacterSelectSceneData } from './CharacterSelectScene';
+import type { MapLoadSceneData } from './MapLoadScene';
 import { openOverlay } from './MenuOverlayScene';
 
 /** 640x480 coordinates of the original image → screen pixels. */
@@ -328,7 +329,7 @@ export class CharacterSlotsScene extends Phaser.Scene {
 
     /**
      * Plays with the character in that slot: its run in progress goes on (in Play too, decided 18-oct-2026), otherwise
-     * a new run starts. An empty slot opens Create Character.
+     * Select Map opens (Fase 22A) for a new run. An empty slot opens Create Character.
      */
     private enter(index: number): void {
         if (!this.canChoose(index)) return;
@@ -339,8 +340,14 @@ export class CharacterSlotsScene extends Phaser.Scene {
         }
         this.registry.set(CHOSEN_CHARACTER_KEY, saved.classId);
         this.registry.set(ACTIVE_CHARACTER_KEY, saved.uid);
-        if (saveStore.get(index)) this.registry.set(RESUME_SLOT_KEY, index);
-        this.scene.start('Game');
+        // Fase 22A: a run in progress goes on in its map; otherwise Select Map.
+        const run = saveStore.get(index);
+        if (run) {
+            this.registry.set(RESUME_SLOT_KEY, index);
+            this.scene.start('MapLoad', { map: run.map } satisfies MapLoadSceneData);
+            return;
+        }
+        this.scene.start('MapSelect');
     }
 
     private newCharacter(): void {

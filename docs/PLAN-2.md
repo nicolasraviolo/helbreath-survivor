@@ -485,9 +485,14 @@ Los objetos que caen en la partida se pueden **equipar al momento** o **guardar 
 
 ---
 
-## Fase 22 — Sistema de mapas + Icebound
+## Fase 22 — Sistema de mapas
 
-### 22A. Sistema de mapas
+### Replanteo del 20-oct-2026 (al empezar la fase)
+- **Mapas, en este orden:** Traveler Zone (`default`, introducción) → Bleeding Isle → Elvine Garden (`elvuni`) → Middleland. **Icebound pasa a la Fase 25.**
+- **Bloques:** 22A sistema de mapas + Select Map + Traveler Zone ✅ · 22B carga por mapa (medir antes/después) · 22C Traveler Zone completa (Cat, repaso tras jugarla) · 22D Elvine Garden · 22E Middleland (Troll, Werewolf, Hellhound, Stalker, Hellclaw) · 22F récords locales · 22G sombras y skill `anadir-mapa`.
+- Desbloqueo: ganar el anterior **o** llegar al Level recomendado. Música de Bleeding Isle en todos.
+
+### 22A. Sistema de mapas ✅ (21-oct-2026)
 Hoy todo está pensado para un solo mapa (`huntzone2`). Hay que:
 - **`data/maps.ts`** con todo lo de cada mapa: recorte de juego, oleadas propias, minijefes, jefe final, música, miniatura, tótems y monstruos que descargar.
 - **`data/waves.ts` por mapa** (una línea de tiempo cada uno).
@@ -511,7 +516,7 @@ Hoy la primera carga ronda unos **25 MB** de golpe (medido el 18-oct-2026; con u
 - Tu nombre se escribe una vez. En el móvil y con el mando hace falta un teclado en pantalla, o usar el nombre del personaje ("NkII"/"NMs").
 - No hay arte de "ranking" en el original: se reutilizan los paneles de GameDialog (hoja 2, frames 1–2) y la fuente dibujada.
 
-### 22C. Icebound
+### Icebound *(movido a la Fase 25 el 20-oct-2026)*
 - **Primer mapa nuevo** (el más pedido y de los que mejor encajan).
 - **Monstruos:** Frost ✅, Dire Boar ♻️, Ice Golem ✅, Skeleton ♻️, Stone Golem ✅, Beholder ✅, Rudolph ✅ (reno navideño), Claw Turtle ✅.
 - **Minijefes:** Tigerworm ♻️ (en el original tenía un "pit" en Icebound) y Nizie ✅.
@@ -779,7 +784,7 @@ Las de las Fases 11–18 ya se tomaron (ver `survivors/PROGRESS.md` y el histori
 1. **Fase 19:** ¿Espacio o Alt en el teclado? ¿Qué hechizo activo lleva el Mago hasta la Fase 20?
 2. **Fase 20:** ¿se mantienen las clases Warrior/Mage como "estilo" (propuesta: sí)? ¿Cuánta EXP de la partida pasa al personaje? ¿Puntos libres al crear el personaje (como los 10 del original)?
 3. **Fase 21:** porcentajes del botín y de los atributos. ¿Lo guardado en la bolsa va al baúl o al inventario del personaje al terminar?
-4. **Fase 22:** ¿qué mapa primero (propuesta: Icebound)? ¿Level recomendado por mapa o bloqueado por Level?
+4. ~~**Fase 22:**~~ decidido el 20-oct-2026 (ver `docs/DECISIONES.md`).
 5. **Fase 23:** ¿la ciudad es un recorte de Aresden/Elvine o un interior pequeño?
 6. **Fase 24:** precios, y si las piedras Xelima/Merien se compran o solo caen.
 7. **Fase 26:** ¿solo la opción A, o también la B (EK y objetos Hero)? ¿Bonus distinto por bando o solo estético?

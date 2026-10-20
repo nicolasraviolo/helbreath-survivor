@@ -1,13 +1,14 @@
 // Línea de tiempo de la partida (Fase 7, sustituye a data/spawn.ts). Sigue la tabla "Oleadas" de docs/DESIGN.md.
-// - WAVES: qué enemigos salen en cada tramo, cada cuánto y cuántos a la vez como máximo.
-// - EVENTS: momentos concretos (minijefes, jefe final, "te rodean") con su aviso en pantalla.
+// Desde la Fase 22A hay una por mapa (TIMELINES), cada una con sus oleadas y sus eventos:
+// - waves: qué enemigos salen en cada tramo, cada cuánto y cuántos a la vez como máximo.
+// - events: momentos concretos (minijefes, jefe final, "te rodean") con su aviso en pantalla.
 //   Desde que sale el jefe final (Fase 13) no salen monstruos de las oleadas: solo sus esbirros (BOSS_MINIONS en enemies.ts).
 // - PORTAL: al matar al jefe final mueren todos los monstruos y suelta su cofre; al abrirlo se abre un portal y entrar en
 //   él (o esperar) gana la partida. Toda la XP del suelo vuela sola hacia el jugador y los niveles que dé suben
 //   sin cartas (Fase 13C); la pantalla de victoria dice el nivel alcanzado.
 // Todos los números son un borrador: se ajustan jugando.
 import { ESSENTIAL_ENEMIES, type EnemyId } from './enemies';
-import { DEFAULT_MAP, MAPS_DATA, type MapDef } from './maps';
+import { MAP_IDS, MAPS_DATA, type MapDef, type MapId } from './maps';
 
 export interface WaveDef {
     /** Minute this wave starts (it lasts until the next one). */
@@ -20,6 +21,12 @@ export interface WaveDef {
     batchSize: number;
     /** No new spawns while this many enemies are alive. */
     maxAlive: number;
+}
+
+/** One map's timeline (Fase 22A): its waves and its events, by minute. */
+export interface MapTimeline {
+    waves: readonly WaveDef[];
+    events: readonly WaveEventDef[];
 }
 
 export type WaveEventKind = 'boss' | 'finalBoss' | 'surround' | 'stampede';
@@ -38,7 +45,7 @@ export interface WaveEventDef {
 // la mitad, los propios del mapa (MAPS_DATA.bisle.localEnemies) con poco peso: salen menos, pero pegan más.
 // El resto de monstruos de enemies.ts (Bunny, Troll, Werewolf, Lich, Gargoyle…) queda para otros mapas.
 // Al final del archivo se comprueba que cada oleada solo use monstruos permitidos en el mapa.
-export const WAVES: readonly WaveDef[] = [
+const BISLE_WAVES: readonly WaveDef[] = [
     // Ajuste del 18-oct-2026 (propietario): un monstruo nuevo cada ~minuto, los débiles siguen saliendo poco para dar
     // variedad, y menos monstruos a la vez (pero con el doble de vida y más daño, enemies.ts). Con un jefe vivo no sale
     // las oleadas van más despacio (SPAWN.duringBoss).
@@ -56,7 +63,7 @@ export const WAVES: readonly WaveDef[] = [
     { fromMinute: 11, enemies: [{ enemy: 'slime', weight: 1 }, { enemy: 'orc', weight: 1 }, { enemy: 'stoneGolem', weight: 3 }, { enemy: 'frog', weight: 3 }, { enemy: 'cyclops', weight: 1 }, { enemy: 'cannibalPlant', weight: 1 }, { enemy: 'ogre', weight: 1 }, { enemy: 'mountainGiant', weight: 1 }], startInterval: 0.5, endInterval: 0.4, batchSize: 2, maxAlive: 260 },
 ];
 
-export const WAVE_EVENTS: readonly WaveEventDef[] = [
+const BISLE_EVENTS: readonly WaveEventDef[] = [
     { atMinute: 3, kind: 'surround', enemy: 'snake', count: 28, message: 'You are surrounded!' },
     { atMinute: 4.5, kind: 'stampede', enemy: 'orc', count: 18, message: 'Orc stampede!' },
     { atMinute: 5, kind: 'boss', enemy: 'ettin', message: 'The Ettin approaches!' },
@@ -66,6 +73,43 @@ export const WAVE_EVENTS: readonly WaveEventDef[] = [
     { atMinute: 10.5, kind: 'surround', enemy: 'stoneGolem', count: 26, message: 'You are surrounded!' },
     { atMinute: 12, kind: 'finalBoss', enemy: 'fireWyvern', message: 'The Fire Wyvern awakens!' },
 ];
+
+// Traveler Zone (Fase 22A, decidido el 20-oct-2026): mapa de introducción. Muchos monstruos, pero de los más básicos y
+// muy flojos (MAPS_DATA.traveler.difficulty), para que sea divertido sin agobiar. Dura unos 8 minutos: el Stone Golem
+// en el 4 y el Dummy (jefe final, lento y de 1 de daño, rodeado de bichos) en el 7. Sin estampidas.
+const TRAVELER_WAVES: readonly WaveDef[] = [
+    { fromMinute: 0, enemies: [{ enemy: 'slime', weight: 6 }, { enemy: 'bunny', weight: 5 }], startInterval: 0.9, endInterval: 0.6, batchSize: 3, maxAlive: 120 },
+    { fromMinute: 1, enemies: [{ enemy: 'slime', weight: 3 }, { enemy: 'bunny', weight: 4 }, { enemy: 'ant', weight: 4 }], startInterval: 0.75, endInterval: 0.5, batchSize: 3, maxAlive: 160 },
+    { fromMinute: 2, enemies: [{ enemy: 'slime', weight: 2 }, { enemy: 'bunny', weight: 3 }, { enemy: 'ant', weight: 3 }, { enemy: 'snake', weight: 3 }], startInterval: 0.6, endInterval: 0.45, batchSize: 4, maxAlive: 200 },
+    { fromMinute: 3, enemies: [{ enemy: 'slime', weight: 1 }, { enemy: 'bunny', weight: 2 }, { enemy: 'ant', weight: 3 }, { enemy: 'snake', weight: 4 }], startInterval: 0.55, endInterval: 0.4, batchSize: 4, maxAlive: 220 },
+    { fromMinute: 4, enemies: [{ enemy: 'slime', weight: 1 }, { enemy: 'bunny', weight: 2 }, { enemy: 'ant', weight: 3 }, { enemy: 'snake', weight: 5 }], startInterval: 0.5, endInterval: 0.4, batchSize: 4, maxAlive: 240 },
+    { fromMinute: 5, enemies: [{ enemy: 'slime', weight: 3 }, { enemy: 'bunny', weight: 3 }, { enemy: 'ant', weight: 3 }, { enemy: 'snake', weight: 3 }], startInterval: 0.45, endInterval: 0.35, batchSize: 5, maxAlive: 260 },
+    { fromMinute: 6, enemies: [{ enemy: 'slime', weight: 2 }, { enemy: 'bunny', weight: 3 }, { enemy: 'ant', weight: 3 }, { enemy: 'snake', weight: 4 }], startInterval: 0.4, endInterval: 0.35, batchSize: 5, maxAlive: 280 },
+];
+
+const TRAVELER_EVENTS: readonly WaveEventDef[] = [
+    { atMinute: 2.5, kind: 'surround', enemy: 'bunny', count: 24, message: 'You are surrounded!' },
+    { atMinute: 4, kind: 'boss', enemy: 'stoneGolemBoss', message: 'A Stone Golem blocks the way!' },
+    { atMinute: 5.5, kind: 'surround', enemy: 'slime', count: 30, message: 'Slimes everywhere!' },
+    { atMinute: 7, kind: 'finalBoss', enemy: 'dummy', message: 'The Training Dummy wakes up!' },
+];
+
+/** Every playable map's timeline. A map without one is "Coming soon" (MapDef.comingSoon). */
+export const TIMELINES: Partial<Record<MapId, MapTimeline>> = {
+    traveler: { waves: TRAVELER_WAVES, events: TRAVELER_EVENTS },
+    bisle: { waves: BISLE_WAVES, events: BISLE_EVENTS },
+};
+
+export function getTimeline(map: MapId): MapTimeline {
+    const timeline = TIMELINES[map];
+    if (!timeline) throw new Error(`data/waves.ts: ${map} has no timeline`);
+    return timeline;
+}
+
+/** Minute the final boss appears on that map (Select Map shows it as the run's length). */
+export function finalBossMinute(map: MapId): number | undefined {
+    return TIMELINES[map]?.events.find((event) => event.kind === 'finalBoss')?.atMinute;
+}
 
 /** Shared spawning rules. */
 export const SPAWN = {
@@ -110,18 +154,24 @@ export const PORTAL = {
     message: 'A portal has opened!',
 } as const;
 
-// Comprobación al cargar: las oleadas solo usan esenciales y monstruos del mapa, y los eventos de jefe, sus jefes.
-// Las oleadas son de DEFAULT_MAP; con varios mapas (Fase 21) cada mapa tendrá las suyas.
-{
-    const map: MapDef = MAPS_DATA[DEFAULT_MAP];
+// Comprobación al cargar: las oleadas de cada mapa solo usan esenciales y monstruos del mapa, y los eventos de jefe,
+// sus jefes; y cada mapa jugable tiene línea de tiempo con jefe final.
+for (const id of MAP_IDS) {
+    const map: MapDef = MAPS_DATA[id];
+    const timeline = TIMELINES[id];
+    if (!timeline) {
+        if (!map.comingSoon) throw new Error(`data/waves.ts: ${map.name} has no timeline (or mark it comingSoon)`);
+        continue;
+    }
     const allowed = new Set<EnemyId>([...ESSENTIAL_ENEMIES, ...map.localEnemies]);
-    for (const wave of WAVES) {
+    for (const wave of timeline.waves) {
         for (const { enemy } of wave.enemies) {
             if (!allowed.has(enemy)) throw new Error(`data/waves.ts: ${enemy} is not an essential or ${map.name} monster`);
         }
     }
-    for (const event of WAVE_EVENTS) {
+    for (const event of timeline.events) {
         const ok = event.kind === 'boss' || event.kind === 'finalBoss' ? map.bosses.includes(event.enemy) : allowed.has(event.enemy);
         if (!ok) throw new Error(`data/waves.ts: event ${event.message} uses ${event.enemy}, not a ${map.name} monster`);
     }
+    if (finalBossMinute(id) === undefined) throw new Error(`data/waves.ts: ${map.name} has no final boss`);
 }

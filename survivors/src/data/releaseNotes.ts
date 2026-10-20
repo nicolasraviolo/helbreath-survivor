@@ -14,6 +14,17 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: readonly ReleaseNote[] = [
     {
+        version: 'Phase 22',
+        date: 'Oct 21, 2026',
+        changes: [
+            'New Select Map screen: choose where to fight.',
+            'New map: Traveler Zone, a short first adventure with lots of weak monsters.',
+            'Win a map, or reach its Level, to open the next one.',
+            'Two new bosses: a giant Stone Golem and the Training Dummy.',
+            'New achievements: First Steps and n0000b.',
+        ],
+    },
+    {
         version: 'Phase 21',
         date: 'Oct 20, 2026',
         changes: [

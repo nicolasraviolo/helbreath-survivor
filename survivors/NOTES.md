@@ -76,6 +76,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Atributos y varitas (Fase 21B)
 - Baúl, "solo lo que tienes" y Zem (Fase 21D)
 - Abaddon's Blood: resurrección permanente (Fase 21E)
+- Varios mapas y Select Map (Fase 22A)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -892,3 +893,13 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - **Sonidos:** C21 / C22 son la voz de "buena noticia" del original según el sexo (`m_sPlayerType` 1–3 / 4–6 en `reference/Client.cpp`; suena al fabricar con éxito). El efecto Resurrection (case 194) no suena por sí mismo. Aquí: la voz + `sfx.buff`.
 - **Probar:** `pnpm check revive --eval="new Promise((r) => { g.hurtPlayer(99999, true, 'test'); setTimeout(() => r({ hp: g.player.hp, dead: g.player.isDead }), 1500); })"`.
 - **`pnpm check` en la nube:** `scripts/check.mjs` lanza `channel: 'chrome'`, que no existe en los contenedores de Claude Code web (solo `/opt/pw-browsers/chromium-1194`). Allí se usa una copia temporal con `executablePath` (y se borra después).
+
+## Varios mapas y Select Map (Fase 22A)
+- **Datos:** cada mapa en `data/maps.ts` (orden = el de Select Map y el del desbloqueo), su línea de tiempo en `data/waves.ts` → `TIMELINES`. Un mapa sin línea de tiempo tiene que llevar `comingSoon` (si no, `waves.ts` lanza un error al cargar). `size` es el tamaño del `.amd` en casillas: hace falta para recortar la zona de juego del minimapa antes de cargar el mapa.
+- **Zonas medidas (20-oct-2026, mejor ventana):** Traveler Zone (`default.amd`, 170×170): 100×100 al 84% en (40,38), 80×80 al 91% en (48,50). Elvine Garden (`elvuni`, 200×200): 150×150 al 86% en (24,26). Aresden Garden (`areuni`): 100×100 al 96%, 150×150 al 83%. Middleland (524×524): 150×150 al 94% en (36,274), 200×200 al 89% en (42,258). Visor de todos los mapas con su minimapa: http://localhost:8090/maps.html (`survivors/maps.html`).
+- **Carga:** `PreloadScene` ya no baja ningún mapa. Al pulsar Play (o Continue) pasa por `MapLoadScene`: `.amd`, minimapa y solo los paquetes de casillas que faltan; lo ya cargado no se repite (`hasMap` en `hb/HBMap.ts`, que borra el buffer de la caché al leerlo). `assetStreamer.prioritize(map)` pone delante los monstruos de ese mapa; la cola sigue juntando los de todos (reparto completo: bloque 22B). Select Map baja las 4 miniaturas (~700 KB) la primera vez que se abre.
+- **Desbloqueo:** `systems/MapUnlockStore.ts`, clave `hb-survivors.maps`, mapas **ganados** del dispositivo. Abierto = el primero, o el anterior ganado, o Level del personaje ≥ `recommendedLevel`. La primera vez que carga, si ya había personajes o partidas guardadas, cuenta la Traveler Zone como ganada (y Bleeding Isle si estaba el logro `winBisle`), para no cerrarle Bleeding Isle a quien ya jugaba; se guarda enseguida para no repetir esa cuenta.
+- **Dificultad por mapa:** `difficulty.hp` (vida y XP) y `.damage` de los monstruos normales (`Enemy.spawn`); los jefes nunca. Traveler Zone: 0,5 y 0,4.
+- **Jefes de Traveler Zone:** `stoneGolemBoss` (mismo sprite que el Stone Golem, otro id para que sea jefe sin tocar al normal) y `dummy` (`dummy.spr`, 40 hojas estándar de 4 frames, 69 KB, sin sonidos en sp-client: usa los del Clay Golem). `fixedDamage: 1` hace que cada golpe valga eso, sin dados ni mapa. Vida medida con la partida simulada (21-oct-2026): con 700/1800 la Maga los mataba en 5 s / 20 s; con 3500/7000 el Guerrero tardaba 1,5 / 2,5 min. Se dejó 2500/5000.
+- **Atajos:** `?map=traveler` (también arranca la partida), `?maps=all|reset`, `?open=mapselect`; checks `mapselect`, `mapsall`, `mapsnew`, `traveler`, `travelerboss`. `?play` sin `?map` sigue en Bleeding Isle.
+
