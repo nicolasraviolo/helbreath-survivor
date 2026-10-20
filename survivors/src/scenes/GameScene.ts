@@ -273,6 +273,7 @@ export class GameScene extends Phaser.Scene {
 
         this.audio = new AudioSystem(this);
         this.enemies = new EnemySystem(this, this.audio);
+        this.enemies.setPlayerHealthShare(() => this.player.hp / this.player.maxHp);
         this.spawner = new SpawnSystem(
             camera, this.enemies, map, areaPx, (event, spawned) => this.onWaveEvent(event, spawned),
             (id) => assetStreamer.isReady(id), (id) => assetStreamer.hurry(id),
@@ -285,7 +286,7 @@ export class GameScene extends Phaser.Scene {
         this.particles = new HitParticles(this);
         this.screenShake = new ScreenShake(camera);
         this.combat = new CombatSystem(this.enemies, this.damageNumbers, this.audio, this.particles, this.stats, (enemy) => {
-            this.xp.drop(enemy.x, enemy.y, enemy.def.xp);
+            this.xp.drop(enemy.x, enemy.y, enemy.xp);
             this.pickups.onKill(enemy.x, enemy.y);
             this.onEnemyKilled(enemy);
         });
@@ -1065,6 +1066,10 @@ export class GameScene extends Phaser.Scene {
             case 'stones':
                 // Read when the cards are built (openLevelUp).
                 break;
+            case 'elites':
+                // Every monster that is not a boss comes out elite (M2).
+                this.enemies.allElite = true;
+                break;
             case 'charexp':
                 // Applied when the run ends (endRun).
                 break;
@@ -1116,7 +1121,7 @@ export class GameScene extends Phaser.Scene {
         this.pickups.drop('finalChest', enemy.x, enemy.y);
         this.events.emit(ANNOUNCE_EVENT, PORTAL.bossDeadMessage);
         this.combat.killAll((other) => {
-            this.xp.drop(other.x, other.y, other.def.xp);
+            this.xp.drop(other.x, other.y, other.xp);
             this.onEnemyKilled(other);
         });
         this.xp.attractAll();
@@ -1140,7 +1145,7 @@ export class GameScene extends Phaser.Scene {
     /** Boss for the big health bar at the top, if any. */
     private bossInfo(): HudState['bosses'] {
         return this.bosses.shownList.flatMap((boss) =>
-            boss.def.boss ? [{ name: boss.def.boss.title, hp: Math.max(0, boss.hp), maxHp: boss.def.maxHp }] : []);
+            boss.def.boss ? [{ name: boss.def.boss.title, hp: Math.max(0, boss.hp), maxHp: boss.maxHp }] : []);
     }
 
     /** Weapon, stats and cards of the simulated run, for its report. */

@@ -30,7 +30,7 @@ Número original entre paréntesis: **B** = bug, **M** = mejora.
 
 ## Bloque C: cosas nuevas (una sesión cada una)
 - [x] (M15) El arco del golpe del guerrero es tosco: proponer varias opciones más bonitas y el propietario elige. Elegido "Thin edge + sparks", de arriba abajo; los demás guardados en `data/slash.ts`.
-- [ ] (M2) Monstruos élite al azar con más daño (probabilidad muy baja o baja según lo duro que sea el monstruo o lo fácil que vaya la partida). Otro color o un aura sutil.
+- [x] (M2) Monstruos élite al azar con más daño (probabilidad muy baja o baja según lo duro que sea el monstruo o lo fácil que vaya la partida). Otro color o un aura sutil. Hecho: "Berserk" con el mismo brillo rojo que el buff del jugador (`data/elites.ts`).
 - [ ] (M8) Pantallas de carga: fondo negro, solo la barra y "Loading"; logo de HB pequeño abajo a la derecha que gira o aparece y desaparece.
 - [ ] (M17) Ventana del personaje: dibujar el equipo sobre el cuerpo con los gráficos `item-equipm`/`item-equipw`, como en el original.
 - [ ] (M13) Menús de opciones distintos para móvil y para web (mejor experiencia en cada uno).

@@ -2,6 +2,13 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
+**Ronda de bugs, bloque C, M2: monstruos élite (2026-10-20).**
+- **Qué hace:** cualquier monstruo que no sea jefe puede salir élite ("Berserk"): mismo brillo rojo que el buff Berserk del jugador, pega ×1,5 (también flechas y bolas de fuego), vida ×2, EXP ×3. Probabilidad de 1/50 (vida ≤ 20) a 1/200 (vida ≥ 1000), en escala logarítmica; ×2 con la vida del jugador > 75 %, ninguno con < 35 %. Congelado se ve azul, sin el rojo.
+- **Decisiones del propietario:** el brillo es el mismo efecto que el Berserk del jugador.
+- **Código:** `data/elites.ts` (números y `eliteChance`); tirada en `EnemySystem.spawn` (vida del jugador vía `setPlayerHealthShare`); `Enemy.elite`, `maxHp`, `xp` y `syncGlowTexture`; copia roja de la hoja hecha en la GPU (`hb/glowTexture.ts`, `DynamicTexture`). La primera versión (un sprite ADD encima de cada élite) hundía los FPS con muchos: rompe el lote de WebGL. `?debug=elites`, situación `check elites`.
+- **Comprobado:** build; `check elites game` a 60 FPS sin errores; 300 monstruos élite → 7–9 llamadas de dibujo por frame, igual que sin élites; píxeles de la copia: rojo ×1,5, verde/azul ×1,13 (la cuenta del overlay del original); Orc élite con 120 de vida.
+- **Probar:** `pnpm --dir survivors dev` → `?play=warrior&debug=god,elites,horde` (todos rojos) · `?play` (alguno suelto).
+
 **Ronda de bugs, bloque C, M15: estela del tajo del guerrero (2026-10-20).**
 - **Qué hace:** 5 estilos de estela en `data/slash.ts`; el propietario eligió **Thin edge + sparks** (filo fino que baja de arriba abajo en 0,08 s, con chispas en la punta de abajo). Los otros se guardan.
 - **Código:** `entities/Slash.ts` por rebanadas con grosor y alfa propios, brillo aditivo y chispas en arrays fijos; `show()` invierte el arco para empezar siempre por la punta de arriba. Constantes `SLASH_*` salen de `gameConfig.ts`. Desarrollo: `?slash=N`, tecla Y (`Action.DebugSlashStyle`) y letrero en `GameScene`.

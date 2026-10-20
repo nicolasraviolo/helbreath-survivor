@@ -18,15 +18,21 @@ import {
 import type { AudioSystem } from '../systems/AudioSystem';
 import { enemySpeed, MONSTER_AI, MONSTER_DAMAGE, type EnemyDef } from '../data/enemies';
 import { hitChance } from '../data/defense';
+import { ELITE } from '../data/elites';
 import { FREEZE_TINT } from '../data/totems';
 import { TILE_SIZE } from '../config/gameConfig';
 import { HBAsset } from '../hb/HBAsset';
 import type { HBMap } from '../hb/HBMap';
 import { getSheetKey } from '../hb/HBSprite';
+import { tintedKey } from '../hb/additiveTint';
+import { ensureGlowTexture } from '../hb/glowTexture';
 import { Direction, directionFromVector } from '../hb/directions';
 import { MONSTER_DEFAULT_FRAMES_PER_SHEET, MONSTER_SHEET_BASE, MonsterState, monsterFrameRate } from '../hb/monsterSheets';
 import { moveAxis } from '../utils/collision';
 import type { Poolable } from '../utils/Pool';
+
+/** Texture key suffix of a sheet's red copy for the elites (hb/additiveTint.ts → tintedKey). */
+const ELITE_GLOW_SUFFIX = tintedKey('', 'elite');
 
 export enum EnemyPhase {
     Alive = 'alive',
@@ -96,6 +102,8 @@ export class Enemy implements Poolable {
     private chargeY = 0;
     /** Freeze totem (Fase 16B): time left standing still, animation paused and tinted blue. */
     private frozenMs = 0;
+    /** Elite (data/elites.ts): hits harder, has more health and gives more XP; glows red like the player's Berserk. */
+    public elite = false;
 
     constructor(scene: Phaser.Scene, public readonly def: EnemyDef, private readonly audio: AudioSystem) {
         const scale = def.scale ?? 1;
@@ -117,10 +125,11 @@ export class Enemy implements Poolable {
         return this.phase === EnemyPhase.Alive;
     }
 
-    public spawn(x: number, y: number): void {
+    public spawn(x: number, y: number, elite = false): void {
         this.x = x;
         this.y = y;
-        this.hp = this.def.maxHp;
+        this.elite = elite;
+        this.hp = this.maxHp;
         this.hitsTaken = 0;
         this.phase = EnemyPhase.Alive;
         this.pushX = 0;
@@ -171,6 +180,16 @@ export class Enemy implements Poolable {
         this.knockY = 0;
         this.sprite.anims.pause();
         if (this.flashMs <= 0) this.sprite.setTint(FREEZE_TINT);
+    }
+
+    /** Full health: the elites have more. */
+    public get maxHp(): number {
+        return this.elite ? Math.round(this.def.maxHp * ELITE.hpMultiplier) : this.def.maxHp;
+    }
+
+    /** XP of the gem it drops: the elites give more. */
+    public get xp(): number {
+        return this.elite ? Math.round(this.def.xp * ELITE.xpMultiplier) : this.def.xp;
     }
 
     public get isFrozen(): boolean {
@@ -226,6 +245,12 @@ export class Enemy implements Poolable {
 
     /** Returns true when the enemy has finished fading out and must go back to the pool. */
     public update(deltaMs: number, world: EnemyWorld): boolean {
+        // The animation already advanced this frame (Phaser runs it before the scene's update).
+        this.syncGlowTexture();
+        return this.step(deltaMs, world);
+    }
+
+    private step(deltaMs: number, world: EnemyWorld): boolean {
         if (this.flashMs > 0) {
             this.flashMs -= deltaMs;
             if (this.flashMs <= 0) {
@@ -399,7 +424,7 @@ export class Enemy implements Poolable {
 
     /** Once, at very low health: cowardly monsters (low bravery) run away for a while. */
     private checkBravery(): void {
-        if (this.braveryChecked || this.hp > this.def.maxHp * MONSTER_AI.lowHealthShare) return;
+        if (this.braveryChecked || this.hp > this.maxHp * MONSTER_AI.lowHealthShare) return;
         this.braveryChecked = true;
         if (Phaser.Math.Between(1, this.def.bravery) <= MONSTER_AI.braveryRoll) {
             this.fleeMs = MONSTER_AI.lowHealthFleeActions * this.def.actionTimeMs;
@@ -413,7 +438,8 @@ export class Enemy implements Poolable {
         for (let i = 0; i < count; i++) roll += Phaser.Math.Between(1, sides);
         const average = (count * (sides + 1)) / 2;
         const blow = MONSTER_DAMAGE.scale * average ** MONSTER_DAMAGE.exponent * (roll / average);
-        return Math.max(1, Math.round(blow * (this.def.damageScale ?? 1)));
+        const elite = this.elite ? ELITE.damageMultiplier : 1;
+        return Math.max(1, Math.round(blow * (this.def.damageScale ?? 1) * elite));
     }
 
     /** Frames of the attack animation for the current direction. */
@@ -464,6 +490,26 @@ export class Enemy implements Poolable {
         const left = this.x - frame.pivotX * frame.width * scale;
         const top = this.y - frame.pivotY * frame.height * scale;
         shadow.setPosition(left + (frame.width * scale) / 2, top + frame.height * scale);
+    }
+
+    /**
+     * Elites: draws the current frame from the sheet's red copy (the player's Berserk glow baked in, hb/glowTexture.ts),
+     * made the first time. The animation sets the plain frame when it advances; this swaps it back each update.
+     * While frozen it shows the plain frame, so the Freeze blue reads clearly.
+     */
+    private syncGlowTexture(): void {
+        const sprite = this.sprite;
+        const frame = sprite.frame;
+        const key = frame.texture.key;
+        const glowing = key.endsWith(ELITE_GLOW_SUFFIX);
+        const wanted = this.elite && !this.isFrozen;
+        if (wanted === glowing) return;
+        if (!wanted) {
+            sprite.setTexture(key.slice(0, -ELITE_GLOW_SUFFIX.length), frame.name);
+            return;
+        }
+        const glowKey = key + ELITE_GLOW_SUFFIX;
+        if (ensureGlowTexture(sprite.scene, key, glowKey, ELITE.glowTint, ELITE.glowAlpha)) sprite.setTexture(glowKey, frame.name);
     }
 
     private setActive(active: boolean): void {

@@ -38,6 +38,8 @@ const PRESETS = {
     // Minimapa (Fase 16A): con un jefe vivo, para ver su punto rojo junto al del jugador.
     minimap: 'debug=god,boss',
     horde: 'debug=god,horde,horde,horde',
+    // Monstruos élite (M2): todos salen élite (brillo rojo del Berserk), con una horda alrededor.
+    elites: 'debug=god,elites,horde',
     pickups: 'debug=god,pickups',
     // Tótems (Fase 16B): los 4 en fila debajo del jugador, con unos monstruos alrededor.
     totems: 'debug=god,horde,totems',

@@ -3,6 +3,7 @@
 import Phaser from 'phaser';
 import { ENEMY_SEPARATION_MAX, ENEMY_SEPARATION_PER_PX, SPATIAL_CELL_SIZE } from '../config/gameConfig';
 import { ENEMIES, type EnemyDef, type EnemyId } from '../data/enemies';
+import { eliteChance } from '../data/elites';
 import { Enemy, type EnemyWorld } from '../entities/Enemy';
 import { Pool } from '../utils/Pool';
 import type { AudioSystem } from './AudioSystem';
@@ -21,6 +22,10 @@ export class EnemySystem {
     private landedSource = '';
     /** Shoots an archer's arrow at the player (set by the game scene). */
     private onShoot: (enemy: Enemy, damage: number) => void = () => undefined;
+    /** The player's health share (0..1), which raises or stops the elites' chance (set by the game scene). */
+    private playerHealthShare: () => number = () => 1;
+    /** Debug (?debug=elites): every monster that is not a boss comes out elite. */
+    public allElite = false;
 
     constructor(scene: Phaser.Scene, audio: AudioSystem) {
         for (const id of Object.keys(ENEMIES) as EnemyId[]) {
@@ -52,9 +57,16 @@ export class EnemySystem {
         return this.landedBoss;
     }
 
+    public setPlayerHealthShare(source: () => number): void {
+        this.playerHealthShare = source;
+    }
+
+    /** Every new monster may come out elite (data/elites.ts); bosses never. */
     public spawn(id: EnemyId, x: number, y: number): Enemy {
         const enemy = this.getPool(id).acquire();
-        enemy.spawn(x, y);
+        const def = enemy.def;
+        const elite = def.boss === undefined && (this.allElite || Math.random() < eliteChance(def, this.playerHealthShare()));
+        enemy.spawn(x, y, elite);
         return enemy;
     }
 

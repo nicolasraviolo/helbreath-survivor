@@ -67,6 +67,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Hechizos equipables del Mago (Fase 20D)
 - Arreglos del bloque A de bugs (19-oct-2026)
 - Estela del tajo del guerrero (M15, 20-oct-2026)
+- Monstruos élite (M2)
 - Bugs del bloque B (20-oct-2026)
 
 ## Sprites (`.spr`): formato y carga
@@ -814,3 +815,9 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - Estilos en `data/slash.ts` (Classic, Crescent, Sweep, Crescent + sweep, Thin edge + sparks); el elegido es el último (`DEFAULT_SLASH_STYLE`). Los demás se guardan a petición del propietario. Probar: `?slash=N` y tecla **Y** en partida (solo desarrollo; letrero amarillo arriba a la derecha).
 - Para ver un instante concreto en el check: `--eval` con `g.scene.pause()`, `g.weapons.slashEffect.show(...)` y `.update(ms)`.
 
+
+## Monstruos élite (M2)
+- Números en `data/elites.ts`; la tirada, en `EnemySystem.spawn` (jefes nunca). `?debug=elites` = todos élite; `pnpm check elites`.
+- El brillo rojo es el del Berserk del jugador (copia ADD 0xff4444 al 50 %), pero **horneado** en una copia de la hoja (`hb/glowTexture.ts`, clave `{hoja}~elite`), hecha en la GPU con un `DynamicTexture`. Un sprite ADD encima de cada monstruo rompe el lote de WebGL (cada cambio de modo de mezcla es otra llamada de dibujo) y con cientos de élites bajan los FPS.
+- No se puede copiar píxel a píxel como el pelo (`hb/additiveTint.ts`): las hojas de monstruo cierran su `ImageBitmap` al subirse a la GPU ("image source is detached").
+- La animación pone el frame de la hoja normal al avanzar; `Enemy.syncGlowTexture` lo cambia por el de la copia en cada update (después de las animaciones, antes de dibujar).
