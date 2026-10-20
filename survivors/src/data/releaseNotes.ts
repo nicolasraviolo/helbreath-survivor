@@ -21,7 +21,7 @@ export const RELEASE_NOTES: readonly ReleaseNote[] = [
             'New Character window to assign your stat points.',
             'New Equipment screen: choose your gear and see it on your character.',
             'New cards: Stone of Xelima and Stone of Merien.',
-            'New sword slash, rare elite monsters, a new loading screen and many fixes.',
+            'New slash, elite monsters, loading screen, Settings tabs and fixes.',
         ],
     },
     {

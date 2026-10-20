@@ -4,6 +4,8 @@
 // la flecha > sube.
 // Fase 12C (Settings táctil): filas con casilla (sí/no): un toque en la fila la cambia; con teclado o mando, Enter.
 // Fase 19C (Settings → Controls): filas con valor sin flechas (`noArrows`), para la tecla elegida.
+// M13 (pestañas de Settings): filas solo para teclado y mando (`keyboardOnly`), sin texto ni zona de clic: la pantalla
+// dibuja por su cuenta lo que representan (la barra de pestañas) y mira `selectedIndex` para iluminarlo.
 import Phaser from 'phaser';
 import { MENU_ARROW, MENU_CHECKBOX, MENU_ITEM } from '../config/menus';
 import { SpriteText } from '../hb/SpriteText';
@@ -20,6 +22,8 @@ export interface MenuItem {
     checked?: () => boolean;
     /** Value row without the ◄ ► arrows (a value picked another way, like a key in Settings → Controls). */
     noArrows?: boolean;
+    /** Row reached only with the keyboard or gamepad: no text, no click area (the scene draws it; see selectedIndex). */
+    keyboardOnly?: boolean;
 }
 
 export interface MenuListLayout {
@@ -62,7 +66,7 @@ export class MenuList {
 
             // The whole row lights up on hover; a click on it confirms (rows with a value change only on the arrows).
             const width = twoColumns ? half * 2 : Math.max(label.width * MENU_ITEM.scale, MENU_ITEM.hitHeight * 4);
-            this.addZone(layout.x, y, width, index, item.onConfirm);
+            if (!item.keyboardOnly) this.addZone(layout.x, y, width, index, item.onConfirm);
 
             const boxWidth = layout.valueBoxWidth ?? MENU_ITEM.valueBoxWidth;
             if (twoColumns && item.checked) {
@@ -87,6 +91,11 @@ export class MenuList {
 
     public setReadyCheck(ready: () => boolean): void {
         this.ready = ready;
+    }
+
+    /** Row highlighted now (0 = the first). */
+    public get selectedIndex(): number {
+        return this.selected;
     }
 
     /** Reads the menu actions. Call once per frame, after `input.update()`. */

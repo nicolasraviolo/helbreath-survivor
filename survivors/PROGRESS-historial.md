@@ -2,6 +2,13 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
+**Ronda de bugs, bloque C, M13: Settings en dos pestañas (2026-10-20).**
+- **Qué hace:** Settings va en dos pestañas en móvil y ordenador: "Audio & Display" (Music, Sound, Fullscreen, Large Trees, HUD en el móvil) y "Gameplay" (Minimap, Health Bar, Screen Shake, Aim Stick en táctil, Controls en el ordenador, Anonymous Stats). Filas más separadas (44 / 48 px). Se cambia tocando la pestaña, con sus ◄ ► o, con teclado/mando, en la primera fila. Recuerda la última pestaña.
+- **Decisiones del propietario:** pestañas (no scroll ni quitar opciones) y también en la web.
+- **Código:** `SettingsScene` (barra de pestañas, `pendingTab`), `SETTINGS_MENU` en `config/menus.ts`, `MenuList` con filas `keyboardOnly` y `selectedIndex`. Atajo `?tab=gameplay`.
+- **Comprobado:** build; `check settings menu` (también `--mobile`) sin errores; cambio de pestaña por clic y por la fila de teclado, sin zonas de clic sobrantes; capturas de las dos pestañas.
+- **Probar:** `pnpm --dir survivors dev` → `?open=settings` · `?open=settings&tab=gameplay&ui=compact`.
+
 **Ronda de bugs, bloque C, M17: equipo sobre el cuerpo en la ventana Character (2026-10-20).**
 - **Qué hace:** las ventanas Character y Equipment dibujan al personaje como el original: cuerpo grande y quieto (`item-equipm/w.spr`) con pelo (teñido, oculto con casco), ropa interior, ropa de la clase y todo el equipo en sus posiciones originales. Select Character sigue con el muñeco animado.
 - **Código:** `data/paperDoll.ts` (grupo y frame de `Item*.cfg`, hojas, posiciones y orden de `DrawDialogBox_Character`), `entities/PaperDoll.ts` (mientras se descargan los dibujos, ~250–290 KB, se ve el muñeco animado). Tipo de sprite `PaperDoll` (canvas, para teñir el pelo). Atajo nuevo `?gear=ids` para vestir a los de ejemplo sin requisitos.

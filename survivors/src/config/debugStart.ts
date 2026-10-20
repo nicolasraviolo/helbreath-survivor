@@ -24,6 +24,7 @@
 //   ?loading=hold    → la pantalla de carga se queda a medias, para verla con calma (M8)
 //   ?trees=off       → árboles grandes en ese modo solo en esta partida (on, off), sin guardarlo
 //   ?open=howtoplay  → abre esa pantalla de los menús (howtoplay, settings, controls = Settings → Controls, credits, releasenotes = novedades, achievements, select = selección de personaje)
+//   ?tab=gameplay    → con ?open=settings, abre esa pestaña de Settings (audio, gameplay; M13)
 //   ?open=slots      → abre la pantalla de los 4 personajes guardados (Fase 17A)
 //   ?open=charinfo   → Select Character con la ventana Character abierta (Fase 20A), del primer personaje con puntos
 //   ?open=equipment  → Select Character con la pantalla Equipment abierta (Fase 20B), del Guerrero (o el primero;
@@ -85,13 +86,15 @@ interface DebugStart {
     holdLoading: boolean;
     /** Items the ?characters=demo examples wear (checked in CharacterStore). */
     gear: string[];
+    /** Settings tab to open first: the start of its name, in lower case (?tab=gameplay; M13). */
+    settingsTab: string | undefined;
 }
 
 function readDebugStart(): DebugStart {
     const none: DebugStart = {
         play: false, character: undefined, actions: [], trees: undefined, open: undefined, achievements: undefined, characters: undefined,
         sendMetrics: false, spells: { auto: undefined, active: undefined }, openClass: undefined, slash: undefined,
-        holdLoading: false, gear: [],
+        holdLoading: false, gear: [], settingsTab: undefined,
     };
     if (!import.meta.env.DEV) return none;
     const params = new URLSearchParams(window.location.search);
@@ -118,6 +121,7 @@ function readDebugStart(): DebugStart {
         slash: slash !== null && /^\d+$/.test(slash) ? Number(slash) : undefined,
         holdLoading: params.get('loading') === 'hold',
         gear: (params.get('gear') ?? '').split(',').map((g) => g.trim()).filter((g) => g.length > 0),
+        settingsTab: params.get('tab')?.toLowerCase() ?? undefined,
     };
 }
 

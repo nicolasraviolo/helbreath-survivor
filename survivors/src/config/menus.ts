@@ -83,12 +83,27 @@ export const MENU_CHECKBOX = {
     fillAlpha: 0.45,
 } as const;
 
-/** Settings (Fase 12C): the big panel, rows a bit closer so all of them fit inside its frame (tighter on phones since the Aim Stick row, Fase 15C). */
+/**
+ * Settings (Fase 12C), in two tabs since M13: the tab bar under the title, then the rows of the open tab, with room
+ * between them for fingers (before, all 11 rows were squeezed into the frame on phones).
+ */
 export const SETTINGS_MENU = {
-    /** First row, from the usual content row. */
-    firstRowOffset: byDevice(-38, -40),
-    // PC: 31 (before the 19C, 34) so the Controls row fits.
-    itemSpacing: byDevice(31, 30),
+    tabNames: ['Audio & Display', 'Gameplay'],
+    /** Tab bar, from the usual content row; the options follow it, one itemSpacing apart. */
+    tabBarOffset: byDevice(-38, -32),
+    /** Space between the two tab names (the pair is centred in the panel). */
+    tabGap: byDevice(50, 60),
+    /** ◄ ► of the tab bar, this far outside the tab names. */
+    tabArrowMargin: byDevice(22, 26),
+    /** Line under the open tab, this far below the tab bar's centre. */
+    underlineOffsetY: byDevice(15, 19),
+    underlineWidth: 2,
+    /** Faint line across the panel under the tab bar. */
+    dividerOffsetY: byDevice(26, 30),
+    dividerAlpha: 0.35,
+    /** Tab that is not open. */
+    idleTabAlpha: 0.6,
+    itemSpacing: byDevice(44, 48),
     /** Width of the value column (checkbox or "◄ Compact ►"). */
     valueBoxWidth: byDevice(150, 210),
     /** The one-line note about the anonymous stats (Fase 14A), just under the panel's bottom edge. */

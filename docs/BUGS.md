@@ -33,7 +33,7 @@ Número original entre paréntesis: **B** = bug, **M** = mejora.
 - [x] (M2) Monstruos élite al azar con más daño (probabilidad muy baja o baja según lo duro que sea el monstruo o lo fácil que vaya la partida). Otro color o un aura sutil. Hecho: "Berserk" con el mismo brillo rojo que el buff del jugador (`data/elites.ts`).
 - [x] (M8) Pantallas de carga: fondo negro, solo la barra y "Loading"; logo de HB pequeño abajo a la derecha que gira o aparece y desaparece. Hecho: logo del propietario con latido abajo a la derecha y "Helbreath Survivors" con la letra caligráfica encima de la barra (`?loading=hold`).
 - [x] (M17) Ventana del personaje: dibujar el equipo sobre el cuerpo con los gráficos `item-equipm`/`item-equipw`, como en el original. Hecho: ventanas Character y Equipment (`data/paperDoll.ts`).
-- [ ] (M13) Menús de opciones distintos para móvil y para web (mejor experiencia en cada uno).
+- [x] (M13) Menús de opciones distintos para móvil y para web (mejor experiencia en cada uno). Hecho: Settings en dos pestañas ("Audio & Display" y "Gameplay") en los dos, con filas más separadas; cada uno con sus filas propias (HUD y Aim Stick en el móvil, Controls en el ordenador). El propietario eligió pestañas también en la web (20-oct-2026).
 
 ## Dudas resueltas
 - (M4) La EXP del Level se entrega solo al morir o ganar. Si sales, se queda guardada con la partida hasta que termine (propietario, 20-oct-2026). Ya funcionaba así: sin cambios.

@@ -44,6 +44,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - App instalable (Fase 12, bloque 12A)
 - Partidas guardadas (Fase 12, bloque 12B)
 - Settings táctil (Fase 12C)
+- Pestañas de Settings (M13)
 - Portal del final (Fase 13)
 - Partida simulada y equilibrio (Fase 13C)
 - Logros (Fase 14B)
@@ -623,6 +624,11 @@ Tabla completa en `docs/REQUISITOS_HB.md`. Lo no obvio:
 - Large Trees solo On/Off: un `'transparent'` guardado (Fase 11) no está en `TREE_MODES` y se carga como el valor por defecto (On), sin migración.
 - En Playwright, esperar a que la escena exista (`waitForFunction`) antes de pulsar teclas: con `?open=` la pantalla tarda algo más de 1,5 s.
 
+## Pestañas de Settings (M13)
+- Dos pestañas en móvil y ordenador: "Audio & Display" y "Gameplay" (`SETTINGS_MENU.tabNames`). Qué fila va en cada una: `audioDisplayRows` / `gameplayRows` de `SettingsScene`. Caben unas 6 filas más Back por pestaña; con más, otra pestaña o bajar `itemSpacing`.
+- **Teclado y mando:** la barra de pestañas es la fila 0 de la `MenuList`, una fila `keyboardOnly` (sin texto ni zona de clic); la escena dibuja las pestañas y mira `list.selectedIndex` para iluminar ◄ ►. Al cambiar de pestaña la lista se destruye y se crea otra: el cambio se aplica en `update()` después de leer la entrada (`pendingTab`), no dentro de `handleInput`.
+- La última pestaña se recuerda mientras la página está abierta (variable del módulo, no se guarda). `?open=settings&tab=gameplay` abre la segunda.
+
 ## Portal del final (Fase 13)
 - Efecto `fx.portal` = sp-client EFFECT_PORTAL_1: `effect11.spr` hoja 12, 30 frames a 15 fps. Ya lo carga el juego (no añade descarga).
 - Sus frames tienen el pivote desplazado: el dibujo queda ~97 px a la derecha y ~77 px por debajo del ancla. Se corrige con `offsetX/offsetY` en `config/effects.ts` (medido con `getBounds()` en partida). Mide unos 115–165 × 60–90 px según el frame.
@@ -675,7 +681,7 @@ Tabla completa en `docs/REQUISITOS_HB.md`. Lo no obvio:
 - **Lectura:** `InputSystem.updateAim` mira el stick de apuntar justo después del stick derecho del mando. Solo cuenta cuando el dedo ya ha salido de la zona muerta (`pushed`); si vuelve al centro sin levantarse, se queda la última dirección. Sin punto (como el mando): Energy Strike cae a `stickAreaDistance` × alcance.
 - **Esquina reservada:** `TOUCH_RESERVED_CORNER` (abajo a la derecha de la zona de juego) no abre ningún stick: ahí irá el botón del crit (Fase 19). El botón de pausa es de la escena del HUD, que va encima y se queda el toque.
 - **Dedos:** `TOUCH_POINTERS = 3` (mover + apuntar + botón).
-- **Settings en el móvil:** con la fila "Aim Stick" son 11 filas; para que quepan en el marco, `SETTINGS_MENU.itemSpacing` en el móvil bajó a 33. Otra fila más ya no cabe: habría que quitar alguna o hacer dos páginas.
+- **Settings en el móvil:** con la fila "Aim Stick" llegaron a ser 11 filas apretadas. Desde el M13 van en dos pestañas (ver "Pestañas de Settings (M13)").
 - **How to Play en el móvil:** caben **6 filas** por página; la 7ª pisa el selector "Page". En el 15C se juntaron filas ("C / Esc", "Stats / Pause buttons") y se acortaron textos para que quepan.
 - **Probar:** `?debug=aimstick` (con `--mobile`) pone un dedo de mentira empujando a la derecha. Para dedos de verdad en `pnpm check --eval`, crear `Touch` con `clientX/pageX/screenX` (si falta `pageX`, Phaser lo lee como 0) y lanzar `touchstart` en el canvas y `touchmove/touchend` en `window`. Ojo: un `import('/src/...')` desde `--eval` carga **otra copia** del módulo (Vite lo sirve con `?t=...`); para tocar los ajustes de verdad hay que importar la URL exacta de `performance.getEntriesByType('resource')`.
 
