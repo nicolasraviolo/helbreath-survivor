@@ -5,16 +5,17 @@
 - 17-oct-2026: 7 Oleadas, jefes y final · 8 Menús y personajes (solo menús; Arquero aplazado) · 9 Web, móvil y publicación · 10 Pulido (10A–10C).
 - 18-oct-2026: 11 Pulido de interfaz · 12 Móvil sin pérdidas (12A–12C) · 13 Jefe final y equilibrio (13A–13C) · 14 Métricas y logros (14A–14B) · 15 Apuntado híbrido (15A–15C) · 16 Minimapa y tótems (16A–16B) · 17 Selección de personaje (17A–17B) · 18 Esquiva y resistencia mágica (18A–18B).
 - 19-oct-2026: 19 Crits y habilidad activa (19A–19C) · 20 Level y equipo (20A–20D).
+- 20-oct-2026: 21 Botín y baúl (21A, 21B, 21D, 21E; el 21C, anillos y collares, aplazado).
 
 ## Fase actual
-**Fase 21 (botín y baúl), rama `fase-21`.** Ronda de bugs del propietario terminada (`docs/BUGS.md`).
-- **21A (botín), 21B (atributos y varitas), 21D (baúl, "solo lo que tienes", reglas al morir y Zem) y 21E (Abaddon's Blood): hechos** (20-oct-2026). Detalle en `PROGRESS-historial.md`.
-- **Siguiente:** que el propietario pruebe el 21E y, si da el OK, `/checkpoint fase` (cerrar la Fase 21: fusionar `fase-21` en `master`). Todo está en `fase-21` (también el 21E).
+**Fase 21 completada** (20-oct-2026) y fusionada en `master` (etiqueta `fase-21`). Detalle de cada bloque en `PROGRESS-historial.md`.
+- **Siguiente:** `/fase 22` → sistema de mapas + Icebound (`docs/PLAN-2.md`).
 - **21C (anillos y collares) aplazado** por el propietario para más adelante.
+- **Sesiones en la nube (claude.ai/code):** trabajan en otra copia del proyecto; el propietario solo ve los cambios con `git pull` en su rama. Desde Claude Code en su ordenador, basta con refrescar.
 - **Plan del propietario:** la Spell 2 gastará **maná** en vez de esperar recarga; las varitas ya guardan su Mana Save (ver NOTES.md, "Atributos y varitas").
 - **Abaddon's Blood (21E, 20-oct-2026):** mejora **permanente** para los 4 personajes, no un objeto; revive una vez por partida. Hasta la tienda (Fase 24) solo con `?unlocks=abaddon`.
 - **Decisiones de la Fase 21 (20-oct-2026):** reparto 50/25/15/10; la bolsa va al **inventario del personaje**; baúl de 50 que se llena a mano; Zem del 10% de los jefes (también se venderá en la Fase 24); hechizos actuales libres por Int, los futuros con Manual; en el suelo solo dibujos de `item-ground`.
-- **Pendiente de probar por el propietario:** revivir con Abaddon's Blood (21E) y pociones al 0,4% (antes 1,5%; ¿la partida queda demasiado difícil?); baúl, Equipment "solo lo que tienes" y morir con/sin Zem (21D); el botín en una partida normal (frecuencia de caída); cambiar de pestaña en partida y volver, sin sonidos trabados (B4); mando real (vibración y stick derecho).
+- **Pendiente de probar por el propietario:** pociones al 0,4% (antes 1,5%; ¿la partida queda demasiado difícil?); atajo `onehp` / tecla U (a él no le funcionó, en el check sí: comprobar con la versión al día); baúl, Equipment "solo lo que tienes" y morir con/sin Zem (21D); el botín en una partida normal (frecuencia de caída); cambiar de pestaña en partida y volver, sin sonidos trabados (B4); mando real (vibración y stick derecho).
 - **Ideas sin fecha:** monstruos al azar como evento especial; jefes más difíciles de esquivar (mínimo de acierto propio, nota en `data/defense.ts`).
 
 **Pistas para trabajar** (detalle en `survivors/NOTES.md`):

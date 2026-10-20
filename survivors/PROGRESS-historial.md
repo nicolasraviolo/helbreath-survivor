@@ -2,13 +2,15 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
+**Fase 21 cerrada (2026-10-20).** Bloques 21A, 21B, 21D y 21E; el 21C (anillos y collares) queda aplazado. Comprobado al cerrar: build y `check menu game revive loot warehouse equipment` sin errores. Fusionada en `master` con la etiqueta `fase-21`.
+
 **Fase 21, bloque 21E: Abaddon's Blood (2026-10-20).**
 - **Qué hace:** mejora **permanente** de todo el dispositivo (vale para los 4 personajes). Si está desbloqueada, al morir el personaje queda un momento en el suelo y se levanta: 50% de vida, 3 s invulnerable (parpadea), efecto Resurrection, su voz (C21 hombre / C22 mujer), un aro rojo que aparta a los monstruos sin hacerles daño y el letrero "Abaddon's Blood!". Una vez por partida: la segunda muerte es Game Over. El Red Ball sale a la izquierda de las barras (en el móvil, junto a la primera barra): dorado si queda, oscuro si ya se usó; oculto si no está desbloqueado. Continue recuerda si ya se usó. Logro "Blood of the Demon". El Zem no cambia.
 - **Decisiones del propietario:** ya no es un objeto que cae y se equipa: se **compra** fuera de la partida, como el "Revival" de Vampire Survivors (tienda en la Fase 24); se programa ya, desbloqueable solo con atajo; vale para los 4 personajes; diseño aprobado en capturas (icono, aro, letrero, mismo efecto que el tótem Full HP).
 - **Decidido por mí (ajustable en `data/abaddon.ts`):** 0,8 s en el suelo antes de levantarse, radio y fuerza de la onda, nombre del logro, `sfx.buff` junto a la voz.
 - **Código:** `data/abaddon.ts`, `systems/UnlockStore.ts`, `systems/AbaddonRevive.ts`, `ui/ReviveIcon.ts`; `Player.revive`, `Enemy.push`; `RunSnapshot.abaddonUsed`; `HudBarState.revive`, `HUD_REVIVE`; `fx.resurrection`, `sfx.revive.m/w`; logro `revive`; fuera el hueco apagado de `SECOND_ROW_SLOTS`. Atajo `?unlocks=abaddon|reset`; situación `check revive`.
 - **Comprobado:** build; `check revive` (PC y `--mobile`): muere, revive con 65/130, icono "used", logro; segunda muerte → GameOver; con `?unlocks=reset` → GameOver a la primera; la partida guardada lleva `abaddonUsed`. Sin errores de consola. Capturas de PC y móvil.
-- **Después, a petición del propietario:** efecto al revivir "Abaddon Spirit 10" (`yseffect3` hoja 11, 5,6 MB, solo se descarga si está desbloqueado) y la bola de la barra late con brillo de fuego mientras está lista.
+- **Después, a petición del propietario:** efecto al revivir "Abaddon Spirit 10" (`yseffect3` hoja 11, 5,6 MB, solo se descarga si está desbloqueado; ×2 y 2 s), atajo `?debug=onehp` / tecla U (1 de vida) y la bola de la barra late con brillo de fuego mientras está lista.
 - **Después, a petición del propietario:** pociones al **0,4%** por monstruo (antes 1,5%), porque rodeado te curabas solo y no se podía morir (`data/pickups.ts`). Pendiente: mirar el equilibrio con la partida simulada y las métricas.
 - **Probar:** `pnpm --dir survivors dev` → `?play=warrior&unlocks=abaddon`, pulsar N y dejarse matar (sin G). Sin el `&unlocks=abaddon` (o con `?unlocks=reset`) se muere a la primera.
 

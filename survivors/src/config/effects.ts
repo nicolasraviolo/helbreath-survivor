@@ -64,8 +64,8 @@ export const EFFECTS = {
     'fx.resurrection': { sprite: 'fx.effect11', sheet: 10, frameRate: 15, loop: false },
     // Abaddon's Blood con el efecto elegido por el propietario (20-oct-2026): "Abaddon Spirit 10", yseffect3 hoja 11.
     // Hasta que se descarga (ON_DEMAND_SPRITES) se usa fx.resurrection.
-    // Más lento y grande que en el original (propietario, 20-oct-2026).
-    'fx.abaddon.spirit': { sprite: 'fx.yseffect3', sheet: 11, frameRate: 5, loop: false, scale: 2 },
+    // Más lento y grande que en el original (propietario, 20-oct-2026): 11 frames en 2 s.
+    'fx.abaddon.spirit': { sprite: 'fx.yseffect3', sheet: 11, frameRate: 5.5, loop: false, scale: 2 },
     'fx.freeze.cast': { sprite: 'fx.effect8', sheet: 5, frameRate: 10, loop: false, depthOffset: -1 },
     // Critical Strike (Fase 19A, elegido por el propietario en el visor de sprites): effect6.spr hoja 1, la espiral del
     // Earthworm Strike (sp-client "Earth Worm Attack Helix"), 13 frames a 20 fps, una vez, alrededor del jugador.
