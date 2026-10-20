@@ -79,9 +79,11 @@ export class SpawnSystem {
         if (this.timerMs > 0) return;
         this.returnBosses();
         const wave = this.wave;
-        this.timerMs = this.currentInterval() * 1000;
-        // Con un jefe vivo no sale nadie de las oleadas: el jugador limpia la pantalla y se centra en él.
-        if (!this.wavesOver && !this.enemies.bossAlive && this.enemies.alive < wave.maxAlive) {
+        // Con un mini jefe vivo las oleadas siguen, pero más tranquilas (SPAWN.duringBoss); con el jefe final se acaban.
+        const boss = this.enemies.bossAlive;
+        const calm = boss ? SPAWN.duringBoss : { intervalFactor: 1, maxAliveFactor: 1 };
+        this.timerMs = this.currentInterval() * calm.intervalFactor * 1000;
+        if (!this.wavesOver && this.enemies.alive < wave.maxAlive * calm.maxAliveFactor) {
             this.spawnMany(wave.batchSize);
         }
     }

@@ -1,8 +1,8 @@
 // Tótems (Fase 16B; plan aprobado por el propietario el 18-oct-2026).
 // Mana Stones que aparecen cada cierto tiempo en un sitio al azar de la zona de juego, con un sonido. Al pisarlas dan su
 // efecto y se gastan; si nadie las coge, parpadean al final y desaparecen. Son 4: Berserk y Defense Shield (los buffs que
-// antes daban los cofres), Full HP (cura entera al instante) y Freeze (los monstruos que se ven en pantalla, jefes
-// incluidos, se quedan quietos unos segundos). Los cofres pasan a dar una carta de mejora (GameScene).
+// antes daban los cofres), Full HP (cura entera al instante) y Freeze (los monstruos en un área del doble de la
+// pantalla, jefes incluidos, se quedan quietos 10 s; lista de bugs del 19-oct-2026, M19). Los cofres pasan a dar una carta de mejora (GameScene).
 // Dibujo: esfera de energía (effect5 hoja 0), igual para todos: no se sabe qué da hasta cogerlo (lista de bugs del
 // 19-oct-2026, M10 y M12; antes, la Mana Stone con un brillo del color de su efecto). Se recogen pisando cualquier casilla
 // que tape el dibujo (como mínimo 2×2; pedido por el propietario). Lo maneja systems/TotemSystem.ts y el minimapa los
@@ -19,8 +19,8 @@ export type TotemEffect =
     | { kind: 'buff'; buff: BuffId }
     /** Heals the player to full health. */
     | { kind: 'fullHeal' }
-    /** Freezes every living monster on screen for `durationMs`. */
-    | { kind: 'freeze'; durationMs: number };
+    /** Freezes for `durationMs` every living monster within the screen grown `rangeScreens` times around it. */
+    | { kind: 'freeze'; durationMs: number; rangeScreens: number };
 
 export interface TotemDef {
     /** Rises over the player when taken (the buffs show their own name). */
@@ -45,7 +45,7 @@ export const TOTEMS = {
     },
     // Círculo de Mass Illusion Movement (effect8 hoja 5) y el sonido de los fragmentos de hielo (EFFECT_ICE_SHARD, E46).
     freeze: {
-        name: 'Freeze', color: 0x9ce8ff, effect: { kind: 'freeze', durationMs: 5000 },
+        name: 'Freeze', color: 0x9ce8ff, effect: { kind: 'freeze', durationMs: 10000, rangeScreens: 2 },
         castEffect: 'fx.freeze.cast', castSound: 'sfx.freeze', weight: 1,
     },
 } as const satisfies Record<TotemId, TotemDef>;

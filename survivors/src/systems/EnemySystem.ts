@@ -146,7 +146,7 @@ export class EnemySystem {
         return best;
     }
 
-    /** True while any boss is alive (the waves wait for it to die). */
+    /** True while any boss is alive (the waves calm down until it dies). */
     public get bossAlive(): boolean {
         for (const [id, pool] of this.pools) {
             if (!(ENEMIES[id] as EnemyDef).boss) continue;

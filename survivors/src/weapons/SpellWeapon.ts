@@ -1,7 +1,8 @@
 // Hechizo de la Maga: cuando hay un enemigo a su alcance, ella hace la animación de lanzar y, al soltar el hechizo,
 // salen uno o varios proyectiles (data/spells.ts → shots, shotIntervalMs, aim):
-// - 'targets': cada proyectil va a un enemigo distinto, el más cercano primero (Triple Energy Bolt: 3 enemigos).
+// - 'targets': cada proyectil va a un enemigo distinto, el más cercano primero.
 // - 'scatter': caen alrededor del enemigo elegido, uno cada `shotIntervalMs` (Energy Strike).
+// - 'pattern': todos a la vez en una zona pequeña, cada uno desplazado del enemigo elegido (Triple Energy Bolt).
 // A quién apuntan lo decide systems/Targeting.ts: un jefe cercano va antes que los demás (Fase 15A).
 // Con apuntado manual (15B), si hay algún enemigo al alcance: los proyectiles salen hacia donde apunta el jugador (en
 // abanico si son varios) y los que caen en zona caen en el cursor (sin pasar del alcance) o, con el stick, a una
@@ -72,6 +73,11 @@ export class SpellWeapon extends Weapon {
             this.releaseManual(context, context.manualAim);
             return;
         }
+        if (def.aim === 'pattern') {
+            const target = context.findTarget(range);
+            if (target) this.patternShots(context, target.x, target.bodyY, bossOrUndefined(target));
+            return;
+        }
         if (def.aim === 'scatter') {
             const target = context.findTarget(range);
             if (!target) return;
@@ -98,7 +104,7 @@ export class SpellWeapon extends Weapon {
     private releaseManual(context: WeaponContext, aim: Readonly<ManualAim>): void {
         const def = this.def;
         const fromY = context.y - def.originOffsetY;
-        if (def.aim === 'scatter') {
+        if (def.aim === 'scatter' || def.aim === 'pattern') {
             const point = aim.point;
             let distance = def.range * MANUAL_AIM.stickAreaDistance;
             if (point) distance = Math.min(def.range, Phaser.Math.Distance.Between(context.x, context.y, point.x, point.y));
@@ -106,6 +112,10 @@ export class SpellWeapon extends Weapon {
             this.aimX = context.x + Math.cos(angle) * distance;
             this.aimY = context.y + Math.sin(angle) * distance;
             this.aimBoss = undefined;
+            if (def.aim === 'pattern') {
+                this.patternShots(context, this.aimX, this.aimY, undefined);
+                return;
+            }
             this.shotsLeft = def.shots;
             this.nextShotInMs = 0;
             return;
@@ -118,6 +128,20 @@ export class SpellWeapon extends Weapon {
             const toX = context.x + Math.cos(shotAngle) * def.maxDistance;
             const toY = fromY + Math.sin(shotAngle) * def.maxDistance;
             context.launchProjectile(def, context.x, fromY, toX, toY, def.maxDistance);
+            if (def.castSound) context.audio.play(def.castSound);
+        }
+    }
+
+    /** Every shot at once, each to (x, y) moved by its offset in `pattern`, exploding there. */
+    private patternShots(context: WeaponContext, x: number, y: number, boss: Enemy | undefined): void {
+        const def = this.def;
+        const fromY = context.y - def.originOffsetY;
+        for (let i = 0; i < def.shots; i++) {
+            const [dx, dy] = def.pattern?.[i] ?? [0, 0];
+            const toX = x + dx;
+            const toY = y + dy;
+            const flight = Phaser.Math.Distance.Between(context.x, fromY, toX, toY);
+            context.launchProjectile(def, context.x, fromY, toX, toY, flight, boss);
             if (def.castSound) context.audio.play(def.castSound);
         }
     }

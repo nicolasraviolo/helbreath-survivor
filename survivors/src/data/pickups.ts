@@ -58,7 +58,7 @@ export interface BuffDef {
     durationMs: number;
     /** Multiplies all damage dealt (1 = no change). */
     damageMultiplier: number;
-    /** Multiplies damage taken (1 = no change). */
+    /** Multiplies damage taken (1 = no change, 0 = no damage at all, not even the minimum). */
     damageTakenMultiplier: number;
     /** Effect played once at the feet when it starts. */
     castEffect: EffectKey;
@@ -78,7 +78,8 @@ export const BUFFS = {
     },
     defenseShield: {
         // sp-client: effect8 hoja 6 al lanzarlo; aura effect9 hoja 14 mientras dura.
-        name: 'Defense Shield', durationMs: 20000, damageMultiplier: 1, damageTakenMultiplier: 0.6,
+        // Bloquea todo el daño, físico y mágico, mientras dura (lista de bugs del 19-oct-2026, M18; antes quitaba un 40 %).
+        name: 'Defense Shield', durationMs: 15000, damageMultiplier: 1, damageTakenMultiplier: 0,
         castEffect: 'fx.defenseShield.cast', auraEffect: 'fx.defenseShield.aura', color: 0x70a8ff,
     },
 } as const satisfies Record<BuffId, BuffDef>;

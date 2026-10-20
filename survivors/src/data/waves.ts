@@ -41,7 +41,7 @@ export interface WaveEventDef {
 export const WAVES: readonly WaveDef[] = [
     // Ajuste del 18-oct-2026 (propietario): un monstruo nuevo cada ~minuto, los débiles siguen saliendo poco para dar
     // variedad, y menos monstruos a la vez (pero con el doble de vida y más daño, enemies.ts). Con un jefe vivo no sale
-    // nadie de las oleadas (SpawnSystem).
+    // las oleadas van más despacio (SPAWN.duringBoss).
     { fromMinute: 0, enemies: [{ enemy: 'slime', weight: 6 }, { enemy: 'ant', weight: 4 }], startInterval: 1.4, endInterval: 0.9, batchSize: 2, maxAlive: 100 },
     { fromMinute: 1, enemies: [{ enemy: 'slime', weight: 3 }, { enemy: 'ant', weight: 4 }, { enemy: 'snake', weight: 4 }], startInterval: 1.1, endInterval: 0.8, batchSize: 2, maxAlive: 120 },
     { fromMinute: 2, enemies: [{ enemy: 'slime', weight: 1 }, { enemy: 'ant', weight: 2 }, { enemy: 'snake', weight: 3 }, { enemy: 'orc', weight: 5 }], startInterval: 1, endInterval: 0.7, batchSize: 2, maxAlive: 140 },
@@ -86,6 +86,11 @@ export const SPAWN = {
      * aside or cut through it. When it has crossed, the monsters chase as usual.
      */
     stampede: { rows: 3, spacing: 40, speedFactor: 3.5 },
+    /**
+     * While a mini boss is alive the waves go on, but calmer (bug list 19-oct-2026, B6): the time between spawns is
+     * multiplied by `intervalFactor` and the wave's `maxAlive` by `maxAliveFactor`. The final boss stops them instead.
+     */
+    duringBoss: { intervalFactor: 2, maxAliveFactor: 0.5 },
 } as const;
 
 /** End of the run (Fase 13): what happens once the final boss is dead. */

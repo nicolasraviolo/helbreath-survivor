@@ -437,9 +437,12 @@ export class GameScene extends Phaser.Scene {
                 this.player.heal(this.player.maxHp);
                 break;
             case 'freeze': {
+                // The visible screen grown `rangeScreens` times around its centre (bosses included).
                 const view = this.cameras.main.worldView;
+                const area = new Phaser.Geom.Rectangle(0, 0, view.width * effect.rangeScreens, view.height * effect.rangeScreens);
+                Phaser.Geom.Rectangle.CenterOn(area, view.centerX, view.centerY);
                 this.enemies.forEachAlive((enemy) => {
-                    if (view.contains(enemy.x, enemy.y)) enemy.freeze(effect.durationMs);
+                    if (area.contains(enemy.x, enemy.y)) enemy.freeze(effect.durationMs);
                 });
                 break;
             }
@@ -917,9 +920,9 @@ export class GameScene extends Phaser.Scene {
         this.sim?.onBlow(source, damage, landed);
     };
 
-    /** Armor, the Merien cards and a Defense Shield remove part of each hit (0 stays 0: no enemy touching). */
+    /** Armor and the Merien cards remove part of each hit; a Defense Shield blocks it all (0 stays 0: no enemy touching). */
     private reduceByArmor(damage: number): number {
-        if (damage <= 0) return 0;
+        if (damage <= 0 || this.buffs.damageTakenMultiplier <= 0) return 0;
         const merien = 1 - this.equipment.passiveBonus('merien');
         return Math.max(MIN_DAMAGE_TAKEN, Math.round(damage * (1 - this.equipment.defense) * merien * this.buffs.damageTakenMultiplier));
     }

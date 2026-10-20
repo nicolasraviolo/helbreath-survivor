@@ -52,10 +52,13 @@ export interface SpellDef {
     shotIntervalMs: number;
     /**
      * Where each projectile goes: 'targets' = a different nearby enemy each (the nearest first);
-     * 'scatter' = random points around the nearest enemy, within `scatterRadius`.
+     * 'scatter' = random points around the nearest enemy, within `scatterRadius`;
+     * 'pattern' = all at once, each to the nearest enemy moved by its `pattern` offset (a small area, like the original).
      */
-    aim: 'targets' | 'scatter';
+    aim: 'targets' | 'scatter' | 'pattern';
     scatterRadius?: number;
+    /** 'pattern': offset (px) from the target of each shot, one per shot. */
+    pattern?: ReadonlyArray<readonly [number, number]>;
     /** Flight effect. Directional effects pick their frames by the flight angle (config/effects.ts). */
     flyEffect: EffectKey;
     /** Explosions drawn at impact (the damage is applied once, at impact). */
@@ -103,11 +106,13 @@ export const SPELLS = {
         castSound: 'sfx.energyBolt.cast', originOffsetY: ENERGY_ORIGIN_Y,
     },
     tripleEnergyBolt: {
-        // wiki: 10 directo + 19 en área 5×5. Aquí: 3 bolas a 3 enemigos distintos.
+        // wiki: 10 directo + 19 en área 5×5. Como en el original (sp-client TripleEnergyBolt.ts), las 3 bolas caen en una
+        // zona pequeña: una en el objetivo y dos en casillas en diagonal a él (lista de bugs del 19-oct-2026, M14; antes
+        // iban a 3 enemigos distintos).
         name: 'Triple Energy Bolt', family: 'energy', circle: 5, int: 45,
         directDamage: 10, areaDamage: 9, areaRadius: 48, cooldownMs: 1200,
         range: 340, maxDistance: 500, speed: 440, projectileRadius: 8, knockback: 160,
-        shots: 3, shotIntervalMs: 0, aim: 'targets',
+        shots: 3, shotIntervalMs: 0, aim: 'pattern', pattern: [[0, 0], [-32, -32], [32, 32]],
         flyEffect: 'fx.energyBolt.fly',
         bursts: [{ effect: 'fx.energyBolt.explode', dx: 0, dy: 0, delayMs: 0, sound: 'sfx.energyBolt.impact' }],
         castSound: 'sfx.energyBolt.cast', originOffsetY: ENERGY_ORIGIN_Y,

@@ -2,6 +2,9 @@
 // o acaba de empezar, o hay demasiados sonando en total, el nuevo se descarta en silencio.
 // Como en el original, un sonido puede ajustar su velocidad para durar lo mismo que una animación,
 // y hay sonidos en bucle (los pasos) que suenan mientras dura una acción.
+// Pestaña en segundo plano (lista de bugs del 19-oct-2026, B4): el navegador congela el audio, y los sonidos pedidos
+// entonces salían todos juntos (o uno se quedaba "trabado") al volver. Ahora no se piden sonidos con la pestaña oculta
+// ni con el audio parado, y al ocultarla se cortan los efectos que sonaban (la música es aparte, MusicSystem).
 import Phaser from 'phaser';
 import type { SoundKey } from '../config/assetManifest';
 import { AUDIO } from '../data/audio';
@@ -14,6 +17,8 @@ export class AudioSystem {
     private total = 0;
     private skipped = 0;
     private readonly loops = new Map<SoundKey, Phaser.Sound.BaseSound>();
+    /** One-shot sounds still playing (cut when the tab is hidden). */
+    private readonly oneShots = new Set<Phaser.Sound.BaseSound>();
 
     constructor(private readonly scene: Phaser.Scene) {
         // Sounds belong to the whole game, not to the scene: loops must be stopped by hand when it pauses or ends.
@@ -25,12 +30,20 @@ export class AudioSystem {
                 if (loop instanceof Phaser.Sound.WebAudioSound || loop instanceof Phaser.Sound.HTML5AudioSound) loop.setVolume(sfxVolume());
             }
         };
+        const onVisibility = () => {
+            if (document.visibilityState !== 'hidden') return;
+            stopLoops();
+            this.stopOneShots();
+        };
         scene.events.on(Phaser.Scenes.Events.PAUSE, stopLoops);
         settings.on(SETTINGS_CHANGED, onSettings);
+        document.addEventListener('visibilitychange', onVisibility);
         scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
             stopLoops();
+            this.stopOneShots();
             scene.events.off(Phaser.Scenes.Events.PAUSE, stopLoops);
             settings.off(SETTINGS_CHANGED, onSettings);
+            document.removeEventListener('visibilitychange', onVisibility);
         });
     }
 
@@ -46,6 +59,7 @@ export class AudioSystem {
 
     /** Plays a sound once. With `durationMs`, its speed changes so it lasts that long (like the original). */
     public play(key: SoundKey, durationMs?: number): void {
+        if (!this.canPlay()) return;
         const now = this.scene.time.now;
         this.forgetFinished(now);
         const ends = this.playing.get(key) ?? [];
@@ -55,11 +69,15 @@ export class AudioSystem {
             return;
         }
         const sound = this.scene.sound.add(key, { volume: sfxVolume(), rate: this.rateFor(key, durationMs) });
-        sound.once('complete', () => sound.destroy());
+        sound.once('complete', () => {
+            this.oneShots.delete(sound);
+            sound.destroy();
+        });
         if (!sound.play()) {
             sound.destroy();
             return;
         }
+        this.oneShots.add(sound);
         ends.push(now + (sound.duration * 1000) / this.rateFor(key, durationMs));
         this.playing.set(key, ends);
         this.lastStart.set(key, now);
@@ -68,7 +86,7 @@ export class AudioSystem {
 
     /** Keeps a sound looping, each repetition lasting `durationMs`. Calling it again while it plays does nothing. */
     public startLoop(key: SoundKey, durationMs: number): void {
-        if (this.loops.has(key)) return;
+        if (this.loops.has(key) || !this.canPlay()) return;
         const sound = this.scene.sound.add(key, { volume: sfxVolume(), loop: true, rate: this.rateFor(key, durationMs) });
         sound.play();
         this.loops.set(key, sound);
@@ -80,6 +98,23 @@ export class AudioSystem {
         sound.stop();
         sound.destroy();
         this.loops.delete(key);
+    }
+
+    /** False with the tab hidden or the browser's audio stopped: the sound would wait and play late. */
+    private canPlay(): boolean {
+        if (document.visibilityState === 'hidden') return false;
+        const manager = this.scene.sound;
+        return !(manager instanceof Phaser.Sound.WebAudioSoundManager) || manager.context.state === 'running';
+    }
+
+    private stopOneShots(): void {
+        for (const sound of this.oneShots) {
+            sound.stop();
+            sound.destroy();
+        }
+        this.oneShots.clear();
+        this.playing.clear();
+        this.total = 0;
     }
 
     /** Speed that makes the sound last `durationMs` (sound length / wanted length), within the allowed range. */

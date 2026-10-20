@@ -2,6 +2,13 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
+**Ronda de bugs, bloque B: combate (2026-10-20).**
+- **Qué hace:** con un mini jefe vivo las oleadas siguen a medio ritmo y medio tope (solo el jefe final las para); sin sonidos pedidos con la pestaña oculta y efectos cortados al ocultarla (B4); Defense Shield bloquea todo el daño 15 s; Freeze 10 s en un área del doble de la pantalla; Triple Energy Bolt cae en zona pequeña (objetivo + 2 diagonales a 32 px), como el original.
+- **Decisiones del propietario:** M14 como el original (zona pequeña); escudo de 15 s.
+- **Código:** `SPAWN.duringBoss` (`data/waves.ts`) en `SpawnSystem.update`; `AudioSystem.canPlay`/`stopOneShots` y `visibilitychange`; `damageTakenMultiplier: 0` → `reduceByArmor` devuelve 0; `TotemEffect.freeze.rangeScreens`; `aim: 'pattern'` + `pattern` en `data/spells.ts` y `SpellWeapon.patternShots` (también con apuntado manual).
+- **Comprobado:** build; `check menu news game boss totems` sin errores; con jefe vivo 53 monstruos; golpe de 50 con escudo → 130/130, sin escudo → 80; Freeze: 100 monstruos fuera de pantalla congelados, quietos a los 8 s y libres a los 11 s; disparos del Triple en (x,y), (x−32,y−32), (x+32,y+32); pestaña oculta simulada → no entra ningún sonido nuevo.
+- **Probar:** `pnpm --dir survivors dev` → `?play&debug=boss` · `?play&debug=totems,horde` · `?play=mage&spells=tripleEnergyBolt&debug=horde` · cambiar de pestaña y volver.
+
 **Ronda de bugs, bloque A: arreglos rápidos (2026-10-19).**
 - **Qué hace:** fuera el "+N" de puntos junto al nivel en Select Character; icono del crit centrado en su caja (2 px a la izquierda); What's new con frases cortas (y `/checkpoint` lo pide así); el imán atrae también las pociones; "Create New Character" (y los demás botones de esa columna) funcionan aunque antes se pase el ratón por encima; tótems = esfera de energía (`effect5` hoja 0, ×1,5) igual para todos; minimapa con todos los tótems en amarillo y el punto del jefe del tamaño del jugador; cartas con título en la fuente del original (`interface2` hoja 1), "Blessing of Str" en las de stats y "1/5" en las pasivas; una barra con nombre por cada jefe vivo (hasta 3, el final primero).
 - **Decisiones del propietario:** lista completa y agrupada en `docs/BUGS.md`; la poción (M6) se descarta, ya era la Red Potion del original.

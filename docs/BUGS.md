@@ -22,11 +22,11 @@ Número original entre paréntesis: **B** = bug, **M** = mejora.
 - [x] (M1) Si hay 2 jefes en pantalla, mostrar las dos barras con sus nombres. (Hasta 3 barras: pueden coincidir 3 jefes.)
 
 ## Bloque B: combate
-- [ ] (B6) Al salir un jefe dejan de aparecer monstruos hasta que muere. Solo debe pasar con el jefe final; con los mini jefes, reducir la aparición pero sin pararla.
-- [ ] (B4) Al volver a una partida que estaba en segundo plano suena algún sonido "trabado"; a veces se juntan varios.
-- [ ] (M18) El Defense Shield del tótem bloquea todo el daño (físico y mágico) mientras dura.
-- [ ] (M19) El Freeze del tótem dura 10 s y llega más lejos, no solo a los monstruos en pantalla.
-- [ ] (M14) Hechizos de varias bolas (Triple Energy Ball, Mass Fire Strike): una al objetivo y las demás alrededor de él; no buscan objetivos distintos. **Duda:** ¿es así como debe ser o como funciona ahora?
+- [x] (B6) Al salir un jefe dejan de aparecer monstruos hasta que muere. Solo debe pasar con el jefe final; con los mini jefes, reducir la aparición pero sin pararla.
+- [x] (B4) Al volver a una partida que estaba en segundo plano suena algún sonido "trabado"; a veces se juntan varios.
+- [x] (M18) El Defense Shield del tótem bloquea todo el daño (físico y mágico) mientras dura. Dura 15 s (propietario, 20-oct-2026).
+- [x] (M19) El Freeze del tótem dura 10 s y llega más lejos, no solo a los monstruos en pantalla.
+- [x] (M14) Hechizos de varias bolas (Triple Energy Ball, Mass Fire Strike): una al objetivo y las demás alrededor de él; no buscan objetivos distintos. Decidido (20-oct-2026): como el original, en una zona pequeña. Mass Fire Strike ya era así.
 
 ## Bloque C: cosas nuevas (una sesión cada una)
 - [ ] (M15) El arco del golpe del guerrero es tosco: proponer varias opciones más bonitas y el propietario elige.

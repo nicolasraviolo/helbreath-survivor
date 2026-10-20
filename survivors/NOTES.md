@@ -66,6 +66,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Cartas de Power (Fase 20C)
 - Hechizos equipables del Mago (Fase 20D)
 - Arreglos del bloque A de bugs (19-oct-2026)
+- Bugs del bloque B (20-oct-2026)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -426,7 +427,7 @@ Tabla completa en `docs/REQUISITOS_HB.md`. Lo no obvio:
   - sonido E4.
 - **Fire Strike:** 4 explosiones en (0,0,0 ms), (20,30,60), (35,−30,100) y (−30,−15,140). Su comentario dice "3", pero son 4.
 - **Mass Fire Strike:** `effect3` hoja 1 en el centro; luego `effect3` hoja 2 en (−30,−15,60), (35,−30,100) y (20,30,140).
-- **Triple Energy Bolt:** 3 Energy Bolts a la vez. En el original van a casillas desplazadas del objetivo; aquí, a 3 enemigos distintos.
+- **Triple Energy Bolt:** 3 Energy Bolts a la vez. Como en el original, caen en una zona pequeña: una en el objetivo y dos a una casilla en diagonal (`aim: 'pattern'`, desde el 20-oct-2026; antes iban a 3 enemigos distintos).
 - **Energy Strike:**
   - 8 proyectiles (`effect.spr` hoja 0 frame 0, sin animar), uno cada 80 ms, a casillas al azar a ±2 del objetivo;
   - impacto: `effect3` hoja 5 + `effect11` hoja 8 (15 fps).
@@ -487,7 +488,7 @@ Tabla completa en `docs/REQUISITOS_HB.md`. Lo no obvio:
     - opacidad 0,7.
 - **Disparos:** solo Dark Elf y Elf Master tienen `bowAttack` (`effect.spr` hoja 7, 16 frames direccionales). Las bolas del Fire Wyvern y del Mage-Orc son nuestras: reutilizan el Fire Ball.
 - **Música** (`public/assets/music`): abaddon, apocalypse, aresden, default, dungeon, elvine y middleland. sp-client la toca en bucle con `MusicManager`.
-- **Ajuste de oleadas (18-oct-2026, antes de la Fase 16):** un monstruo nuevo cada ~minuto (los débiles siguen saliendo poco, por variedad), tope de vivos 100→260, **con un jefe vivo no sale nadie de las oleadas** (`SpawnSystem`), monstruos normales con vida y XP ×2 y daño ×1,4 (jefes igual que antes). Simulación: 900–1.400 muertes por partida (antes 2.400–3.300), ~8% mueren de un golpe (antes 15–21%), nivel 25–26, Ettin ~30–65 s, Wyvern ~2:15–2:55. La partida simulada ahora da también `aliveByMinute` y `oneHitKillShare`.
+- **Ajuste de oleadas (18-oct-2026, antes de la Fase 16):** un monstruo nuevo cada ~minuto (los débiles siguen saliendo poco, por variedad), tope de vivos 100→260, **con un jefe vivo no sale nadie de las oleadas** (`SpawnSystem`; desde el 20-oct-2026, con un mini jefe las oleadas siguen a medio ritmo y medio tope, `SPAWN.duringBoss`; solo el jefe final las para), monstruos normales con vida y XP ×2 y daño ×1,4 (jefes igual que antes). Simulación: 900–1.400 muertes por partida (antes 2.400–3.300), ~8% mueren de un golpe (antes 15–21%), nivel 25–26, Ettin ~30–65 s, Wyvern ~2:15–2:55. La partida simulada ahora da también `aliveByMinute` y `oneHitKillShare`.
 
 ## Ataques de monstruos y golpe (original)
 - **sp-client no guarda alcance de ataque por monstruo:** `attackDistance` viene del diálogo de pruebas.
@@ -800,3 +801,9 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - **Tótems:** ahora son la esfera de energía `effect5` hoja 0 (aditiva, a ×1,5), igual para todos. En el minimapa salen todos con el mismo punto amarillo. Ya no se usa `manastone.spr`, que se quitó del manifiesto (190 KB menos al arrancar).
 - **Imán:** atrae también lo que tenga `magnetPulls` en `data/pickups.ts` (hoy, la poción).
 - **Barras de jefe:** una por jefe vivo, hasta `HUD_BOSS.maxShown` (3), con el final primero (`BossSystem.shownList`).
+
+## Bugs del bloque B (20-oct-2026)
+- **Sonido en segundo plano:** con la pestaña oculta el navegador congela el audio y los sonidos pedidos entonces salían de golpe al volver. `AudioSystem` no pide sonidos con la pestaña oculta o el `AudioContext` parado, y al ocultarla corta efectos y bucles (la música no). Para probarlo en el check: sobrescribir `document.visibilityState` y lanzar `visibilitychange`.
+- **Defense Shield:** `damageTakenMultiplier: 0` = no se recibe nada (ni el daño mínimo ni la animación de herido); 15 s. **Freeze:** 10 s, en un área de `rangeScreens` × la pantalla (2).
+- Para probar golpes al jugador sin depender de la horda: `--eval="g.hurtPlayer(50, true, 'test')"`.
+
