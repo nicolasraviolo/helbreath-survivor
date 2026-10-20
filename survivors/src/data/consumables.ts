@@ -1,4 +1,4 @@
-// Objetos que se gastan (Fase 21D). De momento solo el Zem; Abaddon's Blood llegará en el 21E.
+// Objetos que se gastan (Fase 21D). Solo el Zem: Abaddon's Blood (21E) no es un objeto sino una mejora permanente (data/abaddon.ts).
 // - Zemstone of Sacrifice (objeto 650 del original, Item3.cfg:31; icono en item-pack hoja 15, frame 39): se pone en su
 //   hueco antes de la partida. Si mueres con él y la partida encontró algo, conservas ese botín y el Zem se gasta.
 //   Si no encontraste nada, no se gasta (no había nada que salvar). Un Zem encontrado en la partida va a la bolsa.

@@ -226,21 +226,26 @@ export class Enemy implements Poolable {
         this.hitsTaken++;
         this.flashMs = ENEMY_HIT_FLASH_MS;
         this.sprite.setTintFill(0xffffff);
-        const dx = this.x - fromX;
-        const dy = this.y - fromY;
-        const distance = Math.hypot(dx, dy);
-        // Bosses barely move when hit.
-        knockback *= this.def.knockbackTaken ?? 1;
-        if (distance > 0 && !this.isFrozen) {
-            this.knockX += (dx / distance) * knockback;
-            this.knockY += (dy / distance) * knockback;
-        }
+        this.push(fromX, fromY, knockback);
         if (this.hp > 0) {
             this.checkBravery();
             return false;
         }
         this.kill();
         return true;
+    }
+
+    /** Pushed away from (fromX, fromY) at `speed` px/s, fading like a knockback (also without damage: Abaddon's wave). */
+    public push(fromX: number, fromY: number, speed: number): void {
+        if (!this.isAlive || this.isFrozen) return;
+        const dx = this.x - fromX;
+        const dy = this.y - fromY;
+        const distance = Math.hypot(dx, dy);
+        if (distance <= 0) return;
+        // Bosses barely move when hit.
+        const knockback = speed * (this.def.knockbackTaken ?? 1);
+        this.knockX += (dx / distance) * knockback;
+        this.knockY += (dy / distance) * knockback;
     }
 
     public get isPoisoned(): boolean {

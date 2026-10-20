@@ -58,6 +58,8 @@ export const EFFECTS = {
     // Tótem (lista de bugs del 19-oct-2026, M12): esfera de energía, effect5 hoja 0, siempre del mismo color.
     'fx.totem.orb': { sprite: 'fx.effect5', sheet: 0, frameRate: 10, loop: true, additive: true },
     'fx.fullHp.cast': { sprite: 'fx.effect11', sheet: 10, frameRate: 15, loop: false },
+    // Abaddon's Blood (Fase 21E, data/abaddon.ts): la misma hoja Resurrection, con su propia clave por si se cambia.
+    'fx.resurrection': { sprite: 'fx.effect11', sheet: 10, frameRate: 15, loop: false },
     'fx.freeze.cast': { sprite: 'fx.effect8', sheet: 5, frameRate: 10, loop: false, depthOffset: -1 },
     // Critical Strike (Fase 19A, elegido por el propietario en el visor de sprites): effect6.spr hoja 1, la espiral del
     // Earthworm Strike (sp-client "Earth Worm Attack Helix"), 13 frames a 20 fps, una vez, alrededor del jugador.

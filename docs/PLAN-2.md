@@ -29,7 +29,7 @@ Fuentes de la investigación (17-oct-2026):
 | **21** | Botín y baúl *(nueva)* | Objetos que caen en partida ("Equip" / "Keep in bag") · Sharp, Ancient y Poison · baúl compartido · Zem y Abaddon's Blood | Grande |
 | **22** | Sistema de mapas + Icebound | Varios mapas, Select Map, récords locales por mapa, sombras, Icebound | Grande |
 | **23** | La ciudad | Mapa pequeño tras elegir personaje: NPCs, baúl y portal a la partida | Grande |
-| **24** | Oro, tienda y herrero *(nueva)* | Oro en partida · vender · tienda (Zem, pociones, equipo básico, ampliar baúl) · mejoras con Xelima y Merien | Medio-grande |
+| **24** | Oro, tienda y herrero *(nueva)* | Oro en partida · vender · tienda (Zem, pociones, equipo básico, ampliar baúl, **Abaddon's Blood**) · mejoras con Xelima y Merien | Medio-grande |
 | **25** | Más mapas y objetos únicos | Un mapa por bloque, cada uno con sus únicos | Grande (por partes) |
 | **26** | Aresden y Elvine | Elegir bando · objetos Hero con EK | Medio |
 | **27** | Raids | "Jugadores" enemigos del otro bando | Medio-grande |
@@ -449,7 +449,7 @@ Los objetos que caen en la partida se pueden **equipar al momento** o **guardar 
 - **Ancient:** +2 al dado (S:32572). **No se puede mejorar** con Xelima (S:52378).
 - **Poison:** al golpear envenena si el objetivo no lo estaba; quita 1d(veneno) en cada tic y **nunca mata** (deja 1 de vida); se pasa solo (S:54003, S:33106).
 - **Zemstone of Sacrifice** (objeto 650): al morir soltabas solo el Zem en vez de tus objetos (S:25276).
-- **Red Ball** (objeto 652, `Item3.cfg:33`, icono en `item-pack` hoja 6, frame 124): lo usamos para **Abaddon's Blood**.
+- **Red Ball** (objeto 652, `Item3.cfg:33`, icono en `item-pack` hoja 5 (Spr 6), frame 124): lo usamos para **Abaddon's Blood**.
 
 ### Propuesta
 - **21A. Botín en partida**
@@ -466,8 +466,8 @@ Los objetos que caen en la partida se pueden **equipar al momento** o **guardar 
   - **Bolsa:** lo que guardas en la partida. Al terminar, pasa al **baúl compartido** (o se queda en el inventario del personaje).
   - **Al ganar:** te quedas con todo. **Al morir sin Zem:** pierdes los objetos encontrados en esa partida (el equipo con el que saliste no se pierde nunca). **Al morir con Zem:** conservas el botín y el Zem se gasta.
   - **Zem:** hueco propio, se equipa antes de la partida. En esta fase solo cae de jefes; en la Fase 24 también se compra en la tienda.
-  - **Abaddon's Blood** (resurrección): icono del Red Ball; *"Abaddon's Blood — a drop from the strongest demon"*. Hueco propio, se equipa antes de la partida. Al morir revives **una vez** con el 50% de la vida, 3 s de invulnerabilidad y una onda que aparta a los enemigos; se gasta. Máximo uno por partida. **No se vende:** solo cae (poco) de jefes. Efecto Resurrection de `effect11.spr` hoja 10 y sonidos C21/C22 (ojo: el original pedía 30 frames y la hoja tiene 21).
-  - Zem y Abaddon's Blood se pueden llevar a la vez.
+  - **Abaddon's Blood** (resurrección; **cambiado el 20-oct-2026**, ver 21E): ya no es un objeto que cae y se gasta, sino una **mejora permanente** del dispositivo, como el "Revival" de Vampire Survivors.
+  - Zem y Abaddon's Blood funcionan a la vez: si revives, el Zem no se toca.
   - El minimapa marca los objetos del suelo (como hoy las pociones).
 
 ### Bloques
@@ -475,7 +475,7 @@ Los objetos que caen en la partida se pueden **equipar al momento** o **guardar 
 - **21B:** Sharp, Ancient y Poison, y varitas de la Maga (con su Mana Save guardado para cuando haya maná).
 - **21C:** anillos y collares: collares Defense (DF+10…+30) y Magic Resistance (MR+10…+30); anillos de fuerza (Ogre, Demon, Dragon power) y de mago (Wizard, Mage, Grand Mage, Arcmage). Piden Level.
 - **21D:** baúl compartido, Equipment "solo lo que tienes", reglas al morir y Zem.
-- **21E:** Abaddon's Blood.
+- **21E:** Abaddon's Blood. *(Replanteado el 20-oct-2026 por el propietario:)* mejora **permanente para los 4 personajes** (`UnlockStore`), sin hueco ni objeto. Una vez desbloqueada, revives **una vez en cada partida**: 50% de vida, 3 s invulnerable, onda que aparta a los monstruos, efecto Resurrection (`effect11` hoja 10, el del tótem Full HP) y la voz C21/C22. Icono del Red Ball en la barra de abajo (apagado al usarlo) y logro "Blood of the Demon". Hasta la Fase 24 solo se desbloquea con `?unlocks=abaddon`; **la tienda de la Fase 24 la venderá**.
 - *(Partido el 20-oct-2026: las varitas y las joyas no cabían con los atributos en una sesión. El mismo día el propietario dejó el **21C pendiente** para más adelante y el 21D se partió en 21D y 21E.)*
 
 ### Aceptación
@@ -792,5 +792,5 @@ Las de las Fases 11–18 ya se tomaron (ver `survivors/PROGRESS.md` y el histori
 - Baúl compartido por los 4 personajes del dispositivo.
 - Al morir sin Zem se pierde el botín de esa partida; **el oro se conserva siempre**.
 - Herrero: una mejora fallida **no destruye** el objeto. **Sin durabilidad.** **No** se reasignan los puntos.
-- Resurrección = **Abaddon's Blood** (icono del Red Ball), solo de jefes, una por partida.
+- Resurrección = **Abaddon's Blood** (icono del Red Ball), una por partida. *(20-oct-2026: mejora permanente que se compra, no cae de jefes; ver 21E.)*
 - Mago con 2 hechizos (automático + activo); Guerrero con arma + Critical Strike; mismo botón.

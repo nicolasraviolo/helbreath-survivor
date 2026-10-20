@@ -192,6 +192,20 @@ export class Player {
         this.drawHealthBar();
     }
 
+    /**
+     * Abaddon's Blood (Fase 21E): gets up from the ground with that health, invulnerable (blinking) for `invulnerableMs`.
+     */
+    public revive(hp: number, invulnerableMs: number): void {
+        if (!this.isDead) return;
+        this.hp = Phaser.Math.Clamp(Math.round(hp), 1, this.maxHp);
+        this.invulnerableMs = invulnerableMs;
+        this.swingLeftMs = 0;
+        this.rootLeftMs = 0;
+        this.body.setPose(PlayerState.IdleCombat, this.direction);
+        this.healthBar.setVisible(settings.current.showPlayerHealthBar);
+        this.drawHealthBar();
+    }
+
     /** Continue (saved run): the health it had, within 1..maxHp. */
     public restoreHp(value: number): void {
         this.hp = Phaser.Math.Clamp(Math.round(value), 1, this.maxHp);

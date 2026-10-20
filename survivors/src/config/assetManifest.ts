@@ -255,6 +255,10 @@ export const SOUNDS = {
     // Grito del Critical Strike (Fase 19A): C23 hombre / C24 mujer, como en el original (sp-client Player.ts).
     'sfx.crit.m': { file: 'sounds/C23.mp3' },
     'sfx.crit.w': { file: 'sounds/C24.mp3' },
+    // Abaddon's Blood (Fase 21E): la voz de "buena noticia" del original, C21 hombre / C22 mujer (reference/Client.cpp,
+    // según m_sPlayerType; la suena p. ej. al fabricar un objeto con éxito).
+    'sfx.revive.m': { file: 'sounds/C21.mp3' },
+    'sfx.revive.w': { file: 'sounds/C22.mp3' },
     // Muerte del Fire Wyvern (no tiene sonido de golpe en sp-client).
     'sfx.wyvern.death': { file: 'sounds/M105.mp3' },
     // Música (sp-client public/assets/music; ver systems/MusicSystem.ts).

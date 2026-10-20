@@ -54,6 +54,11 @@ export class AchievementTracker {
         this.unlockWhere((goal) => goal.kind === 'killBoss' && ENEMIES[goal.enemy] === def);
     }
 
+    /** Got up again with Abaddon's Blood (Fase 21E). */
+    public onRevive(): void {
+        this.unlockWhere((goal) => goal.kind === 'revive');
+    }
+
     /** Escaped through the portal. */
     public onWin(): void {
         this.unlockWhere((goal) => goal.kind === 'win'

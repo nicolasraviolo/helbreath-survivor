@@ -2,7 +2,7 @@
 // tecla I o X del mando) con el personaje marcado:
 // - Izquierda: la ventana Character original con el muñeco vestido con su equipo, su Level y sus stats permanentes.
 // - Derecha: los huecos (arma, escudo, casco, armadura, pantalones, botas y capa; debajo, los 2 hechizos del Mago,
-//   Fase 20D, el Zem, Fase 21D, y apagados los que llegarán: anillo, collar, ángel y Abaddon's Blood) y la lista del hueco
+//   Fase 20D, el Zem, Fase 21D, y apagados los que llegarán: anillo, collar y ángel) y la lista del hueco
 //   elegido (data/items.ts). Cada objeto enseña su requisito; en rojo lo que el personaje no cumple, y entonces no se
 //   puede poner. Los hechizos aún no tienen dibujo: su casilla lleva el nombre.
 // - Ponerse o quitarse algo se guarda al momento (characterStore.equip). Ok, Esc o B cierran.
@@ -288,7 +288,7 @@ export class EquipmentScene extends Phaser.Scene {
         this.refreshSlotIcons();
     }
 
-    /** Name under a slot box; long ones ("Abaddon's Blood") take two lines. */
+    /** Name under a slot box; long ones take two lines. */
     private slotLabel(x: number, y: number, name: string): Phaser.GameObjects.Text {
         const s = EQUIPMENT_SLOTS;
         return this.add.text(x + s.size / 2, y + s.size + 1, name, { ...EQUIPMENT_LABEL_STYLE, align: 'center', wordWrap: { width: s.size + s.gap } })

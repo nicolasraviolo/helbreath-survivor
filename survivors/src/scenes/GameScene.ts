@@ -59,6 +59,7 @@ import type { EnemyWorld } from '../entities/Enemy';
 import { Player } from '../entities/Player';
 import { getMap, type HBMap } from '../hb/HBMap';
 import { MapView } from '../hb/mapRenderer';
+import { AbaddonRevive } from '../systems/AbaddonRevive';
 import { AudioSystem } from '../systems/AudioSystem';
 import { CombatSystem } from '../systems/CombatSystem';
 import { DamageNumbers } from '../systems/DamageNumbers';
@@ -190,6 +191,8 @@ export class GameScene extends Phaser.Scene {
     /** ?debug=loot: an item falls by the player every few seconds (counted down here; negative = off). */
     private lootDebugInMs = -1;
     private buffs!: BuffSystem;
+    /** Abaddon's Blood (Fase 21E): gets up once per run after dying, if unlocked. */
+    private abaddon!: AbaddonRevive;
     private totems!: TotemSystem;
     /** Free cards from chests not chosen yet (Fase 16B): they show after any level-up cards. */
     private chestCards = 0;
@@ -323,6 +326,7 @@ export class GameScene extends Phaser.Scene {
         this.activeSpell = this.createActiveSpell(startSpells(startEquipment).active);
         this.aimArrow = new AimArrow(this);
         this.buffs = new BuffSystem(this, this.player, this.audio, (key, x, y) => this.weapons.spawnEffect(key, x, y));
+        this.abaddon = new AbaddonRevive(this, this.audio, this.enemies, (key, x, y) => this.weapons.spawnEffect(key, x, y));
         this.totems = new TotemSystem(this, map, areaPx, this.audio, (id) => this.collectTotem(id));
         this.chestCards = 0;
         this.enemyShots = new EnemyProjectileSystem(this, this.audio, (key, x, y) => this.weapons.spawnEffect(key, x, y),
@@ -683,6 +687,7 @@ export class GameScene extends Phaser.Scene {
             for (const item of Object.values(this.runLoot.equipped)) this.wearLoot(item);
         }
         this.achievements.potionsDrunk = run.potionsDrunk;
+        this.abaddon.restore(run.abaddonUsed);
         this.buffs.restore(run.buffs);
         if (run.critCharges !== undefined) this.critStrike.restore(run.critCharges, stats.level);
         else this.critStrike.restore(maxCritCharges(stats.level), stats.level);
@@ -728,6 +733,7 @@ export class GameScene extends Phaser.Scene {
             spellCooldownMs: this.activeSpell?.cooldownLeftMs,
             metrics: this.metrics.snapshot(),
             loot: this.runLoot.snapshot(),
+            abaddonUsed: this.abaddon.spent,
         };
     }
 
@@ -774,6 +780,7 @@ export class GameScene extends Phaser.Scene {
                 kills: this.combat.kills,
                 skillOrb: this.skillOrb(),
                 skillUses: this.critStrike.launched + (this.activeSpell?.casts ?? 0),
+                revive: this.abaddon.hudState,
                 pauseLocked: this.player.isDead || this.levelUpOpen || this.runOver,
                 bosses: this.bossInfo(),
                 portalSecondsLeft: this.portal ? Math.ceil(this.portal.timeLeft / 1000) : undefined,
@@ -864,6 +871,7 @@ export class GameScene extends Phaser.Scene {
         this.combat.updatePoison(delta);
         this.aimArrow.update(manualAim, player.x, player.y);
         this.damageNumbers.update(delta);
+        this.abaddon.update(delta);
         this.screenShake.update(delta);
         if (!player.isDead) {
             this.gainXp(this.xp.update(delta, player.x, player.y));
@@ -891,6 +899,9 @@ export class GameScene extends Phaser.Scene {
         if (!player.isDead) {
             const by = this.enemies.landedDamage >= shotDamage ? this.enemies.landedBy : this.enemyShots.hitBy;
             this.hurtPlayer(this.enemies.landedDamage + shotDamage, this.enemies.landedFromBoss || this.enemyShots.hitFromBoss, by);
+        } else if (this.abaddon.tryRevive(player)) {
+            // Abaddon's Blood: lies on the ground for a moment, then gets up (Fase 21E).
+            if (!player.isDead) this.achievements.onRevive();
         } else if (player.deadForMs > GAME_OVER_DELAY_MS) {
             this.endRun(false);
             return false;

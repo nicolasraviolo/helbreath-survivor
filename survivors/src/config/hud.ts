@@ -74,6 +74,26 @@ export const HUD_CRIT = {
 } as const;
 
 /**
+ * Abaddon's Blood (Fase 21E): its Red Ball in a dark round frame. On the classic bar, in the free space left of the
+ * health and mana gauges (bar pixels); on the compact HUD, at the right end of the info line, above the first gauge.
+ * Dark once used in the run.
+ */
+export const HUD_REVIVE = {
+    classic: { x: 52, y: 28 },
+    /** From the right end of the first gauge, and up from its top. */
+    compact: { fromRight: 16, up: 16 },
+    radius: 15,
+    iconSize: 26,
+    backColor: 0x000000,
+    backAlpha: 0.55,
+    borderWidth: 2,
+    readyBorder: 0xc8a050,
+    usedBorder: 0x6a5a3a,
+    usedTint: 0x555555,
+    usedAlpha: 0.6,
+} as const;
+
+/**
  * Touch button of the Critical Strike (Fase 19A): the same red sword, bigger, with its charges, in the middle of the
  * corner kept free for it (TOUCH_RESERVED_CORNER, bottom right of the game area). Only on touch screens and ?ui=compact.
  */

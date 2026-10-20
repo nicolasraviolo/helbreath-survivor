@@ -10,7 +10,7 @@ Fuera de alcance **de la demo inicial**: multijugador, cuentas, tienda, inventar
 
 ### Personajes y baúl
 - Una partida local por dispositivo, con **hasta 4 personajes** (Fase 17A). En el futuro podrían ser "cuentas".
-- Los 4 comparten un **baúl** (stash). Cada personaje tiene su **inventario** con huecos: arma, escudo, casco, armadura, pantalones, botas, capa, **2 hechizos**, anillo, collar, ángel tutelar, **Zem** y **Abaddon's Blood**.
+- Los 4 comparten un **baúl** (stash). Cada personaje tiene su **inventario** con huecos: arma, escudo, casco, armadura, pantalones, botas, capa, **2 hechizos**, anillo, collar, ángel tutelar y **Zem**. *Abaddon's Blood no tiene hueco: es una mejora permanente (ver "En la partida").*
 
 ### Level y Power
 - **Level** = progreso permanente del personaje. Sale en Select Character. Sube con la **EXP** de las partidas. Máximo **140**. Cada Level da **3 puntos** de stat que reparte el jugador; cada stat empieza en 10 y no pasa de **200**. Los puntos **no se reasignan**.
@@ -31,12 +31,12 @@ Fuera de alcance **de la demo inicial**: multijugador, cuentas, tienda, inventar
 - **Las dos clases:** un ataque automático y una habilidad activa con el mismo botón. Guerrero: arma + **Critical Strike** (cargas). Mago: hechizo 1 (automático) + hechizo 2 (activo, con recarga).
 - **Botín:** caen objetos según tu Str/Int y una tirada: de tu escalón (~50%), del siguiente (~25%, motiva a subir de Level), peor (~15%, para vender) o un salto grande (~10%). Al cogerlo, carta de comparación con **"Equip"** o **"Keep in bag"**; si no cumples el requisito, solo se puede guardar.
 - **Al terminar:** si ganas, te quedas con todo. Si mueres **sin Zem**, pierdes los objetos encontrados en esa partida (nunca el equipo con el que saliste). Si mueres **con Zem**, conservas el botín y el Zem se gasta. **El oro se conserva siempre.**
-- **Abaddon's Blood** (resurrección, icono del Red Ball): al morir revives una vez con media vida; se gasta. Una por partida. No se vende: solo cae de jefes.
+- **Abaddon's Blood** (resurrección, icono del Red Ball; cambiado el 20-oct-2026): **mejora permanente** para los 4 personajes, como el "Revival" de Vampire Survivors. Una vez desbloqueada, al morir revives **una vez por partida** con media vida. Se comprará en la tienda (Fase 24); hasta entonces solo con un atajo de prueba.
 
 ### Economía
 - **Oro:** monedas de los monstruos, montones de los jefes, vender objetos (los atributos suben el precio) y algunos logros.
 - **Herrero:** mejoras permanentes +1, +2... con Xelima (armas) y Merien (armaduras) y oro. Si falla, se pierden la piedra y el oro, **nunca el objeto**.
-- **Tienda:** Zem, pociones para empezar la partida, equipo básico sin atributos. **Almacén:** ampliar el baúl.
+- **Tienda:** Zem, pociones para empezar la partida, equipo básico sin atributos, **Abaddon's Blood** (mejora permanente). **Almacén:** ampliar el baúl.
 - **Sin durabilidad** ni reparaciones. Sin pagos reales (regla 8).
 
 ## Personajes

@@ -75,6 +75,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Botín en partida (Fase 21A)
 - Atributos y varitas (Fase 21B)
 - Baúl, "solo lo que tienes" y Zem (Fase 21D)
+- Abaddon's Blood: resurrección permanente (Fase 21E)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -883,3 +884,10 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - **Guardado:** personajes versión 7 (solo añade el hueco Zem; nada que migrar).
 - **Probar:** `pnpm check warehouse`, `equipmentowned`, `deathnozem` / `deathzem` con `--wait=7000 --eval="(g.debugPickUpLoot(), g.debugKeepLoot(), g.endRun(false))"`. Atajos: `?open=warehouse`, `?debug=zem` (todo jefe suelta Zem), `?gear=inv:plateMail` (al inventario sin atributo) y `?gear=zemstone` (con `?characters=demo`). `?characters=demo|reset` también reinicia el baúl (demo: 4 objetos).
 
+## Abaddon's Blood: resurrección permanente (Fase 21E)
+- **No es un objeto:** mejora permanente del dispositivo (`systems/UnlockStore.ts`, clave `hb-survivors.unlocks`, versión 1; ids en `UNLOCK_IDS` de `data/abaddon.ts`). La tienda de la Fase 24 llamará a `unlockStore.unlock('abaddon')`. Atajo `?unlocks=abaddon` / `?unlocks=reset`.
+- **En partida:** `systems/AbaddonRevive.ts`. `GameScene` le pregunta `tryRevive(player)` cada frame con el jugador muerto, **antes** del Game Over: si está listo espera `reviveDelayMs` en el suelo (sale la animación de muerte) y llama a `Player.revive()` (vida, invulnerable, pose de pie). La onda usa `Enemy.push()` (el empujón del golpe, sin daño; los jefes casi no se mueven por `knockbackTaken`). Partida guardada: `RunSnapshot.abaddonUsed`.
+- **Icono en la barra:** `ui/ReviveIcon.ts` (clásica y compacta, posiciones en `HUD_REVIVE`). Red Ball = item-pack **hoja 5** frame 124 (Spr 6 − 1, como las piedras; con la hoja 6 sale un peto blanco). Si `item.pack` aún no ha llegado, solo el círculo.
+- **Sonidos:** C21 / C22 son la voz de "buena noticia" del original según el sexo (`m_sPlayerType` 1–3 / 4–6 en `reference/Client.cpp`; suena al fabricar con éxito). El efecto Resurrection (case 194) no suena por sí mismo. Aquí: la voz + `sfx.buff`.
+- **Probar:** `pnpm check revive --eval="new Promise((r) => { g.hurtPlayer(99999, true, 'test'); setTimeout(() => r({ hp: g.player.hp, dead: g.player.isDead }), 1500); })"`.
+- **`pnpm check` en la nube:** `scripts/check.mjs` lanza `channel: 'chrome'`, que no existe en los contenedores de Claude Code web (solo `/opt/pw-browsers/chromium-1194`). Allí se usa una copia temporal con `executablePath` (y se borra después).

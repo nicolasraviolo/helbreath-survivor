@@ -76,6 +76,8 @@ export interface RunSnapshot {
     metrics: RunMetricsState | undefined;
     /** Items found, in the bag and put on (Fase 21A). Saves from before have none. */
     loot: RunLootState | undefined;
+    /** Abaddon's Blood was already used in this run (Fase 21E). Saves from before: not used. */
+    abaddonUsed: boolean;
 }
 
 type Slots = Array<RunSnapshot | undefined>;
@@ -210,6 +212,7 @@ function readSnapshot(entry: unknown): RunSnapshot | undefined {
         spellCooldownMs: readNumber(entry.spellCooldownMs),
         metrics: readMetrics(entry.metrics),
         loot: readLoot(entry.loot),
+        abaddonUsed: entry.abaddonUsed === true,
     };
 }
 

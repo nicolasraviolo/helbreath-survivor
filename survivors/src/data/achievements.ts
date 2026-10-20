@@ -17,7 +17,9 @@ export type AchievementGoal =
     /** Escape through the portal; optionally on a map, with a class, or without drinking a potion. */
     | { kind: 'win'; map?: MapId; character?: CharacterId; noPotions?: boolean }
     /** A piece in every armor slot of the class at the same time. */
-    | { kind: 'fullArmor' };
+    | { kind: 'fullArmor' }
+    /** Rise again with Abaddon's Blood (Fase 21E). */
+    | { kind: 'revive' };
 
 export interface AchievementDef {
     name: string;
@@ -40,6 +42,7 @@ export const ACHIEVEMENTS = {
     winMage: { name: 'Path of Magic', description: 'Win a run as the Mage.', goal: { kind: 'win', character: 'mage' } },
     noPotions: { name: 'Iron Will', description: 'Win a run without drinking a potion.', goal: { kind: 'win', noPotions: true } },
     fullArmor: { name: 'Fully Armored', description: 'Wear a piece in every armor slot.', goal: { kind: 'fullArmor' } },
+    revive: { name: 'Blood of the Demon', description: "Revive with Abaddon's Blood.", goal: { kind: 'revive' } },
 } as const satisfies Record<string, AchievementDef>;
 
 export type AchievementId = keyof typeof ACHIEVEMENTS;

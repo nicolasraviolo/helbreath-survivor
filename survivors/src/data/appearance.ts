@@ -57,9 +57,9 @@ export const HAIR_COLORS: ReadonlyArray<{ name: string; add: readonly [number, n
 export const HAIR_COLOR_SCALE = 255 / 31;
 
 /** Death cry and level-up voice: the original has one of each for men and one for women. */
-export const GENDER_SOUNDS: Record<Gender, { death: SoundKey; levelUp: SoundKey }> = {
-    male: { death: 'sfx.player.death.m', levelUp: 'sfx.levelUp.m' },
-    female: { death: 'sfx.player.death.w', levelUp: 'sfx.levelUp.w' },
+export const GENDER_SOUNDS: Record<Gender, { death: SoundKey; levelUp: SoundKey; revive: SoundKey }> = {
+    male: { death: 'sfx.player.death.m', levelUp: 'sfx.levelUp.m', revive: 'sfx.revive.m' },
+    female: { death: 'sfx.player.death.w', levelUp: 'sfx.levelUp.w', revive: 'sfx.revive.w' },
 };
 
 /**

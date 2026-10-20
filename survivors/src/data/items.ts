@@ -1,7 +1,7 @@
 // Equipo permanente del personaje (Fase 20B; docs/DESIGN.md, "Progresión entre partidas"):
 // - Huecos que ya funcionan: arma, escudo, casco, armadura, pantalones, botas, capa y, solo el Mago, 2 hechizos (20D:
-//   Spell 1 automático, círculos 1–5; Spell 2 activo, círculos 6–10). Los demás (anillo, collar, ángel, Zem y Abaddon's
-//   Blood) se ven vacíos en la pantalla de equipo hasta la Fase 21. El Zem funciona desde el 21D (data/consumables.ts).
+//   Spell 1 automático, círculos 1–5; Spell 2 activo, círculos 6–10). Los demás (anillo, collar, ángel y Zem) se ven
+//   vacíos en la pantalla de equipo hasta la Fase 21. Abaddon's Blood no es un hueco: es una mejora permanente (21E). El Zem funciona desde el 21D (data/consumables.ts).
 // - Fase 21D, "solo lo que tienes": armas, varitas, armaduras y el Zem solo se ponen si están en el inventario (o se
 //   llevan puestos). El equipo de salida (la daga, la varita MS0 y los dos hechizos de la Maga) nunca se acaba. Los
 //   hechizos se saben con la Int; los que estén en MANUAL_SPELL_IDS piden además haberlos encontrado (su Manual).
@@ -39,7 +39,8 @@ export const EQUIP_SLOT_NAMES: Readonly<Record<EquipSlotId, string>> = { weapon:
  * (Fase 21D).
  */
 export const SECOND_ROW_SLOTS: ReadonlyArray<EquipSlotId | { future: string }> = [
-    'spell1', 'spell2', { future: 'Ring' }, { future: 'Necklace' }, { future: 'Angel' }, 'zem', { future: "Abaddon's Blood" },
+    // Abaddon's Blood no tiene hueco: es una mejora permanente del dispositivo (Fase 21E, data/abaddon.ts).
+    'spell1', 'spell2', { future: 'Ring' }, { future: 'Necklace' }, { future: 'Angel' }, 'zem',
 ];
 
 export type SpellItemId = AutoSpellId | ActiveSpellId;

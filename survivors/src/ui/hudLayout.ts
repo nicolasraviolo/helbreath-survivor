@@ -4,6 +4,7 @@ import { COMPACT_UI } from '../config/device';
 import { GAME_HEIGHT } from '../config/gameConfig';
 import { HUD_COMPACT, HUD_COMPACT_LAYOUT, HUD_TOP } from '../config/hud';
 import type { HudStyle } from '../config/settings';
+import type { ReviveHudState } from '../systems/AbaddonRevive';
 import { settings } from '../systems/Settings';
 
 export function activeHudStyle(): HudStyle {
@@ -49,6 +50,8 @@ export interface HudBarState {
     skillOrb: SkillOrb | undefined;
     /** Skills used so far: when it grows, the icon shows pressed for a moment. */
     skillUses: number;
+    /** Abaddon's Blood (Fase 21E): lit while it can still bring you back, dark once used, hidden if not unlocked. */
+    revive: ReviveHudState;
 }
 
 /** What the skill orb shows: a number over it, and dimmed when it cannot be used. */

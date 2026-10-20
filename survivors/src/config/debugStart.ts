@@ -41,12 +41,14 @@
 //                      "zemstone" les pone un Zem (Fase 21D).
 //   ?open=warehouse  → Select Character con el baúl compartido abierto (Fase 21D), del personaje marcado
 //   ?characters=reset → borra los personajes guardados al cargar (demo = deja dos de ejemplo; Fase 17A)
+//   ?unlocks=abaddon  → desbloquea Abaddon's Blood en este dispositivo (Fase 21E; reset = quita los desbloqueos)
 //   ?achievements=reset → borra los logros conseguidos al cargar (all = los da todos, para ver la pantalla llena; Fase 14B)
 //   ?metrics=send    → enviar las métricas de esta partida al servidor de verdad (en desarrollo no se envían; Fase 14A)
 //   Se combina con ?ui=compact (interfaz de móvil).
 // En el build publicado no hace nada.
 import { isActiveSpellId, type ActiveSpellId } from '../data/activeSpells';
 import { isItemAttribute, type ItemAttribute } from '../data/attributes';
+import { isUnlockId, type UnlockId } from '../data/abaddon';
 import { isCharacterId, type CharacterId } from '../data/characters';
 import { isAutoSpellId, type AutoSpellId } from '../data/spells';
 import { TREE_MODES, type TreeMode } from './settings';
@@ -96,6 +98,8 @@ interface DebugStart {
     gear: string[];
     /** Settings tab to open first: the start of its name, in lower case (?tab=gameplay; M13). */
     settingsTab: string | undefined;
+    /** ?unlocks=: permanent upgrades to unlock when the page loads, or 'reset' to clear them (Fase 21E). */
+    unlocks: UnlockId[] | 'reset' | undefined;
     /** ?attr=: the starting weapon and every drop (always a weapon) get that attribute (Fase 21B). */
     attribute: ItemAttribute | undefined;
 }
@@ -104,7 +108,7 @@ function readDebugStart(): DebugStart {
     const none: DebugStart = {
         play: false, character: undefined, actions: [], trees: undefined, open: undefined, achievements: undefined, characters: undefined,
         sendMetrics: false, spells: { auto: undefined, active: undefined }, openClass: undefined, slash: undefined,
-        holdLoading: false, gear: [], settingsTab: undefined, attribute: undefined,
+        holdLoading: false, gear: [], settingsTab: undefined, attribute: undefined, unlocks: undefined,
     };
     if (!import.meta.env.DEV) return none;
     const params = new URLSearchParams(window.location.search);
@@ -118,6 +122,7 @@ function readDebugStart(): DebugStart {
     const openClass = params.get('class');
     const slash = params.get('slash');
     const attribute = params.get('attr');
+    const unlocks = params.get('unlocks');
     return {
         play: play !== null || actions.length > 0 || trees !== undefined || slash !== null,
         character: isCharacterId(play) ? play : undefined,
@@ -134,6 +139,7 @@ function readDebugStart(): DebugStart {
         gear: (params.get('gear') ?? '').split(',').map((g) => g.trim()).filter((g) => g.length > 0),
         settingsTab: params.get('tab')?.toLowerCase() ?? undefined,
         attribute: isItemAttribute(attribute) ? attribute : undefined,
+        unlocks: unlocks === 'reset' ? 'reset' : unlocks ? unlocks.split(',').map((u) => u.trim()).filter(isUnlockId) : undefined,
     };
 }
 

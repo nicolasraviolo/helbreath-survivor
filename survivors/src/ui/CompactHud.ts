@@ -5,7 +5,8 @@
 // Cada barra es el marco vacío con el relleno de color encima, recortado según lo que queda.
 import Phaser from 'phaser';
 import { GAME_HEIGHT } from '../config/gameConfig';
-import { HUD_COMPACT, HUD_COMPACT_LAYOUT, HUD_DEPTH_TEXT, HUD_INFO_STYLE, HUD_TEXT_STYLE } from '../config/hud';
+import { HUD_COMPACT, HUD_COMPACT_LAYOUT, HUD_DEPTH_TEXT, HUD_INFO_STYLE, HUD_REVIVE, HUD_TEXT_STYLE } from '../config/hud';
+import { ReviveIcon } from './ReviveIcon';
 import { formatTime } from '../utils/format';
 import type { HudBar, HudBarActions, HudBarState } from './hudLayout';
 
@@ -30,6 +31,7 @@ export class CompactHud implements HudBar {
     private readonly hpText: Phaser.GameObjects.Text;
     private readonly mpText: Phaser.GameObjects.Text;
     private readonly infoText: Phaser.GameObjects.Text;
+    private readonly revive: ReviveIcon;
 
     constructor(private readonly scene: Phaser.Scene, actions: HudBarActions) {
         const c = HUD_COMPACT;
@@ -47,6 +49,11 @@ export class CompactHud implements HudBar {
         this.infoText = HUD_COMPACT_LAYOUT === 'top'
             ? this.addText(at(0).x, at(2).y + height + c.infoGap, HUD_INFO_STYLE)
             : this.addText(at(0).x, at(0).y - c.infoGap, HUD_INFO_STYLE).setOrigin(0, 1);
+
+        // Abaddon's Blood (Fase 21E): at the right end of the first gauge, on the info line's height.
+        const v = HUD_COMPACT_LAYOUT === 'top' ? { x: at(0).x + frame.width * layout.scale + HUD_REVIVE.compact.fromRight, y: centre(0).y }
+            : { x: at(0).x + frame.width * layout.scale - HUD_REVIVE.compact.fromRight, y: at(0).y - HUD_REVIVE.compact.up };
+        this.revive = new ReviveIcon(scene, v.x, v.y, undefined, HUD_DEPTH_TEXT);
 
         const b = c.statsButton;
         const button = scene.add.image(b.x, b.y, c.texture, b.frame).setScale(b.scale).setDepth(HUD_DEPTH_TEXT)
@@ -69,10 +76,12 @@ export class CompactHud implements HudBar {
         }
         setGauge(this.xp, state.xpRatio);
         this.infoText.setText(`Power ${state.level}   ${formatTime(state.elapsedMs)}   ${state.kills} kills`);
+        this.revive.update(state.revive);
     }
 
     public destroy(): void {
         for (const object of this.objects) object.destroy();
+        this.revive.destroy();
     }
 
     /** Empty frame with the colour fill stretched over its inside, both a bit see-through. */

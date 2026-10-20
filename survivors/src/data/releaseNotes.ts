@@ -22,6 +22,7 @@ export const RELEASE_NOTES: readonly ReleaseNote[] = [
             'The Mage can now find and equip wands.',
             'New shared Warehouse, and Equipment now shows only what you own.',
             'Win to keep your loot, or wear a Zemstone: bosses may drop one.',
+            "New: Abaddon's Blood brings you back to life once per run.",
         ],
     },
     {
