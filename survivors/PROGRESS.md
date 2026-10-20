@@ -8,8 +8,8 @@
 
 ## Fase actual
 **Fase 20 completada** y fusionada en `master` (etiqueta `fase-20`). Antes de la Fase 21, **ronda de bugs** del propietario: lista en `docs/BUGS.md` (marcar `[x]` al arreglar).
-- **Bloque A (arreglos rápidos): hecho** (19-oct-2026). **Bloque B (combate): hecho** (20-oct-2026). **Bloque C:** M15 (arco del guerrero) y M2 (monstruos élite) hechos (20-oct-2026).
-- **Siguiente:** resto del bloque C de `docs/BUGS.md` (una sesión por punto: pantallas de carga (M8), equipo sobre el cuerpo, opciones móvil/web). Después, `/fase 21` → botín y baúl (`docs/PLAN-2.md`).
+- **Bloque A (arreglos rápidos): hecho** (19-oct-2026). **Bloque B (combate): hecho** (20-oct-2026). **Bloque C:** M15 (arco del guerrero), M2 (monstruos élite) y M8 (pantalla de carga) hechos (20-oct-2026).
+- **Siguiente:** resto del bloque C de `docs/BUGS.md` (una sesión por punto: equipo sobre el cuerpo (M17), opciones móvil/web (M13)). Después, `/fase 21` → botín y baúl (`docs/PLAN-2.md`).
 - **Duda abierta para el propietario** (en `docs/BUGS.md`): M4 (EXP del Level al salir de la partida).
 - **Pendiente de probar por el propietario:** cambiar de pestaña en partida y volver, sin sonidos trabados (B4; simulado en el check, no probado de verdad).
 - **Pendiente:** que el propietario pruebe con su mando real la vibración y el stick derecho (apuntar).
@@ -17,6 +17,7 @@
 
 **Pistas para trabajar** (detalle en `survivors/NOTES.md`):
 - Level y Power: `data/characterLevel.ts`, `scenes/CharacterInfoScene.ts`. Ver NOTES.md, "Ventana Character y Level permanente".
+- Pantalla de carga: `scenes/PreloadScene.ts`, `?loading=hold`, `check loading`. Ver NOTES.md, "Pantalla de carga (M8)".
 - Élites: `data/elites.ts`, `?debug=elites`, `check elites`. Ver NOTES.md, "Monstruos élite (M2)".
 - Estela del tajo: estilos en `data/slash.ts` (`?slash=N`, tecla Y). Ver NOTES.md, "Estela del tajo del guerrero".
 - Equipo: `data/items.ts` (huecos, catálogo, requisitos), `scenes/EquipmentScene.ts`. Ver NOTES.md, "Equipo y pantalla Equipment".
@@ -47,11 +48,12 @@
 
 ## Cómo probar
 - Jugar: `pnpm --dir survivors dev` → http://localhost:8090
-- Comprobar: `pnpm --dir survivors check [situaciones] [--mobile]` → escenas, FPS, estado, errores y captura en `survivors/.check/`. Situaciones: `menu`, `news` (What's new), `settings`, `controls`, `game`, `minimap`, `achievements` (con `--cards`: desde cero hasta nivel 21), `achievementlist`, `levelup`, `boss`, `finalboss`, `portal`, `stampede`, `horde`, `elites` (todos los monstruos élite), `pickups`, `totems`, `slots` (dos personajes de ejemplo), `slotsempty`, `crit` (Guerrero con horda y crits infinitos; `--eval="g.launchCritStrike()"`), `charinfo` / `charinfogame` (ventana Character en menú / en partida), `equipment` (pantalla Equipment de Gorn), `equipmentmage` (la de Kaila, Int 86), `activespell` (Maga con horda y activo sin recarga; `--eval="g.launchCritStrike()"`), `charexp` (fin con EXP ×50: `--eval="g.endRun(false)"`), `levelpace` (partida simulada rápida: nivel por minuto, vida de cada jefe y su golpe más fuerte; informe en `.check/levelpace.json`) o atajos a mano (`"play=warrior&debug=str,levels"`).
+- Comprobar: `pnpm --dir survivors check [situaciones] [--mobile]` → escenas, FPS, estado, errores y captura en `survivors/.check/`. Situaciones: `menu`, `loading` (pantalla de carga parada a la mitad), `news` (What's new), `settings`, `controls`, `game`, `minimap`, `achievements` (con `--cards`: desde cero hasta nivel 21), `achievementlist`, `levelup`, `boss`, `finalboss`, `portal`, `stampede`, `horde`, `elites` (todos los monstruos élite), `pickups`, `totems`, `slots` (dos personajes de ejemplo), `slotsempty`, `crit` (Guerrero con horda y crits infinitos; `--eval="g.launchCritStrike()"`), `charinfo` / `charinfogame` (ventana Character en menú / en partida), `equipment` (pantalla Equipment de Gorn), `equipmentmage` (la de Kaila, Int 86), `activespell` (Maga con horda y activo sin recarga; `--eval="g.launchCritStrike()"`), `charexp` (fin con EXP ×50: `--eval="g.endRun(false)"`), `levelpace` (partida simulada rápida: nivel por minuto, vida de cada jefe y su golpe más fuerte; informe en `.check/levelpace.json`) o atajos a mano (`"play=warrior&debug=str,levels"`).
 - Opciones del check: `--eval="g.enemies.alive"` escribe cualquier dato (g = escena Game; si es una promesa, se espera); `--wait=5000` deja correr más; `--cards` elige la primera carta en cada subida.
 - Atajos en la dirección (solo desarrollo, `src/config/debugStart.ts`):
   - `?play`, `?play=warrior`, `?ui=compact` (interfaz de móvil), `?trees=off`, `?metrics=send` (envía la partida de verdad).
   - `?debug=boss,god`; acciones: horde, kill, levelup, levels, str, magic, pickups, totems, minute, boss, finalboss, bosskill, stampede, god, crits (infinitos, tecla H; también el activo del Mago sin recarga), stones (cartas de Xelima, Merien y Magnet), dodge (mejor armadura de la clase), stats (panel abierto), aim (apuntar a la derecha), aimstick (dedo falso en el stick, con `--mobile`), resume (guardar y recargar como Continue), sim (partida simulada), charexp (EXP ×50), elites (todos élite).
+  - `?loading=hold`: la pantalla de carga se para a la mitad.
   - `?slash=N`: estilo de la estela del tajo (0–4, `data/slash.ts`); tecla Y para el siguiente.
   - `?open=howtoplay` (también settings, controls, credits, achievements, select, slots, charinfo, equipment, releasenotes); `?open=equipment&class=mage` abre la de la Maga.
   - `?spells=fireBall,meteorStrike`: hechizos del Mago en esa partida, sin requisitos.

@@ -21,6 +21,7 @@
 //   ?spells=fireBall,meteorStrike → hechizos del Mago en esta partida (uno automático y/o uno activo, en cualquier
 //                      orden; los ids de data/spells.ts y data/activeSpells.ts), sin mirar requisitos (Fase 20D)
 //   ?slash=2         → estilo de la estela del tajo (número en data/slash.ts; tecla Y para pasar al siguiente; M15)
+//   ?loading=hold    → la pantalla de carga se queda a medias, para verla con calma (M8)
 //   ?trees=off       → árboles grandes en ese modo solo en esta partida (on, off), sin guardarlo
 //   ?open=howtoplay  → abre esa pantalla de los menús (howtoplay, settings, controls = Settings → Controls, credits, releasenotes = novedades, achievements, select = selección de personaje)
 //   ?open=slots      → abre la pantalla de los 4 personajes guardados (Fase 17A)
@@ -77,12 +78,15 @@ interface DebugStart {
     openClass: CharacterId | undefined;
     /** Melee slash style to compare (its number in data/slash.ts), if one was given. */
     slash: number | undefined;
+    /** ?loading=hold: the loading screen stops halfway (to look at it). */
+    holdLoading: boolean;
 }
 
 function readDebugStart(): DebugStart {
     const none: DebugStart = {
         play: false, character: undefined, actions: [], trees: undefined, open: undefined, achievements: undefined, characters: undefined,
         sendMetrics: false, spells: { auto: undefined, active: undefined }, openClass: undefined, slash: undefined,
+        holdLoading: false,
     };
     if (!import.meta.env.DEV) return none;
     const params = new URLSearchParams(window.location.search);
@@ -107,6 +111,7 @@ function readDebugStart(): DebugStart {
         spells: { auto: spells.find(isAutoSpellId), active: spells.find(isActiveSpellId) },
         openClass: isCharacterId(openClass) ? openClass : undefined,
         slash: slash !== null && /^\d+$/.test(slash) ? Number(slash) : undefined,
+        holdLoading: params.get('loading') === 'hold',
     };
 }
 

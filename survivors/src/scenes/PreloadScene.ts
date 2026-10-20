@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { ASSET_BASE_PATH, MAPS, MINIMAPS, ON_DEMAND_SPRITES, PHONE_ONLY_SPRITES, SOUNDS, SPRITES, UI_IMAGES, type SpriteKey } from '../config/assetManifest';
+import { ASSET_BASE_PATH, BOOT_SPRITES, LOADING_LOGO, MAPS, MINIMAPS, ON_DEMAND_SPRITES, PHONE_ONLY_SPRITES, SOUNDS, SPRITES, UI_IMAGES, type SpriteKey } from '../config/assetManifest';
 import { DEBUG_START } from '../config/debugStart';
 import { COMPACT_UI } from '../config/device';
 import { registerEffectAnimations } from '../config/effects';
@@ -9,18 +9,29 @@ import { CHOSEN_CHARACTER_KEY, DEFAULT_CHARACTER } from '../data/characters';
 import { DEFAULT_MAP, MAPS_DATA } from '../data/maps';
 import { getMap } from '../hb/HBMap';
 import { HBSpriteFile, SpriteType } from '../hb/HBSprite';
+import { SpriteText } from '../hb/SpriteText';
 import { getTilePacksForIndices } from '../hb/mapAssets';
 import { STREAMED_SPRITES } from '../systems/AssetStreamer';
 import { ACTIVE_CHARACTER_KEY, characterStore } from '../systems/CharacterStore';
 
 /** Sprites loaded here: all but the monsters that come later (systems/AssetStreamer.ts loads those in the background). */
 const UPFRONT_SPRITES = (Object.keys(SPRITES) as SpriteKey[])
-    .filter((key) => !STREAMED_SPRITES.has(key) && !ON_DEMAND_SPRITES.has(key) && (COMPACT_UI || !PHONE_ONLY_SPRITES.has(key)));
+    .filter((key) => !BOOT_SPRITES.has(key) && !STREAMED_SPRITES.has(key) && !ON_DEMAND_SPRITES.has(key) && (COMPACT_UI || !PHONE_ONLY_SPRITES.has(key)));
 
 const BAR_WIDTH = 400;
 const BAR_HEIGHT = 16;
 /** Share of the bar used by the download phase; the rest is .spr decoding. */
 const DOWNLOAD_SHARE = 0.5;
+/** Logo abajo a la derecha (M8): alto en pantalla, margen y un "latido" lento (aparece y desaparece). */
+const LOGO_HEIGHT = 112;
+const LOGO_MARGIN = 20;
+const LOGO_PULSE_MS = 1500;
+const LOGO_MIN_ALPHA = 0.15;
+/** Título "Helbreath Survivors" encima de la barra, con la letra caligráfica de los hechizos (sprfonts.spr). */
+const TITLE_TEXT = 'Helbreath Survivors';
+const TITLE_SCALE = 2.4;
+const TITLE_GAP = 70;
+const TITLE_COLOR = 0xffd860;
 
 /**
  * Carga en dos fases (como LoadingScreen.ts del original):
@@ -30,7 +41,6 @@ const DOWNLOAD_SHARE = 0.5;
  */
 export class PreloadScene extends Phaser.Scene {
     private bar!: Phaser.GameObjects.Rectangle;
-    private label!: Phaser.GameObjects.Text;
 
     constructor() {
         super('Preload');
@@ -39,10 +49,13 @@ export class PreloadScene extends Phaser.Scene {
     preload(): void {
         const cx = GAME_WIDTH / 2;
         const cy = GAME_HEIGHT / 2;
+        this.cameras.main.setBackgroundColor(0x000000);
         this.add.rectangle(cx, cy, BAR_WIDTH + 4, BAR_HEIGHT + 4).setStrokeStyle(1, 0xc8a85a);
         this.bar = this.add.rectangle(cx - BAR_WIDTH / 2, cy, 0, BAR_HEIGHT, 0xc8a85a).setOrigin(0, 0.5);
-        this.label = this.add.text(cx, cy + 24, 'Loading…', { ...UI_TEXT, fontSize: px(UI_FONT_SIZE.normal), color: '#c8a85a' })
+        this.add.text(cx, cy + 24, 'Loading', { ...UI_TEXT, fontSize: px(UI_FONT_SIZE.normal), color: '#c8a85a' })
             .setOrigin(0.5, 0);
+        new SpriteText(this, cx, cy - TITLE_GAP, TITLE_TEXT, TITLE_COLOR, 'center').container.setScale(TITLE_SCALE);
+        this.addLogo();
 
         this.load.setPath(ASSET_BASE_PATH);
         for (const key of UPFRONT_SPRITES) {
@@ -62,8 +75,8 @@ export class PreloadScene extends Phaser.Scene {
         // Paquetes de casillas: dependen del mapa, así que se descargan en una segunda pasada.
         const map = getMap(this, MAPS_DATA[DEFAULT_MAP].asset);
         const tilePacks = getTilePacksForIndices(map.requiredTileIndices());
-        this.label.setText('Loading map…');
         await this.loadBinaries(tilePacks.map((pack) => ({ key: pack.key, file: pack.file })));
+        if (DEBUG_START.holdLoading) return;
 
         const spriteKeys = UPFRONT_SPRITES;
         const jobs = [
@@ -71,7 +84,6 @@ export class PreloadScene extends Phaser.Scene {
             ...spriteKeys.map((key) => new HBSpriteFile(key, SPRITES[key].type, DEFAULT_ANIMATION_FRAME_RATE)),
         ];
         for (const [i, job] of jobs.entries()) {
-            this.label.setText(`Preparing ${job.spriteKey}…`);
             await job.load(this);
             this.setProgress(DOWNLOAD_SHARE + ((i + 1) / jobs.length) * (1 - DOWNLOAD_SHARE));
         }
@@ -86,6 +98,21 @@ export class PreloadScene extends Phaser.Scene {
         }
         const open = DEBUG_START.open === 'CharacterInfo' || DEBUG_START.open === 'Equipment' ? 'CharacterSlots' : DEBUG_START.open;
         this.scene.start(DEBUG_START.play ? 'Game' : open === 'CharacterSelect' || open === 'CharacterSlots' ? open : 'MainMenu');
+    }
+
+    /** Logo pequeño abajo a la derecha que aparece y desaparece mientras carga. */
+    private addLogo(): void {
+        if (!this.textures.exists(LOADING_LOGO.key)) return;
+        const logo = this.add.image(GAME_WIDTH - LOGO_MARGIN, GAME_HEIGHT - LOGO_MARGIN, LOADING_LOGO.key).setOrigin(1, 1);
+        logo.setScale(LOGO_HEIGHT / logo.height);
+        this.tweens.add({
+            targets: logo,
+            alpha: { from: 1, to: LOGO_MIN_ALPHA },
+            duration: LOGO_PULSE_MS,
+            ease: 'Sine.easeInOut',
+            yoyo: true,
+            repeat: -1,
+        });
     }
 
     private loadBinaries(files: Array<{ key: string; file: string }>): Promise<void> {

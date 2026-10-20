@@ -2,6 +2,13 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
+**Ronda de bugs, bloque C, M8: pantalla de carga (2026-10-20).**
+- **Qué hace:** fondo negro; "Helbreath Survivors" en dorado con la letra caligráfica del libro de hechizos encima de la barra; debajo, "Loading" fijo (sin los mensajes técnicos); abajo a la derecha, el logo del propietario (112 px) con un latido lento.
+- **Decisiones del propietario:** su logo (no el "HS" de la app), latido en vez de giro, doble de tamaño; el icono "HS" encima de la barra se probó y se cambió por el título en letra caligráfica.
+- **Código:** `PreloadScene` (constantes `LOGO_*` y `TITLE_*`); `BootScene` carga antes el logo (`LOADING_LOGO`) y la letra (`BOOT_SPRITES`, `sprfonts.spr`, 5 KB). Logo recortado del JPG del propietario a `custom-assets/image/hb-logo.png`. Atajo `?loading=hold` y situación `check loading` (la carga se para a la mitad).
+- **Comprobado:** build; `check loading` (también `--mobile`) y `check menu` sin errores; capturas revisadas.
+- **Probar:** `pnpm --dir survivors dev` → http://localhost:8090/?loading=hold.
+
 **Ronda de bugs, bloque C, M2: monstruos élite (2026-10-20).**
 - **Qué hace:** cualquier monstruo que no sea jefe puede salir élite ("Berserk"): mismo brillo rojo que el buff Berserk del jugador, pega ×1,5 (también flechas y bolas de fuego), vida ×2, EXP ×3. Probabilidad de 1/50 (vida ≤ 20) a 1/200 (vida ≥ 1000), en escala logarítmica; ×2 con la vida del jugador > 75 %, ninguno con < 35 %. Congelado se ve azul, sin el rojo.
 - **Decisiones del propietario:** el brillo es el mismo efecto que el Berserk del jugador.

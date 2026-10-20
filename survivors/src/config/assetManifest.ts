@@ -300,6 +300,11 @@ export const UI_IMAGES = {
 
 export type UiImageKey = keyof typeof UI_IMAGES;
 
+/** Logo de la pantalla de carga (aportado por el propietario, M8). Se carga en BootScene, antes que todo lo demás. */
+export const LOADING_LOGO = { key: 'ui.loadingLogo', file: 'image/hb-logo.png' } as const;
+/** Sprites que carga BootScene antes de la pantalla de carga: la letra caligráfica del título "Helbreath Survivors". */
+export const BOOT_SPRITES: ReadonlySet<SpriteKey> = new Set<SpriteKey>(['ui.font']);
+
 /**
  * Paquetes de casillas de mapa (sp-client/src/constants/Assets.ts). Cada hoja del paquete es la
  * textura `map-tile-{start + hoja}`. Solo se cargan los que use el mapa (ver hb/mapAssets.ts).

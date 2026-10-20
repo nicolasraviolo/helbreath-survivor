@@ -69,6 +69,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Estela del tajo del guerrero (M15, 20-oct-2026)
 - Monstruos élite (M2)
 - Bugs del bloque B (20-oct-2026)
+- Pantalla de carga (M8)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -821,3 +822,10 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - El brillo rojo es el del Berserk del jugador (copia ADD 0xff4444 al 50 %), pero **horneado** en una copia de la hoja (`hb/glowTexture.ts`, clave `{hoja}~elite`), hecha en la GPU con un `DynamicTexture`. Un sprite ADD encima de cada monstruo rompe el lote de WebGL (cada cambio de modo de mezcla es otra llamada de dibujo) y con cientos de élites bajan los FPS.
 - No se puede copiar píxel a píxel como el pelo (`hb/additiveTint.ts`): las hojas de monstruo cierran su `ImageBitmap` al subirse a la GPU ("image source is detached").
 - La animación pone el frame de la hoja normal al avanzar; `Enemy.syncGlowTexture` lo cambia por el de la copia en cada update (después de las animaciones, antes de dibujar).
+
+## Pantalla de carga (M8)
+- `PreloadScene`: fondo negro, título "Helbreath Survivors" encima de la barra con la letra caligráfica (`SpriteText`, `sprfonts.spr`), barra, "Loading" fijo y el logo del propietario abajo a la derecha con un "latido" (constantes `LOGO_*` arriba del archivo).
+- El logo (`custom-assets/image/hb-logo.png`, clave `LOADING_LOGO` del manifest) y la letra del título (`BOOT_SPRITES`, 5 KB) los carga `BootScene`, antes que todo, para que salga desde el primer instante.
+- El original del propietario era un JPG con el cuadriculado de "transparente" pintado: se recortó quitando los píxeles grises (poca saturación) y conservando los muy oscuros de la cola (el fondo nunca baja de brillo ~85; la sombra, ~68, se descarta).
+- `?loading=hold` / `check loading`: la carga se para a la mitad para poder verla.
+- `sp-client/.../loadingbg.spr` no tiene logo: siluetas (casco, hacha, árbol), nubes y fondos de 1920×1080 sin uso en el cliente.

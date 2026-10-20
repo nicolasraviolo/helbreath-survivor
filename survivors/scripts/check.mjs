@@ -75,6 +75,8 @@ const PRESETS = {
     // --eval="g.launchCritStrike()"; otro hechizo con atajo a mano: "play=mage&debug=god,horde,crits&spells=massFireStrike".
     activespell: 'play=mage&debug=god,horde,crits',
     slotsempty: 'characters=reset&open=slots',
+    // Pantalla de carga (M8), parada a medias para verla: barra, "Loading" y el logo que late.
+    loading: 'loading=hold',
     // Pantalla "What's new" (novedades de cada fase), la que abre el link del pie del menú.
     news: 'open=releasenotes',
     // Settings → Controls (Fase 19C): cambiar la tecla / el botón del crit y del panel de stats.
@@ -158,7 +160,7 @@ async function runScenario(browser, name) {
 
     // ?open= (debugStart.ts) shows a menu screen: wait for it instead of the game.
     const openKey = { howtoplay: 'HowToPlay', settings: 'Settings', controls: 'Controls', credits: 'Credits', releasenotes: 'ReleaseNotes', achievements: 'Achievements', select: 'CharacterSelect', slots: 'CharacterSlots', charinfo: 'CharacterInfo', equipment: 'Equipment' }[params.get('open') ?? ''];
-    const target = openKey ?? (query ? 'Game' : 'MainMenu');
+    const target = params.has('loading') ? 'Preload' : openKey ?? (query ? 'Game' : 'MainMenu');
     await page.goto(url);
     const t0 = Date.now();
     await page.waitForFunction((key) => window.__game?.scene.isActive(key), target, { timeout: LOAD_TIMEOUT_MS });
