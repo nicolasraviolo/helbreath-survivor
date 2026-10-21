@@ -6,22 +6,23 @@
 - 18-oct-2026: 11 Pulido de interfaz · 12 Móvil sin pérdidas (12A–12C) · 13 Jefe final y equilibrio (13A–13C) · 14 Métricas y logros (14A–14B) · 15 Apuntado híbrido (15A–15C) · 16 Minimapa y tótems (16A–16B) · 17 Selección de personaje (17A–17B) · 18 Esquiva y resistencia mágica (18A–18B).
 - 19-oct-2026: 19 Crits y habilidad activa (19A–19C) · 20 Level y equipo (20A–20D).
 - 20-oct-2026: 21 Botín y baúl (21A, 21B, 21D, 21E; el 21C, anillos y collares, aplazado).
-- 21-oct-2026: 21½ Cartas y sorpresas (21½A–21½C).
+- 21-oct-2026: 21½ Cartas y sorpresas (21½A–21½C) · 22 Sistema de mapas (22A–22E, 22G; los récords locales, 22F, aplazados).
 
 ## Fase actual
-**Fase 22 (sistema de mapas), en curso** en la rama `fase-22`. Hecho: **22A** (Select Map, desbloqueo y Traveler Zone), **22B** (carga por mapa: inicial 29,7 → 9,5 MB; hasta jugar en móvil 41 → 27 s), **22C** (Cat y Traveler Zone más difícil), **22D** (Elvine Garden: Giant Tree, jefes Hellhound, Stalker y Cyclops) y **22E** (Middleland: Giant Lizard, Ettin Berserk y Unicorn; carga solo de la zona de juego). Incluye ya la **Fase 21½** (rareza, Reroll/Skip y Champion, cerrada en `master` el 21-oct-2026, etiqueta `fase-21½`), fusionada en `fase-22` el 21-oct-2026. Detalle en `PROGRESS-historial.md`.
-- **Siguiente:** `/fase 22` → bloque **22G, sombras y skill `anadir-mapa`** (`docs/PLAN-2.md`), el último de la fase. Los **récords locales (22F) están aplazados**: en `docs/PLAN-2.md`, "Ideas para después".
-- **Orden de mapas (20-oct-2026):** Traveler Zone → Bleeding Isle → Elvine Garden → Middleland (este, "Coming soon"). Se abren al ganar el anterior o con su Level (1/10/25/40). Icebound, a la Fase 25. Select Map se abrirá desde un portal de la ciudad en la Fase 23.
-- **Champion en los mapas (fusión 21½ + 22):** usa las oleadas y eventos de cada mapa y nunca sale después del jefe final del mapa (en Traveler Zone, antes del minuto 7). New Run en "Saved Run" lleva a Select Map; Continue, al mapa de su partida.
+**Fase 22 (sistema de mapas) completada** el 21-oct-2026 (etiqueta `fase-22`): Select Map y desbloqueo, carga por mapa, Traveler Zone, Elvine Garden, Middleland, sombra del jugador y skill `anadir-mapa`. Incluye la Fase 21½. Detalle en `PROGRESS-historial.md`.
+- **Siguiente:** `/fase 23` → **la ciudad** (`docs/PLAN-2.md`): NPCs, Cofre y portal a Select Map. Los **récords locales (22F)** siguen aplazados en "Ideas para después".
+- **Orden de mapas (20-oct-2026):** Traveler Zone → Bleeding Isle → Elvine Garden → Middleland. Se abren al ganar el anterior o con su Level (1/10/25/40). Icebound, a la Fase 25. Select Map se abrirá desde un portal de la ciudad en la Fase 23.
+- **Champion en los mapas:** usa las oleadas y eventos de cada mapa y nunca sale después del jefe final del mapa (en Traveler Zone, antes del minuto 7). New Run en "Saved Run" lleva a Select Map; Continue, al mapa de su partida.
 - **Engagement:** análisis y plan de partidas de prueba en `docs/ENGAGEMENT.md`; mejoras para más adelante en `docs/PLAN-2.md`, "Mejoras de engagement para más adelante".
 - **21C (anillos y collares) aplazado.** Spell 2 gastará **maná** (plan del propietario; ver NOTES.md, "Atributos y varitas").
 - **Sesiones en la nube (claude.ai/code):** trabajan en otra copia; el propietario ve los cambios con `git pull` en su rama.
 - **Abaddon's Blood (21E, 20-oct-2026):** mejora **permanente** para los 4 personajes, no un objeto; revive una vez por partida. Hasta la tienda (Fase 24) solo con `?unlocks=abaddon`.
-- **Pendiente de probar por el propietario:** Middleland (22E); Elvine Garden (22D); carga más rápida (22B, también en el móvil cuando se publique); Select Map en el móvil; pociones al 0,4%; atajo `onehp` / tecla U; baúl y morir con/sin Zem (21D); botín en partida normal; cambiar de pestaña y volver (B4); mando real.
+- **Pendiente de probar por el propietario:** sombra del jugador (22G); Middleland (22E); Elvine Garden (22D); carga más rápida (22B, también en el móvil cuando se publique); Select Map en el móvil; pociones al 0,4%; atajo `onehp` / tecla U; baúl y morir con/sin Zem (21D); botín en partida normal; cambiar de pestaña y volver (B4); mando real.
 - **Ideas sin fecha:** jefes más difíciles de esquivar (nota en `data/defense.ts`).
 
 **Pistas para trabajar** (detalle en `survivors/NOTES.md`):
 - Carga: antes del menú solo lo de los menús; cada mapa baja lo suyo (`MapLoadScene`, `RUN_SPRITES`, `runSprites` de la clase); ropa y armas bajo demanda salvo `UPFRONT_LOOK_SPRITES`; medir con `check loadtime`. Ver NOTES.md, "Carga por mapa y tiempos de carga".
+- Mapa nuevo: skill `anadir-mapa`. Sombras: `BODY_SHADOW_*`, `Player.syncShadow`; ver NOTES.md, "Sombras del jugador y los monstruos (Fase 22G)".
 - Mapas: `data/maps.ts` (orden, zona, Level, dificultad), `data/waves.ts` → `TIMELINES`, `systems/MapUnlockStore.ts`, `scenes/MapSelectScene.ts`, `scenes/MapLoadScene.ts`. Visor: http://localhost:8090/maps.html. Ver NOTES.md, "Varios mapas y Select Map (Fase 22A)", "Elvine Garden (Fase 22D)" y "Middleland (Fase 22E)".
 - Champion: `data/champion.ts`, `SpawnSystem.runDueChampion`, `Enemy.champion` / `drawHealthBar`, `LootSystem.onChampionKill`; `?debug=champion`, `check champion`. Ver NOTES.md, "Evento Champion (Fase 21½C)".
 - Reroll y Skip: `data/rerollSkip.ts`, `UnlockStore.count/buy`, `GameScene.cardActionsLeft`, botones en `LevelUpScene`; `?unlocks=dice3,wine3`, `check rerollskip`. Ver NOTES.md, "Reroll y Skip (Fase 21½B)".

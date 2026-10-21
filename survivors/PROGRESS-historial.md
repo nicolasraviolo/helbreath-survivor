@@ -2,6 +2,12 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
+**Fase 22, bloque 22G: sombras y skill `anadir-mapa` (2026-10-21). Cierra la Fase 22.**
+- **Qué hace:** el jugador tiene sombra, como en el original: una sola, sacada del cuerpo desnudo (sin ropa ni arma), negra al 50%, girada −45° y aplastada, fotograma a fotograma. Desaparece al morir y vuelve al revivir con Abaddon's Blood. El Unicorn ya no tiene sombra (en el original no la tiene); el resto de monstruos coincidía.
+- **Código:** `BODY_SHADOW_*` en `config/gameConfig.ts` (antes `MONSTER_SHADOW_*`, ahora compartidos); `CharacterSprite.bodyFrame()`; `Player.syncShadow()`; `hasShadow: false` del Unicorn en `data/enemies.ts`. Skill nueva `.claude/skills/anadir-mapa/SKILL.md`. Nota en NOTES.md, "Sombras del jugador y los monstruos (Fase 22G)".
+- **Comprobado:** build; `check horde` y `horde --mobile` a 137–139 FPS con 293 monstruos, igual que antes; sombra visible a los pies (captura con zoom); muerte y resurrección por `--eval`; `check menu middlelandboss traveler` sin errores.
+- **Probar:** `pnpm --dir survivors dev` → http://localhost:8090/?play=warrior; sombra oscura inclinada a los pies; U y dejarse matar → desaparece.
+
 **Fase 22, bloque 22E: Middleland (2026-10-21).**
 - **Qué hace:** Middleland ya se puede jugar (antes "Coming soon"). Se abre al ganar Elvine Garden o con Level 40. 15 minutos, monstruos normales con vida y daño ×1,6. Monstruos: Orc, Zombie, Scorpion, Skeleton, Snake, Werewolf, Troll, Ogre, Cyclops, Stalker y Ettin. Jefes: **Mountain Giant** (min 4), **Giant Lizard** (min 8, nuevo), **Ettin Berserk** (min 12, rojo como los élites) y **Unicorn** (jefe final, min 15, nuevo: lanza 5 rayos de Energy Strike y llama a Stalkers y Werewolf). Eventos: horda de Zombies "Horde approaching!" (2:30), estampida de orcos (5:30), esqueletos (7:00), Werewolf (9:30), estampida de Trolls (10:30) y manada de Stalkers (13:30). Logros nuevos "Warlord of Middleland" (ganar el mapa) y "Unicorn Hunter".
 - **Carga:** cada mapa baja solo las casillas de su zona de juego (más el margen que se dibuja). Middleland 25,0 → 16,4 MB; los demás igual.

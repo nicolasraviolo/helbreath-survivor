@@ -399,7 +399,7 @@ export const ENEMIES = {
     // sp-client: unicorn.spr, quieto con 4 frames por hoja; sonidos M63–M66. NPC.cfg Unicorn: ATime 700, alcance 4,
     // 10d10, HR 500, magia nivel 8 (la wiki: Energy Strike y parálisis). Aquí lanza rayos de Energy Strike (nuestros).
     unicorn: {
-        name: 'Unicorn', sprite: 'enemy.unicorn', temporalCoefficient: 1, hasShadow: true, maxHp: 20000, xp: 2000, radius: 26, bodyOffsetY: 56,
+        name: 'Unicorn', sprite: 'enemy.unicorn', temporalCoefficient: 1, hasShadow: false, maxHp: 20000, xp: 2000, radius: 26, bodyOffsetY: 56,
         actionTimeMs: 700, attackRange: 4, bravery: 100, damageDice: [10, 10], hitRatio: 500, hitSound: 'sfx.unicorn.hit', deathSound: 'sfx.unicorn.death', attackSound: 'sfx.unicorn.attack',
         scale: 1.6, knockbackTaken: 0, damageScale: 0.5,
         animations: { idle: { sheet: 0, firstFrame: 0, frameCount: 4 } },

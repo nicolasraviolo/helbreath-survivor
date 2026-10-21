@@ -121,6 +121,12 @@ export class CharacterSprite {
         this.refresh(false);
     }
 
+    /** Frame of the naked body layer now on screen (the shadow is drawn from it), or undefined while not loaded. */
+    public bodyFrame(): Phaser.Textures.Frame | undefined {
+        const body = this.layers.get('human')?.sprite;
+        return body?.visible ? body.frame : undefined;
+    }
+
     /** Tints every layer (debug invincibility); undefined goes back to each layer's own colour. */
     public setTint(color: number | undefined): void {
         this.tint = color;

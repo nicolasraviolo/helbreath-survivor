@@ -80,6 +80,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Carga por mapa y tiempos de carga (Fase 22B)
 - Elvine Garden (Fase 22D)
 - Middleland (Fase 22E)
+- Sombras del jugador y los monstruos (Fase 22G)
 - Rareza de las cartas (Fase 21½A)
 - Reroll y Skip (Fase 21½B)
 - Evento Champion (Fase 21½C)
@@ -940,6 +941,12 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - **Carga solo de la zona de juego:** `HBMap.requiredTileIndices(area, margen)` baja el suelo de la zona de juego y los objetos con el mismo margen que dibuja `MapView` (`MAP_OBJECT_MARGIN_TILES`). Middleland (524×524) pasó de 25,0 a 16,4 MB; Elvine 14,0 y Bleeding Isle 13,1 no cambian.
 - **Medido (`check levelpacemiddleland`, 21-oct-2026):** Power 31 al final; jefes 35 / 39 / 53 / 87 s; cada golpe de jefe quita un 13–18% de la vida.
 - **Probar:** `check middleland`, `check middlelandboss`, `check levelpacemiddleland`, `check loadtimemiddleland`.
+
+## Sombras del jugador y los monstruos (Fase 22G)
+- **Como el original** (`sp-client/src/utils/ShadowManager.ts`): una copia negra del fotograma, `alpha 0,5`, girada −45° y aplastada a la mitad, con el pivote en el centro inferior del fotograma. Los números, compartidos, en `config/gameConfig.ts` (`BODY_SHADOW_*`). No cambia con el suelo, el mapa ni la hora.
+- **Jugador:** una sola sombra, sacada del **cuerpo desnudo** (capa `human`, `CharacterSprite.bodyFrame()`); ni ropa ni arma, igual que el original. `Player.syncShadow()` copia el fotograma en cada `update`. Se oculta al morir y vuelve al revivir (Abaddon's Blood). No parpadea con la invulnerabilidad: es un sprite aparte, fuera del contenedor del jugador.
+- **Monstruos sin sombra en el original** (`MonsterShadow.NoShadow`): Slime, Ant, Snake, Cat, Dire Boar, Scorpion, Tigerworm y **Unicorn** (este estaba mal hasta el 22G). Un monstruo nuevo: mirar su campo `shadow` en `sp-client/src/constants/Monsters.ts`.
+- **Rendimiento:** con 293 monstruos, 137–139 FPS antes y después (ordenador y `--mobile`, 21-oct-2026).
 
 ## Rareza de las cartas (Fase 21½A)
 - Números en `data/cardRarity.ts`; sorteo en `systems/UpgradePool.ts` (`buildLevelUpChoices(equipment, chr, { chest, onlyPassives, allEpic })`). Desde la partida se piden siempre con `GameScene.levelUpChoices(fromChest)`, que lee la Chr de la partida y los atajos.

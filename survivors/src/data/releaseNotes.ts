@@ -24,6 +24,7 @@ export const RELEASE_NOTES: readonly ReleaseNote[] = [
             'Win a map, or reach its Level, to open the next one.',
             'Two new bosses, a giant Stone Golem and the Training Dummy, and two new achievements.',
             'Faster start: each map now loads only what it needs.',
+            'Your character now casts a shadow, like the monsters.',
         ],
     },
     {

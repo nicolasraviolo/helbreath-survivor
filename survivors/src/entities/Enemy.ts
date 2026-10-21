@@ -10,10 +10,10 @@ import {
     ENEMY_HIT_FLASH_MS,
     ENEMY_KNOCKBACK_DECAY,
     ENEMY_WALL_HALF_SIZE,
-    MONSTER_SHADOW_ALPHA,
-    MONSTER_SHADOW_ROTATION,
+    BODY_SHADOW_ALPHA,
+    BODY_SHADOW_ROTATION,
     MONSTER_ATTACK,
-    MONSTER_SHADOW_SCALE_Y,
+    BODY_SHADOW_SCALE_Y,
 } from '../config/gameConfig';
 import type { AudioSystem } from '../systems/AudioSystem';
 import { enemySpeed, MONSTER_AI, MONSTER_DAMAGE, type EnemyDef } from '../data/enemies';
@@ -135,9 +135,9 @@ export class Enemy implements Poolable {
         if (def.hasShadow) {
             this.shadow = scene.add.sprite(0, 0, getSheetKey(def.sprite, 0), '0')
                 .setTint(0x000000)
-                .setAlpha(MONSTER_SHADOW_ALPHA)
-                .setRotation(MONSTER_SHADOW_ROTATION)
-                .setScale(scale, MONSTER_SHADOW_SCALE_Y * scale)
+                .setAlpha(BODY_SHADOW_ALPHA)
+                .setRotation(BODY_SHADOW_ROTATION)
+                .setScale(scale, BODY_SHADOW_SCALE_Y * scale)
                 .setDepth(DEPTH_GROUND_SHADOWS + 1);
         }
         this.setActive(false);
@@ -615,7 +615,7 @@ export class Enemy implements Poolable {
     private applySize(): void {
         const scale = this.baseScale * this.sizeFactor;
         this.sprite.setScale(scale);
-        this.shadow?.setScale(scale, MONSTER_SHADOW_SCALE_Y * scale);
+        this.shadow?.setScale(scale, BODY_SHADOW_SCALE_Y * scale);
     }
 
     /**

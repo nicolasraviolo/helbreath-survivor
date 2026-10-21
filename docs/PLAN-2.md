@@ -526,7 +526,7 @@ Desde la Fase 20 las cartas de Power solo dan +3 a un stat o una piedra (Xelima,
 
 ### Replanteo del 20-oct-2026 (al empezar la fase)
 - **Mapas, en este orden:** Traveler Zone (`default`, introducción) → Bleeding Isle → Elvine Garden (`elvuni`) → Middleland. **Icebound pasa a la Fase 25.**
-- **Bloques:** 22A sistema de mapas + Select Map + Traveler Zone ✅ · 22B carga por mapa ✅ · 22C Traveler Zone completa (Cat, repaso tras jugarla) · 22D Elvine Garden · 22E Middleland ✅ (21-oct-2026; monstruos y jefes cambiados por el propietario, ver `docs/DECISIONES.md`) · ~~22F récords locales~~ (aplazado) · 22G sombras y skill `anadir-mapa`.
+- **Bloques:** 22A sistema de mapas + Select Map + Traveler Zone ✅ · 22B carga por mapa ✅ · 22C Traveler Zone completa (Cat, repaso tras jugarla) ✅ · 22D Elvine Garden ✅ · 22E Middleland ✅ (21-oct-2026; monstruos y jefes cambiados por el propietario, ver `docs/DECISIONES.md`) · ~~22F récords locales~~ (aplazado) · 22G sombras y skill `anadir-mapa` ✅ (21-oct-2026). **Fase cerrada el 21-oct-2026.**
 - Desbloqueo: ganar el anterior **o** llegar al Level recomendado. Música de Bleeding Isle en todos.
 
 ### 22A. Sistema de mapas ✅ (21-oct-2026)
@@ -558,11 +558,11 @@ El propietario lo deja para más adelante: está en "Ideas para después (sin fa
 - **Extra temático:** que Frost e Ice Golem **ralenticen** al jugador al golpear **[de memoria; hay que comprobarlo en el original]**. Copos de nieve cayendo. Y encaja con activar la familia de hechizos **Ice** de la Maga (está prevista y apagada).
 - **Música:** el original no tenía tema propio (sonaba la general). Propongo `default.mp3` o `elvine.mp3`.
 
-### Traído de la Fase 10: sombras
+### Traído de la Fase 10: sombras ✅ (bloque 22G, 21-oct-2026)
 - Sombra bajo personajes y monstruos (el original las dibuja; mirar cómo en `sp-client`). Se ajusta con cada suelo y se mide el rendimiento, sobre todo en el móvil.
 
 ### Al terminar
-Crear la skill `/nueva-skill anadir-mapa`.
+Crear la skill `/nueva-skill anadir-mapa`. ✅ (22G)
 
 ### Aceptación
 - Desde el menú se elige Icebound. Salen sus monstruos, minijefes y el Wyvern.
