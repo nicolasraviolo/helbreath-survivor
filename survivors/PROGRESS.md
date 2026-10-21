@@ -8,7 +8,7 @@
 - 20-oct-2026: 21 Botín y baúl (21A, 21B, 21D, 21E; el 21C, anillos y collares, aplazado).
 
 ## Fase actual
-**Fase 22 (sistema de mapas), en curso** en la rama `fase-22`. Hecho: **22A** (Select Map, desbloqueo y Traveler Zone) y **22B** (carga por mapa: inicial 29,7 → 15,7 MB; móvil 34 → 21 s). Detalle en `PROGRESS-historial.md`.
+**Fase 22 (sistema de mapas), en curso** en la rama `fase-22`. Hecho: **22A** (Select Map, desbloqueo y Traveler Zone) y **22B** (carga por mapa: inicial 29,7 → 9,5 MB; hasta jugar en móvil 41 → 27 s). Detalle en `PROGRESS-historial.md`.
 - **Siguiente:** `/fase 22` → bloque **22C, Traveler Zone completa** (Cat, repaso tras jugarla; `docs/PLAN-2.md`). Luego 22D Elvine Garden · 22E Middleland · 22F récords · 22G sombras y skill `anadir-mapa`.
 - **Orden de mapas (20-oct-2026):** Traveler Zone → Bleeding Isle → Elvine Garden → Middleland (los dos últimos "Coming soon"). Se abren al ganar el anterior o con su Level (1/10/25/40). Icebound, a la Fase 25. Select Map se abrirá desde un portal de la ciudad en la Fase 23.
 - **21C (anillos y collares) aplazado.** Spell 2 gastará **maná** (plan del propietario; ver NOTES.md, "Atributos y varitas").
@@ -17,7 +17,7 @@
 - **Ideas sin fecha:** monstruos al azar como evento especial; jefes más difíciles de esquivar (nota en `data/defense.ts`).
 
 **Pistas para trabajar** (detalle en `survivors/NOTES.md`):
-- Carga: antes del menú solo lo de los menús; cada mapa baja lo suyo (`MapLoadScene`, `RUN_SPRITES`, `runSprites` de la clase); medir con `check loadtime`. Ver NOTES.md, "Carga por mapa y tiempos de carga".
+- Carga: antes del menú solo lo de los menús; cada mapa baja lo suyo (`MapLoadScene`, `RUN_SPRITES`, `runSprites` de la clase); ropa y armas bajo demanda salvo `UPFRONT_LOOK_SPRITES`; medir con `check loadtime`. Ver NOTES.md, "Carga por mapa y tiempos de carga".
 - Mapas: `data/maps.ts` (orden, zona, Level, dificultad), `data/waves.ts` → `TIMELINES`, `systems/MapUnlockStore.ts`, `scenes/MapSelectScene.ts`, `scenes/MapLoadScene.ts`. Visor: http://localhost:8090/maps.html. Ver NOTES.md, "Varios mapas y Select Map (Fase 22A)".
 - Botín: `data/loot.ts`, `systems/LootRoller.ts`, `LootSystem`, `RunLoot`, `scenes/LootScene.ts`; inventario en `CharacterStore`. Ver NOTES.md, "Botín en partida (Fase 21A)".
 - Baúl, "solo lo que tienes", reglas al morir y Zem: `data/consumables.ts`, `data/warehouse.ts`, `WarehouseStore`, `scenes/WarehouseScene.ts`, `isFreeItem` en `data/items.ts`, `characterStore.finishRun`. Ver NOTES.md, "Baúl, "solo lo que tienes" y Zem (Fase 21D)".

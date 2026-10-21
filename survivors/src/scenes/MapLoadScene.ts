@@ -3,21 +3,26 @@
 // - el .amd, su minimapa y solo los paquetes de casillas que usa;
 // - los monstruos de su primera oleada (los demás, después, en segundo plano: systems/AssetStreamer.ts);
 // - los efectos de partida (RUN_SPRITES) y los propios de la clase elegida (runSprites en data/characters.ts);
-// - los objetos del suelo (gemas, botín, pociones).
+// - los objetos del suelo (gemas, botín, pociones);
+// - la ropa, la armadura y el arma que lleva el personaje (systems/LookLoader.ts), para que no aparezcan tarde.
 // Lo ya cargado (otra partida, Restart, otro mapa que comparte cosas) no se vuelve a bajar: si no falta nada, pasa
 // casi sin verse.
 import Phaser from 'phaser';
 import { ASSET_BASE_PATH, MAPS, MINIMAPS, RUN_SPRITES, SPRITES, type SpriteKey } from '../config/assetManifest';
 import { registerEffectAnimations } from '../config/effects';
 import { DEFAULT_ANIMATION_FRAME_RATE } from '../config/gameConfig';
-import { CHARACTERS, CHOSEN_CHARACTER_KEY, DEFAULT_CHARACTER, isCharacterId } from '../data/characters';
+import { DEFAULT_LOOKS } from '../data/appearance';
+import { CHARACTERS, CHOSEN_CHARACTER_KEY, DEFAULT_CHARACTER, isCharacterId, type CharacterId } from '../data/characters';
 import { ENEMIES } from '../data/enemies';
+import { START_EQUIPMENT } from '../data/items';
 import { CHOSEN_MAP_KEY, MAPS_DATA, type MapId } from '../data/maps';
 import { getMap, hasMap } from '../hb/HBMap';
 import { getSheetKey, HBSpriteFile, SpriteType } from '../hb/HBSprite';
 import { getTilePacksForIndices, getTileTextureKey } from '../hb/mapAssets';
 import { assetStreamer, firstWaveEnemies } from '../systems/AssetStreamer';
+import { ACTIVE_CHARACTER_KEY, characterStore } from '../systems/CharacterStore';
 import { loadTimer } from '../systems/LoadTimer';
+import { lookLoader, runSprites } from '../systems/LookLoader';
 import { LoadingScreen } from '../ui/LoadingScreen';
 
 /** Share of the bar used by the downloads (the first batch, then the tiles); the rest is preparing them. */
@@ -59,6 +64,8 @@ export class MapLoadScene extends Phaser.Scene {
 
     async create(): Promise<void> {
         const def = MAPS_DATA[this.mapId];
+        // What the character wears downloads alongside the rest; it is waited for at the end.
+        const wearing = lookLoader.ensure(this, this.wornSprites());
         const map = getMap(this, def.asset);
         const packs = getTilePacksForIndices(map.requiredTileIndices()).filter((pack) => !this.textures.exists(getTileTextureKey(pack.start)));
         if (packs.length > 0) {
@@ -78,6 +85,7 @@ export class MapLoadScene extends Phaser.Scene {
             await job.load(this);
             this.screen.setProgress(DOWNLOAD_SHARE + ((i + 1) / jobs.length) * (1 - DOWNLOAD_SHARE));
         }
+        await wearing;
         registerEffectAnimations(this.anims, this.textures);
         // The rest of this map's monsters, in the order of its waves, while it plays.
         assetStreamer.start(this, this.mapId);
@@ -85,10 +93,23 @@ export class MapLoadScene extends Phaser.Scene {
         this.scene.start('Game');
     }
 
+    /** Class chosen for this run (GameScene uses the same fallback). */
+    private get classId(): CharacterId {
+        const chosen: unknown = this.registry.get(CHOSEN_CHARACTER_KEY);
+        return isCharacterId(chosen) ? chosen : DEFAULT_CHARACTER;
+    }
+
+    /** Body, clothes and weapon of the character that will play (as GameScene draws it). */
+    private wornSprites(): SpriteKey[] {
+        const uid: unknown = this.registry.get(ACTIVE_CHARACTER_KEY);
+        const saved = characterStore.byUid(typeof uid === 'string' ? uid : undefined);
+        const classId = saved?.classId ?? this.classId;
+        return runSprites(CHARACTERS[classId], saved?.look ?? DEFAULT_LOOKS[classId], saved?.equipment ?? START_EQUIPMENT[classId]);
+    }
+
     /** What this run needs besides the map: first-wave monsters, run effects (common and of the class), items on the ground. */
     private runSprites(): SpriteKey[] {
-        const chosen: unknown = this.registry.get(CHOSEN_CHARACTER_KEY);
-        const classId = isCharacterId(chosen) ? chosen : DEFAULT_CHARACTER;
+        const classId = this.classId;
         return [...new Set<SpriteKey>([
             ...firstWaveEnemies(this.mapId).map((id) => ENEMIES[id].sprite),
             ...RUN_SPRITES,

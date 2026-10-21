@@ -383,21 +383,23 @@ export const ASSET_BASE_PATH = 'assets/';
 
 /** Only downloaded on phones (config/device.ts): the PC never shows them. */
 /**
- * Fase 17B: character pieces downloaded only when a character needs them (systems/LookLoader.ts), not before the game
- * starts. The looks used until then (Warrior man, Mage woman, light skin) stay upfront.
+ * Pieces of the two default looks (Warrior man and Mage woman, light skin, starting clothes): the only character
+ * pieces downloaded before the menu. Fase 22B: without the Warrior's sword and shield file (msw/msh, 2,2 MB; the
+ * dagger is in it): in the menus it shows up a moment later, and the map's loading screen brings it before a run.
+ */
+const UPFRONT_LOOK_SPRITES: ReadonlySet<SpriteKey> = new Set<SpriteKey>([
+    'player.body.wm', 'player.hair.mhr', 'player.underwear.mpt', 'gear.shirt.m', 'gear.trousers.m', 'gear.boots.long.m',
+    'player.body.ww', 'player.hair.whr', 'player.underwear.wpt', 'gear.bodice.w', 'gear.skirt.w', 'gear.boots.long.w', 'gear.wand.w',
+]);
+
+/**
+ * Fase 17B: character pieces downloaded only when a character needs them (systems/LookLoader.ts), not before the menu.
+ * Since Fase 22B that is every body, hair, clothes, armor and weapon except UPFRONT_LOOK_SPRITES, plus the big effects
+ * of Meteor Strike and Abaddon's Blood and the item icons.
  */
 export const ON_DEMAND_SPRITES: ReadonlySet<SpriteKey> = new Set<SpriteKey>([
-    'player.body.ym', 'player.body.bm', 'player.body.yw', 'player.body.bw',
-    'gear.helm.wizardCap.m',
-    'gear.shirt.w', 'gear.trousers.w', 'gear.hauberk.w',
-    'gear.armor.leather.w', 'gear.armor.scale.w', 'gear.armor.chain.w', 'gear.armor.plate.w',
-    'gear.leggings.chain.w', 'gear.leggings.plate.w',
-    'gear.helm.basic.w', 'gear.helm.full.w', 'gear.helm.winged.w', 'gear.helm.horned.w',
-    'gear.swords.w', 'gear.shields.w',
-    'fx.crueffect1', 'fx.yseffect3',
-    'gear.shoes.m', 'gear.shoes.w', 'gear.cape.m', 'gear.cape.w', 'item.pack',
-    'item.equip.m', 'item.equip.w',
-    'gear.wand.berserk.m', 'gear.wand.berserk.w', 'gear.wand.kloness.m', 'gear.wand.kloness.w',
+    ...(Object.keys(SPRITES) as SpriteKey[]).filter((key) => (key.startsWith('player.') || key.startsWith('gear.')) && !UPFRONT_LOOK_SPRITES.has(key)),
+    'fx.crueffect1', 'fx.yseffect3', 'item.pack', 'item.equip.m', 'item.equip.w',
 ]);
 
 /**
