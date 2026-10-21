@@ -10,7 +10,7 @@
 ## Fase actual
 **Fase 21½ — Cartas y sorpresas** (mini), en la rama `fase-21½`. Fase 21 cerrada en `master` (etiqueta `fase-21`). Detalle de cada bloque en `PROGRESS-historial.md`.
 - **Hecho:** 21½A, rareza de las cartas (Common / Rare / Epic), probado y aprobado el 21-oct-2026.
-- **Siguiente:** bloque **21½B, Reroll y Skip** (`docs/PLAN-2.md`, "Fase 21½"). Preguntar al empezar: cuántos por partida (propuesta 2 y 2) y si Skip da algo. Después, **21½C, evento Champion** (preguntar frecuencia y premio). Luego `/fase 22` → mapas + Icebound.
+- **Siguiente:** bloque **21½B, Reroll y Skip** (`docs/PLAN-2.md`, "Fase 21½"). Decidido (21-oct-2026): mejoras **permanentes** que se compran (dado = +1 Reroll, vino = +1 Skip por partida, hasta 3 de cada, mismo vendedor que el Zem en la Fase 24); ahora se empieza con 0 y solo con atajo. Preguntar al empezar: si Skip da algo y qué dibujos usar. Después, **21½C, evento Champion** (preguntar frecuencia y premio). Luego `/fase 22` → mapas + Icebound.
 - **Engagement:** análisis y plan de partidas de prueba en `docs/ENGAGEMENT.md`; mejoras para más adelante en `docs/PLAN-2.md`, "Mejoras de engagement para más adelante".
 - **21C (anillos y collares) aplazado** por el propietario para más adelante.
 - **Sesiones en la nube (claude.ai/code):** trabajan en otra copia del proyecto; el propietario solo ve los cambios con `git pull` en su rama. Desde Claude Code en su ordenador, basta con refrescar.

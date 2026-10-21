@@ -30,7 +30,7 @@ Fuentes de la investigación (17-oct-2026):
 | **21½** | Cartas y sorpresas *(mini, nueva 21-oct-2026)* | Rareza en las cartas de Power · Reroll y Skip · evento "Champion": un monstruo poderoso extra al azar | Pequeño-medio |
 | **22** | Sistema de mapas + Icebound | Varios mapas, Select Map, récords locales por mapa, sombras, Icebound | Grande |
 | **23** | La ciudad | Mapa pequeño tras elegir personaje: NPCs, baúl y portal a la partida | Grande |
-| **24** | Oro, tienda y herrero *(nueva)* | Oro en partida · vender · tienda (Zem, pociones, equipo básico, ampliar baúl, **Abaddon's Blood**) · mejoras con Xelima y Merien | Medio-grande |
+| **24** | Oro, tienda y herrero *(nueva)* | Oro en partida · vender · tienda (Zem, pociones, equipo básico, ampliar baúl, **Abaddon's Blood**, **dado y vino**: Reroll y Skip) · mejoras con Xelima y Merien | Medio-grande |
 | **25** | Más mapas y objetos únicos | Un mapa por bloque, cada uno con sus únicos | Grande (por partes) |
 | **26** | Aresden y Elvine | Elegir bando · objetos Hero con EK | Medio |
 | **27** | Raids | "Jugadores" enemigos del otro bando | Medio-grande |
@@ -499,9 +499,14 @@ Desde la Fase 20 las cartas de Power solo dan +3 a un stat o una piedra (Xelima,
 
 ### 21½B. Reroll y Skip
 - Dos botones bajo las cartas: **Reroll** (saca 3 cartas nuevas) y **Skip** (no coge ninguna).
-- Propuesta: **2 Reroll y 2 Skip por partida**, con el contador a la vista. En la Fase 24 la tienda o algunos logros podrán dar más (como en Vampire Survivors).
-- Táctil, ratón y mando (otra fila en la navegación de las cartas). Se explica en How to Play.
-- Se guardan con la partida (Continue).
+- **Decidido el 21-oct-2026 (propietario), como Vampire Survivors y Halls of Torment:** no vienen gratis. Son **mejoras permanentes que se compran** con monedas, para los 4 personajes (`UnlockStore`, como Abaddon's Blood):
+  - **Dado** → +1 **Reroll** por partida; **Vino** → +1 **Skip** por partida.
+  - Cada uno se compra **hasta 3 veces** (máximo 3 Reroll y 3 Skip en cada partida).
+  - Los venderá en la ciudad **el mismo vendedor que el Zem** (Fase 24).
+- **En este bloque:** botones y contadores, que solo se ven si tienes alguno. Se empieza con **0**; hasta la tienda, solo con un atajo de prueba (`?unlocks=dice3,wine3` o parecido), igual que Abaddon's Blood.
+- Contador a la vista en cada botón. Táctil, ratón y mando (otra fila en la navegación de las cartas). Se explica en How to Play.
+- Lo usado se guarda con la partida (Continue).
+- **Preguntar al empezar:** si Skip da algo a cambio (en Vampire Survivors, un poco de XP) y qué dibujos del original usar para el dado y el vino.
 
 ### 21½C. Evento "Champion"
 - Una o dos veces por partida, en un minuto **al azar** (entre los minijefes y el jefe final, sin coincidir con ellos), aparece un **monstruo poderoso de más**: un monstruo de la oleada actual o del siguiente tramo, más grande, con mucha vida, aura de élite y barra de vida arriba.
@@ -623,14 +628,14 @@ Usar el **oro** para mejorar las armas en el herrero, comprar Zem y otras cosas.
 - **De dónde sale:** monedas que sueltan los monstruos (más raras que las gemas, con imán), un montón al matar a un jefe, **vender** objetos (los atributos suben el precio) y algunos **logros**. Los mapas difíciles dan más.
 - **En qué se gasta (NPCs de la ciudad):**
   - **Herrero:** mejoras **permanentes** (+1, +2...) con **Xelima** (armas) y **Merien** (armaduras) + oro. El precio sube con cada +. Si falla, se pierden la piedra y el oro, **nunca el objeto**. Ancient no se puede mejorar. Las piedras se compran o caen (poco) de los jefes.
-  - **Tienda (Shop Keeper):** **Zem**, pociones para empezar la partida, equipo básico sin atributos (lo bueno siempre sale del botín).
+  - **Tienda (Shop Keeper):** **Zem**, pociones para empezar la partida, equipo básico sin atributos (lo bueno siempre sale del botín). También las mejoras permanentes: **Abaddon's Blood**, **dado** (+1 Reroll por partida) y **vino** (+1 Skip por partida), estos dos hasta 3 veces cada uno (decidido el 21-oct-2026; programados en la Fase 21½B).
   - **Howard (almacén):** **ampliar el baúl** con más huecos.
 - **Equilibrio:** un Zem ≈ el oro de 1–2 partidas; las mejoras altas, decenas de partidas. Precios que suben con el escalón del objeto, para que el oro no sobre a Level alto. Se mide con las métricas (añadir oro ganado y gastado).
 - **HUD:** oro de la partida junto al contador de bajas; total en la pantalla final y en la ciudad.
 
 ### Bloques
 - **24A:** oro en partida y vender.
-- **24B:** tienda (Zem, pociones, equipo básico) y ampliar el baúl.
+- **24B:** tienda (Zem, pociones, equipo básico, Abaddon's Blood, dado y vino) y ampliar el baúl.
 - **24C:** herrero.
 
 ### Aceptación
