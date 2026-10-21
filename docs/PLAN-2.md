@@ -28,7 +28,7 @@ Fuentes de la investigación (17-oct-2026):
 | **20** | Level y equipo *(nueva)* | Level permanente y reparto de puntos · "Power" en la partida · inventario y equipo de salida · hechizos equipables · las cartas dejan de dar armas | Grande |
 | **21** | Botín y baúl *(nueva)* | Objetos que caen en partida ("Equip" / "Keep in bag") · Sharp, Ancient y Poison · baúl compartido · Zem y Abaddon's Blood | Grande |
 | **21½** | Cartas y sorpresas *(mini, nueva 21-oct-2026)* | Rareza en las cartas de Power · Reroll y Skip · evento "Champion": un monstruo poderoso extra al azar | Pequeño-medio |
-| **22** | Sistema de mapas + Icebound | Varios mapas, Select Map, récords locales por mapa, sombras, Icebound | Grande |
+| **22** | Sistema de mapas + Icebound | Varios mapas, Select Map, sombras (récords locales aplazados; Icebound a la Fase 25) | Grande |
 | **23** | La ciudad | Mapa pequeño tras elegir personaje: NPCs, baúl y portal a la partida | Grande |
 | **24** | Oro, tienda y herrero *(nueva)* | Oro en partida · vender · tienda (Zem, pociones, equipo básico, ampliar baúl, **Abaddon's Blood**, **dado y vino**: Reroll y Skip) · mejoras con Xelima y Merien | Medio-grande |
 | **25** | Más mapas y objetos únicos | Un mapa por bloque, cada uno con sus únicos | Grande (por partes) |
@@ -66,7 +66,7 @@ Fuentes de la investigación (17-oct-2026):
 | Vibración del mando, reasignar controles | Fase 19 (Crits) |
 | Iconos de botones de Xbox | Fase 11, **solo dentro de How to play** (el propietario quiere la partida sin textos de controles) |
 | Sombras bajo personajes y monstruos | Fase 22 |
-| Récords locales | Fase 22 |
+| Récords locales | Ideas para después (aplazado el 21-oct-2026) |
 | Progresión entre partidas | Fases 20 y 21 |
 | Límite de enemigos en el móvil | Fase 27 (Raids), o antes si el móvil va lento |
 | Equilibrio | Fase 13, y repaso al cerrar cada fase de combate |
@@ -526,14 +526,14 @@ Desde la Fase 20 las cartas de Power solo dan +3 a un stat o una piedra (Xelima,
 
 ### Replanteo del 20-oct-2026 (al empezar la fase)
 - **Mapas, en este orden:** Traveler Zone (`default`, introducción) → Bleeding Isle → Elvine Garden (`elvuni`) → Middleland. **Icebound pasa a la Fase 25.**
-- **Bloques:** 22A sistema de mapas + Select Map + Traveler Zone ✅ · 22B carga por mapa ✅ · 22C Traveler Zone completa (Cat, repaso tras jugarla) · 22D Elvine Garden · 22E Middleland ✅ (21-oct-2026; monstruos y jefes cambiados por el propietario, ver `docs/DECISIONES.md`) · 22F récords locales · 22G sombras y skill `anadir-mapa`.
+- **Bloques:** 22A sistema de mapas + Select Map + Traveler Zone ✅ · 22B carga por mapa ✅ · 22C Traveler Zone completa (Cat, repaso tras jugarla) · 22D Elvine Garden · 22E Middleland ✅ (21-oct-2026; monstruos y jefes cambiados por el propietario, ver `docs/DECISIONES.md`) · ~~22F récords locales~~ (aplazado) · 22G sombras y skill `anadir-mapa`.
 - Desbloqueo: ganar el anterior **o** llegar al Level recomendado. Música de Bleeding Isle en todos.
 
 ### 22A. Sistema de mapas ✅ (21-oct-2026)
 Hoy todo está pensado para un solo mapa (`huntzone2`). Hay que:
 - **`data/maps.ts`** con todo lo de cada mapa: recorte de juego, oleadas propias, minijefes, jefe final, música, miniatura, tótems y monstruos que descargar.
 - **`data/waves.ts` por mapa** (una línea de tiempo cada uno).
-- **Pantalla "Select Map"** con la miniatura, el nombre, la dificultad y tu récord en ese mapa. En esta fase se abre después de elegir clase; en la Fase 23 se abrirá desde el portal de la ciudad.
+- **Pantalla "Select Map"** con la miniatura, el nombre, la dificultad (tu récord en ese mapa, cuando se hagan los récords locales). En esta fase se abre después de elegir clase; en la Fase 23 se abrirá desde el portal de la ciudad.
 - **Desbloqueo:** ganar un mapa abre el siguiente (guardado en el navegador). Una tecla de pruebas los abre todos.
 - **Descargas:** ver "Carga por mapa" abajo.
 
@@ -546,12 +546,8 @@ Hoy la primera carga ronda unos **25 MB** de golpe (medido el 18-oct-2026; con u
 - **Medir antes y después:** cronometrar por separado la descarga y la preparación ("Preparing…", la conversión de `.spr` a texturas), en ordenador y móvil. Si lo lento es preparar, la solución es otra (preparar en segundo plano o por partes).
 - En la Fase 23 la ciudad usa la misma idea: su propia carga (NPCs y su mapa), sin bajar los mapas de caza.
 
-### 22F. Récords locales (antes en la Fase 18)
-- Top 10 por **mapa** y **clase**, guardado en el navegador.
-- **Orden:** victoria primero; después, menos tiempo para ganar; si no se ganó, más tiempo sobrevivido. Muestra nivel y bajas.
-- Pantalla "Records" en el menú principal y tu mejor marca en Select Map. En la pantalla final: "New record!" (sonido E23).
-- Tu nombre se escribe una vez. En el móvil y con el mando hace falta un teclado en pantalla, o usar el nombre del personaje ("NkII"/"NMs").
-- No hay arte de "ranking" en el original: se reutilizan los paneles de GameDialog (hoja 2, frames 1–2) y la fuente dibujada.
+### 22F. Récords locales: aplazado (21-oct-2026)
+El propietario lo deja para más adelante: está en "Ideas para después (sin fase todavía)", con todo el detalle.
 
 ### Icebound *(movido a la Fase 25 el 20-oct-2026)*
 - **Primer mapa nuevo** (el más pedido y de los que mejor encajan).
@@ -570,7 +566,7 @@ Crear la skill `/nueva-skill anadir-mapa`.
 
 ### Aceptación
 - Desde el menú se elige Icebound. Salen sus monstruos, minijefes y el Wyvern.
-- Al ganarlo queda registrado, y la pantalla Records lo muestra.
+- Al ganarlo queda registrado.
 - huntzone2 sigue igual que antes. La descarga extra se nota poco.
 - La carga inicial no baja ningún mapa ni monstruo; cada mapa carga lo suyo al elegirlo. Tiempos medidos antes y después.
 
@@ -807,6 +803,12 @@ Del análisis `docs/ENGAGEMENT.md`, comentado con el propietario el 21-oct-2026.
 - **Botín con más emoción:** color de rareza en el suelo (gris / azul / dorado) y que "de tu escalón" pueda salir con atributo o +1. Revisar con las partidas de prueba (`docs/ENGAGEMENT.md`, apartado 5).
 
 ## Ideas para después (sin fase todavía)
+- **Récords locales** (era el bloque 22F; aplazado por el propietario el 21-oct-2026):
+  - Top 10 por **mapa** y **clase**, guardado en el navegador.
+  - **Orden:** victoria primero; después, menos tiempo para ganar; si no se ganó, más tiempo sobrevivido. Muestra nivel y bajas.
+  - Pantalla "Records" en el menú principal y tu mejor marca en Select Map. En la pantalla final: "New record!" (sonido E23).
+  - Tu nombre se escribe una vez. En el móvil y con el mando hace falta un teclado en pantalla, o usar el nombre del personaje ("NkII"/"NMs").
+  - No hay arte de "ranking" en el original: se reutilizan los paneles de GameDialog (hoja 2, frames 1–2) y la fuente dibujada.
 - **El Arquero** (aplazado desde la Fase 8). Encaja con las Raids (Raider Archer) y con los crits a distancia del original.
 - **Misiones:** William da encargos ("mata 500 orcos en la granja") con recompensa.
 - **Bolsa ligera de consumibles:** 3–4 casillas de pociones y pergaminos con tecla propia (era la Fase 19 del borrador anterior).

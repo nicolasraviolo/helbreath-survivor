@@ -10,7 +10,7 @@
 
 ## Fase actual
 **Fase 22 (sistema de mapas), en curso** en la rama `fase-22`. Hecho: **22A** (Select Map, desbloqueo y Traveler Zone), **22B** (carga por mapa: inicial 29,7 → 9,5 MB; hasta jugar en móvil 41 → 27 s), **22C** (Cat y Traveler Zone más difícil), **22D** (Elvine Garden: Giant Tree, jefes Hellhound, Stalker y Cyclops) y **22E** (Middleland: Giant Lizard, Ettin Berserk y Unicorn; carga solo de la zona de juego). Incluye ya la **Fase 21½** (rareza, Reroll/Skip y Champion, cerrada en `master` el 21-oct-2026, etiqueta `fase-21½`), fusionada en `fase-22` el 21-oct-2026. Detalle en `PROGRESS-historial.md`.
-- **Siguiente:** `/fase 22` → bloque **22F, récords locales** (`docs/PLAN-2.md`). Luego 22G sombras y skill `anadir-mapa`.
+- **Siguiente:** `/fase 22` → bloque **22G, sombras y skill `anadir-mapa`** (`docs/PLAN-2.md`), el último de la fase. Los **récords locales (22F) están aplazados**: en `docs/PLAN-2.md`, "Ideas para después".
 - **Orden de mapas (20-oct-2026):** Traveler Zone → Bleeding Isle → Elvine Garden → Middleland (este, "Coming soon"). Se abren al ganar el anterior o con su Level (1/10/25/40). Icebound, a la Fase 25. Select Map se abrirá desde un portal de la ciudad en la Fase 23.
 - **Champion en los mapas (fusión 21½ + 22):** usa las oleadas y eventos de cada mapa y nunca sale después del jefe final del mapa (en Traveler Zone, antes del minuto 7). New Run en "Saved Run" lleva a Select Map; Continue, al mapa de su partida.
 - **Engagement:** análisis y plan de partidas de prueba en `docs/ENGAGEMENT.md`; mejoras para más adelante en `docs/PLAN-2.md`, "Mejoras de engagement para más adelante".
@@ -42,7 +42,7 @@
 - Crit y mando: `systems/CritStrikeSystem.ts`, `systems/Rumble.ts`. Ver NOTES.md, "Critical Strike (Fase 19A)" y "Vibración del mando".
 - Apuntado: todo pasa por `systems/Targeting.ts`. Ver NOTES.md, "Apuntado automático", "Apuntado manual" y "Stick de apuntar en el móvil".
 - Esquiva y resistencia: `data/defense.ts`. Ver NOTES.md, "Esquiva física" y "Resistencia mágica".
-- Guardado: personajes y partidas (una por personaje) en `CharacterStore`/`SaveStore`, cada cosa en su clave; récords y baúl irán igual. Ver NOTES.md, "Personajes guardados" y "Partidas guardadas".
+- Guardado: personajes y partidas (una por personaje) en `CharacterStore`/`SaveStore`, cada cosa en su clave; baúl igual; los récords (aplazados) irán igual. Ver NOTES.md, "Personajes guardados" y "Partidas guardadas".
 - Equilibrio: `data/leveling.ts`, `data/enemies.ts`, `data/stats.ts`; medir con `check levelpace` y las métricas. Ver NOTES.md, "Partida simulada y equilibrio".
 - Oleadas y monstruos por grupos: `data/enemies.ts`, `data/maps.ts`, `SpawnSystem`. Ver NOTES.md, "Monstruos de las oleadas".
 - Logros: basta con añadirlo a `data/achievements.ts`. Ver NOTES.md, "Logros".
