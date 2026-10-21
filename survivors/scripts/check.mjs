@@ -114,6 +114,9 @@ const PRESETS = {
     // La ciudad (Fase 23): andar por la granja de Elvine; townportal = aparecer sobre el teleport (Select Map encima).
     town: 'characters=demo&open=town',
     townportal: 'characters=demo&open=town&town=portal',
+    // Fase 23B: junto a William ("Talk" encima); towntalk, con su panel abierto.
+    townnpc: 'characters=demo&open=town&town=william',
+    towntalk: 'characters=demo&open=town&town=william&talk',
     // Traveler Zone (Fase 22A): el mapa de introducción. travelerboss: el Dummy (jefe final) con sus bichos.
     traveler: 'play=warrior&map=traveler',
     travelerboss: 'play=warrior&map=traveler&debug=god,finalboss',
@@ -240,7 +243,7 @@ async function runScenario(browser, name) {
 
     // ?open= (debugStart.ts) shows a menu screen: wait for it instead of the game.
     const openKey = { howtoplay: 'HowToPlay', settings: 'Settings', controls: 'Controls', credits: 'Credits', releasenotes: 'ReleaseNotes', achievements: 'Achievements', select: 'CharacterSelect', slots: 'CharacterSlots', mapselect: 'MapSelect', town: 'Town', charinfo: 'CharacterInfo', equipment: 'Equipment', warehouse: 'Warehouse', runchoice: 'RunChoice' }[params.get('open') ?? ''];
-    const target = params.has('loading') ? 'Preload' : params.get('town') === 'portal' ? 'MapSelect' : openKey ?? (query ? 'Game' : 'MainMenu');
+    const target = params.has('loading') ? 'Preload' : params.get('town') === 'portal' ? 'MapSelect' : params.has('talk') ? 'NpcDialog' : openKey ?? (query ? 'Game' : 'MainMenu');
     await page.goto(url);
     const t0 = Date.now();
     await page.waitForFunction((key) => window.__game?.scene.isActive(key), target, { timeout: LOAD_TIMEOUT_MS });

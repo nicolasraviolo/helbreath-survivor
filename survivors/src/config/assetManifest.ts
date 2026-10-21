@@ -49,6 +49,13 @@ export const SPRITES = {
     'enemy.demon': { file: 'sprites/demon.spr', type: SpriteType.Monster },
     'enemy.fireWyvern': { file: 'sprites/firewyvern.spr', type: SpriteType.Monster },
 
+    // NPCs de la ciudad (Fase 23B): 8 hojas (una por dirección) de 8 frames, solo quietos. Como monstruos, nunca se
+    // bajan antes del menú: los baja la carga de la ciudad (data/town.ts → TOWN_NPCS).
+    'npc.howard': { file: 'sprites/howard.spr', type: SpriteType.Monster },
+    'npc.shopKeeper': { file: 'sprites/shopkpr.spr', type: SpriteType.Monster },
+    'npc.william': { file: 'sprites/william.spr', type: SpriteType.Monster },
+    'npc.tom': { file: 'sprites/tom.spr', type: SpriteType.Monster },
+
     // Capas del jugador (hombre). Ver hb/playerAppearance.ts para cómo se indexan las hojas.
     'player.body.wm': { file: 'sprites/wm.spr', type: SpriteType.Human },
     'player.hair.mhr': { file: 'sprites/mhr.spr', type: SpriteType.HairAndUndies },

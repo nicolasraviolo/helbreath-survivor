@@ -3,9 +3,12 @@
 // Se llega tras elegir personaje (o "New Run") y al pulsar "Town" en la pantalla final. Pisar el teleport abre
 // Select Map por encima, con la ciudad en pausa debajo: "Back" la reanuda al momento, sin volver a cargarla.
 // Esc / Start abre la pausa de siempre (Settings, How to Play, Quit to menu).
-// Los NPCs, hablar y el Cofre llegan en el bloque 23B.
+// NPCs (Fase 23B): quietos en los sitios de data/town.ts. Al acercarse sale "Talk" encima del nombre; E, el botón A
+// del mando, un clic en el NPC o el botón táctil "Talk" abren su panel (NpcDialogScene) con la ciudad en pausa debajo.
+// Al volver de Equipment, el personaje se viste con lo que lleve ahora.
 import Phaser from 'phaser';
 import { DEBUG_START } from '../config/debugStart';
+import { MENU_INPUT_DELAY_MS } from '../config/menus';
 import { CAMERA_LERP, DEPTH_DEBUG, GAME_HEIGHT, MAP_OBJECT_MARGIN_TILES, TILE_SIZE } from '../config/gameConfig';
 import { TOUCH_JOYSTICK } from '../config/touch';
 import { DEFAULT_LOOKS } from '../data/appearance';
@@ -14,10 +17,11 @@ import { CHARACTERS, CHOSEN_CHARACTER_KEY, DEFAULT_CHARACTER, isCharacterId, typ
 import type { ItemAttribute } from '../data/attributes';
 import { isArmorPieceId, isMeleeWeaponId, START_EQUIPMENT, type SavedEquipment } from '../data/items';
 import { MINIMAP } from '../data/minimap';
-import { TOWN } from '../data/town';
+import { TOWN, TOWN_NPCS, TOWN_TALK, type NpcId, type TilePoint } from '../data/town';
 import { isWandId } from '../data/wands';
 import { Effect } from '../entities/Effect';
 import { Equipment } from '../entities/Equipment';
+import { Npc } from '../entities/Npc';
 import { Player } from '../entities/Player';
 import { Portal } from '../entities/Portal';
 import { getMap } from '../hb/HBMap';
@@ -26,20 +30,26 @@ import { PLAYER_FRAMES_PER_DIRECTION } from '../hb/playerAppearance';
 import { AudioSystem } from '../systems/AudioSystem';
 import { ACTIVE_CHARACTER_KEY, characterStore } from '../systems/CharacterStore';
 import { Action, InputSystem } from '../systems/InputSystem';
+import { lookLoader, runSprites } from '../systems/LookLoader';
 import { MusicSystem } from '../systems/MusicSystem';
 import { SETTINGS_CHANGED, settings } from '../systems/Settings';
 import { Minimap } from '../ui/Minimap';
+import { TalkButton } from '../ui/TalkButton';
 import { addTouchPauseButton } from '../ui/TouchPauseButton';
 import { TouchJoystick } from '../ui/TouchJoystick';
 import { Pool } from '../utils/Pool';
 import { openOverlay } from './MenuOverlayScene';
 import type { MapSelectSceneData } from './MapSelectScene';
+import { NPC_DIALOG_SCENE_KEY, type NpcDialogSceneData } from './NpcDialogScene';
 import type { PauseSceneData } from './PauseScene';
 
 export const TOWN_SCENE_KEY = 'Town';
 
-/** ?town=portal only places the character on the teleport the first time the town opens. */
-let debugPortalUsed = false;
+/** ?town=portal / ?town=<npc> only place the character the first time the town opens. */
+let debugSpotUsed = false;
+
+/** Gear slots the equipment dresses (body, hair and underwear come from the look and never change here). */
+const DRESSED_SLOTS = ['hauberk', 'leggings', 'boots', 'helm', 'armor', 'weapon', 'cape', 'shield', 'accessory'] as const;
 
 export class TownScene extends Phaser.Scene {
     private player!: Player;
@@ -55,6 +65,16 @@ export class TownScene extends Phaser.Scene {
     private lastX = 0;
     private lastY = 0;
     private dustDistance = 0;
+    private npcs: Npc[] = [];
+    /** The NPC close enough to talk to, if any. */
+    private near: Npc | undefined;
+    private talkButton: TalkButton | undefined;
+    /** Talk is ignored until then: the key or button that closed a panel must not open it again at once. */
+    private talkReadyAt = 0;
+    private characterUid: string | undefined;
+    private classId: CharacterId = DEFAULT_CHARACTER;
+    /** What the character wore when the town was dressed (to dress it again after Equipment only if it changed). */
+    private dressedAs = '';
 
     constructor() {
         super(TOWN_SCENE_KEY);
@@ -75,11 +95,24 @@ export class TownScene extends Phaser.Scene {
         const chosen: unknown = this.registry.get(CHOSEN_CHARACTER_KEY);
         const classId: CharacterId = saved?.classId ?? (isCharacterId(chosen) ? chosen : DEFAULT_CHARACTER);
         const character = CHARACTERS[classId];
-        const spawn = DEBUG_START.townPortal && !debugPortalUsed ? TOWN.portal : TOWN.spawn;
-        debugPortalUsed = true;
+        const debugSpot = debugSpotUsed ? undefined : DEBUG_START.townSpot;
+        debugSpotUsed = true;
+        const spawn: TilePoint = debugSpot === 'portal' ? TOWN.portal
+            : debugSpot !== undefined ? { x: TOWN_NPCS[debugSpot].tile.x, y: TOWN_NPCS[debugSpot].tile.y + 1 } : TOWN.spawn;
+        this.characterUid = saved?.uid;
+        this.classId = classId;
         this.player = new Player(this, (spawn.x + 0.5) * TILE_SIZE, (spawn.y + 0.5) * TILE_SIZE, character, saved?.look ?? DEFAULT_LOOKS[classId], map, areaPx);
         this.player.setHealthBarVisible(false);
         this.dress(classId, saved?.equipment ?? START_EQUIPMENT[classId], saved?.attributes.weapon);
+        this.dressedAs = this.wornKey();
+        this.npcs = (Object.keys(TOWN_NPCS) as NpcId[]).map((id) => new Npc(this, id, TOWN_NPCS[id], map));
+        for (const npc of this.npcs) {
+            npc.onClick(() => {
+                if (npc === this.near) this.talkTo(npc);
+            });
+        }
+        this.near = undefined;
+        this.talkReadyAt = 0;
         this.lastX = this.player.x;
         this.lastY = this.player.y;
         this.dustDistance = 0;
@@ -101,8 +134,11 @@ export class TownScene extends Phaser.Scene {
         this.inputSystem = new InputSystem(this);
         this.inputSystem.setPointerAnchor(() => this.player);
         this.joystick = undefined;
+        this.talkButton = undefined;
         if (this.sys.game.device.input.touch) {
-            this.joystick = new TouchJoystick(this, GAME_HEIGHT, DEPTH_DEBUG - 2, TOUCH_JOYSTICK);
+            const talkButton = new TalkButton(this, DEPTH_DEBUG - 1, () => this.talkToNear());
+            this.talkButton = talkButton;
+            this.joystick = new TouchJoystick(this, GAME_HEIGHT, DEPTH_DEBUG - 2, TOUCH_JOYSTICK, (x, y) => !talkButton.covers(x, y));
             this.inputSystem.setTouchJoystick(this.joystick);
             // No Esc on a phone: the same "II" button as in the run, with the minimap below it.
             addTouchPauseButton(this, DEPTH_DEBUG - 1, () => this.openPause());
@@ -120,6 +156,15 @@ export class TownScene extends Phaser.Scene {
         });
         // Coming back from Select Map or the pause: no footsteps left running from before.
         this.events.on(Phaser.Scenes.Events.PAUSE, () => this.audio.stopLoop('sfx.footsteps'));
+        this.events.on(Phaser.Scenes.Events.RESUME, () => {
+            this.talkReadyAt = this.time.now + MENU_INPUT_DELAY_MS;
+            this.redressIfChanged();
+        });
+        // ?town=<npc>&talk (development only): its panel opens at once.
+        if (debugSpot !== undefined && debugSpot !== 'portal' && DEBUG_START.townTalk) {
+            const npc = this.npcs.find((n) => n.id === debugSpot);
+            if (npc) this.time.delayedCall(0, () => this.talkTo(npc));
+        }
     }
 
     override update(_time: number, delta: number): void {
@@ -134,11 +179,64 @@ export class TownScene extends Phaser.Scene {
         player.update(move, delta);
         this.updateFootsteps(move.lengthSq() > 0);
         this.mapView.updateFading(player.y, player.getVisualBounds());
-        this.minimap.update({ player, bosses: [], totems: [], loot: [] }, this.time.now);
+        this.minimap.update({ player, bosses: [], totems: [], loot: [], npcs: this.npcs, portals: [this.portal] }, this.time.now);
         for (const effect of [...this.dust.active]) {
             if (!effect.update()) this.dust.release(effect);
         }
+        this.updateTalk();
+        if (!this.scene.isActive()) return;
         this.updatePortal();
+    }
+
+    /** The closest NPC in reach shows "Talk" (and the touch button); E / pad A talks to it. */
+    private updateTalk(): void {
+        const player = this.player;
+        let near: Npc | undefined;
+        let best: number = TOWN_TALK.radiusPx;
+        for (const npc of this.npcs) {
+            npc.update();
+            const distance = npc.distanceTo(player.x, player.y);
+            if (distance <= best) {
+                best = distance;
+                near = npc;
+            }
+        }
+        this.near = near;
+        for (const npc of this.npcs) npc.setTalkable(npc === near, this.time.now);
+        this.talkButton?.setVisible(near !== undefined);
+        if (this.inputSystem.justPressed(Action.Talk)) this.talkToNear();
+    }
+
+    private talkToNear(): void {
+        if (this.near) this.talkTo(this.near);
+    }
+
+    /** Opens the NPC's panel over the town, which waits paused underneath. */
+    private talkTo(npc: Npc): void {
+        if (!this.scene.isActive() || this.time.now < this.talkReadyAt) return;
+        const data: Omit<NpcDialogSceneData, 'returnTo'> = { npc: npc.id, characterUid: this.characterUid };
+        openOverlay(this, NPC_DIALOG_SCENE_KEY, data);
+    }
+
+    /** Back from a panel: if Equipment changed what the character wears, it is dressed again (downloading it first). */
+    private redressIfChanged(): void {
+        const key = this.wornKey();
+        if (key === this.dressedAs) return;
+        this.dressedAs = key;
+        const saved = characterStore.byUid(this.characterUid);
+        if (!saved) return;
+        const classId = this.classId;
+        void lookLoader.ensure(this, runSprites(CHARACTERS[classId], saved.look, saved.equipment)).then(() => {
+            if (!this.sys.isActive() && !this.sys.isPaused()) return;
+            for (const slot of DRESSED_SLOTS) this.player.setGear(slot, undefined);
+            this.dress(classId, saved.equipment, saved.attributes.weapon);
+        });
+    }
+
+    /** What the saved character wears now, as text (to tell whether it changed). */
+    private wornKey(): string {
+        const saved = characterStore.byUid(this.characterUid);
+        return saved ? JSON.stringify([saved.equipment, saved.attributes]) : '';
     }
 
     private openPause(): void {

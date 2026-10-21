@@ -64,6 +64,11 @@ export class HBMap {
         return (this.flags[i] & FLAG_BLOCKED) === 0 && this.groundSprite[i] !== WATER_SPRITE;
     }
 
+    /** Marks a tile as blocked (Fase 23B: the tile a town NPC stands on). The map is cached, so it stays blocked. */
+    public blockTile(tx: number, ty: number): void {
+        if (this.isInside(tx, ty)) this.flags[this.index(tx, ty)] |= FLAG_BLOCKED;
+    }
+
     public isWalkableAtPixel(px: number, py: number): boolean {
         return this.isWalkableTile(Math.floor(px / TILE_SIZE), Math.floor(py / TILE_SIZE));
     }

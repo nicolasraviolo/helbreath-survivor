@@ -81,7 +81,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Elvine Garden (Fase 22D)
 - Middleland (Fase 22E)
 - Sombras del jugador y los monstruos (Fase 22G)
-- La ciudad (Fase 23A)
+- La ciudad (Fase 23A) y NPCs (23B)
 - Rareza de las cartas (Fase 21½A)
 - Reroll y Skip (Fase 21½B)
 - Evento Champion (Fase 21½C)
@@ -957,6 +957,15 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - **Botón "Town" de la pantalla final:** el original no tiene esa palabra (la hoja `ui.buttons` 1 trae Ok, Continue, Restart, Log Out, Change...). Se usa el marco del "Ok", se tapa su palabra con copias de una tira de su madera sin letras (frames propios `0-blank` / `1-blank` añadidos a la textura) y se escribe "Town" encima (`GAME_OVER.townButton`).
 - **Ojo:** un `TileSprite` con un frame de un `.spr` da `The image source is detached` (las hojas son `ImageBitmap` ya cerrados): para repetir un trozo, varias `Image` en fila con `setCrop` en la última.
 - **Atajos:** `?open=town` (con el primer personaje guardado), `?town=portal` (aparece sobre el teleport; solo la primera vez). Checks `town`, `townportal`, `loadtimetown`.
+
+### NPCs y hablar (Fase 23B)
+- **Datos:** `TOWN_NPCS` en `data/town.ts` (nombre, sprite, casilla, dirección, frase y opciones `equipment` / `warehouse` / `achievements` / `soon`). Aspecto (nombre, "Talk", botón táctil) en `config/town.ts`.
+- **Sprites:** `howard`, `shopkpr`, `william`, `tom`: 8 hojas (una por dirección) de 8 frames, solo quietos. Registrados como `SpriteType.Monster` (`npc.*`) para que nunca se bajen antes del menú; los baja la carga de la ciudad (`TOWN_SPRITES` en `MapLoadScene`, junto con `item.ground` para el Cofre).
+- **El Cofre:** el cofre del suelo de las partidas (hoja 5, frame 120 de `item.ground`), a escala 2,2, en (83,195), junto a Howard.
+- **Obstáculo:** `HBMap.blockTile` marca la casilla del NPC como bloqueada. El mapa está en caché, así que queda bloqueada para siempre (solo lo usa la ciudad).
+- **Hablar:** el NPC más cercano a menos de `TOWN_TALK.radiusPx` enseña "Talk". E, el botón A del mando, un clic en el NPC o en "Talk", o el botón táctil (`ui/TalkButton.ts`, en `TOUCH_RESERVED_CORNER`, que mientras se ve no abre el stick). La acción `Action.Talk` sustituye a `OpenEquipment` / `OpenWarehouse` (I/O, X/R1), que se quitaron con los botones de Select Character.
+- **Panel:** `NpcDialogScene` (un `MenuOverlayScene`). Equipment, Warehouse y Achievements se abren con `returnTo` = la ciudad y el panel se cierra: al salir se vuelve directo a la ciudad. Al reanudarse, la ciudad ignora "Talk" durante `MENU_INPUT_DELAY_MS` (si no, la A que cierra el panel lo volvía a abrir) y, si cambió el equipo, viste otra vez al personaje (`redressIfChanged`, bajando antes lo que falte con `lookLoader`).
+- **Atajos:** `?town=<npc>` (howard, chest, shopKeeper, william, tom) aparece debajo de ese NPC; con `&talk` se abre su panel. Checks `townnpc`, `towntalk`.
 
 ## Rareza de las cartas (Fase 21½A)
 - Números en `data/cardRarity.ts`; sorteo en `systems/UpgradePool.ts` (`buildLevelUpChoices(equipment, chr, { chest, onlyPassives, allEpic })`). Desde la partida se piden siempre con `GameScene.levelUpChoices(fromChest)`, que lee la Chr de la partida y los atajos.

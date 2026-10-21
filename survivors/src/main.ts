@@ -26,6 +26,7 @@ import { SettingsScene } from './scenes/SettingsScene';
 import { ControlsScene } from './scenes/ControlsScene';
 import { CreditsScene } from './scenes/CreditsScene';
 import { RunChoiceScene } from './scenes/RunChoiceScene';
+import { NpcDialogScene } from './scenes/NpcDialogScene';
 import { ReleaseNotesScene } from './scenes/ReleaseNotesScene';
 import { HowToPlayScene } from './scenes/HowToPlayScene';
 import { AchievementsScene } from './scenes/AchievementsScene';
@@ -49,7 +50,7 @@ function startGame(): void {
         // HudScene, LevelUpScene y los menús que se abren encima (pausa, ajustes...) van después para dibujarse encima.
         scene: [
             BootScene, PreloadScene, MainMenuScene, CharacterSlotsScene, CharacterSelectScene, TownScene, MapSelectScene, MapLoadScene, GameScene, HudScene, LevelUpScene, LootScene, GameOverScene,
-            PauseScene, CharacterInfoScene, EquipmentScene, WarehouseScene, SettingsScene, ControlsScene, CreditsScene, RunChoiceScene, ReleaseNotesScene, AchievementsScene, HowToPlayScene, SpriteTestScene,
+            PauseScene, CharacterInfoScene, EquipmentScene, WarehouseScene, SettingsScene, ControlsScene, CreditsScene, RunChoiceScene, NpcDialogScene, ReleaseNotesScene, AchievementsScene, HowToPlayScene, SpriteTestScene,
         ],
     });
 
