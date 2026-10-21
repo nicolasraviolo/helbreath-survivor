@@ -78,6 +78,13 @@ export interface RunSnapshot {
     loot: RunLootState | undefined;
     /** Abaddon's Blood was already used in this run (Fase 21E). Saves from before: not used. */
     abaddonUsed: boolean;
+    /** Minutes of this run's champions (Fase 21½C). Saves from before have none: new ones are rolled. */
+    champions: number[] | undefined;
+    /** Champions that already came out and are gone (a living one comes back). */
+    championsOut: number | undefined;
+    /** Rerolls and Skips left in this run (Fase 21½B). Saves from before have none: as many as bought. */
+    rerollsLeft: number | undefined;
+    skipsLeft: number | undefined;
 }
 
 type Slots = Array<RunSnapshot | undefined>;
@@ -213,6 +220,10 @@ function readSnapshot(entry: unknown): RunSnapshot | undefined {
         metrics: readMetrics(entry.metrics),
         loot: readLoot(entry.loot),
         abaddonUsed: entry.abaddonUsed === true,
+        rerollsLeft: readNumber(entry.rerollsLeft),
+        skipsLeft: readNumber(entry.skipsLeft),
+        champions: Array.isArray(entry.champions) ? entry.champions.filter((m): m is number => typeof m === 'number' && Number.isFinite(m)) : undefined,
+        championsOut: readNumber(entry.championsOut),
     };
 }
 

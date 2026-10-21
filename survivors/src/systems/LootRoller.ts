@@ -73,8 +73,14 @@ export function rollAttribute(id: ItemId): ItemAttribute | undefined {
     return undefined;
 }
 
-/** An item for that character, or undefined if its class has nothing to drop. */
-export function rollLoot(classId: CharacterId, stats: Readonly<Stats>, level: number): OwnedItem | undefined {
+/**
+ * An item for that character, or undefined if its class has nothing to drop. `tierWeights` changes the kinds of roll
+ * (the Champion's guaranteed item, Fase 21½C: only its next step or a big jump).
+ */
+export function rollLoot(
+    classId: CharacterId, stats: Readonly<Stats>, level: number,
+    tierWeights: Readonly<Partial<Record<LootTier, number>>> = LOOT_TIER_WEIGHTS,
+): OwnedItem | undefined {
     const weights = { ...LOOT_SLOT_WEIGHTS, ...LOOT_SLOT_WEIGHTS_BY_CLASS[classId] };
     // ?attr= (debug): only weapons drop, to see the attribute every time.
     const ladderOf = (slot: EquipSlotId): ItemId[] => catalog(classId, slot).filter(isLootDrop);
@@ -89,7 +95,7 @@ export function rollLoot(classId: CharacterId, stats: Readonly<Stats>, level: nu
     ladder.forEach((id, index) => {
         if (canEquip(id, stats, level)) own = index;
     });
-    const tier = pickWeighted(Object.entries(LOOT_TIER_WEIGHTS) as Array<[LootTier, number]>) ?? 'same';
+    const tier = pickWeighted(Object.entries(tierWeights) as Array<[LootTier, number]>) ?? 'same';
     const id = ladder[rareCheck(ladder, tierIndex(tier, own, ladder.length))];
     if (!id) return undefined;
     const attribute = slot === 'weapon' ? rollAttribute(id) : undefined;

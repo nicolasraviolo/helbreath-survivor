@@ -26,12 +26,12 @@ export const HOW_TO_PLAY_PAGES: readonly HowToPlayPage[] = [
     {
         name: 'Basics',
         lines: [
-            'Move around and stay alive.',
-            'Your weapons and spells attack on their own.',
+            'Move and stay alive: your weapons and spells attack on their own.',
             'Right click, right stick or right half of the screen: aim yourself.',
             'Pick up the gems that enemies drop to gain experience.',
             'Each time your Power goes up, choose a card to grow stronger.',
             'Step on the glowing Mana Stones for a power-up. Chests give a free card.',
+            'Defeat the Champions, big glowing monsters, for a better item.',
             'Survive the waves and defeat the final boss to win.',
         ],
     },
@@ -96,6 +96,17 @@ export const HOW_TO_PLAY_PAGES: readonly HowToPlayPage[] = [
             // Fase 17B: Create New Character.
             { control: 'Create: arrows next to a row', action: 'Change your look' },
             { control: 'Create: arrow keys / pad', action: 'Up-Down: row, Left-Right: change' },
+        ],
+    },
+    {
+        // Fase 21½: rareza de las cartas y Reroll / Skip. Como mucho 7 filas.
+        name: 'Cards',
+        rows: [
+            { control: 'Common, Rare, Epic', action: 'Rarer cards give a bigger boost' },
+            { control: 'Reroll (dice)', action: 'Three new cards' },
+            { control: 'Skip (wine)', action: 'Take no card and heal a little' },
+            { control: 'Down arrow / pad down', action: 'Go to Reroll and Skip; up goes back' },
+            { control: 'Each Dice or Wine you own', action: 'One Reroll or Skip in every run' },
         ],
     },
     {

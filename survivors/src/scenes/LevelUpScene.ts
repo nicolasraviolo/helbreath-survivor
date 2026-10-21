@@ -1,7 +1,12 @@
 // Pantalla de subida de nivel: la partida se pausa y se elige 1 de 3 cartas (las arma systems/UpgradePool.ts).
 // Tipos (Fase 20C): stat ("+3 a un stat") y pasiva (Stone of Xelima, Stone of Merien, Magnet Amulet). Las pasivas
 // llevan su dibujo (icono original de la piedra o imagen propia) en lugar del círculo de color.
-// Siempre hay una carta resaltada. Se elige con flechas/WASD, cruceta o stick + Enter/Espacio/A, o con el ratón.
+// Fase 21½A: rareza (data/cardRarity.ts). Las Rare y Epic llevan un marco interior y una cinta de su color arriba;
+// las Epic, además, un brillo que late detrás (su sonido lo pone GameScene.openLevelUp). Las Common se ven como siempre.
+// Fase 21½B: bajo las cartas, botones Reroll (dado) y Skip (vino) con lo que queda en la partida; solo salen si se ha
+// comprado alguno (UnlockStore) y se ven apagados al gastarlos. Con flechas abajo/arriba se pasa de las cartas a ellos.
+// Siempre hay algo resaltado (una carta o un botón). Se elige con flechas/WASD, cruceta o stick + Enter/Espacio/A, o con
+// el ratón o el dedo.
 import Phaser from 'phaser';
 import { SpriteText } from '../hb/SpriteText';
 import { byDevice } from '../config/device';
@@ -11,9 +16,13 @@ import { px, UI_TEXT, UI_FONT_SIZE } from '../config/ui';
 import { itemPackTexture } from '../config/equipment';
 import { STAT_INFO, type StatId } from '../data/stats';
 import { getPassive, type PassiveIcon } from '../data/passives';
+import { CARD_RARITY, EPIC_CARD_GLOW, type CardRarity } from '../data/cardRarity';
+import { CARD_ACTION, CARD_ACTIONS, DICE_FACE, WINE_ICON, type CardAction } from '../data/rerollSkip';
 import type { CharacterStats } from '../entities/CharacterStats';
 import type { Equipment } from '../entities/Equipment';
 import { Action, InputSystem } from '../systems/InputSystem';
+import { unlockStore } from '../systems/UnlockStore';
+import { createDice } from '../ui/DiceIcon';
 import type { LevelUpChoice } from '../systems/UpgradePool';
 import { overlayBottom, playAreaBottom } from '../ui/hudLayout';
 
@@ -23,9 +32,16 @@ export interface LevelUpSceneData {
     stats: CharacterStats;
     equipment: Equipment;
     choices: LevelUpChoice[];
-    onChoose: (choice: LevelUpChoice) => void;
+    /** A card picked, or undefined for a Skip. */
+    onChoose: (choice: LevelUpChoice | undefined) => void;
     /** Title over the cards; default "Power N!" (a chest's cards say something else, Fase 16B). */
     title?: string;
+    /** Rerolls and Skips left in this run (Fase 21½B); read again after each use. */
+    actionsLeft: Readonly<Record<CardAction, number>>;
+    /** Spends a Reroll and returns the three new cards. */
+    onReroll: () => LevelUpChoice[];
+    /** Spends a Skip (heals) and closes the cards. */
+    onSkip: () => void;
 }
 
 // Phones (config/device.ts): bigger cards for the bigger text, nearly as wide as the screen.
@@ -59,6 +75,19 @@ const ICON_MAX_SCALE = 2;
 const TEXT_COLOR = '#e8d9a8';
 /** Badge of a passive card while its picture is not loaded yet (item-pack.spr downloads when the run starts). */
 const PASSIVE_BADGE = { text: 'Pas', color: 0x508050 } as const;
+/** Rare and Epic cards: inner frame (inset from the edge) and the ribbon with the rarity's name on the top edge. */
+const RARITY_FRAME_INSET = 6;
+const RARITY_FRAME_WIDTH = 3;
+const RARITY_RIBBON = { width: byDevice(84, 96), height: byDevice(22, 26) } as const;
+/** Reroll / Skip buttons (Fase 21½B): size, gap between them, and space between the cards and them. */
+const ACTION_BUTTON = { width: byDevice(150, 190), height: byDevice(38, 48), gap: byDevice(24, 28), marginTop: byDevice(26, 14) } as const;
+const ACTION_ICON_SIZE = byDevice(24, 30);
+const ACTION_FILL = 0x1c140c;
+const ACTION_USED_ALPHA = 0.35;
+/** Phones with the buttons: the cards shrink a little to leave room under them. */
+const CARD_SCALE_WITH_ACTIONS = byDevice(1, 0.88);
+/** New cards after a Reroll fade in this fast. */
+const REROLL_FADE_MS = 160;
 
 /** What a card shows: badge (or picture), title, one line of effect and the "before → after" lines. */
 interface CardText {
@@ -75,15 +104,31 @@ interface Card {
     frame: Phaser.GameObjects.Rectangle;
 }
 
+interface ActionButton {
+    action: CardAction;
+    container: Phaser.GameObjects.Container;
+    frame: Phaser.GameObjects.Rectangle;
+    label: Phaser.GameObjects.Text;
+    dice: Phaser.GameObjects.Graphics | undefined;
+}
+
 export class LevelUpScene extends Phaser.Scene {
     private params!: LevelUpSceneData;
     private inputSystem!: InputSystem;
     private cards: Card[] = [];
+    private choices: LevelUpChoice[] = [];
     private selected = 0;
+    /** Reroll / Skip buttons shown (only those bought), and the one highlighted (-1 = a card is). */
+    private buttons: ActionButton[] = [];
+    private selectedButton = -1;
+    private cardScale = 1;
+    private cardsX: number[] = [];
+    private cardY = 0;
     private openedAt = 0;
     private chosen = false;
     /** Card where the current click started; a click only counts if it starts and ends on the same card. */
     private pressedCard = -1;
+    private pressedButton = -1;
 
     constructor() {
         super('LevelUp');
@@ -92,13 +137,18 @@ export class LevelUpScene extends Phaser.Scene {
     init(data: LevelUpSceneData): void {
         this.params = data;
         this.cards = [];
+        this.choices = data.choices;
+        this.buttons = [];
         this.selected = 0;
+        this.selectedButton = -1;
         this.chosen = false;
         this.pressedCard = -1;
+        this.pressedButton = -1;
     }
 
     create(): void {
-        const { stats, choices, title } = this.params;
+        const { stats, title } = this.params;
+        const choices = this.choices;
         this.openedAt = this.time.now;
         const bottom = playAreaBottom();
         // Above the compact gauges when they run along the bottom.
@@ -111,10 +161,18 @@ export class LevelUpScene extends Phaser.Scene {
 
         // PC: as always. Phones: centred between the subtitle and the bottom, which moves down with the compact HUD.
         // (Fase 11: no controls text here; they are explained in How to play.)
-        const cardY = byDevice(HUD_TOP / 2 + 30, (SUBTITLE_Y + cardsBottom) / 2);
-        const totalWidth = choices.length * CARD_WIDTH + (choices.length - 1) * CARD_GAP;
-        const firstX = (GAME_WIDTH - totalWidth) / 2 + CARD_WIDTH / 2;
-        choices.forEach((choice, i) => this.cards.push(this.createCard(choice, firstX + i * (CARD_WIDTH + CARD_GAP), cardY, i)));
+        // Fase 21½B: with Reroll / Skip, their row goes under the cards (phones: the cards shrink and move up for it).
+        const actions = CARD_ACTIONS.filter((action) => unlockStore.count(CARD_ACTION[action].unlock) > 0);
+        this.cardScale = actions.length > 0 ? CARD_SCALE_WITH_ACTIONS : 1;
+        const rowSpace = actions.length > 0 ? ACTION_BUTTON.marginTop + ACTION_BUTTON.height : 0;
+        const cardHeight = CARD_HEIGHT * this.cardScale;
+        const cardWidth = CARD_WIDTH * this.cardScale;
+        this.cardY = byDevice(HUD_TOP / 2 + 30, (SUBTITLE_Y + cardsBottom - rowSpace) / 2);
+        const totalWidth = choices.length * cardWidth + (choices.length - 1) * CARD_GAP;
+        const firstX = (GAME_WIDTH - totalWidth) / 2 + cardWidth / 2;
+        this.cardsX = choices.map((_, i) => firstX + i * (cardWidth + CARD_GAP));
+        this.buildCards();
+        if (actions.length > 0) this.createButtons(actions, this.cardY + cardHeight / 2 + ACTION_BUTTON.marginTop + ACTION_BUTTON.height / 2);
         this.highlight(0);
 
         this.inputSystem = new InputSystem(this);
@@ -126,9 +184,105 @@ export class LevelUpScene extends Phaser.Scene {
         const input = this.inputSystem;
         input.update();
         if (!this.ready()) return;
+        if (this.selectedButton >= 0) {
+            if (input.justPressed(Action.MenuLeft)) this.highlightButton(this.selectedButton - 1);
+            if (input.justPressed(Action.MenuRight)) this.highlightButton(this.selectedButton + 1);
+            if (input.justPressed(Action.MenuUp)) this.highlight(this.selected);
+            if (input.justPressed(Action.Pick)) this.useButton(this.selectedButton);
+            return;
+        }
         if (input.justPressed(Action.MenuLeft)) this.highlight(this.selected - 1);
         if (input.justPressed(Action.MenuRight)) this.highlight(this.selected + 1);
+        if (input.justPressed(Action.MenuDown) && this.buttons.length > 0) this.highlightButton(this.firstUsableButton());
         if (input.justPressed(Action.Pick)) this.choose(this.selected);
+    }
+
+    /** The cards of `this.choices`, replacing any shown (a Reroll). */
+    private buildCards(): void {
+        for (const card of this.cards) card.container.destroy();
+        this.cards = this.choices.map((choice, i) => this.createCard(choice, this.cardsX[i] ?? GAME_WIDTH / 2, this.cardY, i));
+    }
+
+    /** The Reroll / Skip row, centred at `y`. */
+    private createButtons(actions: readonly CardAction[], y: number): void {
+        const { width, height, gap } = ACTION_BUTTON;
+        const totalWidth = actions.length * width + (actions.length - 1) * gap;
+        actions.forEach((action, i) => {
+            const x = (GAME_WIDTH - totalWidth) / 2 + width / 2 + i * (width + gap);
+            const frame = this.add.rectangle(0, 0, width, height, ACTION_FILL, 0.95).setStrokeStyle(2, CARD_ACTION[action].color);
+            const iconX = -width / 2 + ACTION_ICON_SIZE / 2 + 12;
+            const dice = action === 'reroll' ? createDice(this, iconX, 0, ACTION_ICON_SIZE, DICE_FACE) : undefined;
+            const wine = action === 'skip' ? this.itemIcon(WINE_ICON.sheet, WINE_ICON.frame, iconX, ACTION_ICON_SIZE * 1.3) : undefined;
+            const label = this.add.text(iconX + ACTION_ICON_SIZE / 2 + 10, 0, '', {
+                ...UI_TEXT, fontSize: px(UI_FONT_SIZE.normal), fontStyle: 'bold', color: TEXT_COLOR, stroke: '#000000', strokeThickness: 3,
+            }).setOrigin(0, 0.5);
+            const parts: Phaser.GameObjects.GameObject[] = [frame, label];
+            if (dice) parts.push(dice);
+            if (wine) parts.push(wine);
+            const container = this.add.container(x, y, parts);
+            const index = i;
+            frame.setInteractive({ useHandCursor: true });
+            frame.on(Phaser.Input.Events.POINTER_OVER, () => {
+                if (this.usable(index)) this.highlightButton(index);
+            });
+            frame.on(Phaser.Input.Events.POINTER_DOWN, () => {
+                this.pressedButton = this.ready() ? index : -1;
+            });
+            frame.on(Phaser.Input.Events.POINTER_UP, () => {
+                if (this.ready() && this.pressedButton === index) this.useButton(index);
+                this.pressedButton = -1;
+            });
+            this.buttons.push({ action, container, frame, label, dice });
+        });
+        this.refreshButtons();
+    }
+
+    /** Uses left on each button ("Reroll ×2"); a used-up one goes dim. */
+    private refreshButtons(): void {
+        for (const button of this.buttons) {
+            const left = this.params.actionsLeft[button.action];
+            button.label.setText(`${CARD_ACTION[button.action].label} ×${left}`);
+            button.container.setAlpha(left > 0 ? 1 : ACTION_USED_ALPHA);
+        }
+    }
+
+    private usable(index: number): boolean {
+        const button = this.buttons[index];
+        return button !== undefined && this.params.actionsLeft[button.action] > 0;
+    }
+
+    /** The first button with uses left, or the first one (dim) if none has. */
+    private firstUsableButton(): number {
+        const index = this.buttons.findIndex((_, i) => this.usable(i));
+        return index >= 0 ? index : 0;
+    }
+
+    /** Highlights a button (wraps around) and no card. */
+    private highlightButton(index: number): void {
+        const count = this.buttons.length;
+        if (count === 0) return;
+        this.selectedButton = ((index % count) + count) % count;
+        this.paintHighlight();
+    }
+
+    private useButton(index: number): void {
+        const button = this.buttons[index];
+        if (!button || this.chosen || !this.usable(index)) return;
+        if (button.action === 'skip') {
+            this.chosen = true;
+            this.params.onSkip();
+            return;
+        }
+        this.choices = this.params.onReroll();
+        this.buildCards();
+        for (const card of this.cards) {
+            card.container.setAlpha(0);
+            this.tweens.add({ targets: card.container, alpha: 1, duration: REROLL_FADE_MS });
+        }
+        this.refreshButtons();
+        // Used up: back to the cards.
+        if (this.usable(index)) this.paintHighlight();
+        else this.highlight(this.selected);
     }
 
     private ready(): boolean {
@@ -156,7 +310,7 @@ export class LevelUpScene extends Phaser.Scene {
             ...UI_TEXT, fontSize: px(UI_FONT_SIZE.normal), color: TEXT_COLOR, align: 'center', lineSpacing: 2, wordWrap: { width: textWidth },
         }).setOrigin(0.5, 0);
 
-        const container = this.add.container(x, y, [frame, badge, badgeText, title.container, effect, changes]);
+        const container = this.add.container(x, y, [...this.rarityParts(choice.rarity, frame), badge, badgeText, title.container, effect, changes]);
         frame.setInteractive({ useHandCursor: true });
         frame.on(Phaser.Input.Events.POINTER_OVER, () => this.highlight(index));
         frame.on(Phaser.Input.Events.POINTER_DOWN, () => {
@@ -170,6 +324,32 @@ export class LevelUpScene extends Phaser.Scene {
         return { container, frame };
     }
 
+    /** The card's frame with what its rarity adds: Epic glow behind it, inner frame and ribbon on top (Common: only the frame). */
+    private rarityParts(rarity: CardRarity, frame: Phaser.GameObjects.Rectangle): Phaser.GameObjects.GameObject[] {
+        if (rarity === 'common') return [frame];
+        const { color, label } = CARD_RARITY[rarity];
+        const top = -CARD_HEIGHT / 2;
+        const inner = this.add.rectangle(0, 0, CARD_WIDTH - RARITY_FRAME_INSET * 2, CARD_HEIGHT - RARITY_FRAME_INSET * 2)
+            .setStrokeStyle(RARITY_FRAME_WIDTH, color);
+        const ribbon = this.add.rectangle(0, top, RARITY_RIBBON.width, RARITY_RIBBON.height, color).setStrokeStyle(2, 0x000000);
+        const ribbonText = this.add.text(0, top, label, {
+            ...UI_TEXT, fontSize: px(UI_FONT_SIZE.normal), fontStyle: 'bold', color: '#ffffff', stroke: '#000000', strokeThickness: 3,
+        }).setOrigin(0.5);
+        if (rarity !== 'epic') return [frame, inner, ribbon, ribbonText];
+        const { pad, alpha, pulseMs } = EPIC_CARD_GLOW;
+        const glow = this.add.rectangle(0, 0, CARD_WIDTH + pad * 2, CARD_HEIGHT + pad * 2, color, alpha.min);
+        this.tweens.add({ targets: glow, alpha: alpha.max, duration: pulseMs, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+        return [glow, frame, inner, ribbon, ribbonText];
+    }
+
+    /** An item-pack icon fitted in `size`, or undefined while its sheet is not loaded (it downloads when the run starts). */
+    private itemIcon(sheet: number, frame: number, x: number, size: number): Phaser.GameObjects.Image | undefined {
+        const texture = itemPackTexture(sheet);
+        if (!this.textures.exists(texture) || !this.textures.get(texture).has(String(frame))) return undefined;
+        const image = this.add.image(x, 0, texture, frame);
+        return image.setScale(Math.min(ICON_MAX_SCALE, size / Math.max(image.width, image.height)));
+    }
+
     /** A passive's picture fitted in ICON_SIZE, or undefined while its texture is not loaded. */
     private picture(icon: PassiveIcon, y: number): Phaser.GameObjects.Image | undefined {
         const texture = icon.kind === 'item' ? itemPackTexture(icon.sheet) : icon.key;
@@ -180,18 +360,29 @@ export class LevelUpScene extends Phaser.Scene {
         return image.setScale(Math.min(ICON_MAX_SCALE, size / Math.max(image.width, image.height)));
     }
 
+    /** Highlights a card (wraps around) and no button. */
     private highlight(index: number): void {
         const count = this.cards.length;
         this.selected = ((index % count) + count) % count;
+        this.selectedButton = -1;
+        this.paintHighlight();
+    }
+
+    private paintHighlight(): void {
         this.cards.forEach((card, i) => {
-            const on = i === this.selected;
+            const on = this.selectedButton < 0 && i === this.selected;
             card.frame.setStrokeStyle(on ? 4 : 2, on ? CARD_HIGHLIGHT : CARD_BORDER);
-            card.container.setScale(on ? HIGHLIGHT_SCALE : 1);
+            card.container.setScale(this.cardScale * (on ? HIGHLIGHT_SCALE : 1));
+        });
+        this.buttons.forEach((button, i) => {
+            const on = i === this.selectedButton;
+            button.frame.setStrokeStyle(on ? 4 : 2, on ? CARD_HIGHLIGHT : CARD_ACTION[button.action].color);
+            button.container.setScale(on ? HIGHLIGHT_SCALE : 1);
         });
     }
 
     private choose(index: number): void {
-        const choice = this.params.choices[index];
+        const choice = this.choices[index];
         if (!choice || this.chosen) return;
         this.chosen = true;
         this.params.onChoose(choice);
@@ -211,10 +402,11 @@ function describeCard(stats: CharacterStats, equipment: Equipment, choice: Level
         case 'passive': {
             const passive = getPassive(choice.passive);
             const pct = (rank: number) => `${passive.sign}${Math.round(equipment.passiveBonus(choice.passive, rank) * 100)}%`;
+            // Rare and Epic cards add several ranks at once (Fase 21½A): "before" is the rank the player has now.
             return {
                 badge: PASSIVE_BADGE.text, badgeColor: PASSIVE_BADGE.color, icon: passive.icon, title: `${passive.name} ${choice.rank}/${passive.maxRank}`,
                 effect: passive.effect,
-                changes: [`${passive.statLabel} ${pct(choice.rank - 1)} → ${pct(choice.rank)}`],
+                changes: [`${passive.statLabel} ${pct(equipment.passives[choice.passive])} → ${pct(choice.rank)}`],
             };
         }
     }
@@ -223,7 +415,7 @@ function describeCard(stats: CharacterStats, equipment: Equipment, choice: Level
 /** "Before → after" lines for the stat and what it changes in play. */
 function describeStatChanges(stats: CharacterStats, s: StatId, points: number): string[] {
     const after = stats.previewWith(s, points);
-    const lines = [`${STAT_INFO[s].short} ${stats.stats[s]} → ${after.stats[s]}`];
+    const lines = [`${STAT_INFO[s].short} ${stats.stats[s]} → ${after.stats[s]} (+${points})`];
     const pct = (value: number) => `${Math.round(value * 100)}%`;
     const bonus = (multiplier: number) => `${multiplier >= 1 ? '+' : ''}${Math.round((multiplier - 1) * 100)}%`;
     switch (s) {

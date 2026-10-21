@@ -7,6 +7,8 @@
 // monstruo no está listo espera (normalmente unos segundos como mucho) a que lo esté.
 // Un jefe nunca se pierde: si no hay sitio libre fuera de la pantalla, se busca más cerca del jugador, y si aun así
 // no hay, su evento sigue pendiente y se reintenta en el siguiente fotograma.
+// Fase 21½C: los Champion (data/champion.ts) salen en sus minutos sorteados, igual que un jefe (nunca se pierden), con un
+// monstruo del tramo siguiente; tras Continue, uno que quedó vivo vuelve cuando acaba la calma.
 import Phaser from 'phaser';
 import { ENEMY_WALL_HALF_SIZE } from '../config/gameConfig';
 import type { EnemyId } from '../data/enemies';
@@ -34,6 +36,13 @@ export class SpawnSystem {
     private wavesOver = false;
     /** Debug: an event waiting for its monster to download (runFirstEvent). */
     private debugEvent: WaveEventDef | undefined;
+    /** Minutes of this run's champions (Fase 21½C), in order, and how many have already come out. */
+    private championMinutes: number[] = [];
+    private championsOut = 0;
+    /** Continue: no champion appears during the calm. */
+    private championCalmMs = 0;
+    /** The champion chosen for the next appearance (kept while its sprite downloads). */
+    private championPick: EnemyId | undefined;
     public enabled = true;
 
     constructor(
@@ -47,7 +56,32 @@ export class SpawnSystem {
         private readonly isReady: (id: EnemyId) => boolean,
         /** Asks for a monster to be loaded first (its event is due). */
         private readonly hurry: (id: EnemyId) => void,
+        /** Called when a champion appears (Fase 21½C). */
+        private readonly onChampion: (champion: Enemy) => void,
     ) {}
+
+    /** This run's champions (Fase 21½C): their minutes, and how many already came out (Continue). */
+    public setChampions(minutes: readonly number[], out: number): void {
+        this.championMinutes = [...minutes];
+        this.championsOut = Math.min(out, minutes.length);
+        this.championPick = undefined;
+    }
+
+    /** Minutes of this run's champions (for the saved run). */
+    public get champions(): readonly number[] {
+        return this.championMinutes;
+    }
+
+    /** Champions that already appeared. */
+    public get championsAppeared(): number {
+        return this.championsOut;
+    }
+
+    /** Debug (?debug=champion): one more champion, a few seconds from now. */
+    public addChampionIn(ms: number): void {
+        const minute = (this.elapsedMs + ms) / MS_PER_MINUTE;
+        this.championMinutes.splice(this.championsOut, 0, minute);
+    }
 
     /** Run time in milliseconds. */
     public get elapsed(): number {
@@ -74,6 +108,7 @@ export class SpawnSystem {
         this.elapsedMs += deltaMs;
         this.runDueEvents();
         this.runDebugEvent();
+        this.runDueChampion(deltaMs);
         this.relocateStragglers(deltaMs);
         this.timerMs -= deltaMs;
         if (this.timerMs > 0) return;
@@ -121,7 +156,28 @@ export class SpawnSystem {
         if (this.nextEvent < 0) this.nextEvent = WAVE_EVENTS.length;
         this.wavesOver = WAVE_EVENTS.some((event) => event.kind === 'finalBoss' && event.atMinute <= minutes);
         this.timerMs = calmMs;
+        this.championCalmMs = calmMs;
         this.bossesToReturn = [...bosses];
+    }
+
+    /**
+     * A champion whose minute has come appears off screen like a boss (if there is no room yet, it tries again next
+     * frame). Never once the final boss is out.
+     */
+    private runDueChampion(deltaMs: number): void {
+        this.championCalmMs = Math.max(0, this.championCalmMs - deltaMs);
+        const minute = this.championMinutes[this.championsOut];
+        if (minute === undefined || this.wavesOver || this.championCalmMs > 0 || this.elapsedMs < minute * MS_PER_MINUTE) return;
+        const id = (this.championPick ??= pickChampion(this.elapsedMs / MS_PER_MINUTE));
+        if (!this.isReady(id)) {
+            this.hurry(id);
+            return;
+        }
+        const point = this.findBossPoint();
+        if (!point) return;
+        this.championsOut++;
+        this.championPick = undefined;
+        this.onChampion(this.enemies.spawnChampion(id, point.x, point.y));
     }
 
     /** Continue: bosses still waiting for the calm to end (they count as alive when saving again). */
@@ -340,6 +396,18 @@ export class SpawnSystem {
 /** Events that bring a boss (not the surround and stampede ones). */
 function isBossEvent(event: WaveEventDef): boolean {
     return event.kind === 'boss' || event.kind === 'finalBoss';
+}
+
+/**
+ * The champion's monster: one of the next stretch of the waves (a taste of what comes), by weight; in the last
+ * stretch, one of its own.
+ */
+function pickChampion(minutes: number): EnemyId {
+    const index = WAVES.findIndex((wave) => wave.fromMinute > minutes);
+    const wave = (index >= 0 ? WAVES[index] : WAVES[WAVES.length - 1]) ?? WAVES[0];
+    const id = wave && pickEnemy(wave, () => true);
+    if (!id) throw new Error('data/waves.ts has no waves');
+    return id;
 }
 
 /** A random enemy of the wave by weight, among those already loaded; undefined if none is ready yet. */
