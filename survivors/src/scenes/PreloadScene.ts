@@ -96,7 +96,7 @@ export class PreloadScene extends Phaser.Scene {
             const demo = characterStore.all.find((c) => c?.classId === classId);
             if (demo) this.registry.set(ACTIVE_CHARACTER_KEY, demo.uid);
         }
-        const open = DEBUG_START.open === 'CharacterInfo' || DEBUG_START.open === 'Equipment' || DEBUG_START.open === 'Warehouse' ? 'CharacterSlots' : DEBUG_START.open;
+        const open = DEBUG_START.open === 'CharacterInfo' || DEBUG_START.open === 'Equipment' || DEBUG_START.open === 'Warehouse' || DEBUG_START.open === 'RunChoice' ? 'CharacterSlots' : DEBUG_START.open;
         this.scene.start(DEBUG_START.play ? 'Game' : open === 'CharacterSelect' || open === 'CharacterSlots' ? open : 'MainMenu');
     }
 

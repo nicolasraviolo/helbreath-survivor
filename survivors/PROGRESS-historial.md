@@ -2,6 +2,13 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
+**Entre fases: Continue / New Run al elegir personaje (2026-10-21).**
+- **Qué hace:** el menú principal ya no tiene Continue, solo Play. En Select Character, un personaje con partida guardada abre la ventana "Saved Run" (nombre, Power y tiempo) con Continue, New Run y Back. New Run avisa de que se pierde la partida (su EXP y su botín) con No / Yes ("No" marcado primero); Yes la borra y empieza otra en el único mapa. Esc/B: del aviso a las opciones, y de ahí a Select Character. Sin partida guardada, se juega directo.
+- **Decisiones del propietario:** solo Play en el menú; la pregunta va al elegir personaje; con Select Map (Fase 22), New Run pasará por ahí.
+- **Decidido por mí:** "No" primero en el aviso; título "Saved Run"; los personajes ya no se ven apagados (desaparece el modo Continue de `CharacterSlotsScene`).
+- **Código:** `scenes/RunChoiceScene.ts` (con `startCharacterRun`), `RUN_CHOICE` en `config/menus.ts`, `CharacterSlotsScene.enter`, `MainMenuScene.buildList`. Atajo `?open=runchoice`; situación `check runchoice`.
+- **Comprobado:** build; `check menu slots runchoice` (y `runchoice --mobile`) sin errores; recorrido completo con Playwright: guardar partida de Gorn → Continue la sigue (6 s → 12 s); New Run → No y Back no borran; Yes la borra y empieza desde 0. Probado y aprobado por el propietario.
+
 **Fase 21 cerrada (2026-10-20).** Bloques 21A, 21B, 21D y 21E; el 21C (anillos y collares) queda aplazado. Comprobado al cerrar: build y `check menu game revive loot warehouse equipment` sin errores. Fusionada en `master` con la etiqueta `fase-21`.
 
 **Fase 21, bloque 21E: Abaddon's Blood (2026-10-20).**

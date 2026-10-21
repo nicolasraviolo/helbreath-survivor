@@ -50,6 +50,17 @@ export const MENU_OVERLAY = {
     valueColumnHalfWidth: byDevice(215, 270),
 } as const;
 
+/** Continue or New Run, for a character with a saved run (Select Character). Text lines and options, from the content row. */
+export const RUN_CHOICE = {
+    /** Text lines start this far above the content row. */
+    textOffsetY: byDevice(-26, -30),
+    /** First option, from the content row (below the text). */
+    listOffsetY: byDevice(56, 66),
+    /** The confirm step has a longer warning: its options go a bit lower. */
+    confirmListOffsetY: byDevice(80, 96),
+    textWrapWidth: byDevice(440, 520),
+} as const;
+
 /** Options in the sprite font. Bigger on phones, with bigger areas for fingers. */
 export const MENU_ITEM = {
     scale: byDevice(1.6, 2),

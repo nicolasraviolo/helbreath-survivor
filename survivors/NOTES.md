@@ -621,6 +621,7 @@ Tabla completa en `docs/REQUISITOS_HB.md`. Lo no obvio:
 - `BossSystem.track(enemy, id)`: los `EnemyDef` no llevan su id, así que el jefe recuerda su nombre al registrarse (lo da el evento de oleada).
 - Continue: `registry` `RESUME_SLOT_KEY` → `GameScene.create` lo lee y lo borra (así Restart del fin de partida empieza una nueva). `SpawnSystem.resumeAt` salta los eventos ya pasados y devuelve los jefes al acabar la calma; si se guarda durante la calma, esos jefes cuentan (`bossesWaiting`).
 - Para probar la pausa automática en Playwright: redefinir `document.visibilityState` a `'hidden'` y lanzar `visibilitychange`. Las teclas en Playwright hay que mantenerlas pulsadas ~100 ms (`keyboard.down`/`up`): un `press` corto a veces no llega al juego.
+- **Sin Continue en el menú (21-oct-2026):** solo Play. En Select Character, un personaje con partida guardada abre `scenes/RunChoiceScene.ts`: Continue la sigue; New Run avisa ("No" va primero) y, con Yes, borra la partida (`saveStore.clear`, se pierden su EXP y su botín) y empieza otra. `startCharacterRun` es el único sitio que arranca la partida desde ahí. Ver con `check runchoice` (`?open=runchoice`). Cuando llegue Select Map (Fase 22), la partida nueva pasará por ahí.
 
 ## Settings táctil (Fase 12C)
 - `MenuList` tiene filas con casilla (`checked`), dibujadas con `Graphics`: el original no tiene sprite de casilla (sp-client la hace en React). Se probó una barra deslizante para el volumen y el propietario prefirió las flechas con el número (18-oct-2026).

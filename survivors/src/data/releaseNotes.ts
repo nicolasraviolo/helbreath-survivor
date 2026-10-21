@@ -24,6 +24,7 @@ export const RELEASE_NOTES: readonly ReleaseNote[] = [
             'Win to keep your loot, or wear a Zemstone: bosses may drop one.',
             "New: Abaddon's Blood brings you back to life once per run.",
             'Health potions are now much rarer.',
+            'Continue is gone from the menu: pick a character to resume or restart its run.',
         ],
     },
     {

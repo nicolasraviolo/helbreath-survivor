@@ -95,6 +95,8 @@ const PRESETS = {
     // Veneno (Fase 21B): Gorn con su arma Poison en una horda; números verdes que nunca matan.
     poison: 'play=warrior&characters=demo&debug=god,horde&attr=poison',
     slotsempty: 'characters=reset&open=slots',
+    // Continue / New Run al elegir un personaje con partida guardada (21-oct-2026).
+    runchoice: 'characters=demo&open=runchoice',
     // Pantalla de carga (M8), parada a medias para verla: barra, "Loading" y el logo que late.
     loading: 'loading=hold',
     // Pantalla "What's new" (novedades de cada fase), la que abre el link del pie del menú.
@@ -179,7 +181,7 @@ async function runScenario(browser, name) {
     page.on('pageerror', (err) => errors.push(`${err.name}: ${err.message}`));
 
     // ?open= (debugStart.ts) shows a menu screen: wait for it instead of the game.
-    const openKey = { howtoplay: 'HowToPlay', settings: 'Settings', controls: 'Controls', credits: 'Credits', releasenotes: 'ReleaseNotes', achievements: 'Achievements', select: 'CharacterSelect', slots: 'CharacterSlots', charinfo: 'CharacterInfo', equipment: 'Equipment', warehouse: 'Warehouse' }[params.get('open') ?? ''];
+    const openKey = { howtoplay: 'HowToPlay', settings: 'Settings', controls: 'Controls', credits: 'Credits', releasenotes: 'ReleaseNotes', achievements: 'Achievements', select: 'CharacterSelect', slots: 'CharacterSlots', charinfo: 'CharacterInfo', equipment: 'Equipment', warehouse: 'Warehouse', runchoice: 'RunChoice' }[params.get('open') ?? ''];
     const target = params.has('loading') ? 'Preload' : openKey ?? (query ? 'Game' : 'MainMenu');
     await page.goto(url);
     const t0 = Date.now();
