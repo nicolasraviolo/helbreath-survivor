@@ -17,6 +17,7 @@
 //                      charexp = la XP de la partida cuenta ×50 para el Level del personaje al terminarla (Fase 20A;
 //                                con ?characters=demo juega el personaje de ejemplo de esa clase)
 //                      epic = todas las cartas de Power salen Epic (Fase 21½A)
+//                      champion = sale un Champion a los 3 segundos (Fase 21½C)
 //                      stones = las cartas ofrecen siempre las pasivas (Xelima, Merien, Magnet) que no estén al máximo (Fase 20C)
 //                      elites = todos los monstruos (menos los jefes) salen élite, con el brillo rojo (M2)
 //                      loot = cae un objeto de botín junto al jugador ahora y cada pocos segundos (Fase 21A)
@@ -68,7 +69,7 @@ function isDebugScreen(value: string | null): value is DebugScreen {
 }
 
 /** Actions that ?debug= can run at the start of a run (the same ones as the debug keys of GameScene). */
-export const DEBUG_ACTIONS = ['horde', 'kill', 'levelup', 'levels', 'str', 'magic', 'pickups', 'totems', 'minute', 'boss', 'finalboss', 'bosskill', 'stampede', 'dodge', 'stats', 'god', 'crits', 'aim', 'aimstick', 'resume', 'sim', 'charexp', 'stones', 'elites', 'loot', 'zem', 'onehp', 'epic'] as const;
+export const DEBUG_ACTIONS = ['horde', 'kill', 'levelup', 'levels', 'str', 'magic', 'pickups', 'totems', 'minute', 'boss', 'finalboss', 'bosskill', 'stampede', 'dodge', 'stats', 'god', 'crits', 'aim', 'aimstick', 'resume', 'sim', 'charexp', 'stones', 'elites', 'loot', 'zem', 'onehp', 'epic', 'champion'] as const;
 export type DebugAction = (typeof DEBUG_ACTIONS)[number];
 
 function isDebugAction(value: string): value is DebugAction {

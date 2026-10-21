@@ -2,6 +2,16 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
+**Fase 21½ cerrada (2026-10-21).** Bloques 21½A (rareza), 21½B (Reroll y Skip) y 21½C (Champion). Comprobado al cerrar: build y `check menu levelup boss champion rerollskip epic` sin errores. Fusionada en `master` con la etiqueta `fase-21½`.
+
+**Fase 21½, bloque 21½C: evento Champion (2026-10-21).**
+- **Qué hace:** una vez por partida seguro y, con un 35%, dos veces, en un minuto al azar entre el 2 y el 11 (a medio minuto o más de los otros eventos), sale un **Champion**: un monstruo del tramo siguiente de la oleada, 50% más grande, con el brillo rojo de los élites, ×20 de vida, ×2 de daño, algo más lento y casi sin retroceso. Aviso "A Champion X rises!" y su rugido. **Barra de vida sobre la cabeza**, como la del jugador (sin barra grande arriba). Al morir: objeto garantizado del escalón siguiente o un salto (70/30), XP ×10 en 10 gemas en corro y 10% de Zem. Los minutos se guardan con la partida; uno vivo al guardar vuelve tras la calma de Continue. Métricas: en la lista de jefes como "Champion X". How to Play: una línea nueva (las dos primeras se juntaron para que quepa).
+- **Decisiones del propietario:** uno y a veces dos; fuerza media; monstruo del tramo siguiente; premio objeto mejor + XP + 10% Zem; barra sobre la cabeza y sin la grande de arriba.
+- **Decidido por mí (ajustable en `data/champion.ts`):** 35% del segundo, separación de 0,5 min con los eventos y 2 min entre Champions, velocidad 0,85, empuje 0,3, reparto 70/30 del objeto, medidas de la barra, el rugido del propio monstruo como sonido.
+- **Código:** `data/champion.ts`; `Enemy.champion` (tamaño, `radius`, `drawHealthBar`); `EnemySystem.spawnChampion`; `SpawnSystem.setChampions/runDueChampion/pickChampion`; `LootSystem.onChampionKill` y `rollLoot(..., tierWeights)`; `GameScene.onChampion/dropXp`; `RunSnapshot.champions/championsOut`. Atajo `?debug=champion`; situación `check champion`.
+- **Comprobado:** build; `check champion` y el resto sin errores; barra que baja al recibir daño; al matarlo, 10 gemas y un objeto; guardado (vivo → `championsOut` 0, muerto → 1); minutos distintos en cada partida. Probado y aprobado por el propietario.
+- **Probar:** `pnpm --dir survivors dev` → `?play=warrior&debug=god,champion` · `?play` (partida normal).
+
 **Fase 21½, bloque 21½B: Reroll y Skip (2026-10-21).**
 - **Qué hace:** bajo las cartas de Power (y las de los cofres), botones **Reroll** (dado: 3 cartas nuevas, con su rareza otra vez) y **Skip** (vino: ninguna carta y cura el 20% de la vida), con su contador ("Reroll ×2"). Solo salen si se ha comprado alguno; gastados, se ven apagados. Ratón, dedo, teclado y mando (flecha/cruceta abajo para bajar a los botones, arriba para volver). Lo gastado se guarda con la partida. Métricas `action:reroll` / `action:skip`. How to Play: página nueva "Cards".
 - **Decisiones del propietario:** son mejoras **permanentes** que se compran (dado = +1 Reroll, vino = +1 Skip por partida, hasta 3 de cada, al vendedor del Zem en la Fase 24); Skip **cura un poco**; el dado se dibuja con código y siempre muestra el **3** (tres puntos en diagonal); el vino es el Wine del original.

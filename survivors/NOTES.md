@@ -78,6 +78,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Abaddon's Blood: resurrección permanente (Fase 21E)
 - Rareza de las cartas (Fase 21½A)
 - Reroll y Skip (Fase 21½B)
+- Evento Champion (Fase 21½C)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -912,3 +913,12 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - Métricas: `action:reroll` y `action:skip` en la misma tabla de cartas (sin tocar el servidor).
 - Teclas falsas en `check --eval`: hay que dejar la tecla pulsada ~80 ms antes de soltarla; si no, `justPressed` no la ve.
 - Probar: `?unlocks=dice3,wine3&debug=levelup` (`check rerollskip`); `dice2` = 2, `dice` = 1, `?unlocks=reset` = ninguno.
+
+## Evento Champion (Fase 21½C)
+- Números en `data/champion.ts`; `rollChampionMinutes(WAVE_EVENTS)` sortea los minutos al empezar la partida (`GameScene.create`).
+- `SpawnSystem.setChampions / runDueChampion`: sale como un jefe (`findBossPoint`, nunca se pierde) con un monstruo del tramo **siguiente** de `WAVES` (`pickChampion`), y nunca tras salir el jefe final. No pasa por `BossSystem`, así que no tiene barra grande arriba ni sale en el minimapa como jefe.
+- `Enemy.champion`: escala (`sizeFactor`, también su `radius` y `bodyY`), vida, daño, XP, velocidad y empuje; brilla como los élites (nunca es élite a la vez). Su barra la dibuja `Enemy.drawHealthBar` con la altura máxima de los frames vistos (para que no salte con la animación).
+- Al morir: `GameScene.dropXp` reparte su XP en 10 gemas en corro; `LootSystem.onChampionKill` tira con `CHAMPION.lootTiers` (solo `next` o `jump`) y 10% de Zem.
+- Guardado: `RunSnapshot.champions` (minutos) y `championsOut` (los ya salidos y muertos; uno vivo al guardar vuelve tras la calma de Continue).
+- Métricas: en la lista de jefes como "Champion <monstruo>" (aparición y muerte), sin tocar el servidor.
+- Probar: `?debug=god,champion` (sale a los 3 s; `check champion --wait=6000`). Sale fuera de la pantalla: para verlo en la captura, `--eval` que lo acerque (`g.champion.x = g.player.x + 90`).

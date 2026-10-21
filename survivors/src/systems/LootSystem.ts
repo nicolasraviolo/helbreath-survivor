@@ -3,6 +3,7 @@
 // Keep in bag) lo decide GameScene.
 import type Phaser from 'phaser';
 import { DEBUG_START } from '../config/debugStart';
+import { CHAMPION } from '../data/champion';
 import { ZEM_ID } from '../data/consumables';
 import type { Gender } from '../data/appearance';
 import type { CharacterId } from '../data/characters';
@@ -58,11 +59,20 @@ export class LootSystem {
         if (zem) this.drop({ id: ZEM_ID }, ...at(count));
     }
 
-    /** A rolled item at (x, y). */
-    public dropRolled(x: number, y: number): void {
+    /** A champion died there (Fase 21½C): an item of the next step or better, guaranteed, and sometimes a Zem beside it. */
+    public onChampionKill(x: number, y: number): void {
+        if (!this.enabled) return;
+        const zem = DEBUG_START.actions.includes('zem') || Math.random() < CHAMPION.zemChance;
+        const spread = zem ? LOOT_BOSS_SPREAD / 2 : 0;
+        this.dropRolled(x - spread, y, CHAMPION.lootTiers);
+        if (zem) this.drop({ id: ZEM_ID }, x + spread, y);
+    }
+
+    /** A rolled item at (x, y); `tierWeights` as in rollLoot. */
+    public dropRolled(x: number, y: number, tierWeights?: Parameters<typeof rollLoot>[3]): void {
         if (!this.enabled) return;
         const { classId, stats, level } = this.owner;
-        const item = rollLoot(classId, stats, level);
+        const item = rollLoot(classId, stats, level, tierWeights);
         if (item) this.drop(item, x, y);
     }
 

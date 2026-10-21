@@ -26,12 +26,12 @@ export const HOW_TO_PLAY_PAGES: readonly HowToPlayPage[] = [
     {
         name: 'Basics',
         lines: [
-            'Move around and stay alive.',
-            'Your weapons and spells attack on their own.',
+            'Move and stay alive: your weapons and spells attack on their own.',
             'Right click, right stick or right half of the screen: aim yourself.',
             'Pick up the gems that enemies drop to gain experience.',
             'Each time your Power goes up, choose a card to grow stronger.',
             'Step on the glowing Mana Stones for a power-up. Chests give a free card.',
+            'Defeat the Champions, big glowing monsters, for a better item.',
             'Survive the waves and defeat the final boss to win.',
         ],
     },

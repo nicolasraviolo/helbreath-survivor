@@ -20,6 +20,7 @@ export const RELEASE_NOTES: readonly ReleaseNote[] = [
             'Power cards now come as Common, Rare or Epic.',
             'Chest cards are always Rare or better, and Charisma brings rarer cards.',
             'New Reroll and Skip buttons on the cards, for those who own Dice or Wine.',
+            'Champions: once or twice per run, a huge monster shows up. Defeat it for a better item.',
         ],
     },
     {
