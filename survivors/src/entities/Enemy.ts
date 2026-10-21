@@ -20,10 +20,11 @@ import { enemySpeed, MONSTER_AI, MONSTER_DAMAGE, type EnemyDef } from '../data/e
 import { hitChance } from '../data/defense';
 import { ELITE } from '../data/elites';
 import { NO_DIFFICULTY, type MapDifficulty } from '../data/maps';
+import { CHAMPION } from '../data/champion';
 import { POISON } from '../data/attributes';
 import { EFFECTS } from '../config/effects';
 import { FREEZE_TINT } from '../data/totems';
-import { DEPTH_EFFECT_OFFSET, TILE_SIZE } from '../config/gameConfig';
+import { DEPTH_DAMAGE_NUMBERS, DEPTH_EFFECT_OFFSET, TILE_SIZE } from '../config/gameConfig';
 import { HBAsset } from '../hb/HBAsset';
 import type { HBMap } from '../hb/HBMap';
 import { getSheetKey } from '../hb/HBSprite';
@@ -79,7 +80,9 @@ export class Enemy implements Poolable {
     /** Sprite opacity when fully visible (the Wyverns are a bit transparent, as in the original). */
     private readonly baseAlpha: number;
     /** Walking speed in px/s, from its real action time (data/enemies.ts → enemySpeed). */
-    private readonly speed: number;
+    private readonly baseSpeed: number;
+    /** Sprite scale of its kind (data/enemies.ts), before the champion's size. */
+    private readonly baseScale: number;
     private state = MonsterState.Move;
     /** Which way to go around walls (+1 / -1), flipped when that way is blocked too. */
     private sideBias = 1;
@@ -116,11 +119,18 @@ export class Enemy implements Poolable {
     private poisonTickMs = 0;
     /** The original's green cloud over it while poisoned; made the first time this (pooled) enemy is poisoned. */
     private poisonCloud: Phaser.GameObjects.Sprite | undefined;
+    /** Champion (Fase 21½C, data/champion.ts): bigger, much tougher, glows like the elites and shows its health bar. */
+    public champion = false;
+    /** Its health bar over the head; made the first time this (pooled) enemy is a champion. */
+    private healthBar: Phaser.GameObjects.Graphics | undefined;
+    /** Highest point of its frames seen so far, above the feet (px): the bar sits over it without jumping. */
+    private headHeight = 0;
 
     constructor(scene: Phaser.Scene, public readonly def: EnemyDef, private readonly audio: AudioSystem) {
         const scale = def.scale ?? 1;
+        this.baseScale = scale;
         this.baseAlpha = def.alpha ?? 1;
-        this.speed = enemySpeed(def);
+        this.baseSpeed = enemySpeed(def);
         this.sprite = scene.add.existing(new HBAsset(scene, 0, 0, def.sprite)).setScale(scale);
         if (def.hasShadow) {
             this.shadow = scene.add.sprite(0, 0, getSheetKey(def.sprite, 0), '0')
@@ -137,11 +147,14 @@ export class Enemy implements Poolable {
         return this.phase === EnemyPhase.Alive;
     }
 
-    public spawn(x: number, y: number, elite = false, difficulty: MapDifficulty = NO_DIFFICULTY): void {
+    public spawn(x: number, y: number, elite = false, difficulty: MapDifficulty = NO_DIFFICULTY, champion = false): void {
         this.x = x;
         this.y = y;
-        this.elite = elite;
+        this.elite = elite && !champion;
+        this.champion = champion;
         this.difficulty = difficulty;
+        this.headHeight = 0;
+        this.applySize();
         this.hp = this.maxHp;
         this.hitsTaken = 0;
         this.phase = EnemyPhase.Alive;
@@ -196,16 +209,31 @@ export class Enemy implements Poolable {
         if (this.flashMs <= 0) this.sprite.setTint(FREEZE_TINT);
     }
 
-    /** Full health: the elites have more. */
+    /** Full health: the elites have more, the champions much more. */
     public get maxHp(): number {
-        const hp = this.def.maxHp * this.difficulty.hp;
-        return Math.max(1, Math.round(this.elite ? hp * ELITE.hpMultiplier : hp));
+        const factor = this.champion ? CHAMPION.hpMultiplier : this.elite ? ELITE.hpMultiplier : 1;
+        return Math.max(1, Math.round(this.def.maxHp * this.difficulty.hp * factor));
     }
 
-    /** XP of the gem it drops: the elites give more. */
+    /** XP it drops (a champion's is split into several gems by the game scene): the elites give more. */
     public get xp(): number {
-        const xp = this.def.xp * this.difficulty.hp;
-        return Math.max(1, Math.round(this.elite ? xp * ELITE.xpMultiplier : xp));
+        const factor = this.champion ? CHAMPION.xpMultiplier : this.elite ? ELITE.xpMultiplier : 1;
+        return Math.max(1, Math.round(this.def.xp * this.difficulty.hp * factor));
+    }
+
+    /** How much bigger than its kind it is (champions). */
+    public get sizeFactor(): number {
+        return this.champion ? CHAMPION.sizeFactor : 1;
+    }
+
+    /** Body radius (px), for touching and pushing: champions are bigger. */
+    public get radius(): number {
+        return this.def.radius * this.sizeFactor;
+    }
+
+    /** Walking speed now (px/s): champions are a bit slower. */
+    private get speed(): number {
+        return this.champion ? this.baseSpeed * CHAMPION.speedFactor : this.baseSpeed;
     }
 
     public get isFrozen(): boolean {
@@ -219,7 +247,7 @@ export class Enemy implements Poolable {
 
     /** Point where projectiles aim and hit (above the feet). */
     public get bodyY(): number {
-        return this.y - this.def.bodyOffsetY;
+        return this.y - this.def.bodyOffsetY * this.sizeFactor;
     }
 
     /**
@@ -249,7 +277,7 @@ export class Enemy implements Poolable {
         const distance = Math.hypot(dx, dy);
         if (distance <= 0) return;
         // Bosses barely move when hit.
-        const knockback = speed * (this.def.knockbackTaken ?? 1);
+        const knockback = speed * (this.champion ? CHAMPION.knockbackTaken : this.def.knockbackTaken ?? 1);
         this.knockX += (dx / distance) * knockback;
         this.knockY += (dy / distance) * knockback;
     }
@@ -307,6 +335,7 @@ export class Enemy implements Poolable {
         this.cure();
         if (this.isFrozen) this.thaw();
         this.shadow?.setVisible(false);
+        this.healthBar?.setVisible(false);
         this.play(MonsterState.Dead, true);
         return true;
     }
@@ -405,7 +434,7 @@ export class Enemy implements Poolable {
                 // Waits its action time facing the player.
                 wanted = MonsterState.Idle;
             }
-        } else if (distance > world.targetRadius + this.def.radius) {
+        } else if (distance > world.targetRadius + this.radius) {
             vx += (dx / distance) * this.speed;
             vy += (dy / distance) * this.speed;
         }
@@ -439,7 +468,7 @@ export class Enemy implements Poolable {
      * axis, like the original server).
      */
     private inReach(dx: number, dy: number, distance: number, targetRadius: number): boolean {
-        if (this.def.attackRange <= 1) return distance <= targetRadius + this.def.radius + MONSTER_ATTACK.reach;
+        if (this.def.attackRange <= 1) return distance <= targetRadius + this.radius + MONSTER_ATTACK.reach;
         const reach = this.def.attackRange * TILE_SIZE;
         return Math.abs(dx) <= reach && Math.abs(dy) <= reach;
     }
@@ -507,7 +536,7 @@ export class Enemy implements Poolable {
         for (let i = 0; i < count; i++) roll += Phaser.Math.Between(1, sides);
         const average = (count * (sides + 1)) / 2;
         const blow = MONSTER_DAMAGE.scale * average ** MONSTER_DAMAGE.exponent * (roll / average);
-        const elite = this.elite ? ELITE.damageMultiplier : 1;
+        const elite = this.champion ? CHAMPION.damageMultiplier : this.elite ? ELITE.damageMultiplier : 1;
         return Math.max(1, Math.round(blow * (this.def.damageScale ?? 1) * elite * this.difficulty.damage));
     }
 
@@ -546,6 +575,7 @@ export class Enemy implements Poolable {
     /** Moves sprite and shadow to the logical position; the shadow copies the current frame. */
     private syncDisplay(): void {
         this.sprite.setPosition(this.x, this.y).setDepth(this.y);
+        if (this.champion) this.drawHealthBar();
         const shadow = this.shadow;
         if (!shadow || this.state === MonsterState.Dead || this.state === MonsterState.TakeDamage) return;
         const frame = this.sprite.frame;
@@ -571,7 +601,7 @@ export class Enemy implements Poolable {
         const frame = sprite.frame;
         const key = frame.texture.key;
         const glowing = key.endsWith(ELITE_GLOW_SUFFIX);
-        const wanted = this.elite && !this.isFrozen;
+        const wanted = (this.elite || this.champion) && !this.isFrozen;
         if (wanted === glowing) return;
         if (!wanted) {
             sprite.setTexture(key.slice(0, -ELITE_GLOW_SUFFIX.length), frame.name);
@@ -581,9 +611,36 @@ export class Enemy implements Poolable {
         if (ensureGlowTexture(sprite.scene, key, glowKey, ELITE.glowTint, ELITE.glowAlpha)) sprite.setTexture(glowKey, frame.name);
     }
 
+    /** Its kind's size, or bigger for a champion (sprite and shadow). */
+    private applySize(): void {
+        const scale = this.baseScale * this.sizeFactor;
+        this.sprite.setScale(scale);
+        this.shadow?.setScale(scale, MONSTER_SHADOW_SCALE_Y * scale);
+    }
+
+    /**
+     * Champion: its health bar over the head, like the player's. The head is the highest point of the frames seen so
+     * far, so the bar doesn't jump with each frame of the animation.
+     */
+    private drawHealthBar(): void {
+        const { width, height, gapAboveHead, backColor, fillColor, backAlpha } = CHAMPION.bar;
+        const frame = this.sprite.frame;
+        this.headHeight = Math.max(this.headHeight, frame.pivotY * frame.height * this.sprite.scaleY);
+        if (!this.healthBar) this.healthBar = this.sprite.scene.add.graphics();
+        const top = this.y - this.headHeight - gapAboveHead - height;
+        const left = this.x - width / 2;
+        const ratio = Phaser.Math.Clamp(this.hp / this.maxHp, 0, 1);
+        this.healthBar.setVisible(true).setDepth(DEPTH_DAMAGE_NUMBERS - 1).clear()
+            .fillStyle(backColor, backAlpha)
+            .fillRect(left - 1, top - 1, width + 2, height + 2)
+            .fillStyle(fillColor, 1)
+            .fillRect(left, top, width * ratio, height);
+    }
+
     private setActive(active: boolean): void {
         this.sprite.setActive(active).setVisible(active);
         this.shadow?.setActive(active).setVisible(active);
+        if (!active || !this.champion) this.healthBar?.setVisible(false);
         if (!active) this.sprite.anims.stop();
     }
 }

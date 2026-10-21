@@ -25,6 +25,17 @@ export const RELEASE_NOTES: readonly ReleaseNote[] = [
         ],
     },
     {
+        version: 'Phase 21½',
+        date: 'Oct 21, 2026',
+        changes: [
+            'Power cards now come as Common, Rare or Epic.',
+            'Chest cards are always Rare or better, and Charisma brings rarer cards.',
+            'New Reroll and Skip buttons on the cards, for those who own Dice or Wine.',
+            'Champions: once or twice per run, a huge monster shows up. Defeat it for a better item.',
+            'How to Play text now fits its window.',
+        ],
+    },
+    {
         version: 'Phase 21',
         date: 'Oct 20, 2026',
         changes: [
@@ -35,6 +46,7 @@ export const RELEASE_NOTES: readonly ReleaseNote[] = [
             'Win to keep your loot, or wear a Zemstone: bosses may drop one.',
             "New: Abaddon's Blood brings you back to life once per run.",
             'Health potions are now much rarer.',
+            'Continue is gone from the menu: pick a character to resume or restart its run.',
         ],
     },
     {

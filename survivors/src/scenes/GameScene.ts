@@ -24,7 +24,8 @@ import { RunLoot } from '../systems/RunLoot';
 import type { LootSceneData } from './LootScene';
 import { MUSIC } from '../data/audio';
 import type { SoundKey } from '../config/assetManifest';
-import { PORTAL, type WaveEventDef } from '../data/waves';
+import { PORTAL, finalBossMinute, type WaveEventDef } from '../data/waves';
+import { CHAMPION, championMessage, championMetricsName, rollChampionMinutes } from '../data/champion';
 import type { Enemy } from '../entities/Enemy';
 import { Portal } from '../entities/Portal';
 import { BossSystem } from '../systems/BossSystem';
@@ -50,6 +51,9 @@ import { PLAYER_FRAMES_PER_DIRECTION } from '../hb/playerAppearance';
 import { CharacterStats } from '../entities/CharacterStats';
 import { BuffSystem } from '../systems/BuffSystem';
 import { PickupSystem } from '../systems/PickupSystem';
+import { EPIC_CARD_SOUND } from '../data/cardRarity';
+import { CARD_ACTION, SKIP_HEAL_SHARE, type CardAction } from '../data/rerollSkip';
+import { unlockStore } from '../systems/UnlockStore';
 import { CHEST_CARDS_TITLE, POTION_HEAL_SHARE, type PickupId } from '../data/pickups';
 import { getTotem, TOTEM_IDS, type TotemId } from '../data/totems';
 import { TotemSystem } from '../systems/TotemSystem';
@@ -116,6 +120,7 @@ const DEBUG_PICKUP_SPACING = 48;
 const DEBUG_TOTEM_SPACING = 120;
 /** Time skipped by the debug key J. */
 const DEBUG_SKIP_MS = 60000;
+const MS_PER_MINUTE = 60000;
 /** Levels given by the debug key L (one card per level). */
 const DEBUG_LEVELS = 5;
 /** ?debug=charexp: the run's XP counts this many times for the character's Level (to test the Level up quickly). */
@@ -166,6 +171,8 @@ export class GameScene extends Phaser.Scene {
     private debugStartWaitMs = DEBUG_START_DELAY_MS;
     private world!: EnemyWorld;
     private bosses!: BossSystem;
+    /** The champion on the map (Fase 21½C), while it lives: it comes back on Continue if it was alive. */
+    private champion: Enemy | undefined;
     private enemyShots!: EnemyProjectileSystem;
     private music!: MusicSystem;
     /** The final boss is dead: no more monsters; its chest opens the portal. */
@@ -199,6 +206,8 @@ export class GameScene extends Phaser.Scene {
     private totems!: TotemSystem;
     /** Free cards from chests not chosen yet (Fase 16B): they show after any level-up cards. */
     private chestCards = 0;
+    /** Rerolls and Skips left in this run (Fase 21½B): one per Dice / Wine bought (UnlockStore). */
+    private cardActionsLeft: Record<CardAction, number> = { reroll: 0, skip: 0 };
     private equipment!: Equipment;
     /** Melee weapon in hand (Warrior); undefined for spell casters. */
     private meleeWeapon: MeleeWeapon | undefined;
@@ -304,8 +313,10 @@ export class GameScene extends Phaser.Scene {
         this.enemies.difficulty = mapDef.difficulty;
         this.spawner = new SpawnSystem(
             camera, this.enemies, map, areaPx, getTimeline(this.mapId), (event, spawned) => this.onWaveEvent(event, spawned),
-            (id) => assetStreamer.isReady(id), (id) => assetStreamer.hurry(id),
+            (id) => assetStreamer.isReady(id), (id) => assetStreamer.hurry(id), (champion) => this.onChampion(champion),
         );
+        this.champion = undefined;
+        this.spawner.setChampions(this.rollChampions(), 0);
         // Normally already started by the map's loading screen (Fase 22B); this covers starting a run any other way.
         assetStreamer.start(this, this.mapId);
         this.damageNumbers = new DamageNumbers(this);
@@ -319,7 +330,7 @@ export class GameScene extends Phaser.Scene {
         this.particles = new HitParticles(this);
         this.screenShake = new ScreenShake(camera);
         this.combat = new CombatSystem(this.enemies, this.damageNumbers, this.audio, this.particles, this.stats, (enemy) => {
-            this.xp.drop(enemy.x, enemy.y, enemy.xp);
+            this.dropXp(enemy);
             this.pickups.onKill(enemy.x, enemy.y);
             this.onEnemyKilled(enemy);
         });
@@ -342,6 +353,7 @@ export class GameScene extends Phaser.Scene {
         }
         this.totems = new TotemSystem(this, map, areaPx, this.audio, (id) => this.collectTotem(id));
         this.chestCards = 0;
+        this.cardActionsLeft = { reroll: unlockStore.count(CARD_ACTION.reroll.unlock), skip: unlockStore.count(CARD_ACTION.skip.unlock) };
         this.enemyShots = new EnemyProjectileSystem(this, this.audio, (key, x, y) => this.weapons.spawnEffect(key, x, y),
             (x, y) => this.damageNumbers.showWord(x, y, RESIST_TEXT));
         this.bosses = new BossSystem(this.enemyShots, (minions, x, y) => this.spawner.spawnRing(minions.enemies, minions.count, x, y, minions.radius));
@@ -506,25 +518,60 @@ export class GameScene extends Phaser.Scene {
         this.buffs.announce(def.name, def.color);
     }
 
+    /** Three cards for a level up or a chest, with their rarity drawn with the run's Chr (Fase 21½A). */
+    private levelUpChoices(fromChest: boolean): LevelUpChoice[] {
+        return buildLevelUpChoices(this.equipment, this.stats.stats.chr, {
+            chest: fromChest,
+            onlyPassives: DEBUG_START.actions.includes('stones'),
+            allEpic: DEBUG_START.actions.includes('epic'),
+        });
+    }
+
     /** Pauses the game and shows the cards (of a level up, or of a chest). Picking one applies it and resumes. */
     private openLevelUp(fromChest: boolean): void {
         this.levelUpOpen = true;
         if (!fromChest) this.audio.play(GENDER_SOUNDS[this.player.look.gender].levelUp);
         const stats = this.stats;
+        const choices = this.levelUpChoices(fromChest);
+        if (choices.some((c) => c.rarity === 'epic')) this.audio.play(EPIC_CARD_SOUND);
+        // A card picked, or none (Skip).
+        const close = (choice: LevelUpChoice | undefined) => {
+            this.chooseCard(choice, fromChest);
+            this.levelUpOpen = false;
+            this.scene.stop('LevelUp');
+            this.scene.resume();
+        };
         const data: LevelUpSceneData = {
             stats,
             equipment: this.equipment,
-            choices: buildLevelUpChoices(this.equipment, DEBUG_START.actions.includes('stones')),
+            choices,
             title: fromChest ? CHEST_CARDS_TITLE : undefined,
-            onChoose: (choice) => {
-                this.chooseCard(choice, fromChest);
-                this.levelUpOpen = false;
-                this.scene.stop('LevelUp');
-                this.scene.resume();
+            actionsLeft: this.cardActionsLeft,
+            onChoose: close,
+            // Fase 21½B: three new cards (their rarity drawn again).
+            onReroll: () => {
+                this.spendCardAction('reroll');
+                const fresh = this.levelUpChoices(fromChest);
+                if (fresh.some((c) => c.rarity === 'epic')) this.audio.play(EPIC_CARD_SOUND);
+                this.saveRun();
+                return fresh;
+            },
+            // No card; heals a little instead.
+            onSkip: () => {
+                this.spendCardAction('skip');
+                this.player.heal(Math.round(this.player.maxHp * SKIP_HEAL_SHARE));
+                close(undefined);
             },
         };
         this.scene.pause();
         this.scene.launch('LevelUp', data);
+    }
+
+    /** Uses one Reroll or Skip (Fase 21½B): sound, counter and metrics. */
+    private spendCardAction(action: CardAction): void {
+        this.cardActionsLeft[action] = Math.max(0, this.cardActionsLeft[action] - 1);
+        this.audio.play(CARD_ACTION[action].sound);
+        this.metrics.onCardAction(action);
     }
 
     /** What the player wears now in that slot (Fase 21A, for the loot card), with its attribute (Fase 21B). */
@@ -701,11 +748,17 @@ export class GameScene extends Phaser.Scene {
         }
         this.achievements.potionsDrunk = run.potionsDrunk;
         this.abaddon.restore(run.abaddonUsed);
+        // Never more than bought now (a Continue doesn't refill what was used).
+        if (run.rerollsLeft !== undefined) this.cardActionsLeft.reroll = Math.min(run.rerollsLeft, this.cardActionsLeft.reroll);
+        if (run.skipsLeft !== undefined) this.cardActionsLeft.skip = Math.min(run.skipsLeft, this.cardActionsLeft.skip);
         this.buffs.restore(run.buffs);
         if (run.critCharges !== undefined) this.critStrike.restore(run.critCharges, stats.level);
         else this.critStrike.restore(maxCritCharges(stats.level), stats.level);
         this.activeSpell?.restore(run.spellCooldownMs ?? 0, stats.stats.mag);
         this.spawner.resumeAt(run.elapsedMs, RESUME_CALM_MS, run.bosses);
+        // Fase 21½C: the same champions as before (saves from before roll new ones, only those still to come).
+        if (run.champions) this.spawner.setChampions(run.champions, run.championsOut ?? 0);
+        else this.spawner.setChampions(this.rollChampions().filter((m) => m * MS_PER_MINUTE > run.elapsedMs), 0);
         // Saved after the final boss: the player starts somewhere else, so its chest (or the portal) appears next to them.
         if (run.finalBossDead) {
             this.finalBossDead = true;
@@ -747,6 +800,11 @@ export class GameScene extends Phaser.Scene {
             metrics: this.metrics.snapshot(),
             loot: this.runLoot.snapshot(),
             abaddonUsed: this.abaddon.spent,
+            rerollsLeft: this.cardActionsLeft.reroll,
+            skipsLeft: this.cardActionsLeft.skip,
+            champions: [...this.spawner.champions],
+            // A champion still alive comes back after the calm on Continue.
+            championsOut: this.spawner.championsAppeared - (this.champion?.isAlive ? 1 : 0),
         };
     }
 
@@ -936,11 +994,11 @@ export class GameScene extends Phaser.Scene {
             this.openLoot();
         } else if (this.stats.pendingLevelUps > 0 && !this.levelUpOpen && !player.isDead) {
             if (this.finalBossDead) this.levelUpWithoutCards();
-            else if (this.sim) this.chooseCard(this.sim.pick(buildLevelUpChoices(this.equipment)));
+            else if (this.sim) this.chooseCard(this.sim.pick(this.levelUpChoices(false)));
             else this.openLevelUp(false);
         } else if (this.chestCards > 0 && !this.levelUpOpen && !player.isDead) {
             // A chest's card, even after the final boss (its chest gives one too).
-            if (this.sim) this.chooseCard(this.sim.pick(buildLevelUpChoices(this.equipment)), true);
+            if (this.sim) this.chooseCard(this.sim.pick(this.levelUpChoices(true)), true);
             else this.openLevelUp(true);
         }
         return true;
@@ -1215,6 +1273,10 @@ export class GameScene extends Phaser.Scene {
             case 'stampede':
                 this.spawner.runFirstEvent('stampede');
                 break;
+            case 'champion':
+                // A champion a few seconds from now (Fase 21½C).
+                this.spawner.addChampionIn(CHAMPION.debugDelayMs);
+                break;
             case 'god':
                 this.player.setGodMode(!this.player.godMode);
                 this.godModeLabel.setVisible(this.player.godMode);
@@ -1278,6 +1340,34 @@ export class GameScene extends Phaser.Scene {
         }
     }
 
+    /** The XP of a dead monster: one gem, or a champion's shower of them in a ring around it (Fase 21½C). */
+    private dropXp(enemy: Enemy): void {
+        if (!enemy.champion) {
+            this.xp.drop(enemy.x, enemy.y, enemy.xp);
+            return;
+        }
+        const { xpGems, xpGemSpread } = CHAMPION;
+        const each = Math.max(1, Math.round(enemy.xp / xpGems));
+        for (let i = 0; i < xpGems; i++) {
+            const angle = (i / xpGems) * Math.PI * 2;
+            this.xp.drop(enemy.x + Math.cos(angle) * xpGemSpread, enemy.y + Math.sin(angle) * xpGemSpread, each);
+        }
+    }
+
+    /** This run's champion minutes (Fase 21½C), away from this map's events and before its final boss (Fase 22). */
+    private rollChampions(): number[] {
+        const bossMinute = finalBossMinute(this.mapId) ?? Infinity;
+        return rollChampionMinutes(getTimeline(this.mapId).events).filter((minute) => minute < bossMinute);
+    }
+
+    /** A champion appeared (Fase 21½C): its warning, its own roar, and the metrics. */
+    private onChampion(champion: Enemy): void {
+        this.champion = champion;
+        this.events.emit(ANNOUNCE_EVENT, championMessage(champion.def.name));
+        this.audio.play(champion.def.attackSound);
+        this.metrics.onBossSpawn(championMetricsName(champion.def.name), this.spawner.elapsed);
+    }
+
     /** A moment of the timeline: shows its warning and remembers the bosses. */
     private onWaveEvent(event: WaveEventDef, spawned: readonly Enemy[]): void {
         this.events.emit(ANNOUNCE_EVENT, event.message);
@@ -1295,6 +1385,13 @@ export class GameScene extends Phaser.Scene {
      */
     private onEnemyKilled(enemy: Enemy): void {
         const boss = enemy.def.boss;
+        if (enemy.champion) {
+            // Fase 21½C: its guaranteed item (and maybe a Zem); its gems already fell (dropXp).
+            this.loot.onChampionKill(enemy.x, enemy.y);
+            this.metrics.onBossDead(championMetricsName(enemy.def.name), this.spawner.elapsed);
+            if (this.champion === enemy) this.champion = undefined;
+            return;
+        }
         if (!boss) {
             this.sim?.onKill(enemy.hitsTaken);
             this.loot.onKill(enemy.x, enemy.y, enemy.elite);
@@ -1315,7 +1412,7 @@ export class GameScene extends Phaser.Scene {
         this.pickups.drop('finalChest', enemy.x, enemy.y);
         this.events.emit(ANNOUNCE_EVENT, PORTAL.bossDeadMessage);
         this.combat.killAll((other) => {
-            this.xp.drop(other.x, other.y, other.xp);
+            this.dropXp(other);
             this.onEnemyKilled(other);
         });
         this.xp.attractAll();

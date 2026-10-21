@@ -35,6 +35,12 @@ const PRESETS = {
     menu: '',
     game: 'play',
     levelup: 'debug=levelup',
+    // Fase 21½A: todas las cartas Epic (marco morado, cinta, brillo y sonido).
+    epic: 'debug=epic,levelup',
+    // Fase 21½B: 3 Reroll y 3 Skip comprados, con las cartas abiertas.
+    rerollskip: 'unlocks=dice3,wine3&debug=levelup',
+    // Fase 21½C: un Champion a los 3 segundos (usar --wait=6000 para verlo en la captura).
+    champion: 'debug=god,champion',
     boss: 'debug=god,boss',
     // Minimapa (Fase 16A): con un jefe vivo, para ver su punto rojo junto al del jugador.
     minimap: 'debug=god,boss',
@@ -96,6 +102,8 @@ const PRESETS = {
     // Veneno (Fase 21B): Gorn con su arma Poison en una horda; números verdes que nunca matan.
     poison: 'play=warrior&characters=demo&debug=god,horde&attr=poison',
     slotsempty: 'characters=reset&open=slots',
+    // Continue / New Run al elegir un personaje con partida guardada (21-oct-2026).
+    runchoice: 'characters=demo&open=runchoice',
     // Select Map (Fase 22A): con los personajes de ejemplo (mapsall: todos abiertos; mapsnew: dispositivo sin ganar nada).
     mapselect: 'characters=demo&open=mapselect',
     mapsall: 'characters=demo&open=mapselect&maps=all',
@@ -212,7 +220,7 @@ async function runScenario(browser, name) {
     }
 
     // ?open= (debugStart.ts) shows a menu screen: wait for it instead of the game.
-    const openKey = { howtoplay: 'HowToPlay', settings: 'Settings', controls: 'Controls', credits: 'Credits', releasenotes: 'ReleaseNotes', achievements: 'Achievements', select: 'CharacterSelect', slots: 'CharacterSlots', mapselect: 'MapSelect', charinfo: 'CharacterInfo', equipment: 'Equipment', warehouse: 'Warehouse' }[params.get('open') ?? ''];
+    const openKey = { howtoplay: 'HowToPlay', settings: 'Settings', controls: 'Controls', credits: 'Credits', releasenotes: 'ReleaseNotes', achievements: 'Achievements', select: 'CharacterSelect', slots: 'CharacterSlots', mapselect: 'MapSelect', charinfo: 'CharacterInfo', equipment: 'Equipment', warehouse: 'Warehouse', runchoice: 'RunChoice' }[params.get('open') ?? ''];
     const target = params.has('loading') ? 'Preload' : openKey ?? (query ? 'Game' : 'MainMenu');
     await page.goto(url);
     const t0 = Date.now();

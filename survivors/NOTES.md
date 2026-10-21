@@ -78,6 +78,9 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Abaddon's Blood: resurrección permanente (Fase 21E)
 - Varios mapas y Select Map (Fase 22A)
 - Carga por mapa y tiempos de carga (Fase 22B)
+- Rareza de las cartas (Fase 21½A)
+- Reroll y Skip (Fase 21½B)
+- Evento Champion (Fase 21½C)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -623,6 +626,7 @@ Tabla completa en `docs/REQUISITOS_HB.md`. Lo no obvio:
 - `BossSystem.track(enemy, id)`: los `EnemyDef` no llevan su id, así que el jefe recuerda su nombre al registrarse (lo da el evento de oleada).
 - Continue: `registry` `RESUME_SLOT_KEY` → `GameScene.create` lo lee y lo borra (así Restart del fin de partida empieza una nueva). `SpawnSystem.resumeAt` salta los eventos ya pasados y devuelve los jefes al acabar la calma; si se guarda durante la calma, esos jefes cuentan (`bossesWaiting`).
 - Para probar la pausa automática en Playwright: redefinir `document.visibilityState` a `'hidden'` y lanzar `visibilitychange`. Las teclas en Playwright hay que mantenerlas pulsadas ~100 ms (`keyboard.down`/`up`): un `press` corto a veces no llega al juego.
+- **Sin Continue en el menú (21-oct-2026):** solo Play. En Select Character, un personaje con partida guardada abre `scenes/RunChoiceScene.ts`: Continue la sigue; New Run avisa ("No" va primero) y, con Yes, borra la partida (`saveStore.clear`, se pierden su EXP y su botín) y empieza otra. `startCharacterRun` es el único sitio que arranca la partida desde ahí. Ver con `check runchoice` (`?open=runchoice`). Cuando llegue Select Map (Fase 22), la partida nueva pasará por ahí.
 
 ## Settings táctil (Fase 12C)
 - `MenuList` tiene filas con casilla (`checked`), dibujadas con `Graphics`: el original no tiene sprite de casilla (sp-client la hace en React). Se probó una barra deslizante para el volumen y el propietario prefirió las flechas con el número (18-oct-2026).
@@ -913,3 +917,28 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - **Personajes (cierre del 22B):** antes del menú solo van las piezas de los dos aspectos por defecto (`UPFRONT_LOOK_SPRITES` en `config/assetManifest.ts`: Guerrero hombre y Maga mujer, piel clara, ropa de salida). Todo lo demás de `player.*` y `gear.*` está en `ON_DEMAND_SPRITES` (calculado), también la espada y el escudo del Guerrero (`msw`/`msh`, 2,2 MB; la daga está ahí): en los menús aparece un instante después la primera vez. `MapLoadScene` espera a lo que lleva puesto el personaje (`runSprites` de `LookLoader`), así que en partida no aparece nada tarde. Un `player.`/`gear.` nuevo es bajo demanda sin tocar nada; si debe estar antes del menú, va en `UPFRONT_LOOK_SPRITES`.
 - **Tiempos tras el recorte:** Preload 9,5 MB (PC 3,0 s / móvil 13,7 s); el mapa del Guerrero sube 1,4 MB (su espada): Bleeding Isle 13,1 MB (2,8 / 13,7 s). Total hasta jugar en móvil: 41 s al empezar el bloque → 27 s.
 
+## Rareza de las cartas (Fase 21½A)
+- Números en `data/cardRarity.ts`; sorteo en `systems/UpgradePool.ts` (`buildLevelUpChoices(equipment, chr, { chest, onlyPassives, allEpic })`). Desde la partida se piden siempre con `GameScene.levelUpChoices(fromChest)`, que lee la Chr de la partida y los atajos.
+- Cada carta sortea su rareza aparte. En las pasivas, `rank` es el rango **final** (actual + 1/2/3); si no caben los rangos, la rareza baja (`fitRarity`). La línea "antes" de la carta usa el rango actual del equipo, no `rank − 1`.
+- El sonido de la Epic (`sfx.cardEpic`, E23, el mismo "chin" que los tótems) suena desde `GameScene.openLevelUp`, con el `AudioSystem`, no desde la escena de cartas.
+- Métricas: las Rare y Epic elegidas se cuentan en la misma tabla de cartas como `rarity:rare` y `rarity:epic` (salen en "Most picked cards" sin tocar el servidor).
+- Probar: `pnpm check epic` (todas Epic) y `?debug=epic`. Reparto medido con 3.000 cartas: 81/15/4 normal, 0/81/19 en cofres, 71/23/6 con Chr 60.
+
+## Reroll y Skip (Fase 21½B)
+- Números y textos en `data/rerollSkip.ts`. Lo comprado (dado y vino, 0–3 cada uno) vive en `UnlockStore` (`count` / `buy`), clave `hb-survivors.unlocks` **versión 2** (añade `counts`; una versión 1 se lee como 0 de cada). La tienda de la Fase 24 solo tiene que llamar a `unlockStore.buy('dice' | 'wine')`.
+- En partida, `GameScene.cardActionsLeft` empieza con lo comprado; se guarda en `RunSnapshot.rerollsLeft` / `skipsLeft`. Al continuar se usa lo guardado, sin pasar de lo comprado ahora.
+- La escena de cartas recibe `actionsLeft` (el mismo objeto, que lee de nuevo tras cada uso), `onReroll` (devuelve las 3 cartas nuevas) y `onSkip`. `onChoose(undefined)` = sin carta. Los botones solo salen si se ha comprado alguno; con 0 usos se ven apagados.
+- Navegación: flecha abajo pasa de las cartas a los botones (`selectedButton >= 0`) y arriba vuelve. En el móvil, con botones, las cartas se encogen a 0,88 (`CARD_SCALE_WITH_ACTIONS`) para que quepan.
+- El dado se dibuja con `ui/DiceIcon.ts`, siempre con la cara del 3 (`DICE_FACE`, propietario). El vino es el Wine del original (hoja 5 de item-pack, frame 117).
+- Métricas: `action:reroll` y `action:skip` en la misma tabla de cartas (sin tocar el servidor).
+- Teclas falsas en `check --eval`: hay que dejar la tecla pulsada ~80 ms antes de soltarla; si no, `justPressed` no la ve.
+- Probar: `?unlocks=dice3,wine3&debug=levelup` (`check rerollskip`); `dice2` = 2, `dice` = 1, `?unlocks=reset` = ninguno.
+
+## Evento Champion (Fase 21½C)
+- Números en `data/champion.ts`; `GameScene.rollChampions()` sortea los minutos al empezar la partida con los eventos de **su mapa** (`rollChampionMinutes`) y quita los que caen tras su jefe final (en Traveler Zone, el 7; fusión con la Fase 22).
+- `SpawnSystem.setChampions / runDueChampion`: sale como un jefe (`findBossPoint`, nunca se pierde) con un monstruo del tramo **siguiente** de las oleadas de su mapa (`pickChampion`), y nunca tras salir el jefe final. No pasa por `BossSystem`, así que no tiene barra grande arriba ni sale en el minimapa como jefe.
+- `Enemy.champion`: escala (`sizeFactor`, también su `radius` y `bodyY`), vida, daño, XP, velocidad y empuje; brilla como los élites (nunca es élite a la vez). Su barra la dibuja `Enemy.drawHealthBar` con la altura máxima de los frames vistos (para que no salte con la animación).
+- Al morir: `GameScene.dropXp` reparte su XP en 10 gemas en corro; `LootSystem.onChampionKill` tira con `CHAMPION.lootTiers` (solo `next` o `jump`) y 10% de Zem.
+- Guardado: `RunSnapshot.champions` (minutos) y `championsOut` (los ya salidos y muertos; uno vivo al guardar vuelve tras la calma de Continue).
+- Métricas: en la lista de jefes como "Champion <monstruo>" (aparición y muerte), sin tocar el servidor.
+- Probar: `?debug=god,champion` (sale a los 3 s; `check champion --wait=6000`). Sale fuera de la pantalla: para verlo en la captura, `--eval` que lo acerque (`g.champion.x = g.player.x + 90`).

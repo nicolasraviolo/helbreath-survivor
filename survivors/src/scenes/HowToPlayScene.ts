@@ -33,7 +33,7 @@ export class HowToPlayScene extends MenuOverlayScene {
 
     private showPage(): void {
         this.content?.destroy();
-        const content = this.add.container(MENU_OVERLAY.panelX, this.contentTop - MENU_OVERLAY.itemSpacing / 2);
+        const content = this.add.container(MENU_OVERLAY.panelX, this.contentTop + HOW_TO_PLAY.contentOffsetY);
         this.content = content;
         const page = HOW_TO_PLAY_PAGES[this.page];
         if (page.lines) {

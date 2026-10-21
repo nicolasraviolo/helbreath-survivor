@@ -1,6 +1,6 @@
-// Pantalla "Select Character" del Helbreath original (Fase 17A): sale al pulsar Play o Continue en el menú principal.
-// Una partida guardada por personaje (SaveStore, mismo número de hueco): elegir un personaje con partida a medias la
-// continúa, también desde Play. En Continue solo se pueden elegir esos; los demás se ven apagados.
+// Pantalla "Select Character" del Helbreath original (Fase 17A): sale al pulsar Play en el menú principal.
+// Una partida guardada por personaje (SaveStore, mismo número de hueco): elegir un personaje con partida a medias abre
+// RunChoiceScene (Continue o New Run, 21-oct-2026); sin partida, empieza una nueva.
 // Cuatro huecos en fila; en cada uno, el personaje guardado (CharacterStore) caminando en el sitio y girando, con su
 // nombre, su Level y su EXP debajo (Fase 20A), y "+N" en verde si tiene puntos sin repartir. Un hueco vacío lleva a
 // Create Character (CharacterSelectScene).
@@ -33,21 +33,21 @@ import {
 } from '../config/characterSlots';
 import { DEBUG_START } from '../config/debugStart';
 import { CHARACTER_SLOT_COUNT } from '../data/characterSlots';
-import { CHARACTERS, CHOSEN_CHARACTER_KEY } from '../data/characters';
+import { CHARACTERS } from '../data/characters';
 import { CharacterSprite } from '../entities/CharacterSprite';
 import { Direction } from '../hb/directions';
 import { PlayerState } from '../hb/playerAppearance';
-import { ACTIVE_CHARACTER_KEY, characterStore } from '../systems/CharacterStore';
+import { characterStore } from '../systems/CharacterStore';
 import { Action, InputSystem } from '../systems/InputSystem';
-import { RESUME_SLOT_KEY, saveStore } from '../systems/SaveStore';
+import { saveStore } from '../systems/SaveStore';
 import { formatTime } from '../utils/format';
 import { totalExpForLevel } from '../data/characterLevel';
 import type { CharacterInfoSceneData } from './CharacterInfoScene';
 import type { EquipmentSceneData } from './EquipmentScene';
 import type { WarehouseSceneData } from './WarehouseScene';
 import type { CharacterSelectSceneData } from './CharacterSelectScene';
-import type { MapLoadSceneData } from './MapLoadScene';
 import { openOverlay } from './MenuOverlayScene';
+import { startCharacterRun, type RunChoiceSceneData } from './RunChoiceScene';
 
 /** 640x480 coordinates of the original image → screen pixels. */
 function s(value: number): number {
@@ -59,6 +59,7 @@ let debugInfoOpened = false;
 /** ?open=equipment opens the Equipment screen only the first time. */
 let debugEquipmentOpened = false;
 let debugWarehouseOpened = false;
+let debugRunChoiceOpened = false;
 
 /** The original turns the characters this way round (m_cMenuDir 1..8). */
 const DIRECTIONS_CLOCKWISE = [
@@ -76,15 +77,12 @@ interface Button {
     frame: number;
 }
 
-/** Play: every slot can be chosen. Continue: only the characters with a run in progress. */
 export interface CharacterSlotsSceneData {
-    mode?: 'play' | 'continue';
     /** Slot marked when the screen opens (back from the Character window). */
     focus?: number;
 }
 
 export class CharacterSlotsScene extends Phaser.Scene {
-    private mode: NonNullable<CharacterSlotsSceneData['mode']> = 'play';
     private inputSystem!: InputSystem;
     private deleteKey: Phaser.Input.Keyboard.Key | undefined;
     private slots: Slot[] = [];
@@ -101,7 +99,6 @@ export class CharacterSlotsScene extends Phaser.Scene {
     }
 
     init(data: CharacterSlotsSceneData): void {
-        this.mode = data.mode ?? 'play';
         this.initialFocus = data.focus;
     }
 
@@ -123,12 +120,12 @@ export class CharacterSlotsScene extends Phaser.Scene {
         this.deleteKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.DELETE);
 
         // Back from the Character window: drawn again (Level, points) with the same slot marked.
-        const onResume = () => this.scene.restart({ mode: this.mode, focus: this.focused });
+        const onResume = () => this.scene.restart({ focus: this.focused } satisfies CharacterSlotsSceneData);
         this.events.on(Phaser.Scenes.Events.RESUME, onResume);
         this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.events.off(Phaser.Scenes.Events.RESUME, onResume));
 
-        // Start on the latest run in Continue; otherwise on the first character (or the first slot if there is none).
-        const first = this.initialFocus ?? (this.mode === 'continue' ? saveStore.newest : characterStore.all.findIndex((c) => c !== undefined));
+        // Start on the first character (or the first slot if there is none).
+        const first = this.initialFocus ?? characterStore.all.findIndex((c) => c !== undefined);
         this.focus(Math.max(0, first));
 
         // ?open=charinfo (development only): the Character window of the first character with points, once.
@@ -147,6 +144,12 @@ export class CharacterSlotsScene extends Phaser.Scene {
             this.focus(index >= 0 ? index : Math.max(0, first));
             this.time.delayedCall(0, () => this.openEquipment());
         }
+        // ?open=runchoice (development only): Continue / New Run of the marked character, once.
+        if (DEBUG_START.open === 'RunChoice' && !debugRunChoiceOpened) {
+            debugRunChoiceOpened = true;
+            const data: Omit<RunChoiceSceneData, 'returnTo'> = { slot: this.focused };
+            this.time.delayedCall(0, () => openOverlay(this, 'RunChoice', data));
+        }
         // ?open=warehouse (development only): the warehouse, with the marked character, once.
         if (DEBUG_START.open === 'Warehouse' && !debugWarehouseOpened) {
             debugWarehouseOpened = true;
@@ -154,18 +157,9 @@ export class CharacterSlotsScene extends Phaser.Scene {
         }
     }
 
-    /** In Continue, characters without a run in progress (and empty slots) are greyed out and can't be chosen. */
-    private canChoose(index: number): boolean {
-        return this.mode === 'play' || (characterStore.get(index) !== undefined && saveStore.get(index) !== undefined);
-    }
-
-    /** Next slot that can be chosen in that direction (the same one if there is none). */
+    /** Next slot in that direction, going round. */
     private step(direction: number): number {
-        for (let n = 1; n <= CHARACTER_SLOT_COUNT; n++) {
-            const index = (this.focused + direction * n + CHARACTER_SLOT_COUNT * n) % CHARACTER_SLOT_COUNT;
-            if (this.canChoose(index)) return index;
-        }
-        return this.focused;
+        return (this.focused + direction + CHARACTER_SLOT_COUNT) % CHARACTER_SLOT_COUNT;
     }
 
     override update(_time: number, delta: number): void {
@@ -206,11 +200,7 @@ export class CharacterSlotsScene extends Phaser.Scene {
             [String(saved.level), SLOTS_TEXT_STYLE],
             [(totalExpForLevel(saved.level) + saved.exp).toLocaleString('en-US'), SLOTS_TEXT_STYLE],
         ];
-        const texts = lines.map(([text, style], i) => this.add.text(s(textX + dx), s(textY[i] ?? 0), text, style).setOrigin(0.5));
-        if (!this.canChoose(index)) {
-            sprite.container.setAlpha(SLOTS_DIM_ALPHA);
-            texts.forEach((text) => text.setAlpha(SLOTS_DIM_ALPHA));
-        }
+        lines.forEach(([text, style], i) => this.add.text(s(textX + dx), s(textY[i] ?? 0), text, style).setOrigin(0.5));
         return { frame, sprite };
     }
 
@@ -304,10 +294,6 @@ export class CharacterSlotsScene extends Phaser.Scene {
 
     /** As in the original: an empty slot opens Create Character; a character is marked first and plays on the second click. */
     private onSlotClicked(index: number): void {
-        if (!this.canChoose(index)) {
-            this.setHelp(characterStore.get(index) ? 'No saved run.' : 'Empty slot.');
-            return;
-        }
         if (!characterStore.get(index) || index === this.focused) this.enter(index);
         else this.focus(index);
     }
@@ -323,31 +309,25 @@ export class CharacterSlotsScene extends Phaser.Scene {
             : ['Empty slot.'];
         if (saved && saved.unspentPoints > 0) lines.push(`${saved.unspentPoints} points to assign: Level Set.`);
         if (saved && run) lines.push(`Saved run: Power ${run.level}, ${formatTime(run.elapsedMs)}.`);
-        else if (saved && this.mode === 'continue') lines.push('No saved run.');
         this.setHelp(lines.join('\n'));
     }
 
     /**
-     * Plays with the character in that slot: its run in progress goes on (in Play too, decided 18-oct-2026), otherwise
-     * Select Map opens (Fase 22A) for a new run. An empty slot opens Create Character.
+     * Plays with the character in that slot. With a saved run it asks first: Continue (in its map) or New Run
+     * (RunChoiceScene, 21-oct-2026); without one, Select Map opens (Fase 22A). An empty slot opens Create Character.
      */
     private enter(index: number): void {
-        if (!this.canChoose(index)) return;
         const saved = characterStore.get(index);
         if (!saved) {
             this.scene.start('CharacterSelect', { slot: index } satisfies CharacterSelectSceneData);
             return;
         }
-        this.registry.set(CHOSEN_CHARACTER_KEY, saved.classId);
-        this.registry.set(ACTIVE_CHARACTER_KEY, saved.uid);
-        // Fase 22A: a run in progress goes on in its map; otherwise Select Map.
-        const run = saveStore.get(index);
-        if (run) {
-            this.registry.set(RESUME_SLOT_KEY, index);
-            this.scene.start('MapLoad', { map: run.map } satisfies MapLoadSceneData);
+        if (saveStore.get(index)) {
+            const data: Omit<RunChoiceSceneData, 'returnTo'> = { slot: index };
+            openOverlay(this, 'RunChoice', data);
             return;
         }
-        this.scene.start('MapSelect');
+        startCharacterRun(this, index, false);
     }
 
     private newCharacter(): void {

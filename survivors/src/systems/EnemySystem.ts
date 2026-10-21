@@ -64,6 +64,13 @@ export class EnemySystem {
         this.playerHealthShare = source;
     }
 
+    /** Champion (Fase 21½C, data/champion.ts): a much tougher monster of this kind, never elite on top. */
+    public spawnChampion(id: EnemyId, x: number, y: number): Enemy {
+        const enemy = this.getPool(id).acquire();
+        enemy.spawn(x, y, false, this.difficulty, true);
+        return enemy;
+    }
+
     /** Every new monster may come out elite (data/elites.ts); bosses never. */
     public spawn(id: EnemyId, x: number, y: number): Enemy {
         const enemy = this.getPool(id).acquire();
@@ -233,7 +240,7 @@ export class EnemySystem {
     public forEachInRadius(x: number, y: number, radius: number, visit: (enemy: Enemy) => void): void {
         this.grid.forEachNear(x, y, radius + SPATIAL_CELL_SIZE, (enemy) => {
             if (!enemy.isAlive) return;
-            const reach = radius + enemy.def.radius;
+            const reach = radius + enemy.radius;
             const dx = enemy.x - x;
             const dy = enemy.bodyY - y;
             if (dx * dx + dy * dy <= reach * reach) visit(enemy);
@@ -271,10 +278,10 @@ export class EnemySystem {
                 enemy.pushX = 0;
                 enemy.pushY = 0;
                 if (!enemy.isAlive) continue;
-                const r = enemy.def.radius;
+                const r = enemy.radius;
                 this.grid.forEachNear(enemy.x, enemy.y, r * 2, (other) => {
                     if (other === enemy) return;
-                    const minDistance = r + other.def.radius;
+                    const minDistance = r + other.radius;
                     let dx = enemy.x - other.x;
                     let dy = enemy.y - other.y;
                     let distSq = dx * dx + dy * dy;
@@ -302,7 +309,7 @@ export class EnemySystem {
 
 function touches(enemy: Enemy, x: number, y: number, radius: number): boolean {
     if (!enemy.isAlive) return false;
-    const reach = radius + enemy.def.radius;
+    const reach = radius + enemy.radius;
     const dx = enemy.x - x;
     const dy = enemy.bodyY - y;
     return dx * dx + dy * dy <= reach * reach;

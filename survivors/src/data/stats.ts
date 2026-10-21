@@ -62,8 +62,7 @@ export const CRIT_CHANCE_PER_CHR = 0.01;
 export const CRIT_MAX_CHANCE = 0.75;
 export const CRIT_DAMAGE_MULTIPLIER = 2;
 
-/** Cartas al subir de nivel: cuántas se muestran y cuántos puntos da la carta de stat. */
+/** Cartas al subir de nivel: cuántas se muestran (los puntos de cada carta, según su rareza: data/cardRarity.ts). */
 export const LEVEL_UP_CHOICES = 3;
-export const STAT_CARD_POINTS = 3;
 /** Most passive cards (Xelima, Merien, Magnet Amulet) among the choices: the rest are always stat cards (Fase 20C). */
 export const MAX_ITEM_CARDS = 2;

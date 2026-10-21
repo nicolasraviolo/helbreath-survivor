@@ -50,6 +50,17 @@ export const MENU_OVERLAY = {
     valueColumnHalfWidth: byDevice(215, 270),
 } as const;
 
+/** Continue or New Run, for a character with a saved run (Select Character). Text lines and options, from the content row. */
+export const RUN_CHOICE = {
+    /** Text lines start this far above the content row. */
+    textOffsetY: byDevice(-26, -30),
+    /** First option, from the content row (below the text). */
+    listOffsetY: byDevice(56, 66),
+    /** The confirm step has a longer warning: its options go a bit lower. */
+    confirmListOffsetY: byDevice(80, 96),
+    textWrapWidth: byDevice(440, 520),
+} as const;
+
 /** Options in the sprite font. Bigger on phones, with bigger areas for fingers. */
 export const MENU_ITEM = {
     scale: byDevice(1.6, 2),
@@ -150,7 +161,9 @@ export const MAIN_MENU_FOOTER_Y = GAME_HEIGHT - MAIN_MENU.footerHeight / 2;
 export const HOW_TO_PLAY = {
     /** Space between the page selector row and the first line of content. */
     contentGap: byDevice(34, 40),
-    lineSpacing: byDevice(29, 34),
+    /** Top of the page from the usual content row (a bit higher, close under the title) so 7 lines fit above "Page". */
+    contentOffsetY: byDevice(-36, -40),
+    lineSpacing: byDevice(27, 28),
     /** Paragraph lines wrap at this width. */
     wrapWidth: byDevice(560, 640),
     /** Left edge of the control column and of the action column, from the panel's centre. */

@@ -81,7 +81,7 @@ export class PreloadScene extends Phaser.Scene {
             this.scene.start('MapLoad', { map } satisfies MapLoadSceneData);
             return;
         }
-        const open = DEBUG_START.open === 'CharacterInfo' || DEBUG_START.open === 'Equipment' || DEBUG_START.open === 'Warehouse' ? 'CharacterSlots' : DEBUG_START.open;
+        const open = DEBUG_START.open === 'CharacterInfo' || DEBUG_START.open === 'Equipment' || DEBUG_START.open === 'Warehouse' || DEBUG_START.open === 'RunChoice' ? 'CharacterSlots' : DEBUG_START.open;
         if (open === 'MapSelect') this.openMapSelectForDebug();
         else this.scene.start(open === 'CharacterSelect' || open === 'CharacterSlots' ? open : 'MainMenu');
     }
