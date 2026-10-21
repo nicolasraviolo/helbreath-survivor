@@ -87,7 +87,7 @@ export const TOWN_NPCS: Readonly<Record<NpcId, NpcDef>> = {
     shopKeeper: {
         name: 'Shop Keeper',
         sprite: 'npc.shopKeeper',
-        tile: { x: 88, y: 178 },
+        tile: { x: 90, y: 178 },
         direction: 4,
         line: 'My shop is still closed, sorry.\nCome back soon!',
         options: [{ label: 'Shop', action: 'soon' }],
@@ -95,7 +95,7 @@ export const TOWN_NPCS: Readonly<Record<NpcId, NpcDef>> = {
     william: {
         name: 'William',
         sprite: 'npc.william',
-        tile: { x: 95, y: 174 },
+        tile: { x: 95, y: 176 },
         direction: 4,
         line: 'I keep the records of this town.\nEvery deed of yours is written here.',
         options: [{ label: 'Achievements', action: 'achievements' }, { label: 'Missions', action: 'soon' }],
@@ -103,7 +103,7 @@ export const TOWN_NPCS: Readonly<Record<NpcId, NpcDef>> = {
     tom: {
         name: 'Tom',
         sprite: 'npc.tom',
-        tile: { x: 104, y: 188 },
+        tile: { x: 110, y: 192 },
         direction: 5,
         line: 'My forge is not ready yet.\nBring me your weapons another day.',
         options: [{ label: 'Blacksmith', action: 'soon' }],
