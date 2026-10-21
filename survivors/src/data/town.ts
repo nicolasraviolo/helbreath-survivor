@@ -72,14 +72,14 @@ export const TOWN_NPCS: Readonly<Record<NpcId, NpcDef>> = {
     howard: {
         name: 'Howard',
         sprite: 'npc.howard',
-        tile: { x: 81, y: 194 },
+        tile: { x: 81, y: 193 },
         direction: 3,
         line: 'Welcome, traveler. I keep the warehouse:\nyour gear and the shared chest are safe with me.',
         options: [{ label: 'Equipment', action: 'equipment' }, { label: 'Warehouse', action: 'warehouse' }],
     },
     chest: {
         name: 'Chest',
-        tile: { x: 83, y: 195 },
+        tile: { x: 83, y: 194 },
         direction: 4,
         line: 'The chest shared by all your characters.',
         options: [{ label: 'Equipment', action: 'equipment' }, { label: 'Warehouse', action: 'warehouse' }],
@@ -87,7 +87,7 @@ export const TOWN_NPCS: Readonly<Record<NpcId, NpcDef>> = {
     shopKeeper: {
         name: 'Shop Keeper',
         sprite: 'npc.shopKeeper',
-        tile: { x: 88, y: 182 },
+        tile: { x: 88, y: 178 },
         direction: 4,
         line: 'My shop is still closed, sorry.\nCome back soon!',
         options: [{ label: 'Shop', action: 'soon' }],
@@ -95,7 +95,7 @@ export const TOWN_NPCS: Readonly<Record<NpcId, NpcDef>> = {
     william: {
         name: 'William',
         sprite: 'npc.william',
-        tile: { x: 96, y: 176 },
+        tile: { x: 95, y: 174 },
         direction: 4,
         line: 'I keep the records of this town.\nEvery deed of yours is written here.',
         options: [{ label: 'Achievements', action: 'achievements' }, { label: 'Missions', action: 'soon' }],
@@ -103,7 +103,7 @@ export const TOWN_NPCS: Readonly<Record<NpcId, NpcDef>> = {
     tom: {
         name: 'Tom',
         sprite: 'npc.tom',
-        tile: { x: 105, y: 188 },
+        tile: { x: 104, y: 188 },
         direction: 5,
         line: 'My forge is not ready yet.\nBring me your weapons another day.',
         options: [{ label: 'Blacksmith', action: 'soon' }],
