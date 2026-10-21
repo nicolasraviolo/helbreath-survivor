@@ -118,7 +118,7 @@ export const HOW_TO_PLAY_PAGES: readonly HowToPlayPage[] = [
             { control: 'Walk up to someone', action: '"Talk" shows over their name' },
             { control: 'E key, pad A or a click', action: 'Talk' },
             { control: 'Talk button (touch)', action: 'Talk' },
-            { control: 'Howard or the Chest', action: 'Your Equipment and the Warehouse' },
+            { control: 'Howard', action: 'Your Equipment and the Warehouse' },
             { control: 'William', action: 'Your Achievements' },
             { control: 'Teleport (on the grass)', action: 'Choose a map and start a run' },
         ],
@@ -140,8 +140,8 @@ export const HOW_TO_PLAY_PAGES: readonly HowToPlayPage[] = [
         // Fase 20B: pantalla Equipment. Como mucho 7 filas.
         name: 'Equipment',
         rows: [
-            // Fase 23B: se abre en la ciudad, hablando con Howard o el Cofre.
-            { control: 'Howard or the Chest (Town)', action: 'Equipment: choose what your character wears' },
+            // Fase 23B: se abre en la ciudad, hablando con Howard.
+            { control: 'Talk to Howard (Town)', action: 'Equipment: choose what your character wears' },
             { control: 'Each run', action: 'Starts with that equipment on' },
             { control: 'The lists', action: 'Only what you own: your starting gear and your loot' },
             { control: 'Requirements', action: 'Your permanent Str, Mag and Level: red = not met' },
@@ -166,7 +166,7 @@ export const HOW_TO_PLAY_PAGES: readonly HowToPlayPage[] = [
         // Fase 21D: baúl compartido y Zem. Como mucho 7 filas.
         name: 'Warehouse',
         rows: [
-            { control: 'Howard or the Chest (Town)', action: 'Warehouse: shared by all your characters' },
+            { control: 'Talk to Howard (Town)', action: 'Warehouse: shared by all your characters' },
             { control: 'Click, Enter or pad A', action: 'Move one item to the other side' },
             { control: 'Die without a Zem', action: 'You lose the items found in that run' },
             { control: 'Zem slot (Equipment)', action: 'Wear a Zem to keep them: it is used up' },

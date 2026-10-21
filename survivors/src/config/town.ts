@@ -12,8 +12,6 @@ export const TOWN_NPC_LOOK = {
     talkGap: 0,
     talkPulseMs: 500,
     talkPulseAlpha: 0.55,
-    /** The chest's name sits this high above its tile centre (it is small and has no animation to measure). */
-    chestNameOffsetY: 22,
 } as const;
 
 /** Touch "Talk" button: in the bottom-right corner (TOUCH_RESERVED_CORNER), only while an NPC is close. */

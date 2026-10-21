@@ -1,12 +1,12 @@
 // NPC de la ciudad (Fase 23B): quieto, mirando a un lado, con su animación de respirar (la hoja de su dirección, 8
-// frames, como sp-client/src/game/objects/NPC.ts), su sombra y el nombre encima. El Cofre es lo mismo con el dibujo
-// del cofre del suelo en vez de un sprite animado. Su casilla queda bloqueada: el jugador lo rodea.
+// frames, como sp-client/src/game/objects/NPC.ts), su sombra y el nombre encima. Su casilla queda bloqueada: el
+// jugador lo rodea.
 import Phaser from 'phaser';
 import {
     BODY_SHADOW_ALPHA, BODY_SHADOW_ROTATION, BODY_SHADOW_SCALE_Y, DEFAULT_ANIMATION_FRAME_RATE, DEPTH_DAMAGE_NUMBERS, DEPTH_GROUND_SHADOWS, TILE_SIZE,
 } from '../config/gameConfig';
 import { TOWN_NPC_LOOK } from '../config/town';
-import { TOWN_CHEST, type NpcDef, type NpcId } from '../data/town';
+import type { NpcDef, NpcId } from '../data/town';
 import { HBAsset } from '../hb/HBAsset';
 import type { HBMap } from '../hb/HBMap';
 import { getSheetKey } from '../hb/HBSprite';
@@ -16,8 +16,8 @@ export class Npc {
     /** Its feet: the centre of its tile. */
     public readonly x: number;
     public readonly y: number;
-    private readonly body: Phaser.GameObjects.Sprite | Phaser.GameObjects.Image;
-    private readonly shadow: Phaser.GameObjects.Sprite | undefined;
+    private readonly body: HBAsset;
+    private readonly shadow: Phaser.GameObjects.Sprite;
     private readonly name: Phaser.GameObjects.Text;
     private readonly talk: Phaser.GameObjects.Text;
     /** Height of its drawing above the feet (the tallest frame), for the name. */
@@ -27,25 +27,17 @@ export class Npc {
         this.x = (def.tile.x + 0.5) * TILE_SIZE;
         this.y = (def.tile.y + 0.5) * TILE_SIZE;
         map.blockTile(def.tile.x, def.tile.y);
-        if (def.sprite) {
-            const sprite = scene.add.existing(new HBAsset(scene, this.x, this.y, def.sprite));
-            sprite.playDirectional({ baseSheet: 0, direction: def.direction as Direction, frameRate: DEFAULT_ANIMATION_FRAME_RATE, loop: true });
-            sprite.setDepth(this.y);
-            this.body = sprite;
-            this.headHeight = tallestFrame(scene, getSheetKey(def.sprite, def.direction));
-            this.shadow = scene.add.sprite(0, 0, getSheetKey(def.sprite, def.direction), '0')
-                .setTint(0x000000)
-                .setAlpha(BODY_SHADOW_ALPHA)
-                .setRotation(BODY_SHADOW_ROTATION)
-                .setScale(1, BODY_SHADOW_SCALE_Y)
-                .setDepth(DEPTH_GROUND_SHADOWS + 1);
-        } else {
-            // The chest lies on the ground: under the characters and the map's objects.
-            this.body = scene.add.image(this.x, this.y, getSheetKey(TOWN_CHEST.sprite, TOWN_CHEST.sheet), TOWN_CHEST.frame)
-                .setScale(TOWN_CHEST.scale)
-                .setDepth(DEPTH_GROUND_SHADOWS + 2);
-            this.headHeight = TOWN_NPC_LOOK.chestNameOffsetY;
-        }
+        const sprite = scene.add.existing(new HBAsset(scene, this.x, this.y, def.sprite));
+        sprite.playDirectional({ baseSheet: 0, direction: def.direction as Direction, frameRate: DEFAULT_ANIMATION_FRAME_RATE, loop: true });
+        sprite.setDepth(this.y);
+        this.body = sprite;
+        this.headHeight = tallestFrame(scene, getSheetKey(def.sprite, def.direction));
+        this.shadow = scene.add.sprite(0, 0, getSheetKey(def.sprite, def.direction), '0')
+            .setTint(0x000000)
+            .setAlpha(BODY_SHADOW_ALPHA)
+            .setRotation(BODY_SHADOW_ROTATION)
+            .setScale(1, BODY_SHADOW_SCALE_Y)
+            .setDepth(DEPTH_GROUND_SHADOWS + 1);
         const look = TOWN_NPC_LOOK;
         const nameY = this.y - this.headHeight - look.nameGap;
         // Over the map's objects, as names are in the original.
@@ -72,7 +64,6 @@ export class Npc {
     /** The shadow copies the current frame, pivoted on its bottom centre (as Enemy.syncDisplay). */
     public update(): void {
         const shadow = this.shadow;
-        if (!shadow) return;
         const frame = this.body.frame;
         if (shadow.frame !== frame) {
             shadow.setTexture(frame.texture.key, frame.name);

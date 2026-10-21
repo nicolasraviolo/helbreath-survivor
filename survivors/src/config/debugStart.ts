@@ -51,7 +51,7 @@
 //   ?open=mapselect  → abre Select Map con el primer personaje guardado (o sin personaje)
 //   ?open=town       → la ciudad (Fase 23) con el primer personaje guardado (o sin personaje)
 //   ?town=portal     → con ?open=town, el personaje aparece sobre el teleport: se abre Select Map encima de la ciudad
-//   ?town=william    → con ?open=town, aparece junto a ese NPC (howard, chest, shopKeeper, william, tom; Fase 23B);
+//   ?town=william    → con ?open=town, aparece junto a ese NPC (howard, shopKeeper, william, tom; Fase 23B);
 //                      con &talk, además se abre su panel
 //   ?unlocks=abaddon  → desbloquea Abaddon's Blood en este dispositivo (Fase 21E; reset = quita los desbloqueos)
 //                      dice3,wine2 → 3 dados (Reroll) y 2 vinos (Skip) comprados (Fase 21½B; "dice" solo = 1, "dice0" = 0)

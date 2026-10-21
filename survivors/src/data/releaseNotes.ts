@@ -20,7 +20,7 @@ export const RELEASE_NOTES: readonly ReleaseNote[] = [
             'New town: walk around the Elvine farm between runs.',
             'Step on the teleport to choose your map.',
             'After a run, the Town button takes you back to the farm.',
-            'Talk to the townsfolk: Howard and the chest keep your gear, William your achievements.',
+            'Talk to the townsfolk: Howard keeps your gear, William your achievements.',
         ],
     },
     {

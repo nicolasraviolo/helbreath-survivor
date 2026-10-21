@@ -9,7 +9,7 @@
 - 21-oct-2026: 21½ Cartas y sorpresas (21½A–21½C) · 22 Sistema de mapas (22A–22E, 22G; los récords locales, 22F, aplazados).
 
 ## Fase actual
-**Fase 23 (la ciudad), en curso** en la rama `fase-23`. **Bloques 23A y 23B hechos** (21-oct-2026): ciudad en la granja de Elvine con teleport a Select Map y "Town" en la pantalla final (23A); NPCs con "Talk" y panel: Howard y el Cofre → Equipment y Warehouse, William → logros, Shop Keeper y Tom → "Coming soon"; fuera Equipment y Warehouse de Select Character (23B). Detalle en `PROGRESS-historial.md`.
+**Fase 23 (la ciudad), en curso** en la rama `fase-23`. **Bloques 23A y 23B hechos** (21-oct-2026): ciudad en la granja de Elvine con teleport a Select Map y "Town" en la pantalla final (23A); NPCs con "Talk" y panel: Howard → Equipment y Warehouse, William → logros, Shop Keeper y Tom → "Coming soon"; fuera Equipment y Warehouse de Select Character (23B). Detalle en `PROGRESS-historial.md`.
 - **Siguiente:** se cumple la aceptación de la Fase 23 (PLAN-2.md). Si el propietario lo aprueba, cerrar la fase con `/checkpoint fase`; después, Fase 24 (oro, tienda y herrero: Shop Keeper y Tom dejarán de decir "Coming soon").
 - **Ciudad:** `data/town.ts` (sitios, NPCs y frases), `scenes/TownScene.ts`, `scenes/NpcDialogScene.ts`; ver NOTES.md, "La ciudad (Fase 23A)" y "NPCs y hablar (Fase 23B)". Los **récords locales (22F)** siguen aplazados en "Ideas para después".
 - **Orden de mapas (20-oct-2026):** Traveler Zone → Bleeding Isle → Elvine Garden → Middleland. Se abren al ganar el anterior o con su Level (1/10/25/40). Icebound, a la Fase 25.

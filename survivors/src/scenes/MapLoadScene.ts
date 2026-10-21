@@ -18,7 +18,7 @@ import { CHARACTERS, CHOSEN_CHARACTER_KEY, DEFAULT_CHARACTER, isCharacterId, typ
 import { ENEMIES } from '../data/enemies';
 import { START_EQUIPMENT } from '../data/items';
 import { CHOSEN_MAP_KEY, MAPS_DATA, type MapId, type TileRect } from '../data/maps';
-import { TOWN, TOWN_CHEST, TOWN_NPCS } from '../data/town';
+import { TOWN, TOWN_NPCS } from '../data/town';
 import { getMap, hasMap } from '../hb/HBMap';
 import { getSheetKey, HBSpriteFile, SpriteType } from '../hb/HBSprite';
 import { getTilePacksForIndices, getTileTextureKey } from '../hb/mapAssets';
@@ -35,10 +35,9 @@ const DOWNLOAD_SHARE = 0.5;
 /** A hunting map, or the town (Fase 23). */
 export type MapLoadSceneData = { map: MapId } | { town: true };
 
-/** Sprites the town needs besides the character: the teleport, the dust of the steps, the NPCs and the chest (23B). */
+/** Sprites the town needs besides the character: the teleport, the dust of the steps, and the NPCs (23B). */
 const TOWN_SPRITES: readonly SpriteKey[] = [
-    'fx.effect11', 'fx.effect2', TOWN_CHEST.sprite,
-    ...Object.values(TOWN_NPCS).flatMap((npc) => (npc.sprite ? [npc.sprite] : [])),
+    'fx.effect11', 'fx.effect2', ...Object.values(TOWN_NPCS).map((npc) => npc.sprite),
 ];
 
 /** Opens the town, through its loading screen (almost unseen when it is already loaded). */

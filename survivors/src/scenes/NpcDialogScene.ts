@@ -1,6 +1,6 @@
 // Panel de hablar con un NPC de la ciudad (Fase 23B), con el diseño de los demás paneles (GameDialog del original):
 // su nombre de título, su frase y sus opciones, más "Back". Las opciones abren pantallas que ya existían:
-// - Howard y el Cofre: Equipment y Warehouse (antes en Select Character).
+// - Howard: Equipment y Warehouse (antes en Select Character).
 // - William: Achievements; Missions, "Coming soon".
 // - Shop Keeper y Tom: "Coming soon" (tienda y herrero, Fase 24).
 // Al abrir una pantalla, este panel se cierra y esa pantalla vuelve directa a la ciudad.
