@@ -10,6 +10,7 @@
 
 ## Fase actual
 **Ninguna en curso.** Fase 21½ (Cartas y sorpresas: rareza, Reroll/Skip y Champion) cerrada en `master` el 21-oct-2026 (etiqueta `fase-21½`). Detalle de cada bloque en `PROGRESS-historial.md`.
+- **Revisión 21-oct-2026:** rendimiento a 60 FPS en PC y móvil, pantallas revisadas y How to Play arreglado (detalle en el historial).
 - **Siguiente:** `/fase 22` → sistema de mapas + Icebound (`docs/PLAN-2.md`, "Fase 22").
 - **Engagement:** análisis y plan de partidas de prueba en `docs/ENGAGEMENT.md`; mejoras para más adelante en `docs/PLAN-2.md`, "Mejoras de engagement para más adelante".
 - **21C (anillos y collares) aplazado** por el propietario para más adelante.

@@ -2,6 +2,12 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
+**Revisión tras la Fase 21½ (2026-10-21).**
+- **Rendimiento:** `check game horde elites stampede champion boss finalboss totems` en PC y `horde elites finalboss crit` + Maga con horda en `--mobile`: siempre 60 FPS (hasta ~300 enemigos), sin errores. `check levelpace` (partida simulada hasta el jefe final) sin errores.
+- **Pantallas:** las 19 de menú y cartas, en PC y móvil, encajan. En el móvil en horizontal el juego (4:3) deja franjas negras a los lados: es por diseño (`Scale.FIT`).
+- **Arreglado:** How to Play pisaba el selector "Page" en las tres páginas (7 líneas, solo cabían 6). Ahora el texto empieza más cerca del título (`HOW_TO_PLAY.contentOffsetY`) y las líneas van más juntas (27 PC / 28 móvil); frase de las Mana Stones acortada.
+- **Probar:** `?open=howtoplay` y `?open=howtoplay&ui=compact`, pasando las páginas.
+
 **Fase 21½ cerrada (2026-10-21).** Bloques 21½A (rareza), 21½B (Reroll y Skip) y 21½C (Champion). Comprobado al cerrar: build y `check menu levelup boss champion rerollskip epic` sin errores. Fusionada en `master` con la etiqueta `fase-21½`.
 
 **Fase 21½, bloque 21½C: evento Champion (2026-10-21).**
