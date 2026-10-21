@@ -1,5 +1,5 @@
-// Pantalla "Select Map" (Fase 22A): sale después de elegir personaje (en la Fase 23 se abrirá desde un portal de la
-// ciudad). Cuatro tarjetas en fila, en el orden de data/maps.ts: el trozo del minimapa que se juega, el nombre, lo que
+// Pantalla "Select Map" (Fase 22A): desde la Fase 23 se abre al pisar el teleport de la ciudad, por encima de ella
+// (la ciudad queda en pausa debajo; "Back" la reanuda sin recargarla). Cuatro tarjetas en fila, en el orden de data/maps.ts: el trozo del minimapa que se juega, el nombre, lo que
 // dura, el Level recomendado (en rojo si el personaje no lo tiene, pero se puede entrar) y si está ganado o cerrado.
 // Un mapa se abre al ganar el anterior o al llegar a su Level recomendado (systems/MapUnlockStore.ts).
 // Como en Select Character: un clic marca la tarjeta y otro clic en la misma juega (con el dedo, igual).
@@ -15,7 +15,13 @@ import { SpriteText } from '../hb/SpriteText';
 import { ACTIVE_CHARACTER_KEY, characterStore } from '../systems/CharacterStore';
 import { Action, InputSystem } from '../systems/InputSystem';
 import { mapUnlockStore, type MapLock } from '../systems/MapUnlockStore';
-import type { MapLoadSceneData } from './MapLoadScene';
+import { startTown, type MapLoadSceneData } from './MapLoadScene';
+import { TOWN_SCENE_KEY } from './TownScene';
+
+export interface MapSelectSceneData {
+    /** Opened from the town's teleport, with the town paused underneath. */
+    fromTown?: boolean;
+}
 
 interface Card {
     id: MapId;
@@ -29,9 +35,14 @@ export class MapSelectScene extends Phaser.Scene {
     private characterLevel = 1;
     private helpText!: Phaser.GameObjects.Text;
     private openedAt = 0;
+    private fromTown = false;
 
     constructor() {
         super('MapSelect');
+    }
+
+    init(data: MapSelectSceneData | undefined): void {
+        this.fromTown = data?.fromTown === true;
     }
 
     preload(): void {
@@ -181,11 +192,18 @@ export class MapSelectScene extends Phaser.Scene {
         const id = MAP_IDS[this.focused];
         if (!id || this.lockOf(id) !== undefined) return;
         this.registry.set(CHOSEN_MAP_KEY, id);
+        if (this.fromTown) this.scene.stop(TOWN_SCENE_KEY);
         this.scene.start('MapLoad', { map: id } satisfies MapLoadSceneData);
     }
 
+    /** Back to the town: the one waiting underneath, or a new one (debug ?open=mapselect). */
     private back(): void {
-        this.scene.start('CharacterSlots');
+        if (this.fromTown && this.scene.isPaused(TOWN_SCENE_KEY)) {
+            this.scene.stop();
+            this.scene.resume(TOWN_SCENE_KEY);
+            return;
+        }
+        startTown(this);
     }
 }
 

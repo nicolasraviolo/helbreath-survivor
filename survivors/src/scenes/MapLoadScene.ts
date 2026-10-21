@@ -7,15 +7,18 @@
 // - la ropa, la armadura y el arma que lleva el personaje (systems/LookLoader.ts), para que no aparezcan tarde.
 // Lo ya cargado (otra partida, Restart, otro mapa que comparte cosas) no se vuelve a bajar: si no falta nada, pasa
 // casi sin verse.
+// Fase 23: también carga la ciudad (data/town.ts): su mapa, su música, el portal, el polvo de los pasos y la ropa del
+// personaje; nada de monstruos ni efectos de partida.
 import Phaser from 'phaser';
-import { ASSET_BASE_PATH, MAPS, MINIMAPS, RUN_SPRITES, SPRITES, type SpriteKey } from '../config/assetManifest';
+import { ASSET_BASE_PATH, MAPS, MINIMAPS, RUN_SPRITES, SOUNDS, SPRITES, type MapKey, type MinimapKey, type SoundKey, type SpriteKey } from '../config/assetManifest';
 import { registerEffectAnimations } from '../config/effects';
 import { DEFAULT_ANIMATION_FRAME_RATE, MAP_OBJECT_MARGIN_TILES } from '../config/gameConfig';
 import { DEFAULT_LOOKS } from '../data/appearance';
 import { CHARACTERS, CHOSEN_CHARACTER_KEY, DEFAULT_CHARACTER, isCharacterId, type CharacterId } from '../data/characters';
 import { ENEMIES } from '../data/enemies';
 import { START_EQUIPMENT } from '../data/items';
-import { CHOSEN_MAP_KEY, MAPS_DATA, type MapId } from '../data/maps';
+import { CHOSEN_MAP_KEY, MAPS_DATA, type MapId, type TileRect } from '../data/maps';
+import { TOWN } from '../data/town';
 import { getMap, hasMap } from '../hb/HBMap';
 import { getSheetKey, HBSpriteFile, SpriteType } from '../hb/HBSprite';
 import { getTilePacksForIndices, getTileTextureKey } from '../hb/mapAssets';
@@ -29,12 +32,28 @@ import { LoadingScreen } from '../ui/LoadingScreen';
 const FIRST_DOWNLOAD_SHARE = 0.4;
 const DOWNLOAD_SHARE = 0.5;
 
-export interface MapLoadSceneData {
-    map: MapId;
+/** A hunting map, or the town (Fase 23). */
+export type MapLoadSceneData = { map: MapId } | { town: true };
+
+/** Sprites the town needs besides the character: the teleport and the dust of the steps. */
+const TOWN_SPRITES: readonly SpriteKey[] = ['fx.effect11', 'fx.effect2'];
+
+/** Opens the town, through its loading screen (almost unseen when it is already loaded). */
+export function startTown(scene: Phaser.Scene): void {
+    scene.scene.start('MapLoad', { town: true } satisfies MapLoadSceneData);
+}
+
+/** What the loading screen needs to know of the place. */
+interface Place {
+    name: string;
+    asset: MapKey;
+    minimap: MinimapKey;
+    playArea: TileRect;
 }
 
 export class MapLoadScene extends Phaser.Scene {
     private mapId: MapId = 'traveler';
+    private town = false;
     private screen!: LoadingScreen;
     /** Sprites of this run still to prepare (downloaded in preload). */
     private sprites: SpriteKey[] = [];
@@ -44,12 +63,19 @@ export class MapLoadScene extends Phaser.Scene {
     }
 
     init(data: MapLoadSceneData): void {
-        this.mapId = data.map;
-        this.registry.set(CHOSEN_MAP_KEY, data.map);
+        this.town = 'town' in data;
+        if ('map' in data) {
+            this.mapId = data.map;
+            this.registry.set(CHOSEN_MAP_KEY, data.map);
+        }
+    }
+
+    private get place(): Place {
+        return this.town ? TOWN : MAPS_DATA[this.mapId];
     }
 
     preload(): void {
-        const def = MAPS_DATA[this.mapId];
+        const def = this.place;
         this.screen = new LoadingScreen(this, def.name, 'Loading map');
         loadTimer.start(this.timerName);
         this.load.setPath(ASSET_BASE_PATH);
@@ -59,11 +85,14 @@ export class MapLoadScene extends Phaser.Scene {
         for (const key of this.sprites) {
             if (!this.cache.binary.exists(key)) this.load.binary(key, SPRITES[key].file);
         }
+        for (const key of this.sounds()) {
+            if (!this.cache.audio.exists(key)) this.load.audio(key, SOUNDS[key].file);
+        }
         this.trackProgress(0, FIRST_DOWNLOAD_SHARE);
     }
 
     async create(): Promise<void> {
-        const def = MAPS_DATA[this.mapId];
+        const def = this.place;
         // What the character wears downloads alongside the rest; it is waited for at the end.
         const wearing = lookLoader.ensure(this, this.wornSprites());
         const map = getMap(this, def.asset);
@@ -87,6 +116,11 @@ export class MapLoadScene extends Phaser.Scene {
         }
         await wearing;
         registerEffectAnimations(this.anims, this.textures);
+        if (this.town) {
+            loadTimer.end(this.timerName);
+            this.scene.start('Town');
+            return;
+        }
         // The rest of this map's monsters, in the order of its waves, while it plays.
         assetStreamer.start(this, this.mapId);
         loadTimer.end(this.timerName);
@@ -109,12 +143,18 @@ export class MapLoadScene extends Phaser.Scene {
 
     /** What this run needs besides the map: first-wave monsters, run effects (common and of the class), items on the ground. */
     private runSprites(): SpriteKey[] {
+        if (this.town) return [...TOWN_SPRITES];
         const classId = this.classId;
         return [...new Set<SpriteKey>([
             ...firstWaveEnemies(this.mapId).map((id) => ENEMIES[id].sprite),
             ...RUN_SPRITES,
             ...CHARACTERS[classId].runSprites,
         ])];
+    }
+
+    /** Sounds not loaded before the menu (LATER_SOUNDS) that this place plays. */
+    private sounds(): SoundKey[] {
+        return this.town ? [TOWN.music] : [];
     }
 
     /** The loader's progress moves the bar from `from` over `share` of it. */
@@ -124,6 +164,6 @@ export class MapLoadScene extends Phaser.Scene {
     }
 
     private get timerName(): string {
-        return `MapLoad:${this.mapId}`;
+        return this.town ? 'MapLoad:town' : `MapLoad:${this.mapId}`;
     }
 }

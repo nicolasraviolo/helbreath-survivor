@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { ASSET_BASE_PATH, BOOT_SPRITES, ON_DEMAND_SPRITES, PHONE_ONLY_SPRITES, RUN_SPRITES, SOUNDS, SPRITES, UI_IMAGES, type SpriteKey } from '../config/assetManifest';
+import { ASSET_BASE_PATH, BOOT_SPRITES, LATER_SOUNDS, ON_DEMAND_SPRITES, PHONE_ONLY_SPRITES, RUN_SPRITES, SOUNDS, SPRITES, UI_IMAGES, type SpriteKey } from '../config/assetManifest';
 import { DEBUG_START } from '../config/debugStart';
 import { COMPACT_UI } from '../config/device';
 import { DEFAULT_ANIMATION_FRAME_RATE } from '../config/gameConfig';
@@ -9,7 +9,7 @@ import { HBSpriteFile, SpriteType } from '../hb/HBSprite';
 import { ACTIVE_CHARACTER_KEY, characterStore } from '../systems/CharacterStore';
 import { loadTimer } from '../systems/LoadTimer';
 import { LoadingScreen } from '../ui/LoadingScreen';
-import type { MapLoadSceneData } from './MapLoadScene';
+import { startTown, type MapLoadSceneData } from './MapLoadScene';
 
 /** Effects of one class only: loaded with the map, for that class (Fase 22B). */
 const CLASS_RUN_SPRITES: ReadonlySet<SpriteKey> = new Set(Object.values(CHARACTERS).flatMap((def) => def.runSprites));
@@ -53,6 +53,7 @@ export class PreloadScene extends Phaser.Scene {
             this.load.binary(key, SPRITES[key].file);
         }
         for (const [key, sound] of Object.entries(SOUNDS)) {
+            if ((LATER_SOUNDS as readonly string[]).includes(key)) continue;
             this.load.audio(key, sound.file);
         }
         for (const [key, image] of Object.entries(UI_IMAGES)) this.load.image(key, image.file);
@@ -82,17 +83,18 @@ export class PreloadScene extends Phaser.Scene {
             return;
         }
         const open = DEBUG_START.open === 'CharacterInfo' || DEBUG_START.open === 'Equipment' || DEBUG_START.open === 'Warehouse' || DEBUG_START.open === 'RunChoice' ? 'CharacterSlots' : DEBUG_START.open;
-        if (open === 'MapSelect') this.openMapSelectForDebug();
+        if (open === 'MapSelect' || open === 'Town') this.openWithFirstCharacter(open);
         else this.scene.start(open === 'CharacterSelect' || open === 'CharacterSlots' ? open : 'MainMenu');
     }
 
-    /** ?open=mapselect: Select Map with the first saved character (or none). */
-    private openMapSelectForDebug(): void {
+    /** ?open=mapselect / ?open=town: Select Map or the town with the first saved character (or none). */
+    private openWithFirstCharacter(open: 'MapSelect' | 'Town'): void {
         const first = characterStore.all.find((c) => c !== undefined);
         if (first) {
             this.registry.set(CHOSEN_CHARACTER_KEY, first.classId);
             this.registry.set(ACTIVE_CHARACTER_KEY, first.uid);
         }
-        this.scene.start('MapSelect');
+        if (open === 'Town') startTown(this);
+        else this.scene.start('MapSelect');
     }
 }

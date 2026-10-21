@@ -45,7 +45,8 @@ export interface GameOverSceneData {
     lootResult: RunLootResult | undefined;
     gender: Gender;
     onRestart: () => void;
-    onChangeClass: () => void;
+    /** Back to the town (Fase 23; it was Select Character before). */
+    onTown: () => void;
     onMainMenu: () => void;
 }
 
@@ -53,6 +54,8 @@ interface Button {
     image: Phaser.GameObjects.Image;
     frame: number;
     action: () => void;
+    /** A button with our own word over the original wood (the town's, Fase 23). */
+    word?: { strips: Array<{ image: Phaser.GameObjects.Image; cropWidth: number | undefined }>; text: Phaser.GameObjects.Text };
 }
 
 export class GameOverScene extends Phaser.Scene {
@@ -109,7 +112,7 @@ export class GameOverScene extends Phaser.Scene {
         this.addLootNote(p.lootResult);
 
         this.addButton(GAME_OVER.restartFrame, -1, p.onRestart);
-        this.addButton(GAME_OVER.changeFrame, 0, p.onChangeClass);
+        this.addWordButton(0, p.onTown);
         this.addButton(GAME_OVER.logOutFrame, 1, p.onMainMenu);
         this.highlight(0);
 
@@ -223,10 +226,52 @@ export class GameOverScene extends Phaser.Scene {
         this.buttons.push({ image, frame, action });
     }
 
+    /** The "Town" button: the "Ok" frame with its word covered by its own wood, and our word on top. */
+    private addWordButton(side: number, action: () => void): void {
+        const b = GAME_OVER.townButton;
+        this.addButton(b.frame, side, action);
+        const button = this.buttons[this.buttons.length - 1];
+        if (!button) return;
+        const { image } = button;
+        const scale = GAME_OVER.buttonScale;
+        const texture = this.textures.get(GAME_OVER.buttonTexture);
+        const source = texture.get(b.frame);
+        const height = source.cutHeight - b.strip.y * 2;
+        // One strip per frame (off and lit), added to the texture once.
+        for (const frame of [b.frame, b.frame + 1]) {
+            const name = `${frame}-blank`;
+            const from = texture.get(frame);
+            if (!texture.has(name)) texture.add(name, from.sourceIndex, from.cutX + b.strip.x, from.cutY + b.strip.y, b.strip.width, height);
+        }
+        const left = image.x - (source.cutWidth * scale) / 2 + b.cover.x * scale;
+        const top = image.y - (source.cutHeight * scale) / 2 + b.strip.y * scale;
+        // Copies of the strip side by side (the last one cut to fit).
+        const strips: NonNullable<Button['word']>['strips'] = [];
+        for (let x = 0; x < b.cover.width; x += b.strip.width) {
+            const image = this.add.image(left + x * scale, top, GAME_OVER.buttonTexture, `${b.frame}-blank`).setOrigin(0).setScale(scale);
+            const cropWidth = x + b.strip.width > b.cover.width ? b.cover.width - x : undefined;
+            if (cropWidth !== undefined) image.setCrop(0, 0, cropWidth, height);
+            strips.push({ image, cropWidth });
+        }
+        const text = this.add.text(image.x, image.y, b.word, {
+            fontFamily: b.fontFamily, fontSize: px(b.fontSize * scale), fontStyle: 'bold', color: b.color,
+            shadow: { offsetX: 1, offsetY: 1, color: b.shadow, fill: true },
+        }).setOrigin(0.5);
+        button.word = { strips, text };
+    }
+
     /** The highlighted button shows its lit frame (the next one). */
     private highlight(index: number): void {
         this.selected = index;
-        this.buttons.forEach((button, i) => button.image.setFrame(button.frame + (i === index ? 1 : 0)).setOrigin(0.5));
+        this.buttons.forEach((button, i) => {
+            const lit = i === index ? 1 : 0;
+            button.image.setFrame(button.frame + lit).setOrigin(0.5);
+            for (const { image, cropWidth } of button.word?.strips ?? []) {
+                image.setFrame(`${button.frame + lit}-blank`);
+                if (cropWidth !== undefined) image.setCrop(0, 0, cropWidth, image.height);
+            }
+            button.word?.text.setColor(lit ? GAME_OVER.townButton.litColor : GAME_OVER.townButton.color);
+        });
     }
 
     private choose(index: number): void {

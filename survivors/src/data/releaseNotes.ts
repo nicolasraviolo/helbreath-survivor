@@ -14,6 +14,15 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: readonly ReleaseNote[] = [
     {
+        version: 'Phase 23',
+        date: 'Oct 21, 2026',
+        changes: [
+            'New town: walk around the Elvine farm between runs.',
+            'Step on the teleport to choose your map.',
+            'After a run, the Town button takes you back to the farm.',
+        ],
+    },
+    {
         version: 'Phase 22',
         date: 'Oct 21, 2026',
         changes: [

@@ -81,6 +81,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Elvine Garden (Fase 22D)
 - Middleland (Fase 22E)
 - Sombras del jugador y los monstruos (Fase 22G)
+- La ciudad (Fase 23A)
 - Rareza de las cartas (Fase 21½A)
 - Reroll y Skip (Fase 21½B)
 - Evento Champion (Fase 21½C)
@@ -947,6 +948,15 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - **Jugador:** una sola sombra, sacada del **cuerpo desnudo** (capa `human`, `CharacterSprite.bodyFrame()`); ni ropa ni arma, igual que el original. `Player.syncShadow()` copia el fotograma en cada `update`. Se oculta al morir y vuelve al revivir (Abaddon's Blood). No parpadea con la invulnerabilidad: es un sprite aparte, fuera del contenedor del jugador.
 - **Monstruos sin sombra en el original** (`MonsterShadow.NoShadow`): Slime, Ant, Snake, Cat, Dire Boar, Scorpion, Tigerworm y **Unicorn** (este estaba mal hasta el 22G). Un monstruo nuevo: mirar su campo `shadow` en `sp-client/src/constants/Monsters.ts`.
 - **Rendimiento:** con 293 monstruos, 137–139 FPS antes y después (ordenador y `--mobile`, 21-oct-2026).
+
+## La ciudad (Fase 23A)
+- **Mapa:** recorte de `elvfarm.amd` (250×250) en `data/town.ts`, `playArea` (62,161) de 62×52, elegido por el propietario sobre una captura. Empieza en la fila 161: la 160 tiene 4 casillas de campo (x 115–118) que añaden `maptiles2` (2,5 MB). Lo que más pesa de lo nuevo es `tile388-402` (2,3 MB), el suelo del edificio de la derecha (Tom). Sitios medidos (casillas): Howard y Cofre (81,194), Shop Keeper (88,182), William (96,176), Tom (105,188), teleport (96,202), llegada (93,186).
+- **Carga:** `MapLoadScene` con `{ town: true }` (`startTown(scene)`): mapa, minimapa, casillas, `fx.effect11` (portal), `fx.effect2` (polvo) y la ropa del personaje; nada de monstruos ni `RUN_SPRITES`. La música (`music.elvine`) está en `LATER_SOUNDS` (`config/assetManifest.ts`): `PreloadScene` se la salta y la baja la carga de la ciudad. Medido (21-oct-2026): 13,3 MB, 3,0 s en PC y 14,1 s en móvil; más de la mitad (`maptiles1`, árboles, efectos) la usan también los mapas de caza.
+- **Select Map encima:** el teleport hace `scene.pause()` de la ciudad y lanza `MapSelect` con `{ fromTown: true }`. "Back" para Select Map y reanuda la ciudad (sin recargar); "Play" para la ciudad y abre `MapLoad`. El teleport se dispara al entrar en su círculo (`PORTAL.enterRadius`) y no vuelve a abrirse hasta salir de él.
+- **Minimapa en una escena con cámara que se mueve:** el contenedor del minimapa lleva `setScrollFactor(0, 0, true)` (en el HUD daba igual). En el móvil, el botón "II" (`ui/TouchPauseButton.ts`, compartido con el HUD) y el minimapa debajo (`MINIMAP.topUnderButtons`).
+- **Botón "Town" de la pantalla final:** el original no tiene esa palabra (la hoja `ui.buttons` 1 trae Ok, Continue, Restart, Log Out, Change...). Se usa el marco del "Ok", se tapa su palabra con copias de una tira de su madera sin letras (frames propios `0-blank` / `1-blank` añadidos a la textura) y se escribe "Town" encima (`GAME_OVER.townButton`).
+- **Ojo:** un `TileSprite` con un frame de un `.spr` da `The image source is detached` (las hojas son `ImageBitmap` ya cerrados): para repetir un trozo, varias `Image` en fila con `setCrop` en la última.
+- **Atajos:** `?open=town` (con el primer personaje guardado), `?town=portal` (aparece sobre el teleport; solo la primera vez). Checks `town`, `townportal`, `loadtimetown`.
 
 ## Rareza de las cartas (Fase 21½A)
 - Números en `data/cardRarity.ts`; sorteo en `systems/UpgradePool.ts` (`buildLevelUpChoices(equipment, chr, { chest, onlyPassives, allEpic })`). Desde la partida se piden siempre con `GameScene.levelUpChoices(fromChest)`, que lee la Chr de la partida y los atajos.

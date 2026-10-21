@@ -51,6 +51,8 @@ export class Minimap {
         this.dots = scene.add.graphics();
         this.container = scene.add.container(GAME_WIDTH - MINIMAP.margin - size, MINIMAP.margin, [back, picture, this.dots])
             .setDepth(depth);
+        // Fixed on screen also where the camera moves (the town draws it in its own scene, Fase 23).
+        this.container.setScrollFactor(0, 0, true);
     }
 
     public setTop(y: number): void {

@@ -244,7 +244,24 @@ export const GAME_OVER = {
     buttonScale: 1.6,
     buttonTexture: getSheetKey('ui.buttons', 1),
     restartFrame: 36,
-    changeFrame: 20,
+    /**
+     * Botón del medio: vuelve a la ciudad (Fase 23). El original no tiene un botón "Town": se usa el marco del "Ok"
+     * (frames 0 y 1, apagado y encendido), se tapa su palabra con una tira de su propia madera (la parte de la
+     * izquierda, sin letras, repetida) y se escribe "Town" encima. Medidas en píxeles del frame, sin escalar.
+     */
+    townButton: {
+        frame: 0,
+        word: 'Town',
+        /** Wood without letters, copied from the frame. */
+        strip: { x: 9, y: 3, width: 14 },
+        /** Part of the frame covered by that wood (between the rivets at both ends). */
+        cover: { x: 9, width: 55 },
+        fontFamily: 'Georgia, serif',
+        fontSize: 11,
+        color: '#e6dcc4',
+        litColor: '#ffe24a',
+        shadow: '#000000',
+    },
     logOutFrame: 8,
     /** Ignore input for a moment, so the key or click that killed the boss doesn't choose a button. */
     inputDelayMs: 800,
