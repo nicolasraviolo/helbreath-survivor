@@ -84,7 +84,6 @@
 - La red del propietario bloquea a veces las IPs de Cloudflare (LaLiga): métricas sin abrir ni recibir partidas. Probar con datos móviles o más tarde.
 - La partida simulada a veces falla: el jugador no alcanza a un jefe atascado y este vive hasta el final; descartarlas. Con el guerrero sale muy irregular (nivel 10–27 con el mismo código, 18-oct-2026), peor cuanto más deprisa (×400–500): repetir y usar la mediana.
 - Las flechas "→" de las cartas salen en otra fuente (Comic Neue no la tiene). No molesta.
-- How to Play, página Basics: la última línea (16B) pisa el selector "Page". Pendiente (acortar o juntar líneas).
 - Navegador interno en segundo plano: ~1 FPS, parece congelado; usar Playwright o el panel visible. A veces a Playwright también le cae `requestAnimationFrame` a 2/s (16-oct-2026). No es del juego.
 - En el navegador interno, `sp-client` da `Cannot suspend/resume a closed AudioContext` (audio en pestaña de fondo). No afecta.
 - Enemigos atascados tras un obstáculo si el jugador está al otro lado (sin búsqueda de caminos; en Bleeding Isle pasa poco). Se recolocan si quedan lejos.

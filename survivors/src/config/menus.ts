@@ -161,7 +161,9 @@ export const MAIN_MENU_FOOTER_Y = GAME_HEIGHT - MAIN_MENU.footerHeight / 2;
 export const HOW_TO_PLAY = {
     /** Space between the page selector row and the first line of content. */
     contentGap: byDevice(34, 40),
-    lineSpacing: byDevice(29, 34),
+    /** Top of the page from the usual content row (a bit higher, close under the title) so 7 lines fit above "Page". */
+    contentOffsetY: byDevice(-36, -40),
+    lineSpacing: byDevice(27, 28),
     /** Paragraph lines wrap at this width. */
     wrapWidth: byDevice(560, 640),
     /** Left edge of the control column and of the action column, from the panel's centre. */
