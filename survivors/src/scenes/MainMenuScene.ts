@@ -17,7 +17,6 @@ import {
     MENU_PANEL,
 } from '../config/menus';
 import { MUSIC } from '../data/audio';
-import { assetStreamer } from '../systems/AssetStreamer';
 import { InputSystem } from '../systems/InputSystem';
 import { MusicSystem } from '../systems/MusicSystem';
 import { addFullscreenButton } from '../ui/fullscreen';
@@ -61,8 +60,6 @@ export class MainMenuScene extends Phaser.Scene {
             this.openedAt = this.time.now;
         });
         new MusicSystem(this).play(MUSIC.menu);
-        // The monsters of later waves start downloading already, while the player is in the menus.
-        assetStreamer.start(this);
         // ?open= (debugStart.ts): show that menu screen once, as if it had been chosen here.
         if (DEBUG_START.open && DEBUG_START.open !== 'CharacterSelect' && DEBUG_START.open !== 'CharacterSlots' && DEBUG_START.open !== 'CharacterInfo' && DEBUG_START.open !== 'Equipment' && DEBUG_START.open !== 'Warehouse' && DEBUG_START.open !== 'RunChoice' && !debugScreenOpened) {
             debugScreenOpened = true;

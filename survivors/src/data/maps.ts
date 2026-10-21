@@ -1,5 +1,10 @@
-// Mapas jugables: qué .amd usar y qué recorte es la zona de juego (en casillas).
-import type { MapKey, MinimapKey } from '../config/assetManifest';
+// Mapas jugables (Fase 22A): qué .amd usar, qué recorte es la zona de juego (en casillas), sus monstruos y jefes, cómo
+// se desbloquea y lo difícil que es. El orden de MAPS_DATA es el de la pantalla Select Map y el del desbloqueo:
+// un mapa se abre al ganar el anterior o al llegar a su Level recomendado (lo que pase antes; decidido el 20-oct-2026).
+// Sus oleadas están en data/waves.ts (TIMELINES), una línea de tiempo por mapa.
+// Zonas de juego medidas con un script sobre los .amd (20-oct-2026; NOTES.md, "Mapas").
+import type { MapKey, MinimapKey, SoundKey } from '../config/assetManifest';
+import { MUSIC } from './audio';
 import type { EnemyId } from './enemies';
 
 export interface TileRect {
@@ -9,10 +14,23 @@ export interface TileRect {
     height: number;
 }
 
+/** Multipliers for the normal monsters of a map (bosses are tuned one by one in enemies.ts). */
+export interface MapDifficulty {
+    /** Health, and the XP of their gems (weaker monsters give less, so an easy map is not the best place to farm). */
+    hp: number;
+    /** Damage of their blows and projectiles. */
+    damage: number;
+}
+
+/** Monsters exactly as in enemies.ts. */
+export const NO_DIFFICULTY: MapDifficulty = { hp: 1, damage: 1 };
+
 export interface MapDef {
     name: string;
     asset: MapKey;
-    /** Picture of the whole map for the minimap (Fase 16A). */
+    /** Size of the whole .amd in tiles (to cut the play area out of the minimap picture before the map is loaded). */
+    size: { width: number; height: number };
+    /** Picture of the whole map for the minimap (Fase 16A) and the Select Map card. */
     minimap: MinimapKey;
     /** Region of the map where the game happens. Camera and player stay inside it. */
     playArea: TileRect;
@@ -20,18 +38,72 @@ export interface MapDef {
     localEnemies: readonly EnemyId[];
     /** Mini-bosses and final boss of this map. */
     bosses: readonly EnemyId[];
+    /** Character Level shown on Select Map; reaching it also unlocks the map. */
+    recommendedLevel: number;
+    difficulty: MapDifficulty;
+    /** Music while no boss is out. */
+    music: SoundKey;
+    /** One line on the Select Map card. */
+    description: string;
+    /** Not playable yet: shown as "Coming soon" (its waves come in a later block). */
+    comingSoon?: boolean;
 }
 
-// De momento solo se juega un mapa: PreloadScene carga únicamente las casillas de DEFAULT_MAP.
-// Las partidas guardadas con un mapa que ya no está aquí siguen en DEFAULT_MAP (ver SaveStore).
 export const MAPS_DATA = {
+    // Mapa de introducción (20-oct-2026): muchos monstruos muy flojos, 8 minutos, Stone Golem y Dummy de jefes.
+    // Ventana de 100×100 con un 84% libre (el mapa entero es pequeño, 170×170).
+    traveler: {
+        name: 'Traveler Zone', asset: 'map.traveler', size: { width: 170, height: 170 }, minimap: 'minimap.traveler', playArea: { x: 40, y: 38, width: 100, height: 100 },
+        // Dificultad subida en el 22C (antes 0,5 / 0,4): el propietario la vio demasiado fácil.
+        localEnemies: ['bunny', 'cat'], bosses: ['stoneGolemBoss', 'dummy'], recommendedLevel: 1, difficulty: { hp: 0.7, damage: 0.6 },
+        music: MUSIC.normal, description: 'Where every adventure begins.',
+    },
     // Ventana de 150×150 casillas con un 95% libre, todo conectado (medido el 18-oct-2026; NOTES.md).
-    bisle: { name: 'Bleeding Isle', asset: 'map.bisle', minimap: 'minimap.bisle', playArea: { x: 66, y: 52, width: 150, height: 150 },
-        localEnemies: ['cyclops', 'mountainGiant', 'ogre', 'cannibalPlant'], bosses: ['ettin', 'demon', 'fireWyvern'] },
-    // Mapa anterior (hasta el 18-oct-2026), guardado para la Fase 21 (varios mapas):
-    // huntzone2: { name: 'Hunt Zone 2', asset: 'map.huntzone2', playArea: { x: 72, y: 70, width: 100, height: 100 } },
+    bisle: {
+        name: 'Bleeding Isle', asset: 'map.bisle', size: { width: 274, height: 250 }, minimap: 'minimap.bisle', playArea: { x: 66, y: 52, width: 150, height: 150 },
+        localEnemies: ['cyclops', 'mountainGiant', 'ogre', 'cannibalPlant'], bosses: ['ettin', 'demon', 'fireWyvern'],
+        recommendedLevel: 10, difficulty: { hp: 1, damage: 1 }, music: MUSIC.normal, description: 'An island soaked in blood.',
+    },
+    // Bloque 22D (21-oct-2026). Ventana de 150×150 con un 86% libre. Más difícil que Bleeding Isle (×1,3, propietario).
+    elvineGarden: {
+        name: 'Elvine Garden', asset: 'map.elvineGarden', size: { width: 200, height: 200 }, minimap: 'minimap.elvineGarden', playArea: { x: 24, y: 26, width: 150, height: 150 },
+        localEnemies: ['troll', 'werewolf', 'giantTree', 'cannibalPlant'], bosses: ['hellhoundBoss', 'stalkerBoss', 'cyclopsBoss'],
+        recommendedLevel: 25, difficulty: { hp: 1.3, damage: 1.3 }, music: MUSIC.normal, description: 'The gardens outside Elvine.',
+    },
+    // Bloque 22E (21-oct-2026). Ventana de 150×150 con un 94% libre (el mapa entero es enorme, 524×524). Más difícil
+    // que Elvine Garden (×1,6, propietario) y más larga: 15 minutos.
+    middleland: {
+        name: 'Middleland', asset: 'map.middleland', size: { width: 524, height: 524 }, minimap: 'minimap.middleland', playArea: { x: 36, y: 274, width: 150, height: 150 },
+        localEnemies: ['werewolf', 'troll', 'ogre', 'cyclops', 'stalker', 'ettinRegular'],
+        bosses: ['mountainGiantBoss', 'giantLizard', 'ettinBerserk', 'unicorn'],
+        recommendedLevel: 40, difficulty: { hp: 1.6, damage: 1.6 }, music: MUSIC.normal,
+        description: 'The battlefield between the two cities.',
+    },
 } as const satisfies Record<string, MapDef>;
 
 export type MapId = keyof typeof MAPS_DATA;
 
+/** In Select Map order. */
+export const MAP_IDS = Object.keys(MAPS_DATA) as MapId[];
+
+/** Saved runs from before Fase 22 (no map, or one that is gone) go on here. */
 export const DEFAULT_MAP: MapId = 'bisle';
+
+/** The first map: always open. */
+export const FIRST_MAP: MapId = 'traveler';
+
+/** Registry key: the map chosen in Select Map (GameScene reads it). */
+export const CHOSEN_MAP_KEY = 'chosenMap';
+
+export function getMapDef(id: MapId): MapDef {
+    return MAPS_DATA[id];
+}
+
+export function isMapId(value: unknown): value is MapId {
+    return typeof value === 'string' && Object.prototype.hasOwnProperty.call(MAPS_DATA, value);
+}
+
+/** The map before this one in the order (undefined for the first). */
+export function previousMap(id: MapId): MapId | undefined {
+    return MAP_IDS[MAP_IDS.indexOf(id) - 1];
+}

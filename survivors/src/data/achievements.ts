@@ -19,7 +19,9 @@ export type AchievementGoal =
     /** A piece in every armor slot of the class at the same time. */
     | { kind: 'fullArmor' }
     /** Rise again with Abaddon's Blood (Fase 21E). */
-    | { kind: 'revive' };
+    | { kind: 'revive' }
+    /** Die (for good), optionally on a map (Fase 22A). */
+    | { kind: 'die'; map?: MapId };
 
 export interface AchievementDef {
     name: string;
@@ -37,7 +39,15 @@ export const ACHIEVEMENTS = {
     killEttin: { name: 'Ettin Slayer', description: 'Kill the Ettin.', goal: { kind: 'killBoss', enemy: 'ettin' } },
     killDemon: { name: 'Demon Hunter', description: 'Kill the Demon.', goal: { kind: 'killBoss', enemy: 'demon' } },
     killWyvern: { name: 'Dragon Slayer', description: 'Kill the Fire Wyvern.', goal: { kind: 'killBoss', enemy: 'fireWyvern' } },
+    // Fase 22A (propietario, 20-oct-2026): ganar el mapa de introducción, y morir en él al menos una vez.
+    winTraveler: { name: 'First Steps', description: 'Escape the Traveler Zone through the portal.', goal: { kind: 'win', map: 'traveler' } },
+    noob: { name: 'n0000b', description: 'Die in the Traveler Zone.', goal: { kind: 'die', map: 'traveler' } },
     winBisle: { name: 'Island Conqueror', description: 'Escape Bleeding Isle through the portal.', goal: { kind: 'win', map: 'bisle' } },
+    // Fase 22D.
+    winElvine: { name: 'Garden Keeper', description: 'Escape Elvine Garden through the portal.', goal: { kind: 'win', map: 'elvineGarden' } },
+    // Fase 22E.
+    winMiddleland: { name: 'Warlord of Middleland', description: 'Escape Middleland through the portal.', goal: { kind: 'win', map: 'middleland' } },
+    killUnicorn: { name: 'Unicorn Hunter', description: 'Kill the Unicorn.', goal: { kind: 'killBoss', enemy: 'unicorn' } },
     winWarrior: { name: 'Path of the Blade', description: 'Win a run as the Warrior.', goal: { kind: 'win', character: 'warrior' } },
     winMage: { name: 'Path of Magic', description: 'Win a run as the Mage.', goal: { kind: 'win', character: 'mage' } },
     noPotions: { name: 'Iron Will', description: 'Win a run without drinking a potion.', goal: { kind: 'win', noPotions: true } },

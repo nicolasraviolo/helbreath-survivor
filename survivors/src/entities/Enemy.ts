@@ -10,15 +10,16 @@ import {
     ENEMY_HIT_FLASH_MS,
     ENEMY_KNOCKBACK_DECAY,
     ENEMY_WALL_HALF_SIZE,
-    MONSTER_SHADOW_ALPHA,
-    MONSTER_SHADOW_ROTATION,
+    BODY_SHADOW_ALPHA,
+    BODY_SHADOW_ROTATION,
     MONSTER_ATTACK,
-    MONSTER_SHADOW_SCALE_Y,
+    BODY_SHADOW_SCALE_Y,
 } from '../config/gameConfig';
 import type { AudioSystem } from '../systems/AudioSystem';
 import { enemySpeed, MONSTER_AI, MONSTER_DAMAGE, type EnemyDef } from '../data/enemies';
 import { hitChance } from '../data/defense';
 import { ELITE } from '../data/elites';
+import { NO_DIFFICULTY, type MapDifficulty } from '../data/maps';
 import { CHAMPION } from '../data/champion';
 import { POISON } from '../data/attributes';
 import { EFFECTS } from '../config/effects';
@@ -111,6 +112,8 @@ export class Enemy implements Poolable {
     private frozenMs = 0;
     /** Elite (data/elites.ts): hits harder, has more health and gives more XP; glows red like the player's Berserk. */
     public elite = false;
+    /** The map's multipliers for normal monsters (data/maps.ts → difficulty, Fase 22A); 1 for bosses. */
+    private difficulty: MapDifficulty = NO_DIFFICULTY;
     /** Poison (Fase 21B, data/attributes.ts): its level (0 = not poisoned) and the time to the next tick. */
     private poisonLevel = 0;
     private poisonTickMs = 0;
@@ -132,9 +135,9 @@ export class Enemy implements Poolable {
         if (def.hasShadow) {
             this.shadow = scene.add.sprite(0, 0, getSheetKey(def.sprite, 0), '0')
                 .setTint(0x000000)
-                .setAlpha(MONSTER_SHADOW_ALPHA)
-                .setRotation(MONSTER_SHADOW_ROTATION)
-                .setScale(scale, MONSTER_SHADOW_SCALE_Y * scale)
+                .setAlpha(BODY_SHADOW_ALPHA)
+                .setRotation(BODY_SHADOW_ROTATION)
+                .setScale(scale, BODY_SHADOW_SCALE_Y * scale)
                 .setDepth(DEPTH_GROUND_SHADOWS + 1);
         }
         this.setActive(false);
@@ -144,11 +147,12 @@ export class Enemy implements Poolable {
         return this.phase === EnemyPhase.Alive;
     }
 
-    public spawn(x: number, y: number, elite = false, champion = false): void {
+    public spawn(x: number, y: number, elite = false, difficulty: MapDifficulty = NO_DIFFICULTY, champion = false): void {
         this.x = x;
         this.y = y;
         this.elite = elite && !champion;
         this.champion = champion;
+        this.difficulty = difficulty;
         this.headHeight = 0;
         this.applySize();
         this.hp = this.maxHp;
@@ -208,13 +212,13 @@ export class Enemy implements Poolable {
     /** Full health: the elites have more, the champions much more. */
     public get maxHp(): number {
         const factor = this.champion ? CHAMPION.hpMultiplier : this.elite ? ELITE.hpMultiplier : 1;
-        return Math.round(this.def.maxHp * factor);
+        return Math.max(1, Math.round(this.def.maxHp * this.difficulty.hp * factor));
     }
 
     /** XP it drops (a champion's is split into several gems by the game scene): the elites give more. */
     public get xp(): number {
         const factor = this.champion ? CHAMPION.xpMultiplier : this.elite ? ELITE.xpMultiplier : 1;
-        return Math.round(this.def.xp * factor);
+        return Math.max(1, Math.round(this.def.xp * this.difficulty.hp * factor));
     }
 
     /** How much bigger than its kind it is (champions). */
@@ -526,13 +530,14 @@ export class Enemy implements Poolable {
 
     /** One blow: the original dice, compressed for our health scale (data/enemies.ts → MONSTER_DAMAGE), softer for bosses. */
     private rollDamage(): number {
+        if (this.def.fixedDamage !== undefined) return this.def.fixedDamage;
         const [count, sides] = this.def.damageDice;
         let roll = 0;
         for (let i = 0; i < count; i++) roll += Phaser.Math.Between(1, sides);
         const average = (count * (sides + 1)) / 2;
         const blow = MONSTER_DAMAGE.scale * average ** MONSTER_DAMAGE.exponent * (roll / average);
         const elite = this.champion ? CHAMPION.damageMultiplier : this.elite ? ELITE.damageMultiplier : 1;
-        return Math.max(1, Math.round(blow * (this.def.damageScale ?? 1) * elite));
+        return Math.max(1, Math.round(blow * (this.def.damageScale ?? 1) * elite * this.difficulty.damage));
     }
 
     /** Frames of the attack animation for the current direction. */
@@ -596,7 +601,7 @@ export class Enemy implements Poolable {
         const frame = sprite.frame;
         const key = frame.texture.key;
         const glowing = key.endsWith(ELITE_GLOW_SUFFIX);
-        const wanted = (this.elite || this.champion) && !this.isFrozen;
+        const wanted = (this.elite || this.champion || this.def.glows === true) && !this.isFrozen;
         if (wanted === glowing) return;
         if (!wanted) {
             sprite.setTexture(key.slice(0, -ELITE_GLOW_SUFFIX.length), frame.name);
@@ -610,7 +615,7 @@ export class Enemy implements Poolable {
     private applySize(): void {
         const scale = this.baseScale * this.sizeFactor;
         this.sprite.setScale(scale);
-        this.shadow?.setScale(scale, MONSTER_SHADOW_SCALE_Y * scale);
+        this.shadow?.setScale(scale, BODY_SHADOW_SCALE_Y * scale);
     }
 
     /**

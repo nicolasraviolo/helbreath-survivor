@@ -59,6 +59,11 @@ export class AchievementTracker {
         this.unlockWhere((goal) => goal.kind === 'revive');
     }
 
+    /** Died for good (no Abaddon's Blood left; Fase 22A). */
+    public onDeath(): void {
+        this.unlockWhere((goal) => goal.kind === 'die' && (goal.map === undefined || goal.map === this.map));
+    }
+
     /** Escaped through the portal. */
     public onWin(): void {
         this.unlockWhere((goal) => goal.kind === 'win'

@@ -46,6 +46,9 @@
 //   ?open=runchoice  → Select Character con la ventana Continue / New Run del personaje marcado (21-oct-2026), tenga
 //                      partida guardada o no
 //   ?characters=reset → borra los personajes guardados al cargar (demo = deja dos de ejemplo; Fase 17A)
+//   ?map=traveler    → con ?play/?debug, la partida en ese mapa (traveler, bisle, elvineGarden, middleland; Fase 22A). Sin él, Bleeding Isle
+//   ?maps=all        → todos los mapas abiertos en Select Map (reset = olvida los mapas ganados; Fase 22A)
+//   ?open=mapselect  → abre Select Map con el primer personaje guardado (o sin personaje)
 //   ?unlocks=abaddon  → desbloquea Abaddon's Blood en este dispositivo (Fase 21E; reset = quita los desbloqueos)
 //                      dice3,wine2 → 3 dados (Reroll) y 2 vinos (Skip) comprados (Fase 21½B; "dice" solo = 1, "dice0" = 0)
 //   ?achievements=reset → borra los logros conseguidos al cargar (all = los da todos, para ver la pantalla llena; Fase 14B)
@@ -55,13 +58,14 @@
 import { isActiveSpellId, type ActiveSpellId } from '../data/activeSpells';
 import { isItemAttribute, type ItemAttribute } from '../data/attributes';
 import { isUnlockId, type UnlockId } from '../data/abaddon';
+import { isMapId, type MapId } from '../data/maps';
 import { isStackableUnlockId, type StackableUnlockId } from '../data/rerollSkip';
 import { isCharacterId, type CharacterId } from '../data/characters';
 import { isAutoSpellId, type AutoSpellId } from '../data/spells';
 import { TREE_MODES, type TreeMode } from './settings';
 
 /** Menu screens that ?open= shows straight away, and the scene of each one. */
-const DEBUG_SCREENS = { howtoplay: 'HowToPlay', settings: 'Settings', controls: 'Controls', credits: 'Credits', releasenotes: 'ReleaseNotes', achievements: 'Achievements', select: 'CharacterSelect', slots: 'CharacterSlots', charinfo: 'CharacterInfo', equipment: 'Equipment', warehouse: 'Warehouse', runchoice: 'RunChoice' } as const;
+const DEBUG_SCREENS = { howtoplay: 'HowToPlay', settings: 'Settings', controls: 'Controls', credits: 'Credits', releasenotes: 'ReleaseNotes', achievements: 'Achievements', select: 'CharacterSelect', slots: 'CharacterSlots', mapselect: 'MapSelect', charinfo: 'CharacterInfo', equipment: 'Equipment', warehouse: 'Warehouse', runchoice: 'RunChoice' } as const;
 type DebugScreen = keyof typeof DEBUG_SCREENS;
 
 function isDebugScreen(value: string | null): value is DebugScreen {
@@ -111,13 +115,17 @@ interface DebugStart {
     unlockCounts: Partial<Record<StackableUnlockId, number>>;
     /** ?attr=: the starting weapon and every drop (always a weapon) get that attribute (Fase 21B). */
     attribute: ItemAttribute | undefined;
+    /** ?map=: the map of a debug run (Fase 22A). */
+    map: MapId | undefined;
+    /** ?maps=all opens every map in Select Map; reset forgets the maps won (Fase 22A). */
+    maps: 'all' | 'reset' | undefined;
 }
 
 function readDebugStart(): DebugStart {
     const none: DebugStart = {
         play: false, character: undefined, actions: [], trees: undefined, open: undefined, achievements: undefined, characters: undefined,
         sendMetrics: false, spells: { auto: undefined, active: undefined }, openClass: undefined, slash: undefined,
-        holdLoading: false, gear: [], settingsTab: undefined, attribute: undefined, unlocks: undefined, unlockCounts: {},
+        holdLoading: false, gear: [], settingsTab: undefined, attribute: undefined, unlocks: undefined, unlockCounts: {}, map: undefined, maps: undefined,
     };
     if (!import.meta.env.DEV) return none;
     const params = new URLSearchParams(window.location.search);
@@ -132,8 +140,10 @@ function readDebugStart(): DebugStart {
     const slash = params.get('slash');
     const attribute = params.get('attr');
     const unlocks = params.get('unlocks');
+    const map = params.get('map');
+    const maps = params.get('maps');
     return {
-        play: play !== null || actions.length > 0 || trees !== undefined || slash !== null,
+        play: play !== null || actions.length > 0 || trees !== undefined || slash !== null || isMapId(map),
         character: isCharacterId(play) ? play : undefined,
         actions,
         trees,
@@ -149,6 +159,8 @@ function readDebugStart(): DebugStart {
         settingsTab: params.get('tab')?.toLowerCase() ?? undefined,
         attribute: isItemAttribute(attribute) ? attribute : undefined,
         unlocks: unlocks === 'reset' ? 'reset' : unlocks ? unlocks.split(',').map((u) => u.trim()).filter(isUnlockId) : undefined,
+        map: isMapId(map) ? map : undefined,
+        maps: maps === 'all' || maps === 'reset' ? maps : undefined,
         unlockCounts: readUnlockCounts(unlocks),
     };
 }

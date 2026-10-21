@@ -8,6 +8,7 @@
 //       pnpm check levelpace           → partida simulada muy deprisa (?debug=sim): minuto de cada nivel y golpes de jefe
 //                                        (Mago: "play=mage&debug=sim"; tarda 1–3 min)
 //       pnpm check boss --mobile       → simulando un móvil en horizontal (táctil, ?ui=compact)
+//       pnpm check loadtime [--mobile] → tiempos de carga (descarga y preparación) con red simulada; informe en .check/
 //       pnpm check "play=warrior&debug=str,levels"   → cualquier combinación de atajos (ver src/config/debugStart.ts)
 //       --cards                        → elige solo la primera carta de cada subida de nivel (para que la partida siga)
 //       --wait=5000                    → milisegundos que se deja correr la partida antes de medir (por defecto 3000)
@@ -53,6 +54,9 @@ const PRESETS = {
     portal: 'debug=god,bosskill',
     stampede: 'debug=god,stampede',
     levelpace: 'debug=sim',
+    // Lo mismo en Elvine Garden (Fase 22D).
+    levelpaceelvine: 'debug=sim&map=elvineGarden',
+    levelpacemiddleland: 'debug=sim&map=middleland',
     // Critical Strike (Fase 19A): Guerrero con una horda alrededor y cargas infinitas. Para lanzarlo:
     // --eval="g.launchCritStrike()"; con --mobile se ve el botón de la espada roja.
     crit: 'play=warrior&debug=god,horde,crits',
@@ -103,6 +107,26 @@ const PRESETS = {
     slotsempty: 'characters=reset&open=slots',
     // Continue / New Run al elegir un personaje con partida guardada (21-oct-2026).
     runchoice: 'characters=demo&open=runchoice',
+    // Select Map (Fase 22A): con los personajes de ejemplo (mapsall: todos abiertos; mapsnew: dispositivo sin ganar nada).
+    mapselect: 'characters=demo&open=mapselect',
+    mapsall: 'characters=demo&open=mapselect&maps=all',
+    mapsnew: 'characters=reset&open=mapselect&maps=reset',
+    // Traveler Zone (Fase 22A): el mapa de introducción. travelerboss: el Dummy (jefe final) con sus bichos.
+    traveler: 'play=warrior&map=traveler',
+    travelerboss: 'play=warrior&map=traveler&debug=god,finalboss',
+    // Elvine Garden (Fase 22D). elvineboss: el Cyclops (jefe final) con sus esbirros.
+    elvine: 'play=warrior&map=elvineGarden',
+    elvineboss: 'play=warrior&map=elvineGarden&debug=god,finalboss',
+    // Middleland (Fase 22E). middlelandboss: el Unicorn (jefe final) con sus rayos y esbirros.
+    middleland: 'play=warrior&map=middleland',
+    middlelandboss: 'play=warrior&map=middleland&debug=god,finalboss',
+    // Tiempos de carga (Fase 22B): carga inicial y la del mapa, con la red (y en --mobile el procesador) más lentos.
+    // loadtime = Guerrero en Bleeding Isle; loadtimetraveler y loadtimemage, las otras dos combinaciones.
+    loadtime: 'play=warrior',
+    loadtimetraveler: 'play=warrior&map=traveler',
+    loadtimeelvine: 'play=warrior&map=elvineGarden',
+    loadtimemiddleland: 'play=warrior&map=middleland',
+    loadtimemage: 'play=mage',
     // Pantalla de carga (M8), parada a medias para verla: barra, "Loading" y el logo que late.
     loading: 'loading=hold',
     // Pantalla "What's new" (novedades de cada fase), la que abre el link del pie del menú.
@@ -110,6 +134,14 @@ const PRESETS = {
     // Settings → Controls (Fase 19C): cambiar la tecla / el botón del crit y del panel de stats.
     controls: 'open=controls',
     settings: 'open=settings',
+};
+/**
+ * Simulated connection for the load times (Chrome DevTools numbers): a home connection for the computer and a "fast 4G"
+ * phone, whose processor is also slowed down (4× is what Chrome suggests for a mid-range phone).
+ */
+const LOAD_PROFILES = {
+    desktop: { downloadMbps: 50, latencyMs: 20, cpuSlowdown: 1 },
+    mobile: { downloadMbps: 9, latencyMs: 60, cpuSlowdown: 4 },
 };
 /** Most real time a simulated run may take (ms). */
 const SIM_TIMEOUT_MS = 8 * 60000;
@@ -185,14 +217,27 @@ async function runScenario(browser, name) {
         if (msg.type() === 'error' && !IGNORED_ERRORS.some((re) => re.test(msg.text()))) errors.push(msg.text());
     });
     page.on('pageerror', (err) => errors.push(`${err.name}: ${err.message}`));
+    const measureLoad = name.startsWith('loadtime');
+    const profile = LOAD_PROFILES[mobile ? 'mobile' : 'desktop'];
+    if (measureLoad) {
+        const cdp = await context.newCDPSession(page);
+        await cdp.send('Network.enable');
+        await cdp.send('Network.emulateNetworkConditions', {
+            offline: false, latency: profile.latencyMs, downloadThroughput: (profile.downloadMbps * 1e6) / 8, uploadThroughput: 1e6,
+        });
+        await cdp.send('Emulation.setCPUThrottlingRate', { rate: profile.cpuSlowdown });
+        // The browser keeps only 250 downloads by default, and in development the code alone is hundreds of files.
+        await page.addInitScript(() => performance.setResourceTimingBufferSize(100000));
+    }
 
     // ?open= (debugStart.ts) shows a menu screen: wait for it instead of the game.
-    const openKey = { howtoplay: 'HowToPlay', settings: 'Settings', controls: 'Controls', credits: 'Credits', releasenotes: 'ReleaseNotes', achievements: 'Achievements', select: 'CharacterSelect', slots: 'CharacterSlots', charinfo: 'CharacterInfo', equipment: 'Equipment', warehouse: 'Warehouse', runchoice: 'RunChoice' }[params.get('open') ?? ''];
+    const openKey = { howtoplay: 'HowToPlay', settings: 'Settings', controls: 'Controls', credits: 'Credits', releasenotes: 'ReleaseNotes', achievements: 'Achievements', select: 'CharacterSelect', slots: 'CharacterSlots', mapselect: 'MapSelect', charinfo: 'CharacterInfo', equipment: 'Equipment', warehouse: 'Warehouse', runchoice: 'RunChoice' }[params.get('open') ?? ''];
     const target = params.has('loading') ? 'Preload' : openKey ?? (query ? 'Game' : 'MainMenu');
     await page.goto(url);
     const t0 = Date.now();
     await page.waitForFunction((key) => window.__game?.scene.isActive(key), target, { timeout: LOAD_TIMEOUT_MS });
     const loadS = ((Date.now() - t0) / 1000).toFixed(1);
+    const loadTimes = measureLoad ? await page.evaluate(readLoadTimes) : undefined;
     // --cards: the level-up cards are answered by themselves (always the first one), so the run goes on.
     if (autoCards) {
         await page.evaluate(() => setInterval(() => {
@@ -228,6 +273,10 @@ async function runScenario(browser, name) {
     if (state.run) console.log(`  run: ${Object.entries(state.run).map(([k, v]) => `${k} ${v}`).join(' · ')}`);
     if (state.error) console.log(`  ${state.error}`);
     if (evalResult !== undefined) console.log(`  eval: ${evalResult}`);
+    if (loadTimes) {
+        printLoadTimes(loadTimes, profile);
+        writeFileSync(file.replace(/\.jpg$/, '.json'), JSON.stringify({ profile, ...loadTimes }, null, 1));
+    }
     if (sim) {
         printSim(sim);
         writeFileSync(file.replace(/\.jpg$/, '.json'), JSON.stringify(sim, null, 1));
@@ -235,6 +284,30 @@ async function runScenario(browser, name) {
     console.log(errors.length ? `  ✗ ${errors.length} console error(s):\n    ${errors.slice(0, 10).join('\n    ')}` : '  ✓ no console errors');
     console.log(`  screenshot: ${file}`);
     return errors.length === 0 && !state.error;
+}
+
+/** Load phases (src/systems/LoadTimer.ts) with the MB the browser received during each download. */
+function readLoadTimes() {
+    const resources = performance.getEntriesByType('resource');
+    const phases = (window.__loadTimes ?? []).map((phase) => {
+        const downloadedMs = phase.downloadedMs ?? phase.endMs ?? phase.startMs;
+        const files = resources.filter((r) => r.startTime >= phase.startMs && r.startTime <= downloadedMs);
+        return {
+            name: phase.name,
+            downloadS: (downloadedMs - phase.startMs) / 1000,
+            prepareS: ((phase.endMs ?? downloadedMs) - downloadedMs) / 1000,
+            files: files.length,
+            mb: files.reduce((sum, r) => sum + (r.encodedBodySize || r.transferSize || 0), 0) / 1048576,
+        };
+    });
+    return { phases };
+}
+
+function printLoadTimes({ phases }, profile) {
+    console.log(`  network ${profile.downloadMbps} Mbps · ${profile.latencyMs} ms · CPU ×${profile.cpuSlowdown} slower`);
+    for (const p of phases) {
+        console.log(`    ${p.name.padEnd(20)} ${p.mb.toFixed(1).padStart(5)} MB in ${String(p.files).padStart(3)} files · download ${p.downloadS.toFixed(1)}s · prepare ${p.prepareS.toFixed(1)}s · total ${(p.downloadS + p.prepareS).toFixed(1)}s`);
+    }
 }
 
 /** The simulated run (src/systems/SimRun.ts): levels per minute, the biggest blow of each boss and the blows dodged. */

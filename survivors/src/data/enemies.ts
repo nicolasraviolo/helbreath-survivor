@@ -84,6 +84,8 @@ export interface EnemyDef {
      * 1–2 blows; a Mage of the level you usually have when it appears should take about 5.
      */
     damageScale?: number;
+    /** Every blow does exactly this much, whatever the dice and the map (the Dummy's 1, Fase 22A). */
+    fixedDamage?: number;
     /**
      * Original physical hit ratio (docs/hb-wiki/monstruos.md, without the dash attack): the higher, the more often its
      * blows land despite the player's defense (data/defense.ts). Hellhound is not in the wiki: about a Troll's.
@@ -110,6 +112,8 @@ export interface EnemyDef {
     alpha?: number;
     /** Share of the weapons' knockback it takes (bosses barely move). Default 1. */
     knockbackTaken?: number;
+    /** Always glows red like an elite, without an elite's extra health or damage (the Berserk Ettin, Fase 22E). */
+    glows?: boolean;
     /** Non-standard sheets / frames for moving, attacking and dying. */
     animations?: { idle?: EnemyAnimation; move?: EnemyAnimation; attack?: EnemyAnimation; dead?: EnemyAnimation };
     boss?: BossInfo;
@@ -178,6 +182,12 @@ export const ENEMIES = {
     bunny: {
         name: 'Bunny', sprite: 'enemy.bunny', temporalCoefficient: 1, hasShadow: true, maxHp: 16, xp: 4, radius: 8, bodyOffsetY: 10,
         actionTimeMs: 1500, attackRange: 1, bravery: 2, damageDice: [1, 5], hitRatio: 35, hitSound: 'sfx.bunny.hit', deathSound: 'sfx.bunny.death', attackSound: 'sfx.bunny.attack',
+    },
+    // Fase 22C, solo en Traveler Zone. NPC.cfg Cat: ATime 1500, AttkRange 1, MinBrvy 3, 2d4, HR 45 (tier 1, algo más
+    // duro que el Bunny).
+    cat: {
+        name: 'Cat', sprite: 'enemy.cat', temporalCoefficient: 1, hasShadow: false, maxHp: 20, xp: 4, radius: 9, bodyOffsetY: 10,
+        actionTimeMs: 1500, attackRange: 1, bravery: 3, damageDice: [2, 4], hitRatio: 45, hitSound: 'sfx.cat.hit', deathSound: 'sfx.cat.death', attackSound: 'sfx.cat.attack',
     },
     ant: {
         name: 'Ant', sprite: 'enemy.ant', temporalCoefficient: 1, hasShadow: false, maxHp: 28, xp: 6, radius: 10, bodyOffsetY: 12,
@@ -260,6 +270,12 @@ export const ENEMIES = {
         name: 'Cannibal Plant', sprite: 'enemy.cannibalPlant', temporalCoefficient: 1, hasShadow: true, maxHp: 900, xp: 180, radius: 16, bodyOffsetY: 36,
         actionTimeMs: 800, attackRange: 2, bravery: 100, damageDice: [8, 8], hitRatio: 230, hitSound: 'sfx.cannibalPlant.hit', deathSound: 'sfx.cannibalPlant.death', attackSound: 'sfx.cannibalPlant.attack',
     },
+    // Elvine Garden (Fase 22D). sp-client: Giant Tree = giantplant.spr, sonidos M120–M123, sin animación especial.
+    // NPC.cfg (centuu/HelbreathServer) lo llama Giant-Plant: ATime 700, alcance 2, MinBrvy 100, 8d6, HR 200. Tier 6.
+    giantTree: {
+        name: 'Giant Tree', sprite: 'enemy.giantTree', temporalCoefficient: 1, hasShadow: true, maxHp: 760, xp: 152, radius: 16, bodyOffsetY: 40,
+        actionTimeMs: 700, attackRange: 2, bravery: 100, damageDice: [8, 6], hitRatio: 200, hitSound: 'sfx.giantTree.hit', deathSound: 'sfx.giantTree.death', attackSound: 'sfx.giantTree.attack',
+    },
     mountainGiant: {
         name: 'Mountain Giant', sprite: 'enemy.mountainGiant', temporalCoefficient: 1, hasShadow: true, maxHp: 1300, xp: 260, radius: 20, bodyOffsetY: 50,
         actionTimeMs: 700, attackRange: 2, bravery: 100, damageDice: [8, 7], hitRatio: 230, hitSound: 'sfx.mountainGiant.hit', deathSound: 'sfx.mountainGiant.death', attackSound: 'sfx.mountainGiant.attack',
@@ -310,6 +326,91 @@ export const ENEMIES = {
         scale: 1.3, knockbackTaken: 0, damageScale: 0.54,
         boss: { title: 'Demon', dropsChest: true, final: false },
     },
+    // Jefes de Traveler Zone (Fase 22A, mapa de introducción). El Stone Golem jefe es el de siempre, más grande y con más
+    // vida; pega flojo para ser el primer jefe que ve un jugador nuevo.
+    stoneGolemBoss: {
+        name: 'Stone Golem', sprite: 'enemy.stoneGolem', temporalCoefficient: 0.5, hasShadow: true, maxHp: 2500, xp: 120, radius: 20, bodyOffsetY: 44,
+        actionTimeMs: 1200, attackRange: 1, bravery: 100, damageDice: [7, 4], hitRatio: 135, hitSound: 'sfx.stoneGolem.hit', deathSound: 'sfx.stoneGolem.death', attackSound: 'sfx.stoneGolem.attack',
+        scale: 1.4, knockbackTaken: 0, damageScale: 0.35,
+        boss: { title: 'Stone Golem', dropsChest: true, final: false },
+    },
+    // Muñeco de prácticas del original (dummy.spr, 40 hojas estándar de 4 frames; 200.000 de vida y no ataca). Aquí
+    // (propietario, 20-oct-2026) es el jefe final de Traveler Zone: anda muy despacio y pega, pero siempre 1 de daño.
+    // Sin sonidos propios en sp-client: los del Clay Golem. ATime nuestro (2600 ms ≈ más lento que un Slime).
+    dummy: {
+        name: 'Dummy', sprite: 'enemy.dummy', temporalCoefficient: 0.5, hasShadow: true, maxHp: 5000, xp: 600, radius: 16, bodyOffsetY: 40,
+        actionTimeMs: 2600, attackRange: 1, bravery: 100, damageDice: [1, 1], hitRatio: 100, hitSound: 'sfx.clayGolem.hit', deathSound: 'sfx.clayGolem.death', attackSound: 'sfx.clayGolem.attack',
+        scale: 1.6, knockbackTaken: 0, fixedDamage: 1,
+        boss: { title: 'Dummy', dropsChest: true, final: true },
+    },
+    // Jefes de Elvine Garden (Fase 22D, decididos por el propietario el 21-oct-2026): Hellhound y Stalker de minijefes y
+    // Cyclops de jefe final. Mismo sprite y comportamiento que el normal (que no sale en este mapa), más grandes y con
+    // vida de jefe. Medido con `check levelpaceelvine` (21-oct-2026): mueren en ~30 s / ~30 s / ~75 s (Bleeding Isle:
+    // 21 / 25 / 61 s). damageScale subido para que cada golpe quite un 13–17% de la vida (con 0,5–0,6 era un 5–8%).
+    hellhoundBoss: {
+        name: 'Hellhound', sprite: 'enemy.hellhound', temporalCoefficient: 0.5, hasShadow: true, maxHp: 2600, xp: 300, radius: 18, bodyOffsetY: 26,
+        actionTimeMs: 900, attackRange: 1, bravery: 100, damageDice: [7, 5], hitRatio: 200, hitSound: 'sfx.hellhound.hit', deathSound: 'sfx.hellhound.death', attackSound: 'sfx.hellhound.attack',
+        scale: 1.5, knockbackTaken: 0, damageScale: 1.1,
+        boss: { title: 'Hellhound', dropsChest: true, final: false },
+    },
+    stalkerBoss: {
+        name: 'Stalker', sprite: 'enemy.stalker', temporalCoefficient: 1, hasShadow: true, maxHp: 5500, xp: 600, radius: 18, bodyOffsetY: 44,
+        actionTimeMs: 600, attackRange: 4, bravery: 100, damageDice: [8, 9], hitRatio: 300, hitSound: 'sfx.orc.hit', deathSound: 'sfx.orc.death', attackSound: 'sfx.orc.attack',
+        scale: 1.4, knockbackTaken: 0, damageScale: 0.9,
+        boss: { title: 'Stalker', dropsChest: true, final: false },
+    },
+    cyclopsBoss: {
+        name: 'Cyclops', sprite: 'enemy.cyclops', temporalCoefficient: 0.5, hasShadow: true, maxHp: 12000, xp: 1400, radius: 28, bodyOffsetY: 70,
+        actionTimeMs: 1200, attackRange: 3, bravery: 100, damageDice: [8, 6], hitRatio: 180, hitSound: 'sfx.cyclops.hit', deathSound: 'sfx.cyclops.death', attackSound: 'sfx.cyclops.attack',
+        scale: 1.6, knockbackTaken: 0, damageScale: 1.2,
+        boss: { title: 'Cyclops', dropsChest: true, final: true },
+    },
+    // Middleland (Fase 22E, monstruos y jefes elegidos por el propietario el 21-oct-2026). El Ettin normal es otro id
+    // porque `ettin` es el jefe de Bleeding Isle. NPC.cfg Ettin: ATime 700, alcance 3, 8d9, HR 350. Tier 8.
+    ettinRegular: {
+        name: 'Ettin', sprite: 'enemy.ettin', temporalCoefficient: 1, hasShadow: true, maxHp: 1600, xp: 320, radius: 20, bodyOffsetY: 46,
+        actionTimeMs: 700, attackRange: 3, bravery: 100, damageDice: [8, 9], hitRatio: 350, hitSound: 'sfx.ettin.hit', deathSound: 'sfx.ettin.death', attackSound: 'sfx.ettin.attack',
+        attackSpeed: 0.6,
+    },
+    // Jefes de Middleland: Mountain Giant (min 4), Giant Lizard (min 8), Ettin Berserk (min 12) y Unicorn (final, min 15).
+    // NPC.cfg Mountain-Giant: ATime 700, alcance 2, 8d7, HR 230.
+    mountainGiantBoss: {
+        name: 'Mountain Giant', sprite: 'enemy.mountainGiant', temporalCoefficient: 1, hasShadow: true, maxHp: 3500, xp: 400, radius: 24, bodyOffsetY: 66,
+        actionTimeMs: 700, attackRange: 2, bravery: 100, damageDice: [8, 7], hitRatio: 230, hitSound: 'sfx.mountainGiant.hit', deathSound: 'sfx.mountainGiant.death', attackSound: 'sfx.mountainGiant.attack',
+        scale: 1.4, knockbackTaken: 0, damageScale: 1,
+        boss: { title: 'Mountain Giant', dropsChest: true, final: false },
+    },
+    // sp-client: giantlizard.spr, sonidos M124–M127, sin animación especial. NPC.cfg Giant-Lizard: ATime 600, alcance 2,
+    // 10d10, HR 400 (la wiki le da además una embestida, que aquí no se copia).
+    giantLizard: {
+        name: 'Giant Lizard', sprite: 'enemy.giantLizard', temporalCoefficient: 1, hasShadow: true, maxHp: 7000, xp: 800, radius: 24, bodyOffsetY: 40,
+        actionTimeMs: 600, attackRange: 2, bravery: 100, damageDice: [10, 10], hitRatio: 400, hitSound: 'sfx.giantLizard.hit', deathSound: 'sfx.giantLizard.death', attackSound: 'sfx.giantLizard.attack',
+        scale: 1.4, knockbackTaken: 0, damageScale: 0.6,
+        boss: { title: 'Giant Lizard', dropsChest: true, final: false },
+    },
+    // El Ettin de siempre en "Berserk": rojo como los élites, ataca a ritmo normal (el de Bleeding Isle va un 40% más
+    // lento) y pega más.
+    ettinBerserk: {
+        name: 'Berserk Ettin', sprite: 'enemy.ettin', temporalCoefficient: 1, hasShadow: true, maxHp: 11000, xp: 1200, radius: 24, bodyOffsetY: 56,
+        actionTimeMs: 700, attackRange: 3, bravery: 100, damageDice: [8, 9], hitRatio: 350, hitSound: 'sfx.ettin.hit', deathSound: 'sfx.ettin.death', attackSound: 'sfx.ettin.attack',
+        scale: 1.5, knockbackTaken: 0, damageScale: 0.9, glows: true,
+        boss: { title: 'Berserk Ettin', dropsChest: true, final: false },
+    },
+    // sp-client: unicorn.spr, quieto con 4 frames por hoja; sonidos M63–M66. NPC.cfg Unicorn: ATime 700, alcance 4,
+    // 10d10, HR 500, magia nivel 8 (la wiki: Energy Strike y parálisis). Aquí lanza rayos de Energy Strike (nuestros).
+    unicorn: {
+        name: 'Unicorn', sprite: 'enemy.unicorn', temporalCoefficient: 1, hasShadow: false, maxHp: 20000, xp: 2000, radius: 26, bodyOffsetY: 56,
+        actionTimeMs: 700, attackRange: 4, bravery: 100, damageDice: [10, 10], hitRatio: 500, hitSound: 'sfx.unicorn.hit', deathSound: 'sfx.unicorn.death', attackSound: 'sfx.unicorn.attack',
+        scale: 1.6, knockbackTaken: 0, damageScale: 0.5,
+        animations: { idle: { sheet: 0, firstFrame: 0, frameCount: 4 } },
+        boss: {
+            title: 'Unicorn', dropsChest: true, final: true,
+            ranged: {
+                flyEffect: 'fx.energyStrike.fly', explodeEffect: 'fx.energyBolt.explode', sound: 'sfx.energyBolt.impact',
+                magicHitRatio: 85, damage: 10, cooldownMs: 2200, range: 520, speed: 260, shots: 5, spreadDegrees: 50, radius: 10,
+            },
+        },
+    },
     fireWyvern: {
         // sp-client: andar = hojas 8+ estándar; ataque = hoja 0 desde el frame 3, 4 frames (otros valores rompen Phaser);
         // morir = hojas 16+ (no 32); opacidad 0,7. No tiene sonido de golpe: usamos el de la Liche.
@@ -359,4 +460,10 @@ export interface BossMinions {
 // Fase 13: el jefe final corta las oleadas; solo quedan él y sus esbirros (los del último tramo antes de él).
 export const BOSS_MINIONS: Partial<Record<EnemyId, BossMinions>> = {
     fireWyvern: { enemies: ['stoneGolem', 'frog'], everyMs: 8000, count: 6, maxAlive: 24, radius: 110 },
+    // Traveler Zone: el Dummy no se queda solo; lo rodean bichos flojos mientras le pegas.
+    dummy: { enemies: ['slime', 'bunny', 'cat', 'ant'], everyMs: 6000, count: 8, maxAlive: 40, radius: 110 },
+    // Elvine Garden: el Cyclops llama a los más duros del jardín.
+    cyclopsBoss: { enemies: ['troll', 'giantTree', 'orcMage'], everyMs: 8000, count: 6, maxAlive: 24, radius: 120 },
+    // Middleland: el Unicorn llama a Stalkers y Werewolf.
+    unicorn: { enemies: ['stalker', 'werewolf'], everyMs: 8000, count: 6, maxAlive: 24, radius: 130 },
 };

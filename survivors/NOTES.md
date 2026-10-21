@@ -76,6 +76,11 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Atributos y varitas (Fase 21B)
 - Baúl, "solo lo que tienes" y Zem (Fase 21D)
 - Abaddon's Blood: resurrección permanente (Fase 21E)
+- Varios mapas y Select Map (Fase 22A)
+- Carga por mapa y tiempos de carga (Fase 22B)
+- Elvine Garden (Fase 22D)
+- Middleland (Fase 22E)
+- Sombras del jugador y los monstruos (Fase 22G)
 - Rareza de las cartas (Fase 21½A)
 - Reroll y Skip (Fase 21½B)
 - Evento Champion (Fase 21½C)
@@ -97,6 +102,11 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - **Tipos (`SpriteType`):** Human, Monster, EquipmentPack, HairAndUndies, Bows, Weapons, Shields, Effect, Tiles, Interface, ItemPack, ItemGround.
 - **Visor de sprites (`sprites.html`, `src/tools/spriteViewer.ts`):** lee los `.spr` sin Phaser con `readSprFile` (`src/hb/HBSprite.ts`). Los nombres salen de `/sprite-catalog.json`, que `vite.config.ts` genera solo en desarrollo ejecutando los `.ts` de datos de sp-client (`scripts/spriteCatalog.ts`): `Items.ts` (icono en `item-pack.spr` = hoja `itemSheetIndex`, frame `itemSpriteIndex`), `Monsters.ts`, `NPCs.ts` y `Effects.ts`. No entra en el build.
 - **Origen:** `.pak` originales convertidos con `tools/PakToSprConverter`. Toma como transparente el color exacto del píxel (0,0), así que pueden quedar **bordes verdes o azules** en algunos sprites. Es una deducción nuestra; si molesta, se tapa con tinte o se reconvierte.
+- **`.pak` de servidores privados (21-oct-2026):** probados 44 de los repos `Saritagala/HBGhost` e `irwinlopez1023/Helbreath-Xsilium` (carpeta `Apks convertidos a paks`). Todos sin cifrar y convertibles. Dos rarezas:
+  - Algunos (dragones, wyverns, BlackDemon, GhostAbby de HBGhost) traen **basura en el campo "número de hojas"** (byte 20). La tabla de hojas está bien: la cantidad real es `(inicio de la primera hoja − 24) / 8`. El conversor original fallaría con ellos.
+  - `Gate.pak` tiene hojas vacías (BMP de 0×0).
+  - Los wyverns traen 24 hojas (no 40) y BlackDemon 39: el archivo termina ahí, no falta nada. Su reparto por estados hay que averiguarlo antes de usarlos.
+  - Sin SDK de .NET en el equipo; la conversión se hizo con un script de Node equivalente (verificado: el `Orc.pak` de HBGhost da exactamente nuestro `orc.spr`, 0 píxeles distintos).
 
 ## Animaciones: frames por estado y dirección
 - **Direcciones** (`utils/CoordinateUtils.ts`): `0=N, 1=NE, 2=E, 3=SE, 4=S, 5=SW, 6=W, 7=NW`. Normalmente hay **una hoja por dirección**.
@@ -567,7 +577,7 @@ Tabla completa en `docs/REQUISITOS_HB.md`. Lo no obvio:
 - **Minimapa original:** `telescope.spr` hoja 0, miniaturas de 128×128. Frame por mapa: huntzone2 9, middleland 4, arefarm 6, elvfarm 5, dglv4 14, icebound 24, druncncity 25. Punto del jugador: GameDialog hoja 4 frame 37. También hay `images/minimaps/<mapa>.jpg` (1500×1500).
 - **Bolsa original:** GameDialog hoja 7 frame 0 (226×188); objetos dibujados en (32+x, 44+y).
 - **Objetos Hero por bando:** Aresden = sufijo 2 en armaduras y `mantle01`/`04` en capas; Elvine = sufijo 1 y `mantle02`/`05`. Banderas en el suelo: 5/56 Aresden, 5/57 Elvine.
-- **Monstruos sin usar con sprite:** Frost, Ice Golem, Wyvern (el "de hielo", 3,6 MB), Dragon (`barlog`), Beholder, Stone/Clay Golem, Claw Turtle, Nizie, Tentocle, Giant Crayfish, Giant Lizard, Master Mage Orc, Centaurus, Sorceress, Cat, Rudolph, Mountain Giant, Unicorn, Guard. **No existen:** Yeti, Ice Lizard, otros dragones.
+- **Monstruos sin usar con sprite:** Frost, Ice Golem, Wyvern (el "de hielo", 3,6 MB), Dragon (`barlog`), Beholder, Stone/Clay Golem, Claw Turtle, Nizie, Tentocle, Giant Crayfish, Giant Lizard, Master Mage Orc, Centaurus, Sorceress, Rudolph, Mountain Giant, Unicorn, Guard. **No existen:** Yeti, Ice Lizard, otros dragones.
 - **Mapas medidos** (mejor 100×100 libre / descarga completa): icebound 91% / 9,2 MB; dglv4 63% (99% en 60×60) / 4,9 MB; druncncity 86% / 8,5 MB; arefarm/elvfarm 93–95% / 16,2 MB; aresden/elvine 92–96% / 22,2 MB.
 - **17-oct-2026:** `helbreath-survivor.pages.dev` publicado bien, pero desde la red del propietario no conectaba.
   - Su DNS daba 188.114.96.5 / 188.114.97.5 y la conexión se quedaba colgada.
@@ -897,6 +907,47 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - **Probar:** `pnpm check revive --eval="new Promise((r) => { g.hurtPlayer(99999, true, 'test'); setTimeout(() => r({ hp: g.player.hp, dead: g.player.isDead }), 1500); })"`.
 - **`pnpm check` en la nube:** `scripts/check.mjs` lanza `channel: 'chrome'`, que no existe en los contenedores de Claude Code web (solo `/opt/pw-browsers/chromium-1194`). Allí se usa una copia temporal con `executablePath` (y se borra después).
 
+## Varios mapas y Select Map (Fase 22A)
+- **Datos:** cada mapa en `data/maps.ts` (orden = el de Select Map y el del desbloqueo), su línea de tiempo en `data/waves.ts` → `TIMELINES`. Un mapa sin línea de tiempo tiene que llevar `comingSoon` (si no, `waves.ts` lanza un error al cargar). `size` es el tamaño del `.amd` en casillas: hace falta para recortar la zona de juego del minimapa antes de cargar el mapa.
+- **Zonas medidas (20-oct-2026, mejor ventana):** Traveler Zone (`default.amd`, 170×170): 100×100 al 84% en (40,38), 80×80 al 91% en (48,50). Elvine Garden (`elvuni`, 200×200): 150×150 al 86% en (24,26). Aresden Garden (`areuni`): 100×100 al 96%, 150×150 al 83%. Middleland (524×524): 150×150 al 94% en (36,274), 200×200 al 89% en (42,258). Visor de todos los mapas con su minimapa: http://localhost:8090/maps.html (`survivors/maps.html`).
+- **Carga:** `PreloadScene` ya no baja ningún mapa. Al pulsar Play (o Continue) pasa por `MapLoadScene`: `.amd`, minimapa y solo los paquetes de casillas que faltan; lo ya cargado no se repite (`hasMap` en `hb/HBMap.ts`, que borra el buffer de la caché al leerlo). Desde el 22B también baja monstruos y efectos (ver "Carga por mapa y tiempos de carga"). Select Map baja las 4 miniaturas (~700 KB) la primera vez que se abre.
+- **Desbloqueo:** `systems/MapUnlockStore.ts`, clave `hb-survivors.maps`, mapas **ganados** del dispositivo. Abierto = el primero, o el anterior ganado, o Level del personaje ≥ `recommendedLevel`. La primera vez que carga, si ya había personajes o partidas guardadas, cuenta la Traveler Zone como ganada (y Bleeding Isle si estaba el logro `winBisle`), para no cerrarle Bleeding Isle a quien ya jugaba; se guarda enseguida para no repetir esa cuenta.
+- **Dificultad por mapa:** `difficulty.hp` (vida y XP) y `.damage` de los monstruos normales (`Enemy.spawn`); los jefes nunca. Traveler Zone: 0,5 y 0,4.
+- **Jefes de Traveler Zone:** `stoneGolemBoss` (mismo sprite que el Stone Golem, otro id para que sea jefe sin tocar al normal) y `dummy` (`dummy.spr`, 40 hojas estándar de 4 frames, 69 KB, sin sonidos en sp-client: usa los del Clay Golem). `fixedDamage: 1` hace que cada golpe valga eso, sin dados ni mapa. Vida medida con la partida simulada (21-oct-2026): con 700/1800 la Maga los mataba en 5 s / 20 s; con 3500/7000 el Guerrero tardaba 1,5 / 2,5 min. Se dejó 2500/5000.
+- **Atajos:** `?map=traveler` (también arranca la partida), `?maps=all|reset`, `?open=mapselect`; checks `mapselect`, `mapsall`, `mapsnew`, `traveler`, `travelerboss`. `?play` sin `?map` sigue en Bleeding Isle.
+
+## Carga por mapa y tiempos de carga (Fase 22B)
+- **Antes del menú** (`PreloadScene`): solo interfaz, personajes y sonidos. Nunca un sprite de tipo `SpriteType.Monster`, ni `RUN_SPRITES` (efectos de partida y `item.ground`, en `config/assetManifest.ts`), ni los `runSprites` de cada clase (`data/characters.ts`; el Mago: `fx.effect3`, sus explosiones). Ningún menú usa efectos ni objetos del suelo: si alguno los necesita, habría que sacarlos de esas listas.
+- **Al elegir mapa** (`MapLoadScene`): mapa, minimapa, casillas, monstruos de la primera oleada de **ese** mapa (`firstWaveEnemies`), `RUN_SPRITES` y los `runSprites` de la clase elegida (`CHOSEN_CHARACTER_KEY`). Luego `assetStreamer.start(scene, map)` pone en cola solo los monstruos de ese mapa; el menú ya no descarga nada. `hurry` añade a la cola un monstruo que no estaba (jefes de atajos de prueba).
+- **Fallo que había (22A):** los monstruos que no salen en ninguna oleada (Gargoyle, Tigerworm, Hellclaw…) no eran ni "primera oleada" ni "en cola", y se bajaban antes del menú.
+- **Medir:** `pnpm check loadtime | loadtimetraveler | loadtimemage [--mobile]`. `systems/LoadTimer.ts` deja en `window.__loadTimes` el inicio, el fin de las descargas y el fin de la preparación de cada pantalla de carga; el script suma los MB con `performance.getEntriesByType('resource')` (amplía el búfer, que por defecto guarda 250 y en desarrollo el código ya son cientos). Red simulada por CDP: PC 50 Mbps/20 ms; móvil 9 Mbps/60 ms y CPU ×4.
+- **Tiempos (21-oct-2026, Guerrero en Bleeding Isle):** antes 29,7 MB en el Preload (7,2 s PC / 34,4 s móvil) + 6,1 MB del mapa (1,6 / 6,8 s). Después 15,7 MB (4,4 / 20,6 s) + 11,7 MB (2,6 / 12,3 s). Traveler Zone: el mapa pesa 16,5 MB (3,6 / 17,1 s; sus casillas son muchas). Lo lento es **descargar**: preparar es ~20% del total.
+- **Personajes (cierre del 22B):** antes del menú solo van las piezas de los dos aspectos por defecto (`UPFRONT_LOOK_SPRITES` en `config/assetManifest.ts`: Guerrero hombre y Maga mujer, piel clara, ropa de salida). Todo lo demás de `player.*` y `gear.*` está en `ON_DEMAND_SPRITES` (calculado), también la espada y el escudo del Guerrero (`msw`/`msh`, 2,2 MB; la daga está ahí): en los menús aparece un instante después la primera vez. `MapLoadScene` espera a lo que lleva puesto el personaje (`runSprites` de `LookLoader`), así que en partida no aparece nada tarde. Un `player.`/`gear.` nuevo es bajo demanda sin tocar nada; si debe estar antes del menú, va en `UPFRONT_LOOK_SPRITES`.
+- **Tiempos tras el recorte:** Preload 9,5 MB (PC 3,0 s / móvil 13,7 s); el mapa del Guerrero sube 1,4 MB (su espada): Bleeding Isle 13,1 MB (2,8 / 13,7 s). Total hasta jugar en móvil: 41 s al empezar el bloque → 27 s.
+
+## Elvine Garden (Fase 22D)
+- **Monstruos** (elegidos por el propietario el 21-oct-2026): Orc, Orc-Mage, Zombie, Scorpion, Giant Frog, Troll, Werewolf, Giant Tree y Cannibal Plant; sin Slime, Ant, Snake, Skeleton ni golems. Jefes: `hellhoundBoss` (min 4), `stalkerBoss` (min 8) y `cyclopsBoss` (final, min 12, con esbirros Troll / Giant Tree / Orc-Mage). Son copias con otro id, como `stoneGolemBoss`: los normales no cambian en Bleeding Isle. Dificultad ×1,3.
+- **Giant Tree:** `giantplant.spr` (918 KB), sonidos M120–M123 (el ataque M123 es el mismo archivo que el del Minotaur), sin animación especial. En el `NPC.cfg` de centuu/HelbreathServer no hay "Giant-Tree": su fila es **Giant-Plant** (ATime 700, alcance 2, MinBrvy 100, 8d6, HR 200). El servidor original (`reference/Server.cpp`, `MobGenerator` caso 7) lo saca en areuni/elvuni con Orc, Orc-Mage, Amphis, Troll, Unicorn (raro) y Cannibal Plant.
+- **Columnas del NPC.cfg:** el alcance de ataque es la **penúltima** columna (Troll 1, Cannibal-Plant 2, Cyclops 3); `ATime` es la columna tras los tres `1 10 0` (700, 800, 1200).
+- **`?debug=finalboss`** salta el tiempo y saca también los minijefes que quedaban por salir (en todos los mapas: Bleeding Isle sale con Ettin y Demon).
+- **Probar:** `check elvine`, `check elvineboss`, `check levelpaceelvine`, `check loadtimeelvine`.
+
+## Middleland (Fase 22E)
+- **Monstruos del original:** `middleland.txt` de centuu/HelbreathServer (`Files/GameServers/Middleland/MAPDATA/`) solo tiene `spot-mob-generator` (32 zonas fijas, ningún aleatorio): Ogre, Zombie, Scorpion, Snake (Amphis), Skeleton, Orc, Ant, Mountain Giant, Werewolf, Cyclops, Ettin, Stalker (hasta 40), Demon y Gargoyle (1). Troll, Hellhound y Hellclaw **no** salían allí.
+- **Elegidos por el propietario (21-oct-2026):** Orc, Zombie, Scorpion, Skeleton, Snake, Werewolf, Troll, Ogre, Cyclops, Stalker y Ettin; jefes Mountain Giant (min 4), Giant Lizard (min 8), Ettin Berserk (min 12) y **Unicorn** (final, min 15, con esbirros Stalker y Werewolf). ×1,6, 15 minutos.
+- **Copias con otro id:** `ettinRegular` (el `ettin` es el jefe de Bleeding Isle), `mountainGiantBoss`, `ettinBerserk`. El Ettin Berserk usa `EnemyDef.glows`: el brillo rojo de los élites sin su vida ni su daño extra. Sobre la piel naranja del Ettin se nota poco.
+- **Giant Lizard:** `giantlizard.spr`, sonidos M124–M127, sin animación especial. NPC.cfg: ATime 600, alcance 2, 10d10, HR 400. La wiki le da una embestida (no copiada).
+- **Unicorn:** `unicorn.spr`, quieto con 4 frames (`animations.idle`), sonidos M63–M66. NPC.cfg: ATime 700, alcance 4, 10d10, HR 500, magia 8. Lanza 5 rayos de Energy Strike (`fx.energyStrike.fly`, nuestros) cada 2,2 s.
+- **Carga solo de la zona de juego:** `HBMap.requiredTileIndices(area, margen)` baja el suelo de la zona de juego y los objetos con el mismo margen que dibuja `MapView` (`MAP_OBJECT_MARGIN_TILES`). Middleland (524×524) pasó de 25,0 a 16,4 MB; Elvine 14,0 y Bleeding Isle 13,1 no cambian.
+- **Medido (`check levelpacemiddleland`, 21-oct-2026):** Power 31 al final; jefes 35 / 39 / 53 / 87 s; cada golpe de jefe quita un 13–18% de la vida.
+- **Probar:** `check middleland`, `check middlelandboss`, `check levelpacemiddleland`, `check loadtimemiddleland`.
+
+## Sombras del jugador y los monstruos (Fase 22G)
+- **Como el original** (`sp-client/src/utils/ShadowManager.ts`): una copia negra del fotograma, `alpha 0,5`, girada −45° y aplastada a la mitad, con el pivote en el centro inferior del fotograma. Los números, compartidos, en `config/gameConfig.ts` (`BODY_SHADOW_*`). No cambia con el suelo, el mapa ni la hora.
+- **Jugador:** una sola sombra, sacada del **cuerpo desnudo** (capa `human`, `CharacterSprite.bodyFrame()`); ni ropa ni arma, igual que el original. `Player.syncShadow()` copia el fotograma en cada `update`. Se oculta al morir y vuelve al revivir (Abaddon's Blood). No parpadea con la invulnerabilidad: es un sprite aparte, fuera del contenedor del jugador.
+- **Monstruos sin sombra en el original** (`MonsterShadow.NoShadow`): Slime, Ant, Snake, Cat, Dire Boar, Scorpion, Tigerworm y **Unicorn** (este estaba mal hasta el 22G). Un monstruo nuevo: mirar su campo `shadow` en `sp-client/src/constants/Monsters.ts`.
+- **Rendimiento:** con 293 monstruos, 137–139 FPS antes y después (ordenador y `--mobile`, 21-oct-2026).
+
 ## Rareza de las cartas (Fase 21½A)
 - Números en `data/cardRarity.ts`; sorteo en `systems/UpgradePool.ts` (`buildLevelUpChoices(equipment, chr, { chest, onlyPassives, allEpic })`). Desde la partida se piden siempre con `GameScene.levelUpChoices(fromChest)`, que lee la Chr de la partida y los atajos.
 - Cada carta sortea su rareza aparte. En las pasivas, `rank` es el rango **final** (actual + 1/2/3); si no caben los rangos, la rareza baja (`fitRarity`). La línea "antes" de la carta usa el rango actual del equipo, no `rank − 1`.
@@ -915,8 +966,8 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - Probar: `?unlocks=dice3,wine3&debug=levelup` (`check rerollskip`); `dice2` = 2, `dice` = 1, `?unlocks=reset` = ninguno.
 
 ## Evento Champion (Fase 21½C)
-- Números en `data/champion.ts`; `rollChampionMinutes(WAVE_EVENTS)` sortea los minutos al empezar la partida (`GameScene.create`).
-- `SpawnSystem.setChampions / runDueChampion`: sale como un jefe (`findBossPoint`, nunca se pierde) con un monstruo del tramo **siguiente** de `WAVES` (`pickChampion`), y nunca tras salir el jefe final. No pasa por `BossSystem`, así que no tiene barra grande arriba ni sale en el minimapa como jefe.
+- Números en `data/champion.ts`; `GameScene.rollChampions()` sortea los minutos al empezar la partida con los eventos de **su mapa** (`rollChampionMinutes`) y quita los que caen tras su jefe final (en Traveler Zone, el 7; fusión con la Fase 22).
+- `SpawnSystem.setChampions / runDueChampion`: sale como un jefe (`findBossPoint`, nunca se pierde) con un monstruo del tramo **siguiente** de las oleadas de su mapa (`pickChampion`), y nunca tras salir el jefe final. No pasa por `BossSystem`, así que no tiene barra grande arriba ni sale en el minimapa como jefe.
 - `Enemy.champion`: escala (`sizeFactor`, también su `radius` y `bodyY`), vida, daño, XP, velocidad y empuje; brilla como los élites (nunca es élite a la vez). Su barra la dibuja `Enemy.drawHealthBar` con la altura máxima de los frames vistos (para que no salte con la animación).
 - Al morir: `GameScene.dropXp` reparte su XP en 10 gemas en corro; `LootSystem.onChampionKill` tira con `CHAMPION.lootTiers` (solo `next` o `jump`) y 10% de Zem.
 - Guardado: `RunSnapshot.champions` (minutos) y `championsOut` (los ya salidos y muertos; uno vivo al guardar vuelve tras la calma de Continue).

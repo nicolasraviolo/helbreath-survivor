@@ -12,6 +12,8 @@ export const SPRITES = {
     'enemy.slime': { file: 'sprites/slm.spr', type: SpriteType.Monster },
     'enemy.bunny': { file: 'sprites/bunny.spr', type: SpriteType.Monster },
     'enemy.ant': { file: 'sprites/ant.spr', type: SpriteType.Monster },
+    // Gato (Fase 22C): solo en Traveler Zone. Sin sombra en sp-client.
+    'enemy.cat': { file: 'sprites/cat.spr', type: SpriteType.Monster },
     // Fase 7: monstruos de las oleadas y jefes (nombres de archivo de sp-client/src/constants/Monsters.ts;
     // 'gagoyle' lleva la errata del archivo original).
     'enemy.snake': { file: 'sprites/amp.spr', type: SpriteType.Monster },
@@ -32,9 +34,15 @@ export const SPRITES = {
     'enemy.hellclaw': { file: 'sprites/hellclaw.spr', type: SpriteType.Monster },
     // Fase 13B: esenciales y monstruos de Bleeding Isle nuevos. El Mage-Orc usa el sprite del Orc (enemy.orc).
     'enemy.clayGolem': { file: 'sprites/cla.spr', type: SpriteType.Monster },
+    // Muñeco de prácticas (Fase 22A): jefe final de Traveler Zone. Sin sonidos propios en sp-client (usa los del Clay Golem).
+    'enemy.dummy': { file: 'sprites/dummy.spr', type: SpriteType.Monster },
     'enemy.stoneGolem': { file: 'sprites/gol.spr', type: SpriteType.Monster },
     'enemy.mountainGiant': { file: 'sprites/mtgiant.spr', type: SpriteType.Monster },
     'enemy.cannibalPlant': { file: 'sprites/canplant.spr', type: SpriteType.Monster },
+    'enemy.giantTree': { file: 'sprites/giantplant.spr', type: SpriteType.Monster },
+    // Middleland (Fase 22E): minijefe y jefe final.
+    'enemy.giantLizard': { file: 'sprites/giantlizard.spr', type: SpriteType.Monster },
+    'enemy.unicorn': { file: 'sprites/unicorn.spr', type: SpriteType.Monster },
     'enemy.tigerworm': { file: 'sprites/tigerworm.spr', type: SpriteType.Monster },
     'enemy.minotaur': { file: 'sprites/minotaurs.spr', type: SpriteType.Monster },
     'enemy.ettin': { file: 'sprites/ettin.spr', type: SpriteType.Monster },
@@ -176,6 +184,8 @@ export const SOUNDS = {
     'sfx.ant.death': { file: 'sounds/M32.mp3' },
     'sfx.bunny.hit': { file: 'sounds/M79.mp3' },
     'sfx.bunny.death': { file: 'sounds/M83.mp3' },
+    'sfx.cat.hit': { file: 'sounds/M80.mp3' },
+    'sfx.cat.death': { file: 'sounds/M84.mp3' },
     'sfx.orc.hit': { file: 'sounds/M11.mp3' },
     'sfx.orc.death': { file: 'sounds/M12.mp3' },
     // Fase 7 (Monsters.ts takeDamage / death). Stalker, Gargoyle, Hellclaw y Tigerworm reutilizan otros, como en sp-client.
@@ -219,9 +229,16 @@ export const SOUNDS = {
     'sfx.mountainGiant.death': { file: 'sounds/M90.mp3' },
     'sfx.cannibalPlant.hit': { file: 'sounds/M97.mp3' },
     'sfx.cannibalPlant.death': { file: 'sounds/M98.mp3' },
+    'sfx.giantTree.hit': { file: 'sounds/M120.mp3' },
+    'sfx.giantTree.death': { file: 'sounds/M121.mp3' },
+    'sfx.giantLizard.hit': { file: 'sounds/M124.mp3' },
+    'sfx.giantLizard.death': { file: 'sounds/M125.mp3' },
+    'sfx.unicorn.hit': { file: 'sounds/M65.mp3' },
+    'sfx.unicorn.death': { file: 'sounds/M66.mp3' },
     // Ataques de los monstruos (Monsters.ts → states.attack.sound). Stalker y Hellclaw reutilizan los del Orc y el Cyclops.
     'sfx.slime.attack': { file: 'sounds/M2.mp3' },
     'sfx.bunny.attack': { file: 'sounds/M75.mp3' },
+    'sfx.cat.attack': { file: 'sounds/M76.mp3' },
     'sfx.ant.attack': { file: 'sounds/M30.mp3' },
     'sfx.orc.attack': { file: 'sounds/M10.mp3' },
     'sfx.snake.attack': { file: 'sounds/M26.mp3' },
@@ -242,6 +259,10 @@ export const SOUNDS = {
     'sfx.stoneGolem.attack': { file: 'sounds/M34.mp3' },
     'sfx.mountainGiant.attack': { file: 'sounds/M88.mp3' },
     'sfx.cannibalPlant.attack': { file: 'sounds/M96.mp3' },
+    // Giant Tree y Minotaur comparten M123 en sp-client; se registra dos veces con su clave.
+    'sfx.giantTree.attack': { file: 'sounds/M123.mp3' },
+    'sfx.giantLizard.attack': { file: 'sounds/M127.mp3' },
+    'sfx.unicorn.attack': { file: 'sounds/M64.mp3' },
     'sfx.tigerworm.attack': { file: 'sounds/C1.mp3' },
     'sfx.minotaur.attack': { file: 'sounds/M123.mp3' },
     'sfx.ettin.attack': { file: 'sounds/M92.mp3' },
@@ -299,6 +320,10 @@ export type SoundKey = keyof typeof SOUNDS;
 export const MAPS = {
     'map.huntzone2': { file: 'maps/huntzone2.amd' },
     'map.bisle': { file: 'maps/bisle.amd' },
+    // Fase 22A: Traveler Zone (`default.amd`), Elvine Garden y Middleland. Se cargan al elegir el mapa (MapLoadScene).
+    'map.traveler': { file: 'maps/default.amd' },
+    'map.elvineGarden': { file: 'maps/elvuni.amd' },
+    'map.middleland': { file: 'maps/middleland.amd' },
 } as const satisfies Record<string, { file: string }>;
 
 export type MapKey = keyof typeof MAPS;
@@ -309,6 +334,9 @@ export type MapKey = keyof typeof MAPS;
  */
 export const MINIMAPS = {
     'minimap.bisle': { file: 'images/minimaps/bisle.jpg' },
+    'minimap.traveler': { file: 'images/minimaps/default.jpg' },
+    'minimap.elvineGarden': { file: 'images/minimaps/elvuni.jpg' },
+    'minimap.middleland': { file: 'images/minimaps/middleland.jpg' },
 } as const satisfies Record<string, { file: string }>;
 
 export type MinimapKey = keyof typeof MINIMAPS;
@@ -376,21 +404,33 @@ export const ASSET_BASE_PATH = 'assets/';
 
 /** Only downloaded on phones (config/device.ts): the PC never shows them. */
 /**
- * Fase 17B: character pieces downloaded only when a character needs them (systems/LookLoader.ts), not before the game
- * starts. The looks used until then (Warrior man, Mage woman, light skin) stay upfront.
+ * Pieces of the two default looks (Warrior man and Mage woman, light skin, starting clothes): the only character
+ * pieces downloaded before the menu. Fase 22B: without the Warrior's sword and shield file (msw/msh, 2,2 MB; the
+ * dagger is in it): in the menus it shows up a moment later, and the map's loading screen brings it before a run.
+ */
+const UPFRONT_LOOK_SPRITES: ReadonlySet<SpriteKey> = new Set<SpriteKey>([
+    'player.body.wm', 'player.hair.mhr', 'player.underwear.mpt', 'gear.shirt.m', 'gear.trousers.m', 'gear.boots.long.m',
+    'player.body.ww', 'player.hair.whr', 'player.underwear.wpt', 'gear.bodice.w', 'gear.skirt.w', 'gear.boots.long.w', 'gear.wand.w',
+]);
+
+/**
+ * Fase 17B: character pieces downloaded only when a character needs them (systems/LookLoader.ts), not before the menu.
+ * Since Fase 22B that is every body, hair, clothes, armor and weapon except UPFRONT_LOOK_SPRITES, plus the big effects
+ * of Meteor Strike and Abaddon's Blood and the item icons.
  */
 export const ON_DEMAND_SPRITES: ReadonlySet<SpriteKey> = new Set<SpriteKey>([
-    'player.body.ym', 'player.body.bm', 'player.body.yw', 'player.body.bw',
-    'gear.helm.wizardCap.m',
-    'gear.shirt.w', 'gear.trousers.w', 'gear.hauberk.w',
-    'gear.armor.leather.w', 'gear.armor.scale.w', 'gear.armor.chain.w', 'gear.armor.plate.w',
-    'gear.leggings.chain.w', 'gear.leggings.plate.w',
-    'gear.helm.basic.w', 'gear.helm.full.w', 'gear.helm.winged.w', 'gear.helm.horned.w',
-    'gear.swords.w', 'gear.shields.w',
-    'fx.crueffect1', 'fx.yseffect3',
-    'gear.shoes.m', 'gear.shoes.w', 'gear.cape.m', 'gear.cape.w', 'item.pack',
-    'item.equip.m', 'item.equip.w',
-    'gear.wand.berserk.m', 'gear.wand.berserk.w', 'gear.wand.kloness.m', 'gear.wand.kloness.w',
+    ...(Object.keys(SPRITES) as SpriteKey[]).filter((key) => (key.startsWith('player.') || key.startsWith('gear.')) && !UPFRONT_LOOK_SPRITES.has(key)),
+    'fx.crueffect1', 'fx.yseffect3', 'item.pack', 'item.equip.m', 'item.equip.w',
+]);
+
+/**
+ * Fase 22B: what every run needs and the menus don't. It is downloaded with the map (MapLoadScene), not before the
+ * menu: the effects of weapons, totems, chests and the portal, and the items on the ground (gems, loot, potions).
+ * Monsters (SpriteType.Monster) are never loaded before the menu either: each map loads its own.
+ * Effects only one class uses go in its `runSprites` (data/characters.ts).
+ */
+export const RUN_SPRITES: ReadonlySet<SpriteKey> = new Set<SpriteKey>([
+    'fx.effect', 'fx.effect2', 'fx.effect5', 'fx.effect6', 'fx.effect8', 'fx.effect9', 'fx.effect11', 'item.ground',
 ]);
 
 export const PHONE_ONLY_SPRITES: ReadonlySet<SpriteKey> = new Set<SpriteKey>(['ui.v2']);

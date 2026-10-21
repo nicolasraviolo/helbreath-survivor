@@ -33,7 +33,7 @@ export const HOW_TO_PLAY_PAGES: readonly HowToPlayPage[] = [
             // Caben 7 líneas, cada una en una sola fila: si una se parte en dos, la última pisa el selector "Page".
             'Glowing Mana Stones give a power-up. Chests give a free card.',
             'Defeat the Champions, big glowing monsters, for a better item.',
-            'Survive the waves and defeat the final boss to win.',
+            'Defeat the final boss to win, and a new map opens.',
         ],
     },
     {

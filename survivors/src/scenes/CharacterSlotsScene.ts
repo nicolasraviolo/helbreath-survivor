@@ -313,8 +313,8 @@ export class CharacterSlotsScene extends Phaser.Scene {
     }
 
     /**
-     * Plays with the character in that slot. With a saved run it asks first: Continue or New Run (RunChoiceScene,
-     * 21-oct-2026); without one, a new run starts. An empty slot opens Create Character.
+     * Plays with the character in that slot. With a saved run it asks first: Continue (in its map) or New Run
+     * (RunChoiceScene, 21-oct-2026); without one, Select Map opens (Fase 22A). An empty slot opens Create Character.
      */
     private enter(index: number): void {
         const saved = characterStore.get(index);

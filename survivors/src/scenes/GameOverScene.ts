@@ -35,6 +35,8 @@ export interface GameOverSceneData {
     armorNames: readonly string[];
     /** Achievements unlocked during this run, by name. */
     achievementNames: readonly string[];
+    /** Maps this win opened in Select Map (Fase 22A), by name. */
+    newMaps: readonly string[];
     /** What the run's EXP did to the character's Level (undefined for runs without a saved character). */
     exp: ExpResult | undefined;
     /** Every item picked up this run (Fase 21A), and the gender its pictures are drawn for. */
@@ -91,8 +93,12 @@ export class GameOverScene extends Phaser.Scene {
             ...UI_TEXT, fontSize: px(UI_FONT_SIZE.large), color: '#e8d9a8', align: 'center', lineSpacing: 6,
         }).setOrigin(0.5, 0);
 
-        if (p.achievementNames.length > 0) {
-            this.add.text(GAME_WIDTH / 2, GAME_OVER.achievementsY, `Achievements: ${p.achievementNames.join(', ')}`, {
+        const news = [
+            ...(p.achievementNames.length > 0 ? [`Achievements: ${p.achievementNames.join(', ')}`] : []),
+            ...(p.newMaps.length > 0 ? [`New map: ${p.newMaps.join(', ')}`] : []),
+        ];
+        if (news.length > 0) {
+            this.add.text(GAME_WIDTH / 2, GAME_OVER.achievementsY, news.join(' · '), {
                 ...UI_TEXT, fontSize: px(UI_FONT_SIZE.normal), fontStyle: 'bold', color: GAME_OVER.achievementsColor,
                 stroke: '#000000', strokeThickness: 3, align: 'center', wordWrap: { width: GAME_OVER.achievementsWrap },
             }).setOrigin(0.5);
