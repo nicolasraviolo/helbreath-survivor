@@ -12,6 +12,8 @@ export const SPRITES = {
     'enemy.slime': { file: 'sprites/slm.spr', type: SpriteType.Monster },
     'enemy.bunny': { file: 'sprites/bunny.spr', type: SpriteType.Monster },
     'enemy.ant': { file: 'sprites/ant.spr', type: SpriteType.Monster },
+    // Gato (Fase 22C): solo en Traveler Zone. Sin sombra en sp-client.
+    'enemy.cat': { file: 'sprites/cat.spr', type: SpriteType.Monster },
     // Fase 7: monstruos de las oleadas y jefes (nombres de archivo de sp-client/src/constants/Monsters.ts;
     // 'gagoyle' lleva la errata del archivo original).
     'enemy.snake': { file: 'sprites/amp.spr', type: SpriteType.Monster },
@@ -178,6 +180,8 @@ export const SOUNDS = {
     'sfx.ant.death': { file: 'sounds/M32.mp3' },
     'sfx.bunny.hit': { file: 'sounds/M79.mp3' },
     'sfx.bunny.death': { file: 'sounds/M83.mp3' },
+    'sfx.cat.hit': { file: 'sounds/M80.mp3' },
+    'sfx.cat.death': { file: 'sounds/M84.mp3' },
     'sfx.orc.hit': { file: 'sounds/M11.mp3' },
     'sfx.orc.death': { file: 'sounds/M12.mp3' },
     // Fase 7 (Monsters.ts takeDamage / death). Stalker, Gargoyle, Hellclaw y Tigerworm reutilizan otros, como en sp-client.
@@ -224,6 +228,7 @@ export const SOUNDS = {
     // Ataques de los monstruos (Monsters.ts → states.attack.sound). Stalker y Hellclaw reutilizan los del Orc y el Cyclops.
     'sfx.slime.attack': { file: 'sounds/M2.mp3' },
     'sfx.bunny.attack': { file: 'sounds/M75.mp3' },
+    'sfx.cat.attack': { file: 'sounds/M76.mp3' },
     'sfx.ant.attack': { file: 'sounds/M30.mp3' },
     'sfx.orc.attack': { file: 'sounds/M10.mp3' },
     'sfx.snake.attack': { file: 'sounds/M26.mp3' },

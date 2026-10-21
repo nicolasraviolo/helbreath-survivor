@@ -78,17 +78,20 @@ const BISLE_EVENTS: readonly WaveEventDef[] = [
 // muy flojos (MAPS_DATA.traveler.difficulty), para que sea divertido sin agobiar. Dura unos 8 minutos: el Stone Golem
 // en el 4 y el Dummy (jefe final, lento y de 1 de daño, rodeado de bichos) en el 7. Sin estampidas.
 const TRAVELER_WAVES: readonly WaveDef[] = [
-    { fromMinute: 0, enemies: [{ enemy: 'slime', weight: 6 }, { enemy: 'bunny', weight: 5 }], startInterval: 0.9, endInterval: 0.6, batchSize: 3, maxAlive: 120 },
-    { fromMinute: 1, enemies: [{ enemy: 'slime', weight: 3 }, { enemy: 'bunny', weight: 4 }, { enemy: 'ant', weight: 4 }], startInterval: 0.75, endInterval: 0.5, batchSize: 3, maxAlive: 160 },
-    { fromMinute: 2, enemies: [{ enemy: 'slime', weight: 2 }, { enemy: 'bunny', weight: 3 }, { enemy: 'ant', weight: 3 }, { enemy: 'snake', weight: 3 }], startInterval: 0.6, endInterval: 0.45, batchSize: 4, maxAlive: 200 },
-    { fromMinute: 3, enemies: [{ enemy: 'slime', weight: 1 }, { enemy: 'bunny', weight: 2 }, { enemy: 'ant', weight: 3 }, { enemy: 'snake', weight: 4 }], startInterval: 0.55, endInterval: 0.4, batchSize: 4, maxAlive: 220 },
-    { fromMinute: 4, enemies: [{ enemy: 'slime', weight: 1 }, { enemy: 'bunny', weight: 2 }, { enemy: 'ant', weight: 3 }, { enemy: 'snake', weight: 5 }], startInterval: 0.5, endInterval: 0.4, batchSize: 4, maxAlive: 240 },
-    { fromMinute: 5, enemies: [{ enemy: 'slime', weight: 3 }, { enemy: 'bunny', weight: 3 }, { enemy: 'ant', weight: 3 }, { enemy: 'snake', weight: 3 }], startInterval: 0.45, endInterval: 0.35, batchSize: 5, maxAlive: 260 },
-    { fromMinute: 6, enemies: [{ enemy: 'slime', weight: 2 }, { enemy: 'bunny', weight: 3 }, { enemy: 'ant', weight: 3 }, { enemy: 'snake', weight: 4 }], startInterval: 0.4, endInterval: 0.35, batchSize: 5, maxAlive: 280 },
+// 22C (21-oct-2026): el propietario la vio demasiado fácil. Entra el Cat, ~15–20% más bichos a la vez y algo más
+// seguidos desde el minuto 3, y una encerrona de gatos en el 3,5. Los jefes no cambian.
+    { fromMinute: 0, enemies: [{ enemy: 'slime', weight: 5 }, { enemy: 'bunny', weight: 4 }, { enemy: 'cat', weight: 3 }], startInterval: 0.9, endInterval: 0.6, batchSize: 3, maxAlive: 140 },
+    { fromMinute: 1, enemies: [{ enemy: 'slime', weight: 3 }, { enemy: 'bunny', weight: 3 }, { enemy: 'cat', weight: 3 }, { enemy: 'ant', weight: 4 }], startInterval: 0.7, endInterval: 0.5, batchSize: 3, maxAlive: 185 },
+    { fromMinute: 2, enemies: [{ enemy: 'slime', weight: 2 }, { enemy: 'bunny', weight: 2 }, { enemy: 'cat', weight: 3 }, { enemy: 'ant', weight: 3 }, { enemy: 'snake', weight: 3 }], startInterval: 0.6, endInterval: 0.45, batchSize: 4, maxAlive: 235 },
+    { fromMinute: 3, enemies: [{ enemy: 'slime', weight: 1 }, { enemy: 'bunny', weight: 2 }, { enemy: 'cat', weight: 2 }, { enemy: 'ant', weight: 3 }, { enemy: 'snake', weight: 4 }], startInterval: 0.5, endInterval: 0.36, batchSize: 4, maxAlive: 260 },
+    { fromMinute: 4, enemies: [{ enemy: 'slime', weight: 1 }, { enemy: 'bunny', weight: 1 }, { enemy: 'cat', weight: 2 }, { enemy: 'ant', weight: 3 }, { enemy: 'snake', weight: 5 }], startInterval: 0.45, endInterval: 0.35, batchSize: 4, maxAlive: 285 },
+    { fromMinute: 5, enemies: [{ enemy: 'slime', weight: 3 }, { enemy: 'bunny', weight: 2 }, { enemy: 'cat', weight: 2 }, { enemy: 'ant', weight: 3 }, { enemy: 'snake', weight: 3 }], startInterval: 0.4, endInterval: 0.3, batchSize: 5, maxAlive: 305 },
+    { fromMinute: 6, enemies: [{ enemy: 'slime', weight: 2 }, { enemy: 'bunny', weight: 2 }, { enemy: 'cat', weight: 3 }, { enemy: 'ant', weight: 3 }, { enemy: 'snake', weight: 4 }], startInterval: 0.35, endInterval: 0.3, batchSize: 5, maxAlive: 330 },
 ];
 
 const TRAVELER_EVENTS: readonly WaveEventDef[] = [
     { atMinute: 2.5, kind: 'surround', enemy: 'bunny', count: 24, message: 'You are surrounded!' },
+    { atMinute: 3.5, kind: 'surround', enemy: 'cat', count: 28, message: 'Cats everywhere!' },
     { atMinute: 4, kind: 'boss', enemy: 'stoneGolemBoss', message: 'A Stone Golem blocks the way!' },
     { atMinute: 5.5, kind: 'surround', enemy: 'slime', count: 30, message: 'Slimes everywhere!' },
     { atMinute: 7, kind: 'finalBoss', enemy: 'dummy', message: 'The Training Dummy wakes up!' },

@@ -54,7 +54,8 @@ export const MAPS_DATA = {
     // Ventana de 100×100 con un 84% libre (el mapa entero es pequeño, 170×170).
     traveler: {
         name: 'Traveler Zone', asset: 'map.traveler', size: { width: 170, height: 170 }, minimap: 'minimap.traveler', playArea: { x: 40, y: 38, width: 100, height: 100 },
-        localEnemies: ['bunny'], bosses: ['stoneGolemBoss', 'dummy'], recommendedLevel: 1, difficulty: { hp: 0.5, damage: 0.4 },
+        // Dificultad subida en el 22C (antes 0,5 / 0,4): el propietario la vio demasiado fácil.
+        localEnemies: ['bunny', 'cat'], bosses: ['stoneGolemBoss', 'dummy'], recommendedLevel: 1, difficulty: { hp: 0.7, damage: 0.6 },
         music: MUSIC.normal, description: 'Where every adventure begins.',
     },
     // Ventana de 150×150 casillas con un 95% libre, todo conectado (medido el 18-oct-2026; NOTES.md).

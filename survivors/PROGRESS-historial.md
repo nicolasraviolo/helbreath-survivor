@@ -2,6 +2,14 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
+**Fase 22, bloque 22C: Traveler Zone completa (2026-10-21).**
+- **Qué hace:** nuevo monstruo **Cat** (`cat.spr`, 184 KB, solo en Traveler Zone): sale desde el minuto 0 en todas las oleadas, entre los bichos que rodean al Dummy y en una encerrona nueva en el 3:30 ("Cats everywhere!", 28 gatos). Traveler Zone más difícil: bichos normales con vida ×0,7 y daño ×0,6 (antes ×0,5 / ×0,4), ~15–20% más a la vez y algo más seguidos desde el minuto 3. Los jefes no cambian.
+- **Decisiones del propietario:** Traveler Zone demasiado fácil; jefes bien así; Cat como bicho normal y también en una encerrona.
+- **Decidido por mí (ajustable):** números del Cat (NPC.cfg: ATime 1500, alcance 1, valentía 3, 2d4, HR 45; vida 20 y XP 4, nuestros); multiplicadores 0,7 / 0,6; pesos y `maxAlive` de las oleadas.
+- **Código:** `enemy.cat` y `sfx.cat.*` (M80/M84/M76) en `config/assetManifest.ts`; `cat` en `data/enemies.ts` (y en los bichos del Dummy); `TRAVELER_WAVES`/`TRAVELER_EVENTS` en `data/waves.ts`; `localEnemies` y `difficulty` de Traveler en `data/maps.ts`.
+- **Comprobado:** build; `check traveler travelerboss game` y `traveler --mobile` sin errores; captura con zoom de gatos andando. Partida simulada en Traveler: Guerrero Power 16 (igual; más daño recibido), Maga Power 19 (antes 17); Stone Golem y Dummy duran parecido. El propietario lo probó y le parece bien.
+- **Probar:** `pnpm --dir survivors dev` → Play → personaje → Select Map → Traveler Zone; J adelanta un minuto (encerrona de gatos en el 3:30).
+
 **Fase 22, bloque 22B: carga por mapa (2026-10-21).**
 - **Qué hace:** antes del menú solo se baja lo de los menús (interfaz, personajes, sonidos). Al elegir mapa, su pantalla de carga baja el mapa, los monstruos de **su** primera oleada, los efectos de partida y los objetos del suelo; los efectos del Mago solo si juegas de Mago. El resto de monstruos, en segundo plano y solo los de ese mapa. Arreglado: se bajaban antes del menú monstruos que no salen en ningún mapa (Gargoyle, Tigerworm, Hellclaw…).
 - **Tiempos (Guerrero en Bleeding Isle, red simulada):** carga inicial 29,7 → 15,7 MB (y 9,5 MB tras el recorte de abajo); PC 7,2 → 4,4 s; móvil 34,4 → 20,6 s. Carga del mapa 6,1 → 11,7 MB (PC 1,6 → 2,6 s; móvil 6,8 → 12,3 s). Hasta la partida, en móvil: 41 → 33 s. Lo lento es descargar, no preparar (~20%).

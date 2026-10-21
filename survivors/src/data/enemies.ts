@@ -181,6 +181,12 @@ export const ENEMIES = {
         name: 'Bunny', sprite: 'enemy.bunny', temporalCoefficient: 1, hasShadow: true, maxHp: 16, xp: 4, radius: 8, bodyOffsetY: 10,
         actionTimeMs: 1500, attackRange: 1, bravery: 2, damageDice: [1, 5], hitRatio: 35, hitSound: 'sfx.bunny.hit', deathSound: 'sfx.bunny.death', attackSound: 'sfx.bunny.attack',
     },
+    // Fase 22C, solo en Traveler Zone. NPC.cfg Cat: ATime 1500, AttkRange 1, MinBrvy 3, 2d4, HR 45 (tier 1, algo más
+    // duro que el Bunny).
+    cat: {
+        name: 'Cat', sprite: 'enemy.cat', temporalCoefficient: 1, hasShadow: false, maxHp: 20, xp: 4, radius: 9, bodyOffsetY: 10,
+        actionTimeMs: 1500, attackRange: 1, bravery: 3, damageDice: [2, 4], hitRatio: 45, hitSound: 'sfx.cat.hit', deathSound: 'sfx.cat.death', attackSound: 'sfx.cat.attack',
+    },
     ant: {
         name: 'Ant', sprite: 'enemy.ant', temporalCoefficient: 1, hasShadow: false, maxHp: 28, xp: 6, radius: 10, bodyOffsetY: 12,
         actionTimeMs: 1200, attackRange: 1, bravery: 2, damageDice: [2, 3], hitRatio: 40, hitSound: 'sfx.ant.hit', deathSound: 'sfx.ant.death', attackSound: 'sfx.ant.attack',
@@ -379,5 +385,5 @@ export interface BossMinions {
 export const BOSS_MINIONS: Partial<Record<EnemyId, BossMinions>> = {
     fireWyvern: { enemies: ['stoneGolem', 'frog'], everyMs: 8000, count: 6, maxAlive: 24, radius: 110 },
     // Traveler Zone: el Dummy no se queda solo; lo rodean bichos flojos mientras le pegas.
-    dummy: { enemies: ['slime', 'bunny', 'ant'], everyMs: 6000, count: 8, maxAlive: 40, radius: 110 },
+    dummy: { enemies: ['slime', 'bunny', 'cat', 'ant'], everyMs: 6000, count: 8, maxAlive: 40, radius: 110 },
 };

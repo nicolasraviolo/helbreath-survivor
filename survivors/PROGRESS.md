@@ -8,12 +8,12 @@
 - 20-oct-2026: 21 Botín y baúl (21A, 21B, 21D, 21E; el 21C, anillos y collares, aplazado).
 
 ## Fase actual
-**Fase 22 (sistema de mapas), en curso** en la rama `fase-22`. Hecho: **22A** (Select Map, desbloqueo y Traveler Zone) y **22B** (carga por mapa: inicial 29,7 → 9,5 MB; hasta jugar en móvil 41 → 27 s). Detalle en `PROGRESS-historial.md`.
-- **Siguiente:** `/fase 22` → bloque **22C, Traveler Zone completa** (Cat, repaso tras jugarla; `docs/PLAN-2.md`). Luego 22D Elvine Garden · 22E Middleland · 22F récords · 22G sombras y skill `anadir-mapa`.
+**Fase 22 (sistema de mapas), en curso** en la rama `fase-22`. Hecho: **22A** (Select Map, desbloqueo y Traveler Zone), **22B** (carga por mapa: inicial 29,7 → 9,5 MB; hasta jugar en móvil 41 → 27 s) y **22C** (Cat y Traveler Zone más difícil). Detalle en `PROGRESS-historial.md`.
+- **Siguiente:** `/fase 22` → bloque **22D, Elvine Garden** (`docs/PLAN-2.md`). Luego 22E Middleland · 22F récords · 22G sombras y skill `anadir-mapa`.
 - **Orden de mapas (20-oct-2026):** Traveler Zone → Bleeding Isle → Elvine Garden → Middleland (los dos últimos "Coming soon"). Se abren al ganar el anterior o con su Level (1/10/25/40). Icebound, a la Fase 25. Select Map se abrirá desde un portal de la ciudad en la Fase 23.
 - **21C (anillos y collares) aplazado.** Spell 2 gastará **maná** (plan del propietario; ver NOTES.md, "Atributos y varitas").
 - **Sesiones en la nube (claude.ai/code):** trabajan en otra copia; el propietario ve los cambios con `git pull` en su rama.
-- **Pendiente de probar por el propietario:** carga más rápida (22B, también en el móvil cuando se publique); Traveler Zone ("divertido pero con reto"; duración de Stone Golem y Dummy); Select Map en el móvil; pociones al 0,4%; atajo `onehp` / tecla U; baúl y morir con/sin Zem (21D); botín en partida normal; cambiar de pestaña y volver (B4); mando real.
+- **Pendiente de probar por el propietario:** carga más rápida (22B, también en el móvil cuando se publique); Select Map en el móvil; pociones al 0,4%; atajo `onehp` / tecla U; baúl y morir con/sin Zem (21D); botín en partida normal; cambiar de pestaña y volver (B4); mando real.
 - **Ideas sin fecha:** monstruos al azar como evento especial; jefes más difíciles de esquivar (nota en `data/defense.ts`).
 
 **Pistas para trabajar** (detalle en `survivors/NOTES.md`):
