@@ -47,6 +47,8 @@ export class RunMetrics {
     public onCard(choice: LevelUpChoice): void {
         const key = cardKey(choice);
         this.state.cards[key] = (this.state.cards[key] ?? 0) + 1;
+        // Fase 21½A: Rare and Epic picks, counted apart in the same table ("rarity:rare", "rarity:epic").
+        if (choice.rarity !== 'common') this.state.cards[`rarity:${choice.rarity}`] = (this.state.cards[`rarity:${choice.rarity}`] ?? 0) + 1;
     }
 
     /** A blow landed on the player (`damage` after armor; `hpLeft` after it). */

@@ -34,6 +34,8 @@ const PRESETS = {
     menu: '',
     game: 'play',
     levelup: 'debug=levelup',
+    // Fase 21½A: todas las cartas Epic (marco morado, cinta, brillo y sonido).
+    epic: 'debug=epic,levelup',
     boss: 'debug=god,boss',
     // Minimapa (Fase 16A): con un jefe vivo, para ver su punto rojo junto al del jugador.
     minimap: 'debug=god,boss',

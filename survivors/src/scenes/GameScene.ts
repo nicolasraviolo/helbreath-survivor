@@ -49,6 +49,7 @@ import { PLAYER_FRAMES_PER_DIRECTION } from '../hb/playerAppearance';
 import { CharacterStats } from '../entities/CharacterStats';
 import { BuffSystem } from '../systems/BuffSystem';
 import { PickupSystem } from '../systems/PickupSystem';
+import { EPIC_CARD_SOUND } from '../data/cardRarity';
 import { CHEST_CARDS_TITLE, POTION_HEAL_SHARE, type PickupId } from '../data/pickups';
 import { getTotem, TOTEM_IDS, type TotemId } from '../data/totems';
 import { TotemSystem } from '../systems/TotemSystem';
@@ -501,15 +502,26 @@ export class GameScene extends Phaser.Scene {
         this.buffs.announce(def.name, def.color);
     }
 
+    /** Three cards for a level up or a chest, with their rarity drawn with the run's Chr (Fase 21½A). */
+    private levelUpChoices(fromChest: boolean): LevelUpChoice[] {
+        return buildLevelUpChoices(this.equipment, this.stats.stats.chr, {
+            chest: fromChest,
+            onlyPassives: DEBUG_START.actions.includes('stones'),
+            allEpic: DEBUG_START.actions.includes('epic'),
+        });
+    }
+
     /** Pauses the game and shows the cards (of a level up, or of a chest). Picking one applies it and resumes. */
     private openLevelUp(fromChest: boolean): void {
         this.levelUpOpen = true;
         if (!fromChest) this.audio.play(GENDER_SOUNDS[this.player.look.gender].levelUp);
         const stats = this.stats;
+        const choices = this.levelUpChoices(fromChest);
+        if (choices.some((c) => c.rarity === 'epic')) this.audio.play(EPIC_CARD_SOUND);
         const data: LevelUpSceneData = {
             stats,
             equipment: this.equipment,
-            choices: buildLevelUpChoices(this.equipment, DEBUG_START.actions.includes('stones')),
+            choices,
             title: fromChest ? CHEST_CARDS_TITLE : undefined,
             onChoose: (choice) => {
                 this.chooseCard(choice, fromChest);
@@ -931,11 +943,11 @@ export class GameScene extends Phaser.Scene {
             this.openLoot();
         } else if (this.stats.pendingLevelUps > 0 && !this.levelUpOpen && !player.isDead) {
             if (this.finalBossDead) this.levelUpWithoutCards();
-            else if (this.sim) this.chooseCard(this.sim.pick(buildLevelUpChoices(this.equipment)));
+            else if (this.sim) this.chooseCard(this.sim.pick(this.levelUpChoices(false)));
             else this.openLevelUp(false);
         } else if (this.chestCards > 0 && !this.levelUpOpen && !player.isDead) {
             // A chest's card, even after the final boss (its chest gives one too).
-            if (this.sim) this.chooseCard(this.sim.pick(buildLevelUpChoices(this.equipment)), true);
+            if (this.sim) this.chooseCard(this.sim.pick(this.levelUpChoices(true)), true);
             else this.openLevelUp(true);
         }
         return true;

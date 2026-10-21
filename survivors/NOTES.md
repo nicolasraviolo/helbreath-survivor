@@ -76,6 +76,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Atributos y varitas (Fase 21B)
 - Baúl, "solo lo que tienes" y Zem (Fase 21D)
 - Abaddon's Blood: resurrección permanente (Fase 21E)
+- Rareza de las cartas (Fase 21½A)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -893,3 +894,10 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - **Sonidos:** C21 / C22 son la voz de "buena noticia" del original según el sexo (`m_sPlayerType` 1–3 / 4–6 en `reference/Client.cpp`; suena al fabricar con éxito). El efecto Resurrection (case 194) no suena por sí mismo. Aquí: la voz + `sfx.buff`.
 - **Probar:** `pnpm check revive --eval="new Promise((r) => { g.hurtPlayer(99999, true, 'test'); setTimeout(() => r({ hp: g.player.hp, dead: g.player.isDead }), 1500); })"`.
 - **`pnpm check` en la nube:** `scripts/check.mjs` lanza `channel: 'chrome'`, que no existe en los contenedores de Claude Code web (solo `/opt/pw-browsers/chromium-1194`). Allí se usa una copia temporal con `executablePath` (y se borra después).
+
+## Rareza de las cartas (Fase 21½A)
+- Números en `data/cardRarity.ts`; sorteo en `systems/UpgradePool.ts` (`buildLevelUpChoices(equipment, chr, { chest, onlyPassives, allEpic })`). Desde la partida se piden siempre con `GameScene.levelUpChoices(fromChest)`, que lee la Chr de la partida y los atajos.
+- Cada carta sortea su rareza aparte. En las pasivas, `rank` es el rango **final** (actual + 1/2/3); si no caben los rangos, la rareza baja (`fitRarity`). La línea "antes" de la carta usa el rango actual del equipo, no `rank − 1`.
+- El sonido de la Epic (`sfx.cardEpic`, E23, el mismo "chin" que los tótems) suena desde `GameScene.openLevelUp`, con el `AudioSystem`, no desde la escena de cartas.
+- Métricas: las Rare y Epic elegidas se cuentan en la misma tabla de cartas como `rarity:rare` y `rarity:epic` (salen en "Most picked cards" sin tocar el servidor).
+- Probar: `pnpm check epic` (todas Epic) y `?debug=epic`. Reparto medido con 3.000 cartas: 81/15/4 normal, 0/81/19 en cofres, 71/23/6 con Chr 60.

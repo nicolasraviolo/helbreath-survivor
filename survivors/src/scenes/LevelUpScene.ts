@@ -1,6 +1,8 @@
 // Pantalla de subida de nivel: la partida se pausa y se elige 1 de 3 cartas (las arma systems/UpgradePool.ts).
 // Tipos (Fase 20C): stat ("+3 a un stat") y pasiva (Stone of Xelima, Stone of Merien, Magnet Amulet). Las pasivas
 // llevan su dibujo (icono original de la piedra o imagen propia) en lugar del círculo de color.
+// Fase 21½A: rareza (data/cardRarity.ts). Las Rare y Epic llevan un marco interior y una cinta de su color arriba;
+// las Epic, además, un brillo que late detrás (su sonido lo pone GameScene.openLevelUp). Las Common se ven como siempre.
 // Siempre hay una carta resaltada. Se elige con flechas/WASD, cruceta o stick + Enter/Espacio/A, o con el ratón.
 import Phaser from 'phaser';
 import { SpriteText } from '../hb/SpriteText';
@@ -11,6 +13,7 @@ import { px, UI_TEXT, UI_FONT_SIZE } from '../config/ui';
 import { itemPackTexture } from '../config/equipment';
 import { STAT_INFO, type StatId } from '../data/stats';
 import { getPassive, type PassiveIcon } from '../data/passives';
+import { CARD_RARITY, EPIC_CARD_GLOW, type CardRarity } from '../data/cardRarity';
 import type { CharacterStats } from '../entities/CharacterStats';
 import type { Equipment } from '../entities/Equipment';
 import { Action, InputSystem } from '../systems/InputSystem';
@@ -59,6 +62,10 @@ const ICON_MAX_SCALE = 2;
 const TEXT_COLOR = '#e8d9a8';
 /** Badge of a passive card while its picture is not loaded yet (item-pack.spr downloads when the run starts). */
 const PASSIVE_BADGE = { text: 'Pas', color: 0x508050 } as const;
+/** Rare and Epic cards: inner frame (inset from the edge) and the ribbon with the rarity's name on the top edge. */
+const RARITY_FRAME_INSET = 6;
+const RARITY_FRAME_WIDTH = 3;
+const RARITY_RIBBON = { width: byDevice(84, 96), height: byDevice(22, 26) } as const;
 
 /** What a card shows: badge (or picture), title, one line of effect and the "before → after" lines. */
 interface CardText {
@@ -156,7 +163,7 @@ export class LevelUpScene extends Phaser.Scene {
             ...UI_TEXT, fontSize: px(UI_FONT_SIZE.normal), color: TEXT_COLOR, align: 'center', lineSpacing: 2, wordWrap: { width: textWidth },
         }).setOrigin(0.5, 0);
 
-        const container = this.add.container(x, y, [frame, badge, badgeText, title.container, effect, changes]);
+        const container = this.add.container(x, y, [...this.rarityParts(choice.rarity, frame), badge, badgeText, title.container, effect, changes]);
         frame.setInteractive({ useHandCursor: true });
         frame.on(Phaser.Input.Events.POINTER_OVER, () => this.highlight(index));
         frame.on(Phaser.Input.Events.POINTER_DOWN, () => {
@@ -168,6 +175,24 @@ export class LevelUpScene extends Phaser.Scene {
             this.pressedCard = -1;
         });
         return { container, frame };
+    }
+
+    /** The card's frame with what its rarity adds: Epic glow behind it, inner frame and ribbon on top (Common: only the frame). */
+    private rarityParts(rarity: CardRarity, frame: Phaser.GameObjects.Rectangle): Phaser.GameObjects.GameObject[] {
+        if (rarity === 'common') return [frame];
+        const { color, label } = CARD_RARITY[rarity];
+        const top = -CARD_HEIGHT / 2;
+        const inner = this.add.rectangle(0, 0, CARD_WIDTH - RARITY_FRAME_INSET * 2, CARD_HEIGHT - RARITY_FRAME_INSET * 2)
+            .setStrokeStyle(RARITY_FRAME_WIDTH, color);
+        const ribbon = this.add.rectangle(0, top, RARITY_RIBBON.width, RARITY_RIBBON.height, color).setStrokeStyle(2, 0x000000);
+        const ribbonText = this.add.text(0, top, label, {
+            ...UI_TEXT, fontSize: px(UI_FONT_SIZE.normal), fontStyle: 'bold', color: '#ffffff', stroke: '#000000', strokeThickness: 3,
+        }).setOrigin(0.5);
+        if (rarity !== 'epic') return [frame, inner, ribbon, ribbonText];
+        const { pad, alpha, pulseMs } = EPIC_CARD_GLOW;
+        const glow = this.add.rectangle(0, 0, CARD_WIDTH + pad * 2, CARD_HEIGHT + pad * 2, color, alpha.min);
+        this.tweens.add({ targets: glow, alpha: alpha.max, duration: pulseMs, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+        return [glow, frame, inner, ribbon, ribbonText];
     }
 
     /** A passive's picture fitted in ICON_SIZE, or undefined while its texture is not loaded. */
@@ -211,10 +236,11 @@ function describeCard(stats: CharacterStats, equipment: Equipment, choice: Level
         case 'passive': {
             const passive = getPassive(choice.passive);
             const pct = (rank: number) => `${passive.sign}${Math.round(equipment.passiveBonus(choice.passive, rank) * 100)}%`;
+            // Rare and Epic cards add several ranks at once (Fase 21½A): "before" is the rank the player has now.
             return {
                 badge: PASSIVE_BADGE.text, badgeColor: PASSIVE_BADGE.color, icon: passive.icon, title: `${passive.name} ${choice.rank}/${passive.maxRank}`,
                 effect: passive.effect,
-                changes: [`${passive.statLabel} ${pct(choice.rank - 1)} → ${pct(choice.rank)}`],
+                changes: [`${passive.statLabel} ${pct(equipment.passives[choice.passive])} → ${pct(choice.rank)}`],
             };
         }
     }
@@ -223,7 +249,7 @@ function describeCard(stats: CharacterStats, equipment: Equipment, choice: Level
 /** "Before → after" lines for the stat and what it changes in play. */
 function describeStatChanges(stats: CharacterStats, s: StatId, points: number): string[] {
     const after = stats.previewWith(s, points);
-    const lines = [`${STAT_INFO[s].short} ${stats.stats[s]} → ${after.stats[s]}`];
+    const lines = [`${STAT_INFO[s].short} ${stats.stats[s]} → ${after.stats[s]} (+${points})`];
     const pct = (value: number) => `${Math.round(value * 100)}%`;
     const bonus = (multiplier: number) => `${multiplier >= 1 ? '+' : ''}${Math.round((multiplier - 1) * 100)}%`;
     switch (s) {

@@ -27,6 +27,7 @@ Fuentes de la investigación (17-oct-2026):
 | **19** | Crits y habilidad activa | Guerrero: golpe crítico con cargas · Mago: hechizo activo con recarga · mismo botón · vibración y reasignar controles | Pequeño-medio |
 | **20** | Level y equipo *(nueva)* | Level permanente y reparto de puntos · "Power" en la partida · inventario y equipo de salida · hechizos equipables · las cartas dejan de dar armas | Grande |
 | **21** | Botín y baúl *(nueva)* | Objetos que caen en partida ("Equip" / "Keep in bag") · Sharp, Ancient y Poison · baúl compartido · Zem y Abaddon's Blood | Grande |
+| **21½** | Cartas y sorpresas *(mini, nueva 21-oct-2026)* | Rareza en las cartas de Power · Reroll y Skip · evento "Champion": un monstruo poderoso extra al azar | Pequeño-medio |
 | **22** | Sistema de mapas + Icebound | Varios mapas, Select Map, récords locales por mapa, sombras, Icebound | Grande |
 | **23** | La ciudad | Mapa pequeño tras elegir personaje: NPCs, baúl y portal a la partida | Grande |
 | **24** | Oro, tienda y herrero *(nueva)* | Oro en partida · vender · tienda (Zem, pociones, equipo básico, ampliar baúl, **Abaddon's Blood**) · mejoras con Xelima y Merien | Medio-grande |
@@ -485,6 +486,37 @@ Los objetos que caen en la partida se pueden **equipar al momento** o **guardar 
 
 ---
 
+## Fase 21½ — Cartas y sorpresas *(mini, nueva)*
+
+### Por qué (análisis del 21-oct-2026, `docs/ENGAGEMENT.md`)
+Desde la Fase 20 las cartas de Power solo dan +3 a un stat o una piedra (Xelima, Merien, Magnet): cada subida se parece a la anterior y casi nunca hay sorpresa. En Vampire Survivors, Hades o Megabonk la subida de nivel es el corazón de la partida. Esta fase mete tres cosas que se apoyan en lo que ya existe y casi no tocan el resto. El propietario las aprobó como idea el 21-oct-2026; los números se deciden al empezar.
+
+### 21½A. Rareza en las cartas
+- Cada carta sale **Common**, **Rare** o **Epic** (propuesta 75 / 20 / 5%), con el borde y el título del color de su rareza (blanco, azul, morado) y un sonido distinto para la Epic.
+- **Stat:** +3 / +5 / +8. **Piedras y Magnet:** +1 rango / +1 rango y un poco más de efecto / +2 rangos (sin pasar del máximo).
+- Más adelante la **Chr** puede subir la probabilidad de las raras (era la idea original del diseño: "Chr: crítico y mejores drops").
+- Dónde: `systems/UpgradePool.ts`, `scenes/LevelUpScene.ts`, números en `data/` (archivo nuevo `cardRarity.ts`).
+
+### 21½B. Reroll y Skip
+- Dos botones bajo las cartas: **Reroll** (saca 3 cartas nuevas) y **Skip** (no coge ninguna).
+- Propuesta: **2 Reroll y 2 Skip por partida**, con el contador a la vista. En la Fase 24 la tienda o algunos logros podrán dar más (como en Vampire Survivors).
+- Táctil, ratón y mando (otra fila en la navegación de las cartas). Se explica en How to Play.
+- Se guardan con la partida (Continue).
+
+### 21½C. Evento "Champion"
+- Una o dos veces por partida, en un minuto **al azar** (entre los minijefes y el jefe final, sin coincidir con ellos), aparece un **monstruo poderoso de más**: un monstruo de la oleada actual o del siguiente tramo, más grande, con mucha vida, aura de élite y barra de vida arriba.
+- Aviso en pantalla ("A champion rises!") y sonido. Si lo matas: **objeto garantizado** del escalón siguiente o mejor, y algo de XP extra.
+- Reutiliza los élites (`data/elites.ts`), los eventos de oleada (`data/waves.ts`, tipo nuevo `champion`) y la barra de jefe. Ya estaba anotado como idea ("monstruos al azar como evento especial").
+- Atajo de prueba `?debug=champion` y situación `pnpm check champion`.
+
+### Aceptación
+- En una partida normal salen cartas Rare y alguna Epic, y se distinguen de un vistazo.
+- Reroll y Skip funcionan con teclado, ratón, mando y táctil, y el contador baja.
+- El Champion aparece en un minuto distinto cada partida, se ve claramente y suelta su objeto.
+- Las métricas apuntan las rarezas elegidas, los Reroll/Skip usados y si se mató al Champion.
+
+---
+
 ## Fase 22 — Sistema de mapas + Icebound
 
 ### 22A. Sistema de mapas
@@ -753,6 +785,16 @@ Un grupo de jugadores del bando enemigo entrando en tu ciudad, granja o dungeon 
 - Cumple la regla 8 (nada de pagos ni anuncios).
 
 ---
+
+## Mejoras de engagement para más adelante (21-oct-2026)
+Del análisis `docs/ENGAGEMENT.md`, comentado con el propietario el 21-oct-2026. Lo que cabe ya está en la Fase 21½.
+- **Pasivas con efecto** (le gusta al propietario): cartas que cambian cómo juegas, no solo números. Ejemplos: **aura de daño en zona** alrededor del jugador, rebote del proyectil, explosión al matar, robo de vida, tajo más ancho, una bola de fuego extra cada pocos segundos. Necesita efectos visuales y equilibrio propio: **fase propia** (propuesta: justo después de la 22, con mapas más duros donde lucirse).
+- **Combinaciones:** dos pasivas concretas al máximo desbloquean una carta especial (como las evoluciones de Vampire Survivors o los dobles de Hades). Va con las pasivas con efecto.
+- **Botín de jefes y premios grandes:** cofre con animación y 1/3/5 premios, botín del jefe final siempre del escalón siguiente o mejor. Se resuelve en las **Fases 24 y 25** (oro, tienda, únicos).
+- **Retos opcionales con premio:** tótem-desafío ("aguanta 30 s rodeado → objeto seguro") o dificultad elegible al escoger mapa (como el Heat de Hades). Encaja en la **Fase 22** o la 25.
+- **Historia y personajes:** NPCs de la ciudad que comentan tu última muerte, tu récord o tu mejor objeto. **Después de la ciudad (Fase 23).**
+- **Logros con premio y colección:** que algunos logros den oro, un hueco de baúl o Reroll extra (Fase 24); una colección de objetos con huecos en gris.
+- **Botín con más emoción:** color de rareza en el suelo (gris / azul / dorado) y que "de tu escalón" pueda salir con atributo o +1. Revisar con las partidas de prueba (`docs/ENGAGEMENT.md`, apartado 5).
 
 ## Ideas para después (sin fase todavía)
 - **El Arquero** (aplazado desde la Fase 8). Encaja con las Raids (Raider Archer) y con los crits a distancia del original.

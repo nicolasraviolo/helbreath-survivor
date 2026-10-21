@@ -14,6 +14,14 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: readonly ReleaseNote[] = [
     {
+        version: 'Phase 21½',
+        date: 'Oct 21, 2026',
+        changes: [
+            'Power cards now come as Common, Rare or Epic.',
+            'Chest cards are always Rare or better, and Charisma brings rarer cards.',
+        ],
+    },
+    {
         version: 'Phase 21',
         date: 'Oct 20, 2026',
         changes: [

@@ -2,6 +2,14 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
+**Fase 21½, bloque 21½A: rareza de las cartas (2026-10-21).**
+- **Qué hace:** cada carta de Power sale **Common, Rare o Epic**. Stat +3 / +5 / +8 (la carta lo dice: "Chr 10 → 18 (+8)"); piedras y Magnet +1 / +2 / +3 rangos, sin pasar de 5 (si no caben, la carta baja de rareza). Rare: marco interior azul y cinta "Rare"; Epic: marco morado, cinta "Epic", brillo que late y el "chin" E23 al aparecer. Las cartas de los cofres nunca salen Common. La Chr de la partida sube Rare y Epic (+1% por punto sobre 10, hasta el doble). Métricas: `rarity:rare` / `rarity:epic` en la tabla de cartas.
+- **Decisiones del propietario:** 80 / 16 / 4; stat +3/+5/+8 y piedras +1/+2/+3; cofres Rare o mejor; la Chr sube las raras. Nueva mini Fase 21½ antes de la 22 (análisis `docs/ENGAGEMENT.md`).
+- **Decidido por mí (ajustable en `data/cardRarity.ts`):** fórmula de la Chr, colores, sonido E23 (el de los tótems), cinta sobre el borde de la carta.
+- **Código:** `data/cardRarity.ts`, `buildLevelUpChoices(equipment, chr, options)` en `systems/UpgradePool.ts`, `GameScene.levelUpChoices`, `LevelUpScene.rarityParts`, `sfx.cardEpic`; fuera `STAT_CARD_POINTS`. Atajo `?debug=epic`; situación `check epic`.
+- **Comprobado:** build; `check menu epic levelup` y `epic levelup --mobile` sin errores; 3.000 cartas: 81/15/4 normal, 0/81/19 en cofres, 71/23/6 con Chr 60; partida simulada entera (Power 28, jefe final muerto). Probado y aprobado por el propietario.
+- **Probar:** `pnpm --dir survivors dev` → `?play&debug=epic,levelup` (tres Epic) · `?play` (partida normal) · `?play&debug=god,boss` (cofre del minijefe).
+
 **Entre fases: Continue / New Run al elegir personaje (2026-10-21).**
 - **Qué hace:** el menú principal ya no tiene Continue, solo Play. En Select Character, un personaje con partida guardada abre la ventana "Saved Run" (nombre, Power y tiempo) con Continue, New Run y Back. New Run avisa de que se pierde la partida (su EXP y su botín) con No / Yes ("No" marcado primero); Yes la borra y empieza otra en el único mapa. Esc/B: del aviso a las opciones, y de ahí a Select Character. Sin partida guardada, se juega directo.
 - **Decisiones del propietario:** solo Play en el menú; la pregunta va al elegir personaje; con Select Map (Fase 22), New Run pasará por ahí.
