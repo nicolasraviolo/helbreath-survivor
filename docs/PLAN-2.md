@@ -526,7 +526,7 @@ Desde la Fase 20 las cartas de Power solo dan +3 a un stat o una piedra (Xelima,
 
 ### Replanteo del 20-oct-2026 (al empezar la fase)
 - **Mapas, en este orden:** Traveler Zone (`default`, introducción) → Bleeding Isle → Elvine Garden (`elvuni`) → Middleland. **Icebound pasa a la Fase 25.**
-- **Bloques:** 22A sistema de mapas + Select Map + Traveler Zone ✅ · 22B carga por mapa ✅ · 22C Traveler Zone completa (Cat, repaso tras jugarla) · 22D Elvine Garden · 22E Middleland (Troll, Werewolf, Hellhound, Stalker, Hellclaw) · 22F récords locales · 22G sombras y skill `anadir-mapa`.
+- **Bloques:** 22A sistema de mapas + Select Map + Traveler Zone ✅ · 22B carga por mapa ✅ · 22C Traveler Zone completa (Cat, repaso tras jugarla) · 22D Elvine Garden · 22E Middleland ✅ (21-oct-2026; monstruos y jefes cambiados por el propietario, ver `docs/DECISIONES.md`) · 22F récords locales · 22G sombras y skill `anadir-mapa`.
 - Desbloqueo: ganar el anterior **o** llegar al Level recomendado. Música de Bleeding Isle en todos.
 
 ### 22A. Sistema de mapas ✅ (21-oct-2026)

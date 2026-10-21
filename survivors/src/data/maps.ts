@@ -70,11 +70,14 @@ export const MAPS_DATA = {
         localEnemies: ['troll', 'werewolf', 'giantTree', 'cannibalPlant'], bosses: ['hellhoundBoss', 'stalkerBoss', 'cyclopsBoss'],
         recommendedLevel: 25, difficulty: { hp: 1.3, damage: 1.3 }, music: MUSIC.normal, description: 'The gardens outside Elvine.',
     },
-    // Bloque 22E. Ventana de 150×150 con un 94% libre (el mapa entero es enorme, 524×524).
+    // Bloque 22E (21-oct-2026). Ventana de 150×150 con un 94% libre (el mapa entero es enorme, 524×524). Más difícil
+    // que Elvine Garden (×1,6, propietario) y más larga: 15 minutos.
     middleland: {
         name: 'Middleland', asset: 'map.middleland', size: { width: 524, height: 524 }, minimap: 'minimap.middleland', playArea: { x: 36, y: 274, width: 150, height: 150 },
-        localEnemies: [], bosses: [], recommendedLevel: 40, difficulty: { hp: 1, damage: 1 }, music: MUSIC.normal,
-        description: 'The battlefield between the two cities.', comingSoon: true,
+        localEnemies: ['werewolf', 'troll', 'ogre', 'cyclops', 'stalker', 'ettinRegular'],
+        bosses: ['mountainGiantBoss', 'giantLizard', 'ettinBerserk', 'unicorn'],
+        recommendedLevel: 40, difficulty: { hp: 1.6, damage: 1.6 }, music: MUSIC.normal,
+        description: 'The battlefield between the two cities.',
     },
 } as const satisfies Record<string, MapDef>;
 

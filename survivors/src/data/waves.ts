@@ -126,11 +126,47 @@ const ELVINE_EVENTS: readonly WaveEventDef[] = [
     { atMinute: 12, kind: 'finalBoss', enemy: 'cyclopsBoss', message: 'The Cyclops awakens!' },
 ];
 
+// Middleland (Fase 22E, monstruos, jefes y eventos de la horda y la manada elegidos por el propietario el 21-oct-2026):
+// los del Middleland original (middleland.txt de centuu/HelbreathServer: Orc, Zombie, Scorpion, Skeleton, Snake,
+// Werewolf, Ogre, Cyclops, Stalker, Ettin) más Troll. Vida y daño ×1,6 (MAPS_DATA.middleland.difficulty). Dura
+// 15 minutos: Mountain Giant en el 4, Giant Lizard en el 8, Ettin Berserk en el 12 y Unicorn (jefe final) en el 15.
+const MIDDLELAND_WAVES: readonly WaveDef[] = [
+    { fromMinute: 0, enemies: [{ enemy: 'orc', weight: 5 }, { enemy: 'zombie', weight: 4 }, { enemy: 'scorpion', weight: 2 }], startInterval: 1.3, endInterval: 0.9, batchSize: 2, maxAlive: 100 },
+    { fromMinute: 1, enemies: [{ enemy: 'orc', weight: 4 }, { enemy: 'zombie', weight: 4 }, { enemy: 'scorpion', weight: 3 }], startInterval: 1.1, endInterval: 0.8, batchSize: 2, maxAlive: 120 },
+    { fromMinute: 2, enemies: [{ enemy: 'orc', weight: 3 }, { enemy: 'zombie', weight: 3 }, { enemy: 'scorpion', weight: 4 }, { enemy: 'snake', weight: 2 }], startInterval: 1, endInterval: 0.7, batchSize: 2, maxAlive: 140 },
+    { fromMinute: 3, enemies: [{ enemy: 'orc', weight: 2 }, { enemy: 'zombie', weight: 2 }, { enemy: 'scorpion', weight: 3 }, { enemy: 'snake', weight: 2 }, { enemy: 'skeleton', weight: 4 }], startInterval: 0.9, endInterval: 0.65, batchSize: 2, maxAlive: 160 },
+    { fromMinute: 4, enemies: [{ enemy: 'orc', weight: 1 }, { enemy: 'zombie', weight: 2 }, { enemy: 'scorpion', weight: 2 }, { enemy: 'snake', weight: 1 }, { enemy: 'skeleton', weight: 4 }, { enemy: 'werewolf', weight: 1 }], startInterval: 0.8, endInterval: 0.6, batchSize: 2, maxAlive: 170 },
+    { fromMinute: 5, enemies: [{ enemy: 'orc', weight: 1 }, { enemy: 'scorpion', weight: 2 }, { enemy: 'skeleton', weight: 3 }, { enemy: 'werewolf', weight: 3 }, { enemy: 'troll', weight: 2 }], startInterval: 0.75, endInterval: 0.55, batchSize: 2, maxAlive: 180 },
+    { fromMinute: 6, enemies: [{ enemy: 'zombie', weight: 1 }, { enemy: 'skeleton', weight: 2 }, { enemy: 'werewolf', weight: 3 }, { enemy: 'troll', weight: 4 }], startInterval: 0.7, endInterval: 0.5, batchSize: 2, maxAlive: 200 },
+    { fromMinute: 7, enemies: [{ enemy: 'orc', weight: 1 }, { enemy: 'skeleton', weight: 1 }, { enemy: 'werewolf', weight: 3 }, { enemy: 'troll', weight: 3 }, { enemy: 'ogre', weight: 2 }], startInterval: 0.65, endInterval: 0.5, batchSize: 2, maxAlive: 210 },
+    { fromMinute: 8, enemies: [{ enemy: 'scorpion', weight: 1 }, { enemy: 'werewolf', weight: 2 }, { enemy: 'troll', weight: 3 }, { enemy: 'ogre', weight: 3 }], startInterval: 0.6, endInterval: 0.45, batchSize: 2, maxAlive: 220 },
+    { fromMinute: 9, enemies: [{ enemy: 'skeleton', weight: 1 }, { enemy: 'werewolf', weight: 2 }, { enemy: 'troll', weight: 2 }, { enemy: 'ogre', weight: 3 }, { enemy: 'cyclops', weight: 2 }], startInterval: 0.55, endInterval: 0.45, batchSize: 2, maxAlive: 230 },
+    { fromMinute: 10, enemies: [{ enemy: 'zombie', weight: 1 }, { enemy: 'werewolf', weight: 2 }, { enemy: 'ogre', weight: 2 }, { enemy: 'cyclops', weight: 3 }, { enemy: 'stalker', weight: 2 }], startInterval: 0.5, endInterval: 0.4, batchSize: 2, maxAlive: 240 },
+    { fromMinute: 11, enemies: [{ enemy: 'orc', weight: 1 }, { enemy: 'troll', weight: 1 }, { enemy: 'ogre', weight: 2 }, { enemy: 'cyclops', weight: 3 }, { enemy: 'stalker', weight: 3 }], startInterval: 0.5, endInterval: 0.4, batchSize: 2, maxAlive: 250 },
+    { fromMinute: 12, enemies: [{ enemy: 'werewolf', weight: 1 }, { enemy: 'ogre', weight: 1 }, { enemy: 'cyclops', weight: 2 }, { enemy: 'stalker', weight: 3 }, { enemy: 'ettinRegular', weight: 2 }], startInterval: 0.5, endInterval: 0.4, batchSize: 2, maxAlive: 260 },
+    { fromMinute: 13, enemies: [{ enemy: 'skeleton', weight: 1 }, { enemy: 'cyclops', weight: 2 }, { enemy: 'stalker', weight: 3 }, { enemy: 'ettinRegular', weight: 3 }], startInterval: 0.45, endInterval: 0.4, batchSize: 2, maxAlive: 270 },
+    { fromMinute: 14, enemies: [{ enemy: 'troll', weight: 1 }, { enemy: 'cyclops', weight: 2 }, { enemy: 'stalker', weight: 3 }, { enemy: 'ettinRegular', weight: 3 }], startInterval: 0.45, endInterval: 0.4, batchSize: 2, maxAlive: 280 },
+];
+
+const MIDDLELAND_EVENTS: readonly WaveEventDef[] = [
+    { atMinute: 2.5, kind: 'stampede', enemy: 'zombie', count: 30, message: 'Horde approaching!' },
+    { atMinute: 4, kind: 'boss', enemy: 'mountainGiantBoss', message: 'A Mountain Giant comes down!' },
+    { atMinute: 5.5, kind: 'stampede', enemy: 'orc', count: 18, message: 'Orc stampede!' },
+    { atMinute: 7, kind: 'surround', enemy: 'skeleton', count: 24, message: 'The dead rise around you!' },
+    { atMinute: 8, kind: 'boss', enemy: 'giantLizard', message: 'A Giant Lizard crawls out!' },
+    { atMinute: 9.5, kind: 'surround', enemy: 'werewolf', count: 20, message: 'The wolves howl at the moon!' },
+    { atMinute: 10.5, kind: 'stampede', enemy: 'troll', count: 18, message: 'Troll stampede!' },
+    { atMinute: 12, kind: 'boss', enemy: 'ettinBerserk', message: 'The Ettin goes berserk!' },
+    { atMinute: 13.5, kind: 'surround', enemy: 'stalker', count: 26, message: 'The Stalkers hunt in packs!' },
+    { atMinute: 15, kind: 'finalBoss', enemy: 'unicorn', message: 'The Unicorn charges!' },
+];
+
 /** Every playable map's timeline. A map without one is "Coming soon" (MapDef.comingSoon). */
 export const TIMELINES: Partial<Record<MapId, MapTimeline>> = {
     traveler: { waves: TRAVELER_WAVES, events: TRAVELER_EVENTS },
     bisle: { waves: BISLE_WAVES, events: BISLE_EVENTS },
     elvineGarden: { waves: ELVINE_WAVES, events: ELVINE_EVENTS },
+    middleland: { waves: MIDDLELAND_WAVES, events: MIDDLELAND_EVENTS },
 };
 
 export function getTimeline(map: MapId): MapTimeline {

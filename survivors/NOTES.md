@@ -79,6 +79,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Varios mapas y Select Map (Fase 22A)
 - Carga por mapa y tiempos de carga (Fase 22B)
 - Elvine Garden (Fase 22D)
+- Middleland (Fase 22E)
 - Rareza de las cartas (Fase 21½A)
 - Reroll y Skip (Fase 21½B)
 - Evento Champion (Fase 21½C)
@@ -929,6 +930,16 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - **Columnas del NPC.cfg:** el alcance de ataque es la **penúltima** columna (Troll 1, Cannibal-Plant 2, Cyclops 3); `ATime` es la columna tras los tres `1 10 0` (700, 800, 1200).
 - **`?debug=finalboss`** salta el tiempo y saca también los minijefes que quedaban por salir (en todos los mapas: Bleeding Isle sale con Ettin y Demon).
 - **Probar:** `check elvine`, `check elvineboss`, `check levelpaceelvine`, `check loadtimeelvine`.
+
+## Middleland (Fase 22E)
+- **Monstruos del original:** `middleland.txt` de centuu/HelbreathServer (`Files/GameServers/Middleland/MAPDATA/`) solo tiene `spot-mob-generator` (32 zonas fijas, ningún aleatorio): Ogre, Zombie, Scorpion, Snake (Amphis), Skeleton, Orc, Ant, Mountain Giant, Werewolf, Cyclops, Ettin, Stalker (hasta 40), Demon y Gargoyle (1). Troll, Hellhound y Hellclaw **no** salían allí.
+- **Elegidos por el propietario (21-oct-2026):** Orc, Zombie, Scorpion, Skeleton, Snake, Werewolf, Troll, Ogre, Cyclops, Stalker y Ettin; jefes Mountain Giant (min 4), Giant Lizard (min 8), Ettin Berserk (min 12) y **Unicorn** (final, min 15, con esbirros Stalker y Werewolf). ×1,6, 15 minutos.
+- **Copias con otro id:** `ettinRegular` (el `ettin` es el jefe de Bleeding Isle), `mountainGiantBoss`, `ettinBerserk`. El Ettin Berserk usa `EnemyDef.glows`: el brillo rojo de los élites sin su vida ni su daño extra. Sobre la piel naranja del Ettin se nota poco.
+- **Giant Lizard:** `giantlizard.spr`, sonidos M124–M127, sin animación especial. NPC.cfg: ATime 600, alcance 2, 10d10, HR 400. La wiki le da una embestida (no copiada).
+- **Unicorn:** `unicorn.spr`, quieto con 4 frames (`animations.idle`), sonidos M63–M66. NPC.cfg: ATime 700, alcance 4, 10d10, HR 500, magia 8. Lanza 5 rayos de Energy Strike (`fx.energyStrike.fly`, nuestros) cada 2,2 s.
+- **Carga solo de la zona de juego:** `HBMap.requiredTileIndices(area, margen)` baja el suelo de la zona de juego y los objetos con el mismo margen que dibuja `MapView` (`MAP_OBJECT_MARGIN_TILES`). Middleland (524×524) pasó de 25,0 a 16,4 MB; Elvine 14,0 y Bleeding Isle 13,1 no cambian.
+- **Medido (`check levelpacemiddleland`, 21-oct-2026):** Power 31 al final; jefes 35 / 39 / 53 / 87 s; cada golpe de jefe quita un 13–18% de la vida.
+- **Probar:** `check middleland`, `check middlelandboss`, `check levelpacemiddleland`, `check loadtimemiddleland`.
 
 ## Rareza de las cartas (Fase 21½A)
 - Números en `data/cardRarity.ts`; sorteo en `systems/UpgradePool.ts` (`buildLevelUpChoices(equipment, chr, { chest, onlyPassives, allEpic })`). Desde la partida se piden siempre con `GameScene.levelUpChoices(fromChest)`, que lee la Chr de la partida y los atajos.

@@ -112,6 +112,8 @@ export interface EnemyDef {
     alpha?: number;
     /** Share of the weapons' knockback it takes (bosses barely move). Default 1. */
     knockbackTaken?: number;
+    /** Always glows red like an elite, without an elite's extra health or damage (the Berserk Ettin, Fase 22E). */
+    glows?: boolean;
     /** Non-standard sheets / frames for moving, attacking and dying. */
     animations?: { idle?: EnemyAnimation; move?: EnemyAnimation; attack?: EnemyAnimation; dead?: EnemyAnimation };
     boss?: BossInfo;
@@ -363,6 +365,52 @@ export const ENEMIES = {
         scale: 1.6, knockbackTaken: 0, damageScale: 1.2,
         boss: { title: 'Cyclops', dropsChest: true, final: true },
     },
+    // Middleland (Fase 22E, monstruos y jefes elegidos por el propietario el 21-oct-2026). El Ettin normal es otro id
+    // porque `ettin` es el jefe de Bleeding Isle. NPC.cfg Ettin: ATime 700, alcance 3, 8d9, HR 350. Tier 8.
+    ettinRegular: {
+        name: 'Ettin', sprite: 'enemy.ettin', temporalCoefficient: 1, hasShadow: true, maxHp: 1600, xp: 320, radius: 20, bodyOffsetY: 46,
+        actionTimeMs: 700, attackRange: 3, bravery: 100, damageDice: [8, 9], hitRatio: 350, hitSound: 'sfx.ettin.hit', deathSound: 'sfx.ettin.death', attackSound: 'sfx.ettin.attack',
+        attackSpeed: 0.6,
+    },
+    // Jefes de Middleland: Mountain Giant (min 4), Giant Lizard (min 8), Ettin Berserk (min 12) y Unicorn (final, min 15).
+    // NPC.cfg Mountain-Giant: ATime 700, alcance 2, 8d7, HR 230.
+    mountainGiantBoss: {
+        name: 'Mountain Giant', sprite: 'enemy.mountainGiant', temporalCoefficient: 1, hasShadow: true, maxHp: 3500, xp: 400, radius: 24, bodyOffsetY: 66,
+        actionTimeMs: 700, attackRange: 2, bravery: 100, damageDice: [8, 7], hitRatio: 230, hitSound: 'sfx.mountainGiant.hit', deathSound: 'sfx.mountainGiant.death', attackSound: 'sfx.mountainGiant.attack',
+        scale: 1.4, knockbackTaken: 0, damageScale: 1,
+        boss: { title: 'Mountain Giant', dropsChest: true, final: false },
+    },
+    // sp-client: giantlizard.spr, sonidos M124–M127, sin animación especial. NPC.cfg Giant-Lizard: ATime 600, alcance 2,
+    // 10d10, HR 400 (la wiki le da además una embestida, que aquí no se copia).
+    giantLizard: {
+        name: 'Giant Lizard', sprite: 'enemy.giantLizard', temporalCoefficient: 1, hasShadow: true, maxHp: 7000, xp: 800, radius: 24, bodyOffsetY: 40,
+        actionTimeMs: 600, attackRange: 2, bravery: 100, damageDice: [10, 10], hitRatio: 400, hitSound: 'sfx.giantLizard.hit', deathSound: 'sfx.giantLizard.death', attackSound: 'sfx.giantLizard.attack',
+        scale: 1.4, knockbackTaken: 0, damageScale: 0.6,
+        boss: { title: 'Giant Lizard', dropsChest: true, final: false },
+    },
+    // El Ettin de siempre en "Berserk": rojo como los élites, ataca a ritmo normal (el de Bleeding Isle va un 40% más
+    // lento) y pega más.
+    ettinBerserk: {
+        name: 'Berserk Ettin', sprite: 'enemy.ettin', temporalCoefficient: 1, hasShadow: true, maxHp: 11000, xp: 1200, radius: 24, bodyOffsetY: 56,
+        actionTimeMs: 700, attackRange: 3, bravery: 100, damageDice: [8, 9], hitRatio: 350, hitSound: 'sfx.ettin.hit', deathSound: 'sfx.ettin.death', attackSound: 'sfx.ettin.attack',
+        scale: 1.5, knockbackTaken: 0, damageScale: 0.9, glows: true,
+        boss: { title: 'Berserk Ettin', dropsChest: true, final: false },
+    },
+    // sp-client: unicorn.spr, quieto con 4 frames por hoja; sonidos M63–M66. NPC.cfg Unicorn: ATime 700, alcance 4,
+    // 10d10, HR 500, magia nivel 8 (la wiki: Energy Strike y parálisis). Aquí lanza rayos de Energy Strike (nuestros).
+    unicorn: {
+        name: 'Unicorn', sprite: 'enemy.unicorn', temporalCoefficient: 1, hasShadow: true, maxHp: 20000, xp: 2000, radius: 26, bodyOffsetY: 56,
+        actionTimeMs: 700, attackRange: 4, bravery: 100, damageDice: [10, 10], hitRatio: 500, hitSound: 'sfx.unicorn.hit', deathSound: 'sfx.unicorn.death', attackSound: 'sfx.unicorn.attack',
+        scale: 1.6, knockbackTaken: 0, damageScale: 0.5,
+        animations: { idle: { sheet: 0, firstFrame: 0, frameCount: 4 } },
+        boss: {
+            title: 'Unicorn', dropsChest: true, final: true,
+            ranged: {
+                flyEffect: 'fx.energyStrike.fly', explodeEffect: 'fx.energyBolt.explode', sound: 'sfx.energyBolt.impact',
+                magicHitRatio: 85, damage: 10, cooldownMs: 2200, range: 520, speed: 260, shots: 5, spreadDegrees: 50, radius: 10,
+            },
+        },
+    },
     fireWyvern: {
         // sp-client: andar = hojas 8+ estándar; ataque = hoja 0 desde el frame 3, 4 frames (otros valores rompen Phaser);
         // morir = hojas 16+ (no 32); opacidad 0,7. No tiene sonido de golpe: usamos el de la Liche.
@@ -416,4 +464,6 @@ export const BOSS_MINIONS: Partial<Record<EnemyId, BossMinions>> = {
     dummy: { enemies: ['slime', 'bunny', 'cat', 'ant'], everyMs: 6000, count: 8, maxAlive: 40, radius: 110 },
     // Elvine Garden: el Cyclops llama a los más duros del jardín.
     cyclopsBoss: { enemies: ['troll', 'giantTree', 'orcMage'], everyMs: 8000, count: 6, maxAlive: 24, radius: 120 },
+    // Middleland: el Unicorn llama a Stalkers y Werewolf.
+    unicorn: { enemies: ['stalker', 'werewolf'], everyMs: 8000, count: 6, maxAlive: 24, radius: 130 },
 };

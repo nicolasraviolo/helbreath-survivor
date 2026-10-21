@@ -45,6 +45,9 @@ export const ACHIEVEMENTS = {
     winBisle: { name: 'Island Conqueror', description: 'Escape Bleeding Isle through the portal.', goal: { kind: 'win', map: 'bisle' } },
     // Fase 22D.
     winElvine: { name: 'Garden Keeper', description: 'Escape Elvine Garden through the portal.', goal: { kind: 'win', map: 'elvineGarden' } },
+    // Fase 22E.
+    winMiddleland: { name: 'Warlord of Middleland', description: 'Escape Middleland through the portal.', goal: { kind: 'win', map: 'middleland' } },
+    killUnicorn: { name: 'Unicorn Hunter', description: 'Kill the Unicorn.', goal: { kind: 'killBoss', enemy: 'unicorn' } },
     winWarrior: { name: 'Path of the Blade', description: 'Win a run as the Warrior.', goal: { kind: 'win', character: 'warrior' } },
     winMage: { name: 'Path of Magic', description: 'Win a run as the Mage.', goal: { kind: 'win', character: 'mage' } },
     noPotions: { name: 'Iron Will', description: 'Win a run without drinking a potion.', goal: { kind: 'win', noPotions: true } },

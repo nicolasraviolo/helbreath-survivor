@@ -10,7 +10,7 @@
 import Phaser from 'phaser';
 import { ASSET_BASE_PATH, MAPS, MINIMAPS, RUN_SPRITES, SPRITES, type SpriteKey } from '../config/assetManifest';
 import { registerEffectAnimations } from '../config/effects';
-import { DEFAULT_ANIMATION_FRAME_RATE } from '../config/gameConfig';
+import { DEFAULT_ANIMATION_FRAME_RATE, MAP_OBJECT_MARGIN_TILES } from '../config/gameConfig';
 import { DEFAULT_LOOKS } from '../data/appearance';
 import { CHARACTERS, CHOSEN_CHARACTER_KEY, DEFAULT_CHARACTER, isCharacterId, type CharacterId } from '../data/characters';
 import { ENEMIES } from '../data/enemies';
@@ -67,7 +67,7 @@ export class MapLoadScene extends Phaser.Scene {
         // What the character wears downloads alongside the rest; it is waited for at the end.
         const wearing = lookLoader.ensure(this, this.wornSprites());
         const map = getMap(this, def.asset);
-        const packs = getTilePacksForIndices(map.requiredTileIndices()).filter((pack) => !this.textures.exists(getTileTextureKey(pack.start)));
+        const packs = getTilePacksForIndices(map.requiredTileIndices(def.playArea, MAP_OBJECT_MARGIN_TILES)).filter((pack) => !this.textures.exists(getTileTextureKey(pack.start)));
         if (packs.length > 0) {
             this.trackProgress(FIRST_DOWNLOAD_SHARE, DOWNLOAD_SHARE - FIRST_DOWNLOAD_SHARE);
             await new Promise<void>((resolve) => {

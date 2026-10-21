@@ -601,7 +601,7 @@ export class Enemy implements Poolable {
         const frame = sprite.frame;
         const key = frame.texture.key;
         const glowing = key.endsWith(ELITE_GLOW_SUFFIX);
-        const wanted = (this.elite || this.champion) && !this.isFrozen;
+        const wanted = (this.elite || this.champion || this.def.glows === true) && !this.isFrozen;
         if (wanted === glowing) return;
         if (!wanted) {
             sprite.setTexture(key.slice(0, -ELITE_GLOW_SUFFIX.length), frame.name);

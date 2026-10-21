@@ -20,6 +20,7 @@ export const RELEASE_NOTES: readonly ReleaseNote[] = [
             'New Select Map screen: choose where to fight.',
             'New map: Traveler Zone, a short first adventure full of weak monsters (cats included).',
             'New map: Elvine Garden, with walking trees and a giant Cyclops.',
+            'New map: Middleland, a long battle against a Giant Lizard, a Berserk Ettin and the Unicorn.',
             'Win a map, or reach its Level, to open the next one.',
             'Two new bosses, a giant Stone Golem and the Training Dummy, and two new achievements.',
             'Faster start: each map now loads only what it needs.',

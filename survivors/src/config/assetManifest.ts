@@ -40,6 +40,9 @@ export const SPRITES = {
     'enemy.mountainGiant': { file: 'sprites/mtgiant.spr', type: SpriteType.Monster },
     'enemy.cannibalPlant': { file: 'sprites/canplant.spr', type: SpriteType.Monster },
     'enemy.giantTree': { file: 'sprites/giantplant.spr', type: SpriteType.Monster },
+    // Middleland (Fase 22E): minijefe y jefe final.
+    'enemy.giantLizard': { file: 'sprites/giantlizard.spr', type: SpriteType.Monster },
+    'enemy.unicorn': { file: 'sprites/unicorn.spr', type: SpriteType.Monster },
     'enemy.tigerworm': { file: 'sprites/tigerworm.spr', type: SpriteType.Monster },
     'enemy.minotaur': { file: 'sprites/minotaurs.spr', type: SpriteType.Monster },
     'enemy.ettin': { file: 'sprites/ettin.spr', type: SpriteType.Monster },
@@ -228,6 +231,10 @@ export const SOUNDS = {
     'sfx.cannibalPlant.death': { file: 'sounds/M98.mp3' },
     'sfx.giantTree.hit': { file: 'sounds/M120.mp3' },
     'sfx.giantTree.death': { file: 'sounds/M121.mp3' },
+    'sfx.giantLizard.hit': { file: 'sounds/M124.mp3' },
+    'sfx.giantLizard.death': { file: 'sounds/M125.mp3' },
+    'sfx.unicorn.hit': { file: 'sounds/M65.mp3' },
+    'sfx.unicorn.death': { file: 'sounds/M66.mp3' },
     // Ataques de los monstruos (Monsters.ts → states.attack.sound). Stalker y Hellclaw reutilizan los del Orc y el Cyclops.
     'sfx.slime.attack': { file: 'sounds/M2.mp3' },
     'sfx.bunny.attack': { file: 'sounds/M75.mp3' },
@@ -254,6 +261,8 @@ export const SOUNDS = {
     'sfx.cannibalPlant.attack': { file: 'sounds/M96.mp3' },
     // Giant Tree y Minotaur comparten M123 en sp-client; se registra dos veces con su clave.
     'sfx.giantTree.attack': { file: 'sounds/M123.mp3' },
+    'sfx.giantLizard.attack': { file: 'sounds/M127.mp3' },
+    'sfx.unicorn.attack': { file: 'sounds/M64.mp3' },
     'sfx.tigerworm.attack': { file: 'sounds/C1.mp3' },
     'sfx.minotaur.attack': { file: 'sounds/M123.mp3' },
     'sfx.ettin.attack': { file: 'sounds/M92.mp3' },
