@@ -78,6 +78,9 @@ export interface RunSnapshot {
     loot: RunLootState | undefined;
     /** Abaddon's Blood was already used in this run (Fase 21E). Saves from before: not used. */
     abaddonUsed: boolean;
+    /** Rerolls and Skips left in this run (Fase 21½B). Saves from before have none: as many as bought. */
+    rerollsLeft: number | undefined;
+    skipsLeft: number | undefined;
 }
 
 type Slots = Array<RunSnapshot | undefined>;
@@ -213,6 +216,8 @@ function readSnapshot(entry: unknown): RunSnapshot | undefined {
         metrics: readMetrics(entry.metrics),
         loot: readLoot(entry.loot),
         abaddonUsed: entry.abaddonUsed === true,
+        rerollsLeft: readNumber(entry.rerollsLeft),
+        skipsLeft: readNumber(entry.skipsLeft),
     };
 }
 

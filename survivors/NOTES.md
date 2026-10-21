@@ -77,6 +77,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Baúl, "solo lo que tienes" y Zem (Fase 21D)
 - Abaddon's Blood: resurrección permanente (Fase 21E)
 - Rareza de las cartas (Fase 21½A)
+- Reroll y Skip (Fase 21½B)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -901,3 +902,13 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - El sonido de la Epic (`sfx.cardEpic`, E23, el mismo "chin" que los tótems) suena desde `GameScene.openLevelUp`, con el `AudioSystem`, no desde la escena de cartas.
 - Métricas: las Rare y Epic elegidas se cuentan en la misma tabla de cartas como `rarity:rare` y `rarity:epic` (salen en "Most picked cards" sin tocar el servidor).
 - Probar: `pnpm check epic` (todas Epic) y `?debug=epic`. Reparto medido con 3.000 cartas: 81/15/4 normal, 0/81/19 en cofres, 71/23/6 con Chr 60.
+
+## Reroll y Skip (Fase 21½B)
+- Números y textos en `data/rerollSkip.ts`. Lo comprado (dado y vino, 0–3 cada uno) vive en `UnlockStore` (`count` / `buy`), clave `hb-survivors.unlocks` **versión 2** (añade `counts`; una versión 1 se lee como 0 de cada). La tienda de la Fase 24 solo tiene que llamar a `unlockStore.buy('dice' | 'wine')`.
+- En partida, `GameScene.cardActionsLeft` empieza con lo comprado; se guarda en `RunSnapshot.rerollsLeft` / `skipsLeft`. Al continuar se usa lo guardado, sin pasar de lo comprado ahora.
+- La escena de cartas recibe `actionsLeft` (el mismo objeto, que lee de nuevo tras cada uso), `onReroll` (devuelve las 3 cartas nuevas) y `onSkip`. `onChoose(undefined)` = sin carta. Los botones solo salen si se ha comprado alguno; con 0 usos se ven apagados.
+- Navegación: flecha abajo pasa de las cartas a los botones (`selectedButton >= 0`) y arriba vuelve. En el móvil, con botones, las cartas se encogen a 0,88 (`CARD_SCALE_WITH_ACTIONS`) para que quepan.
+- El dado se dibuja con `ui/DiceIcon.ts`, siempre con la cara del 3 (`DICE_FACE`, propietario). El vino es el Wine del original (hoja 5 de item-pack, frame 117).
+- Métricas: `action:reroll` y `action:skip` en la misma tabla de cartas (sin tocar el servidor).
+- Teclas falsas en `check --eval`: hay que dejar la tecla pulsada ~80 ms antes de soltarla; si no, `justPressed` no la ve.
+- Probar: `?unlocks=dice3,wine3&debug=levelup` (`check rerollskip`); `dice2` = 2, `dice` = 1, `?unlocks=reset` = ninguno.

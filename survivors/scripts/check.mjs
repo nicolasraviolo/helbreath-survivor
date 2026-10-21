@@ -36,6 +36,8 @@ const PRESETS = {
     levelup: 'debug=levelup',
     // Fase 21½A: todas las cartas Epic (marco morado, cinta, brillo y sonido).
     epic: 'debug=epic,levelup',
+    // Fase 21½B: 3 Reroll y 3 Skip comprados, con las cartas abiertas.
+    rerollskip: 'unlocks=dice3,wine3&debug=levelup',
     boss: 'debug=god,boss',
     // Minimapa (Fase 16A): con un jefe vivo, para ver su punto rojo junto al del jugador.
     minimap: 'debug=god,boss',

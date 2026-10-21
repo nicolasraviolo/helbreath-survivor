@@ -2,6 +2,14 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
+**Fase 21½, bloque 21½B: Reroll y Skip (2026-10-21).**
+- **Qué hace:** bajo las cartas de Power (y las de los cofres), botones **Reroll** (dado: 3 cartas nuevas, con su rareza otra vez) y **Skip** (vino: ninguna carta y cura el 20% de la vida), con su contador ("Reroll ×2"). Solo salen si se ha comprado alguno; gastados, se ven apagados. Ratón, dedo, teclado y mando (flecha/cruceta abajo para bajar a los botones, arriba para volver). Lo gastado se guarda con la partida. Métricas `action:reroll` / `action:skip`. How to Play: página nueva "Cards".
+- **Decisiones del propietario:** son mejoras **permanentes** que se compran (dado = +1 Reroll, vino = +1 Skip por partida, hasta 3 de cada, al vendedor del Zem en la Fase 24); Skip **cura un poco**; el dado se dibuja con código y siempre muestra el **3** (tres puntos en diagonal); el vino es el Wine del original.
+- **Decidido por mí (ajustable en `data/rerollSkip.ts`):** 20% de cura, sonidos (`sfx.pickup` al Reroll, `sfx.drink` al Skip), colores de los botones, cartas al 0,88 en el móvil cuando hay botones.
+- **Código:** `data/rerollSkip.ts`, `ui/DiceIcon.ts`; `UnlockStore` versión 2 (`count`/`buy`); `GameScene.cardActionsLeft` y `spendCardAction`; `RunSnapshot.rerollsLeft/skipsLeft`; `LevelUpScene` (fila de botones); `RunMetrics.onCardAction`. Atajo `?unlocks=dice3,wine3`; situación `check rerollskip`.
+- **Comprobado:** build; `check rerollskip levelup epic menu` y `rerollskip --mobile` sin errores; Reroll cambia las cartas y baja a ×2; Skip cura 40 → 60 y cierra; teclado (abajo, derecha, izquierda, Enter, arriba); la partida guardada lleva lo que queda; sin compras no hay botones y con solo dados solo sale Reroll. Probado y aprobado por el propietario.
+- **Probar:** `pnpm --dir survivors dev` → `?play&unlocks=dice3,wine3&debug=levelup` · `?play&unlocks=reset&debug=levelup` (sin botones).
+
 **Fase 21½, bloque 21½A: rareza de las cartas (2026-10-21).**
 - **Qué hace:** cada carta de Power sale **Common, Rare o Epic**. Stat +3 / +5 / +8 (la carta lo dice: "Chr 10 → 18 (+8)"); piedras y Magnet +1 / +2 / +3 rangos, sin pasar de 5 (si no caben, la carta baja de rareza). Rare: marco interior azul y cinta "Rare"; Epic: marco morado, cinta "Epic", brillo que late y el "chin" E23 al aparecer. Las cartas de los cofres nunca salen Common. La Chr de la partida sube Rare y Epic (+1% por punto sobre 10, hasta el doble). Métricas: `rarity:rare` / `rarity:epic` en la tabla de cartas.
 - **Decisiones del propietario:** 80 / 16 / 4; stat +3/+5/+8 y piedras +1/+2/+3; cofres Rare o mejor; la Chr sube las raras. Nueva mini Fase 21½ antes de la 22 (análisis `docs/ENGAGEMENT.md`).

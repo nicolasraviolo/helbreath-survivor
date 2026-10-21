@@ -99,6 +99,17 @@ export const HOW_TO_PLAY_PAGES: readonly HowToPlayPage[] = [
         ],
     },
     {
+        // Fase 21½: rareza de las cartas y Reroll / Skip. Como mucho 7 filas.
+        name: 'Cards',
+        rows: [
+            { control: 'Common, Rare, Epic', action: 'Rarer cards give a bigger boost' },
+            { control: 'Reroll (dice)', action: 'Three new cards' },
+            { control: 'Skip (wine)', action: 'Take no card and heal a little' },
+            { control: 'Down arrow / pad down', action: 'Go to Reroll and Skip; up goes back' },
+            { control: 'Each Dice or Wine you own', action: 'One Reroll or Skip in every run' },
+        ],
+    },
+    {
         // Fase 20A: Level permanente y Power de la partida. Como mucho 7 filas.
         name: 'Level',
         rows: [

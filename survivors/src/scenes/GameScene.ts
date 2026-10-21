@@ -50,6 +50,8 @@ import { CharacterStats } from '../entities/CharacterStats';
 import { BuffSystem } from '../systems/BuffSystem';
 import { PickupSystem } from '../systems/PickupSystem';
 import { EPIC_CARD_SOUND } from '../data/cardRarity';
+import { CARD_ACTION, SKIP_HEAL_SHARE, type CardAction } from '../data/rerollSkip';
+import { unlockStore } from '../systems/UnlockStore';
 import { CHEST_CARDS_TITLE, POTION_HEAL_SHARE, type PickupId } from '../data/pickups';
 import { getTotem, TOTEM_IDS, type TotemId } from '../data/totems';
 import { TotemSystem } from '../systems/TotemSystem';
@@ -198,6 +200,8 @@ export class GameScene extends Phaser.Scene {
     private totems!: TotemSystem;
     /** Free cards from chests not chosen yet (Fase 16B): they show after any level-up cards. */
     private chestCards = 0;
+    /** Rerolls and Skips left in this run (Fase 21½B): one per Dice / Wine bought (UnlockStore). */
+    private cardActionsLeft: Record<CardAction, number> = { reroll: 0, skip: 0 };
     private equipment!: Equipment;
     /** Melee weapon in hand (Warrior); undefined for spell casters. */
     private meleeWeapon: MeleeWeapon | undefined;
@@ -338,6 +342,7 @@ export class GameScene extends Phaser.Scene {
         }
         this.totems = new TotemSystem(this, map, areaPx, this.audio, (id) => this.collectTotem(id));
         this.chestCards = 0;
+        this.cardActionsLeft = { reroll: unlockStore.count(CARD_ACTION.reroll.unlock), skip: unlockStore.count(CARD_ACTION.skip.unlock) };
         this.enemyShots = new EnemyProjectileSystem(this, this.audio, (key, x, y) => this.weapons.spawnEffect(key, x, y),
             (x, y) => this.damageNumbers.showWord(x, y, RESIST_TEXT));
         this.bosses = new BossSystem(this.enemyShots, (minions, x, y) => this.spawner.spawnRing(minions.enemies, minions.count, x, y, minions.radius));
@@ -518,20 +523,44 @@ export class GameScene extends Phaser.Scene {
         const stats = this.stats;
         const choices = this.levelUpChoices(fromChest);
         if (choices.some((c) => c.rarity === 'epic')) this.audio.play(EPIC_CARD_SOUND);
+        // A card picked, or none (Skip).
+        const close = (choice: LevelUpChoice | undefined) => {
+            this.chooseCard(choice, fromChest);
+            this.levelUpOpen = false;
+            this.scene.stop('LevelUp');
+            this.scene.resume();
+        };
         const data: LevelUpSceneData = {
             stats,
             equipment: this.equipment,
             choices,
             title: fromChest ? CHEST_CARDS_TITLE : undefined,
-            onChoose: (choice) => {
-                this.chooseCard(choice, fromChest);
-                this.levelUpOpen = false;
-                this.scene.stop('LevelUp');
-                this.scene.resume();
+            actionsLeft: this.cardActionsLeft,
+            onChoose: close,
+            // Fase 21½B: three new cards (their rarity drawn again).
+            onReroll: () => {
+                this.spendCardAction('reroll');
+                const fresh = this.levelUpChoices(fromChest);
+                if (fresh.some((c) => c.rarity === 'epic')) this.audio.play(EPIC_CARD_SOUND);
+                this.saveRun();
+                return fresh;
+            },
+            // No card; heals a little instead.
+            onSkip: () => {
+                this.spendCardAction('skip');
+                this.player.heal(Math.round(this.player.maxHp * SKIP_HEAL_SHARE));
+                close(undefined);
             },
         };
         this.scene.pause();
         this.scene.launch('LevelUp', data);
+    }
+
+    /** Uses one Reroll or Skip (Fase 21½B): sound, counter and metrics. */
+    private spendCardAction(action: CardAction): void {
+        this.cardActionsLeft[action] = Math.max(0, this.cardActionsLeft[action] - 1);
+        this.audio.play(CARD_ACTION[action].sound);
+        this.metrics.onCardAction(action);
     }
 
     /** What the player wears now in that slot (Fase 21A, for the loot card), with its attribute (Fase 21B). */
@@ -708,6 +737,9 @@ export class GameScene extends Phaser.Scene {
         }
         this.achievements.potionsDrunk = run.potionsDrunk;
         this.abaddon.restore(run.abaddonUsed);
+        // Never more than bought now (a Continue doesn't refill what was used).
+        if (run.rerollsLeft !== undefined) this.cardActionsLeft.reroll = Math.min(run.rerollsLeft, this.cardActionsLeft.reroll);
+        if (run.skipsLeft !== undefined) this.cardActionsLeft.skip = Math.min(run.skipsLeft, this.cardActionsLeft.skip);
         this.buffs.restore(run.buffs);
         if (run.critCharges !== undefined) this.critStrike.restore(run.critCharges, stats.level);
         else this.critStrike.restore(maxCritCharges(stats.level), stats.level);
@@ -754,6 +786,8 @@ export class GameScene extends Phaser.Scene {
             metrics: this.metrics.snapshot(),
             loot: this.runLoot.snapshot(),
             abaddonUsed: this.abaddon.spent,
+            rerollsLeft: this.cardActionsLeft.reroll,
+            skipsLeft: this.cardActionsLeft.skip,
         };
     }
 

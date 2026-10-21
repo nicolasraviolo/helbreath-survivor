@@ -46,6 +46,7 @@
 //                      partida guardada o no
 //   ?characters=reset → borra los personajes guardados al cargar (demo = deja dos de ejemplo; Fase 17A)
 //   ?unlocks=abaddon  → desbloquea Abaddon's Blood en este dispositivo (Fase 21E; reset = quita los desbloqueos)
+//                      dice3,wine2 → 3 dados (Reroll) y 2 vinos (Skip) comprados (Fase 21½B; "dice" solo = 1, "dice0" = 0)
 //   ?achievements=reset → borra los logros conseguidos al cargar (all = los da todos, para ver la pantalla llena; Fase 14B)
 //   ?metrics=send    → enviar las métricas de esta partida al servidor de verdad (en desarrollo no se envían; Fase 14A)
 //   Se combina con ?ui=compact (interfaz de móvil).
@@ -53,6 +54,7 @@
 import { isActiveSpellId, type ActiveSpellId } from '../data/activeSpells';
 import { isItemAttribute, type ItemAttribute } from '../data/attributes';
 import { isUnlockId, type UnlockId } from '../data/abaddon';
+import { isStackableUnlockId, type StackableUnlockId } from '../data/rerollSkip';
 import { isCharacterId, type CharacterId } from '../data/characters';
 import { isAutoSpellId, type AutoSpellId } from '../data/spells';
 import { TREE_MODES, type TreeMode } from './settings';
@@ -104,6 +106,8 @@ interface DebugStart {
     settingsTab: string | undefined;
     /** ?unlocks=: permanent upgrades to unlock when the page loads, or 'reset' to clear them (Fase 21E). */
     unlocks: UnlockId[] | 'reset' | undefined;
+    /** ?unlocks=dice3,wine2: how many of each upgrade bought several times (Fase 21½B). */
+    unlockCounts: Partial<Record<StackableUnlockId, number>>;
     /** ?attr=: the starting weapon and every drop (always a weapon) get that attribute (Fase 21B). */
     attribute: ItemAttribute | undefined;
 }
@@ -112,7 +116,7 @@ function readDebugStart(): DebugStart {
     const none: DebugStart = {
         play: false, character: undefined, actions: [], trees: undefined, open: undefined, achievements: undefined, characters: undefined,
         sendMetrics: false, spells: { auto: undefined, active: undefined }, openClass: undefined, slash: undefined,
-        holdLoading: false, gear: [], settingsTab: undefined, attribute: undefined, unlocks: undefined,
+        holdLoading: false, gear: [], settingsTab: undefined, attribute: undefined, unlocks: undefined, unlockCounts: {},
     };
     if (!import.meta.env.DEV) return none;
     const params = new URLSearchParams(window.location.search);
@@ -144,7 +148,18 @@ function readDebugStart(): DebugStart {
         settingsTab: params.get('tab')?.toLowerCase() ?? undefined,
         attribute: isItemAttribute(attribute) ? attribute : undefined,
         unlocks: unlocks === 'reset' ? 'reset' : unlocks ? unlocks.split(',').map((u) => u.trim()).filter(isUnlockId) : undefined,
+        unlockCounts: readUnlockCounts(unlocks),
     };
+}
+
+/** "dice3,wine" → { dice: 3, wine: 1 } (Fase 21½B). */
+function readUnlockCounts(unlocks: string | null): Partial<Record<StackableUnlockId, number>> {
+    const counts: Partial<Record<StackableUnlockId, number>> = {};
+    for (const token of (unlocks ?? '').split(',')) {
+        const match = /^([a-z]+)(\d*)$/.exec(token.trim());
+        if (match?.[1] && isStackableUnlockId(match[1])) counts[match[1]] = match[2] ? Number(match[2]) : 1;
+    }
+    return counts;
 }
 
 export const DEBUG_START = readDebugStart();
