@@ -2,6 +2,14 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
+**Fase 22, bloque 22D: Elvine Garden (2026-10-21).**
+- **Qué hace:** Elvine Garden ya se puede jugar (antes "Coming soon"). Se abre al ganar Bleeding Isle o con Level 25. 12 minutos, monstruos normales con vida y daño ×1,3. Monstruos: Orc, Orc-Mage, Zombie, Scorpion, Giant Frog, Troll, Werewolf, Cannibal Plant y el nuevo **Giant Tree** (`giantplant.spr`, 918 KB). Jefes: **Hellhound** (min 4), **Stalker** (min 8) y **Cyclops** (jefe final, min 12, con esbirros Troll, Giant Tree y Orc-Mage), versiones de jefe aparte (en Bleeding Isle no cambian). Eventos: encerrona de Orc-Mages (2:30), estampida de orcos (3:30), encerrona de Trolls (6:30) y de árboles (9:30). Logro nuevo "Garden Keeper" (ganar el mapa).
+- **Decisiones del propietario:** Giant Tree como monstruo nuevo (Unicorn y Amphis no); Hellhound y Stalker de minijefes (no salen como normales); Cyclops jefe final; añadir Scorpion, Zombie y Giant Frog; encerrona de Orc-Mages; ×1,3 y 12 minutos.
+- **Decidido por mí (ajustable):** vida de los jefes (2600 / 5500 / 12000) y su `damageScale` (1,1 / 0,9 / 1,2); números del Giant Tree (NPC.cfg "Giant-Plant": ATime 700, alcance 2, 8d6, HR 200; vida 760 y XP 152, nuestros); pesos de las oleadas; las otras encerronas; logro "Garden Keeper".
+- **Código:** `enemy.giantTree` y `sfx.giantTree.*` (M120/M121/M123) en `config/assetManifest.ts`; `giantTree`, `hellhoundBoss`, `stalkerBoss`, `cyclopsBoss` y esbirros en `data/enemies.ts`; `ELVINE_WAVES`/`ELVINE_EVENTS` en `data/waves.ts`; `elvineGarden` en `data/maps.ts`; `winElvine` en `data/achievements.ts`; situaciones `check elvine`, `elvineboss`, `levelpaceelvine`, `loadtimeelvine`.
+- **Comprobado:** build; `check elvine elvineboss mapsall` sin errores; capturas del Giant Tree con zoom y del Cyclops. Partida simulada: Guerrero y Maga Power ~30 al final; Hellhound ~26 s, Stalker ~25–33 s, Cyclops ~50–80 s (Bleeding Isle: 21 / 25 / 61 s); cada golpe de jefe quita un 15–17% de la vida. Carga del mapa: 14,0 MB (PC 3,0 s; móvil 14,5 s).
+- **Probar:** `pnpm --dir survivors dev` → http://localhost:8090/?maps=all → Play → personaje → Select Map → Elvine Garden. J adelanta un minuto; `?map=elvineGarden&debug=god,finalboss` va al Cyclops.
+
 **Fase 22, bloque 22C: Traveler Zone completa (2026-10-21).**
 - **Qué hace:** nuevo monstruo **Cat** (`cat.spr`, 184 KB, solo en Traveler Zone): sale desde el minuto 0 en todas las oleadas, entre los bichos que rodean al Dummy y en una encerrona nueva en el 3:30 ("Cats everywhere!", 28 gatos). Traveler Zone más difícil: bichos normales con vida ×0,7 y daño ×0,6 (antes ×0,5 / ×0,4), ~15–20% más a la vez y algo más seguidos desde el minuto 3. Los jefes no cambian.
 - **Decisiones del propietario:** Traveler Zone demasiado fácil; jefes bien así; Cat como bicho normal y también en una encerrona.

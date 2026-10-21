@@ -97,10 +97,40 @@ const TRAVELER_EVENTS: readonly WaveEventDef[] = [
     { atMinute: 7, kind: 'finalBoss', enemy: 'dummy', message: 'The Training Dummy wakes up!' },
 ];
 
+// Elvine Garden (Fase 22D, monstruos y jefes elegidos por el propietario el 21-oct-2026): los del jardín original (Orc,
+// Orc-Mage, Troll, Giant Tree, Cannibal Plant) más Zombie, Scorpion, Giant Frog y Werewolf. Sin los esenciales más
+// flojos (Slime, Ant, Snake…). Vida y daño ×1,3 (MAPS_DATA.elvineGarden.difficulty). Dura 12 minutos, como Bleeding
+// Isle: Hellhound en el 4, Stalker en el 8 y Cyclops (jefe final) en el 12. Encerrona de Orc-Mages.
+const ELVINE_WAVES: readonly WaveDef[] = [
+    { fromMinute: 0, enemies: [{ enemy: 'orc', weight: 6 }, { enemy: 'zombie', weight: 3 }], startInterval: 1.3, endInterval: 0.9, batchSize: 2, maxAlive: 100 },
+    { fromMinute: 1, enemies: [{ enemy: 'orc', weight: 5 }, { enemy: 'zombie', weight: 4 }, { enemy: 'orcMage', weight: 2 }], startInterval: 1.1, endInterval: 0.8, batchSize: 2, maxAlive: 120 },
+    { fromMinute: 2, enemies: [{ enemy: 'orc', weight: 4 }, { enemy: 'zombie', weight: 3 }, { enemy: 'orcMage', weight: 3 }, { enemy: 'scorpion', weight: 3 }], startInterval: 1, endInterval: 0.7, batchSize: 2, maxAlive: 140 },
+    { fromMinute: 3, enemies: [{ enemy: 'orc', weight: 3 }, { enemy: 'zombie', weight: 2 }, { enemy: 'orcMage', weight: 2 }, { enemy: 'scorpion', weight: 4 }, { enemy: 'frog', weight: 2 }], startInterval: 0.9, endInterval: 0.65, batchSize: 2, maxAlive: 160 },
+    { fromMinute: 4, enemies: [{ enemy: 'orc', weight: 2 }, { enemy: 'orcMage', weight: 2 }, { enemy: 'scorpion', weight: 3 }, { enemy: 'frog', weight: 3 }, { enemy: 'troll', weight: 2 }], startInterval: 0.8, endInterval: 0.6, batchSize: 2, maxAlive: 170 },
+    { fromMinute: 5, enemies: [{ enemy: 'orc', weight: 1 }, { enemy: 'orcMage', weight: 2 }, { enemy: 'scorpion', weight: 2 }, { enemy: 'frog', weight: 3 }, { enemy: 'troll', weight: 4 }], startInterval: 0.75, endInterval: 0.55, batchSize: 2, maxAlive: 180 },
+    { fromMinute: 6, enemies: [{ enemy: 'orcMage', weight: 2 }, { enemy: 'zombie', weight: 1 }, { enemy: 'frog', weight: 2 }, { enemy: 'troll', weight: 4 }, { enemy: 'werewolf', weight: 3 }], startInterval: 0.7, endInterval: 0.5, batchSize: 2, maxAlive: 200 },
+    { fromMinute: 7, enemies: [{ enemy: 'orc', weight: 1 }, { enemy: 'orcMage', weight: 1 }, { enemy: 'frog', weight: 1 }, { enemy: 'troll', weight: 3 }, { enemy: 'werewolf', weight: 3 }, { enemy: 'giantTree', weight: 2 }], startInterval: 0.65, endInterval: 0.5, batchSize: 2, maxAlive: 210 },
+    { fromMinute: 8, enemies: [{ enemy: 'orcMage', weight: 1 }, { enemy: 'scorpion', weight: 1 }, { enemy: 'troll', weight: 2 }, { enemy: 'werewolf', weight: 3 }, { enemy: 'giantTree', weight: 3 }], startInterval: 0.6, endInterval: 0.45, batchSize: 2, maxAlive: 220 },
+    { fromMinute: 9, enemies: [{ enemy: 'orc', weight: 1 }, { enemy: 'troll', weight: 2 }, { enemy: 'werewolf', weight: 2 }, { enemy: 'giantTree', weight: 3 }, { enemy: 'cannibalPlant', weight: 2 }], startInterval: 0.55, endInterval: 0.45, batchSize: 2, maxAlive: 240 },
+    { fromMinute: 10, enemies: [{ enemy: 'orcMage', weight: 1 }, { enemy: 'troll', weight: 1 }, { enemy: 'werewolf', weight: 2 }, { enemy: 'giantTree', weight: 3 }, { enemy: 'cannibalPlant', weight: 3 }], startInterval: 0.5, endInterval: 0.4, batchSize: 2, maxAlive: 250 },
+    { fromMinute: 11, enemies: [{ enemy: 'orc', weight: 1 }, { enemy: 'troll', weight: 1 }, { enemy: 'werewolf', weight: 2 }, { enemy: 'giantTree', weight: 3 }, { enemy: 'cannibalPlant', weight: 3 }], startInterval: 0.5, endInterval: 0.4, batchSize: 2, maxAlive: 260 },
+];
+
+const ELVINE_EVENTS: readonly WaveEventDef[] = [
+    { atMinute: 2.5, kind: 'surround', enemy: 'orcMage', count: 18, message: 'The mages surround you!' },
+    { atMinute: 3.5, kind: 'stampede', enemy: 'orc', count: 18, message: 'Orc stampede!' },
+    { atMinute: 4, kind: 'boss', enemy: 'hellhoundBoss', message: 'A Hellhound is on the hunt!' },
+    { atMinute: 6.5, kind: 'surround', enemy: 'troll', count: 20, message: 'Trolls close in!' },
+    { atMinute: 8, kind: 'boss', enemy: 'stalkerBoss', message: 'The Stalker is watching you...' },
+    { atMinute: 9.5, kind: 'surround', enemy: 'giantTree', count: 22, message: 'The trees are moving!' },
+    { atMinute: 12, kind: 'finalBoss', enemy: 'cyclopsBoss', message: 'The Cyclops awakens!' },
+];
+
 /** Every playable map's timeline. A map without one is "Coming soon" (MapDef.comingSoon). */
 export const TIMELINES: Partial<Record<MapId, MapTimeline>> = {
     traveler: { waves: TRAVELER_WAVES, events: TRAVELER_EVENTS },
     bisle: { waves: BISLE_WAVES, events: BISLE_EVENTS },
+    elvineGarden: { waves: ELVINE_WAVES, events: ELVINE_EVENTS },
 };
 
 export function getTimeline(map: MapId): MapTimeline {

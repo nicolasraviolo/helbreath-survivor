@@ -39,6 +39,7 @@ export const SPRITES = {
     'enemy.stoneGolem': { file: 'sprites/gol.spr', type: SpriteType.Monster },
     'enemy.mountainGiant': { file: 'sprites/mtgiant.spr', type: SpriteType.Monster },
     'enemy.cannibalPlant': { file: 'sprites/canplant.spr', type: SpriteType.Monster },
+    'enemy.giantTree': { file: 'sprites/giantplant.spr', type: SpriteType.Monster },
     'enemy.tigerworm': { file: 'sprites/tigerworm.spr', type: SpriteType.Monster },
     'enemy.minotaur': { file: 'sprites/minotaurs.spr', type: SpriteType.Monster },
     'enemy.ettin': { file: 'sprites/ettin.spr', type: SpriteType.Monster },
@@ -225,6 +226,8 @@ export const SOUNDS = {
     'sfx.mountainGiant.death': { file: 'sounds/M90.mp3' },
     'sfx.cannibalPlant.hit': { file: 'sounds/M97.mp3' },
     'sfx.cannibalPlant.death': { file: 'sounds/M98.mp3' },
+    'sfx.giantTree.hit': { file: 'sounds/M120.mp3' },
+    'sfx.giantTree.death': { file: 'sounds/M121.mp3' },
     // Ataques de los monstruos (Monsters.ts → states.attack.sound). Stalker y Hellclaw reutilizan los del Orc y el Cyclops.
     'sfx.slime.attack': { file: 'sounds/M2.mp3' },
     'sfx.bunny.attack': { file: 'sounds/M75.mp3' },
@@ -249,6 +252,8 @@ export const SOUNDS = {
     'sfx.stoneGolem.attack': { file: 'sounds/M34.mp3' },
     'sfx.mountainGiant.attack': { file: 'sounds/M88.mp3' },
     'sfx.cannibalPlant.attack': { file: 'sounds/M96.mp3' },
+    // Giant Tree y Minotaur comparten M123 en sp-client; se registra dos veces con su clave.
+    'sfx.giantTree.attack': { file: 'sounds/M123.mp3' },
     'sfx.tigerworm.attack': { file: 'sounds/C1.mp3' },
     'sfx.minotaur.attack': { file: 'sounds/M123.mp3' },
     'sfx.ettin.attack': { file: 'sounds/M92.mp3' },

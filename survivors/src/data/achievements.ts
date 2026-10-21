@@ -43,6 +43,8 @@ export const ACHIEVEMENTS = {
     winTraveler: { name: 'First Steps', description: 'Escape the Traveler Zone through the portal.', goal: { kind: 'win', map: 'traveler' } },
     noob: { name: 'n0000b', description: 'Die in the Traveler Zone.', goal: { kind: 'die', map: 'traveler' } },
     winBisle: { name: 'Island Conqueror', description: 'Escape Bleeding Isle through the portal.', goal: { kind: 'win', map: 'bisle' } },
+    // Fase 22D.
+    winElvine: { name: 'Garden Keeper', description: 'Escape Elvine Garden through the portal.', goal: { kind: 'win', map: 'elvineGarden' } },
     winWarrior: { name: 'Path of the Blade', description: 'Win a run as the Warrior.', goal: { kind: 'win', character: 'warrior' } },
     winMage: { name: 'Path of Magic', description: 'Win a run as the Mage.', goal: { kind: 'win', character: 'mage' } },
     noPotions: { name: 'Iron Will', description: 'Win a run without drinking a potion.', goal: { kind: 'win', noPotions: true } },

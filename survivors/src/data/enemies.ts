@@ -268,6 +268,12 @@ export const ENEMIES = {
         name: 'Cannibal Plant', sprite: 'enemy.cannibalPlant', temporalCoefficient: 1, hasShadow: true, maxHp: 900, xp: 180, radius: 16, bodyOffsetY: 36,
         actionTimeMs: 800, attackRange: 2, bravery: 100, damageDice: [8, 8], hitRatio: 230, hitSound: 'sfx.cannibalPlant.hit', deathSound: 'sfx.cannibalPlant.death', attackSound: 'sfx.cannibalPlant.attack',
     },
+    // Elvine Garden (Fase 22D). sp-client: Giant Tree = giantplant.spr, sonidos M120–M123, sin animación especial.
+    // NPC.cfg (centuu/HelbreathServer) lo llama Giant-Plant: ATime 700, alcance 2, MinBrvy 100, 8d6, HR 200. Tier 6.
+    giantTree: {
+        name: 'Giant Tree', sprite: 'enemy.giantTree', temporalCoefficient: 1, hasShadow: true, maxHp: 760, xp: 152, radius: 16, bodyOffsetY: 40,
+        actionTimeMs: 700, attackRange: 2, bravery: 100, damageDice: [8, 6], hitRatio: 200, hitSound: 'sfx.giantTree.hit', deathSound: 'sfx.giantTree.death', attackSound: 'sfx.giantTree.attack',
+    },
     mountainGiant: {
         name: 'Mountain Giant', sprite: 'enemy.mountainGiant', temporalCoefficient: 1, hasShadow: true, maxHp: 1300, xp: 260, radius: 20, bodyOffsetY: 50,
         actionTimeMs: 700, attackRange: 2, bravery: 100, damageDice: [8, 7], hitRatio: 230, hitSound: 'sfx.mountainGiant.hit', deathSound: 'sfx.mountainGiant.death', attackSound: 'sfx.mountainGiant.attack',
@@ -335,6 +341,28 @@ export const ENEMIES = {
         scale: 1.6, knockbackTaken: 0, fixedDamage: 1,
         boss: { title: 'Dummy', dropsChest: true, final: true },
     },
+    // Jefes de Elvine Garden (Fase 22D, decididos por el propietario el 21-oct-2026): Hellhound y Stalker de minijefes y
+    // Cyclops de jefe final. Mismo sprite y comportamiento que el normal (que no sale en este mapa), más grandes y con
+    // vida de jefe. Medido con `check levelpaceelvine` (21-oct-2026): mueren en ~30 s / ~30 s / ~75 s (Bleeding Isle:
+    // 21 / 25 / 61 s). damageScale subido para que cada golpe quite un 13–17% de la vida (con 0,5–0,6 era un 5–8%).
+    hellhoundBoss: {
+        name: 'Hellhound', sprite: 'enemy.hellhound', temporalCoefficient: 0.5, hasShadow: true, maxHp: 2600, xp: 300, radius: 18, bodyOffsetY: 26,
+        actionTimeMs: 900, attackRange: 1, bravery: 100, damageDice: [7, 5], hitRatio: 200, hitSound: 'sfx.hellhound.hit', deathSound: 'sfx.hellhound.death', attackSound: 'sfx.hellhound.attack',
+        scale: 1.5, knockbackTaken: 0, damageScale: 1.1,
+        boss: { title: 'Hellhound', dropsChest: true, final: false },
+    },
+    stalkerBoss: {
+        name: 'Stalker', sprite: 'enemy.stalker', temporalCoefficient: 1, hasShadow: true, maxHp: 5500, xp: 600, radius: 18, bodyOffsetY: 44,
+        actionTimeMs: 600, attackRange: 4, bravery: 100, damageDice: [8, 9], hitRatio: 300, hitSound: 'sfx.orc.hit', deathSound: 'sfx.orc.death', attackSound: 'sfx.orc.attack',
+        scale: 1.4, knockbackTaken: 0, damageScale: 0.9,
+        boss: { title: 'Stalker', dropsChest: true, final: false },
+    },
+    cyclopsBoss: {
+        name: 'Cyclops', sprite: 'enemy.cyclops', temporalCoefficient: 0.5, hasShadow: true, maxHp: 12000, xp: 1400, radius: 28, bodyOffsetY: 70,
+        actionTimeMs: 1200, attackRange: 3, bravery: 100, damageDice: [8, 6], hitRatio: 180, hitSound: 'sfx.cyclops.hit', deathSound: 'sfx.cyclops.death', attackSound: 'sfx.cyclops.attack',
+        scale: 1.6, knockbackTaken: 0, damageScale: 1.2,
+        boss: { title: 'Cyclops', dropsChest: true, final: true },
+    },
     fireWyvern: {
         // sp-client: andar = hojas 8+ estándar; ataque = hoja 0 desde el frame 3, 4 frames (otros valores rompen Phaser);
         // morir = hojas 16+ (no 32); opacidad 0,7. No tiene sonido de golpe: usamos el de la Liche.
@@ -386,4 +414,6 @@ export const BOSS_MINIONS: Partial<Record<EnemyId, BossMinions>> = {
     fireWyvern: { enemies: ['stoneGolem', 'frog'], everyMs: 8000, count: 6, maxAlive: 24, radius: 110 },
     // Traveler Zone: el Dummy no se queda solo; lo rodean bichos flojos mientras le pegas.
     dummy: { enemies: ['slime', 'bunny', 'cat', 'ant'], everyMs: 6000, count: 8, maxAlive: 40, radius: 110 },
+    // Elvine Garden: el Cyclops llama a los más duros del jardín.
+    cyclopsBoss: { enemies: ['troll', 'giantTree', 'orcMage'], everyMs: 8000, count: 6, maxAlive: 24, radius: 120 },
 };

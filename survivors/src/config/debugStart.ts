@@ -46,7 +46,7 @@
 //   ?open=runchoice  → Select Character con la ventana Continue / New Run del personaje marcado (21-oct-2026), tenga
 //                      partida guardada o no
 //   ?characters=reset → borra los personajes guardados al cargar (demo = deja dos de ejemplo; Fase 17A)
-//   ?map=traveler    → con ?play/?debug, la partida en ese mapa (traveler, bisle; Fase 22A). Sin él, Bleeding Isle
+//   ?map=traveler    → con ?play/?debug, la partida en ese mapa (traveler, bisle, elvineGarden; Fase 22A). Sin él, Bleeding Isle
 //   ?maps=all        → todos los mapas abiertos en Select Map (reset = olvida los mapas ganados; Fase 22A)
 //   ?open=mapselect  → abre Select Map con el primer personaje guardado (o sin personaje)
 //   ?unlocks=abaddon  → desbloquea Abaddon's Blood en este dispositivo (Fase 21E; reset = quita los desbloqueos)

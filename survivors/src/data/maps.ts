@@ -64,11 +64,11 @@ export const MAPS_DATA = {
         localEnemies: ['cyclops', 'mountainGiant', 'ogre', 'cannibalPlant'], bosses: ['ettin', 'demon', 'fireWyvern'],
         recommendedLevel: 10, difficulty: { hp: 1, damage: 1 }, music: MUSIC.normal, description: 'An island soaked in blood.',
     },
-    // Bloque 22D. Ventana de 150×150 con un 86% libre.
+    // Bloque 22D (21-oct-2026). Ventana de 150×150 con un 86% libre. Más difícil que Bleeding Isle (×1,3, propietario).
     elvineGarden: {
         name: 'Elvine Garden', asset: 'map.elvineGarden', size: { width: 200, height: 200 }, minimap: 'minimap.elvineGarden', playArea: { x: 24, y: 26, width: 150, height: 150 },
-        localEnemies: [], bosses: [], recommendedLevel: 25, difficulty: { hp: 1, damage: 1 }, music: MUSIC.normal,
-        description: 'The gardens outside Elvine.', comingSoon: true,
+        localEnemies: ['troll', 'werewolf', 'giantTree', 'cannibalPlant'], bosses: ['hellhoundBoss', 'stalkerBoss', 'cyclopsBoss'],
+        recommendedLevel: 25, difficulty: { hp: 1.3, damage: 1.3 }, music: MUSIC.normal, description: 'The gardens outside Elvine.',
     },
     // Bloque 22E. Ventana de 150×150 con un 94% libre (el mapa entero es enorme, 524×524).
     middleland: {

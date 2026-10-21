@@ -78,6 +78,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Abaddon's Blood: resurrección permanente (Fase 21E)
 - Varios mapas y Select Map (Fase 22A)
 - Carga por mapa y tiempos de carga (Fase 22B)
+- Elvine Garden (Fase 22D)
 - Rareza de las cartas (Fase 21½A)
 - Reroll y Skip (Fase 21½B)
 - Evento Champion (Fase 21½C)
@@ -99,6 +100,11 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - **Tipos (`SpriteType`):** Human, Monster, EquipmentPack, HairAndUndies, Bows, Weapons, Shields, Effect, Tiles, Interface, ItemPack, ItemGround.
 - **Visor de sprites (`sprites.html`, `src/tools/spriteViewer.ts`):** lee los `.spr` sin Phaser con `readSprFile` (`src/hb/HBSprite.ts`). Los nombres salen de `/sprite-catalog.json`, que `vite.config.ts` genera solo en desarrollo ejecutando los `.ts` de datos de sp-client (`scripts/spriteCatalog.ts`): `Items.ts` (icono en `item-pack.spr` = hoja `itemSheetIndex`, frame `itemSpriteIndex`), `Monsters.ts`, `NPCs.ts` y `Effects.ts`. No entra en el build.
 - **Origen:** `.pak` originales convertidos con `tools/PakToSprConverter`. Toma como transparente el color exacto del píxel (0,0), así que pueden quedar **bordes verdes o azules** en algunos sprites. Es una deducción nuestra; si molesta, se tapa con tinte o se reconvierte.
+- **`.pak` de servidores privados (21-oct-2026):** probados 44 de los repos `Saritagala/HBGhost` e `irwinlopez1023/Helbreath-Xsilium` (carpeta `Apks convertidos a paks`). Todos sin cifrar y convertibles. Dos rarezas:
+  - Algunos (dragones, wyverns, BlackDemon, GhostAbby de HBGhost) traen **basura en el campo "número de hojas"** (byte 20). La tabla de hojas está bien: la cantidad real es `(inicio de la primera hoja − 24) / 8`. El conversor original fallaría con ellos.
+  - `Gate.pak` tiene hojas vacías (BMP de 0×0).
+  - Los wyverns traen 24 hojas (no 40) y BlackDemon 39: el archivo termina ahí, no falta nada. Su reparto por estados hay que averiguarlo antes de usarlos.
+  - Sin SDK de .NET en el equipo; la conversión se hizo con un script de Node equivalente (verificado: el `Orc.pak` de HBGhost da exactamente nuestro `orc.spr`, 0 píxeles distintos).
 
 ## Animaciones: frames por estado y dirección
 - **Direcciones** (`utils/CoordinateUtils.ts`): `0=N, 1=NE, 2=E, 3=SE, 4=S, 5=SW, 6=W, 7=NW`. Normalmente hay **una hoja por dirección**.
@@ -916,6 +922,13 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - **Tiempos (21-oct-2026, Guerrero en Bleeding Isle):** antes 29,7 MB en el Preload (7,2 s PC / 34,4 s móvil) + 6,1 MB del mapa (1,6 / 6,8 s). Después 15,7 MB (4,4 / 20,6 s) + 11,7 MB (2,6 / 12,3 s). Traveler Zone: el mapa pesa 16,5 MB (3,6 / 17,1 s; sus casillas son muchas). Lo lento es **descargar**: preparar es ~20% del total.
 - **Personajes (cierre del 22B):** antes del menú solo van las piezas de los dos aspectos por defecto (`UPFRONT_LOOK_SPRITES` en `config/assetManifest.ts`: Guerrero hombre y Maga mujer, piel clara, ropa de salida). Todo lo demás de `player.*` y `gear.*` está en `ON_DEMAND_SPRITES` (calculado), también la espada y el escudo del Guerrero (`msw`/`msh`, 2,2 MB; la daga está ahí): en los menús aparece un instante después la primera vez. `MapLoadScene` espera a lo que lleva puesto el personaje (`runSprites` de `LookLoader`), así que en partida no aparece nada tarde. Un `player.`/`gear.` nuevo es bajo demanda sin tocar nada; si debe estar antes del menú, va en `UPFRONT_LOOK_SPRITES`.
 - **Tiempos tras el recorte:** Preload 9,5 MB (PC 3,0 s / móvil 13,7 s); el mapa del Guerrero sube 1,4 MB (su espada): Bleeding Isle 13,1 MB (2,8 / 13,7 s). Total hasta jugar en móvil: 41 s al empezar el bloque → 27 s.
+
+## Elvine Garden (Fase 22D)
+- **Monstruos** (elegidos por el propietario el 21-oct-2026): Orc, Orc-Mage, Zombie, Scorpion, Giant Frog, Troll, Werewolf, Giant Tree y Cannibal Plant; sin Slime, Ant, Snake, Skeleton ni golems. Jefes: `hellhoundBoss` (min 4), `stalkerBoss` (min 8) y `cyclopsBoss` (final, min 12, con esbirros Troll / Giant Tree / Orc-Mage). Son copias con otro id, como `stoneGolemBoss`: los normales no cambian en Bleeding Isle. Dificultad ×1,3.
+- **Giant Tree:** `giantplant.spr` (918 KB), sonidos M120–M123 (el ataque M123 es el mismo archivo que el del Minotaur), sin animación especial. En el `NPC.cfg` de centuu/HelbreathServer no hay "Giant-Tree": su fila es **Giant-Plant** (ATime 700, alcance 2, MinBrvy 100, 8d6, HR 200). El servidor original (`reference/Server.cpp`, `MobGenerator` caso 7) lo saca en areuni/elvuni con Orc, Orc-Mage, Amphis, Troll, Unicorn (raro) y Cannibal Plant.
+- **Columnas del NPC.cfg:** el alcance de ataque es la **penúltima** columna (Troll 1, Cannibal-Plant 2, Cyclops 3); `ATime` es la columna tras los tres `1 10 0` (700, 800, 1200).
+- **`?debug=finalboss`** salta el tiempo y saca también los minijefes que quedaban por salir (en todos los mapas: Bleeding Isle sale con Ettin y Demon).
+- **Probar:** `check elvine`, `check elvineboss`, `check levelpaceelvine`, `check loadtimeelvine`.
 
 ## Rareza de las cartas (Fase 21½A)
 - Números en `data/cardRarity.ts`; sorteo en `systems/UpgradePool.ts` (`buildLevelUpChoices(equipment, chr, { chest, onlyPassives, allEpic })`). Desde la partida se piden siempre con `GameScene.levelUpChoices(fromChest)`, que lee la Chr de la partida y los atajos.
