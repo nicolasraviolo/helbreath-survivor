@@ -32,6 +32,7 @@ import { BossSystem } from '../systems/BossSystem';
 import { EnemyProjectileSystem } from '../systems/EnemyProjectileSystem';
 import { MusicSystem } from '../systems/MusicSystem';
 import type { GameOverSceneData } from './GameOverScene';
+import { startTown } from './MapLoadScene';
 import { DEFAULT_LOOKS, GENDER_SOUNDS } from '../data/appearance';
 import { CHARACTERS, CHOSEN_CHARACTER_KEY, DEFAULT_CHARACTER, isCharacterId, type CharacterId } from '../data/characters';
 import { CHOSEN_MAP_KEY, DEFAULT_MAP, isMapId, MAPS_DATA, type MapId } from '../data/maps';
@@ -1509,9 +1510,9 @@ export class GameScene extends Phaser.Scene {
                 this.scene.stop('GameOver');
                 this.scene.restart();
             },
-            onChangeClass: () => {
+            onTown: () => {
                 this.scene.stop('GameOver');
-                this.scene.start('CharacterSlots');
+                startTown(this);
             },
             onMainMenu: () => {
                 this.scene.stop('GameOver');

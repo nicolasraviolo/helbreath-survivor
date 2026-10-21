@@ -49,6 +49,10 @@
 //   ?map=traveler    → con ?play/?debug, la partida en ese mapa (traveler, bisle, elvineGarden, middleland; Fase 22A). Sin él, Bleeding Isle
 //   ?maps=all        → todos los mapas abiertos en Select Map (reset = olvida los mapas ganados; Fase 22A)
 //   ?open=mapselect  → abre Select Map con el primer personaje guardado (o sin personaje)
+//   ?open=town       → la ciudad (Fase 23) con el primer personaje guardado (o sin personaje)
+//   ?town=portal     → con ?open=town, el personaje aparece sobre el teleport: se abre Select Map encima de la ciudad
+//   ?town=william    → con ?open=town, aparece junto a ese NPC (howard, shopKeeper, william, tom; Fase 23B);
+//                      con &talk, además se abre su panel
 //   ?unlocks=abaddon  → desbloquea Abaddon's Blood en este dispositivo (Fase 21E; reset = quita los desbloqueos)
 //                      dice3,wine2 → 3 dados (Reroll) y 2 vinos (Skip) comprados (Fase 21½B; "dice" solo = 1, "dice0" = 0)
 //   ?achievements=reset → borra los logros conseguidos al cargar (all = los da todos, para ver la pantalla llena; Fase 14B)
@@ -62,10 +66,11 @@ import { isMapId, type MapId } from '../data/maps';
 import { isStackableUnlockId, type StackableUnlockId } from '../data/rerollSkip';
 import { isCharacterId, type CharacterId } from '../data/characters';
 import { isAutoSpellId, type AutoSpellId } from '../data/spells';
+import { isNpcId, type NpcId } from '../data/town';
 import { TREE_MODES, type TreeMode } from './settings';
 
 /** Menu screens that ?open= shows straight away, and the scene of each one. */
-const DEBUG_SCREENS = { howtoplay: 'HowToPlay', settings: 'Settings', controls: 'Controls', credits: 'Credits', releasenotes: 'ReleaseNotes', achievements: 'Achievements', select: 'CharacterSelect', slots: 'CharacterSlots', mapselect: 'MapSelect', charinfo: 'CharacterInfo', equipment: 'Equipment', warehouse: 'Warehouse', runchoice: 'RunChoice' } as const;
+const DEBUG_SCREENS = { howtoplay: 'HowToPlay', settings: 'Settings', controls: 'Controls', credits: 'Credits', releasenotes: 'ReleaseNotes', achievements: 'Achievements', select: 'CharacterSelect', slots: 'CharacterSlots', mapselect: 'MapSelect', town: 'Town', charinfo: 'CharacterInfo', equipment: 'Equipment', warehouse: 'Warehouse', runchoice: 'RunChoice' } as const;
 type DebugScreen = keyof typeof DEBUG_SCREENS;
 
 function isDebugScreen(value: string | null): value is DebugScreen {
@@ -119,13 +124,19 @@ interface DebugStart {
     map: MapId | undefined;
     /** ?maps=all opens every map in Select Map; reset forgets the maps won (Fase 22A). */
     maps: 'all' | 'reset' | undefined;
+    /**
+     * ?town=portal: the character appears on the town's teleport, so Select Map opens over the town (Fase 23).
+     * ?town=<npc>: next to that NPC (Fase 23B); with &talk, its panel opens too.
+     */
+    townSpot: 'portal' | NpcId | undefined;
+    townTalk: boolean;
 }
 
 function readDebugStart(): DebugStart {
     const none: DebugStart = {
         play: false, character: undefined, actions: [], trees: undefined, open: undefined, achievements: undefined, characters: undefined,
         sendMetrics: false, spells: { auto: undefined, active: undefined }, openClass: undefined, slash: undefined,
-        holdLoading: false, gear: [], settingsTab: undefined, attribute: undefined, unlocks: undefined, unlockCounts: {}, map: undefined, maps: undefined,
+        holdLoading: false, gear: [], settingsTab: undefined, attribute: undefined, unlocks: undefined, unlockCounts: {}, map: undefined, maps: undefined, townSpot: undefined, townTalk: false,
     };
     if (!import.meta.env.DEV) return none;
     const params = new URLSearchParams(window.location.search);
@@ -161,11 +172,18 @@ function readDebugStart(): DebugStart {
         unlocks: unlocks === 'reset' ? 'reset' : unlocks ? unlocks.split(',').map((u) => u.trim()).filter(isUnlockId) : undefined,
         map: isMapId(map) ? map : undefined,
         maps: maps === 'all' || maps === 'reset' ? maps : undefined,
+        townSpot: parseTownSpot(params.get('town')),
+        townTalk: params.has('talk'),
         unlockCounts: readUnlockCounts(unlocks),
     };
 }
 
 /** "dice3,wine" → { dice: 3, wine: 1 } (Fase 21½B). */
+function parseTownSpot(value: string | null): DebugStart['townSpot'] {
+    if (value === 'portal') return 'portal';
+    return value !== null && isNpcId(value) ? value : undefined;
+}
+
 function readUnlockCounts(unlocks: string | null): Partial<Record<StackableUnlockId, number>> {
     const counts: Partial<Record<StackableUnlockId, number>> = {};
     for (const token of (unlocks ?? '').split(',')) {

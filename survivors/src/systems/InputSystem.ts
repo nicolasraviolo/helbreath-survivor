@@ -43,10 +43,8 @@ export enum Action {
     MenuDown = 'menuDown',
     /** Take back a point in the Character window (Fase 20A). */
     Decrease = 'decrease',
-    /** Open the Equipment screen from Select Character (Fase 20B): I or gamepad X. */
-    OpenEquipment = 'openEquipment',
-    /** Open the shared warehouse from Select Character (Fase 21D): O or gamepad R1. */
-    OpenWarehouse = 'openWarehouse',
+    /** Talk to the NPC next to you in the town (Fase 23B): E or gamepad A. */
+    Talk = 'talk',
     /** Show / hide the stats panel: C or gamepad Y by default, changeable in Settings → Controls. */
     ToggleStats = 'toggleStats',
     ToggleDebug = 'toggleDebug',
@@ -89,8 +87,7 @@ const KEYBOARD_ACTIONS: Record<Action, number[]> = {
     [Action.MenuUp]: [KEY.UP, KEY.W],
     [Action.MenuDown]: [KEY.DOWN, KEY.S],
     [Action.Decrease]: [KEY.MINUS, KEY.NUMPAD_SUBTRACT],
-    [Action.OpenEquipment]: [KEY.I],
-    [Action.OpenWarehouse]: [KEY.O],
+    [Action.Talk]: [KEY.E],
     [Action.ToggleStats]: [DEFAULT_CONTROLS.keyboard.toggleStats],
     [Action.ToggleDebug]: [KEY.F1],
     [Action.OpenSpriteTest]: [KEY.T],
@@ -127,8 +124,7 @@ const GAMEPAD_ACTIONS: Partial<Record<Action, number[]>> = {
     [Action.MenuUp]: [GAMEPAD_BUTTON.DpadUp, STICK_BUTTON.Up],
     [Action.MenuDown]: [GAMEPAD_BUTTON.DpadDown, STICK_BUTTON.Down],
     [Action.Decrease]: [GAMEPAD_BUTTON.X],
-    [Action.OpenEquipment]: [GAMEPAD_BUTTON.X],
-    [Action.OpenWarehouse]: [GAMEPAD_BUTTON.R1],
+    [Action.Talk]: [GAMEPAD_BUTTON.A],
     [Action.ToggleStats]: [DEFAULT_CONTROLS.gamepad.toggleStats],
     [Action.ToggleDebug]: [GAMEPAD_BUTTON.View],
 };

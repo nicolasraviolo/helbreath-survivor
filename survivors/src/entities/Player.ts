@@ -248,6 +248,11 @@ export class Player {
     }
 
     /** Debug invincibility, shown as a golden tint on every layer. */
+    /** Shows or hides the health bar over the head (hidden in the town, Fase 23). */
+    public setHealthBarVisible(visible: boolean): void {
+        this.healthBar.setVisible(visible);
+    }
+
     public setGodMode(enabled: boolean): void {
         this.godMode = enabled;
         this.body.setTint(enabled ? GOD_MODE_TINT : undefined);

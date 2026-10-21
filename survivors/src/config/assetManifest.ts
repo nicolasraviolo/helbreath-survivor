@@ -49,6 +49,13 @@ export const SPRITES = {
     'enemy.demon': { file: 'sprites/demon.spr', type: SpriteType.Monster },
     'enemy.fireWyvern': { file: 'sprites/firewyvern.spr', type: SpriteType.Monster },
 
+    // NPCs de la ciudad (Fase 23B): 8 hojas (una por dirección) de 8 frames, solo quietos. Como monstruos, nunca se
+    // bajan antes del menú: los baja la carga de la ciudad (data/town.ts → TOWN_NPCS).
+    'npc.howard': { file: 'sprites/howard.spr', type: SpriteType.Monster },
+    'npc.shopKeeper': { file: 'sprites/shopkpr.spr', type: SpriteType.Monster },
+    'npc.william': { file: 'sprites/william.spr', type: SpriteType.Monster },
+    'npc.tom': { file: 'sprites/tom.spr', type: SpriteType.Monster },
+
     // Capas del jugador (hombre). Ver hb/playerAppearance.ts para cómo se indexan las hojas.
     'player.body.wm': { file: 'sprites/wm.spr', type: SpriteType.Human },
     'player.hair.mhr': { file: 'sprites/mhr.spr', type: SpriteType.HairAndUndies },
@@ -291,6 +298,9 @@ export const SOUNDS = {
     'music.menu': { file: 'music/default.mp3' },
     'music.dungeon': { file: 'music/dungeon.mp3' },
     'music.abaddon': { file: 'music/abaddon.mp3' },
+    // Música de la ciudad (Fase 23, elegida por el propietario). No va antes del menú: la baja la carga de la ciudad
+    // (LATER_SOUNDS).
+    'music.elvine': { file: 'music/elvine.mp3' },
     // Armas cuerpo a cuerpo: tajo del jugador (PLAYER_MELEE_ATTACK) y golpe con filo en un monstruo (TAKE_DAMAGE_BLADE).
     'sfx.melee.swing': { file: 'sounds/C18.mp3' },
     'sfx.melee.hit': { file: 'sounds/C6.mp3' },
@@ -317,6 +327,9 @@ export const SOUNDS = {
 
 export type SoundKey = keyof typeof SOUNDS;
 
+/** Sounds that PreloadScene skips: MapLoadScene downloads them with the place that uses them (the town's music). */
+export const LATER_SOUNDS: readonly SoundKey[] = ['music.elvine'];
+
 export const MAPS = {
     'map.huntzone2': { file: 'maps/huntzone2.amd' },
     'map.bisle': { file: 'maps/bisle.amd' },
@@ -324,6 +337,8 @@ export const MAPS = {
     'map.traveler': { file: 'maps/default.amd' },
     'map.elvineGarden': { file: 'maps/elvuni.amd' },
     'map.middleland': { file: 'maps/middleland.amd' },
+    // Fase 23: la ciudad, un recorte de la granja de Elvine (data/town.ts).
+    'map.elvineFarm': { file: 'maps/elvfarm.amd' },
 } as const satisfies Record<string, { file: string }>;
 
 export type MapKey = keyof typeof MAPS;
@@ -337,6 +352,7 @@ export const MINIMAPS = {
     'minimap.traveler': { file: 'images/minimaps/default.jpg' },
     'minimap.elvineGarden': { file: 'images/minimaps/elvuni.jpg' },
     'minimap.middleland': { file: 'images/minimaps/middleland.jpg' },
+    'minimap.elvineFarm': { file: 'images/minimaps/elvfarm.jpg' },
 } as const satisfies Record<string, { file: string }>;
 
 export type MinimapKey = keyof typeof MINIMAPS;
