@@ -30,7 +30,8 @@ export const HOW_TO_PLAY_PAGES: readonly HowToPlayPage[] = [
             'Right click, right stick or right half of the screen: aim yourself.',
             'Pick up the gems that enemies drop to gain experience.',
             'Each time your Power goes up, choose a card to grow stronger.',
-            'Step on the glowing Mana Stones for a power-up. Chests give a free card.',
+            // Caben 7 líneas, cada una en una sola fila: si una se parte en dos, la última pisa el selector "Page".
+            'Glowing Mana Stones give a power-up. Chests give a free card.',
             'Defeat the Champions, big glowing monsters, for a better item.',
             'Survive the waves and defeat the final boss to win.',
         ],
