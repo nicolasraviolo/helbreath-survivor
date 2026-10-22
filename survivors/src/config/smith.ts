@@ -1,9 +1,11 @@
 // Ventana del herrero (Fase 24C, scenes/SmithScene.ts), con piezas del original:
 // - panel: gamedialog86.spr hoja 2, frame 0 (270x381, con un martillo de fondo);
-// - letreros: dialogtext.spr hoja 0, "Item for Sale" (frame 11, 258x31) en Buy y "Exchange Item" (frame 9, 270x31) en Sell;
-// - botones: dialogtext.spr hoja 1, "Purchase" (30), "Sell" (38) y "Cancel" (16); iluminado = frame + 1.
+// - letreros: dialogtext.spr hoja 0, "Item for Sale" (frame 11, 258x31) en Buy, "Exchange Item" (frame 9, 270x31) en
+//   Sell e "Item Upgrade" (frame 5) en Upgrade (Fase 24D);
+// - botones: dialogtext.spr hoja 1, "Purchase" (30), "Sell" (38), "Upgrade" (46) y "Cancel" (16); iluminado = frame + 1.
 // Colores y letras, los de la tienda (config/shop.ts). Posiciones en píxeles del panel original, × `scale`.
 import { getSheetKey } from '../hb/HBSprite';
+import type { SoundKey } from './assetManifest';
 import { byDevice } from './device';
 
 export const SMITH_PANEL = {
@@ -20,14 +22,14 @@ export const SMITH_BANNERS = {
     texture: getSheetKey('ui.buttons', 0),
     buy: { frame: 11, width: 258 },
     sell: { frame: 9, width: 270 },
+    upgrade: { frame: 5, width: 258 },
 } as const;
 
 /** Panel pixels (multiplied by SMITH_PANEL.scale). */
 export const SMITH_LAYOUT = {
-    /** "Buy" and "Sell": their centres, and the line under the chosen one. */
+    /** "Buy", "Sell" and "Upgrade": their centres, and the line under the chosen one (as wide as its word). */
     tabsY: 46,
-    tabX: { buy: 105, sell: 165 },
-    tabUnderline: 26,
+    tabX: { buy: 80, sell: 135, upgrade: 192 },
     /** "ITEM" and "PRICE". */
     headerY: 66,
     left: 14,
@@ -56,6 +58,7 @@ export const SMITH_BUTTONS = {
     texture: getSheetKey('ui.buttons', 1),
     purchase: 30,
     sell: 38,
+    upgrade: 46,
     cancel: 16,
     litOffset: 1,
     disabledAlpha: 0.45,
@@ -74,3 +77,6 @@ export const SMITH_COLORS = {
     cantWearIconAlpha: 0.6,
     tabOff: '#3e352c',
 } as const;
+
+/** Sound of an upgrade done (Fase 24D): the one of putting an item on (E28). */
+export const SMITH_UPGRADE_SOUND: SoundKey = 'sfx.itemEquip';

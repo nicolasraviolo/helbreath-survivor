@@ -87,9 +87,14 @@ export class PreloadScene extends Phaser.Scene {
         else this.scene.start(open === 'CharacterSelect' || open === 'CharacterSlots' ? open : 'MainMenu');
     }
 
-    /** ?open=mapselect / ?open=town: Select Map or the town with the first saved character (or none). */
+    /**
+     * ?open=mapselect / ?open=town: Select Map or the town with the first saved character (or none); with &class=warrior,
+     * the first one of that class (Fase 24D).
+     */
     private openWithFirstCharacter(open: 'MapSelect' | 'Town'): void {
-        const first = characterStore.all.find((c) => c !== undefined);
+        const wanted = DEBUG_START.openClass;
+        const first = characterStore.all.find((c) => c !== undefined && (wanted === undefined || c.classId === wanted))
+            ?? characterStore.all.find((c) => c !== undefined);
         if (first) {
             this.registry.set(CHOSEN_CHARACTER_KEY, first.classId);
             this.registry.set(ACTIVE_CHARACTER_KEY, first.uid);

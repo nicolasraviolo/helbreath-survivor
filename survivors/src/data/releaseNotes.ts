@@ -22,8 +22,9 @@ export const RELEASE_NOTES: readonly ReleaseNote[] = [
             'Dying without a Zem now loses only half of your loot.',
             "New shop in town: spend your gold on the Zem, Abaddon's Blood, dice and wine.",
             'Your character no longer loses their clothes after changing equipment in town.',
-            'Tom the blacksmith buys and sells weapons and armor.',
-            'New rare loot: the Stone of Xelima, for weapon upgrades coming soon.',
+            'Tom the blacksmith buys, sells and upgrades weapons and wands up to +3.',
+            'New rare loot: the Stone of Xelima, used for weapon upgrades.',
+            'Press I in town to open your equipment.',
         ],
     },
     {

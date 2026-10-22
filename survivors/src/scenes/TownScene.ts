@@ -40,6 +40,7 @@ import { addTouchPauseButton } from '../ui/TouchPauseButton';
 import { TouchJoystick } from '../ui/TouchJoystick';
 import { Pool } from '../utils/Pool';
 import { openOverlay } from './MenuOverlayScene';
+import type { EquipmentSceneData } from './EquipmentScene';
 import type { MapSelectSceneData } from './MapSelectScene';
 import { NPC_DIALOG_SCENE_KEY, type NpcDialogSceneData } from './NpcDialogScene';
 import { SHOP_SCENE_KEY, type ShopSceneData } from './ShopScene';
@@ -164,7 +165,7 @@ export class TownScene extends Phaser.Scene {
             this.redressIfChanged();
         });
         // ?town=<npc>&talk (development only): its panel opens at once. ?town=shopKeeper&shop: the shop (Fase 24B);
-        // ?town=tom&smith=buy|sell: the blacksmith (Fase 24C).
+        // ?town=tom&smith=buy|sell|upgrade: the blacksmith (Fase 24C; upgrade, 24D).
         if (debugSpot === 'shopKeeper' && DEBUG_START.townShop) {
             const data: Omit<ShopSceneData, 'returnTo'> = { characterUid: this.characterUid };
             this.time.delayedCall(0, () => openOverlay(this, SHOP_SCENE_KEY, data));
@@ -195,6 +196,10 @@ export class TownScene extends Phaser.Scene {
         }
         this.updateTalk();
         if (!this.scene.isActive()) return;
+        if (input.justPressed(Action.OpenInventory)) {
+            this.openInventory();
+            return;
+        }
         this.updatePortal();
     }
 
@@ -215,6 +220,13 @@ export class TownScene extends Phaser.Scene {
         for (const npc of this.npcs) npc.setTalkable(npc === near, this.time.now);
         this.talkButton?.setVisible(near !== undefined);
         if (this.inputSystem.justPressed(Action.Talk)) this.talkToNear();
+    }
+
+    /** I (Fase 24D, owner): the Equipment screen of the character walking the town, as Howard's "Equipment" does. */
+    private openInventory(): void {
+        if (this.characterUid === undefined) return;
+        const data: Omit<EquipmentSceneData, 'returnTo'> = { characterUid: this.characterUid };
+        openOverlay(this, 'Equipment', data);
     }
 
     private talkToNear(): void {

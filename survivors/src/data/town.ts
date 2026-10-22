@@ -48,7 +48,7 @@ export const TOWN: TownDef = {
 export type NpcId = 'howard' | 'shopKeeper' | 'william' | 'tom';
 
 /** What an option of the panel does. `soon` = not made yet: the panel says "Coming soon". */
-export type NpcAction = 'equipment' | 'warehouse' | 'achievements' | 'shop' | 'smithBuy' | 'smithSell' | 'soon';
+export type NpcAction = 'equipment' | 'warehouse' | 'achievements' | 'shop' | 'smithBuy' | 'smithSell' | 'smithUpgrade' | 'soon';
 
 export interface NpcOption {
     label: string;
@@ -101,7 +101,7 @@ export const TOWN_NPCS: Readonly<Record<NpcId, NpcDef>> = {
         direction: 5,
         line: 'Weapons and armor, plain and honest.\nI also buy what you don\'t need.',
         // Fase 24C: Buy and Sell (SmithScene); Upgrade, Fase 24D.
-        options: [{ label: 'Buy', action: 'smithBuy' }, { label: 'Sell', action: 'smithSell' }, { label: 'Upgrade', action: 'soon' }],
+        options: [{ label: 'Buy', action: 'smithBuy' }, { label: 'Sell', action: 'smithSell' }, { label: 'Upgrade', action: 'smithUpgrade' }],
     },
 };
 

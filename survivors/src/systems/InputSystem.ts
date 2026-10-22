@@ -45,6 +45,8 @@ export enum Action {
     Decrease = 'decrease',
     /** Talk to the NPC next to you in the town (Fase 23B): E or gamepad A. */
     Talk = 'talk',
+    /** Open the inventory (the Equipment screen) in the town (Fase 24D, owner): I, as in the original. */
+    OpenInventory = 'openInventory',
     /** Show / hide the stats panel: C or gamepad Y by default, changeable in Settings → Controls. */
     ToggleStats = 'toggleStats',
     ToggleDebug = 'toggleDebug',
@@ -88,6 +90,7 @@ const KEYBOARD_ACTIONS: Record<Action, number[]> = {
     [Action.MenuDown]: [KEY.DOWN, KEY.S],
     [Action.Decrease]: [KEY.MINUS, KEY.NUMPAD_SUBTRACT],
     [Action.Talk]: [KEY.E],
+    [Action.OpenInventory]: [KEY.I],
     [Action.ToggleStats]: [DEFAULT_CONTROLS.keyboard.toggleStats],
     [Action.ToggleDebug]: [KEY.F1],
     [Action.OpenSpriteTest]: [KEY.T],

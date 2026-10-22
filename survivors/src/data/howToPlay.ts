@@ -140,8 +140,8 @@ export const HOW_TO_PLAY_PAGES: readonly HowToPlayPage[] = [
         // Fase 20B: pantalla Equipment. Como mucho 7 filas.
         name: 'Equipment',
         rows: [
-            // Fase 23B: se abre en la ciudad, hablando con Howard.
-            { control: 'Talk to Howard (Town)', action: 'Equipment: choose what your character wears' },
+            // Fase 23B: se abre en la ciudad, hablando con Howard; desde el 24D, también con la tecla I.
+            { control: 'I (Town) or talk to Howard', action: 'Equipment: choose what your character wears' },
             { control: 'Each run', action: 'Starts with that equipment on' },
             { control: 'The lists', action: 'Only what you own: your starting gear and your loot' },
             { control: 'Requirements', action: 'Your permanent Str, Mag and Level: red = not met' },

@@ -10,6 +10,7 @@
 // Fase 21D, "solo lo que tienes": todo se pone sacándolo del inventario y vuelve a él al quitárselo, salvo el equipo de
 // salida y los hechizos que se saben con la Int (isFreeItem). Al terminar una partida, finishRun aplica las reglas al
 // morir (sin Zem se pierde lo encontrado). El baúl compartido (WarehouseStore) mueve objetos del inventario y al revés.
+// Fase 24D: el "+" (+1/+2/+3) del arma o varita puesta, en `upgrades`; los del inventario lo llevan en el objeto.
 import { DEBUG_START } from '../config/debugStart';
 import { CHARACTER_NAME_ALLOWED, CHARACTER_NAME_MAX_LENGTH, CHARACTER_SLOT_COUNT } from '../data/characterSlots';
 import { BODY_SPRITES, DEFAULT_LOOKS, GENDERS, HAIR_COLORS, HAIR_STYLE_COUNT, UNDERWEAR_COUNT, type CharacterLook } from '../data/appearance';
@@ -18,10 +19,12 @@ import { CHARACTERS, isCharacterId, type CharacterId } from '../data/characters'
 import { isItemAttribute, type ItemAttribute } from '../data/attributes';
 import {
     canChangeSlot, canHaveAttribute, canEmptySlot, canEquip, classCanWear, EQUIP_SLOT_IDS, isFreeItem, isItemId, itemInfo, readEquipment, START_EQUIPMENT,
-    type EquipSlotId, type ItemId, type SavedEquipment,
+    type EquipSlotId, type SavedEquipment,
 } from '../data/items';
 import { STAT_IDS, type StatId, type Stats } from '../data/stats';
-import type { OwnedItem } from '../data/loot';
+import { XELIMA_STONE_ID } from '../data/consumables';
+import { sameOwnedItem, type OwnedItem } from '../data/loot';
+import { canUpgrade, readUpgrade, UPGRADE_MAX, UPGRADE_STONES_PER_LEVEL, upgradeOf } from '../data/upgrades';
 import type { RunLootState } from './RunLoot';
 import { isRecord, readAttribute, readNumber, readOwnedItems, saveStore, type RunSnapshot } from './SaveStore';
 
@@ -33,7 +36,8 @@ const STORAGE_KEY = 'hb-survivors.characters';
 /** 5 (Fase 21A): inventory. Older characters start with it empty. */
 /** 6 (Fase 21B): attributes of the gear worn. Older characters wear everything without one. */
 /** 7 (Fase 21D): the Zem slot. Older characters have it empty; what they wear stays theirs. */
-const CHARACTERS_VERSION = 7;
+/** 8 (Fase 24D): the "+" of the gear worn. Older characters wear everything at +0. */
+const CHARACTERS_VERSION = 8;
 
 /** Registry key (game.registry) with the uid of the character that plays the next run. */
 export const ACTIVE_CHARACTER_KEY = 'activeCharacter';
@@ -59,6 +63,8 @@ export interface SavedCharacter {
     equipment: SavedEquipment;
     /** Attribute of the item worn in each slot, if it has one (Fase 21B; only weapons and wands). */
     attributes: Partial<Record<EquipSlotId, ItemAttribute>>;
+    /** "+" of the item worn in each slot, if it has one (Fase 24D; only weapons and wands). */
+    upgrades: Partial<Record<EquipSlotId, number>>;
     /** Items kept from the runs (Fase 21A): the bag, and the gear that found items replaced. */
     inventory: OwnedItem[];
     createdAt: number;
@@ -127,7 +133,8 @@ class CharacterStoreImpl {
             this.assignPoints(kaila, { int: this.byUid(kaila)?.unspentPoints ?? 0 });
             this.wearDebugGear();
         }
-        if (DEBUG_START.characters) this.write();
+        if (DEBUG_START.xelima !== undefined) this.setDebugStones(DEBUG_START.xelima);
+        if (DEBUG_START.characters || DEBUG_START.xelima !== undefined) this.write();
     }
 
     /** ?gear=... (debugStart.ts): the examples wear those items, whatever they ask for (M17); "sharp:id" goes to the inventory. */
@@ -140,7 +147,10 @@ class CharacterStoreImpl {
                 if (owned !== undefined) {
                     // Items with no slot (the Xelima stone, Fase 24C) go in whatever the class.
                     if (!isItemId(owned) || (itemInfo(owned)?.slot !== undefined && !classCanWear(character.classId, owned))) continue;
+                    const upgrade = /^up([1-9])$/.exec(attribute ?? '')?.[1];
                     if (attribute === 'inv') character.inventory.push({ id: owned });
+                    // "up3:longSword": into the inventory at +3 (Fase 24D).
+                    else if (upgrade !== undefined && canUpgrade(owned)) character.inventory.push({ id: owned, upgrade: Math.min(UPGRADE_MAX, Number(upgrade)) });
                     else if (isItemAttribute(attribute) && canHaveAttribute(owned, attribute)) character.inventory.push({ id: owned, attribute });
                     continue;
                 }
@@ -190,6 +200,7 @@ class CharacterStoreImpl {
             statPoints: noStatPoints(),
             equipment: { ...START_EQUIPMENT[classId] },
             attributes: {},
+            upgrades: {},
             inventory: [],
             createdAt: now,
         };
@@ -287,23 +298,24 @@ class CharacterStoreImpl {
      * that slot, the item doesn't go there, the permanent stats and Level don't meet its requirement or (Fase 21D) the
      * character doesn't have it: it comes out of the inventory, unless it is a free item (isFreeItem).
      */
-    public equip(uid: string | undefined, slot: EquipSlotId, id: ItemId | undefined, attribute?: ItemAttribute): boolean {
+    public equip(uid: string | undefined, slot: EquipSlotId, item: Readonly<OwnedItem> | undefined): boolean {
         const character = this.slots.find((c) => c !== undefined && c.uid === uid);
         if (!character || !canChangeSlot(character.classId, slot)) return false;
-        if (id === undefined) {
+        if (item === undefined) {
             if (!canEmptySlot(slot)) return false;
             this.takeOff(character, slot);
             delete character.equipment[slot];
         } else {
+            const id = item.id;
             if (itemInfo(id)?.slot !== slot || !classCanWear(character.classId, id) || !canEquip(id, permanentStats(character), character.level)) return false;
-            if (character.equipment[slot] === id && character.attributes[slot] === attribute) return true;
-            const free = !attribute && isFreeItem(character.classId, id);
-            const owned = free ? -1 : character.inventory.findIndex((item) => item.id === id && item.attribute === attribute);
+            const worn = wornItem(character, slot);
+            if (worn && sameOwnedItem(worn, item)) return true;
+            const free = isPlainFreeItem(character.classId, item);
+            const owned = free ? -1 : character.inventory.findIndex((other) => sameOwnedItem(other, item));
             if (!free && owned < 0) return false;
             this.takeOff(character, slot);
             if (owned >= 0) character.inventory.splice(owned, 1);
-            character.equipment[slot] = id;
-            if (attribute) character.attributes[slot] = attribute;
+            this.putOn(character, slot, item);
         }
         this.write();
         return true;
@@ -322,18 +334,29 @@ class CharacterStoreImpl {
         if (!character) return entries;
         for (const item of character.inventory) {
             if (itemInfo(item.id)?.slot !== slot || !classCanWear(character.classId, item.id)) continue;
-            const entry = entries.find((e) => e.item.id === item.id && e.item.attribute === item.attribute);
+            const entry = entries.find((e) => sameOwnedItem(e.item, item));
             if (entry) entry.count++;
             else entries.push({ item: { ...item }, count: 1 });
         }
         return entries;
     }
 
-    /** Before something else goes in the slot: what it wore goes back to the inventory (free items just vanish). */
+    /**
+     * Before something else goes in the slot: what it wore goes back to the inventory (free items just vanish, unless
+     * they have an attribute or a "+": then they are a real item, Fase 24D).
+     */
     private takeOff(character: SavedCharacter, slot: EquipSlotId): void {
         const worn = wornItem(character, slot);
-        if (worn && (worn.attribute || !isFreeItem(character.classId, worn.id))) character.inventory.push(worn);
+        if (worn && !isPlainFreeItem(character.classId, worn)) character.inventory.push(worn);
         delete character.attributes[slot];
+        delete character.upgrades[slot];
+    }
+
+    /** Wears that item in the slot, with its attribute and "+" (the slot must be empty: takeOff first). */
+    private putOn(character: SavedCharacter, slot: EquipSlotId, item: Readonly<OwnedItem>): void {
+        character.equipment[slot] = item.id;
+        if (item.attribute) character.attributes[slot] = item.attribute;
+        if (item.upgrade) character.upgrades[slot] = item.upgrade;
     }
 
     /**
@@ -367,8 +390,7 @@ class CharacterStoreImpl {
                 continue;
             }
             this.takeOff(character, slot);
-            character.equipment[slot] = item.id;
-            if (item.attribute) character.attributes[slot] = item.attribute;
+            this.putOn(character, slot, item);
         }
         character.inventory.push(...rest);
         this.write();
@@ -394,9 +416,44 @@ class CharacterStoreImpl {
         return true;
     }
 
-    /** How many of that item the character keeps in its inventory (without an attribute, unless one is given). */
-    public ownedCount(uid: string | undefined, id: ItemId, attribute?: ItemAttribute): number {
-        return this.byUid(uid)?.inventory.filter((item) => item.id === id && item.attribute === attribute).length ?? 0;
+    /** How many of that item (same attribute and "+") the character keeps in its inventory. */
+    public ownedCount(uid: string | undefined, item: Readonly<OwnedItem>): number {
+        return this.byUid(uid)?.inventory.filter((other) => sameOwnedItem(other, item)).length ?? 0;
+    }
+
+    /**
+     * Raises the "+" of a weapon or wand by one (Fase 24D): the one worn in `target.slot`, or one of the inventory equal
+     * to `target.item`. Takes the Stones of Xelima from the inventory; the gold is the caller's (GoldStore). Refused
+     * (false, nothing changes) if the item isn't there, can't be upgraded, is at the top or the stones are missing.
+     */
+    public upgrade(uid: string | undefined, target: { slot: EquipSlotId } | { item: Readonly<OwnedItem> }): boolean {
+        const character = this.slots.find((c) => c !== undefined && c.uid === uid);
+        if (!character) return false;
+        const stones = character.inventory.filter((item) => item.id === XELIMA_STONE_ID).length;
+        if (stones < UPGRADE_STONES_PER_LEVEL) return false;
+        if ('slot' in target) {
+            const worn = wornItem(character, target.slot);
+            if (!worn || !canUpgrade(worn.id) || upgradeOf(worn) >= UPGRADE_MAX) return false;
+            character.upgrades[target.slot] = upgradeOf(worn) + 1;
+        } else {
+            const owned = character.inventory.find((item) => sameOwnedItem(item, target.item));
+            if (!owned || !canUpgrade(owned.id) || upgradeOf(owned) >= UPGRADE_MAX) return false;
+            owned.upgrade = upgradeOf(owned) + 1;
+        }
+        for (let i = 0; i < UPGRADE_STONES_PER_LEVEL; i++) {
+            character.inventory.splice(character.inventory.findIndex((item) => item.id === XELIMA_STONE_ID), 1);
+        }
+        this.write();
+        return true;
+    }
+
+    /** ?xelima=N (debugStart.ts, development only): every character keeps exactly N Stones of Xelima (Fase 24D). */
+    private setDebugStones(count: number): void {
+        for (const character of this.slots) {
+            if (!character) continue;
+            character.inventory = character.inventory.filter((item) => item.id !== XELIMA_STONE_ID);
+            for (let i = 0; i < count; i++) character.inventory.push({ id: XELIMA_STONE_ID });
+        }
     }
 
     private write(): void {
@@ -434,7 +491,8 @@ function load(): Slots {
 /**
  * Old shapes → today's list of slots. readCharacter() fills what old versions lack: the class's look (version 1),
  * Level 1 without points, bestLevel read as bestPower (versions 1 and 2), the starting equipment (versions 1–3), an
- * empty inventory (versions 1–4), gear without attributes (versions 1–5) and no Zem (versions 1–6).
+ * empty inventory (versions 1–4), gear without attributes (versions 1–5), no Zem (versions 1–6) and gear at +0
+ * (versions 1–7).
  */
 function migrate(data: unknown): unknown[] {
     if (!isRecord(data) || !Array.isArray(data.slots)) return [];
@@ -458,6 +516,7 @@ function readCharacter(entry: unknown): SavedCharacter | undefined {
         statPoints: readStatPoints(entry.statPoints),
         equipment,
         attributes: readWornAttributes(entry.attributes, equipment),
+        upgrades: readWornUpgrades(entry.upgrades, equipment),
         inventory: readOwnedItems(entry.inventory),
         createdAt: readNumber(entry.createdAt) ?? 0,
     };
@@ -502,12 +561,30 @@ function readLook(value: unknown): CharacterLook | undefined {
 export const characterStore = new CharacterStoreImpl();
 characterStore.linkRuns();
 
-/** What a character wears in that slot, with its attribute. */
+/** What a character wears in that slot, with its attribute and "+". */
 export function wornItem(character: Readonly<SavedCharacter>, slot: EquipSlotId): OwnedItem | undefined {
     const id = character.equipment[slot];
     if (id === undefined) return undefined;
     const attribute = character.attributes[slot];
-    return attribute ? { id, attribute } : { id };
+    const upgrade = character.upgrades[slot];
+    return { id, ...(attribute ? { attribute } : {}), ...(upgrade ? { upgrade } : {}) };
+}
+
+/** A free item (starting gear, spells known with the Int) with no attribute and no "+": it never goes to the inventory. */
+function isPlainFreeItem(classId: CharacterId, item: Readonly<OwnedItem>): boolean {
+    return !item.attribute && !item.upgrade && isFreeItem(classId, item.id);
+}
+
+/** "+" of the gear worn, only where that item can have it (Fase 24D). */
+function readWornUpgrades(value: unknown, equipment: Readonly<SavedEquipment>): Partial<Record<EquipSlotId, number>> {
+    const upgrades: Partial<Record<EquipSlotId, number>> = {};
+    if (!isRecord(value)) return upgrades;
+    for (const slot of EQUIP_SLOT_IDS) {
+        const id = equipment[slot];
+        const upgrade = id === undefined ? undefined : readUpgrade(id, value[slot]);
+        if (upgrade) upgrades[slot] = upgrade;
+    }
+    return upgrades;
 }
 
 /** Attributes of the gear worn, only where that item can have them. */

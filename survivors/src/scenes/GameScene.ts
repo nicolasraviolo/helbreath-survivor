@@ -18,6 +18,7 @@ import { getArmorPiece } from '../data/armor';
 import { canHaveAttribute, isArmorPieceId, isMeleeWeaponId, itemInfo, START_EQUIPMENT, type EquipSlotId, type SavedEquipment } from '../data/items';
 import type { ItemAttribute } from '../data/attributes';
 import { isWandId, type WandId } from '../data/wands';
+import { upgradeOf } from '../data/upgrades';
 import { LOOT_DEBUG, LOOT_SOUNDS, type OwnedItem } from '../data/loot';
 import { LootSystem } from '../systems/LootSystem';
 import { RunLoot } from '../systems/RunLoot';
@@ -286,6 +287,8 @@ export class GameScene extends Phaser.Scene {
         const startEquipment = savedCharacter?.equipment ?? START_EQUIPMENT[this.characterId];
         // Fase 21B: the attribute of the weapon or wand worn (?attr= gives one to any starting weapon that can have it).
         const startAttribute = savedCharacter?.attributes.weapon ?? DEBUG_START.attribute;
+        // Fase 24D: its "+" from the blacksmith (?upgrade= gives one in runs without a character).
+        const startUpgrade = savedCharacter ? savedCharacter.upgrades.weapon ?? 0 : DEBUG_START.upgrade ?? 0;
         // Fase 24A: the attributes of the armor it wears (HP Recovery, Defense Ratio...).
         const wornAttributes = savedCharacter?.attributes ?? {};
         void lookLoader.ensure(this, [...runSprites(character, look, startEquipment), 'item.pack']);
@@ -397,12 +400,13 @@ export class GameScene extends Phaser.Scene {
             this.meleeWeapon = new MeleeWeapon(weaponId);
             this.equipment.weapon = weaponId;
             this.equipment.weaponAttribute = startAttribute && canHaveAttribute(weaponId, startAttribute) ? startAttribute : undefined;
+            this.equipment.weaponUpgrade = startUpgrade;
             this.weapons.add(this.meleeWeapon);
             this.player.setGear('weapon', this.equipment.weaponLayer());
         } else {
             // Fase 21B: the Mage's wand (the starting one in debug runs).
             const wand = startEquipment.weapon !== undefined && isWandId(startEquipment.weapon) ? startEquipment.weapon : START_EQUIPMENT.mage.weapon;
-            if (wand !== undefined && isWandId(wand)) this.equipWand(wand, startAttribute && canHaveAttribute(wand, startAttribute) ? startAttribute : undefined);
+            if (wand !== undefined && isWandId(wand)) this.equipWand(wand, startAttribute && canHaveAttribute(wand, startAttribute) ? startAttribute : undefined, startUpgrade);
             // Fase 20D: the spell of the Spell 1 slot (debug ?spells= may change it).
             this.spellWeapon = new SpellWeapon(startSpells(startEquipment).auto ?? character.startWeapon.id);
             this.equipment.spell = this.spellWeapon.id;
@@ -474,7 +478,7 @@ export class GameScene extends Phaser.Scene {
         this.weapons.setCooldownMultiplier(stats.cooldownMultiplier);
         stats.gearMagicBonus = this.equipment.magicDamageBonus;
         stats.xelimaBonus = this.equipment.passiveBonus('xelima');
-        stats.attributeBonus = this.equipment.attributeDamageBonus;
+        stats.attributeBonus = this.equipment.weaponDamageBonus;
         this.combat.poisonOnHit = this.equipment.poisons;
     }
 
@@ -606,7 +610,8 @@ export class GameScene extends Phaser.Scene {
         })();
         if (id === undefined) return undefined;
         const attribute = slot === 'weapon' ? this.equipment.weaponAttribute : undefined;
-        return attribute ? { id, attribute } : { id };
+        const upgrade = slot === 'weapon' ? this.equipment.weaponUpgrade : 0;
+        return { id, ...(attribute ? { attribute } : {}), ...(upgrade > 0 ? { upgrade } : {}) };
     }
 
     /** Pauses the game and shows the card of the next item picked up (Fase 21A): Equip or Keep in bag. */
@@ -657,10 +662,11 @@ export class GameScene extends Phaser.Scene {
         if (isMeleeWeaponId(id)) {
             if (this.meleeWeapon) {
                 this.equipment.weaponAttribute = item.attribute;
+                this.equipment.weaponUpgrade = upgradeOf(item);
                 this.equipMelee(id);
             }
         } else if (isWandId(id)) {
-            if (this.spellWeapon) this.equipWand(id, item.attribute);
+            if (this.spellWeapon) this.equipWand(id, item.attribute, upgradeOf(item));
         } else if (isAutoSpellId(id)) {
             if (this.spellWeapon) this.equipSpell(id);
         } else if (isActiveSpellId(id)) {
@@ -715,10 +721,11 @@ export class GameScene extends Phaser.Scene {
         this.player.setGear('weapon', this.equipment.weaponLayer());
     }
 
-    /** The Mage's wand (Fase 21B): its look, its extra magic damage (Berserk, Kloness) and its attribute. */
-    private equipWand(id: WandId, attribute: ItemAttribute | undefined): void {
+    /** The Mage's wand (Fase 21B): its look, its extra magic damage (Berserk, Kloness), its attribute and "+" (24D). */
+    private equipWand(id: WandId, attribute: ItemAttribute | undefined, upgrade: number): void {
         this.equipment.wand = id;
         this.equipment.weaponAttribute = attribute;
+        this.equipment.weaponUpgrade = upgrade;
         this.player.setGear('weapon', this.equipment.weaponLayer());
     }
 

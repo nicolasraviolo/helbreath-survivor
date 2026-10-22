@@ -88,6 +88,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Oro, botín especial y muerte a medias (Fase 24A)
 - Tienda (Fase 24B)
 - Herrero y Stone of Xelima (Fase 24C)
+- Mejorar armas en el herrero (Fase 24D)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -1018,3 +1019,13 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - **Stone of Xelima como objeto:** en `data/consumables.ts`, sin hueco (`slot` opcional en `ConsumableDef` e `ItemInfo`). Al cogerla va a la bolsa sin carta (`GameScene.openLoot`). Tirada propia en `LootSystem.onKill` (`LOOT_XELIMA_CHANCE`); `?debug=xelima` la sube al 5%. `?gear=inv:xelimaStone` la mete en el inventario aunque no sea de la clase. Mismo dibujo que la carta "Stone of Xelima" (item-pack 5/128), que es otra cosa.
 - **Atajos:** `?open=town&town=tom&smith=buy|sell&gold=N`; checks `smith`, `smithsell`, `xelima`. Para probar a mano por `--eval`: `game.scene.getScene('Smith')` y sus métodos `choose(i)`, `act()`, `setTab('sell')`.
 - **Panel de hablar:** con 3 opciones + Back no cabía; `NPC_DIALOG_LIST` (config/town.ts) junta un poco las opciones en todos los NPCs.
+
+## Mejorar armas en el herrero (Fase 24D)
+- **Dónde vive el "+":** en el objeto (`OwnedItem.upgrade`, 1–3, sin campo = +0) para inventario, baúl y botín; en `SavedCharacter.upgrades[slot]` para lo puesto (como `attributes`). `CHARACTERS_VERSION` 8. Reglas y daño en `data/upgrades.ts`; precios en `data/smith.ts` (`SMITH_UPGRADE_PRICE_FACTORS`, `smithUpgradePrice`, `smithUpgradeGoldSpent`).
+- **Comparar objetos:** usa siempre `sameOwnedItem` (id + atributo + "+"); comparar solo id y atributo mezcla una Long Sword +2 con una normal.
+- **Equipo de salida mejorado:** `isPlainFreeItem` (CharacterStore): solo la daga o varita **sin** atributo ni "+" desaparece al quitársela; mejorada va al inventario. `equip()` recibe el objeto entero (`OwnedItem`).
+- **Daño:** `Equipment.weaponUpgrade` + `weaponDamageBonus` = (1 + atributo) × (1 + 0,1 × "+") − 1, que va a `CharacterStats.attributeBonus` (vale también para los hechizos de la Maga con varita). `itemDamageBonus` / `ownedItemPower` lo muestran en las cartas.
+- **Ventana:** tercera pestaña de `SmithScene` (`dialogtext.spr` hoja 0 frame 5 "Item Upgrade"; botón Upgrade = hoja 1 frame 46). La subraya de la pestaña mide lo que su palabra. Sonido `sfx.itemEquip` (E28).
+- **Tecla I en la ciudad:** `Action.OpenInventory` abre Equipment con `openOverlay` (la ciudad queda en pausa debajo).
+- **Atajos:** `?xelima=N` (cada personaje con N piedras exactas), `?upgrade=N` (partida sin personaje con el arma a +N), `?gear=up2:longSword`, `smith=upgrade`, `?open=town&class=warrior` (la ciudad con el primer Guerrero). Checks `smithupgrade` y `upgradedmg` (`--eval="g.stats.attributeBonus"` → 0.3).
+

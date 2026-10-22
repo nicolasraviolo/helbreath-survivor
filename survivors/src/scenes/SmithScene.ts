@@ -3,21 +3,27 @@
 // - Buy: armas (o varitas) y armaduras básicas de la clase, por huecos. Lo que el personaje no puede ponerse aún sale
 //   con el requisito en rojo y Purchase apagado. Lo comprado va al inventario.
 // - Sell: el inventario del personaje (no lo puesto ni el baúl), agrupado ("×3"). Hay que pulsar Sell dos veces.
+// - Upgrade (Fase 24D): el arma o varita puesta y las del inventario, con el oro del siguiente "+" (o "Max"). Pide
+//   1 Stone of Xelima del inventario; hay que pulsar Upgrade dos veces. Siempre sale bien.
 // - La lista se desplaza: rueda, flechas o mando (la elección siempre a la vista), ▲/▼ o arrastrando el dedo.
-// - Izquierda/derecha sobre la lista cambia de pestaña; también un clic en "Buy" / "Sell".
+// - Izquierda/derecha sobre la lista cambia de pestaña; también un clic en "Buy" / "Sell" / "Upgrade".
 import Phaser from 'phaser';
 import { itemPackTexture } from '../config/equipment';
 import { GAME_HEIGHT, GAME_WIDTH } from '../config/gameConfig';
 import { MENU_INPUT_DELAY_MS } from '../config/menus';
 import { SHOP_COLORS, SHOP_DETAIL_STYLE, SHOP_GOLD_STYLE, SHOP_HEADER_STYLE, SHOP_ROW_STYLE, SHOP_SECTION_STYLE } from '../config/shop';
-import { SMITH_BANNERS, SMITH_BUTTONS, SMITH_LAYOUT, SMITH_COLORS, SMITH_PANEL } from '../config/smith';
+import { SMITH_BANNERS, SMITH_BUTTONS, SMITH_LAYOUT, SMITH_COLORS, SMITH_PANEL, SMITH_UPGRADE_SOUND } from '../config/smith';
 import { ATTRIBUTES } from '../data/attributes';
+import { XELIMA_STONE_ID } from '../data/consumables';
 import { formatGold } from '../data/gold';
-import { canEquip, describeItem, EQUIP_SLOT_NAMES, itemInfo, itemPicture, requirementChecks, type ItemId } from '../data/items';
-import type { OwnedItem } from '../data/loot';
-import { smithBuyPrice, smithBuysFromYou, smithSellPrice, smithStock, SMITH_TEXT, type SmithTab } from '../data/smith';
+import { canEquip, describeItem, EQUIP_SLOT_NAMES, itemDamageBonus, itemInfo, itemPicture, ownedItemName, requirementChecks, type EquipSlotId, type ItemId } from '../data/items';
+import { sameOwnedItem, type OwnedItem } from '../data/loot';
+import {
+    smithBuyPrice, smithBuysFromYou, smithSellPrice, smithStock, smithUpgradePrice, SMITH_TABS, SMITH_TEXT, type SmithTab,
+} from '../data/smith';
+import { canUpgrade, upgradeOf, UPGRADE_MAX, UPGRADE_STONES_PER_LEVEL } from '../data/upgrades';
 import { AudioSystem } from '../systems/AudioSystem';
-import { characterStore, permanentStats, type SavedCharacter } from '../systems/CharacterStore';
+import { characterStore, permanentStats, wornItem, type SavedCharacter } from '../systems/CharacterStore';
 import { goldStore } from '../systems/GoldStore';
 import { Action, InputSystem } from '../systems/InputSystem';
 import { lookLoader } from '../systems/LookLoader';
@@ -32,11 +38,14 @@ export interface SmithSceneData {
     tab?: SmithTab;
 }
 
-/** One line of the list: a section title, or something to buy or sell. */
+/** One line of the list: a section title, or something to buy, sell or upgrade (worn in `slot`, or in the inventory). */
 type Line =
     | { kind: 'section'; title: string }
     | { kind: 'buy'; id: ItemId }
-    | { kind: 'sell'; item: OwnedItem; count: number };
+    | { kind: 'sell'; item: OwnedItem; count: number }
+    | { kind: 'upgrade'; item: OwnedItem; count: number; slot: EquipSlotId | undefined };
+
+const TAB_LABELS: Readonly<Record<SmithTab, string>> = { buy: 'Buy', sell: 'Sell', upgrade: 'Upgrade' };
 
 type ItemLine = Exclude<Line, { kind: 'section' }>;
 
@@ -78,7 +87,7 @@ export class SmithScene extends Phaser.Scene {
     private cancel!: Phaser.GameObjects.Image;
     /** A message that replaces the description until the choice changes. */
     private notice: string | undefined;
-    /** The sell line waiting for its second press (a sale is confirmed by pressing Sell again). */
+    /** The line waiting for its second press (a sale or an upgrade is confirmed by pressing the button again). */
     private confirming: number | undefined;
     private iconsReady = false;
     /** Finger drag over the list: where it started and whether it scrolled (then it chooses nothing). */
@@ -116,15 +125,15 @@ export class SmithScene extends Phaser.Scene {
         this.banner = this.add.image(this.x(SMITH_PANEL.width / 2), this.top, SMITH_BANNERS.texture, SMITH_BANNERS.buy.frame)
             .setOrigin(0.5, 0).setScale(s);
 
-        for (const tab of ['buy', 'sell'] as const) {
-            const text = this.add.text(this.x(l.tabX[tab]), this.y(l.tabsY), tab === 'buy' ? 'Buy' : 'Sell', SHOP_SECTION_STYLE)
+        for (const tab of SMITH_TABS) {
+            const text = this.add.text(this.x(l.tabX[tab]), this.y(l.tabsY), TAB_LABELS[tab], SHOP_SECTION_STYLE)
                 .setOrigin(0.5).setInteractive({ useHandCursor: true });
             text.on(Phaser.Input.Events.POINTER_UP, () => {
                 if (this.ready()) this.setTab(tab);
             });
             this.tabTexts.set(tab, text);
         }
-        this.tabLine = this.add.rectangle(0, this.y(l.tabsY + 8), l.tabUnderline * s, 2, SHOP_COLORS.selectedBorder).setOrigin(0.5);
+        this.tabLine = this.add.rectangle(0, this.y(l.tabsY + 8), 1, 2, SHOP_COLORS.selectedBorder).setOrigin(0.5);
         this.add.text(this.x(l.nameX), this.y(l.headerY), 'ITEM', SHOP_HEADER_STYLE).setOrigin(0, 0.5);
         this.add.text(this.x(l.priceX), this.y(l.headerY), 'PRICE', SHOP_HEADER_STYLE).setOrigin(1, 0.5);
         this.focusFrame = this.add.rectangle(0, 0, 1, 1, SHOP_COLORS.selectedFill, SHOP_COLORS.selectedAlpha).setOrigin(0);
@@ -282,15 +291,20 @@ export class SmithScene extends Phaser.Scene {
             }
             return lines;
         }
-        // Sell: the inventory, the same item with the same attribute counted once.
-        const entries: Array<{ item: OwnedItem; count: number }> = [];
-        for (const item of character.inventory) {
-            if (!smithBuysFromYou(item.id)) continue;
-            const entry = entries.find((e) => e.item.id === item.id && e.item.attribute === item.attribute);
-            if (entry) entry.count++;
-            else entries.push({ item: { ...item }, count: 1 });
+        if (this.tab === 'upgrade') {
+            // The weapon or wand worn, then those of the inventory.
+            const worn = wornItem(character, 'weapon');
+            if (worn && canUpgrade(worn.id)) {
+                lines.push({ kind: 'section', title: SMITH_TEXT.worn });
+                lines.push({ kind: 'upgrade', item: worn, count: 1, slot: 'weapon' });
+            }
+            const owned = groupInventory(character, (item) => canUpgrade(item.id));
+            if (owned.length > 0) lines.push({ kind: 'section', title: SMITH_TEXT.inventory });
+            for (const entry of owned) lines.push({ kind: 'upgrade', ...entry, slot: undefined });
+            return lines;
         }
-        for (const entry of entries) lines.push({ kind: 'sell', ...entry });
+        // Sell: the inventory, the same item with the same attribute and "+" counted once.
+        for (const entry of groupInventory(character, (item) => smithBuysFromYou(item.id))) lines.push({ kind: 'sell', ...entry });
         return lines;
     }
 
@@ -313,17 +327,21 @@ export class SmithScene extends Phaser.Scene {
         const banner = SMITH_BANNERS[tab];
         this.banner.setFrame(banner.frame, true, false).setOrigin(0.5, 0);
         for (const [key, text] of this.tabTexts) text.setColor(key === tab ? SHOP_COLORS.heading : SMITH_COLORS.tabOff);
-        this.tabLine.setX(this.x(SMITH_LAYOUT.tabX[tab]));
-        // Same size for Purchase and Sell: the button keeps its place.
+        this.tabLine.setX(this.x(SMITH_LAYOUT.tabX[tab])).setSize(this.tabTexts.get(tab)?.width ?? 1, 2);
+        // Same size for Purchase, Sell and Upgrade: the button keeps its place.
         this.refresh();
     }
 
-    /** After buying or selling: the lines again, keeping the choice as close as it was. */
-    private rebuild(): void {
+    /**
+     * After buying, selling or upgrading: the lines again, keeping the choice as close as it was (or on the line `follow`
+     * picks, e.g. the sword just upgraded).
+     */
+    private rebuild(follow?: (line: Line) => boolean): void {
         const before = this.selected;
         this.lines = this.buildLines();
         const items = this.itemIndexes();
-        this.selected = items.find((index) => index >= before) ?? items[items.length - 1] ?? -1;
+        const followed = follow ? this.lines.findIndex(follow) : -1;
+        this.selected = followed >= 0 ? followed : items.find((index) => index >= before) ?? items[items.length - 1] ?? -1;
         this.keepVisible();
         this.refresh();
     }
@@ -350,11 +368,13 @@ export class SmithScene extends Phaser.Scene {
         slot.price.setVisible(isItem);
         slot.icon.setVisible(false);
         if (!isItem) return;
-        const item = line.kind === 'buy' ? { id: line.id } : line.item;
+        const item = lineItem(line);
         const state = this.stateOf(line);
         const cantWear = line.kind === 'buy' && state.blocked === SMITH_TEXT.cantWear;
         slot.name.setText(this.label(line)).setColor(cantWear ? SMITH_COLORS.cantWear : SHOP_COLORS.text);
-        slot.price.setText(formatGold(state.price)).setColor(line.kind === 'buy' && !state.affordable ? SHOP_COLORS.tooExpensive : SHOP_COLORS.text);
+        const maxed = line.kind === 'upgrade' && upgradeOf(line.item) >= UPGRADE_MAX;
+        slot.price.setText(maxed ? SMITH_TEXT.max : formatGold(state.price))
+            .setColor(line.kind !== 'sell' && !state.affordable && !maxed ? SHOP_COLORS.tooExpensive : SHOP_COLORS.text);
         const gender = this.character?.look.gender ?? 'male';
         const picture = itemPicture(item.id, gender);
         if (!picture || !this.iconsReady) return;
@@ -364,18 +384,27 @@ export class SmithScene extends Phaser.Scene {
         icon.setAlpha(cantWear ? SMITH_COLORS.cantWearIconAlpha : 1);
     }
 
-    /** The row's name: with the attribute ("Sharp Long Sword", "Plate Mail (HP Recovery)") and how many ("×3"). */
+    /**
+     * The row's name: with the attribute and "+" ("Sharp Long Sword +2", "Plate Mail (HP Recovery)") and how many ("×3").
+     */
     private label(line: ItemLine): string {
-        const item = line.kind === 'buy' ? { id: line.id } : line.item;
-        const name = itemInfo(item.id)?.name ?? item.id;
+        const item = lineItem(line);
         const attribute = item.attribute ? ATTRIBUTES[item.attribute] : undefined;
-        const named = attribute ? (attribute.kind === 'weapon' ? `${attribute.name} ${name}` : `${name} (${attribute.name})`) : name;
-        return line.kind === 'sell' && line.count > 1 ? `${named} ×${line.count}` : named;
+        const named = attribute?.kind === 'armor' ? `${ownedItemName(item)} (${attribute.name})` : ownedItemName(item);
+        return line.kind !== 'buy' && line.count > 1 ? `${named} ×${line.count}` : named;
     }
 
     /** Price, and why it can't be bought or sold now (undefined when it can). */
     private stateOf(line: ItemLine): { price: number; affordable: boolean; blocked: string | undefined } {
         if (line.kind === 'sell') return { price: smithSellPrice(line.item), affordable: true, blocked: undefined };
+        if (line.kind === 'upgrade') {
+            const level = upgradeOf(line.item);
+            if (level >= UPGRADE_MAX) return { price: 0, affordable: true, blocked: SMITH_TEXT.maxed };
+            const price = smithUpgradePrice(line.item.id, level + 1);
+            const affordable = goldStore.total >= price;
+            const stones = this.stones() >= UPGRADE_STONES_PER_LEVEL;
+            return { price, affordable, blocked: !stones ? SMITH_TEXT.noStone : !affordable ? SMITH_TEXT.notEnoughGold : undefined };
+        }
         const price = smithBuyPrice(line.id);
         const character = this.character;
         const wearable = character !== undefined && canEquip(line.id, permanentStats(character), character.level);
@@ -396,7 +425,7 @@ export class SmithScene extends Phaser.Scene {
         }
         const state = line && line.kind !== 'section' ? this.stateOf(line) : undefined;
         const canAct = state !== undefined && state.blocked === undefined;
-        const actionFrame = this.tab === 'buy' ? SMITH_BUTTONS.purchase : SMITH_BUTTONS.sell;
+        const actionFrame = this.tab === 'buy' ? SMITH_BUTTONS.purchase : SMITH_BUTTONS[this.tab];
         this.action.setFrame(actionFrame + (this.focus.kind === 'action' ? SMITH_BUTTONS.litOffset : 0), true, false)
             .setAlpha(canAct ? 1 : SMITH_BUTTONS.disabledAlpha);
         this.cancel.setFrame(SMITH_BUTTONS.cancel + (this.focus.kind === 'cancel' ? SMITH_BUTTONS.litOffset : 0), true, false);
@@ -414,13 +443,14 @@ export class SmithScene extends Phaser.Scene {
             return;
         }
         if (!line || line.kind === 'section') {
-            this.detail.setText(this.tab === 'sell' ? SMITH_TEXT.nothingToSell : '');
+            this.detail.setText(this.tab === 'sell' ? SMITH_TEXT.nothingToSell : this.tab === 'upgrade' ? SMITH_TEXT.nothingToUpgrade : '');
             return;
         }
-        const item = line.kind === 'buy' ? { id: line.id } : line.item;
+        const item = lineItem(line);
         const slot = itemInfo(item.id)?.slot;
         const attribute = item.attribute ? ` ${ATTRIBUTES[item.attribute].description}.` : '';
         const what = slot ? `${EQUIP_SLOT_NAMES[slot]}: ${describeItem(item.id)}.` : `${describeItem(item.id)}.`;
+        if (line.kind === 'upgrade') return this.drawUpgradeDetail(line);
         this.detail.setText(`${what}${attribute}`);
         if (line.kind !== 'buy') return;
         const character = this.character;
@@ -430,6 +460,27 @@ export class SmithScene extends Phaser.Scene {
         this.requirements.setText(`Needs ${checks.map((check) => check.label).join(', ')}`)
             .setColor(met ? SMITH_COLORS.met : SMITH_COLORS.unmet)
             .setY(this.detail.y + this.detail.height + 2);
+    }
+
+    /** Upgrade: what the next "+" gives, and what it costs (green with a stone, red without). */
+    private drawUpgradeDetail(line: Extract<Line, { kind: 'upgrade' }>): void {
+        const level = upgradeOf(line.item);
+        if (level >= UPGRADE_MAX) {
+            this.detail.setText(SMITH_TEXT.maxed);
+            return;
+        }
+        const next = { ...line.item, upgrade: level + 1 };
+        const bonus = `+${Math.round(itemDamageBonus(next) * 100)}%`;
+        this.detail.setText(SMITH_TEXT.upgradeInfo(level, level + 1, bonus));
+        const stones = this.stones();
+        this.requirements.setText(SMITH_TEXT.upgradeCost(stones))
+            .setColor(stones >= UPGRADE_STONES_PER_LEVEL ? SMITH_COLORS.met : SMITH_COLORS.unmet)
+            .setY(this.detail.y + this.detail.height + 2);
+    }
+
+    /** Stones of Xelima in the character's inventory (the warehouse doesn't count). */
+    private stones(): number {
+        return this.character?.inventory.filter((item) => item.id === XELIMA_STONE_ID).length ?? 0;
     }
 
     // ---- Moving ----
@@ -465,7 +516,8 @@ export class SmithScene extends Phaser.Scene {
 
     private moveSideways(dx: number): void {
         if (this.focus.kind === 'row') {
-            this.setTab(dx < 0 ? 'buy' : 'sell');
+            const next = SMITH_TABS[SMITH_TABS.indexOf(this.tab) + dx];
+            if (next) this.setTab(next);
             return;
         }
         this.setFocus({ kind: dx < 0 ? 'action' : 'cancel' });
@@ -512,7 +564,8 @@ export class SmithScene extends Phaser.Scene {
         const line = this.lines[this.selected];
         if (!line || line.kind === 'section') return;
         if (line.kind === 'buy') this.buy(line.id);
-        else this.sell(line);
+        else if (line.kind === 'sell') this.sell(line);
+        else this.upgrade(line);
     }
 
     private buy(id: ItemId): void {
@@ -538,7 +591,7 @@ export class SmithScene extends Phaser.Scene {
             this.confirming = this.selected;
             return this.say(SMITH_TEXT.confirmSell(name, formatGold(price)));
         }
-        const index = this.character?.inventory.findIndex((item) => item.id === line.item.id && item.attribute === line.item.attribute) ?? -1;
+        const index = this.character?.inventory.findIndex((item) => sameOwnedItem(item, line.item)) ?? -1;
         if (index < 0 || !characterStore.takeFromInventory(this.uid, index)) return;
         goldStore.add(price);
         this.audio.play('sfx.pickup');
@@ -547,6 +600,31 @@ export class SmithScene extends Phaser.Scene {
         this.rebuild();
         // The list may have become empty: the focus goes back to the (empty) list.
         if (this.selected < 0) this.focus = { kind: 'row' };
+        this.drawFocus();
+    }
+
+    /** Upgrade one: first press asks, second pays the gold and the stone and raises the "+" (Fase 24D). */
+    private upgrade(line: Extract<Line, { kind: 'upgrade' }>): void {
+        if (!this.character) return this.say(SMITH_TEXT.noCharacter);
+        const state = this.stateOf(line);
+        if (state.blocked !== undefined) return this.say(state.blocked);
+        const to = upgradeOf(line.item) + 1;
+        if (this.confirming !== this.selected) {
+            this.confirming = this.selected;
+            return this.say(SMITH_TEXT.confirmUpgrade(ownedItemName(line.item), to, formatGold(state.price)));
+        }
+        if (!goldStore.spend(state.price)) return this.say(SMITH_TEXT.notEnoughGold);
+        const target = line.slot ? { slot: line.slot } : { item: line.item };
+        if (!characterStore.upgrade(this.uid, target)) {
+            goldStore.add(state.price);
+            return this.say(SMITH_TEXT.noStone);
+        }
+        const upgraded: OwnedItem = { ...line.item, upgrade: to };
+        this.audio.play(SMITH_UPGRADE_SOUND);
+        this.confirming = undefined;
+        this.notice = SMITH_TEXT.upgraded(ownedItemName(upgraded));
+        // The choice follows the item just upgraded (worn, or its new line in the inventory).
+        this.rebuild((other) => other.kind === 'upgrade' && other.slot === line.slot && sameOwnedItem(other.item, upgraded));
         this.drawFocus();
     }
 
@@ -563,4 +641,21 @@ export class SmithScene extends Phaser.Scene {
     private ready(): boolean {
         return this.time.now - this.openedAt >= MENU_INPUT_DELAY_MS;
     }
+}
+
+/** The item a line is about. */
+function lineItem(line: ItemLine): OwnedItem {
+    return line.kind === 'buy' ? { id: line.id } : line.item;
+}
+
+/** The inventory items that pass `keep`, the same kind (attribute and "+") counted once. */
+function groupInventory(character: Readonly<SavedCharacter>, keep: (item: OwnedItem) => boolean): Array<{ item: OwnedItem; count: number }> {
+    const entries: Array<{ item: OwnedItem; count: number }> = [];
+    for (const item of character.inventory) {
+        if (!keep(item)) continue;
+        const entry = entries.find((e) => sameOwnedItem(e.item, item));
+        if (entry) entry.count++;
+        else entries.push({ item: { ...item }, count: 1 });
+    }
+    return entries;
 }

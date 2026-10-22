@@ -268,7 +268,7 @@ export class ShopScene extends Phaser.Scene {
     private describe(entry: ShopEntry, state: EntryState): string {
         if (state.soldOut) return `${entry.description}\n${SHOP_TEXT.soldOut}.`;
         const good = entry.good;
-        const owned = good.kind === 'item' && this.uid !== undefined ? ` You have ${characterStore.ownedCount(this.uid, good.id)}.` : '';
+        const owned = good.kind === 'item' && this.uid !== undefined ? ` You have ${characterStore.ownedCount(this.uid, { id: good.id })}.` : '';
         return `${entry.description}${owned}`;
     }
 

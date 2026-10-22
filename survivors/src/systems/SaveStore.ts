@@ -20,6 +20,7 @@ import { MELEE_WEAPONS, type MeleeWeaponId } from '../data/weapons';
 import { isItemAttribute, type ItemAttribute } from '../data/attributes';
 import { canHaveAttribute, EQUIP_SLOT_IDS, isItemId, itemInfo, type EquipSlotId, type ItemId } from '../data/items';
 import type { OwnedItem } from '../data/loot';
+import { readUpgrade } from '../data/upgrades';
 import type { RunLootState } from './RunLoot';
 
 const STORAGE_KEY = 'hb-survivors.runs';
@@ -235,7 +236,8 @@ function readSnapshot(entry: unknown): RunSnapshot | undefined {
 export function readOwnedItem(value: unknown): OwnedItem | undefined {
     if (!isRecord(value) || typeof value.id !== 'string' || !isItemId(value.id)) return undefined;
     const attribute = readAttribute(value.id, value.attribute);
-    return attribute ? { id: value.id, attribute } : { id: value.id };
+    const upgrade = readUpgrade(value.id, value.upgrade);
+    return { id: value.id, ...(attribute ? { attribute } : {}), ...(upgrade ? { upgrade } : {}) };
 }
 
 /** An attribute read back, if that item can have it. */

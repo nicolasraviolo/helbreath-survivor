@@ -128,6 +128,11 @@ const PRESETS = {
     // con objetos en el inventario (con atributo, sin él y dos Stone of Xelima).
     smith: 'characters=demo&open=town&town=tom&smith=buy&gold=5000',
     smithsell: 'characters=demo&open=town&town=tom&smith=sell&gold=100&gear=sharp:longSword,inv:plateMail,inv:xelimaStone,inv:xelimaStone',
+    // Fase 24D: Upgrade de Tom (Gorn, el Guerrero) con 20.000 de oro y 5 piedras; en el inventario, una Long Sword +2 y una Sharp Long Sword.
+    // Para mejorar a mano: --eval="(s => (s.choose(1), s.act(), s.act(), s.notice))(game.scene.getScene('Smith'))".
+    smithupgrade: 'characters=demo&class=warrior&open=town&town=tom&smith=upgrade&gold=20000&xelima=5&gear=up2:longSword,sharp:longSword',
+    // Fase 24D: partida con la daga a +3 (+30% de daño). --eval="g.stats.attributeBonus" debe dar 0.3.
+    upgradedmg: 'play=warrior&upgrade=3',
     // Fase 24C: la Stone of Xelima cae del 5% de los monstruos (horda para que salga pronto).
     xelima: 'play=warrior&characters=demo&debug=god,horde,xelima',
     // Traveler Zone (Fase 22A): el mapa de introducción. travelerboss: el Dummy (jefe final) con sus bichos.

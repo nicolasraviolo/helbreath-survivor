@@ -63,8 +63,9 @@ export class NpcDialogScene extends MenuOverlayScene {
                 this.openFromTown(SHOP_SCENE_KEY, { characterUid: this.characterUid } satisfies ShopSceneData);
                 return;
             case 'smithBuy':
-            case 'smithSell': {
-                const tab = action === 'smithBuy' ? 'buy' : 'sell';
+            case 'smithSell':
+            case 'smithUpgrade': {
+                const tab = action === 'smithBuy' ? 'buy' : action === 'smithSell' ? 'sell' : 'upgrade';
                 this.openFromTown(SMITH_SCENE_KEY, { characterUid: this.characterUid, tab } satisfies SmithSceneData);
                 return;
             }

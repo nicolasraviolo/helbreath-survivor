@@ -21,6 +21,13 @@ import type { EquipSlotId, ItemId } from './items';
 export interface OwnedItem {
     id: ItemId;
     attribute?: ItemAttribute;
+    /** +1, +2 or +3 from the blacksmith (Fase 24D, data/upgrades.ts); missing = +0. */
+    upgrade?: number;
+}
+
+/** The same kind of item: same id, attribute and "+" (two identical Long Swords are the same kind). */
+export function sameOwnedItem(a: Readonly<OwnedItem>, b: Readonly<OwnedItem>): boolean {
+    return a.id === b.id && a.attribute === b.attribute && (a.upgrade ?? 0) === (b.upgrade ?? 0);
 }
 
 /**

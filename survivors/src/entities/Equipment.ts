@@ -1,12 +1,14 @@
 // Lo que lleva puesto el personaje: el arma cuerpo a cuerpo o el hechizo "en la mano" y una pieza por hueco de armadura.
 // Calcula la defensa total, el bonus de daño mágico de la ropa y qué capas hay que dibujar al cambiar una pieza.
 // Fase 21B: la varita de la Maga (data/wands.ts) y el atributo del arma o la varita en la mano (data/attributes.ts).
+// Fase 24D: el "+" del arma o varita en la mano (data/upgrades.ts), que se multiplica con su atributo.
 // Fase 24A: los atributos de las armaduras (HP Recovery, Defense Ratio, Magic Resistance) se suman aquí.
 import { attributeColor, attributeDamageBonus, ATTRIBUTES, type ItemAttribute } from '../data/attributes';
 import { ARMOR_BY_SET, ARMOR_PIECES, ARMOR_SLOT_IDS, getArmorPiece, MAX_DEFENSE, type ArmorPieceId, type ArmorSlotId } from '../data/armor';
 import type { CharacterDef } from '../data/characters';
 import { passiveBonus, type PassiveId } from '../data/passives';
 import type { AutoSpellId } from '../data/spells';
+import { upgradeDamageBonus } from '../data/upgrades';
 import { getWand, type WandId } from '../data/wands';
 import { getMeleeWeapon, type MeleeWeaponId } from '../data/weapons';
 import type { GearLayer, GearSlot } from '../hb/playerAppearance';
@@ -25,6 +27,8 @@ export class Equipment {
     public wand: WandId | undefined;
     /** Sharp, Poison or Ancient of the weapon or wand in hand (Fase 21B). */
     public weaponAttribute: ItemAttribute | undefined;
+    /** "+" of the weapon or wand in hand (Fase 24D, 0–3). */
+    public weaponUpgrade = 0;
     /** One piece per armor slot; changed only through wear(), which keeps `totals` up to date. */
     private readonly worn: Partial<Record<ArmorSlotId, ArmorPieceId>> = {};
     /** Attribute of each armor piece worn (Fase 24A: HP Recovery, Defense Ratio...). */
@@ -82,9 +86,12 @@ export class Equipment {
         return this.totals.magicDamageBonus + (this.wand ? getWand(this.wand).magicDamageBonus : 0);
     }
 
-    /** Extra damage of the weapon's attribute (Sharp +10%, Ancient +20%); for the Mage, of her spells. */
-    public get attributeDamageBonus(): number {
-        return attributeDamageBonus(this.weaponAttribute);
+    /**
+     * Extra damage of the weapon's attribute (Sharp +10%, Ancient +20%) and its "+" (+10% each, Fase 24D), multiplied
+     * together; for the Mage, of her spells.
+     */
+    public get weaponDamageBonus(): number {
+        return (1 + attributeDamageBonus(this.weaponAttribute)) * (1 + upgradeDamageBonus(this.weaponUpgrade)) - 1;
     }
 
     /** Hits poison the monsters (a Poison weapon). */

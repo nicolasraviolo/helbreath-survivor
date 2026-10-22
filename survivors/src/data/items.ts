@@ -22,6 +22,7 @@ import { SPELL_ITEM_ICON, type OwnedItem } from './loot';
 import { AUTO_SPELL_IDS, isAutoSpellId, SPELLS, type AutoSpellId } from './spells';
 import type { Stats } from './stats';
 import { getWand, isWandId, WAND_IDS, type WandId } from './wands';
+import { upgradeDamageBonus, upgradeOf, upgradeSuffix } from './upgrades';
 import { getMeleeWeapon, MELEE_FAMILIES, MELEE_WEAPONS, type MeleeWeaponId } from './weapons';
 
 export type SpellSlotId = 'spell1' | 'spell2';
@@ -303,19 +304,28 @@ export function canHaveAttribute(id: ItemId, attribute: ItemAttribute): boolean 
     return isMeleeWeaponId(id);
 }
 
-/** Name with a weapon's attribute in front ("Sharp Long Sword"); armor attributes don't change the name. */
+/**
+ * Name with a weapon's attribute in front ("Sharp Long Sword") and its "+" behind ("Sharp Long Sword +2", Fase 24D);
+ * armor attributes don't change the name.
+ */
 export function ownedItemName(item: Readonly<OwnedItem>): string {
     const name = itemInfo(item.id)?.name ?? item.id;
-    return item.attribute && ATTRIBUTES[item.attribute].kind === 'weapon' ? `${ATTRIBUTES[item.attribute].name} ${name}` : name;
+    const named = item.attribute && ATTRIBUTES[item.attribute].kind === 'weapon' ? `${ATTRIBUTES[item.attribute].name} ${name}` : name;
+    return `${named}${upgradeSuffix(upgradeOf(item))}`;
+}
+
+/** Extra damage of a weapon or wand from its attribute and its "+" together (Sharp +2: ×1.1 × 1.2 → +32%). */
+export function itemDamageBonus(item: Readonly<OwnedItem>): number {
+    return (1 + attributeDamageBonus(item.attribute)) * (1 + upgradeDamageBonus(upgradeOf(item))) - 1;
 }
 
 /**
- * itemPower counting the attribute: a weapon's damage grows by it; a wand's "+% magic damage" becomes the total extra
+ * itemPower counting the attribute and the "+" (Fase 24D): a weapon's damage grows by it; a wand's "+% magic damage" becomes the total extra
  * of the wand and the attribute together (Berserk +40% and Sharp: ×1.4 × 1.1 → +54%).
  */
 export function ownedItemPower(item: Readonly<OwnedItem>): ItemPower {
     const power = itemPower(item.id);
-    const bonus = attributeDamageBonus(item.attribute);
+    const bonus = itemDamageBonus(item);
     if (bonus === 0) return power;
     if (isMeleeWeaponId(item.id)) return { ...power, value: Math.round(power.value * (1 + bonus)) };
     if (isWandId(item.id)) return { ...power, value: Math.round(((1 + power.value / 100) * (1 + bonus) - 1) * 100) };

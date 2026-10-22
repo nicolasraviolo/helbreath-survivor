@@ -16,7 +16,7 @@ import { STAT_POINTS_PER_LEVEL } from '../data/characterLevel';
 import { itemPackTexture } from '../config/equipment';
 import type { Gender } from '../data/appearance';
 import { itemInfo, itemPicture } from '../data/items';
-import type { OwnedItem } from '../data/loot';
+import { sameOwnedItem, type OwnedItem } from '../data/loot';
 import { attributeColor, ATTRIBUTES } from '../data/attributes';
 import { formatGold } from '../data/gold';
 import { setColouredTexture } from '../hb/additiveTint';
@@ -188,7 +188,7 @@ export class GameOverScene extends Phaser.Scene {
         // Fase 24A: the lost ones, matched by item and attribute (after a Continue the same item may be a copy).
         const lostLeft = [...(this.params.lootResult?.lost ?? [])];
         const isLost = (item: OwnedItem): boolean => {
-            const index = lostLeft.findIndex((other) => other.id === item.id && other.attribute === item.attribute);
+            const index = lostLeft.findIndex((other) => sameOwnedItem(other, item));
             if (index >= 0) lostLeft.splice(index, 1);
             return index >= 0;
         };
