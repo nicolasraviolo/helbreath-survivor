@@ -11,7 +11,8 @@
 ## Fase actual
 **Fase 24 (oro, tienda y herrero), en curso** en la rama `fase-24`. Replanteada por el propietario el 21-oct-2026 (ver `docs/DECISIONES.md`, "Fase 24"): básicos al herrero, en el botín solo lo especial, tienda con Zem/Abaddon/dados/vinos, mejoras +1/+2/+3 de armas, precios "challenging", muerte a medias.
 - **24A hecho** (oro, botín especial y muerte a medias; detalle en `PROGRESS-historial.md`). **Pendiente de probar por el propietario.**
-- **Siguiente: 24B, la tienda** (Shop Keeper deja de decir "Coming soon"): vende Zem, Abaddon's Blood, dados y vinos con oro (`goldStore.spend`, `unlockStore.unlock/buy`; precios previstos en DECISIONES). Luego **24C, herrero** (Tom): comprar básicos con requisitos, vender (¼, más con atributo) y mejorar armas +1/+2/+3. Empezar en una sesión nueva; antes de programar, plan corto y OK.
+- **24B hecho** (la tienda: ventana "Item for Sale" con miniaturas y "Sold out"; detalle en `PROGRESS-historial.md`). Probado por el propietario el 22-oct-2026.
+- **Siguiente: 24C, herrero** (Tom): comprar básicos con requisitos, vender (¼, más con atributo) y mejorar armas +1/+2/+3. Empezar en una sesión nueva; antes de programar, plan corto y OK.
 - **Oro y botín:** `data/gold.ts`, `systems/GoldStore.ts`, atributos de armadura en `data/attributes.ts`; ver NOTES.md, "Oro, botín especial y muerte a medias (Fase 24A)". Hasta el 24C, las armas y armaduras normales ni caen ni se compran.
 - **Ciudad:** `data/town.ts` (sitios, NPCs y frases), `scenes/TownScene.ts`, `scenes/NpcDialogScene.ts`; ver NOTES.md, "La ciudad (Fase 23A)" y "NPCs y hablar (Fase 23B)". Los **récords locales (22F)** siguen aplazados en "Ideas para después".
 - **Orden de mapas (20-oct-2026):** Traveler Zone → Bleeding Isle → Elvine Garden → Middleland. Se abren al ganar el anterior o con su Level (1/10/25/40). Icebound, a la Fase 25.
@@ -32,6 +33,7 @@
 - Reroll y Skip: `data/rerollSkip.ts`, `UnlockStore.count/buy`, `GameScene.cardActionsLeft`, botones en `LevelUpScene`; `?unlocks=dice3,wine3`, `check rerollskip`. Ver NOTES.md, "Reroll y Skip (Fase 21½B)".
 - Rareza de las cartas: `data/cardRarity.ts`, `systems/UpgradePool.ts`, `GameScene.levelUpChoices`, `LevelUpScene.rarityParts`; `?debug=epic`, `check epic`. Ver NOTES.md, "Rareza de las cartas (Fase 21½A)".
 - Botín: `data/loot.ts`, `systems/LootRoller.ts`, `LootSystem`, `RunLoot`, `scenes/LootScene.ts`; inventario en `CharacterStore`. Ver NOTES.md, "Botín en partida (Fase 21A)".
+- Tienda (24B): `data/shop.ts`, `config/shop.ts`, `scenes/ShopScene.ts`; `?open=town&town=shopKeeper&shop&gold=N`, `check shop` / `check shopsold`. Ver NOTES.md, "Tienda (Fase 24B)".
 - Oro y botín especial (24A): `data/gold.ts`, `GoldStore`, pickups `coin`/`goldPile`, `GameScene.runGold`, `ArmorAttribute`; `?gold=N`, `check gold`, `check lootarmor`.
 - Baúl, "solo lo que tienes", reglas al morir y Zem: `data/consumables.ts`, `data/warehouse.ts`, `WarehouseStore`, `scenes/WarehouseScene.ts`, `isFreeItem` en `data/items.ts`, `characterStore.finishRun`. Ver NOTES.md, "Baúl, "solo lo que tienes" y Zem (Fase 21D)".
 - Abaddon's Blood: `data/abaddon.ts`, `systems/AbaddonRevive.ts`, `systems/UnlockStore.ts`, `ui/ReviveIcon.ts`; `?unlocks=abaddon`, `check revive`. Ver NOTES.md, "Abaddon's Blood: resurrección permanente (Fase 21E)".

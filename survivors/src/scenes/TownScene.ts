@@ -13,6 +13,7 @@ import { CAMERA_LERP, DEPTH_DEBUG, GAME_HEIGHT, MAP_OBJECT_MARGIN_TILES, TILE_SI
 import { TOUCH_JOYSTICK } from '../config/touch';
 import { DEFAULT_LOOKS } from '../data/appearance';
 import { FOOTSTEP_DUST_EVERY_PX, FOOTSTEPS_PER_RUN_CYCLE } from '../data/audio';
+import type { Appearance } from '../hb/playerAppearance';
 import { CHARACTERS, CHOSEN_CHARACTER_KEY, DEFAULT_CHARACTER, isCharacterId, type CharacterId } from '../data/characters';
 import type { ItemAttribute } from '../data/attributes';
 import { isArmorPieceId, isMeleeWeaponId, START_EQUIPMENT, type SavedEquipment } from '../data/items';
@@ -41,6 +42,7 @@ import { Pool } from '../utils/Pool';
 import { openOverlay } from './MenuOverlayScene';
 import type { MapSelectSceneData } from './MapSelectScene';
 import { NPC_DIALOG_SCENE_KEY, type NpcDialogSceneData } from './NpcDialogScene';
+import { SHOP_SCENE_KEY, type ShopSceneData } from './ShopScene';
 import type { PauseSceneData } from './PauseScene';
 
 export const TOWN_SCENE_KEY = 'Town';
@@ -160,8 +162,11 @@ export class TownScene extends Phaser.Scene {
             this.talkReadyAt = this.time.now + MENU_INPUT_DELAY_MS;
             this.redressIfChanged();
         });
-        // ?town=<npc>&talk (development only): its panel opens at once.
-        if (debugSpot !== undefined && debugSpot !== 'portal' && DEBUG_START.townTalk) {
+        // ?town=<npc>&talk (development only): its panel opens at once. ?town=shopKeeper&shop: the shop (Fase 24B).
+        if (debugSpot === 'shopKeeper' && DEBUG_START.townShop) {
+            const data: Omit<ShopSceneData, 'returnTo'> = { characterUid: this.characterUid };
+            this.time.delayedCall(0, () => openOverlay(this, SHOP_SCENE_KEY, data));
+        } else if (debugSpot !== undefined && debugSpot !== 'portal' && DEBUG_START.townTalk) {
             const npc = this.npcs.find((n) => n.id === debugSpot);
             if (npc) this.time.delayedCall(0, () => this.talkTo(npc));
         }
@@ -228,7 +233,10 @@ export class TownScene extends Phaser.Scene {
         const classId = this.classId;
         void lookLoader.ensure(this, runSprites(CHARACTERS[classId], saved.look, saved.equipment)).then(() => {
             if (!this.sys.isActive() && !this.sys.isPaused()) return;
-            for (const slot of DRESSED_SLOTS) this.player.setGear(slot, undefined);
+            // Back to the starting clothes (shirt, trousers, boots...: they are not items, so Equipment never lists
+            // them), and what is equipped goes on top. Emptying the slots instead left the character in underwear.
+            const start: Appearance = CHARACTERS[classId].appearance;
+            for (const slot of DRESSED_SLOTS) this.player.setGear(slot, start[slot]);
             this.dress(classId, saved.equipment, saved.attributes.weapon);
         });
     }

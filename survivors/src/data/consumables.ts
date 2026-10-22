@@ -10,7 +10,7 @@ import type { ItemIconFrame } from './itemTypes';
 export const ZEM_ID = 'zemstone';
 export type ConsumableId = typeof ZEM_ID;
 
-/** Where an item can come from. 'shop' arrives with the Fase 24. */
+/** Where an item can come from. */
 export type ItemSource = 'bossDrop' | 'shop';
 
 export interface ConsumableDef {
@@ -26,8 +26,8 @@ export const CONSUMABLES: Readonly<Record<ConsumableId, ConsumableDef>> = {
         name: 'Zemstone of Sacrifice',
         icon: { sheet: 15, frame: 39 },
         description: 'If you die, you keep the items found in that run. Used up when it saves something',
-        // Fase 24: add 'shop'.
-        sources: ['bossDrop'],
+        // Fase 24B: also sold by the Shop Keeper (data/shop.ts).
+        sources: ['bossDrop', 'shop'],
     },
 };
 

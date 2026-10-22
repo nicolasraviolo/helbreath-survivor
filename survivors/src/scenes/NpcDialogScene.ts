@@ -2,7 +2,7 @@
 // su nombre de título, su frase y sus opciones, más "Back". Las opciones abren pantallas que ya existían:
 // - Howard: Equipment y Warehouse (antes en Select Character).
 // - William: Achievements; Missions, "Coming soon".
-// - Shop Keeper y Tom: "Coming soon" (tienda y herrero, Fase 24).
+// - Shop Keeper: la tienda (Fase 24B, ShopScene). Tom: "Coming soon" (herrero, Fase 24C).
 // Al abrir una pantalla, este panel se cierra y esa pantalla vuelve directa a la ciudad.
 import Phaser from 'phaser';
 import { MENU_TEXT_STYLE, MENU_OVERLAY, RUN_CHOICE } from '../config/menus';
@@ -10,6 +10,7 @@ import { TOWN_NPCS, TOWN_TALK, type NpcAction, type NpcId } from '../data/town';
 import type { MenuItem } from '../ui/MenuList';
 import type { EquipmentSceneData } from './EquipmentScene';
 import { MenuOverlayScene, type MenuOverlayData } from './MenuOverlayScene';
+import { SHOP_SCENE_KEY, type ShopSceneData } from './ShopScene';
 import type { WarehouseSceneData } from './WarehouseScene';
 
 export const NPC_DIALOG_SCENE_KEY = 'NpcDialog';
@@ -53,6 +54,10 @@ export class NpcDialogScene extends MenuOverlayScene {
                 return;
             case 'achievements':
                 this.openFromTown('Achievements', {});
+                return;
+            case 'shop':
+                // Without a character it still opens: only the Zemstone needs one (it says so when you try).
+                this.openFromTown(SHOP_SCENE_KEY, { characterUid: this.characterUid } satisfies ShopSceneData);
                 return;
             case 'equipment':
             case 'warehouse': {

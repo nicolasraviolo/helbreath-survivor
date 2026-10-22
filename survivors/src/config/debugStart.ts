@@ -53,6 +53,7 @@
 //   ?town=portal     → con ?open=town, el personaje aparece sobre el teleport: se abre Select Map encima de la ciudad
 //   ?town=william    → con ?open=town, aparece junto a ese NPC (howard, shopKeeper, william, tom; Fase 23B);
 //                      con &talk, además se abre su panel
+//   ?town=shopKeeper&shop → con ?open=town, se abre la tienda directamente (Fase 24B)
 //   ?unlocks=abaddon  → desbloquea Abaddon's Blood en este dispositivo (Fase 21E; reset = quita los desbloqueos)
 //                      dice3,wine2 → 3 dados (Reroll) y 2 vinos (Skip) comprados (Fase 21½B; "dice" solo = 1, "dice0" = 0)
 //   ?achievements=reset → borra los logros conseguidos al cargar (all = los da todos, para ver la pantalla llena; Fase 14B)
@@ -130,6 +131,8 @@ interface DebugStart {
      */
     townSpot: 'portal' | NpcId | undefined;
     townTalk: boolean;
+    /** ?town=shopKeeper&shop: the shop opens at once (Fase 24B). */
+    townShop: boolean;
     /** ?gold=50000: the device's gold is set to that when the page loads (Fase 24A). */
     gold: number | undefined;
 }
@@ -138,7 +141,7 @@ function readDebugStart(): DebugStart {
     const none: DebugStart = {
         play: false, character: undefined, actions: [], trees: undefined, open: undefined, achievements: undefined, characters: undefined,
         sendMetrics: false, spells: { auto: undefined, active: undefined }, openClass: undefined, slash: undefined,
-        holdLoading: false, gear: [], settingsTab: undefined, attribute: undefined, unlocks: undefined, unlockCounts: {}, map: undefined, maps: undefined, townSpot: undefined, townTalk: false,
+        holdLoading: false, gear: [], settingsTab: undefined, attribute: undefined, unlocks: undefined, unlockCounts: {}, map: undefined, maps: undefined, townSpot: undefined, townTalk: false, townShop: false,
         gold: undefined,
     };
     if (!import.meta.env.DEV) return none;
@@ -178,6 +181,7 @@ function readDebugStart(): DebugStart {
         maps: maps === 'all' || maps === 'reset' ? maps : undefined,
         townSpot: parseTownSpot(params.get('town')),
         townTalk: params.has('talk'),
+        townShop: params.has('shop'),
         unlockCounts: readUnlockCounts(unlocks),
         gold: gold !== null && /^\d+$/.test(gold) ? Number(gold) : undefined,
     };

@@ -86,6 +86,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Reroll y Skip (Fase 21½B)
 - Evento Champion (Fase 21½C)
 - Oro, botín especial y muerte a medias (Fase 24A)
+- Tienda (Fase 24B)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -999,3 +1000,11 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - **Atributos de armadura:** `ItemAttribute` = de arma (`WeaponAttribute`) o de armadura (`ArmorAttribute`), con `kind` en `ATTRIBUTES`. Solo los de arma van delante del nombre (`ownedItemName`) y tiñen el dibujo (`pictureAdd` opcional). `canHaveAttribute` decide dónde puede ir cada uno (MP Recovery solo en la ropa de la Maga). Se aplican en `Equipment.wear(piece, attribute)` → `recompute()` (Defense Ratio y Magic Resistance a los totales, `hpRecovery` multiplica la curación en `applyStats`). Al continuar una partida, una pieza conserva su atributo solo si el personaje la sigue llevando.
 - **Todo lo que cae lleva atributo:** `rollAttribute` elige por `weight` entre los que el objeto admite. `?attr=hpRecovery` hace que solo caigan objetos que lo admiten (`check lootarmor`).
 - **Muerte:** `characterStore.finishRun` pierde `itemsLostOnDeath(n)` = mitad redondeando arriba, al azar; `RunLootResult.lost` es la lista. La pantalla final atenúa los perdidos comparando id + atributo (tras un Continue, `found` y `bag` son copias distintas del mismo objeto).
+
+## Tienda (Fase 24B)
+- **Ventana "Item for Sale" del original:** panel `gamedialog86.spr` **hoja 1, frame 2** (258x339, pergamino con bolitas de plata; el frame 3 es su barra lateral de 23 px, no usada) y letrero `dialogtext.spr` **hoja 0, frame 11** ("Item for Sale", 258x31). En esa hoja 0 están todos los letreros de 258–361 px: 5 = "Item Upgrade" (para el herrero, 24C), 10 = "Repair Item", 21 = "Items In Storage". `gamedialog.spr`, `gamedialog1/2/86` comparten las hojas 0–5 y 7–10 (solo cambia la 6).
+- **Panel del herrero:** `gamedialog86.spr` hoja 2, frame 0 (270x381, con un martillo de fondo).
+- **Botones de `dialogtext.spr` hoja 1** (74x20, iluminado = frame + 1): Ok 0, No 2, Quest 4, Continue 6, Log Out 8, Level Set. 10, I Agree 12, Disagree 14, Cancel 16, Yes 18, Change 20, Connect 22, Create 24, Clear 26, Reset 28, **Purchase 30**, Accept 32, luego Reject 34, Restart 36, **Sell 38**, Decline 40, **Repair 42**, Party 44, **Upgrade 46** (de los cuatro últimos, comprobar en el visor antes de usarlos).
+- **Código:** lista y precios en `data/shop.ts`, medidas en `config/shop.ts` (en píxeles del panel, × `SHOP_PANEL.scale`), ventana `scenes/ShopScene.ts`. Abaddon's Blood y el dado/vino a 3/3 salen "Sold out" en gris claro; el Zem va al inventario del personaje de la ciudad. Atajos: `?open=town&town=shopKeeper&shop&gold=N`, `check shop` / `check shopsold`.
+- **Ojo con `setFrame` en los botones de `dialogtext`:** sus frames traen el pivote arriba a la izquierda, y `setFrame(f)` (al iluminar) vuelve a poner el origen en ese pivote aunque antes se hiciera `setOrigin(0.5)`. Para que sigan centrados: `setFrame(f, true, false)`.
+- **Ropa de serie en la ciudad:** camisa, pantalón, botas... salen de `appearance` de la clase (`data/characters.ts`), no de objetos equipados. Al volver de Equipment, `TownScene.redressIfChanged` pone primero esa ropa y encima lo equipado (antes vaciaba los huecos y el personaje quedaba en ropa interior).
