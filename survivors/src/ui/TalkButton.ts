@@ -4,6 +4,7 @@ import Phaser from 'phaser';
 import { GAME_HEIGHT, GAME_WIDTH } from '../config/gameConfig';
 import { TOUCH_RESERVED_CORNER } from '../config/touch';
 import { TOWN_TALK_BUTTON } from '../config/town';
+import { ScreenLayer } from './renderScale';
 
 export class TalkButton {
     private readonly container: Phaser.GameObjects.Container;
@@ -16,11 +17,11 @@ export class TalkButton {
             .lineStyle(2, b.ringColor, b.ringAlpha).strokeCircle(0, 0, b.radius);
         const label = scene.add.text(0, 0, 'Talk', b.style).setOrigin(0.5);
         this.container = scene.add.container(GAME_WIDTH - corner.width / 2, GAME_HEIGHT - corner.height / 2, [base, label])
-            .setScrollFactor(0, 0, true)
-            .setDepth(depth)
             .setSize(corner.width, corner.height)
             .setInteractive()
             .setVisible(false);
+        new ScreenLayer(scene, depth).addFixed(this.container);
+        this.container.setScrollFactor(0, 0, true);
         this.container.on(Phaser.Input.Events.POINTER_DOWN, onPress);
     }
 

@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 // Fuente de la interfaz (Comic Neue, licencia OFL): va incluida en el juego, así se ve igual en todos los dispositivos.
 import '@fontsource/comic-neue/latin-400.css';
 import '@fontsource/comic-neue/latin-700.css';
-import { BACKGROUND_COLOR, GAME_HEIGHT, GAME_WIDTH } from './config/gameConfig';
+import { BACKGROUND_COLOR } from './config/gameConfig';
 import { TOUCH_POINTERS } from './config/touch';
 import { loadUiFont } from './config/ui';
 import { BootScene } from './scenes/BootScene';
@@ -33,14 +33,16 @@ import { HowToPlayScene } from './scenes/HowToPlayScene';
 import { AchievementsScene } from './scenes/AchievementsScene';
 import { SpriteTestScene } from './scenes/SpriteTestScene';
 import { initInstall } from './ui/install';
+import { CANVAS_HEIGHT, CANVAS_WIDTH, RenderScalePlugin } from './ui/renderScale';
 
 function startGame(): void {
     const game = new Phaser.Game({
         // WebGL: las texturas se crean desde ImageBitmap y se liberan tras subirlas a la GPU.
         type: Phaser.WEBGL,
         parent: 'game',
-        width: GAME_WIDTH,
-        height: GAME_HEIGHT,
+        // Nitidez: el lienzo es 800x600 por RENDER_SCALE y cada cámara hace zoom (ui/renderScale.ts).
+        width: CANVAS_WIDTH,
+        height: CANVAS_HEIGHT,
         backgroundColor: BACKGROUND_COLOR,
         pixelArt: true,
         scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, fullscreenTarget: 'game' },
@@ -48,6 +50,7 @@ function startGame(): void {
         input: { activePointers: TOUCH_POINTERS },
         // El clic derecho apunta (Fase 15B): sin el menú del navegador encima del juego.
         disableContextMenu: true,
+        plugins: { scene: [{ key: 'RenderScale', plugin: RenderScalePlugin, mapping: 'renderScale' }] },
         // HudScene, LevelUpScene y los menús que se abren encima (pausa, ajustes...) van después para dibujarse encima.
         scene: [
             BootScene, PreloadScene, MainMenuScene, CharacterSlotsScene, TownScene, MapSelectScene, MapLoadScene, GameScene, HudScene, LevelUpScene, LootScene, GameOverScene,

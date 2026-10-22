@@ -26,6 +26,7 @@ import { Action, InputSystem } from '../systems/InputSystem';
 import { lookLoader } from '../systems/LookLoader';
 import { warehouseStore } from '../systems/WarehouseStore';
 import type { MenuOverlayData } from './MenuOverlayScene';
+import { toGame } from '../ui/renderScale';
 
 export interface WarehouseSceneData {
     characterUid: string;
@@ -100,7 +101,7 @@ export class WarehouseScene extends Phaser.Scene {
         // Rows and Ok have their own click areas: a click elsewhere does nothing.
         this.inputSystem.setPointerMaxY(-1);
         this.input.on(Phaser.Input.Events.POINTER_WHEEL, (pointer: Phaser.Input.Pointer, _o: unknown, _dx: number, dy: number) => {
-            const side: Side = pointer.x < this.columns.warehouse.x ? 'inventory' : 'warehouse';
+            const side: Side = toGame(pointer.x) < this.columns.warehouse.x ? 'inventory' : 'warehouse';
             this.scroll(side, Math.sign(dy));
         });
         this.refresh();

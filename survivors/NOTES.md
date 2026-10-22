@@ -90,6 +90,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Herrero y Stone of Xelima (Fase 24C)
 - Mejorar armas en el herrero (Fase 24D)
 - Revisión de la dificultad: `pnpm balance` (22-oct-2026)
+- Nitidez: lienzo a la resolución real (RENDER_SCALE)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -1043,3 +1044,10 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - **`?bot=stand`** (caso `...@bot=stand`): el bot se queda quieto pegando. Medido el 22-oct-2026 (Guerrero): en Traveler Zone con buen equipo gana igual que corriendo (vida mínima 79–89%); en Bleeding Isle muere el doble de pronto (4:33 frente a 9:13 a Level 20), aunque mata más y la bola es la mitad. Recoge **menos** pociones y casi nada de oro (las monedas solo se cogen al pisarlas).
 - **Fallo encontrado con la simulación (arreglado):** `HBAsset.partialAnimation` (ataque en dos trozos del Fire Wyvern) creaba la animación aunque su hoja aún no estuviera lista; salía **vacía** y se quedaba así, y al reproducirla Phaser lanzaba "reading 'frame'" y la partida se congelaba. Solo con carga lenta (4 partidas a la vez; en un móvil, posible). Ahora no se crea hasta que existe la textura, se rehace si quedó vacía y `playDirectional` no reproduce una animación vacía. `balance.mjs` para la partida al primer error de página y guarda la pila.
 - **Métricas reales:** la base D1 `helbreath-survivors-metrics` se puede leer con el conector de Cloudflare (solo lectura). A 22-oct-2026 tenía 30 partidas, todas de Bleeding Isle, ninguna ganada.
+
+## Nitidez: lienzo a la resolución real (RENDER_SCALE)
+- El juego piensa en 800x600, pero el lienzo mide 800x600 × `RENDER_SCALE` (1-3, `config/device.ts`) y `RenderScalePlugin` (`ui/renderScale.ts`) pone cada cámara principal con ese zoom al arrancar la escena (evento READY, antes de `create()`). El texto usa `resolution = RENDER_SCALE`, así se pinta 1:1. Antes el lienzo era 800x600 estirado por el navegador y el texto (a resolución ×3 con `pixelArt`) se encogía sin suavizar: letras rotas y borrosas.
+- `pointer.x/y/downY` y `scale.transformX/Y` están en píxeles del lienzo: pasar por `toGame()`. Las coordenadas de mundo (`positionToCamera`, `worldX`) ya están bien.
+- Con zoom, Phaser escala lo que tiene `scrollFactor 0` alrededor del centro de la cámara y se descoloca. Lo fijo en pantalla va dentro de una `ScreenLayer` (`addFixed`), que compensa el desplazamiento cada frame. No usar `setScrollFactor(0)` suelto.
+- Viewports de cámara en píxeles de juego: `setGameViewport()`. `this.scale.width/height` ya no es 800x600: usar `GAME_WIDTH/HEIGHT`.
+- Probar otro factor: `?scale=1|2|3`. El `check --mobile` simula densidad 1 (sale ×1); para ver el zoom en móvil añadir `scale=2` a la situación.

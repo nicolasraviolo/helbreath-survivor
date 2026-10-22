@@ -6,6 +6,7 @@ import type { Player } from '../entities/Player';
 import type { HBMap } from '../hb/HBMap';
 import { DIRECTION_NAMES } from '../hb/directions';
 import type { InputSystem } from './InputSystem';
+import { ScreenLayer } from '../ui/renderScale';
 
 const BLOCKED_COLOR = 0xff3030;
 const HITBOX_COLOR = 0x30ff60;
@@ -32,7 +33,8 @@ export class DebugSystem {
             color: '#e0f0a0',
             backgroundColor: '#000000a0',
             padding: { x: 6, y: 4 },
-        }).setScrollFactor(0).setDepth(DEPTH_DEBUG);
+        });
+        new ScreenLayer(scene, DEPTH_DEBUG).addFixed(this.text);
         this.setEnabled(false);
     }
 

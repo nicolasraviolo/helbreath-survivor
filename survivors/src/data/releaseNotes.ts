@@ -14,6 +14,11 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: readonly ReleaseNote[] = [
     {
+        version: 'Visual update',
+        date: 'Oct 22, 2026',
+        changes: ['Sharper text and graphics, especially on phones and high-resolution screens.'],
+    },
+    {
         version: 'Balance update',
         date: 'Oct 22, 2026',
         changes: [

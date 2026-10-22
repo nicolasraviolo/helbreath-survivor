@@ -5,6 +5,7 @@ import type { MinimapKey } from '../config/assetManifest';
 import { GAME_WIDTH, TILE_SIZE } from '../config/gameConfig';
 import { MINIMAP, MINIMAP_DOTS, type MinimapDotStyle } from '../data/minimap';
 import type { TileRect } from '../data/maps';
+import { ScreenLayer } from './renderScale';
 
 /** What does not change during a run: the picture, the size of the whole map and the play area (in tiles). */
 export interface MinimapInfo {
@@ -53,8 +54,8 @@ export class Minimap {
             .setAlpha(MINIMAP.alpha);
         this.dots = scene.add.graphics();
         this.container = scene.add.container(GAME_WIDTH - MINIMAP.margin - size, MINIMAP.margin, [back, picture, this.dots])
-            .setDepth(depth);
         // Fixed on screen also where the camera moves (the town draws it in its own scene, Fase 23).
+        new ScreenLayer(scene, depth).addFixed(this.container);
         this.container.setScrollFactor(0, 0, true);
     }
 

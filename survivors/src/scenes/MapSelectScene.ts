@@ -6,7 +6,7 @@
 // Teclado: ←/→ cambia de mapa, Enter juega, Esc vuelve. Mando: cruceta/stick, A y B.
 import Phaser from 'phaser';
 import { ASSET_BASE_PATH, MINIMAPS, type MinimapKey } from '../config/assetManifest';
-import { GAME_WIDTH } from '../config/gameConfig';
+import { GAME_HEIGHT, GAME_WIDTH } from '../config/gameConfig';
 import { MAP_SELECT, MAP_SELECT_STYLES } from '../config/mapSelect';
 import { MENU_BACKGROUND, MENU_BACKGROUND_SCALE, MENU_INPUT_DELAY_MS } from '../config/menus';
 import { CHOSEN_MAP_KEY, isMapId, MAP_IDS, MAPS_DATA, type MapDef, type MapId } from '../data/maps';
@@ -61,7 +61,7 @@ export class MapSelectScene extends Phaser.Scene {
         this.characterLevel = characterStore.byUid(typeof uid === 'string' ? uid : undefined)?.level ?? 1;
 
         this.add.image(0, 0, MENU_BACKGROUND.texture, MENU_BACKGROUND.frame).setOrigin(0).setScale(MENU_BACKGROUND_SCALE);
-        this.add.rectangle(0, 0, GAME_WIDTH, this.scale.height, MAP_SELECT.veil.color, MAP_SELECT.veil.alpha).setOrigin(0);
+        this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, MAP_SELECT.veil.color, MAP_SELECT.veil.alpha).setOrigin(0);
         const { title } = MAP_SELECT;
         new SpriteText(this, GAME_WIDTH / 2, title.y, 'Select Map', title.color, 'center').container.setScale(title.scale);
 

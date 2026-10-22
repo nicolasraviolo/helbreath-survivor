@@ -10,6 +10,7 @@
 import Phaser from 'phaser';
 import { GAME_WIDTH } from '../config/gameConfig';
 import type { TouchStickStyle } from '../config/touch';
+import { ScreenLayer, toGame } from './renderScale';
 
 /** Whether a finger landing at (x, y) (game pixels; x can be outside 0..GAME_WIDTH on the margins) opens this stick. */
 export type TouchStickZone = (x: number, y: number, maxY: number) => boolean;
@@ -40,10 +41,11 @@ export class TouchJoystick {
         this.base = scene.add.graphics()
             .fillStyle(j.baseColor, j.baseAlpha).fillCircle(0, 0, j.radius)
             .lineStyle(j.ringWidth, j.ringColor, j.ringAlpha).strokeCircle(0, 0, j.radius)
-            .setScrollFactor(0).setDepth(depth).setVisible(false);
+            .setVisible(false);
         this.knob = scene.add.graphics()
             .fillStyle(j.knobColor, j.knobAlpha).fillCircle(0, 0, j.knobRadius)
-            .setScrollFactor(0).setDepth(depth + 1).setVisible(false);
+            .setVisible(false);
+        new ScreenLayer(scene, depth).addFixed(this.base, this.knob);
 
         const input = scene.input;
         input.on(Phaser.Input.Events.POINTER_DOWN, this.onDown, this);
@@ -95,12 +97,14 @@ export class TouchJoystick {
         this.maxY = maxY;
     }
     private onDown(pointer: Phaser.Input.Pointer): void {
-        const inMargin = pointer.x < 0 || pointer.x > GAME_WIDTH;
-        if (!pointer.wasTouch || (this.touchId !== undefined && this.touchId !== DEBUG_TOUCH_ID) || (pointer.y >= this.maxY && !inMargin)) return;
-        if (!this.accepts(pointer.x, pointer.y, this.maxY)) return;
+        const x = toGame(pointer.x);
+        const y = toGame(pointer.y);
+        const inMargin = x < 0 || x > GAME_WIDTH;
+        if (!pointer.wasTouch || (this.touchId !== undefined && this.touchId !== DEBUG_TOUCH_ID) || (y >= this.maxY && !inMargin)) return;
+        if (!this.accepts(x, y, this.maxY)) return;
         this.wasPushed = false;
         this.touchId = pointer.identifier;
-        this.centre.set(pointer.x, pointer.y);
+        this.centre.set(x, y);
         this.base.setVisible(true);
         this.knob.setVisible(true);
         this.value.set(0, 0);
@@ -111,7 +115,7 @@ export class TouchJoystick {
         const touch = this.findTouch(event);
         if (!touch || this.scene.scene.isPaused()) return;
         const scale = this.scene.scale;
-        this.moveTo(scale.transformX(touch.pageX), scale.transformY(touch.pageY));
+        this.moveTo(toGame(scale.transformX(touch.pageX)), toGame(scale.transformY(touch.pageY)));
     }
 
     private onTouchEnd(event: TouchEvent): void {

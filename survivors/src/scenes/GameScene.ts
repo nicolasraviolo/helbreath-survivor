@@ -114,6 +114,7 @@ import { PASSIVE_IDS, getPassive } from '../data/passives';
 import { goldStore } from '../systems/GoldStore';
 import { RunMetrics, metricsAllowed, sendRunReport } from '../systems/RunMetrics';
 import type { RunResult } from '../config/metrics';
+import { ScreenLayer, setGameViewport } from '../ui/renderScale';
 
 /** Enemies created by the debug "spawn many" key. */
 const DEBUG_SPAWN_COUNT = 100;
@@ -466,10 +467,11 @@ export class GameScene extends Phaser.Scene {
         ]);
         this.godModeLabel = this.add.text(GAME_WIDTH - 10, 10, 'INVINCIBLE (G)', {
             fontFamily: 'monospace', fontSize: '14px', color: '#ffd860', backgroundColor: '#000000a0', padding: { x: 6, y: 3 },
-        }).setOrigin(1, 0).setScrollFactor(0).setDepth(DEPTH_DEBUG).setVisible(false);
+        }).setOrigin(1, 0).setVisible(false);
         this.slashLabel = this.add.text(GAME_WIDTH - 10, 36, '', {
             fontFamily: 'monospace', fontSize: '14px', color: '#ffd860', backgroundColor: '#000000a0', padding: { x: 6, y: 3 },
-        }).setOrigin(1, 0).setScrollFactor(0).setDepth(DEPTH_DEBUG).setVisible(false);
+        }).setOrigin(1, 0).setVisible(false);
+        new ScreenLayer(this, DEPTH_DEBUG).addFixed(this.godModeLabel, this.slashLabel);
         if (DEBUG_START.slash !== undefined) this.setSlashStyle(DEBUG_START.slash);
         this.launchHud();
     }
@@ -920,7 +922,7 @@ export class GameScene extends Phaser.Scene {
     /** Game area down to the HUD bar, or the whole screen with the compact HUD (it can change from the pause menu). */
     private fitPlayArea(): void {
         const bottom = playAreaBottom();
-        this.cameras.main.setViewport(0, 0, GAME_WIDTH, bottom);
+        setGameViewport(this.cameras.main, 0, 0, GAME_WIDTH, bottom);
         this.inputSystem.setPointerMaxY(bottom);
         this.joystick?.setMaxY(bottom);
         this.aimStick?.setMaxY(bottom);

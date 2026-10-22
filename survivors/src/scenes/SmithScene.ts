@@ -28,6 +28,7 @@ import { goldStore } from '../systems/GoldStore';
 import { Action, InputSystem } from '../systems/InputSystem';
 import { lookLoader } from '../systems/LookLoader';
 import type { MenuOverlayData } from './MenuOverlayScene';
+import { toGame } from '../ui/renderScale';
 
 export const SMITH_SCENE_KEY = 'Smith';
 
@@ -261,11 +262,12 @@ export class SmithScene extends Phaser.Scene {
         const step = l.dragRowPx * SMITH_PANEL.scale;
         this.input.on(Phaser.Input.Events.POINTER_DOWN, (pointer: Phaser.Input.Pointer) => {
             this.dragged = false;
-            this.dragY = pointer.y >= top && pointer.y <= bottom ? pointer.y : undefined;
+            const y = toGame(pointer.y);
+            this.dragY = y >= top && y <= bottom ? y : undefined;
         });
         this.input.on(Phaser.Input.Events.POINTER_MOVE, (pointer: Phaser.Input.Pointer) => {
             if (this.dragY === undefined || !pointer.isDown) return;
-            const rows = Math.trunc((this.dragY - pointer.y) / step);
+            const rows = Math.trunc((this.dragY - toGame(pointer.y)) / step);
             if (rows === 0) return;
             this.dragged = true;
             this.dragY -= rows * step;

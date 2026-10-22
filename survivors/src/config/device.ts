@@ -6,8 +6,8 @@ import { GAME_HEIGHT, GAME_WIDTH } from './gameConfig';
 
 /** Screens whose short side is at most this many CSS pixels count as phones. */
 const COMPACT_MAX_SHORT_SIDE = 600;
-/** Text is never drawn sharper than this (memory: a text texture grows with the square of it). */
-const MAX_TEXT_RESOLUTION = 3;
+/** The game is never painted bigger than this (memory and speed grow with the square of it). */
+const MAX_RENDER_SCALE = 3;
 
 function detectCompactUi(): boolean {
     const forced = new URLSearchParams(window.location.search).get('ui');
@@ -25,11 +25,19 @@ export function byDevice<T>(desktop: T, compact: T): T {
     return COMPACT_UI ? compact : desktop;
 }
 
+function detectRenderScale(): number {
+    const forced = Number(new URLSearchParams(window.location.search).get('scale'));
+    if (Number.isInteger(forced) && forced >= 1) return Math.min(MAX_RENDER_SCALE, forced);
+    const fit = Math.min(window.screen.width / GAME_WIDTH, window.screen.height / GAME_HEIGHT);
+    return Math.min(MAX_RENDER_SCALE, Math.max(1, Math.ceil(window.devicePixelRatio * fit)));
+}
+
 /**
- * Phaser draws each text once into its own canvas at 1 pixel per game pixel, so when the game is scaled the text
- * looks blurry. This draws it at the real pixel density of the screen at its biggest (fullscreen) size.
+ * Nitidez: el juego piensa en 800x600, pero el lienzo se pinta este número de veces más grande (x1, x2 o x3, según
+ * la densidad real de la pantalla a su tamaño máximo) y cada cámara hace zoom con él (ui/renderScale.ts). Así el
+ * navegador no estira una imagen pequeña y el texto sale nítido. Para probar otro valor: ?scale=1 (o 2, 3).
  */
-export const TEXT_RESOLUTION = Math.min(
-    MAX_TEXT_RESOLUTION,
-    Math.max(1, Math.ceil(window.devicePixelRatio * Math.min(window.screen.width / GAME_WIDTH, window.screen.height / GAME_HEIGHT))),
-);
+export const RENDER_SCALE = detectRenderScale();
+
+/** Text is prepared at the same scale it is painted with, so it is drawn 1:1 (sharp, no shrinking). */
+export const TEXT_RESOLUTION = RENDER_SCALE;

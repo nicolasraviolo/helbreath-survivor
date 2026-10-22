@@ -18,6 +18,7 @@ import { MANUAL_AIM } from '../data/targeting';
 import { settings } from './Settings';
 import type { ManualAim } from './Targeting';
 import type { TouchJoystick } from '../ui/TouchJoystick';
+import { toGame } from '../ui/renderScale';
 
 export enum Action {
     /** Accept / continue: Enter, Space, gamepad A or a mouse click. */
@@ -240,7 +241,7 @@ export class InputSystem {
         const pointer = this.scene.input.activePointer;
         // A finger on a stick is not a click / tap. Only the left button (or a finger): the right one aims.
         const onStick = this.joystick?.active === true || this.aimStick?.active === true;
-        const pointerDown = pointer.leftButtonDown() && pointer.downY < this.pointerMaxY && !(pointer.wasTouch && onStick);
+        const pointerDown = pointer.leftButtonDown() && toGame(pointer.downY) < this.pointerMaxY && !(pointer.wasTouch && onStick);
         this.pointerJustPressed = pointerDown && !this.pointerWasDown && !this.syncHeldOnly;
         this.pointerWasDown = pointerDown;
         this.syncHeldOnly = false;
@@ -366,7 +367,7 @@ export class InputSystem {
     /** While the left mouse button is held: towards the cursor, slower when it is close. */
     private readPointerMove(): { x: number; y: number } | undefined {
         const pointer = this.scene.input.activePointer;
-        if (!this.pointerAnchor || !pointer.leftButtonDown() || pointer.wasTouch || pointer.downY >= this.pointerMaxY) return undefined;
+        if (!this.pointerAnchor || !pointer.leftButtonDown() || pointer.wasTouch || toGame(pointer.downY) >= this.pointerMaxY) return undefined;
         const anchor = this.pointerAnchor();
         const target = pointer.positionToCamera(this.scene.cameras.main) as Phaser.Math.Vector2;
         const dx = target.x - anchor.x;

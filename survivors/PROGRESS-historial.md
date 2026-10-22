@@ -2,6 +2,12 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
+**Texto nítido (fuera de fase, 2026-10-22).**
+- **Problema:** el texto se veía borroso y con letras rotas en PC y móvil. El lienzo medía 800×600 y el navegador lo estiraba; además el texto se preparaba a ×3 y se encogía sin suavizar (`pixelArt`).
+- **Qué se hizo:** el lienzo mide 800×600 × `RENDER_SCALE` (1–3 según la densidad de la pantalla; `?scale=N` para probar) y `RenderScalePlugin` pone cada cámara con ese zoom; el texto se prepara a la misma escala (1:1). Lo fijo en pantalla (minimapa, sticks, botones táctiles, textos de depuración) va en `ScreenLayer`; los toques pasan por `toGame()`; viewport de la partida con `setGameViewport()`. Código en `ui/renderScale.ts`; ver NOTES.md, "Nitidez".
+- **Comprobado:** build; `check` de menú, personajes, partida, ciudad, ajustes, cartas, equipo, baúl, herrero, tienda, mapas y horda a ×3 sin errores a 60 FPS; en móvil a ×2, joystick bajo el dedo y botón de pausa funcionando. Probado por el propietario en iPhone: bien.
+- **Probar:** `pnpm --dir survivors dev` → http://localhost:8090/?characters=demo&open=slots (comparar con `&scale=1`).
+
 **Revisión de la dificultad (fuera de fase, 2026-10-22).**
 - **Qué se hizo:** herramienta de simulación (`pnpm balance`: partidas simuladas en paralelo con vida "de mentira", perfil `?level=N` con puntos y mejor equipo, `?bot=stand`, carrera en horas con `scripts/progression.mjs`) e informe con 330 partidas simuladas y las 30 reales de las métricas (https://claude.ai/artifact/Xk8DCaCytHNP1yASM2sFBV). Hallazgos: muro hacia el minuto 7–8 de cada mapa por la "bola" de monstruos, jefes muy fáciles, Level y +3 casi no ayudaban a aguantar, la Maga moría 2–3 veces antes, ~550 de oro por hora.
 - **Cambios (aprobados por el propietario):** B +2 de vida por Level del personaje; C Maga vida ×1,15 y Robe/Wizard Robe Mag 35, Wizard Cap 50, Wizard Hat 70; D jefes ×2 de vida; E monedas al 4% y mejoras a 0,5×/1,5×/3×; G vida de los monstruos normales comprimida (`MONSTER_HP`, Ogre 1.040 → ~510) y +4% de daño por Power (`DAMAGE_PER_POWER`). A (bajar el golpe de los monstruos) rechazada; F pendiente de que el propietario pruebe. What's new: página "Balance update".
