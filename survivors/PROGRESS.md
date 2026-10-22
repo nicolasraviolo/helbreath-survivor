@@ -7,14 +7,15 @@
 - 19-oct-2026: 19 Crits y habilidad activa (19A–19C) · 20 Level y equipo (20A–20D).
 - 20-oct-2026: 21 Botín y baúl (21A, 21B, 21D, 21E; el 21C, anillos y collares, aplazado).
 - 21-oct-2026: 21½ Cartas y sorpresas (21½A–21½C) · 22 Sistema de mapas (22A–22E, 22G; los récords locales, 22F, aplazados) · 23 La ciudad (23A–23B).
+- 22-oct-2026: 24 Oro, tienda y herrero (24A–24D).
 
 ## Fase actual
-**Fase 24 (oro, tienda y herrero), en curso** en la rama `fase-24`. Replanteada por el propietario el 21-oct-2026 (ver `docs/DECISIONES.md`, "Fase 24"): básicos al herrero, en el botín solo lo especial, tienda con Zem/Abaddon/dados/vinos, mejoras +1/+2/+3 de armas, precios "challenging", muerte a medias.
+**Fase 24 (oro, tienda y herrero), completada** el 22-oct-2026 y fusionada en `master` (etiqueta `fase-24`). Replanteada por el propietario el 21-oct-2026 (ver `docs/DECISIONES.md`, "Fase 24"): básicos al herrero, en el botín solo lo especial, tienda con Zem/Abaddon/dados/vinos, mejoras +1/+2/+3 de armas, precios "challenging", muerte a medias.
 - **24A hecho** (oro, botín especial y muerte a medias; detalle en `PROGRESS-historial.md`). **Pendiente de probar por el propietario.**
 - **24B hecho** (la tienda: ventana "Item for Sale" con miniaturas y "Sold out"; detalle en `PROGRESS-historial.md`). Probado por el propietario el 22-oct-2026.
 - **24C hecho** (herrero Tom: Buy y Sell; la Stone of Xelima cae muy rara de cualquier monstruo; detalle en `PROGRESS-historial.md`). Probado por el propietario el 22-oct-2026.
 - **24D hecho** (Tom mejora armas y varitas a +1/+2/+3; tecla I en la ciudad abre Equipment; detalle en `PROGRESS-historial.md`). Probado por el propietario el 22-oct-2026.
-- **Siguiente:** los 4 bloques de la Fase 24 están hechos. Falta que el propietario pruebe el 24A y decida si cierra la fase (`/checkpoint fase`) o añade algo (en el plan quedaban "ampliar el baúl" en Howard y logros que den oro). Empezar en una sesión nueva.
+- **Siguiente:** Fase 25 de `docs/PLAN-2.md` (`/fase 25` en una sesión nueva). Quedan como ideas de la 24 sin hacer: ampliar el baúl en Howard y logros que den oro. El 24A sigue pendiente de probar por el propietario.
 - **Oro y botín:** `data/gold.ts`, `systems/GoldStore.ts`, atributos de armadura en `data/attributes.ts`; ver NOTES.md, "Oro, botín especial y muerte a medias (Fase 24A)". Las armas y armaduras normales no caen: se compran a Tom (24C).
 - **Ciudad:** `data/town.ts` (sitios, NPCs y frases), `scenes/TownScene.ts`, `scenes/NpcDialogScene.ts`; ver NOTES.md, "La ciudad (Fase 23A)" y "NPCs y hablar (Fase 23B)". Los **récords locales (22F)** siguen aplazados en "Ideas para después".
 - **Orden de mapas (20-oct-2026):** Traveler Zone → Bleeding Isle → Elvine Garden → Middleland. Se abren al ganar el anterior o con su Level (1/10/25/40). Icebound, a la Fase 25.
