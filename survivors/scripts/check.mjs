@@ -84,6 +84,9 @@ const PRESETS = {
     // Hechizo activo del Mago (Fase 20D) con horda y sin recarga: Energy Strike, el de salida. Para lanzarlo:
     // --eval="g.launchCritStrike()"; otro hechizo con atajo a mano: "play=mage&debug=god,horde,crits&spells=massFireStrike".
     activespell: 'play=mage&debug=god,horde,crits',
+    // Fase 26A: la Maga con horda (lanza con --eval) y con el maná a 0 para verlo rellenarse.
+    mana: 'play=mage&debug=god,horde',
+    nomana: 'play=mage&debug=god,nomana',
     // Botín (Fase 21A): Gorn (ejemplo) con un objeto cayendo a su derecha cada pocos segundos. Al pisarlo sale la carta
     // Equip / Keep in bag. Para cogerlo: --eval="g.debugPickUpLoot()".
     loot: 'play=warrior&characters=demo&debug=god,loot',

@@ -1,5 +1,6 @@
 // Hechizos activos del Mago (Fase 19B): los lanza el jugador con el mismo botón que el Critical Strike del Guerrero
-// (Espacio, R2 del mando o el botón táctil) y luego tienen que recargarse. La recarga baja con la Mag del personaje.
+// (Espacio, R2 del mando o el botón táctil). Fase 26A (propietario, 22-oct-2026): ya no tienen recarga; **gastan maná**,
+// cada uno el suyo (el del original × ACTIVE_SPELL_MANA_SHARE). El maná se rellena solo con la Mag (data/stats.ts).
 // Fase 20D (propietario, 19-oct-2026): se equipan en el segundo hueco de hechizo (data/items.ts). Son los círculos 6–10
 // del original; los 1–5 son automáticos (data/spells.ts). Requisito: la Int del original, sin Level. Energy Strike es el
 // de salida y no pide nada.
@@ -19,10 +20,8 @@ interface ActiveSpellBase {
     /** Circle of the original (6–10) and the permanent Int it needs (its ReqInt). */
     circle: number;
     int: number;
-    /** Recharge at 0 Mag (ms): each point of Mag takes `cooldownCutPerMag` off it, down to `minCooldownMs`. */
-    baseCooldownMs: number;
-    cooldownCutPerMag: number;
-    minCooldownMs: number;
+    /** Mana it costs in the original (docs/hb-wiki/hechizos.md); here it costs this × ACTIVE_SPELL_MANA_SHARE. */
+    originalMana: number;
     /** Only goes off on enemies closer than this to the player (px); with none, it does not go off. */
     range: number;
     /** With the aim stick (no cursor), it falls this share of `range` away, where the stick points. */
@@ -113,7 +112,7 @@ function fromSpell(id: SpellId): Pick<ActiveSpellBase, 'name' | 'circle' | 'int'
 
 export const ACTIVE_SPELLS: Readonly<Record<ActiveSpellId, ActiveSpellDef>> = {
     // De salida (sin requisito): 12 descargas de Energy Strike alrededor del punto, una cada 70 ms. Más flojo que Meteor
-    // en total, pero con menos recarga.
+    // en total, pero más barato.
     energyStrike: {
         ...fromSpell('energyStrike'),
         kind: 'barrage',
@@ -122,9 +121,7 @@ export const ACTIVE_SPELLS: Readonly<Record<ActiveSpellId, ActiveSpellDef>> = {
         shotIntervalMs: 70,
         scatterRadius: 96,
         damageScale: 1,
-        baseCooldownMs: 14_000,
-        cooldownCutPerMag: 0.01,
-        minCooldownMs: 6_000,
+        originalMana: 65,
         range: 380,
         stickShare: 0.5,
         castMs: 500,
@@ -140,9 +137,7 @@ export const ACTIVE_SPELLS: Readonly<Record<ActiveSpellId, ActiveSpellDef>> = {
         shotIntervalMs: 120,
         scatterRadius: 72,
         damageScale: 0.45,
-        baseCooldownMs: 18_000,
-        cooldownCutPerMag: 0.01,
-        minCooldownMs: 7_000,
+        originalMana: 72,
         range: 400,
         stickShare: 0.5,
         castMs: 500,
@@ -160,10 +155,7 @@ export const ACTIVE_SPELLS: Readonly<Record<ActiveSpellId, ActiveSpellDef>> = {
         areaRadius: 128,
         directRadius: 24,
         knockback: 320,
-        // Owner, 18-oct-2026: 20 s, −1% per Mag point, never below 8 s (Mage at Power 1, Mag 14: ~17 s).
-        baseCooldownMs: 20_000,
-        cooldownCutPerMag: 0.01,
-        minCooldownMs: 8_000,
+        originalMana: 120,
         range: 420,
         stickShare: 0.5,
         castMs: 500,
@@ -192,7 +184,13 @@ export function activeSpellPowerMultiplier(level: number): number {
     return ACTIVE_SPELL_POWER.base + level / ACTIVE_SPELL_POWER.perLevel;
 }
 
-/** Recharge time with this much Mag. */
-export function activeSpellCooldownMs(def: ActiveSpellDef, mag: number): number {
-    return Math.max(def.minCooldownMs, def.baseCooldownMs * (1 - def.cooldownCutPerMag * mag));
+/**
+ * Share of the original's mana each active spell costs (Fase 26A): our mana bars are much smaller than the original's
+ * (a new Mage has ~37), so half: Energy Strike 32, Mass Fire Strike 36, Meteor Strike 60.
+ */
+export const ACTIVE_SPELL_MANA_SHARE = 0.5;
+
+/** Mana this spell costs with a wand that saves `manaSave` of it (0.1 = 10%), rounded down, never below 1. */
+export function activeSpellManaCost(def: ActiveSpellDef, manaSave = 0): number {
+    return Math.max(1, Math.floor(def.originalMana * ACTIVE_SPELL_MANA_SHARE * (1 - manaSave)));
 }

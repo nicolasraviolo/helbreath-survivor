@@ -72,7 +72,8 @@ export interface RunSnapshot {
     /** Critical Strike charges held (Fase 19A). Saves from before have none: they start full. */
     critCharges: number | undefined;
     /** Recharge left of the Mage's active spell, in ms (Fase 19B). Saves from before have none: it starts ready. */
-    spellCooldownMs: number | undefined;
+    /** The Mage's mana (Fase 26A; before, the Spell 2's recharge left, now ignored). */
+    mana: number | undefined;
     /** What the anonymous stats collected so far (Fase 14A). Saves from before have none. */
     metrics: RunMetricsState | undefined;
     /** Items found, in the bag and put on (Fase 21A). Saves from before have none. */
@@ -219,7 +220,7 @@ function readSnapshot(entry: unknown): RunSnapshot | undefined {
         portalMsLeft: readNumber(entry.portalMsLeft),
         potionsDrunk: readNumber(entry.potionsDrunk) ?? 0,
         critCharges: readNumber(entry.critCharges),
-        spellCooldownMs: readNumber(entry.spellCooldownMs),
+        mana: readNumber(entry.mana),
         metrics: readMetrics(entry.metrics),
         loot: readLoot(entry.loot),
         gold: readNumber(entry.gold),

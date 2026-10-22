@@ -11,7 +11,7 @@
 // - Equipo de salida: el Guerrero, la daga; el Mago, Energy Bolt y Energy Strike, que no piden nada (propietario,
 //   19-oct-2026). Los huecos de hechizo y el del arma nunca se quedan vacíos.
 import type { GearLayer, GearSlot } from '../hb/playerAppearance';
-import { ACTIVE_SPELL_IDS, ACTIVE_SPELLS, activeSpellCooldownMs, isActiveSpellId, type ActiveSpellId } from './activeSpells';
+import { ACTIVE_SPELL_IDS, ACTIVE_SPELLS, activeSpellManaCost, isActiveSpellId, type ActiveSpellId } from './activeSpells';
 import type { Gender } from './appearance';
 import { ARMOR_PIECES, ARMOR_SLOT_NAMES, type ArmorPieceId, type ArmorSlotId } from './armor';
 import { attributeColor, ATTRIBUTES, attributeDamageBonus, type ItemAttribute } from './attributes';
@@ -249,7 +249,7 @@ export function readEquipment(value: unknown, classId: CharacterId): SavedEquipm
 export function describeItem(id: ItemId): string {
     if (isActiveSpellId(id)) {
         const def = ACTIVE_SPELLS[id];
-        return `Circle ${def.circle}, skill button, ${Math.round(activeSpellCooldownMs(def, 0) / 1000)} s recharge (less with Mag)`;
+        return `Circle ${def.circle}, skill button, ${activeSpellManaCost(def)} mana`;
     }
     if (isSpellItemId(id)) {
         const spell = SPELLS[id];
@@ -332,7 +332,7 @@ export function ownedItemPower(item: Readonly<OwnedItem>): ItemPower {
     return power;
 }
 
-/** A wand's Mana Save, for the grey "(soon)" line (Fase 21B: kept for when the spells cost mana). */
+/** A wand's Mana Save (Fase 21B), shown on its loot card; since Fase 26A it makes the Spell 2 cheaper. */
 export function wandManaSave(id: ItemId): number | undefined {
     return isWandId(id) ? getWand(id).manaSave : undefined;
 }

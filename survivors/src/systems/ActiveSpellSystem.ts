@@ -1,12 +1,15 @@
-// Hechizo activo del Mago (Fase 19B): recarga y lanzamiento. Lo pide el jugador con el mismo botón que el Critical
+// Hechizo activo del Mago (Fase 19B): maná y lanzamiento. Lo pide el jugador con el mismo botón que el Critical
 // Strike del Guerrero (Espacio, R2 del mando o el botón táctil). Cae donde apunta, o sobre el objetivo automático; sin
-// nada a su alcance no sale y no gasta la recarga. La recarga baja con la Mag (data/activeSpells.ts).
+// nada a su alcance no sale y no gasta nada.
+// Fase 26A (propietario, 22-oct-2026): sin recarga; cada lanzamiento **gasta maná** (el coste de cada hechizo en
+// data/activeSpells.ts, menos el Mana Save de la varita). El maná vive aquí porque solo lo usa el Spell 2: se rellena
+// solo cada segundo (CharacterStats.manaRegenPerSecond, más con la ropa de MP Recovery) y con la Blue Potion.
 // Desde el 20D es el que lleve en el hueco Spell 2: Meteor Strike (meteorito) o una ráfaga (Energy / Mass Fire Strike).
 // El meteorito se descarga al empezar la partida (ON_DEMAND_SPRITES): hasta que llega no se puede lanzar.
-// Con `infinite` (truco ?debug=crits o la tecla H) no hay recarga: para probarlo sin esperar.
+// Con `infinite` (truco ?debug=crits o la tecla H) no gasta maná: para probarlo sin esperar.
 import {
     ACTIVE_SPELLS,
-    activeSpellCooldownMs,
+    activeSpellManaCost,
     activeSpellPowerMultiplier,
     type ActiveSpellDef,
     type ActiveSpellId,
@@ -15,26 +18,40 @@ import type { WeaponSystem } from './WeaponSystem';
 
 export class ActiveSpellSystem {
     public readonly def: ActiveSpellDef;
-    /** Time left until it can be cast again (ms); 0 = ready. */
-    private waitMs = 0;
+    /** Mana now; starts full (the first update fills it to the maximum). */
+    private manaNow = Number.POSITIVE_INFINITY;
+    /** Maximum the last time it was updated: when it grows (a new Power, a Mag card), the gain is added to the mana. */
+    private lastMax = 0;
     private castCount = 0;
-    /** Debug: no recharge. */
+    /** Debug: casting costs nothing. */
     public infinite = false;
     /** False until its sprite is downloaded (only Meteor Strike has one of its own). */
     public loaded: boolean;
+    /** Share of the cost the wand in hand saves (Equipment.manaSave). */
+    public manaSave = 0;
 
     constructor(private readonly weapons: WeaponSystem, public readonly id: ActiveSpellId) {
         this.def = ACTIVE_SPELLS[id];
         this.loaded = this.def.kind !== 'meteor';
     }
 
-    public get ready(): boolean {
-        return this.loaded && this.waitMs <= 0;
+    /** Mana each cast costs now (with the wand's Mana Save). */
+    public get cost(): number {
+        return activeSpellManaCost(this.def, this.manaSave);
     }
 
-    /** Recharge time left (ms), for the HUD and the saved run. */
-    public get cooldownLeftMs(): number {
-        return this.waitMs;
+    public get mana(): number {
+        return Math.min(this.manaNow, this.lastMax);
+    }
+
+    /** Enough mana for one cast (and its sprite downloaded). */
+    public get ready(): boolean {
+        return this.loaded && (this.infinite || this.mana >= this.cost);
+    }
+
+    /** Mana still missing for the next cast (0 = ready), for the HUD orb. */
+    public get manaMissing(): number {
+        return this.infinite ? 0 : Math.max(0, Math.ceil(this.cost - this.mana));
     }
 
     /** Casts so far this run: the HUD shows the icon pressed when it changes. */
@@ -42,29 +59,37 @@ export class ActiveSpellSystem {
         return this.castCount;
     }
 
-    /** Recharge time at this Mag (stats panel). */
-    public cooldownMs(mag: number): number {
-        return activeSpellCooldownMs(this.def, mag);
+    /** Continue (saved run): the mana it had (saves from before Fase 26A have none and start full). */
+    public restore(mana: number | undefined): void {
+        this.manaNow = mana ?? Number.POSITIVE_INFINITY;
     }
 
-    /** Continue (saved run): the recharge it had left, within the full time at this Mag. */
-    public restore(cooldownLeftMs: number, mag: number): void {
-        this.waitMs = Math.max(0, Math.min(this.cooldownMs(mag), cooldownLeftMs));
+    /** Mana refilled by a potion or a totem, up to the maximum. */
+    public addMana(amount: number): void {
+        this.manaNow = Math.min(this.lastMax, this.mana + amount);
     }
 
-    public update(deltaMs: number): void {
-        this.waitMs = Math.max(0, this.waitMs - deltaMs);
+    /** Debug ?debug=nomana: empty bar, to watch it refill. */
+    public empty(): void {
+        this.manaNow = 0;
     }
 
-    /** Casts it now if it is ready and has somewhere to land. Returns true if it went off. */
-    public cast(level: number, mag: number): boolean {
-        if (!this.loaded || (this.waitMs > 0 && !this.infinite)) return false;
+    /** Refills `regenPerSecond` per second, up to `maxMana`; a bigger maximum adds its gain to the mana now. */
+    public update(deltaMs: number, maxMana: number, regenPerSecond: number): void {
+        if (maxMana > this.lastMax && this.lastMax > 0 && Number.isFinite(this.manaNow)) this.manaNow += maxMana - this.lastMax;
+        this.lastMax = maxMana;
+        this.manaNow = Math.min(maxMana, this.manaNow + regenPerSecond * deltaMs / 1000);
+    }
+
+    /** Casts it now if there is mana enough and somewhere to land. Returns true if it went off. */
+    public cast(level: number): boolean {
+        if (!this.ready) return false;
         const target = this.weapons.activeSpellTarget(this.def.range, this.def.stickShare);
         if (!target) return false;
         const power = activeSpellPowerMultiplier(level);
         if (this.def.kind === 'meteor') this.weapons.castMeteor(this.def, power, target.x, target.y);
         else this.weapons.castBarrage(this.def, power, target.x, target.y);
-        if (!this.infinite) this.waitMs = this.cooldownMs(mag);
+        if (!this.infinite) this.manaNow = this.mana - this.cost;
         this.castCount++;
         return true;
     }

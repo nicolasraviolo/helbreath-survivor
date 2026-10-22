@@ -9,7 +9,7 @@
 import type { SoundKey } from '../config/assetManifest';
 import type { EffectKey } from '../config/effects';
 
-export type PickupId = 'potion' | 'magnet' | 'chest' | 'finalChest' | 'coin' | 'goldPile';
+export type PickupId = 'potion' | 'bluePotion' | 'magnet' | 'chest' | 'finalChest' | 'coin' | 'goldPile';
 
 export interface PickupDef {
     name: string;
@@ -24,6 +24,8 @@ export interface PickupDef {
     pickupSound: SoundKey;
     /** The Magnet also pulls it to the player, like the XP gems. */
     magnetPulls?: boolean;
+    /** Only drops for a character who spends mana (the Mage, Fase 26A). */
+    onlyWithMana?: boolean;
 }
 
 export const PICKUPS = {
@@ -31,6 +33,9 @@ export const PICKUPS = {
     // 0,4% por monstruo (propietario, 20-oct-2026; antes 1,5%): ~12 por partida de 3.000 bajas. Con más, rodeado de
     // monstruos te curabas solo con las que caían a tus pies y no se podía morir.
     potion: { name: 'Red Potion', sheet: 5, frame: 1, scale: 1.5, dropChance: 0.004, lifeMs: 60000, pickupSound: 'sfx.drink', magnetPulls: true },
+    // Fase 26A (propietario, 22-oct-2026): Blue Potion (item-ground 5/3, como en sp-client), igual de rara que la roja
+    // y solo para la Maga. Rellena BLUE_POTION_MANA_SHARE del maná. Va antes que el imán: se tira en este orden.
+    bluePotion: { name: 'Blue Potion', sheet: 5, frame: 3, scale: 1.5, dropChance: 0.004, lifeMs: 60000, pickupSound: 'sfx.drink', magnetPulls: true, onlyWithMana: true },
     // Imán: Crystal (item-ground 15/46), distinto de las gemas de XP (esmeralda, zafiro, rubí).
     magnet: { name: 'Magnet', sheet: 15, frame: 46, scale: 1.5, dropChance: 0.005, lifeMs: 60000, pickupSound: 'sfx.pickup' },
     // Cofre: Gold Pocket (item-ground 5/120). No desaparece (pedido por el propietario).
@@ -45,6 +50,8 @@ export const PICKUPS = {
 
 /** Health healed by a potion, as a share of maximum health. */
 export const POTION_HEAL_SHARE = 0.3;
+/** Mana refilled by a Blue Potion, as a share of maximum mana (Fase 26A). */
+export const BLUE_POTION_MANA_SHARE = 0.3;
 /** Picked up when the player's feet are this close (px). */
 export const PICKUP_RADIUS = 22;
 /** Blinks during the last part of its life, so the player knows it is about to go. */

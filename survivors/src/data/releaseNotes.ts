@@ -14,6 +14,15 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: readonly ReleaseNote[] = [
     {
+        version: 'Phase 26',
+        date: 'Oct 22, 2026',
+        changes: [
+            "The Mage's skill spell now costs mana instead of recharging.",
+            'New Blue Potion to refill mana.',
+            'Wands with Mana Save and robes with MP Recovery now work.',
+        ],
+    },
+    {
         version: 'Phase 25',
         date: 'Oct 22, 2026',
         changes: [

@@ -2,6 +2,12 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
+**Fase 26A — Maná del Spell 2 (2026-10-22).**
+- **Qué se hizo:** el Spell 2 de la Maga ya no tiene recarga: **gasta maná**, cada hechizo el suyo (la mitad del original: Energy Strike 32, Mass Fire Strike 36, Meteor Strike 60). El maná se rellena solo con la Mag (Mag 14 → 2,7/s), más un 30% con la ropa MP Recovery; el Mana Save de las varitas abarata el hechizo (fuera los "(soon)"). **Blue Potion** nueva (solo con la Maga, 0,4%, +30% del maná). El botón rojo, apagado, enseña el maná que falta; el panel de stats, el coste. El maná se guarda al continuar. How to Play al día. Ver NOTES.md, "Maná del Spell 2 (Fase 26A)".
+- **Decisiones del propietario:** recuperar solo con Mag; Blue Potion nueva; coste distinto por hechizo; el Spell 1 sigue gratis.
+- **Comprobado:** build; `check menu mana nomana activespell lootmage` y `nomana --mobile` sin errores; gastar, rellenar, Blue Potion y Continue medidos con `--eval`; `pnpm balance` de la Maga en Bleeding Isle y Elvine Garden igual que antes del bloque. Probado por el propietario: bien.
+- **Probar:** `pnpm --dir survivors dev` → `?play=mage&debug=horde` (Espacio), `?play=mage&debug=nomana`, `?play=mage&debug=pickups`.
+
 **Fase 25 — Arreglos rápidos (2026-10-22, un bloque).**
 - **Qué se hizo:** (1) la app instalada se reconoce por `?app=1` y no por `display-mode: fullscreen`, así Chrome a pantalla completa (F11, Steam) ya no esconde el botón; (2) botón redondo de pantalla completa en pantallas táctiles, en la partida y en la ciudad, junto a la pausa (barra del jefe más estrecha en el móvil); (3) con touchpad o ratón (Steam Deck, Legion Go) no se entra en modo móvil; (4) la pantalla final ya no muestra arma ni armadura, y lo demás queda centrado; (5) en el móvil, panel a la derecha de la ventana Character con el stat elegido y − / + grandes. Ver NOTES.md, "Pantalla completa y consolas (Fase 25)".
 - **Comprobado:** build y `check` de menú, charinfo, partida, jefe y ciudad (PC y móvil) sin errores; pantalla final con `charexp`. Probado por el propietario: bien. Falta una consola real (tras publicar).

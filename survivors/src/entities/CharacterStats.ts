@@ -16,6 +16,8 @@ import {
     HP_REGEN_PER_VIT,
     MAGIC_DAMAGE_PER_MAG,
     MANA_PER_INT,
+    MANA_REGEN_BASE,
+    MANA_REGEN_PER_MAG,
     MANA_PER_LEVEL,
     MANA_PER_MAG,
     MOVE_SPEED_PER_DEX,
@@ -100,6 +102,11 @@ export class CharacterStats {
     public get maxMana(): number {
         const s = this.stats;
         return Math.floor(MANA_PER_MAG * s.mag + MANA_PER_LEVEL * this.level + MANA_PER_INT * s.int);
+    }
+
+    /** Mana recovered by itself each second, before the armor's MP Recovery (Fase 26A): more Mag, faster. */
+    public get manaRegenPerSecond(): number {
+        return MANA_REGEN_BASE + MANA_REGEN_PER_MAG * this.stats.mag;
     }
 
     public damageMultiplier(type: DamageType): number {

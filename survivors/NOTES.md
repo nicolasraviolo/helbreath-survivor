@@ -91,6 +91,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Mejorar armas en el herrero (Fase 24D)
 - Revisión de la dificultad: `pnpm balance` (22-oct-2026)
 - Nitidez: lienzo a la resolución real (RENDER_SCALE)
+- Maná del Spell 2 (Fase 26A)
 - Pantalla completa y consolas (Fase 25)
 
 ## Sprites (`.spr`): formato y carga
@@ -902,7 +903,7 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - **Guardado:** personajes versión 6: `attributes` = atributo de lo puesto, por hueco (los objetos del inventario lo llevan en `OwnedItem.attribute`). En Equipment, el catálogo sigue libre, pero lo que tiene atributo sale del inventario al ponérselo y vuelve al quitárselo (`characterStore.equip(uid, slot, id, attribute)`). Las filas se estrechan si no caben (`EQUIPMENT_LIST.minRowHeight`).
 - **Equipment:** lo que se lleva puesto con atributo sale también en la lista (marcado), aunque ya no esté en el inventario.
 - **Varitas:** en el original **no pedían Int ni Mag**, solo Level (y Str 10 por peso, que ignoramos). Item.cfg da Level 30/40/50/90/95/100/120; el propietario prefirió los de la wiki (0/15/35/60/70/120). Berserk Wand no subía el daño por un error (`*(int)1.3` = ×1) y Kloness sumaba según la reputación: usamos +40% y +20% del propietario.
-- **Mana Save (para el futuro):** `WandDef.manaSave` (0,1 = 10%) aún no lo lee nadie; la carta lo enseña en gris "(soon)" junto a "Weapon". Al pasar la Spell 2 a maná: leer `getWand(equipment.wand).manaSave` en `ActiveSpellSystem` y quitar "(soon)" en `LootScene`.
+- **Mana Save:** desde la Fase 26A abarata el Spell 2 (`Equipment.manaSave` → `ActiveSpellSystem.manaSave`). Ver "Maná del Spell 2 (Fase 26A)".
 - **Probar:** `?attr=sharp|poison|ancient` (el arma de salida y todo el botín, siempre armas, con ese atributo), `pnpm check lootsharp`, `lootancient`, `poison`. `?gear=sharp:longSword` (con `?characters=demo`) mete esa arma en el inventario para verla en Equipment.
 
 ## Baúl, "solo lo que tienes" y Zem (Fase 21D)
@@ -1059,3 +1060,12 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - Con zoom, Phaser escala lo que tiene `scrollFactor 0` alrededor del centro de la cámara y se descoloca. Lo fijo en pantalla va dentro de una `ScreenLayer` (`addFixed`), que compensa el desplazamiento cada frame. No usar `setScrollFactor(0)` suelto.
 - Viewports de cámara en píxeles de juego: `setGameViewport()`. `this.scale.width/height` ya no es 800x600: usar `GAME_WIDTH/HEIGHT`.
 - Probar otro factor: `?scale=1|2|3`. El `check --mobile` simula densidad 1 (sale ×1); para ver el zoom en móvil añadir `scale=2` a la situación.
+
+## Maná del Spell 2 (Fase 26A)
+- **Dónde vive:** el maná de la partida está en `ActiveSpellSystem` (solo la Maga lo gasta; el Spell 1 es gratis). El máximo sigue en `CharacterStats.maxMana` (2·Mag + 2·Power + Int/2); el relleno por segundo, en `CharacterStats.manaRegenPerSecond` (`MANA_REGEN_BASE` + `MANA_REGEN_PER_MAG`·Mag, `data/stats.ts`) × (1 + `Equipment.mpRecovery`). Si el máximo sube (Power, cartas de Mag), la diferencia se suma al maná actual.
+- **Coste:** `originalMana` de cada hechizo en `data/activeSpells.ts` (el de la wiki) × `ACTIVE_SPELL_MANA_SHARE` (0,5) × (1 − Mana Save de la varita): `activeSpellManaCost`. Al portar un hechizo nuevo basta con poner su maná del original.
+- **Ritmo:** con Mag 14 sale como con la antigua recarga (Energy Strike cada ~12 s); a Mag 40, ~7 s (antes 8,4). `pnpm balance mage:bisle:10:0 mage:elvineGarden:25:0` dio el mismo Power, jefe final y EXP que antes.
+- **HUD:** la barra azul usa `activeSpell.mana`; el Guerrero la tiene siempre llena. El número del botón rojo es el maná que falta (`manaMissing`); el panel de stats enseña el coste.
+- **Blue Potion:** `bluePotion` en `data/pickups.ts` (item-ground 5/3), `onlyWithMana`: `PickupSystem` solo la tira si el personaje tiene Spell 2. Rellena `BLUE_POTION_MANA_SHARE` (30%) y cuenta en `potionsDrunk`.
+- **Guardado:** `RunSnapshot.mana` (sustituye a `spellCooldownMs`; las partidas viejas empiezan con la barra llena).
+- **Probar:** `?debug=nomana` (barra a 0), `check mana` / `nomana`; `?debug=crits` o la tecla H = sin gastar maná; `?play=mage&debug=pickups` deja una Blue Potion.

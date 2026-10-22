@@ -35,6 +35,8 @@ export class Equipment {
     private readonly wornAttributes: Partial<Record<ArmorSlotId, ItemAttribute>> = {};
     /** Extra health regeneration from the armor attributes (0.3 = +30%); recomputed in wear(). */
     private hpRecoveryTotal = 0;
+    /** Extra mana regeneration from the Mage's clothes with MP Recovery (Fase 26A); recomputed in wear(). */
+    private mpRecoveryTotal = 0;
     /** Rank of each passive (0 = not taken). */
     public readonly passives: Record<PassiveId, number> = { xelima: 0, merien: 0, magnetAmulet: 0 };
     /** Sum of each armor value over the pieces worn; recomputed only in wear() (read every frame). */
@@ -69,6 +71,16 @@ export class Equipment {
     /** Extra health healed by itself from the armor's HP Recovery (0.3 = +30%, Fase 24A). */
     public get hpRecovery(): number {
         return this.hpRecoveryTotal;
+    }
+
+    /** Extra mana recovered by itself from the clothes' MP Recovery (0.3 = +30%, Fase 26A). */
+    public get mpRecovery(): number {
+        return this.mpRecoveryTotal;
+    }
+
+    /** Share of each active spell's mana the wand in hand saves (its Mana Save, 0.1 = 10%; Fase 26A). */
+    public get manaSave(): number {
+        return this.wand ? getWand(this.wand).manaSave : 0;
     }
 
     /** Original defense ratio of all the armor worn: makes blows miss (data/defense.ts). */
@@ -160,11 +172,13 @@ export class Equipment {
         }
         // Fase 24A: what the armor attributes add.
         this.hpRecoveryTotal = 0;
+        this.mpRecoveryTotal = 0;
         for (const attribute of Object.values(this.wornAttributes)) {
             const def = ATTRIBUTES[attribute];
             this.totals.defenseRatio += def.defenseRatio ?? 0;
             this.totals.magicResistance += def.magicResistance ?? 0;
             this.hpRecoveryTotal += def.hpRecovery ?? 0;
+            this.mpRecoveryTotal += def.mpRecovery ?? 0;
         }
     }
 }

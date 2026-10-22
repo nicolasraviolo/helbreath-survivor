@@ -57,7 +57,7 @@ import { EPIC_CARD_SOUND } from '../data/cardRarity';
 import { CARD_ACTION, SKIP_HEAL_SHARE, type CardAction } from '../data/rerollSkip';
 import { unlockStore } from '../systems/UnlockStore';
 import { GOLD, goldValue } from '../data/gold';
-import { CHEST_CARDS_TITLE, POTION_HEAL_SHARE, type PickupId } from '../data/pickups';
+import { BLUE_POTION_MANA_SHARE, CHEST_CARDS_TITLE, POTION_HEAL_SHARE, type PickupId } from '../data/pickups';
 import { getTotem, TOTEM_IDS, type TotemId } from '../data/totems';
 import { TotemSystem } from '../systems/TotemSystem';
 import { playerDefenseRatio, playerMagicResistance, RESIST_TEXT, type PlayerDefense } from '../data/defense';
@@ -338,7 +338,8 @@ export class GameScene extends Phaser.Scene {
         assetStreamer.start(this, this.mapId);
         this.damageNumbers = new DamageNumbers(this);
         this.xp = new XpSystem(this, this.audio);
-        this.pickups = new PickupSystem(this, this.audio, (id) => this.collectPickup(id));
+        // Fase 26A: the Blue Potion only drops for a character with a Spell 2 (the Mage).
+        this.pickups = new PickupSystem(this, this.audio, (id) => this.collectPickup(id), CHARACTERS[this.characterId].startWeapon.kind === 'spell');
         this.runLoot = new RunLoot();
         this.runGold = 0;
         this.lootDebugInMs = -1;
@@ -496,6 +497,11 @@ export class GameScene extends Phaser.Scene {
             case 'potion':
                 this.player.heal(Math.round(this.player.maxHp * POTION_HEAL_SHARE));
                 this.sim?.onHeal(this.player.maxHp * POTION_HEAL_SHARE);
+                this.achievements.potionsDrunk++;
+                break;
+            case 'bluePotion':
+                // Fase 26A: only drops for the Mage (PickupSystem); refills a share of the mana.
+                this.activeSpell?.addMana(this.stats.maxMana * BLUE_POTION_MANA_SHARE);
                 this.achievements.potionsDrunk++;
                 break;
             case 'magnet':
@@ -684,7 +690,7 @@ export class GameScene extends Phaser.Scene {
             const old = this.activeSpell;
             if (!old || old.id === id) return;
             const spell = this.createActiveSpell(id);
-            spell?.restore(old.cooldownLeftMs, this.stats.stats.mag);
+            spell?.restore(old.mana);
             if (spell) spell.infinite = old.infinite;
             this.activeSpell = spell;
         } else if (isArmorPieceId(id)) {
@@ -792,7 +798,7 @@ export class GameScene extends Phaser.Scene {
         this.buffs.restore(run.buffs);
         if (run.critCharges !== undefined) this.critStrike.restore(run.critCharges, stats.level);
         else this.critStrike.restore(maxCritCharges(stats.level), stats.level);
-        this.activeSpell?.restore(run.spellCooldownMs ?? 0, stats.stats.mag);
+        this.activeSpell?.restore(run.mana);
         this.spawner.resumeAt(run.elapsedMs, RESUME_CALM_MS, run.bosses);
         // Fase 21½C: the same champions as before (saves from before roll new ones, only those still to come).
         if (run.champions) this.spawner.setChampions(run.champions, run.championsOut ?? 0);
@@ -834,7 +840,7 @@ export class GameScene extends Phaser.Scene {
             portalMsLeft: this.portal?.timeLeft ?? (this.portalInMs >= 0 ? PORTAL.durationMs : undefined),
             potionsDrunk: this.achievements.potionsDrunk,
             critCharges: this.critStrike.charges,
-            spellCooldownMs: this.activeSpell?.cooldownLeftMs,
+            mana: this.activeSpell?.mana,
             metrics: this.metrics.snapshot(),
             loot: this.runLoot.snapshot(),
             gold: this.runGold,
@@ -881,8 +887,8 @@ export class GameScene extends Phaser.Scene {
             getState: () => ({
                 hp: this.player.hp,
                 maxHp: this.player.maxHp,
-                // Todavía no se gasta maná: siempre lleno.
-                mana: this.stats.maxMana,
+                // Fase 26A: the Mage's mana (spent by the Spell 2); the Warrior has no use for it and keeps it full.
+                mana: this.activeSpell?.mana ?? this.stats.maxMana,
                 maxMana: this.stats.maxMana,
                 xpRatio: this.stats.xpRatio,
                 level: this.stats.level,
@@ -1080,19 +1086,19 @@ export class GameScene extends Phaser.Scene {
         this.critStrike.launch(weapon.def, this.stats.level, player.look.gender, player.x, player.y, angleFromDirection(player.direction));
     }
 
-    /** The HUD orb: the Warrior's Critical Strike charges, or the seconds left of the Mage's spell (blank when ready). */
+    /** The HUD orb: the Warrior's Critical Strike charges, or the mana the Mage still lacks for the spell (blank when ready). */
     private skillOrb(): SkillOrb | undefined {
         const spell = this.activeSpell;
-        if (spell) return { text: spell.ready ? '' : String(Math.ceil(spell.cooldownLeftMs / 1000) || ''), ready: spell.ready };
+        if (spell) return { text: spell.ready ? '' : String(spell.manaMissing || ''), ready: spell.ready };
         if (!this.meleeWeapon) return undefined;
         const charges = this.critStrike.charges;
         return { text: String(charges), ready: charges > 0 };
     }
 
-    /** Stats panel: the Mage's spell with its recharge at this Mag, or the Warrior's maximum Critical Strike charges. */
+    /** Stats panel: the Mage's spell with its mana cost, or the Warrior's maximum Critical Strike charges. */
     private skillRow(): [string, string] | undefined {
         const spell = this.activeSpell;
-        if (spell) return [spell.def.name, `${(spell.cooldownMs(this.stats.stats.mag) / 1000).toFixed(1)} s`];
+        if (spell) return [spell.def.name, `${spell.cost} mana`];
         if (!this.meleeWeapon) return undefined;
         return ['Critical Strikes', `${maxCritCharges(this.stats.level)} max`];
     }
@@ -1115,20 +1121,21 @@ export class GameScene extends Phaser.Scene {
     }
 
     /**
-     * The Mage's active spell (Fase 19B): recharges, and goes off with the Critical Strike button (Space / gamepad R2 /
-     * the touch button, which calls launchCritStrike). The simulated run casts it as soon as it is ready.
+     * The Mage's active spell (Fase 19B): refills its mana (Fase 26A), and goes off with the Critical Strike button (Space / gamepad R2 /
+     * the touch button, which calls launchCritStrike). The simulated run casts it as soon as it has the mana.
      */
     private updateActiveSpell(delta: number): void {
         const spell = this.activeSpell;
         if (!spell || this.player.isDead) return;
-        spell.update(delta);
+        spell.manaSave = this.equipment.manaSave;
+        spell.update(delta, this.stats.maxMana, this.stats.manaRegenPerSecond * (1 + this.equipment.mpRecovery));
         if (this.sim ? spell.ready : this.inputSystem.justPressed(Action.CritStrike)) this.castActiveSpell();
     }
 
-    /** Casts the Mage's active spell now, if it is ready and the Mage is free to act. */
+    /** Casts the Mage's active spell now, if there is mana enough and the Mage is free to act. */
     private castActiveSpell(): void {
         if (!this.activeSpell || this.player.isDead || this.levelUpOpen || this.runOver) return;
-        this.activeSpell.cast(this.stats.level, this.stats.stats.mag);
+        this.activeSpell.cast(this.stats.level);
     }
 
     /** Opens the portal a moment after the final chest is picked up; true when the run is won (stepped in or time up). */
@@ -1293,7 +1300,7 @@ export class GameScene extends Phaser.Scene {
                 break;
             case 'pickups': {
                 const { x, y } = this.player;
-                this.pickups.drop('potion', x - DEBUG_PICKUP_SPACING, y + DEBUG_PICKUP_SPACING);
+                this.pickups.drop(this.activeSpell ? 'bluePotion' : 'potion', x - DEBUG_PICKUP_SPACING, y + DEBUG_PICKUP_SPACING);
                 this.pickups.drop('magnet', x, y + DEBUG_PICKUP_SPACING * 1.5);
                 this.pickups.drop('chest', x + DEBUG_PICKUP_SPACING, y + DEBUG_PICKUP_SPACING);
                 // Fase 24A: a coin and a pile of gold above the player.
@@ -1347,8 +1354,12 @@ export class GameScene extends Phaser.Scene {
                     if (best) for (const [slot, layer] of this.equipment.wear(best)) this.player.setGear(slot, layer);
                 }
                 break;
+            case 'nomana':
+                // Fase 26A: the Mage starts with no mana, to watch it refill.
+                this.activeSpell?.empty();
+                break;
             case 'crits':
-                // Critical Strikes without spending charges and the Mage's spell without recharge, until pressed again (Fases 19A and 19B).
+                // Critical Strikes without spending charges and the Mage's spell without spending mana, until pressed again (Fases 19A and 19B).
                 this.critStrike.infinite = !this.critStrike.infinite;
                 if (this.activeSpell) this.activeSpell.infinite = this.critStrike.infinite;
                 break;

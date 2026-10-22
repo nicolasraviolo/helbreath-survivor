@@ -1,8 +1,7 @@
 // Varitas de la Maga (Fase 21B; decidido por el propietario el 20-oct-2026). Van en el hueco Weapon, como las armas
 // del Guerrero, y son las del original (reference/Item.cfg y Item3.cfg; docs/hb-wiki/armas.md, "Wands"):
 // - Requisito: solo el Level del original. No piden Str ni Int.
-// - Mana Save: el % del original. Guardado para cuando la Spell 2 gaste maná en vez de esperar su recarga (plan del
-//   propietario): hoy NO hace nada; la carta lo enseña en gris como "(soon)".
+// - Mana Save: el % del original. Desde la Fase 26A abarata el Spell 2 (Equipment.manaSave → ActiveSpellSystem).
 // - Daño: en el original las varitas no suben el daño. Solo Berserk Wand (+40%) y Kloness Wand (+20%), números del
 //   propietario, que además caen muy poco (`rare`, ver LOOT_RARE_KEEP_CHANCE en data/loot.ts).
 // - Sharp y Ancient suben el daño de los hechizos; Poison no sale nunca en una varita (data/attributes.ts).
@@ -13,7 +12,7 @@ import type { EquipRequirement, ItemIcon } from './itemTypes';
 
 export interface WandDef {
     name: string;
-    /** Mana saved on each spell, as in the original (0.2 = 20%). Not used until the spells cost mana. */
+    /** Mana saved on each active spell, as in the original (0.2 = 20%; Fase 26A, Equipment.manaSave). */
     manaSave: number;
     /** Extra magic damage while held (0.4 = +40%). Only the Berserk and Kloness wands have it. */
     magicDamageBonus: number;
