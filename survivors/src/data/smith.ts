@@ -46,9 +46,10 @@ export const SMITH_ATTRIBUTE_SELL_FACTOR: Readonly<Record<ItemAttribute, number>
 
 /**
  * Gold of each "+", × the item's buying price: [to +1, to +2, to +3] (decided by Claude on 22-oct-2026, approved
- * with the plan; to check with the metrics). A 1.000-gold sword: 1.000, 2.500 and 6.000 (9.500 and 3 stones in all).
+ * with the plan; to check with the metrics). A 1.000-gold sword: 500, 1.500 and 3.000 (5.000 and 3 stones in all).
  */
-export const SMITH_UPGRADE_PRICE_FACTORS: readonly number[] = [1, 2.5, 6];
+// Revisión de la dificultad (E, propietario 22-oct-2026): antes 1×, 2,5× y 6× (una Broad Sword a +3 costaba 12.500).
+export const SMITH_UPGRADE_PRICE_FACTORS: readonly number[] = [0.5, 1.5, 3];
 
 /** Items that are never bought, with a fixed selling price (the Xelima stone; the Zem is the Shop Keeper's). */
 export const SMITH_FIXED_SELL_PRICES: Readonly<Partial<Record<ItemId, number>>> = {

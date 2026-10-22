@@ -301,8 +301,8 @@ export class GameScene extends Phaser.Scene {
         // Permanent stats (Fase 20A); debug runs without a character start with the class's.
         this.permanentAtStart = profile ? { ...profile.stats } : savedCharacter ? permanentStats(savedCharacter) : { ...character.startStats };
         this.simProfileLabel = profile?.label ?? '';
-        this.stats = new CharacterStats(character, this.permanentAtStart);
         this.characterLevel = profile?.level ?? savedCharacter?.level ?? 1;
+        this.stats = new CharacterStats(character, this.permanentAtStart, this.characterLevel);
         this.levelUpOpen = false;
         this.sim = undefined;
         this.debugAimForced = false;

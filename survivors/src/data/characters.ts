@@ -108,11 +108,12 @@ export const CHARACTERS = {
         ...COMMON,
         name: 'Mage',
         playerName: 'NMs',
-        description: ['Master of the arcane arts.', '', '+15% magic damage', '-10% weapon cooldown', '+1 Int and +1 Mag every level'],
+        description: ['Master of the arcane arts.', '', '+15% health', '+15% magic damage', '-10% weapon cooldown', '+1 Int and +1 Mag every level'],
         startStats: { str: 12, vit: 10, dex: 10, int: 14, mag: 14, chr: 10 },
         // Fase 13C (18-oct-2026, con OK del propietario): 2 puntos por nivel como el Guerrero (antes 1 Int y 2 Mag).
         statsPerLevel: { int: 1, mag: 1 },
-        hpMultiplier: 1,
+        // Revisión de la dificultad (C, propietario 22-oct-2026): +15% de vida; antes ×1 y moría 2–3 veces antes que el Guerrero.
+        hpMultiplier: 1.15,
         physicalDamageMultiplier: 1,
         // +15% daño mágico y −10% de recarga (docs/DESIGN.md).
         magicDamageMultiplier: 1.15,

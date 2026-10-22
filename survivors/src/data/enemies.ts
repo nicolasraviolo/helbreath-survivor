@@ -126,6 +126,12 @@ export interface EnemyDef {
 export const MONSTER_DAMAGE = { scale: 2.76, exponent: 0.7 } as const;
 
 /**
+ * Health of every mini-boss and final boss × this, on top of its maxHp (revisión de la dificultad, D, propietario
+ * 22-oct-2026): morían en 11–27 s (minijefes) y 30–60 s (jefes finales) y eran lo más fácil de cada mapa. Su golpe no cambia.
+ */
+export const BOSS_HP_MULTIPLIER = 2;
+
+/**
  * Monster AI rules of the original server (docs/hb-wiki/monstruos-comportamiento.md):
  * - attack interval = actionTimeMs minus one of `attackTimeCuts` at random, never under `minAttackIntervalMs`;
  * - attack strategy rolled on spawn with a 1..10 die: 2 = hit once and flee, 3 = hit twice and flee, else keep attacking;

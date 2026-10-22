@@ -89,6 +89,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Tienda (Fase 24B)
 - Herrero y Stone of Xelima (Fase 24C)
 - Mejorar armas en el herrero (Fase 24D)
+- Revisión de la dificultad: `pnpm balance` (22-oct-2026)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -1030,3 +1031,13 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - **Tecla I en la ciudad:** `Action.OpenInventory` abre Equipment con `openOverlay` (la ciudad queda en pausa debajo).
 - **Atajos:** `?xelima=N` (cada personaje con N piedras exactas), `?upgrade=N` (partida sin personaje con el arma a +N), `?gear=up2:longSword`, `smith=upgrade`, `?open=town&class=warrior` (la ciudad con el primer Guerrero). Checks `smithupgrade` y `upgradedmg` (`--eval="g.stats.attributeBonus"` → 0.3).
 
+
+## Revisión de la dificultad: `pnpm balance` (22-oct-2026)
+- **Qué mide:** `scripts/balance.mjs` lanza muchas partidas simuladas (`?debug=sim`) a la vez en Chrome sin ventana (4 por defecto, ~20 min la tabla entera) y guarda todo en `.check/<out>.json`. Casos `clase:mapa:Level:+N[:build][:kit]`; lo que vaya tras `@` se añade a la dirección. `scripts/progression.mjs` usa ese JSON para la carrera de un jugador en horas (EXP → Level, oro, mapas abiertos).
+- **Vida "de mentira":** el bot sigue invencible, pero `SimRun` lleva una vida propia con la armadura, la curación, las pociones y los 600 ms de invulnerabilidad reales (`tick` / `onHurt` / `onHeal`). Da el minuto de la primera muerte, cuántas veces habría muerto (se "levanta" con la vida llena) y el daño y la vida de cada minuto. Desde entonces los golpes en la simulación también cargan el Critical Strike del Guerrero (antes no: `hurtPlayer` salía antes).
+- **Perfil `?level=N`** (`config/simProfile.ts`): partida como un personaje de ese Level, con los puntos repartidos (Guerrero str 2 · vit 1 · dex 1; Maga mag 2 · int 1 · vit 1; o `&build=`) y lo mejor que ya puede ponerse en cada hueco (`&kit=start` = equipo de salida). Manda sobre Gorn y Kaila; el "+" del arma sigue siendo `?upgrade=N`.
+- **El bot** corre en círculos y va a por los jefes. Se probó uno que se apartaba de los monstruos y jugaba **peor** (se quedaba atrapado entre grupos): se quitó. Con el Guerrero muere en tiempos parecidos a los jugadores reales; con la Maga, antes. Sirve para comparar casos entre sí.
+- **Hallazgos** (informe publicado: https://claude.ai/artifact/Xk8DCaCytHNP1yASM2sFBV): muro hacia el minuto 7–8 de cada mapa (los monstruos nuevos tienen 5–17 veces más vida y el daño del personaje solo crece 2,5–3 veces en la partida, así que se forma una "bola"); jefes muy fáciles; Level y +3 casi no ayudan a aguantar; la Maga muere 2–3 veces antes que el Guerrero; ~550 de oro por hora.
+- **Cambios aprobados (B, C, D, E):** `HP_PER_CHARACTER_LEVEL` (data/characterLevel.ts, `CharacterStats.characterLevel`), Maga `hpMultiplier` 1,15 y ropa con menos Mag (data/armor.ts), `BOSS_HP_MULTIPLIER` (data/enemies.ts, en `Enemy.maxHp`), monedas al 4% y mejoras a 0,5× / 1,5× / 3×.
+- **Fallo encontrado con la simulación (arreglado):** `HBAsset.partialAnimation` (ataque en dos trozos del Fire Wyvern) creaba la animación aunque su hoja aún no estuviera lista; salía **vacía** y se quedaba así, y al reproducirla Phaser lanzaba "reading 'frame'" y la partida se congelaba. Solo con carga lenta (4 partidas a la vez; en un móvil, posible). Ahora no se crea hasta que existe la textura, se rehace si quedó vacía y `playDirectional` no reproduce una animación vacía. `balance.mjs` para la partida al primer error de página y guarda la pila.
+- **Métricas reales:** la base D1 `helbreath-survivors-metrics` se puede leer con el conector de Cloudflare (solo lectura). A 22-oct-2026 tenía 30 partidas, todas de Bleeding Isle, ninguna ganada.

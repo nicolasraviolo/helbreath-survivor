@@ -223,7 +223,7 @@ export class EquipmentScene extends Phaser.Scene {
         this.boxText(b.exp, (totalExpForLevel(character.level) + character.exp).toLocaleString('en-US'));
         this.boxText(b.nextExp, character.level >= CHARACTER_LEVEL_MAX ? '—' : totalExpForLevel(character.level + 1).toLocaleString('en-US'));
         const stats = permanentStats(character);
-        const start = new CharacterStats(def, stats);
+        const start = new CharacterStats(def, stats, character.level);
         this.boxText(b.health, String(start.maxHp));
         this.boxText(b.mana, String(start.maxMana));
         for (const id of STAT_IDS) this.boxText(CHARACTER_INFO_STAT_BOXES[id], String(stats[id]));

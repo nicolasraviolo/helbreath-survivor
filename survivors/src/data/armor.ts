@@ -86,16 +86,18 @@ export const ARMOR_PIECES = {
     ironShield: { name: 'Iron Shield', slot: 'shield', set: 'warrior', defense: 0.08, defenseRatio: 22, look: { shield: { sprite: 'gear.shields.m', startSheet: 35 } }, equip: { str: 25 }, icon: { sheet: 2, frame: 5 } },
     knightShield: { name: 'Knight Shield', slot: 'shield', set: 'warrior', defense: 0.1, defenseRatio: 30, magicResistance: 6, look: { shield: { sprite: 'gear.shields.m', startSheet: 49 } }, equip: { str: 32 }, icon: { sheet: 2, frame: 7 } },
     towerShield: { name: 'Tower Shield', slot: 'shield', set: 'warrior', defense: 0.13, defenseRatio: 35, magicResistance: 12, look: { shield: { sprite: 'gear.shields.m', startSheet: 56 } }, equip: { str: 40 }, icon: { sheet: 2, frame: 8 } },
-    // Maga · Túnica (la Maga empieza con 14 de Mag y gana +2 por nivel)
-    robe: { name: 'Robe', slot: 'body', set: 'mage', defense: 0.04, defenseRatio: 12, magicResistance: 8, magicDamageBonus: 0.06, look: { armor: { sprite: 'gear.armor.robe.w' } }, equip: { str: 10, mag: 100 }, icon: { sheet: 8, frame: 5, female: { sheet: 12, frame: 6 } } },
+    // Maga · Túnica y gorro. Revisión de la dificultad (C, propietario 22-oct-2026): piden mucha menos Mag que en el original
+    // (Robe y Wizard Robe 100 → 35, Wizard Cap 110 → 50, Wizard Hat 130 → 70), para que la Maga tenga su defensa hacia
+    // Level 15–30 y no 40–60. El Level 80 de la Wizard Robe se queda.
+    robe: { name: 'Robe', slot: 'body', set: 'mage', defense: 0.04, defenseRatio: 12, magicResistance: 8, magicDamageBonus: 0.06, look: { armor: { sprite: 'gear.armor.robe.w' } }, equip: { str: 10, mag: 35 }, icon: { sheet: 8, frame: 5, female: { sheet: 12, frame: 6 } } },
     wizardRobe: {
         name: 'Wizard Robe', slot: 'body', set: 'mage', defense: 0.07, defenseRatio: 14, magicResistance: 15, magicDamageBonus: 0.14,
         look: { armor: { sprite: 'gear.armor.robe.w', tint: WIZARD_ROBE_TINT } },
-        equip: { str: 10, mag: 100, level: 80 }, icon: { sheet: 8, frame: 5, female: { sheet: 12, frame: 6 } },
+        equip: { str: 10, mag: 35, level: 80 }, icon: { sheet: 8, frame: 5, female: { sheet: 12, frame: 6 } },
     },
     // Maga · Gorro
-    wizardCap: { name: 'Wizard Cap', slot: 'helm', set: 'mage', defense: 0.03, defenseRatio: 8, magicResistance: 5, magicDamageBonus: 0.05, look: { helm: { sprite: 'gear.helm.wizardCap.w' } }, equip: { str: 15, mag: 110 }, icon: { sheet: 18, frame: 4 } },
-    wizardHat: { name: 'Wizard Hat', slot: 'helm', set: 'mage', defense: 0.05, defenseRatio: 10, magicResistance: 10, magicDamageBonus: 0.1, look: { helm: { sprite: 'gear.helm.wizardHat.w' } }, equip: { str: 15, mag: 130 }, icon: { sheet: 18, frame: 5 } },
+    wizardCap: { name: 'Wizard Cap', slot: 'helm', set: 'mage', defense: 0.03, defenseRatio: 8, magicResistance: 5, magicDamageBonus: 0.05, look: { helm: { sprite: 'gear.helm.wizardCap.w' } }, equip: { str: 15, mag: 50 }, icon: { sheet: 18, frame: 4 } },
+    wizardHat: { name: 'Wizard Hat', slot: 'helm', set: 'mage', defense: 0.05, defenseRatio: 10, magicResistance: 10, magicDamageBonus: 0.1, look: { helm: { sprite: 'gear.helm.wizardHat.w' } }, equip: { str: 15, mag: 70 }, icon: { sheet: 18, frame: 5 } },
     // Fase 20B: pantalones, botas y capa, solo en la pantalla de equipo (no salen en las cartas). Defensa propia, pequeña.
     chainHose: {
         name: 'Chain Hose', slot: 'legs', set: 'warrior', defense: 0.05, defenseRatio: 8,

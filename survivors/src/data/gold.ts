@@ -10,7 +10,9 @@ import type { MapId } from './maps';
 
 export const GOLD = {
     /** Chance that a normal monster drops a coin when it dies (elites: eliteCoinChance). */
-    coinChance: 0.02,
+    // Revisión de la dificultad (E, propietario 22-oct-2026): 2% → 4%. Las partidas daban ~550 de oro por hora, la mitad
+    // de lo previsto, porque casi todas acaban hacia el minuto 8.
+    coinChance: 0.04,
     eliteCoinChance: 0.25,
     /** Gold of one coin (before the map's multiplier). */
     coinValue: 2,

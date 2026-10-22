@@ -2,6 +2,7 @@
 // (vida y maná máximos, multiplicadores de daño y velocidad, crítico). Los números viven en data/stats.ts.
 // Desde la Fase 20A la partida empieza con las stats permanentes del personaje (clase + puntos de Level); `level`
 // es el Power de la partida, no el Level permanente (systems/CharacterStore.ts).
+import { HP_PER_CHARACTER_LEVEL } from '../data/characterLevel';
 import type { CharacterDef } from '../data/characters';
 import { xpToNextLevel } from '../data/leveling';
 import {
@@ -43,8 +44,11 @@ export class CharacterStats {
     /** Multiplies every kind of damage while a buff like Berserk lasts (1 = no buff). */
     public buffDamageMultiplier = 1;
 
-    /** `startStats`: the character's permanent stats (class + Level points); the class's alone if not given. */
-    constructor(public readonly def: CharacterDef, startStats: Readonly<Stats> = def.startStats) {
+    /**
+     * `startStats`: the character's permanent stats (class + Level points); the class's alone if not given.
+     * `characterLevel`: its permanent Level, which adds health (HP_PER_CHARACTER_LEVEL).
+     */
+    constructor(public readonly def: CharacterDef, startStats: Readonly<Stats> = def.startStats, public readonly characterLevel = 1) {
         this.stats = { ...startStats };
     }
 
@@ -82,7 +86,8 @@ export class CharacterStats {
     }
 
     public get maxHp(): number {
-        const raw = this.def.baseHp + HP_PER_VIT * this.stats.vit + HP_PER_LEVEL * (this.level - 1);
+        const raw = this.def.baseHp + HP_PER_VIT * this.stats.vit + HP_PER_LEVEL * (this.level - 1)
+            + HP_PER_CHARACTER_LEVEL * (this.characterLevel - 1);
         return Math.round(raw * this.def.hpMultiplier);
     }
 
@@ -121,7 +126,7 @@ export class CharacterStats {
 
     /** A copy of the stats with `points` more in `stat`, to preview a card. */
     public previewWith(stat: StatId, points: number): CharacterStats {
-        const copy = new CharacterStats(this.def, this.stats);
+        const copy = new CharacterStats(this.def, this.stats, this.characterLevel);
         copy.level = this.level;
         copy.gearMagicBonus = this.gearMagicBonus;
         copy.xelimaBonus = this.xelimaBonus;

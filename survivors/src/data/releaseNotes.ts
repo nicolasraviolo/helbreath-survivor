@@ -14,6 +14,16 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: readonly ReleaseNote[] = [
     {
+        version: 'Balance update',
+        date: 'Oct 22, 2026',
+        changes: [
+            'Bosses are tougher: they take twice as long to defeat.',
+            'Each character Level now adds health. The Mage is sturdier and can wear her robes and hats much sooner.',
+            'More gold from monsters, and cheaper weapon upgrades.',
+            'Fixed a rare freeze when the Fire Wyvern appeared.',
+        ],
+    },
+    {
         version: 'Phase 24',
         date: 'Oct 22, 2026',
         changes: [

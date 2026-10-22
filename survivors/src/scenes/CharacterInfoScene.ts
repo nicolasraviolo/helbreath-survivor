@@ -326,7 +326,7 @@ export class CharacterInfoScene extends Phaser.Scene {
             row.minus.setVisible(canAssign && changed);
         }
         if (this.startTexts) {
-            const start = new CharacterStats(CHARACTERS[this.params.classId], stats);
+            const start = new CharacterStats(CHARACTERS[this.params.classId], stats, this.saved?.level ?? 1);
             this.startTexts.health.setText(String(start.maxHp));
             this.startTexts.mana.setText(String(start.maxMana));
         }

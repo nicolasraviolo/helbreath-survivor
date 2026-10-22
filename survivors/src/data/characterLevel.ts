@@ -9,6 +9,12 @@
 // Es una primera aproximación: se ajusta con las métricas (con equipo y más stats se llegará más lejos cada partida).
 
 export const CHARACTER_LEVEL_MAX = 140;
+/**
+ * Maximum health earned on every Level after the first (revisión de la dificultad, B, propietario 22-oct-2026): así
+ * subir de Level ayuda también a aguantar, no solo a matar. Level 25: +48; Level 40: +78 (antes de la clase).
+ */
+export const HP_PER_CHARACTER_LEVEL = 2;
+
 /** Stat points earned on every Level. */
 export const STAT_POINTS_PER_LEVEL = 3;
 /** No stat can be raised past this with Level points. */
