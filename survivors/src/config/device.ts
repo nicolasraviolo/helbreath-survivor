@@ -1,6 +1,6 @@
 // Interfaz "compacta" para móviles (Fase 10): el juego se dibuja a 800x600 y se encoge para caber en la pantalla.
 // En un móvil en horizontal queda al ~65 %, así que letras, menús, cartas y barra inferior se agrandan.
-// Se decide una vez al arrancar: pantalla táctil y pequeña. En el PC (o una tablet grande) todo queda como antes.
+// Se decide una vez al arrancar: pantalla táctil y pequeña, sin ratón ni touchpad (Fase 25, por las consolas). En el PC (o una tablet grande) todo queda como antes.
 // Para probarlo en el PC: añade ?ui=compact a la dirección (o ?ui=normal en el móvil para ver la versión de PC).
 import { GAME_HEIGHT, GAME_WIDTH } from './gameConfig';
 
@@ -14,7 +14,10 @@ function detectCompactUi(): boolean {
     if (forced === 'compact') return true;
     if (forced === 'normal') return false;
     const touch = window.matchMedia('(pointer: coarse)').matches;
-    return touch && Math.min(window.screen.width, window.screen.height) <= COMPACT_MAX_SHORT_SIDE;
+    // Fase 25: a Steam Deck or Legion Go has a touch screen that can look small (with Windows' scaling), but also a
+    // touchpad, which browsers report as a fine pointer. Phones have none: with one, keep the PC interface.
+    const finePointer = window.matchMedia('(any-pointer: fine)').matches;
+    return touch && !finePointer && Math.min(window.screen.width, window.screen.height) <= COMPACT_MAX_SHORT_SIDE;
 }
 
 /** True on phones: bigger text and UI. */

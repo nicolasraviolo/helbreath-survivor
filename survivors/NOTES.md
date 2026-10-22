@@ -91,6 +91,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Mejorar armas en el herrero (Fase 24D)
 - Revisión de la dificultad: `pnpm balance` (22-oct-2026)
 - Nitidez: lienzo a la resolución real (RENDER_SCALE)
+- Pantalla completa y consolas (Fase 25)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -645,9 +646,16 @@ Tabla completa en `docs/REQUISITOS_HB.md`. Lo no obvio:
 
 ## Settings táctil (Fase 12C)
 - `MenuList` tiene filas con casilla (`checked`), dibujadas con `Graphics`: el original no tiene sprite de casilla (sp-client la hace en React). Se probó una barra deslizante para el volumen y el propietario prefirió las flechas con el número (18-oct-2026).
-- App instalada: `(display-mode: fullscreen)` también se cumple en una pestaña normal puesta a pantalla completa. Por eso `ui/fullscreen.ts` lo lee **una sola vez al arrancar** para saber si se abrió desde el icono (y entonces no ofrece Fullscreen).
+- App instalada: `(display-mode: fullscreen)` también se cumple con Chrome a pantalla completa (F11, o abierto así por Steam). **Desde la Fase 25 no cuenta:** la app se reconoce por `?app=1` (el `start_url` del manifiesto), `display-mode: standalone` o `navigator.standalone`. Ver "Pantalla completa y consolas (Fase 25)".
 - Large Trees solo On/Off: un `'transparent'` guardado (Fase 11) no está en `TREE_MODES` y se carga como el valor por defecto (On), sin migración.
 - En Playwright, esperar a que la escena exista (`waitForFunction`) antes de pulsar teclas: con `?open=` la pantalla tarda algo más de 1,5 s.
+
+## Pantalla completa y consolas (Fase 25)
+- **Antes** el botón de pantalla completa desaparecía en todas partes con Chrome a pantalla completa: el juego lo tomaba por la app instalada (ver "Settings táctil"). Ahora la app abre `./?app=1`; el service worker busca la copia sin conexión con `ignoreSearch`.
+- La pantalla completa del **navegador** (F11, Steam) no se puede quitar desde la web: `exitFullscreen` solo deshace la que pidió la página.
+- Botón redondo en pantallas táctiles (`addTouchFullscreenButton`, `TOUCH_FULLSCREEN_BUTTON`): en la partida a la izquierda del botón de stats del HUD compacto (x 640), en la ciudad junto a la pausa (`townX`). Los sticks no se abren encima (`onTouchFullscreenButton`). La barra del jefe se estrechó en el móvil para no tocarlo.
+- Modo móvil (`config/device.ts`): además de táctil y pequeña, la pantalla no debe tener un puntero fino (`any-pointer: fine`): la Steam Deck y la Legion Go tienen touchpad y se quedan en modo PC (con los botones táctiles, porque `device.input.touch` sigue siendo cierto).
+- Stats en el móvil: `CHARACTER_INFO_BIG_STEPPER`, panel a la derecha de la ventana Character con el stat elegido y − / + de 84 px; los botoncitos del original siguen (no caben más grandes: hay 13 px hasta el borde).
 
 ## Pestañas de Settings (M13)
 - Dos pestañas en móvil y ordenador: "Audio & Display" y "Gameplay" (`SETTINGS_MENU.tabNames`). Qué fila va en cada una: `audioDisplayRows` / `gameplayRows` de `SettingsScene`. Caben unas 6 filas más Back por pestaña; con más, otra pestaña o bajar `itemSpacing`.

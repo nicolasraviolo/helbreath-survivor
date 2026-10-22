@@ -2,6 +2,11 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
+**Fase 25 — Arreglos rápidos (2026-10-22, un bloque).**
+- **Qué se hizo:** (1) la app instalada se reconoce por `?app=1` y no por `display-mode: fullscreen`, así Chrome a pantalla completa (F11, Steam) ya no esconde el botón; (2) botón redondo de pantalla completa en pantallas táctiles, en la partida y en la ciudad, junto a la pausa (barra del jefe más estrecha en el móvil); (3) con touchpad o ratón (Steam Deck, Legion Go) no se entra en modo móvil; (4) la pantalla final ya no muestra arma ni armadura, y lo demás queda centrado; (5) en el móvil, panel a la derecha de la ventana Character con el stat elegido y − / + grandes. Ver NOTES.md, "Pantalla completa y consolas (Fase 25)".
+- **Comprobado:** build y `check` de menú, charinfo, partida, jefe y ciudad (PC y móvil) sin errores; pantalla final con `charexp`. Probado por el propietario: bien. Falta una consola real (tras publicar).
+- **Probar:** `pnpm --dir survivors dev` → `?characters=demo&open=charinfo&ui=compact` (stats), `?play&debug=onehp` (pantalla final), Chrome con F11 en http://localhost:8090 (botón en el menú).
+
 **Texto nítido (fuera de fase, 2026-10-22).**
 - **Problema:** el texto se veía borroso y con letras rotas en PC y móvil. El lienzo medía 800×600 y el navegador lo estiraba; además el texto se preparaba a ×3 y se encogía sin suavizar (`pixelArt`).
 - **Qué se hizo:** el lienzo mide 800×600 × `RENDER_SCALE` (1–3 según la densidad de la pantalla; `?scale=N` para probar) y `RenderScalePlugin` pone cada cámara con ese zoom; el texto se prepara a la misma escala (1:1). Lo fijo en pantalla (minimapa, sticks, botones táctiles, textos de depuración) va en `ScreenLayer`; los toques pasan por `toGame()`; viewport de la partida con `setGameViewport()`. Código en `ui/renderScale.ts`; ver NOTES.md, "Nitidez".

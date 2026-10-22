@@ -78,6 +78,34 @@ export const CHARACTER_INFO_PLUS_MINUS = {
     hitPadOut: byDevice(3, 8),
 } as const;
 
+/**
+ * Fase 25: on phones (compact UI) the 12 px + and − are too small for a finger, and the window has no room for bigger
+ * ones. So, while points can be assigned, a panel to the right of the window shows the chosen stat (tap its box) with
+ * two big − and + buttons. Game pixels; the window ends at x ≈ 596.
+ */
+export const CHARACTER_INFO_BIG_STEPPER = {
+    centerX: 698,
+    nameY: 318,
+    valueY: 360,
+    buttonsY: 440,
+    buttonSize: 84,
+    /** Between the centres of − and +. */
+    buttonGap: 96,
+    /** Touch area beyond each button, on every side. */
+    hitPad: 6,
+    radius: 10,
+    fill: 0x2e2216,
+    pressedFill: 0x5a4628,
+    border: 0xd8b048,
+    borderWidth: 3,
+    glyphColor: '#ffd860',
+    glyphSize: 84,
+    nameSize: 26,
+    valueSize: 40,
+    /** A button that can't be used now (no points left, nothing to take back) is dimmed. */
+    disabledAlpha: 0.3,
+} as const;
+
 /** Bottom buttons (dialogtext.spr sheet 1, 74x20; lit frame = frame + 1), at the original's places. */
 export const CHARACTER_INFO_BUTTONS = {
     texture: getSheetKey('ui.buttons', 1),

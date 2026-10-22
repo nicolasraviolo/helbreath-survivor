@@ -3,7 +3,7 @@
   "short_name": "HB Survivors",
   "description": "A free fan-made survivors game with Helbreath assets.",
   "id": "./",
-  "start_url": "./",
+  "start_url": "./?app=1",
   "scope": "./",
   "display": "fullscreen",
   "display_override": ["fullscreen", "standalone"],

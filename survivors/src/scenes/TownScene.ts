@@ -10,7 +10,7 @@ import Phaser from 'phaser';
 import { DEBUG_START } from '../config/debugStart';
 import { MENU_INPUT_DELAY_MS } from '../config/menus';
 import { CAMERA_LERP, DEPTH_DEBUG, GAME_HEIGHT, MAP_OBJECT_MARGIN_TILES, TILE_SIZE } from '../config/gameConfig';
-import { TOUCH_JOYSTICK } from '../config/touch';
+import { onTouchFullscreenButton, TOUCH_FULLSCREEN_BUTTON, TOUCH_JOYSTICK } from '../config/touch';
 import { DEFAULT_LOOKS } from '../data/appearance';
 import { FOOTSTEP_DUST_EVERY_PX, FOOTSTEPS_PER_RUN_CYCLE } from '../data/audio';
 import type { Appearance } from '../hb/playerAppearance';
@@ -37,6 +37,7 @@ import { SETTINGS_CHANGED, settings } from '../systems/Settings';
 import { Minimap } from '../ui/Minimap';
 import { TalkButton } from '../ui/TalkButton';
 import { addTouchPauseButton } from '../ui/TouchPauseButton';
+import { addTouchFullscreenButton } from '../ui/fullscreen';
 import { TouchJoystick } from '../ui/TouchJoystick';
 import { Pool } from '../utils/Pool';
 import { openOverlay } from './MenuOverlayScene';
@@ -142,10 +143,11 @@ export class TownScene extends Phaser.Scene {
         if (this.sys.game.device.input.touch) {
             const talkButton = new TalkButton(this, DEPTH_DEBUG - 1, () => this.talkToNear());
             this.talkButton = talkButton;
-            this.joystick = new TouchJoystick(this, GAME_HEIGHT, DEPTH_DEBUG - 2, TOUCH_JOYSTICK, (x, y) => !talkButton.covers(x, y));
+            this.joystick = new TouchJoystick(this, GAME_HEIGHT, DEPTH_DEBUG - 2, TOUCH_JOYSTICK, (x, y) => !talkButton.covers(x, y) && !onTouchFullscreenButton(x, y, TOUCH_FULLSCREEN_BUTTON.townX));
             this.inputSystem.setTouchJoystick(this.joystick);
             // No Esc on a phone: the same "II" button as in the run, with the minimap below it.
             addTouchPauseButton(this, DEPTH_DEBUG - 1, () => this.openPause());
+            addTouchFullscreenButton(this, DEPTH_DEBUG - 1, TOUCH_FULLSCREEN_BUTTON.townX);
             this.minimap.setTop(MINIMAP.topUnderButtons);
         }
         this.mapView.setTreeMode(DEBUG_START.trees ?? settings.current.largeTrees);

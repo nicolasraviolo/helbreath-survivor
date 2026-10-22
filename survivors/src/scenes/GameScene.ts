@@ -12,7 +12,7 @@ import {
     PLAYER_HURT_STUN_MS,
     TILE_SIZE,
 } from '../config/gameConfig';
-import { TOUCH_AIM_STICK, TOUCH_AIM_ZONE_START, TOUCH_JOYSTICK, TOUCH_RESERVED_CORNER } from '../config/touch';
+import { onTouchFullscreenButton, TOUCH_AIM_STICK, TOUCH_AIM_ZONE_START, TOUCH_JOYSTICK, TOUCH_RESERVED_CORNER } from '../config/touch';
 import { ANNOUNCE_EVENT, QUIT_RUN_EVENT } from '../config/hud';
 import { getArmorPiece } from '../data/armor';
 import { canHaveAttribute, isArmorPieceId, isMeleeWeaponId, itemInfo, START_EQUIPMENT, type EquipSlotId, type SavedEquipment } from '../data/items';
@@ -443,9 +443,9 @@ export class GameScene extends Phaser.Scene {
             const critCorner = (x: number, y: number): boolean =>
                 x >= GAME_WIDTH - TOUCH_RESERVED_CORNER.width && y >= overlayBottom() - TOUCH_RESERVED_CORNER.height;
             this.joystick = new TouchJoystick(this, playAreaBottom(), DEPTH_DEBUG - 2, TOUCH_JOYSTICK,
-                (x, y) => !aimSide(x) && !critCorner(x, y));
+                (x, y) => !aimSide(x) && !critCorner(x, y) && !onTouchFullscreenButton(x, y));
             this.aimStick = new TouchJoystick(this, playAreaBottom(), DEPTH_DEBUG - 2, TOUCH_AIM_STICK,
-                (x, y) => aimSide(x) && !critCorner(x, y));
+                (x, y) => aimSide(x) && !critCorner(x, y) && !onTouchFullscreenButton(x, y));
             this.inputSystem.setTouchJoystick(this.joystick);
             this.inputSystem.setTouchAimStick(this.aimStick);
         }
@@ -1553,7 +1553,6 @@ export class GameScene extends Phaser.Scene {
         const lootResult = this.sim ? undefined : characterStore.finishRun(this.characterUid, this.runLoot.snapshot(), victory);
         // Fase 24A: the run's gold is always kept, won or lost.
         if (!this.sim) goldStore.add(this.runGold);
-        const armor = Object.values(this.equipment.armor).map((id) => getArmorPiece(id).name);
         this.sendMetrics(victory ? 'win' : 'death');
         const data: GameOverSceneData = {
             victory,
@@ -1561,8 +1560,6 @@ export class GameScene extends Phaser.Scene {
             level: this.stats.level,
             kills: this.combat.kills,
             className: this.stats.def.name,
-            weaponName: this.meleeWeapon?.def.name ?? this.spellWeapon?.def.name ?? '',
-            armorNames: armor,
             achievementNames: this.achievementsThisRun,
             newMaps,
             exp,

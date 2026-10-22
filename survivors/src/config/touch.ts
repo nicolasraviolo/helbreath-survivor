@@ -74,5 +74,32 @@ export const TOUCH_PAUSE_BUTTON = {
     barGap: 6,
 } as const;
 
+/**
+ * Fase 25: round fullscreen button for touch screens, left of the pause and stats ones (also on a Steam Deck or Legion Go in
+ * phone mode, where getting out of fullscreen was hard). Only where the browser allows fullscreen (not on iPhone).
+ */
+export const TOUCH_FULLSCREEN_BUTTON = {
+    /** In a run: left of the stats button (compact HUD). In the town there's none: next to the pause one. */
+    x: 640,
+    townX: 700,
+    y: 40,
+    radius: 24,
+    hitRadius: 32,
+    color: 0x000000,
+    alpha: 0.45,
+    ringColor: 0xe8dcc0,
+    iconColor: 0xe8dcc0,
+    /** Side of the four corner brackets, and their length as a share of it. */
+    iconSize: 22,
+    iconCorner: 0.35,
+    iconLineWidth: 3,
+} as const;
+
+/** Whether a finger at (x, y) lands on the fullscreen button (no stick opens there). */
+export function onTouchFullscreenButton(x: number, y: number, buttonX: number = TOUCH_FULLSCREEN_BUTTON.x): boolean {
+    const b = TOUCH_FULLSCREEN_BUTTON;
+    return Math.hypot(x - buttonX, y - b.y) <= b.hitRadius;
+}
+
 /** Fingers tracked at once: one to move, one to aim (Fase 15C) and one for buttons (pause, cards). */
 export const TOUCH_POINTERS = 3;
