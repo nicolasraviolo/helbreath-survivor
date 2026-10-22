@@ -25,6 +25,7 @@ export const RELEASE_NOTES: readonly ReleaseNote[] = [
             'Tom the blacksmith buys, sells and upgrades weapons and wands up to +3.',
             'New rare loot: the Stone of Xelima, used for weapon upgrades.',
             'Press I in town to open your equipment.',
+            'Meet Gorn and Kaila: every account now starts with a warrior and a mage. More characters will unlock later.',
         ],
     },
     {

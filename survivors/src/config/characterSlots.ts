@@ -34,7 +34,10 @@ export const SLOTS_BUTTONS = {
     play: { frame: 51, y: 288 },
     newCharacter: { frame: 52, y: 318 },
     delete: { frame: 53, y: 348 },
-    /** Change Password: not used, covered with SLOTS_DISABLED_SHADE. */
+    /**
+     * Not used, covered with SLOTS_DISABLED_SHADE: Change Password, and since the fixed characters (22-oct-2026)
+     * Create New Character and Delete Character too.
+     */
     unused: { y: 378, width: 176, height: 24 },
     back: { frame: 55, y: 408 },
     /** "Level Set." on the left of the Change Password row (Fase 20A). */
@@ -43,6 +46,17 @@ export const SLOTS_BUTTONS = {
 export const SLOTS_BUTTON_LIT_OFFSET = 5;
 /** Empty slots, and in Continue the characters without a saved run. */
 export const SLOTS_DIM_ALPHA = 0.45;
+
+/**
+ * Locked slots (22-oct-2026): a dark figure that can't be made out (a character drawn all black, see-through, standing
+ * still) and "Locked" in the name box. The help text shows when the slot is marked or chosen.
+ */
+export const SLOTS_LOCKED = {
+    label: 'Locked',
+    help: 'Locked.\nNew characters will be unlocked in the future.',
+    tint: 0x000000,
+    alpha: 0.6,
+} as const;
 /** Covers Change Password (not used) under the "Level Set." button (Fase 20A), with a thin frame like the buttons'. */
 /** Phones: touch area bigger than the buttons (they are 30 px apart, so only up to ~3 px up and down). */
 export const SLOTS_BUTTON_HIT_PAD = byDevice({ x: 0, y: 0 }, { x: 4, y: 3 });

@@ -2,6 +2,13 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
+**Personajes fijos (fuera de fase, 2026-10-22).**
+- **Qué hace:** cada cuenta trae ya **Gorn** (Guerrero, hueco 1) y **Kaila** (Maga, hueco 2), con nombre y aspecto fijos. Los huecos 3 y 4 salen **"Locked"** con una silueta oscura y quieta; al elegirlos, "Locked. New characters will be unlocked in the future." Los botones Create New Character y Delete Character salen apagados; la pantalla Create Character ya no existe. Los personajes guardados antes **se borran** con sus partidas (todos empiezan de cero); baúl, oro y desbloqueos de la tienda se conservan. What's new al día.
+- **Decisiones del propietario:** nombres Gorn y Kaila; empezar de cero; huecos bloqueados con "Locked" y una silueta que no se distingue.
+- **Código:** `FIXED_CHARACTERS` e `isLockedSlot` (`data/characterSlots.ts`); `SLOTS_LOCKED` (`config/characterSlots.ts`); `CharacterStore.fillFixedCharacters`, `CHARACTERS_VERSION` 9 (lo anterior se tira), fuera `create`/`delete`/`firstFree`; `?play` juega con el personaje fijo de la clase; borrados `CharacterSelectScene` y `ui/TextInput.ts` (y el atajo `?open=select`). Ver NOTES.md, "Personajes guardados (Fase 17A)".
+- **Comprobado:** build; `check menu slots slotsempty game town mapsnew` sin errores (~60 FPS); captura de `slotsempty` con Gorn, Kaila y dos siluetas. Probado por el propietario: bien.
+- **Probar:** `pnpm --dir survivors dev` → http://localhost:8090 → Play.
+
 **Fase 24, bloque 24D: mejorar armas en el herrero (2026-10-22).**
 - **Qué hace:** Tom tiene una tercera pestaña, **Upgrade** (letrero original "Item Upgrade" y botón Upgrade). Lista el arma o varita puesta ("Equipped") y las del inventario, con el oro del siguiente "+" o "Max". Cada "+" cuesta oro y **1 Stone of Xelima del inventario**, pide pulsar Upgrade dos veces y **siempre sale bien**. Cada "+" da **+10% de daño** (para la Maga, a sus hechizos), multiplicado con el atributo. El "+" se ve en el nombre ("Long Sword +2") en Equipment, baúl, venta y botín, y se guarda puesto, en el inventario y en el baúl. Vender un arma mejorada paga también ¼ del oro de las mejoras. La daga y la varita MS0 de salida, mejoradas, pasan a ser un objeto de verdad (al quitárselas van al inventario). **Tecla I en la ciudad** abre Equipment (petición del propietario). How to Play y What's new al día.
 - **Decisiones del propietario:** +10% por cada +, siempre sale bien, 1 piedra por cada + (22-oct); plan aprobado tal cual: también varitas, equipo de salida y Ancient; tecla I.

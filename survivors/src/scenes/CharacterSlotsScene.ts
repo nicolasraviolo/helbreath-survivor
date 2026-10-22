@@ -2,13 +2,14 @@
 // Una partida guardada por personaje (SaveStore, mismo número de hueco): elegir un personaje con partida a medias abre
 // RunChoiceScene (Continue o New Run, 21-oct-2026); sin partida, empieza una nueva.
 // Cuatro huecos en fila; en cada uno, el personaje guardado (CharacterStore) caminando en el sitio y girando, con su
-// nombre, su Level y su EXP debajo (Fase 20A), y "+N" en verde si tiene puntos sin repartir. Un hueco vacío lleva a
-// Create Character (CharacterSelectScene).
+// nombre, su Level y su EXP debajo (Fase 20A), y "+N" en verde si tiene puntos sin repartir.
+// Personajes fijos (22-oct-2026): Gorn y Kaila en los dos primeros huecos; los otros dos, bloqueados ("Locked", con una
+// silueta oscura) para personajes que se desbloqueen más adelante. Ya no se crean ni se borran personajes.
 // Como en el original: un clic marca el hueco y otro clic en el mismo empieza la partida (con el dedo, igual).
-// A la derecha, los botones del original: Start, Create New Character, Delete Character (pide pulsarlo otra vez para
-// confirmar) y Log Out, que aquí vuelve al menú principal. Change Password no tiene sentido sin cuentas: se ve apagado,
-// y encima va "Level Set." (Fase 20A), que abre la ventana Character del personaje marcado para repartir sus puntos.
-// Teclado: ←/→ cambia de hueco, Enter juega (o crea si está vacío), C abre la ventana Character, Supr borra, Esc vuelve.
+// A la derecha, los botones del original: Start y Log Out, que aquí vuelve al menú principal. Create New Character,
+// Delete Character y Change Password se ven apagados; encima de Change Password va "Level Set." (Fase 20A), que abre la
+// ventana Character del personaje marcado para repartir sus puntos.
+// Teclado: ←/→ cambia de hueco, Enter juega, C abre la ventana Character, Esc vuelve.
 // Mando: cruceta/stick, A, Y (Character) y B.
 // Equipment y Warehouse ya no tienen botón aquí (Fase 23B): se abren en la ciudad, desde Howard o el Cofre. Los atajos
 // de desarrollo ?open=equipment y ?open=warehouse siguen abriéndolas desde esta pantalla.
@@ -25,6 +26,7 @@ import {
     SLOTS_HELP_STYLE,
     SLOTS_INPUT_DELAY_MS,
     SLOTS_LAYOUT,
+    SLOTS_LOCKED,
     SLOTS_NAME_STYLE,
     SLOTS_SCALE,
     SLOTS_TEXT_STYLE,
@@ -32,7 +34,8 @@ import {
     SLOTS_TURN_MS,
 } from '../config/characterSlots';
 import { DEBUG_START } from '../config/debugStart';
-import { CHARACTER_SLOT_COUNT } from '../data/characterSlots';
+import { DEFAULT_LOOKS } from '../data/appearance';
+import { CHARACTER_SLOT_COUNT, isLockedSlot } from '../data/characterSlots';
 import { CHARACTERS } from '../data/characters';
 import { CharacterSprite } from '../entities/CharacterSprite';
 import { Direction } from '../hb/directions';
@@ -45,7 +48,6 @@ import { totalExpForLevel } from '../data/characterLevel';
 import type { CharacterInfoSceneData } from './CharacterInfoScene';
 import type { EquipmentSceneData } from './EquipmentScene';
 import type { WarehouseSceneData } from './WarehouseScene';
-import type { CharacterSelectSceneData } from './CharacterSelectScene';
 import { openOverlay } from './MenuOverlayScene';
 import { startCharacterRun, type RunChoiceSceneData } from './RunChoiceScene';
 
@@ -84,11 +86,8 @@ export interface CharacterSlotsSceneData {
 
 export class CharacterSlotsScene extends Phaser.Scene {
     private inputSystem!: InputSystem;
-    private deleteKey: Phaser.Input.Keyboard.Key | undefined;
     private slots: Slot[] = [];
     private focused = 0;
-    /** Delete was pressed once on this slot: the next press deletes it. */
-    private deleteArmed: number | undefined;
     private helpText!: Phaser.GameObjects.Text;
     private openedAt = 0;
     private walkTime = 0;
@@ -104,7 +103,6 @@ export class CharacterSlotsScene extends Phaser.Scene {
 
     create(): void {
         this.slots = [];
-        this.deleteArmed = undefined;
         this.walkTime = 0;
         this.openedAt = this.time.now;
         this.add.image(0, 0, SLOTS_BACKGROUND.texture, SLOTS_BACKGROUND.frame).setOrigin(0).setScale(SLOTS_SCALE);
@@ -117,7 +115,6 @@ export class CharacterSlotsScene extends Phaser.Scene {
         this.inputSystem = new InputSystem(this);
         // Slots and buttons have their own click handlers: a click elsewhere does nothing.
         this.inputSystem.setPointerMaxY(-1);
-        this.deleteKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.DELETE);
 
         // Back from the Character window: drawn again (Level, points) with the same slot marked.
         const onResume = () => this.scene.restart({ focus: this.focused } satisfies CharacterSlotsSceneData);
@@ -166,14 +163,12 @@ export class CharacterSlotsScene extends Phaser.Scene {
         this.updateCharacters(delta);
         const input = this.inputSystem;
         input.update();
-        const deletePressed = this.deleteKey !== undefined && Phaser.Input.Keyboard.JustDown(this.deleteKey);
         if (!this.ready()) return;
         if (input.justPressed(Action.MenuLeft)) this.focus(this.step(-1));
         if (input.justPressed(Action.MenuRight)) this.focus(this.step(1));
         if (input.justPressed(Action.Confirm)) this.enter(this.focused);
         if (input.justPressed(Action.Back)) this.scene.start('MainMenu');
         if (input.justPressed(Action.ToggleStats)) this.openCharacterInfo();
-        if (deletePressed) this.deleteFocused();
     }
 
     private createSlot(index: number): Slot {
@@ -185,6 +180,11 @@ export class CharacterSlotsScene extends Phaser.Scene {
         });
         const saved = characterStore.get(index);
         if (!saved) {
+            if (isLockedSlot(index)) {
+                this.createSilhouette(s(c.x + dx), s(c.y));
+                this.add.text(s(textX + dx), s(textY[0] ?? 0), SLOTS_LOCKED.label, SLOTS_NAME_STYLE).setOrigin(0.5).setAlpha(SLOTS_DIM_ALPHA);
+                return { frame, sprite: undefined };
+            }
             this.add.text(s(textX + dx), s(textY[0] ?? 0), 'Empty', SLOTS_TEXT_STYLE).setOrigin(0.5).setAlpha(SLOTS_DIM_ALPHA);
             return { frame, sprite: undefined };
         }
@@ -202,14 +202,26 @@ export class CharacterSlotsScene extends Phaser.Scene {
         return { frame, sprite };
     }
 
+    /**
+     * Figure of a locked slot (22-oct-2026): a character that can't be made out, all dark and standing still (it isn't
+     * kept in the slot, so it doesn't walk or turn with the others).
+     */
+    private createSilhouette(x: number, y: number): void {
+        const sprite = new CharacterSprite(this, CHARACTERS.warrior, DEFAULT_LOOKS.warrior, x, y);
+        sprite.container.setScale(SLOTS_CHARACTER_SCALE * SLOTS_SCALE).setAlpha(SLOTS_LOCKED.alpha);
+        sprite.setTint(SLOTS_LOCKED.tint);
+        sprite.setPose(PlayerState.IdleCombat, Direction.South);
+    }
+
     private createButtons(): void {
         const { x, play, newCharacter, delete: del, unused, back } = SLOTS_BUTTONS;
         this.addButton(x, play.y, play.frame, () => this.enter(this.focused));
-        this.addButton(x, newCharacter.y, newCharacter.frame, () => this.newCharacter());
-        this.addButton(x, del.y, del.frame, () => this.deleteFocused());
         this.addButton(x, back.y, back.frame, () => this.scene.start('MainMenu'));
-        this.add.rectangle(s(x), s(unused.y), s(unused.width), s(unused.height), SLOTS_DISABLED_SHADE.color, SLOTS_DISABLED_SHADE.alpha)
-            .setOrigin(0).setStrokeStyle(1, SLOTS_DISABLED_SHADE.border);
+        // Not used since the fixed characters: Create New Character, Delete Character; and Change Password as always.
+        for (const y of [newCharacter.y, del.y, unused.y]) {
+            this.add.rectangle(s(x), s(y), s(unused.width), s(unused.height), SLOTS_DISABLED_SHADE.color, SLOTS_DISABLED_SHADE.alpha)
+                .setOrigin(0).setStrokeStyle(1, SLOTS_DISABLED_SHADE.border);
+        }
         const { levelSet } = SLOTS_BUTTONS;
         const image = this.add.image(s(levelSet.x), s(levelSet.y), SLOTS_TEXTURE, levelSet.frame).setOrigin(0).setScale(SLOTS_SCALE);
         image.setInteractive({ useHandCursor: true });
@@ -224,7 +236,7 @@ export class CharacterSlotsScene extends Phaser.Scene {
     private openWarehouse(): void {
         const saved = characterStore.get(this.focused);
         if (!saved) {
-            this.setHelp('This slot is empty.');
+            this.setHelp(this.emptyHelp(this.focused));
             return;
         }
         const data: WarehouseSceneData = { characterUid: saved.uid };
@@ -235,7 +247,7 @@ export class CharacterSlotsScene extends Phaser.Scene {
     private openEquipment(): void {
         const saved = characterStore.get(this.focused);
         if (!saved) {
-            this.setHelp('This slot is empty.');
+            this.setHelp(this.emptyHelp(this.focused));
             return;
         }
         const data: EquipmentSceneData = { characterUid: saved.uid };
@@ -246,7 +258,7 @@ export class CharacterSlotsScene extends Phaser.Scene {
     private openCharacterInfo(): void {
         const saved = characterStore.get(this.focused);
         if (!saved) {
-            this.setHelp('This slot is empty.');
+            this.setHelp(this.emptyHelp(this.focused));
             return;
         }
         const data: CharacterInfoSceneData = { characterUid: saved.uid, classId: saved.classId };
@@ -269,21 +281,25 @@ export class CharacterSlotsScene extends Phaser.Scene {
         return button;
     }
 
-    /** As in the original: an empty slot opens Create Character; a character is marked first and plays on the second click. */
+    /** As in the original: a character is marked first and plays on the second click. */
     private onSlotClicked(index: number): void {
-        if (!characterStore.get(index) || index === this.focused) this.enter(index);
+        if (index === this.focused) this.enter(index);
         else this.focus(index);
+    }
+
+    /** Help text of a slot without a character. */
+    private emptyHelp(index: number): string {
+        return isLockedSlot(index) ? SLOTS_LOCKED.help : 'Empty slot.';
     }
 
     private focus(index: number): void {
         this.focused = index;
-        this.deleteArmed = undefined;
         this.slots.forEach((slot, i) => slot.frame.setFrame(i === index ? SLOTS_LAYOUT.frame.focused : SLOTS_LAYOUT.frame.normal));
         const saved = characterStore.get(index);
         const run = saveStore.get(index);
         const lines = saved
             ? [`${saved.name}, ${CHARACTERS[saved.classId].name}, Level ${saved.level}.`, `Best Power: ${saved.bestPower}.`]
-            : ['Empty slot.'];
+            : [this.emptyHelp(index)];
         if (saved && saved.unspentPoints > 0) lines.push(`${saved.unspentPoints} points to assign: Level Set.`);
         if (saved && run) lines.push(`Saved run: Power ${run.level}, ${formatTime(run.elapsedMs)}.`);
         this.setHelp(lines.join('\n'));
@@ -291,12 +307,12 @@ export class CharacterSlotsScene extends Phaser.Scene {
 
     /**
      * Plays with the character in that slot. With a saved run it asks first: Continue (in its map) or New Run
-     * (RunChoiceScene, 21-oct-2026); without one, Select Map opens (Fase 22A). An empty slot opens Create Character.
+     * (RunChoiceScene, 21-oct-2026); without one, Select Map opens (Fase 22A). A locked slot only says so.
      */
     private enter(index: number): void {
         const saved = characterStore.get(index);
         if (!saved) {
-            this.scene.start('CharacterSelect', { slot: index } satisfies CharacterSelectSceneData);
+            this.setHelp(this.emptyHelp(index));
             return;
         }
         if (saveStore.get(index)) {
@@ -305,32 +321,6 @@ export class CharacterSlotsScene extends Phaser.Scene {
             return;
         }
         startCharacterRun(this, index, false);
-    }
-
-    private newCharacter(): void {
-        const free = characterStore.firstFree;
-        if (free < 0) {
-            this.setHelp('All four slots are in use.\nDelete a character first.');
-            return;
-        }
-        this.enter(free);
-    }
-
-    private deleteFocused(): void {
-        const saved = characterStore.get(this.focused);
-        if (!saved) {
-            this.setHelp('This slot is empty.');
-            return;
-        }
-        if (this.deleteArmed !== this.focused) {
-            this.deleteArmed = this.focused;
-            const run = saveStore.get(this.focused) ? ' and its saved run' : '';
-            this.setHelp(`Delete ${saved.name}${run}?\nPress Delete again to confirm.`);
-            return;
-        }
-        characterStore.delete(this.focused);
-        // Rebuilt from scratch: the slot is drawn empty now.
-        this.scene.restart();
     }
 
     private setHelp(text: string): void {

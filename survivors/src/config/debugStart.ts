@@ -15,7 +15,7 @@
 //                      stats = el panel de stats (C) abierto desde el principio
 //                      aimstick = un dedo de mentira en el stick de apuntar, empujado a la derecha (con --mobile, Fase 15C)
 //                      charexp = la XP de la partida cuenta ×50 para el Level del personaje al terminarla (Fase 20A;
-//                                con ?characters=demo juega el personaje de ejemplo de esa clase)
+//                                juega el personaje fijo de esa clase: Gorn o Kaila)
 //                      epic = todas las cartas de Power salen Epic (Fase 21½A)
 //                      champion = sale un Champion a los 3 segundos (Fase 21½C)
 //                      stones = las cartas ofrecen siempre las pasivas (Xelima, Merien, Magnet) que no estén al máximo (Fase 20C)
@@ -29,10 +29,13 @@
 //   ?attr=sharp      → el arma de salida y todo el botín (que siempre es un arma) con ese atributo: sharp, poison o
 //                      ancient (Fase 21B; las varitas nunca son poison)
 //   ?upgrade=3       → el arma (o varita) de salida a +3 en las partidas de prueba sin personaje (1–3; Fase 24D)
+//   ?level=25        → partida de prueba como un personaje de ese Level: puntos repartidos y el mejor equipo que ya puede
+//                      ponerse (config/simProfile.ts; revisión de la dificultad, 22-oct-2026). Con &build=str:2,vit:1,dex:1
+//                      otro reparto (en partes); con &kit=start, solo el equipo de salida.
 //   ?slash=2         → estilo de la estela del tajo (número en data/slash.ts; tecla Y para pasar al siguiente; M15)
 //   ?loading=hold    → la pantalla de carga se queda a medias, para verla con calma (M8)
 //   ?trees=off       → árboles grandes en ese modo solo en esta partida (on, off), sin guardarlo
-//   ?open=howtoplay  → abre esa pantalla de los menús (howtoplay, settings, controls = Settings → Controls, credits, releasenotes = novedades, achievements, select = selección de personaje)
+//   ?open=howtoplay  → abre esa pantalla de los menús (howtoplay, settings, controls = Settings → Controls, credits, releasenotes = novedades, achievements)
 //   ?tab=gameplay    → con ?open=settings, abre esa pestaña de Settings (audio, gameplay; M13)
 //   ?open=slots      → abre la pantalla de los 4 personajes guardados (Fase 17A)
 //   ?open=charinfo   → Select Character con la ventana Character abierta (Fase 20A), del primer personaje con puntos
@@ -48,7 +51,7 @@
 //   ?open=warehouse  → Select Character con el baúl compartido abierto (Fase 21D), del personaje marcado
 //   ?open=runchoice  → Select Character con la ventana Continue / New Run del personaje marcado (21-oct-2026), tenga
 //                      partida guardada o no
-//   ?characters=reset → borra los personajes guardados al cargar (demo = deja dos de ejemplo; Fase 17A)
+//   ?characters=reset → Gorn y Kaila nuevos a Level 1, sin partidas (demo = Gorn con puntos y Kaila a Level 25; Fase 17A)
 //   ?map=traveler    → con ?play/?debug, la partida en ese mapa (traveler, bisle, elvineGarden, middleland; Fase 22A). Sin él, Bleeding Isle
 //   ?maps=all        → todos los mapas abiertos en Select Map (reset = olvida los mapas ganados; Fase 22A)
 //   ?open=mapselect  → abre Select Map con el primer personaje guardado (o sin personaje)
@@ -76,12 +79,15 @@ import { isAutoSpellId, type AutoSpellId } from '../data/spells';
 import { UPGRADE_MAX } from '../data/upgrades';
 import { isNpcId, type NpcId } from '../data/town';
 import { TREE_MODES, type TreeMode } from './settings';
+import { CHARACTER_LEVEL_MAX } from '../data/characterLevel';
+import { STAT_IDS, type Stats } from '../data/stats';
+import type { SimKit } from './simProfile';
 
 /** Menu screens that ?open= shows straight away, and the scene of each one. */
 /** ?xelima= gives at most this many stones (a typo like 5000 would fill the inventory). */
 const DEBUG_XELIMA_MAX = 30;
 
-const DEBUG_SCREENS = { howtoplay: 'HowToPlay', settings: 'Settings', controls: 'Controls', credits: 'Credits', releasenotes: 'ReleaseNotes', achievements: 'Achievements', select: 'CharacterSelect', slots: 'CharacterSlots', mapselect: 'MapSelect', town: 'Town', charinfo: 'CharacterInfo', equipment: 'Equipment', warehouse: 'Warehouse', runchoice: 'RunChoice' } as const;
+const DEBUG_SCREENS = { howtoplay: 'HowToPlay', settings: 'Settings', controls: 'Controls', credits: 'Credits', releasenotes: 'ReleaseNotes', achievements: 'Achievements', slots: 'CharacterSlots', mapselect: 'MapSelect', town: 'Town', charinfo: 'CharacterInfo', equipment: 'Equipment', warehouse: 'Warehouse', runchoice: 'RunChoice' } as const;
 type DebugScreen = keyof typeof DEBUG_SCREENS;
 
 function isDebugScreen(value: string | null): value is DebugScreen {
@@ -105,7 +111,7 @@ interface DebugStart {
     actions: DebugAction[];
     /** Large-tree mode for this run only (Settings is not changed). */
     trees: TreeMode | undefined;
-    /** Scene key of the menu screen to open (an overlay over the main menu, CharacterSelect or CharacterSlots). */
+    /** Scene key of the menu screen to open (an overlay over the main menu or CharacterSlots). */
     open: (typeof DEBUG_SCREENS)[DebugScreen] | undefined;
     /** Clear every unlocked achievement, or unlock them all, when the page loads. */
     achievements: 'reset' | 'all' | undefined;
@@ -151,6 +157,10 @@ interface DebugStart {
     xelima: number | undefined;
     /** ?gold=50000: the device's gold is set to that when the page loads (Fase 24A). */
     gold: number | undefined;
+    /** ?level=25: debug runs play as a character of that Level, with ?build= and ?kit= (config/simProfile.ts). */
+    level: number | undefined;
+    build: Partial<Stats> | undefined;
+    kit: SimKit;
 }
 
 function readDebugStart(): DebugStart {
@@ -158,7 +168,7 @@ function readDebugStart(): DebugStart {
         play: false, character: undefined, actions: [], trees: undefined, open: undefined, achievements: undefined, characters: undefined,
         sendMetrics: false, spells: { auto: undefined, active: undefined }, openClass: undefined, slash: undefined,
         holdLoading: false, gear: [], settingsTab: undefined, attribute: undefined, unlocks: undefined, unlockCounts: {}, map: undefined, maps: undefined, townSpot: undefined, townTalk: false, townShop: false, townSmith: undefined,
-        gold: undefined, upgrade: undefined, xelima: undefined,
+        gold: undefined, upgrade: undefined, xelima: undefined, level: undefined, build: undefined, kit: 'best',
     };
     if (!import.meta.env.DEV) return none;
     const params = new URLSearchParams(window.location.search);
@@ -178,6 +188,7 @@ function readDebugStart(): DebugStart {
     const gold = params.get('gold');
     const upgrade = params.get('upgrade');
     const xelima = params.get('xelima');
+    const level = params.get('level');
     return {
         play: play !== null || actions.length > 0 || trees !== undefined || slash !== null || isMapId(map),
         character: isCharacterId(play) ? play : undefined,
@@ -205,7 +216,22 @@ function readDebugStart(): DebugStart {
         xelima: xelima !== null && /^\d+$/.test(xelima) ? Math.min(DEBUG_XELIMA_MAX, Number(xelima)) : undefined,
         unlockCounts: readUnlockCounts(unlocks),
         gold: gold !== null && /^\d+$/.test(gold) ? Number(gold) : undefined,
+        level: level !== null && /^\d+$/.test(level) ? Math.min(CHARACTER_LEVEL_MAX, Math.max(1, Number(level))) : undefined,
+        build: readBuild(params.get('build')),
+        kit: params.get('kit') === 'start' ? 'start' : 'best',
     };
+}
+
+/** "str:2,vit:1" → { str: 2, vit: 1 } (?build=, config/simProfile.ts). */
+function readBuild(value: string | null): Partial<Stats> | undefined {
+    if (!value) return undefined;
+    const build: Partial<Stats> = {};
+    for (const part of value.split(',')) {
+        const [id, amount] = part.split(':');
+        const stat = STAT_IDS.find((s) => s === id?.trim());
+        if (stat && amount !== undefined && /^\d+$/.test(amount.trim())) build[stat] = Number(amount);
+    }
+    return Object.keys(build).length > 0 ? build : undefined;
 }
 
 /** "dice3,wine" → { dice: 3, wine: 1 } (Fase 21½B). */

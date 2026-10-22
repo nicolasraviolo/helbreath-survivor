@@ -11,7 +11,6 @@ import { MapLoadScene } from './scenes/MapLoadScene';
 import { MapSelectScene } from './scenes/MapSelectScene';
 import { TownScene } from './scenes/TownScene';
 import { MainMenuScene } from './scenes/MainMenuScene';
-import { CharacterSelectScene } from './scenes/CharacterSelectScene';
 import { CharacterSlotsScene } from './scenes/CharacterSlotsScene';
 import { GameScene } from './scenes/GameScene';
 import { HudScene } from './scenes/HudScene';
@@ -51,7 +50,7 @@ function startGame(): void {
         disableContextMenu: true,
         // HudScene, LevelUpScene y los menús que se abren encima (pausa, ajustes...) van después para dibujarse encima.
         scene: [
-            BootScene, PreloadScene, MainMenuScene, CharacterSlotsScene, CharacterSelectScene, TownScene, MapSelectScene, MapLoadScene, GameScene, HudScene, LevelUpScene, LootScene, GameOverScene,
+            BootScene, PreloadScene, MainMenuScene, CharacterSlotsScene, TownScene, MapSelectScene, MapLoadScene, GameScene, HudScene, LevelUpScene, LootScene, GameOverScene,
             PauseScene, CharacterInfoScene, EquipmentScene, WarehouseScene, SettingsScene, ControlsScene, CreditsScene, RunChoiceScene, NpcDialogScene, ShopScene, SmithScene, ReleaseNotesScene, AchievementsScene, HowToPlayScene, SpriteTestScene,
         ],
     });

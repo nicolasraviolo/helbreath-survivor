@@ -61,7 +61,7 @@ export class MainMenuScene extends Phaser.Scene {
         });
         new MusicSystem(this).play(MUSIC.menu);
         // ?open= (debugStart.ts): show that menu screen once, as if it had been chosen here.
-        if (DEBUG_START.open && DEBUG_START.open !== 'CharacterSelect' && DEBUG_START.open !== 'CharacterSlots' && DEBUG_START.open !== 'CharacterInfo' && DEBUG_START.open !== 'Equipment' && DEBUG_START.open !== 'Warehouse' && DEBUG_START.open !== 'RunChoice' && !debugScreenOpened) {
+        if (DEBUG_START.open && DEBUG_START.open !== 'CharacterSlots' && DEBUG_START.open !== 'CharacterInfo' && DEBUG_START.open !== 'Equipment' && DEBUG_START.open !== 'Warehouse' && DEBUG_START.open !== 'RunChoice' && !debugScreenOpened) {
             debugScreenOpened = true;
             openOverlay(this, DEBUG_START.open);
         }

@@ -68,7 +68,7 @@ const PRESETS = {
     achievements: 'achievements=reset&debug=god,levels,levels,levels,levels,minute,minute,minute,minute,minute',
     // Pantalla Achievements con todos conseguidos.
     achievementlist: 'achievements=all&open=achievements',
-    // Select Character (Fase 17A): los 4 huecos con dos personajes de ejemplo (slotsempty = sin ninguno).
+    // Select Character (Fase 17A): Gorn y Kaila de ejemplo y dos huecos bloqueados (slotsempty = Gorn y Kaila nuevos).
     slots: 'characters=demo&open=slots',
     // Ventana Character (Fase 20A): Gorn (ejemplo) con puntos sin repartir, desde Select Character.
     charinfo: 'characters=demo&open=charinfo',
@@ -260,7 +260,7 @@ async function runScenario(browser, name) {
     }
 
     // ?open= (debugStart.ts) shows a menu screen: wait for it instead of the game.
-    const openKey = { howtoplay: 'HowToPlay', settings: 'Settings', controls: 'Controls', credits: 'Credits', releasenotes: 'ReleaseNotes', achievements: 'Achievements', select: 'CharacterSelect', slots: 'CharacterSlots', mapselect: 'MapSelect', town: 'Town', charinfo: 'CharacterInfo', equipment: 'Equipment', warehouse: 'Warehouse', runchoice: 'RunChoice' }[params.get('open') ?? ''];
+    const openKey = { howtoplay: 'HowToPlay', settings: 'Settings', controls: 'Controls', credits: 'Credits', releasenotes: 'ReleaseNotes', achievements: 'Achievements', slots: 'CharacterSlots', mapselect: 'MapSelect', town: 'Town', charinfo: 'CharacterInfo', equipment: 'Equipment', warehouse: 'Warehouse', runchoice: 'RunChoice' }[params.get('open') ?? ''];
     const target = params.has('loading') ? 'Preload' : params.get('town') === 'portal' ? 'MapSelect' : params.has('shop') ? 'Shop' : params.has('smith') ? 'Smith' : params.has('talk') ? 'NpcDialog' : openKey ?? (query ? 'Game' : 'MainMenu');
     await page.goto(url);
     const t0 = Date.now();

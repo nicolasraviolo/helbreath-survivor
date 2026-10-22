@@ -104,6 +104,7 @@ import { buildLevelUpChoices } from '../systems/UpgradePool';
 import type { HudSceneData, HudState } from './HudScene';
 import type { LevelUpChoice, LevelUpSceneData } from './LevelUpScene';
 import { DEBUG_START, type DebugAction } from '../config/debugStart';
+import { simProfile } from '../config/simProfile';
 import { SimRun } from '../systems/SimRun';
 import { ACHIEVEMENT_EVENT, ACHIEVEMENT_SOUND } from '../data/achievements';
 import { AchievementTracker } from '../systems/AchievementTracker';
@@ -133,7 +134,7 @@ const DEBUG_CHAR_EXP_MULTIPLIER = 50;
 const DEBUG_START_DELAY_MS = 500;
 
 /**
- * Escena de partida con la clase elegida en CharacterSelectScene: mapa, jugador, oleadas de enemigos con minijefes y jefe
+ * Escena de partida con el personaje elegido en CharacterSlotsScene: mapa, jugador, oleadas de enemigos con minijefes y jefe
  * final (Fase 7), arma o hechizo automático, gemas de XP, cartas al subir de nivel, objetos y buffs. Al final, GameOverScene.
  * Fase 12: la partida se guarda (SaveStore) cada pocos segundos, al minimizar y al salir al menú; con Continue
  * (registry RESUME_SLOT_KEY) se reconstruye desde esa foto. Al ganar o morir, su ranura se libera.
@@ -223,6 +224,8 @@ export class GameScene extends Phaser.Scene {
     private levelUpOpen = false;
     /** Simulated run to measure the balance (?debug=sim, development only). */
     private sim: SimRun | undefined;
+    /** The ?level= profile of this debug run, for the simulated run's report ('' without one). */
+    private simProfileLabel = '';
     /** Anonymous stats of this run (Fase 14A), sent when it ends. */
     private metrics!: RunMetrics;
     private achievements!: AchievementTracker;
@@ -255,10 +258,9 @@ export class GameScene extends Phaser.Scene {
         const resume = typeof resumeSlot === 'number' ? saveStore.get(resumeSlot) : undefined;
         const activeUid: unknown = this.registry.get(ACTIVE_CHARACTER_KEY);
         this.characterUid = resume ? resume.characterUid : typeof activeUid === 'string' ? activeUid : undefined;
-        // One run per character, in its slot (Fase 17A). Without a character (debug ?play): a slot with no character,
-        // so the run becomes a new character when the game loads again; with none free, it isn't saved (-1).
+        // One run per character, in its slot (Fase 17A). Without a character the run isn't saved (-1).
         const characterSlot = characterStore.slotOf(this.characterUid);
-        this.saveSlot = resume && typeof resumeSlot === 'number' ? resumeSlot : characterSlot >= 0 ? characterSlot : characterStore.firstFree;
+        this.saveSlot = resume && typeof resumeSlot === 'number' ? resumeSlot : characterSlot;
         this.autosaveInMs = AUTOSAVE_EVERY_MS;
         // Fase 22A: the map of the saved run, or the one chosen in Select Map (it stays for Restart); debug runs: ?map= or Bleeding Isle.
         const chosenMap: unknown = this.registry.get(CHOSEN_MAP_KEY);
@@ -283,20 +285,24 @@ export class GameScene extends Phaser.Scene {
         // Look of the saved character (Fase 17B); debug runs without one look as the class did before.
         const savedCharacter = characterStore.byUid(this.characterUid);
         const look = savedCharacter?.look ?? DEFAULT_LOOKS[this.characterId];
+        // Debug runs may play as a character of some Level instead (?level=, config/simProfile.ts).
+        const profile = DEBUG_START.level !== undefined
+            ? simProfile(this.characterId, DEBUG_START.level, DEBUG_START.build, DEBUG_START.kit) : undefined;
         // What the saved character wears (Fase 20B), and the item icons for the Xelima and Merien cards (Fase 20C).
-        const startEquipment = savedCharacter?.equipment ?? START_EQUIPMENT[this.characterId];
+        const startEquipment = profile?.equipment ?? savedCharacter?.equipment ?? START_EQUIPMENT[this.characterId];
         // Fase 21B: the attribute of the weapon or wand worn (?attr= gives one to any starting weapon that can have it).
-        const startAttribute = savedCharacter?.attributes.weapon ?? DEBUG_START.attribute;
-        // Fase 24D: its "+" from the blacksmith (?upgrade= gives one in runs without a character).
-        const startUpgrade = savedCharacter ? savedCharacter.upgrades.weapon ?? 0 : DEBUG_START.upgrade ?? 0;
+        const startAttribute = (profile ? undefined : savedCharacter?.attributes.weapon) ?? DEBUG_START.attribute;
+        // Fase 24D: its "+" from the blacksmith (?upgrade= gives one in runs without a character, or with ?level=).
+        const startUpgrade = savedCharacter && !profile ? savedCharacter.upgrades.weapon ?? 0 : DEBUG_START.upgrade ?? 0;
         // Fase 24A: the attributes of the armor it wears (HP Recovery, Defense Ratio...).
-        const wornAttributes = savedCharacter?.attributes ?? {};
+        const wornAttributes = (profile ? undefined : savedCharacter?.attributes) ?? {};
         void lookLoader.ensure(this, [...runSprites(character, look, startEquipment), 'item.pack']);
         this.player = new Player(this, (spawn.x + 0.5) * TILE_SIZE, (spawn.y + 0.5) * TILE_SIZE, character, look, map, areaPx);
         // Permanent stats (Fase 20A); debug runs without a character start with the class's.
-        this.permanentAtStart = savedCharacter ? permanentStats(savedCharacter) : { ...character.startStats };
+        this.permanentAtStart = profile ? { ...profile.stats } : savedCharacter ? permanentStats(savedCharacter) : { ...character.startStats };
+        this.simProfileLabel = profile?.label ?? '';
         this.stats = new CharacterStats(character, this.permanentAtStart);
-        this.characterLevel = savedCharacter?.level ?? 1;
+        this.characterLevel = profile?.level ?? savedCharacter?.level ?? 1;
         this.levelUpOpen = false;
         this.sim = undefined;
         this.debugAimForced = false;
@@ -487,6 +493,7 @@ export class GameScene extends Phaser.Scene {
         switch (id) {
             case 'potion':
                 this.player.heal(Math.round(this.player.maxHp * POTION_HEAL_SHARE));
+                this.sim?.onHeal(this.player.maxHp * POTION_HEAL_SHARE);
                 this.achievements.potionsDrunk++;
                 break;
             case 'magnet':
@@ -502,9 +509,11 @@ export class GameScene extends Phaser.Scene {
                 break;
             case 'coin':
                 this.runGold += goldValue(GOLD.coinValue, this.mapId);
+                this.sim?.onGold(goldValue(GOLD.coinValue, this.mapId), this.spawner.elapsed);
                 break;
             case 'goldPile':
                 this.runGold += goldValue(GOLD.pileValue, this.mapId);
+                this.sim?.onGold(goldValue(GOLD.pileValue, this.mapId), this.spawner.elapsed);
                 break;
         }
     }
@@ -985,6 +994,7 @@ export class GameScene extends Phaser.Scene {
         this.spawner.enabled = !player.isDead && !this.finalBossDead;
         this.spawner.update(delta);
         this.sim?.onAlive(this.enemies.alive, this.spawner.elapsed);
+        this.sim?.tick(delta, this.spawner.elapsed, player.maxHp, player.regenPerSecond);
         const bodyY = player.y - PLAYER_BODY_OFFSET_Y;
         this.bosses.update(delta, player.x, bodyY, !player.isDead);
         const shotDamage = this.enemyShots.update(delta, player.x, bodyY, PLAYER_BODY_RADIUS, this.playerDefense, this.world.onBlow);
@@ -1153,6 +1163,11 @@ export class GameScene extends Phaser.Scene {
     private hurtPlayer(damage: number, byBoss: boolean, source: string): void {
         const player = this.player;
         const taken = this.reduceByArmor(damage);
+        // Simulated run: invincible, but its virtual health takes the blow (and the Warrior's crit charges as for real).
+        if (this.sim) {
+            if (this.sim.onHurt(taken, this.spawner.elapsed, this.stats.level)) this.critStrike.onHurt(this.stats.level);
+            return;
+        }
         if (!player.takeDamage(taken)) return;
         this.metrics.onHurt(source, taken, player.hp, player.maxHp);
         this.screenShake.hurt(byBoss);
@@ -1358,7 +1373,8 @@ export class GameScene extends Phaser.Scene {
                 this.player.restoreHp(1);
                 break;
             case 'sim':
-                this.sim = new SimRun(this.stats.def.name);
+                this.sim = new SimRun(this.stats.def.name, this.stats.def.invulnerabilityMs);
+                this.sim.report.profile = this.simProfileLabel;
                 this.loot.enabled = false;
                 this.achievements.enabled = false;
                 if (!this.player.godMode) this.runDebugAction('god');

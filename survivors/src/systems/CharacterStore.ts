@@ -11,8 +11,10 @@
 // salida y los hechizos que se saben con la Int (isFreeItem). Al terminar una partida, finishRun aplica las reglas al
 // morir (sin Zem se pierde lo encontrado). El baúl compartido (WarehouseStore) mueve objetos del inventario y al revés.
 // Fase 24D: el "+" (+1/+2/+3) del arma o varita puesta, en `upgrades`; los del inventario lo llevan en el objeto.
+// Personajes fijos (22-oct-2026): los huecos llevan siempre los de FIXED_CHARACTERS (Gorn y Kaila) y los demás quedan
+// vacíos (bloqueados). Ya no se crean ni se borran personajes. Lo guardado antes de la versión 9 se tira (empezar de cero).
 import { DEBUG_START } from '../config/debugStart';
-import { CHARACTER_NAME_ALLOWED, CHARACTER_NAME_MAX_LENGTH, CHARACTER_SLOT_COUNT } from '../data/characterSlots';
+import { CHARACTER_NAME_ALLOWED, CHARACTER_NAME_MAX_LENGTH, CHARACTER_SLOT_COUNT, FIXED_CHARACTERS } from '../data/characterSlots';
 import { BODY_SPRITES, DEFAULT_LOOKS, GENDERS, HAIR_COLORS, HAIR_STYLE_COUNT, UNDERWEAR_COUNT, type CharacterLook } from '../data/appearance';
 import { CHARACTER_LEVEL_MAX, expToNextCharacterLevel, STAT_POINT_CAP, STAT_POINTS_PER_LEVEL, totalExpForLevel } from '../data/characterLevel';
 import { CHARACTERS, isCharacterId, type CharacterId } from '../data/characters';
@@ -37,7 +39,8 @@ const STORAGE_KEY = 'hb-survivors.characters';
 /** 6 (Fase 21B): attributes of the gear worn. Older characters wear everything without one. */
 /** 7 (Fase 21D): the Zem slot. Older characters have it empty; what they wear stays theirs. */
 /** 8 (Fase 24D): the "+" of the gear worn. Older characters wear everything at +0. */
-const CHARACTERS_VERSION = 8;
+/** 9 (22-oct-2026): fixed characters. Older saves are dropped, runs included: every account starts again with Gorn and Kaila. */
+const CHARACTERS_VERSION = 9;
 
 /** Registry key (game.registry) with the uid of the character that plays the next run. */
 export const ACTIVE_CHARACTER_KEY = 'activeCharacter';
@@ -47,7 +50,7 @@ export interface SavedCharacter {
     uid: string;
     name: string;
     classId: CharacterId;
-    /** Gender, skin, hair and underwear chosen in Create New Character (Fase 17B). */
+    /** Gender, skin, hair and underwear (Fase 17B; fixed for each character since 22-oct-2026). */
     look: CharacterLook;
     /** Highest Power reached in any run (it was called bestLevel before Fase 20A). */
     bestPower: number;
@@ -115,26 +118,54 @@ function shuffled<T>(items: readonly T[]): T[] {
 const DEMO_MAGE_LEVEL = 25;
 
 class CharacterStoreImpl {
-    private slots: Slots = load();
+    private slots: Slots;
 
     constructor() {
+        const loaded = load();
+        this.slots = loaded.slots;
+        // Saves older than the fixed characters: their runs go with them.
+        if (loaded.dropped) saveStore.replaceAll([]);
         // Debug ?characters=reset / demo (debugStart.ts, development only). Their runs go too.
-        if (DEBUG_START.characters) saveStore.replaceAll([]);
-        if (DEBUG_START.characters === 'reset') this.slots = emptySlots();
-        if (DEBUG_START.characters === 'demo') {
+        if (DEBUG_START.characters) {
+            saveStore.replaceAll([]);
             this.slots = emptySlots();
-            this.create(0, 'Kaila', 'mage', { gender: 'female', skin: 1, hairStyle: 4, hairColor: 2, underwear: 3 });
-            this.create(1, 'Gorn', 'warrior', { gender: 'male', skin: 2, hairStyle: 2, hairColor: 0, underwear: 5 });
-            this.recordPower(this.slots[1]?.uid, 17);
-            this.addExp(this.slots[1]?.uid, 60000);
+        }
+        this.fillFixedCharacters();
+        if (DEBUG_START.characters === 'demo') {
+            const gorn = this.slots[0]?.uid;
+            this.recordPower(gorn, 17);
+            this.addExp(gorn, 60000);
             // Kaila (Fase 20D): Level 25 with every point in Int (86), enough for Mass Fire Strike but not Meteor Strike.
-            const kaila = this.slots[0]?.uid;
+            const kaila = this.slots[1]?.uid;
             this.addExp(kaila, totalExpForLevel(DEMO_MAGE_LEVEL));
             this.assignPoints(kaila, { int: this.byUid(kaila)?.unspentPoints ?? 0 });
             this.wearDebugGear();
         }
         if (DEBUG_START.xelima !== undefined) this.setDebugStones(DEBUG_START.xelima);
         if (DEBUG_START.characters || DEBUG_START.xelima !== undefined) this.write();
+    }
+
+    /**
+     * Every account has the fixed characters (data/characterSlots.ts) in their slots, with their names; the other slots
+     * stay empty (locked). A missing one is created at Level 1. Writes only if something changed.
+     */
+    private fillFixedCharacters(): void {
+        let changed = false;
+        this.slots.forEach((character, slot) => {
+            const fixed = FIXED_CHARACTERS[slot];
+            if (!fixed) {
+                if (character) this.slots[slot] = undefined;
+                changed ||= character !== undefined;
+            } else if (!character || character.classId !== fixed.classId) {
+                this.slots[slot] = newCharacter(fixed.name, fixed.classId, fixed.look);
+                saveStore.clear(slot);
+                changed = true;
+            } else if (character.name !== fixed.name) {
+                character.name = fixed.name;
+                changed = true;
+            }
+        });
+        if (changed) this.write();
     }
 
     /** ?gear=... (debugStart.ts): the examples wear those items, whatever they ask for (M17); "sharp:id" goes to the inventory. */
@@ -175,69 +206,22 @@ class CharacterStoreImpl {
         return uid === undefined ? undefined : this.slots.find((c) => c?.uid === uid);
     }
 
-    /** First free slot, or -1 if all are in use. */
-    public get firstFree(): number {
-        return this.slots.indexOf(undefined);
-    }
-
     /** Slot of that character, or -1. */
     public slotOf(uid: string | undefined): number {
         return uid === undefined ? -1 : this.slots.findIndex((c) => c?.uid === uid);
     }
 
-    /** New character in that slot (any old run left there is dropped: it belonged to nobody). */
-    public create(slot: number, name: string, classId: CharacterId, look: CharacterLook = DEFAULT_LOOKS[classId], bestPower = 1): SavedCharacter {
-        const now = Date.now();
-        const character: SavedCharacter = {
-            uid: `${now.toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
-            name: cleanName(name) || CHARACTERS[classId].name,
-            classId,
-            look: { ...look },
-            bestPower,
-            level: 1,
-            exp: 0,
-            unspentPoints: 0,
-            statPoints: noStatPoints(),
-            equipment: { ...START_EQUIPMENT[classId] },
-            attributes: {},
-            upgrades: {},
-            inventory: [],
-            createdAt: now,
-        };
-        this.slots[slot] = character;
-        this.write();
-        saveStore.clear(slot);
-        return character;
-    }
-
-    /** Deletes the character and its run in progress. */
-    public delete(slot: number): void {
-        if (this.slots[slot] === undefined) return;
-        this.slots[slot] = undefined;
-        this.write();
-        saveStore.clear(slot);
-    }
-
     /**
-     * Puts every saved run in its character's slot (one run per character, Fase 17A). Runs of nobody (saved before
-     * Fase 17A, or debug runs without a character) become a new character named after the class, in a free slot;
-     * if there is no free slot left, they are dropped. Called once when the game loads.
+     * Puts every saved run in its character's slot (one run per character, Fase 17A). Runs of nobody are dropped (since
+     * the fixed characters, 22-oct-2026, no character is made for them). Called once when the game loads.
      */
     public linkRuns(): void {
         const placed: Array<RunSnapshot | undefined> = Array.from({ length: CHARACTER_SLOT_COUNT }, () => undefined);
-        const orphans: RunSnapshot[] = [];
         // Newest first: if a character somehow has two runs, the newest one stays.
         const runs = saveStore.all.filter((run): run is RunSnapshot => run !== undefined).sort((a, b) => b.savedAt - a.savedAt);
         for (const run of runs) {
             const slot = this.slotOf(run.characterUid);
             if (slot >= 0 && !placed[slot]) placed[slot] = run;
-            else if (slot < 0) orphans.push(run);
-        }
-        for (const run of orphans) {
-            const free = this.slots.findIndex((c, i) => c === undefined && !placed[i]);
-            if (free < 0) break;
-            const character = this.create(free, '', run.character, undefined, run.level);
-            placed[free] = { ...run, characterUid: character.uid };
         }
         const unchanged = placed.every((run, i) => run === saveStore.get(i));
         if (!unchanged) saveStore.replaceAll(placed);
@@ -474,18 +458,42 @@ function emptySlots(): Slots {
     return Array.from({ length: CHARACTER_SLOT_COUNT }, () => undefined);
 }
 
-function load(): Slots {
+/** A new character at Level 1 with the starting equipment of its class. */
+function newCharacter(name: string, classId: CharacterId, look: CharacterLook): SavedCharacter {
+    const now = Date.now();
+    return {
+        uid: `${now.toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
+        name: cleanName(name) || CHARACTERS[classId].name,
+        classId,
+        look: { ...look },
+        bestPower: 1,
+        level: 1,
+        exp: 0,
+        unspentPoints: 0,
+        statPoints: noStatPoints(),
+        equipment: { ...START_EQUIPMENT[classId] },
+        attributes: {},
+        upgrades: {},
+        inventory: [],
+        createdAt: now,
+    };
+}
+
+/** The saved slots; `dropped` = there were characters from before the fixed ones (version < 9), now thrown away. */
+function load(): { slots: Slots; dropped: boolean } {
     const slots = emptySlots();
     try {
         const raw = localStorage.getItem(STORAGE_KEY);
-        if (!raw) return slots;
-        migrate(JSON.parse(raw)).forEach((entry, i) => {
+        if (!raw) return { slots, dropped: false };
+        const data: unknown = JSON.parse(raw);
+        if (isRecord(data) && typeof data.version === 'number' && data.version < FIXED_CHARACTERS_VERSION) return { slots, dropped: true };
+        migrate(data).forEach((entry, i) => {
             if (i < CHARACTER_SLOT_COUNT) slots[i] = readCharacter(entry);
         });
     } catch {
         // Unreadable: as if there were no characters.
     }
-    return slots;
+    return { slots, dropped: false };
 }
 
 /**
@@ -494,6 +502,9 @@ function load(): Slots {
  * empty inventory (versions 1–4), gear without attributes (versions 1–5), no Zem (versions 1–6) and gear at +0
  * (versions 1–7).
  */
+/** First version with fixed characters: anything older is dropped (owner, 22-oct-2026: everyone starts again). */
+const FIXED_CHARACTERS_VERSION = 9;
+
 function migrate(data: unknown): unknown[] {
     if (!isRecord(data) || !Array.isArray(data.slots)) return [];
     if (data.version === CHARACTERS_VERSION || (typeof data.version === 'number' && data.version >= 1 && data.version < CHARACTERS_VERSION)) return data.slots;

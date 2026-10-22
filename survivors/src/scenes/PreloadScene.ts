@@ -69,8 +69,8 @@ export class PreloadScene extends Phaser.Scene {
         loadTimer.end('Preload');
         // ?play / ?debug= (solo en desarrollo, config/debugStart.ts): directo a la partida.
         if (DEBUG_START.character) this.registry.set(CHOSEN_CHARACTER_KEY, DEBUG_START.character);
-        // With ?characters=demo the run is played by the example character of that class (to test its Level, Fase 20A).
-        if (DEBUG_START.play && DEBUG_START.characters === 'demo') {
+        // The run is played by the fixed character of that class (Gorn or Kaila; with ?characters=demo, the examples).
+        if (DEBUG_START.play) {
             const classId = DEBUG_START.character ?? DEFAULT_CHARACTER;
             const demo = characterStore.all.find((c) => c?.classId === classId);
             if (demo) this.registry.set(ACTIVE_CHARACTER_KEY, demo.uid);
@@ -84,7 +84,7 @@ export class PreloadScene extends Phaser.Scene {
         }
         const open = DEBUG_START.open === 'CharacterInfo' || DEBUG_START.open === 'Equipment' || DEBUG_START.open === 'Warehouse' || DEBUG_START.open === 'RunChoice' ? 'CharacterSlots' : DEBUG_START.open;
         if (open === 'MapSelect' || open === 'Town') this.openWithFirstCharacter(open);
-        else this.scene.start(open === 'CharacterSelect' || open === 'CharacterSlots' ? open : 'MainMenu');
+        else this.scene.start(open === 'CharacterSlots' ? open : 'MainMenu');
     }
 
     /**

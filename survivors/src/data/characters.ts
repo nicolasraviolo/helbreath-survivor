@@ -1,7 +1,7 @@
-// Personajes jugables, elegidos en la pantalla "Create New Character" (scenes/CharacterSelectScene.ts).
+// Clases jugables. Desde el 22-oct-2026 cada cuenta trae un personaje fijo de cada una (data/characterSlots.ts).
 // El Mago dispara Energy Bolt; el Guerrero lleva un arma cuerpo a cuerpo y armadura (Fase 6, data/weapons.ts y data/armor.ts).
 // Stats iniciales fijos por clase (decidido por el propietario el 16-oct-2026). Desde la Fase 17B el sexo, la piel y el
-// pelo los elige el jugador (data/appearance.ts): el aspecto de aquí es la ropa de salida, que se dibuja para su sexo.
+// pelo van aparte (data/appearance.ts; fijos por personaje desde el 22-oct-2026): el aspecto de aquí es la ropa de salida, que se dibuja para su sexo.
 import type { SpriteKey } from '../config/assetManifest';
 import type { Appearance } from '../hb/playerAppearance';
 import type { Stats } from './stats';
