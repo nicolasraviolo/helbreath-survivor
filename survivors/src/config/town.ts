@@ -1,5 +1,6 @@
 // Aspecto de los NPCs de la ciudad (Fase 23B): el nombre encima, el aviso "Talk" y el botón táctil.
 // Los datos (quién está dónde, qué dice) van en data/town.ts.
+import { byDevice } from './device';
 import { px, UI_FONT_SIZE, UI_TEXT } from './ui';
 
 export const TOWN_NPC_LOOK = {
@@ -22,4 +23,14 @@ export const TOWN_TALK_BUTTON = {
     ringColor: 0xffd860,
     ringAlpha: 0.8,
     style: { ...UI_TEXT, fontSize: px(UI_FONT_SIZE.normal), fontStyle: 'bold', color: '#ffd860', stroke: '#000000', strokeThickness: 3 },
+} as const;
+
+/**
+ * The talk panel (NpcDialogScene): options a bit closer than in the other panels so Tom's three (Buy, Sell, Upgrade)
+ * and Back fit inside the frame (Fase 24C).
+ */
+export const NPC_DIALOG_LIST = {
+    itemSpacing: byDevice(36, 44),
+    /** First option, from the content row (under the NPC's line). */
+    offsetY: byDevice(48, 58),
 } as const;

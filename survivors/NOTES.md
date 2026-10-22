@@ -87,6 +87,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Evento Champion (Fase 21½C)
 - Oro, botín especial y muerte a medias (Fase 24A)
 - Tienda (Fase 24B)
+- Herrero y Stone of Xelima (Fase 24C)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -1008,3 +1009,12 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - **Código:** lista y precios en `data/shop.ts`, medidas en `config/shop.ts` (en píxeles del panel, × `SHOP_PANEL.scale`), ventana `scenes/ShopScene.ts`. Abaddon's Blood y el dado/vino a 3/3 salen "Sold out" en gris claro; el Zem va al inventario del personaje de la ciudad. Atajos: `?open=town&town=shopKeeper&shop&gold=N`, `check shop` / `check shopsold`.
 - **Ojo con `setFrame` en los botones de `dialogtext`:** sus frames traen el pivote arriba a la izquierda, y `setFrame(f)` (al iluminar) vuelve a poner el origen en ese pivote aunque antes se hiciera `setOrigin(0.5)`. Para que sigan centrados: `setFrame(f, true, false)`.
 - **Ropa de serie en la ciudad:** camisa, pantalón, botas... salen de `appearance` de la clase (`data/characters.ts`), no de objetos equipados. Al volver de Equipment, `TownScene.redressIfChanged` pone primero esa ropa y encima lo equipado (antes vaciaba los huecos y el personaje quedaba en ropa interior).
+
+## Herrero y Stone of Xelima (Fase 24C)
+- **Ventana:** `scenes/SmithScene.ts`, medidas en `config/smith.ts`, precios y lista en `data/smith.ts`. Panel `gamedialog86.spr` hoja 2 frame 0 (270x381, martillo de fondo). Letreros de `dialogtext.spr` hoja 0: 11 "Item for Sale" (258 px) y 9 "Exchange Item" (270 px). Hoja 0 completa: 0 Character Info (panel), 1 Skills, 2 Level up Setting, 3 Party Menu, 4 Quest, 5 Item Upgrade, 6 System Menu, 7 Magic List, 8 Tinkering, 9 Exchange Item, 10 Repair Item, 11 Item for Sale, 12 User Agreement, 13 Change Password, 14 Spells, 15–17 Commander/Constructor/Soldier Menu, 18 Cityhall Menu, 19 Guild Menu, 20 Notice, 21 Items In Storage, 22 barra vacía de 361 px.
+- **Botones de la hoja 1 comprobados:** Sell 38, Upgrade 46 (iluminado +1), como decía la lista de la Tienda.
+- **Colores:** el panel del martillo es gris; el gris claro de "Sold out" de la tienda no se lee encima. Por eso `SMITH_COLORS` (rojo oscuro para lo que no puedes ponerte, gris oscuro para la pestaña apagada).
+- **Lista con scroll:** filas fijas (`visibleRows`) que se rellenan según `scroll`; rueda, flechas/mando, ▲/▼ y arrastrar el dedo. Los títulos de sección cuentan como filas.
+- **Stone of Xelima como objeto:** en `data/consumables.ts`, sin hueco (`slot` opcional en `ConsumableDef` e `ItemInfo`). Al cogerla va a la bolsa sin carta (`GameScene.openLoot`). Tirada propia en `LootSystem.onKill` (`LOOT_XELIMA_CHANCE`); `?debug=xelima` la sube al 5%. `?gear=inv:xelimaStone` la mete en el inventario aunque no sea de la clase. Mismo dibujo que la carta "Stone of Xelima" (item-pack 5/128), que es otra cosa.
+- **Atajos:** `?open=town&town=tom&smith=buy|sell&gold=N`; checks `smith`, `smithsell`, `xelima`. Para probar a mano por `--eval`: `game.scene.getScene('Smith')` y sus métodos `choose(i)`, `act()`, `setTab('sell')`.
+- **Panel de hablar:** con 3 opciones + Back no cabía; `NPC_DIALOG_LIST` (config/town.ts) junta un poco las opciones en todos los NPCs.

@@ -138,7 +138,8 @@ class CharacterStoreImpl {
                 // "sharp:longSword": into the inventory with that attribute (Fase 21B); "inv:plateMail", without (21D).
                 const [attribute, owned] = entry.split(':');
                 if (owned !== undefined) {
-                    if (!isItemId(owned) || !classCanWear(character.classId, owned)) continue;
+                    // Items with no slot (the Xelima stone, Fase 24C) go in whatever the class.
+                    if (!isItemId(owned) || (itemInfo(owned)?.slot !== undefined && !classCanWear(character.classId, owned))) continue;
                     if (attribute === 'inv') character.inventory.push({ id: owned });
                     else if (isItemAttribute(attribute) && canHaveAttribute(owned, attribute)) character.inventory.push({ id: owned, attribute });
                     continue;

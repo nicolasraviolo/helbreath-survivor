@@ -124,6 +124,12 @@ const PRESETS = {
     // comprados ("Sold out", más claros) y poco oro (precios en rojo).
     shop: 'characters=demo&open=town&town=shopKeeper&shop&gold=50000&unlocks=reset',
     shopsold: 'characters=demo&open=town&town=shopKeeper&shop&gold=3000&unlocks=abaddon,dice3,wine1',
+    // Fase 24C: el herrero Tom. smith = Buy con 5.000 de oro (Gorn: lo que no puede llevar, en rojo); smithsell = Sell
+    // con objetos en el inventario (con atributo, sin él y dos Stone of Xelima).
+    smith: 'characters=demo&open=town&town=tom&smith=buy&gold=5000',
+    smithsell: 'characters=demo&open=town&town=tom&smith=sell&gold=100&gear=sharp:longSword,inv:plateMail,inv:xelimaStone,inv:xelimaStone',
+    // Fase 24C: la Stone of Xelima cae del 5% de los monstruos (horda para que salga pronto).
+    xelima: 'play=warrior&characters=demo&debug=god,horde,xelima',
     // Traveler Zone (Fase 22A): el mapa de introducción. travelerboss: el Dummy (jefe final) con sus bichos.
     traveler: 'play=warrior&map=traveler',
     travelerboss: 'play=warrior&map=traveler&debug=god,finalboss',
@@ -250,7 +256,7 @@ async function runScenario(browser, name) {
 
     // ?open= (debugStart.ts) shows a menu screen: wait for it instead of the game.
     const openKey = { howtoplay: 'HowToPlay', settings: 'Settings', controls: 'Controls', credits: 'Credits', releasenotes: 'ReleaseNotes', achievements: 'Achievements', select: 'CharacterSelect', slots: 'CharacterSlots', mapselect: 'MapSelect', town: 'Town', charinfo: 'CharacterInfo', equipment: 'Equipment', warehouse: 'Warehouse', runchoice: 'RunChoice' }[params.get('open') ?? ''];
-    const target = params.has('loading') ? 'Preload' : params.get('town') === 'portal' ? 'MapSelect' : params.has('shop') ? 'Shop' : params.has('talk') ? 'NpcDialog' : openKey ?? (query ? 'Game' : 'MainMenu');
+    const target = params.has('loading') ? 'Preload' : params.get('town') === 'portal' ? 'MapSelect' : params.has('shop') ? 'Shop' : params.has('smith') ? 'Smith' : params.has('talk') ? 'NpcDialog' : openKey ?? (query ? 'Game' : 'MainMenu');
     await page.goto(url);
     const t0 = Date.now();
     await page.waitForFunction((key) => window.__game?.scene.isActive(key), target, { timeout: LOAD_TIMEOUT_MS });

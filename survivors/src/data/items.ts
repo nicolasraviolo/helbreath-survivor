@@ -51,7 +51,8 @@ export type SavedEquipment = Partial<Record<EquipSlotId, ItemId>>;
 
 export interface ItemInfo {
     name: string;
-    slot: EquipSlotId;
+    /** Undefined for items that are never put on (the Xelima stone, Fase 24C). */
+    slot?: EquipSlotId;
     equip: EquipRequirement;
     /** Spells have no picture yet: the screen writes their name. */
     icon?: ItemIcon;
@@ -123,7 +124,10 @@ export function itemInfo(id: ItemId): ItemInfo | undefined {
         const wand = getWand(id);
         return { name: wand.name, slot: 'weapon', equip: wand.equip, icon: wand.icon };
     }
-    if (isConsumableId(id)) return { name: CONSUMABLES[id].name, slot: 'zem', equip: {}, icon: CONSUMABLES[id].icon };
+    if (isConsumableId(id)) {
+        const def = CONSUMABLES[id];
+        return { name: def.name, ...(def.slot ? { slot: def.slot } : {}), equip: {}, icon: def.icon };
+    }
     const piece = ARMOR_PIECES[id];
     return { name: piece.name, slot: piece.slot, equip: piece.equip, icon: piece.icon };
 }

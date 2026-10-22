@@ -637,7 +637,8 @@ Usar el **oro** para mejorar las armas en el herrero, comprar Zem y otras cosas.
 ### Bloques
 - **24A:** oro en partida y vender.
 - **24B:** tienda (Zem, pociones, equipo básico, Abaddon's Blood, dado y vino) y ampliar el baúl.
-- **24C:** herrero.
+- **24C:** herrero: comprar y vender; la Stone of Xelima empieza a caer.
+- **24D:** herrero: mejorar armas +1/+2/+3 (+10% cada uno) con oro y 1 Stone of Xelima por cada +.
 
 ### Aceptación
 - Termino una partida con 300 de oro (aunque muera), vendo una espada que no uso y compro un Zem.

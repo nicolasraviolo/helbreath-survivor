@@ -111,15 +111,15 @@ export const HOW_TO_PLAY_PAGES: readonly HowToPlayPage[] = [
         ],
     },
     {
-        // Fase 23: la ciudad y hablar con sus NPCs (23B). Como mucho 7 filas.
+        // Fase 23: la ciudad y hablar con sus NPCs (23B; 24B la tienda, 24C el herrero). Como mucho 7 filas.
         name: 'Town',
         rows: [
-            { control: 'Town', action: 'Where you go after choosing a character' },
             { control: 'Walk up to someone', action: '"Talk" shows over their name' },
-            { control: 'E key, pad A or a click', action: 'Talk' },
-            { control: 'Talk button (touch)', action: 'Talk' },
+            { control: 'E, pad A, click or Talk button', action: 'Talk' },
             { control: 'Howard', action: 'Your Equipment and the Warehouse' },
             { control: 'William', action: 'Your Achievements' },
+            { control: 'Shop Keeper', action: "Zem, Abaddon's Blood, dice and wine" },
+            { control: 'Tom, the blacksmith', action: 'Buys and sells weapons and armor' },
             { control: 'Teleport (on the grass)', action: 'Choose a map and start a run' },
         ],
     },
@@ -163,7 +163,7 @@ export const HOW_TO_PLAY_PAGES: readonly HowToPlayPage[] = [
         ],
     },
     {
-        // Fase 21D: baúl compartido y Zem. Como mucho 7 filas.
+        // Fase 21D: baúl compartido y Zem (24C: la Stone of Xelima). Como mucho 7 filas.
         name: 'Warehouse',
         rows: [
             { control: 'Talk to Howard (Town)', action: 'Warehouse: shared by all your characters' },
@@ -171,6 +171,7 @@ export const HOW_TO_PLAY_PAGES: readonly HowToPlayPage[] = [
             { control: 'Die without a Zem', action: 'You lose half the items found in that run' },
             { control: 'Zem slot (Equipment)', action: 'Wear a Zem to keep them all: it is used up' },
             { control: 'Bosses', action: 'Sometimes drop a Zem' },
+            { control: 'Stone of Xelima (red gem)', action: 'Very rare from any monster: for upgrades (soon)' },
         ],
     },
 ];

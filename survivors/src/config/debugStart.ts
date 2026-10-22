@@ -22,6 +22,7 @@
 //                      elites = todos los monstruos (menos los jefes) salen élite, con el brillo rojo (M2)
 //                      loot = cae un objeto de botín junto al jugador ahora y cada pocos segundos (Fase 21A)
 //                      zem = cada jefe suelta también un Zem (Fase 21D)
+//                      xelima = la Stone of Xelima cae del 5% de los monstruos (Fase 24C)
 //                      sim = partida simulada muy deprisa para medir el equilibrio (systems/SimRun.ts, Fase 13C)
 //   ?spells=fireBall,meteorStrike → hechizos del Mago en esta partida (uno automático y/o uno activo, en cualquier
 //                      orden; los ids de data/spells.ts y data/activeSpells.ts), sin mirar requisitos (Fase 20D)
@@ -54,6 +55,7 @@
 //   ?town=william    → con ?open=town, aparece junto a ese NPC (howard, shopKeeper, william, tom; Fase 23B);
 //                      con &talk, además se abre su panel
 //   ?town=shopKeeper&shop → con ?open=town, se abre la tienda directamente (Fase 24B)
+//   ?town=tom&smith=buy → con ?open=town, se abre el herrero en Buy (o sell) directamente (Fase 24C)
 //   ?unlocks=abaddon  → desbloquea Abaddon's Blood en este dispositivo (Fase 21E; reset = quita los desbloqueos)
 //                      dice3,wine2 → 3 dados (Reroll) y 2 vinos (Skip) comprados (Fase 21½B; "dice" solo = 1, "dice0" = 0)
 //   ?achievements=reset → borra los logros conseguidos al cargar (all = los da todos, para ver la pantalla llena; Fase 14B)
@@ -79,7 +81,7 @@ function isDebugScreen(value: string | null): value is DebugScreen {
 }
 
 /** Actions that ?debug= can run at the start of a run (the same ones as the debug keys of GameScene). */
-export const DEBUG_ACTIONS = ['horde', 'kill', 'levelup', 'levels', 'str', 'magic', 'pickups', 'totems', 'minute', 'boss', 'finalboss', 'bosskill', 'stampede', 'dodge', 'stats', 'god', 'crits', 'aim', 'aimstick', 'resume', 'sim', 'charexp', 'stones', 'elites', 'loot', 'zem', 'onehp', 'epic', 'champion'] as const;
+export const DEBUG_ACTIONS = ['horde', 'kill', 'levelup', 'levels', 'str', 'magic', 'pickups', 'totems', 'minute', 'boss', 'finalboss', 'bosskill', 'stampede', 'dodge', 'stats', 'god', 'crits', 'aim', 'aimstick', 'resume', 'sim', 'charexp', 'stones', 'elites', 'loot', 'zem', 'onehp', 'epic', 'champion', 'xelima'] as const;
 export type DebugAction = (typeof DEBUG_ACTIONS)[number];
 
 function isDebugAction(value: string): value is DebugAction {
@@ -133,6 +135,8 @@ interface DebugStart {
     townTalk: boolean;
     /** ?town=shopKeeper&shop: the shop opens at once (Fase 24B). */
     townShop: boolean;
+    /** ?town=tom&smith=buy|sell: the blacksmith opens at once on that tab (Fase 24C). */
+    townSmith: 'buy' | 'sell' | undefined;
     /** ?gold=50000: the device's gold is set to that when the page loads (Fase 24A). */
     gold: number | undefined;
 }
@@ -141,7 +145,7 @@ function readDebugStart(): DebugStart {
     const none: DebugStart = {
         play: false, character: undefined, actions: [], trees: undefined, open: undefined, achievements: undefined, characters: undefined,
         sendMetrics: false, spells: { auto: undefined, active: undefined }, openClass: undefined, slash: undefined,
-        holdLoading: false, gear: [], settingsTab: undefined, attribute: undefined, unlocks: undefined, unlockCounts: {}, map: undefined, maps: undefined, townSpot: undefined, townTalk: false, townShop: false,
+        holdLoading: false, gear: [], settingsTab: undefined, attribute: undefined, unlocks: undefined, unlockCounts: {}, map: undefined, maps: undefined, townSpot: undefined, townTalk: false, townShop: false, townSmith: undefined,
         gold: undefined,
     };
     if (!import.meta.env.DEV) return none;
@@ -182,6 +186,7 @@ function readDebugStart(): DebugStart {
         townSpot: parseTownSpot(params.get('town')),
         townTalk: params.has('talk'),
         townShop: params.has('shop'),
+        townSmith: params.get('smith') === 'sell' ? 'sell' : params.get('smith') === 'buy' ? 'buy' : undefined,
         unlockCounts: readUnlockCounts(unlocks),
         gold: gold !== null && /^\d+$/.test(gold) ? Number(gold) : undefined,
     };

@@ -48,7 +48,7 @@ export const TOWN: TownDef = {
 export type NpcId = 'howard' | 'shopKeeper' | 'william' | 'tom';
 
 /** What an option of the panel does. `soon` = not made yet: the panel says "Coming soon". */
-export type NpcAction = 'equipment' | 'warehouse' | 'achievements' | 'shop' | 'soon';
+export type NpcAction = 'equipment' | 'warehouse' | 'achievements' | 'shop' | 'smithBuy' | 'smithSell' | 'soon';
 
 export interface NpcOption {
     label: string;
@@ -99,8 +99,9 @@ export const TOWN_NPCS: Readonly<Record<NpcId, NpcDef>> = {
         // A la derecha del yunque (en 110,193), mirándolo: parece que lo golpea.
         tile: { x: 111, y: 192 },
         direction: 5,
-        line: 'My forge is not ready yet.\nBring me your weapons another day.',
-        options: [{ label: 'Blacksmith', action: 'soon' }],
+        line: 'Weapons and armor, plain and honest.\nI also buy what you don\'t need.',
+        // Fase 24C: Buy and Sell (SmithScene); Upgrade, Fase 24D.
+        options: [{ label: 'Buy', action: 'smithBuy' }, { label: 'Sell', action: 'smithSell' }, { label: 'Upgrade', action: 'soon' }],
     },
 };
 

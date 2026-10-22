@@ -44,6 +44,12 @@ export const LOOT_BOSS_DROPS = {
 /** Chance that each boss also drops a Zemstone of Sacrifice (owner, 20-oct-2026: 10%). ?debug=zem makes it always. */
 export const LOOT_ZEM_BOSS_CHANCE = 0.1;
 
+/**
+ * Chance that any monster drops a Stone of Xelima when it dies, apart from the normal roll (owner, 22-oct-2026: "any
+ * monster, very rare"). A 15-minute run (~3.000 kills) gives ~1–2. ?debug=xelima raises it to `debug`.
+ */
+export const LOOT_XELIMA_CHANCE = { normal: 0.0005, debug: 0.05 } as const;
+
 /** How far apart the items of one boss fall (px). */
 export const LOOT_BOSS_SPREAD = 40;
 

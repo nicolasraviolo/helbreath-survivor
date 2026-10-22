@@ -207,7 +207,9 @@ export class WarehouseScene extends Phaser.Scene {
             }
             // On the right: the slot, or which class uses it if the marked character can't.
             const other = otherClass(classId, kind.item);
-            const note = other ? `${CHARACTERS[other].name} only` : EQUIP_SLOT_NAMES[itemInfo(kind.item.id)?.slot ?? 'weapon'];
+            // Items never put on (the Xelima stone, Fase 24C) say what they are for.
+            const slot = itemInfo(kind.item.id)?.slot;
+            const note = other ? `${CHARACTERS[other].name} only` : slot ? EQUIP_SLOT_NAMES[slot] : 'Blacksmith';
             column.objects.push(this.add.text(x + width - 6, middle, note, { ...EQUIPMENT_DETAIL_STYLE, color: other ? WAREHOUSE_OTHER_CLASS_COLOR : EQUIPMENT_DETAIL_STYLE.color })
                 .setOrigin(1, 0.5));
             background.setInteractive({ useHandCursor: true });
@@ -350,7 +352,11 @@ function groupKinds(items: readonly Readonly<OwnedItem>[]): Kind[] {
         if (kind) kind.indices.push(index);
         else kinds.push({ item: { ...item }, indices: [index] });
     });
-    const slotOrder = (kind: Kind) => EQUIP_SLOT_IDS.indexOf(itemInfo(kind.item.id)?.slot ?? 'weapon');
+    // Items with no slot (the Xelima stone) go last.
+    const slotOrder = (kind: Kind) => {
+        const slot = itemInfo(kind.item.id)?.slot;
+        return slot ? EQUIP_SLOT_IDS.indexOf(slot) : EQUIP_SLOT_IDS.length;
+    };
     return kinds.sort((a, b) => slotOrder(a) - slotOrder(b) || ownedItemName(a.item).localeCompare(ownedItemName(b.item)));
 }
 

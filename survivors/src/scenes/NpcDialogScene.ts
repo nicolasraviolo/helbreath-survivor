@@ -2,15 +2,17 @@
 // su nombre de título, su frase y sus opciones, más "Back". Las opciones abren pantallas que ya existían:
 // - Howard: Equipment y Warehouse (antes en Select Character).
 // - William: Achievements; Missions, "Coming soon".
-// - Shop Keeper: la tienda (Fase 24B, ShopScene). Tom: "Coming soon" (herrero, Fase 24C).
+// - Shop Keeper: la tienda (Fase 24B, ShopScene). Tom: Buy y Sell (herrero, Fase 24C, SmithScene); Upgrade, "Coming soon" (24D).
 // Al abrir una pantalla, este panel se cierra y esa pantalla vuelve directa a la ciudad.
 import Phaser from 'phaser';
 import { MENU_TEXT_STYLE, MENU_OVERLAY, RUN_CHOICE } from '../config/menus';
+import { NPC_DIALOG_LIST } from '../config/town';
 import { TOWN_NPCS, TOWN_TALK, type NpcAction, type NpcId } from '../data/town';
 import type { MenuItem } from '../ui/MenuList';
 import type { EquipmentSceneData } from './EquipmentScene';
 import { MenuOverlayScene, type MenuOverlayData } from './MenuOverlayScene';
 import { SHOP_SCENE_KEY, type ShopSceneData } from './ShopScene';
+import { SMITH_SCENE_KEY, type SmithSceneData } from './SmithScene';
 import type { WarehouseSceneData } from './WarehouseScene';
 
 export const NPC_DIALOG_SCENE_KEY = 'NpcDialog';
@@ -23,6 +25,7 @@ export interface NpcDialogSceneData extends MenuOverlayData {
 
 export class NpcDialogScene extends MenuOverlayScene {
     protected title = '';
+    protected override readonly itemSpacing = NPC_DIALOG_LIST.itemSpacing;
     private npc: NpcId = 'william';
     private characterUid: string | undefined;
     private text: Phaser.GameObjects.Text | undefined;
@@ -44,7 +47,7 @@ export class NpcDialogScene extends MenuOverlayScene {
         this.setText(def.line);
         const items: MenuItem[] = def.options.map((option) => ({ label: option.label, onConfirm: () => this.choose(option.action) }));
         items.push({ label: 'Back', onConfirm: () => this.close() });
-        this.addList(items, RUN_CHOICE.listOffsetY);
+        this.addList(items, NPC_DIALOG_LIST.offsetY);
     }
 
     private choose(action: NpcAction): void {
@@ -59,6 +62,12 @@ export class NpcDialogScene extends MenuOverlayScene {
                 // Without a character it still opens: only the Zemstone needs one (it says so when you try).
                 this.openFromTown(SHOP_SCENE_KEY, { characterUid: this.characterUid } satisfies ShopSceneData);
                 return;
+            case 'smithBuy':
+            case 'smithSell': {
+                const tab = action === 'smithBuy' ? 'buy' : 'sell';
+                this.openFromTown(SMITH_SCENE_KEY, { characterUid: this.characterUid, tab } satisfies SmithSceneData);
+                return;
+            }
             case 'equipment':
             case 'warehouse': {
                 const uid = this.characterUid;

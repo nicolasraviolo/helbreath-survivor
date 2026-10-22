@@ -613,10 +613,11 @@ export class GameScene extends Phaser.Scene {
     private openLoot(): void {
         const item = this.runLoot.nextPending();
         const slot = item ? itemInfo(item.id)?.slot : undefined;
-        // Fase 21D: a Zem found goes straight to the bag (it is put on before a run, never during one).
+        // Fase 21D: a Zem found goes straight to the bag (it is put on before a run, never during one); so does a Xelima
+        // stone (Fase 24C), which is never put on.
         if (!item || !slot || slot === 'zem') {
-            if (item) this.runLoot.keep(item);
-            if (slot === 'zem') {
+            if (item) {
+                this.runLoot.keep(item);
                 this.audio.play(LOOT_SOUNDS.bag);
                 this.saveRun();
             }
