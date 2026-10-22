@@ -28,13 +28,18 @@ Fuentes de la investigación (17-oct-2026):
 | **20** | Level y equipo *(nueva)* | Level permanente y reparto de puntos · "Power" en la partida · inventario y equipo de salida · hechizos equipables · las cartas dejan de dar armas | Grande |
 | **21** | Botín y baúl *(nueva)* | Objetos que caen en partida ("Equip" / "Keep in bag") · Sharp, Ancient y Poison · baúl compartido · Zem y Abaddon's Blood | Grande |
 | **21½** | Cartas y sorpresas *(mini, nueva 21-oct-2026)* | Rareza en las cartas de Power · Reroll y Skip · evento "Champion": un monstruo poderoso extra al azar | Pequeño-medio |
-| **22** | Sistema de mapas + Icebound | Varios mapas, Select Map, sombras (récords locales aplazados; Icebound a la Fase 25) | Grande |
+| **22** | Sistema de mapas + Icebound | Varios mapas, Select Map, sombras (récords locales aplazados; Icebound a la Fase 30) | Grande |
 | **23** | La ciudad | Mapa pequeño tras elegir personaje: NPCs, baúl y portal a la partida | Grande |
 | **24** | Oro, tienda y herrero *(nueva)* | Oro en partida · vender · tienda (Zem, pociones, equipo básico, ampliar baúl, **Abaddon's Blood**, **dado y vino**: Reroll y Skip) · mejoras con Xelima y Merien | Medio-grande |
-| **25** | Más mapas y objetos únicos | Un mapa por bloque, cada uno con sus únicos | Grande (por partes) |
-| **26** | Aresden y Elvine | Elegir bando · objetos Hero con EK | Medio |
-| **27** | Raids | "Jugadores" enemigos del otro bando | Medio-grande |
-| **28** | Ranking online *(opcional)* | Reutiliza el servidor de la Fase 14 | Pequeño |
+| **25** | Arreglos rápidos *(mini, nueva 22-oct-2026)* | Pantalla completa en Steam Deck / Legion Go · pantalla final sin el equipo · botones + y − grandes en el móvil | Pequeño |
+| **26** | Hechizos del Mago *(nueva 22-oct-2026)* | El Spell 2 gasta maná · apuntar el Spell 2 · hechizos nuevos de círculos altos | Medio |
+| **27** | Monstruos que se mueven distinto *(nueva 22-oct-2026)* | Cada tipo con su forma de moverse, para romper la "bola" | Medio |
+| **28** | Magias pasivas en la partida *(nueva 22-oct-2026)* | Aura de daño · espadas que giran · hadas, para los dos personajes | Medio-grande |
+| **29** | Misiones de rescate y logros *(nueva 22-oct-2026)* | Rescatar a los NPCs de la ciudad en los mapas · logros de misiones · logros que se acumulan ("Kill 1,000 Slimes") | Grande |
+| **30** | Más mapas y objetos únicos | Un mapa por bloque, cada uno con sus únicos | Grande (por partes) |
+| **31** | Aresden y Elvine | Elegir bando · objetos Hero con EK | Medio |
+| **32** | Raids | "Jugadores" enemigos del otro bando | Medio-grande |
+| **33** | Ranking online *(opcional)* | Reutiliza el servidor de la Fase 14 | Pequeño |
 
 **Por qué este orden:**
 1. **11–13:** primero lo que arregla molestias que ya existen: visibilidad, controles, partidas perdidas en el móvil, subir de nivel demasiado rápido y un final de partida abrupto.
@@ -43,9 +48,10 @@ Fuentes de la investigación (17-oct-2026):
 4. **19:** el botón activo, antes del equipo, porque el segundo hueco de hechizo del Mago (Fase 20) es justo su habilidad activa.
 5. **20–21 (replanteo del 18-oct-2026):** primero la progresión entre partidas, porque cambia qué dan las cartas y cómo se equilibra todo lo que viene después. Mientras no exista la ciudad, el equipo y el baúl se abren desde Select Character.
 6. **22–24:** varios mapas (con dificultad según el Level), la ciudad como "centro" del juego y la economía, que necesita sus NPCs (tienda y herrero).
-7. **25–28:** contenido que se apoya en todo lo anterior. Los objetos únicos, que alargan el juego más allá de las ~20 h, llegan con los mapas nuevos.
+7. **25–29 (replanteo del 22-oct-2026, tras cerrar la Fase 24):** el propietario pidió estos cambios antes de los mapas nuevos. Primero los arreglos rápidos (25). Después, el maná y los hechizos (26). Los monstruos se mueven distinto (27) antes que las magias pasivas (28), porque cambian la dificultad y las pasivas se equilibran contra ellos. Las misiones de rescate (29) van al final porque tocan la ciudad, los mapas y el guardado.
+8. **30–33:** contenido que se apoya en todo lo anterior. Los objetos únicos, que alargan el juego más allá de las ~20 h, llegan con los mapas nuevos.
 
-**Dependencias:** la 20 necesita los personajes guardados (17); la 21 necesita la 20; la 23 necesita el sistema de mapas (22); la 24 necesita la ciudad (23) y el botín (21); la 25 necesita la 22 y la 21; la 27 necesita los bandos (26); la 28 necesita el servidor (14). El resto puede moverse si el propietario quiere otra prioridad.
+**Dependencias:** la 20 necesita los personajes guardados (17); la 21 necesita la 20; la 23 necesita el sistema de mapas (22); la 24 necesita la ciudad (23) y el botín (21); en la 26, el apuntado (26B) y los hechizos nuevos (26C) necesitan el maná (26A); la 28 conviene después de la 27; la 29 necesita la ciudad (23) y los logros (14); la 30 necesita la 22 y la 21; la 32 necesita los bandos (31); la 33 necesita el servidor (14). El resto puede moverse si el propietario quiere otra prioridad.
 
 ### De dónde viene cada cosa del borrador anterior
 | Antes | Ahora |
@@ -68,7 +74,7 @@ Fuentes de la investigación (17-oct-2026):
 | Sombras bajo personajes y monstruos | Fase 22 |
 | Récords locales | Ideas para después (aplazado el 21-oct-2026) |
 | Progresión entre partidas | Fases 20 y 21 |
-| Límite de enemigos en el móvil | Fase 27 (Raids), o antes si el móvil va lento |
+| Límite de enemigos en el móvil | Fase 32 (Raids), o antes si el móvil va lento |
 | Equilibrio | Fase 13, y repaso al cerrar cada fase de combate |
 
 ### Replanteo del 18-oct-2026 (tras cerrar la Fase 18)
@@ -171,7 +177,7 @@ Hoy **no se guarda ninguna partida**; solo las opciones de Settings (`systems/Se
 ### 14A. Métricas
 - **Para qué:** entender la dificultad. Si la gente muere muy rápido o no muere nunca, con qué personaje, en qué minuto...
 - **Qué se envía al terminar cada partida** (anónimo, sin datos personales): versión del juego, mapa, clase, móvil u ordenador, resultado, minuto de muerte, nivel alcanzado, bajas, qué te mató, armas y cartas elegidas, si se usó Zem o crits, y los FPS medios.
-- **Dónde:** un servidor pequeño y gratuito, **Cloudflare Workers + D1**. El mismo servirá para el ranking online (Fase 28).
+- **Dónde:** un servidor pequeño y gratuito, **Cloudflare Workers + D1**. El mismo servirá para el ranking online (Fase 33).
 - **Cómo lo ve el propietario:** una página sencilla con gráficas: duración media, muertes por minuto, % de victorias por clase y cartas más elegidas.
 - **Privacidad:** sin cookies ni identificadores personales. Un aviso de una línea en Options, con opción "Send anonymous stats: On/Off".
 - **Decisión del propietario:** montar el servidor (requiere crear una cuenta gratuita de Cloudflare; eso lo hace él).
@@ -408,7 +414,7 @@ Cada personaje guardado (hasta 4 por dispositivo, Fase 17A) **sube de Level de f
   | 6 h | ~50 |
   | 8–10 h | ~55–60: **Battle Hammer** para un Guerrero de Str |
   | 15–20 h | ~80: **Blizzard** para un Mago de Int |
-  | 30 h | ~100: empiezan los objetos únicos (Fase 25) |
+  | 30 h | ~100: empiezan los objetos únicos (Fase 30) |
   | ~60 h | **140** (máximo) |
 
   A Level 140 hay ~490 puntos: da para dos stats a 200 y poco más, así que hay que elegir.
@@ -525,7 +531,7 @@ Desde la Fase 20 las cartas de Power solo dan +3 a un stat o una piedra (Xelima,
 ## Fase 22 — Sistema de mapas
 
 ### Replanteo del 20-oct-2026 (al empezar la fase)
-- **Mapas, en este orden:** Traveler Zone (`default`, introducción) → Bleeding Isle → Elvine Garden (`elvuni`) → Middleland. **Icebound pasa a la Fase 25.**
+- **Mapas, en este orden:** Traveler Zone (`default`, introducción) → Bleeding Isle → Elvine Garden (`elvuni`) → Middleland. **Icebound pasa a la Fase 30.**
 - **Bloques:** 22A sistema de mapas + Select Map + Traveler Zone ✅ · 22B carga por mapa ✅ · 22C Traveler Zone completa (Cat, repaso tras jugarla) ✅ · 22D Elvine Garden ✅ · 22E Middleland ✅ (21-oct-2026; monstruos y jefes cambiados por el propietario, ver `docs/DECISIONES.md`) · ~~22F récords locales~~ (aplazado) · 22G sombras y skill `anadir-mapa` ✅ (21-oct-2026). **Fase cerrada el 21-oct-2026.**
 - Desbloqueo: ganar el anterior **o** llegar al Level recomendado. Música de Bleeding Isle en todos.
 
@@ -549,7 +555,7 @@ Hoy la primera carga ronda unos **25 MB** de golpe (medido el 18-oct-2026; con u
 ### 22F. Récords locales: aplazado (21-oct-2026)
 El propietario lo deja para más adelante: está en "Ideas para después (sin fase todavía)", con todo el detalle.
 
-### Icebound *(movido a la Fase 25 el 20-oct-2026)*
+### Icebound *(movido a la Fase 30 el 20-oct-2026)*
 - **Primer mapa nuevo** (el más pedido y de los que mejor encajan).
 - **Monstruos:** Frost ✅, Dire Boar ♻️, Ice Golem ✅, Skeleton ♻️, Stone Golem ✅, Beholder ✅, Rudolph ✅ (reno navideño), Claw Turtle ✅.
 - **Minijefes:** Tigerworm ♻️ (en el original tenía un "pit" en Icebound) y Nizie ✅.
@@ -599,7 +605,7 @@ Los nombres salen de `sp-client/src/constants/NPCs.ts`; los papeles, del origina
 
 ### El mapa de la ciudad
 Tiene que pesar poco: es lo primero que se carga después del menú. Opciones (medir con un subagente):
-- **A) Un recorte pequeño de Aresden o Elvine** (una plaza con el almacén y la tienda). Es lo más reconocible y encaja con los bandos (Fase 26: tu ciudad según tu bando). Hay que medir cuánto pesa un recorte, porque la ciudad entera son 22 MB.
+- **A) Un recorte pequeño de Aresden o Elvine** (una plaza con el almacén y la tienda). Es lo más reconocible y encaja con los bandos (Fase 31: tu ciudad según tu bando). Hay que medir cuánto pesa un recorte, porque la ciudad entera son 22 MB.
 - **B) Un interior** (`cityhall_1`, `wrhus_1`, `gshop_1`...). Muy ligero, pero es una sala cerrada.
 - **C) Un recorte de la granja.** Bonito, pero pesa mucho.
 - Propuesta: **A** si el recorte pesa menos de ~3 MB; si no, **B**.
@@ -646,7 +652,94 @@ Usar el **oro** para mejorar las armas en el herrero, comprar Zem y otras cosas.
 
 ---
 
-## Fase 25 — Más mapas y objetos únicos
+## Fase 25 — Arreglos rápidos *(mini, nueva 22-oct-2026)*
+
+### Idea del propietario (22-oct-2026)
+- **Pantalla completa en Steam Deck / Legion Go 2:** el juego entra en modo móvil y, con Chrome a pantalla completa, cuesta salir. El botón de pantalla completa debe estar siempre a mano, también en modo móvil. Revisar además por qué esas consolas se detectan como móvil (`main.ts`, `ui/fullscreen.ts`).
+- **Pantalla final de la partida:** quitar lo que el jugador lleva equipado.
+- **Stats en el móvil:** los botones + y − para repartir puntos son demasiado pequeños. Hacerlos mucho más grandes, con zona de toque amplia.
+
+### Aceptación
+- En una Steam Deck o Legion Go (o simulándola), con Chrome a pantalla completa, hay un botón visible para salir de ella.
+- La pantalla final ya no muestra el equipo.
+- En el móvil reparto puntos de stats sin fallar el dedo.
+
+---
+
+## Fase 26 — Hechizos del Mago *(nueva 22-oct-2026)*
+
+### Bloques
+- **26A. Maná:** el Spell 2 (hechizos activos, círculos 6–10) deja de tener tiempo de recarga y **gasta maná**. Hoy no hay maná: hace falta la barra, el máximo, cómo se recupera (con Mag o Int, a decidir) y qué pasa con las pociones. Ya estaba previsto (NOTES.md, "Atributos y varitas").
+- **26B. Apuntar el Spell 2:** en PC sale hacia el ratón o el stick derecho (`systems/Targeting.ts`). En el móvil, el botón funciona como un stick: mantener, arrastrar y, al soltar, se lanza en esa dirección. Sin arrastrar, apunta solo como ahora.
+- **26C. Hechizos nuevos de círculos altos:** más hechizos automáticos (`data/spells.ts`) y activos (`data/activeSpells.ts`) del original, de familias distintas (hielo, rayo, tierra…), para que cada Maga juegue distinto. Con la skill `/anadir-arma`.
+
+### Aceptación
+- Lanzo el Spell 2 tantas veces como me deja el maná, no un temporizador.
+- En el móvil arrastro el botón, suelto y el hechizo sale hacia donde arrastré.
+- Hay al menos 3–4 hechizos nuevos de círculos altos, cada uno con su efecto.
+
+---
+
+## Fase 27 — Monstruos que se mueven distinto *(nueva 22-oct-2026)*
+
+### Problema (22-oct-2026)
+Todos los monstruos van en línea recta hacia el jugador, a casi la misma velocidad, y forman una **bola**.
+
+### Propuesta
+Cada tipo de monstruo tiene un comportamiento en `data/enemies.ts`:
+- **rodear:** se abre por los lados;
+- **embestir:** se para, avisa y carga en línea recta;
+- **guardar distancia:** los que disparan se quedan lejos;
+- **deambular:** se mueve al azar hasta que te ve;
+- y todos se **separan** un poco entre sí para no apilarse.
+
+Ojo con el rendimiento con 300 monstruos (sin búsquedas caras por monstruo) y con la dificultad: repasarla con `pnpm balance`.
+
+### Aceptación
+- En Traveler Zone, a los 5 minutos, los monstruos llegan desde varios lados y no en una sola bola.
+- Se mantienen los FPS de hoy en el móvil.
+
+---
+
+## Fase 28 — Magias pasivas en la partida *(nueva 22-oct-2026)*
+
+### Idea del propietario (22-oct-2026)
+Era "Pasivas con efecto" en "Mejoras de engagement". Magias para **los dos personajes** que se consiguen y se potencian con las cartas durante la partida, y **se pierden al terminar**:
+- **aura de daño** alrededor del personaje (como el ajo de Vampire Survivors);
+- **espadas que giran** alrededor del personaje;
+- **hadas** que atacan a los monstruos cercanos (comprobar antes que el sprite existe en `sp-client`).
+
+### Propuesta
+- Un tipo de carta nuevo con la skill `/anadir-mejora`, con niveles (más daño, más radio, más espadas u hadas).
+- Más adelante, **combinaciones**: dos pasivas al máximo desbloquean una carta especial.
+
+### Aceptación
+- En una partida me sale la carta del aura, la cojo y la subo de nivel; se nota en pantalla y mata a los monstruos que se acercan.
+- Al terminar la partida, el aura ya no está.
+
+---
+
+## Fase 29 — Misiones de rescate y logros *(nueva 22-oct-2026)*
+
+### Idea del propietario (22-oct-2026)
+Los NPCs de la ciudad se desbloquean con misiones. Por ejemplo, en Traveler Zone hay que **encontrar y rescatar a un NPC rodeado de Snakes**. Al salvarlo, queda disponible en la ciudad. Hasta entonces, su servicio está cerrado; si es el del baúl, **los objetos conseguidos quedan guardados pero no se pueden tocar**.
+
+### Bloques
+- **29A. Rescates:** un NPC por mapa, en un punto marcado en el minimapa, rodeado de monstruos. En la ciudad, el NPC sin rescatar no está o tiene el servicio cerrado.
+  - Ojo: hoy el baúl lo lleva **Howard**; **William** lleva los logros y ya tiene el botón "Missions" ("Coming soon"). Al empezar la fase, decidir qué NPC va en cada mapa.
+  - Decidir qué pasa con las cuentas que ya tienen la ciudad abierta (¿se les da todo rescatado?).
+- **29B. Logros de misiones:** uno por cada rescate.
+- **29C. Logros que se acumulan:** "Kill 1,000 Slimes", "Resist 500 spells", "Dodge 1,000 hits"… Hoy los logros solo cuentan lo que pasa en una partida (`data/achievements.ts`): hace falta guardar contadores permanentes, con versión y migración del guardado.
+
+### Aceptación
+- En una cuenta nueva, Howard (o quien se decida) no está en la ciudad. En Traveler Zone lo encuentro rodeado de Snakes, lo salvo y aparece en la ciudad. Se desbloquea su logro.
+- Tras varias partidas, el logro "Kill 1,000 Slimes" sube y se desbloquea.
+
+---
+
+## Fase 30 — Más mapas y objetos únicos
+
+> 22-oct-2026: antes era la Fase 25. El "Orden de mapas propuesto" de abajo es anterior a la Fase 22; el orden actual es Traveler Zone → Bleeding Isle → Elvine Garden → Middleland. Decidir dónde entran los mapas nuevos al empezar la fase.
 
 ### Objetos únicos (decidido el 18-oct-2026)
 - Las armas y hechizos "top" clásicos (Battle Hammer, Blizzard...) se consiguen hacia las 8–20 h (Fase 20). Lo que alarga el juego hasta las ~60 h son los **objetos únicos**: armas, hechizos, anillos, collares y **ángeles tutelares** que caen poco y **solo de un jefe o mapa concreto**, y piden Level alto (~100+). Aquí entran las armas de 200 de Str (Barbarian Hammer, The_Devastator).
@@ -687,7 +780,7 @@ Los rosters salen del original (wiki de helbreath.net y `GameWorlds.json`), adap
 - **Monstruos:** Slime ♻️, Giant Ant ♻️, Orc ♻️, Snake ♻️, Scorpion ♻️, Bunny ♻️, Cat ✅.
 - **Decoración:** Scarecrow ✅ y cultivos (`crop.spr`) como decoración o "enemigos" que se rompen.
 - **Mapa fácil o de principiantes**, ideal como **primer mapa** del juego. Pesa mucho (16 MB): se puede recortar.
-- **Jefe:** aquí el jefe natural **es una Raid** (jugadores del otro bando atacando la granja). Ver Fase 27.
+- **Jefe:** aquí el jefe natural **es una Raid** (jugadores del otro bando atacando la granja). Ver Fase 32.
 - **Música:** `aresden.mp3` o `elvine.mp3`, según la granja.
 
 **🏙️ Druncian City** (primer mapa del Apocalypse; en el original se entraba por un portal en Icebound)
@@ -708,11 +801,11 @@ Los rosters salen del original (wiki de helbreath.net y `GameWorlds.json`), adap
 Farm → Eternal Field (actual) → Dungeon L4 → Icebound → Druncian City (→ Middleland).
 
 ### Bloques
-**24A, 24B...:** un mapa por bloque, con `/anadir-mapa` y `/anadir-enemigo` para cada monstruo.
+**30A, 30B...:** un mapa por bloque, con `/anadir-mapa` y `/anadir-enemigo` para cada monstruo.
 
 ---
 
-## Fase 26 — Aresden y Elvine
+## Fase 31 — Aresden y Elvine
 
 ### Cómo era en el original
 - Empezabas como **Traveller** (neutral, sin perder objetos al morir) y luego elegías ciudad.
@@ -748,7 +841,7 @@ Farm → Eternal Field (actual) → Dungeon L4 → Icebound → Druncian City (�
 
 ---
 
-## Fase 27 — Raids: "jugadores" enemigos
+## Fase 32 — Raids: "jugadores" enemigos
 
 ### Qué era una raid
 Un grupo de jugadores del bando enemigo entrando en tu ciudad, granja o dungeon para matar ciudadanos. El original lo limitaba con un "raid time": unos días a la semana se permitía estar más tiempo en la zona enemiga. También había grupos de PK en Middleland.
@@ -781,7 +874,7 @@ Un grupo de jugadores del bando enemigo entrando en tu ciudad, granja o dungeon 
 
 ---
 
-## Fase 28 — Ranking online *(opcional)*
+## Fase 33 — Ranking online *(opcional)*
 
 - Reutiliza el servidor de las métricas (Fase 14, Cloudflare Workers + D1). El juego envía la marca al terminar.
 - Top por mapa y clase, visible en la pantalla Records junto a los récords locales.
@@ -795,7 +888,7 @@ Un grupo de jugadores del bando enemigo entrando en tu ciudad, granja o dungeon 
 
 ## Mejoras de engagement para más adelante (21-oct-2026)
 Del análisis `docs/ENGAGEMENT.md`, comentado con el propietario el 21-oct-2026. Lo que cabe ya está en la Fase 21½.
-- **Pasivas con efecto** (le gusta al propietario): cartas que cambian cómo juegas, no solo números. Ejemplos: **aura de daño en zona** alrededor del jugador, rebote del proyectil, explosión al matar, robo de vida, tajo más ancho, una bola de fuego extra cada pocos segundos. Necesita efectos visuales y equilibrio propio: **fase propia** (propuesta: justo después de la 22, con mapas más duros donde lucirse).
+- **Pasivas con efecto** (le gusta al propietario): cartas que cambian cómo juegas, no solo números. Ejemplos: **aura de daño en zona** alrededor del jugador, rebote del proyectil, explosión al matar, robo de vida, tajo más ancho, una bola de fuego extra cada pocos segundos. Necesita efectos visuales y equilibrio propio: **Fase 28** (decidido el 22-oct-2026).
 - **Combinaciones:** dos pasivas concretas al máximo desbloquean una carta especial (como las evoluciones de Vampire Survivors o los dobles de Hades). Va con las pasivas con efecto.
 - **Botín de jefes y premios grandes:** cofre con animación y 1/3/5 premios, botín del jefe final siempre del escalón siguiente o mejor. Se resuelve en las **Fases 24 y 25** (oro, tienda, únicos).
 - **Retos opcionales con premio:** tótem-desafío ("aguanta 30 s rodeado → objeto seguro") o dificultad elegible al escoger mapa (como el Heat de Hades). Encaja en la **Fase 22** o la 25.
@@ -837,7 +930,7 @@ Las de las Fases 11–18 ya se tomaron (ver `survivors/PROGRESS.md` y el histori
 4. ~~**Fase 22:**~~ decidido el 20-oct-2026 (ver `docs/DECISIONES.md`).
 5. **Fase 23:** ¿la ciudad es un recorte de Aresden/Elvine o un interior pequeño?
 6. **Fase 24:** precios, y si las piedras Xelima/Merien se compran o solo caen.
-7. **Fase 26:** ¿solo la opción A, o también la B (EK y objetos Hero)? ¿Bonus distinto por bando o solo estético?
+7. **Fase 31:** ¿solo la opción A, o también la B (EK y objetos Hero)? ¿Bonus distinto por bando o solo estético?
 
 ### Ya decidido el 18-oct-2026 (replanteo)
 - Dos progresiones: **Level** (permanente, máximo 140, ~60 h, 3 puntos por Level, stats hasta 200) y **Power** (la partida).
