@@ -26,3 +26,18 @@ export const MANUAL_AIM = {
     arrowAlpha: 0.7,
     arrowColor: 0xfff2c0,
 } as const;
+
+/**
+ * Fase 26B: ring on the ground while the Mage drags the spell button (phones), where the Spell 2 will land. Its size is
+ * the spell's own area (activeSpellAreaRadius); dimmed while there is not mana enough.
+ */
+export const SPELL_AIM_MARKER = {
+    color: 0xfff2c0,
+    lineWidth: 2,
+    alpha: 0.85,
+    fillAlpha: 0.12,
+    /** Alpha of the whole ring without mana enough for a cast. */
+    noManaAlpha: 0.35,
+    /** Small dot at the centre (radius, px). */
+    dotRadius: 3,
+} as const;

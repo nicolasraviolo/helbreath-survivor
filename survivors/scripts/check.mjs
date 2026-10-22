@@ -87,6 +87,9 @@ const PRESETS = {
     // Fase 26A: la Maga con horda (lanza con --eval) y con el maná a 0 para verlo rellenarse.
     mana: 'play=mage&debug=god,horde',
     nomana: 'play=mage&debug=god,nomana',
+    // Fase 26B (con --mobile): un dedo de mentira arrastra a la derecha el botón del hechizo; sale el anillo donde caerá.
+    // Para soltarlo y lanzarlo hacia allí: --eval="g.debugReleaseSpellDrag()".
+    spelldrag: 'play=mage&debug=god,horde,spelldrag',
     // Botín (Fase 21A): Gorn (ejemplo) con un objeto cayendo a su derecha cada pocos segundos. Al pisarlo sale la carta
     // Equip / Keep in bag. Para cogerlo: --eval="g.debugPickUpLoot()".
     loot: 'play=warrior&characters=demo&debug=god,loot',

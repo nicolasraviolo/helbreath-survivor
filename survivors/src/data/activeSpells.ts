@@ -24,7 +24,7 @@ interface ActiveSpellBase {
     originalMana: number;
     /** Only goes off on enemies closer than this to the player (px); with none, it does not go off. */
     range: number;
-    /** With the aim stick (no cursor), it falls this share of `range` away, where the stick points. */
+    /** With the aim stick or dragging the touch button (Fase 26B), it falls this share of `range` away, that way. */
     stickShare: number;
     /** Length of the player's cast animation (ms). */
     castMs: number;
@@ -166,6 +166,11 @@ export const ACTIVE_SPELLS: Readonly<Record<ActiveSpellId, ActiveSpellDef>> = {
         hudIcon: 'crit',
     },
 };
+
+/** Radius of the ground the spell covers (px): the meteor's explosion, or where a barrage scatters its shots. */
+export function activeSpellAreaRadius(def: ActiveSpellDef): number {
+    return def.kind === 'meteor' ? def.areaRadius : def.scatterRadius;
+}
 
 /** In the order of their requirement (the Equipment screen's list). */
 export const ACTIVE_SPELL_IDS: readonly ActiveSpellId[] = ['energyStrike', 'massFireStrike', 'meteorStrike'];

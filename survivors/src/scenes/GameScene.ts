@@ -83,6 +83,9 @@ import { mapUnlockStore } from '../systems/MapUnlockStore';
 import { Action, InputSystem } from '../systems/InputSystem';
 import { SETTINGS_CHANGED, settings } from '../systems/Settings';
 import { AimArrow } from '../ui/AimArrow';
+import type { DragDirection } from '../ui/CritButton';
+import { SpellAimMarker } from '../ui/SpellAimMarker';
+import type { ManualAim } from '../systems/Targeting';
 import { overlayBottom, playAreaBottom } from '../ui/hudLayout';
 import { TouchJoystick } from '../ui/TouchJoystick';
 import { SpawnSystem } from '../systems/SpawnSystem';
@@ -90,7 +93,7 @@ import { WeaponSystem } from '../systems/WeaponSystem';
 import { CritStrikeSystem } from '../systems/CritStrikeSystem';
 import { maxCritCharges } from '../data/critStrike';
 import { ActiveSpellSystem } from '../systems/ActiveSpellSystem';
-import { DEFAULT_ACTIVE_SPELL, isActiveSpellId, type ActiveSpellId } from '../data/activeSpells';
+import { activeSpellAreaRadius, DEFAULT_ACTIVE_SPELL, isActiveSpellId, type ActiveSpellId } from '../data/activeSpells';
 import { registerEffectAnimations } from '../config/effects';
 import type { SkillOrb } from '../ui/hudLayout';
 import { XpSystem } from '../systems/XpSystem';
@@ -167,6 +170,11 @@ export class GameScene extends Phaser.Scene {
     private critStrike!: CritStrikeSystem;
     /** The Mage's active spell (Fase 19B); undefined for the Warrior. */
     private activeSpell: ActiveSpellSystem | undefined;
+    /** Fase 26B: ring where the Spell 2 will land, and the direction the Mage drags its touch button now (if any). */
+    private spellAimMarker!: SpellAimMarker;
+    private spellDrag: DragDirection;
+    /** The drag as a manual aim, for the arrow at the feet (reused every frame). */
+    private readonly spellDragAim: ManualAim = { dirX: 1, dirY: 0, point: undefined };
     private aimArrow!: AimArrow;
     private debug!: DebugSystem;
     /** ?debug=aim / debug key: aiming to the right by itself (reset at the start of each run). */
@@ -361,6 +369,8 @@ export class GameScene extends Phaser.Scene {
         this.critStrike = new CritStrikeSystem(this.weapons, this.audio, this.screenShake);
         this.activeSpell = this.createActiveSpell(startSpells(startEquipment).active);
         this.aimArrow = new AimArrow(this);
+        this.spellAimMarker = new SpellAimMarker(this);
+        this.spellDrag = undefined;
         this.buffs = new BuffSystem(this, this.player, this.audio, (key, x, y) => this.weapons.spawnEffect(key, x, y));
         this.abaddon = new AbaddonRevive(this, this.audio, this.enemies, (key, x, y) => this.weapons.spawnEffect(key, x, y));
         // Its effect is a big file (5,6 MB): only when it is unlocked, while the run plays.
@@ -882,6 +892,16 @@ export class GameScene extends Phaser.Scene {
             gameSceneKey: this.scene.key,
             minimap: { key: mapDef.minimap, mapWidth: map.width, mapHeight: map.height, playArea: mapDef.playArea },
             launchCritStrike: () => this.launchCritStrike(),
+            // Fase 26B: the Mage's button is dragged to aim (the HUD only needs to know it is a Mage).
+            spellDrag: CHARACTERS[this.characterId].startWeapon.kind === 'spell' ? {
+                preview: (direction) => {
+                    this.spellDrag = direction && { ...direction };
+                },
+                release: (direction) => {
+                    this.spellDrag = undefined;
+                    this.castActiveSpell(direction);
+                },
+            } : undefined,
             characterUid: this.characterUid,
             classId: this.characterId,
             getState: () => ({
@@ -986,7 +1006,14 @@ export class GameScene extends Phaser.Scene {
         this.updateActiveSpell(delta);
         this.weapons.update(delta, player.x, player.y, !player.isDead);
         this.combat.updatePoison(delta);
-        this.aimArrow.update(manualAim, player.x, player.y);
+        // Fase 26B: dragging the Mage's touch button shows the same arrow as aiming by hand (Spell 1), that way.
+        const spellDrag = this.spellDrag;
+        if (spellDrag) {
+            this.spellDragAim.dirX = spellDrag.x;
+            this.spellDragAim.dirY = spellDrag.y;
+        }
+        this.aimArrow.update(spellDrag && !player.isDead ? this.spellDragAim : manualAim, player.x, player.y);
+        this.updateSpellAimMarker();
         this.damageNumbers.update(delta);
         this.abaddon.update(delta);
         this.screenShake.update(delta);
@@ -1068,6 +1095,18 @@ export class GameScene extends Phaser.Scene {
         if (import.meta.env.DEV) this.loot.pickUpAll();
     }
 
+    /**
+     * Development (check spelldrag): lets go of the pretend drag of ?debug=spelldrag, which casts the Spell 2 that way.
+     * Returns where it was aimed and the casts so far, to read in the check.
+     */
+    public debugReleaseSpellDrag(): { direction: DragDirection; casts: number } | undefined {
+        if (!import.meta.env.DEV || !this.activeSpell) return undefined;
+        const direction = this.spellDrag;
+        this.spellDrag = undefined;
+        this.castActiveSpell(direction);
+        return { direction, casts: this.activeSpell.casts };
+    }
+
     /** Development (check deathzem): every item waiting for its card goes to the bag, without showing it. */
     public debugKeepLoot(): void {
         if (!import.meta.env.DEV) return;
@@ -1132,10 +1171,27 @@ export class GameScene extends Phaser.Scene {
         if (this.sim ? spell.ready : this.inputSystem.justPressed(Action.CritStrike)) this.castActiveSpell();
     }
 
-    /** Casts the Mage's active spell now, if there is mana enough and the Mage is free to act. */
-    private castActiveSpell(): void {
-        if (!this.activeSpell || this.player.isDead || this.levelUpOpen || this.runOver) return;
-        this.activeSpell.cast(this.stats.level);
+    /**
+     * Casts the Mage's active spell now, if there is mana enough and the Mage is free to act: towards `direction` (dragging
+     * the touch button, Fase 26B) or, without one, where the player aims or the automatic target.
+     */
+    private castActiveSpell(direction?: DragDirection): void {
+        const spell = this.activeSpell;
+        const player = this.player;
+        if (!spell || player.isDead || this.levelUpOpen || this.runOver) return;
+        spell.cast(this.stats.level, direction && { x: player.x, y: player.y, direction });
+    }
+
+    /** Fase 26B: while the Mage drags the touch button, a ring where the spell will land (dimmed without mana enough). */
+    private updateSpellAimMarker(): void {
+        const spell = this.activeSpell;
+        const direction = this.spellDrag;
+        const player = this.player;
+        if (!spell || !direction || player.isDead) {
+            this.spellAimMarker.update(undefined, 0, false);
+            return;
+        }
+        this.spellAimMarker.update(spell.aimedPoint(player.x, player.y, direction), activeSpellAreaRadius(spell.def), spell.ready);
     }
 
     /** Opens the portal a moment after the final chest is picked up; true when the run is won (stepped in or time up). */
@@ -1341,6 +1397,9 @@ export class GameScene extends Phaser.Scene {
                 // Aims to the right until pressed again (manual aim without a mouse or gamepad, Fase 15B).
                 this.debugAimForced = !this.debugAimForced;
                 this.inputSystem.setForcedAim(this.debugAimForced ? { x: 1, y: 0 } : undefined);
+                break;
+            case 'spelldrag':
+                // Done by the HUD, which owns the touch button (HudScene.create).
                 break;
             case 'aimstick':
                 // A pretend finger on the aim stick, pushed to the right (touch screens only, Fase 15C).

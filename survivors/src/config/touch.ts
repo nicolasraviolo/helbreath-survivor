@@ -58,6 +58,21 @@ export const TOUCH_AIM_ZONE_START = 0.5;
  */
 export const TOUCH_RESERVED_CORNER = { width: 130, height: 130 } as const;
 
+/**
+ * Fase 26B (propietario, 22-oct-2026): with the Mage, the Critical Strike button works as a stick. Hold it, drag and
+ * let go: the Spell 2 goes that way (at half its reach, ActiveSpellDef.stickShare). Let go without dragging: it aims
+ * on its own, as before. Sizes in screen pixels.
+ */
+export const TOUCH_SPELL_DRAG = {
+    /** A finger that moves less than this from where it landed is a tap (automatic aim). */
+    deadzone: 12,
+    /**
+     * Further than this from the centre, the centre follows the finger (as the aim stick): turning back only takes a
+     * short move, even against the screen edge. Also how far the icon follows the finger.
+     */
+    followRadius: 30,
+} as const;
+
 /** Pause button for touch screens, at the top right of the game area. */
 export const TOUCH_PAUSE_BUTTON = {
     x: 760,

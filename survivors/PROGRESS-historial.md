@@ -2,6 +2,12 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
+**Fase 26B — Apuntar el Spell 2 en el móvil (2026-10-22).**
+- **Qué se hizo:** con la Maga, el botón rojo del móvil es un stick: mantener, arrastrar y soltar lanza el Spell 2 en esa dirección, a media distancia de su alcance (`stickShare`), haya o no monstruos. Mientras se arrastra salen la flecha del apuntado manual a los pies y un anillo en el suelo donde caerá (más apagado sin maná). Tocar sin arrastrar apunta solo. El centro sigue al dedo y el dedo se lee de los eventos del navegador. Primera versión: no giraba hacia abajo junto al borde; arreglado tras probarlo el propietario. How to Play y What's new al día. Ver NOTES.md, "Apuntar el Spell 2 en el móvil (Fase 26B)".
+- **Decisiones del propietario:** en PC nada cambia (clic derecho / stick derecho o automático); en el móvil siempre a media distancia; el botón del Guerrero igual.
+- **Comprobado:** build; `check spelldrag mana game --mobile`, `activespell` y How to Play sin errores; arrastres táctiles simulados (Playwright + CDP): hacia abajo hasta el borde, girar tras subir, soltar lanza y tocar apunta solo. Probado por el propietario en el móvil: bien.
+- **Probar:** `pnpm --dir survivors dev` → en el móvil `http://<IP>:8090/?play=mage`; en PC, `?play=mage&debug=spelldrag&ui=compact` (dedo de mentira).
+
 **Fase 26A — Maná del Spell 2 (2026-10-22).**
 - **Qué se hizo:** el Spell 2 de la Maga ya no tiene recarga: **gasta maná**, cada hechizo el suyo (la mitad del original: Energy Strike 32, Mass Fire Strike 36, Meteor Strike 60). El maná se rellena solo con la Mag (Mag 14 → 2,7/s), más un 30% con la ropa MP Recovery; el Mana Save de las varitas abarata el hechizo (fuera los "(soon)"). **Blue Potion** nueva (solo con la Maga, 0,4%, +30% del maná). El botón rojo, apagado, enseña el maná que falta; el panel de stats, el coste. El maná se guarda al continuar. How to Play al día. Ver NOTES.md, "Maná del Spell 2 (Fase 26A)".
 - **Decisiones del propietario:** recuperar solo con Mag; Blue Potion nueva; coste distinto por hechizo; el Spell 1 sigue gratis.

@@ -92,6 +92,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Revisión de la dificultad: `pnpm balance` (22-oct-2026)
 - Nitidez: lienzo a la resolución real (RENDER_SCALE)
 - Maná del Spell 2 (Fase 26A)
+- Apuntar el Spell 2 en el móvil (Fase 26B)
 - Pantalla completa y consolas (Fase 25)
 
 ## Sprites (`.spr`): formato y carga
@@ -1069,3 +1070,10 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - **Blue Potion:** `bluePotion` en `data/pickups.ts` (item-ground 5/3), `onlyWithMana`: `PickupSystem` solo la tira si el personaje tiene Spell 2. Rellena `BLUE_POTION_MANA_SHARE` (30%) y cuenta en `potionsDrunk`.
 - **Guardado:** `RunSnapshot.mana` (sustituye a `spellCooldownMs`; las partidas viejas empiezan con la barra llena).
 - **Probar:** `?debug=nomana` (barra a 0), `check mana` / `nomana`; `?debug=crits` o la tecla H = sin gastar maná; `?play=mage&debug=pickups` deja una Blue Potion.
+
+## Apuntar el Spell 2 en el móvil (Fase 26B)
+- Solo la Maga: `GameScene.launchHud` pasa `spellDrag` al HUD y `ui/CritButton.ts` se vuelve un stick. Se lanza **al soltar** (con el Guerrero, al tocar). Si el dedo se mueve menos de `TOUCH_SPELL_DRAG.deadzone` (config/touch.ts), cuenta como toque: apuntado automático.
+- El dedo se sigue con los eventos **táctiles del navegador** (`touchmove` / `touchend` en `window`, como `TouchJoystick`): Phaser deja de ver un dedo en cuanto sale del dibujo del juego, y al arrastrar hacia abajo desde la esquina pasa enseguida (primera versión: no giraba hacia abajo). El ratón (`?ui=compact` en PC), con los de Phaser. Si el HUD se pausa a mitad (cartas, pausa), se suelta **sin lanzar**: el "levantar el dedo" podría no llegar nunca.
+- El centro **sigue al dedo** más allá de `TOUCH_SPELL_DRAG.followRadius` (como el stick de apuntar): girar solo pide mover el dedo un poco al otro lado. Fuera de la zona muerta una vez, se queda apuntado aunque el dedo vuelva al centro. Mientras se arrastra, `GameScene` enseña la **misma flecha** del apuntado manual (`AimArrow`, con `spellDragAim`).
+- Con dirección, `ActiveSpellSystem.cast(level, { x, y, direction })` cae en `aimedPoint` (= `range × stickShare`) haya o no monstruos, por encima del stick de apuntar y del automático. El anillo (`ui/SpellAimMarker.ts`, `SPELL_AIM_MARKER` en data/targeting.ts) mide `activeSpellAreaRadius` y va en el suelo (`DEPTH_GROUND_SHADOWS + 1`).
+- Probar: `pnpm check spelldrag --mobile` (dedo de mentira arrastrando a la derecha; `--eval="g.debugReleaseSpellDrag()"` lo suelta y lanza). El check no hace toques de verdad: para eso, Playwright con `hasTouch` y CDP `Input.dispatchTouchEvent` sobre `hud.critButton.container` (posición × ancho del lienzo / 800).

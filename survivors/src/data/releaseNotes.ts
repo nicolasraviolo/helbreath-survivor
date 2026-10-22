@@ -20,6 +20,7 @@ export const RELEASE_NOTES: readonly ReleaseNote[] = [
             "The Mage's skill spell now costs mana instead of recharging.",
             'New Blue Potion to refill mana.',
             'Wands with Mana Save and robes with MP Recovery now work.',
+            "On phones, drag the Mage's spell button to aim it.",
         ],
     },
     {

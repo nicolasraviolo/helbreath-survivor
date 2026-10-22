@@ -6,6 +6,8 @@
 // solo cada segundo (CharacterStats.manaRegenPerSecond, más con la ropa de MP Recovery) y con la Blue Potion.
 // Desde el 20D es el que lleve en el hueco Spell 2: Meteor Strike (meteorito) o una ráfaga (Energy / Mass Fire Strike).
 // El meteorito se descarga al empezar la partida (ON_DEMAND_SPRITES): hasta que llega no se puede lanzar.
+// Fase 26B: en el móvil, arrastrar el botón le da una dirección (`cast(level, direction)`): cae a `stickShare` de su
+// alcance hacia allí, haya o no monstruos, por encima del stick de apuntar y del apuntado automático.
 // Con `infinite` (truco ?debug=crits o la tecla H) no gasta maná: para probarlo sin esperar.
 import {
     ACTIVE_SPELLS,
@@ -81,10 +83,21 @@ export class ActiveSpellSystem {
         this.manaNow = Math.min(maxMana, this.manaNow + regenPerSecond * deltaMs / 1000);
     }
 
-    /** Casts it now if there is mana enough and somewhere to land. Returns true if it went off. */
-    public cast(level: number): boolean {
+    /** Where it lands cast from (x, y) towards a unit `direction` (Fase 26B, dragging the touch button). */
+    public aimedPoint(x: number, y: number, direction: Readonly<{ x: number; y: number }>): { x: number; y: number } {
+        const distance = this.def.range * this.def.stickShare;
+        return { x: x + direction.x * distance, y: y + direction.y * distance };
+    }
+
+    /**
+     * Casts it now if there is mana enough and somewhere to land: towards `direction` (from (x, y)) if given, else where the
+     * player aims or the automatic target. Returns true if it went off.
+     */
+    public cast(level: number, from?: { x: number; y: number; direction: Readonly<{ x: number; y: number }> }): boolean {
         if (!this.ready) return false;
-        const target = this.weapons.activeSpellTarget(this.def.range, this.def.stickShare);
+        const target = from
+            ? this.aimedPoint(from.x, from.y, from.direction)
+            : this.weapons.activeSpellTarget(this.def.range, this.def.stickShare);
         if (!target) return false;
         const power = activeSpellPowerMultiplier(level);
         if (this.def.kind === 'meteor') this.weapons.castMeteor(this.def, power, target.x, target.y);
