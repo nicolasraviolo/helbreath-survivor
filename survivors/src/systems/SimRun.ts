@@ -62,6 +62,23 @@ export interface SimReport {
     build: string;
     /** Game seconds per real second. */
     speed: number;
+    /**
+     * Virtual health (balance review, 22-oct-2026): the player is still invincible, but the sim keeps a health bar of
+     * its own with the real armor, regen, potions and hit invulnerability, to know when a real player would have died.
+     * After a virtual death it starts again full (deaths counts them).
+     */
+    deathAtS: number | undefined;
+    deathLevel: number | undefined;
+    deaths: number;
+    /** Lowest health share before the first death (1 = never hurt). */
+    lowestHpShare: number;
+    /** Damage taken after armor during each minute (index = minute), and the health it had at the end of each minute. */
+    damageByMinute: number[];
+    maxHpByMinute: number[];
+    /** Gold picked up by the end of each minute (index = minute). */
+    goldByMinute: number[];
+    /** Character profile of the run (?level= and its build), if any. */
+    profile: string;
 }
 
 declare global {
@@ -83,10 +100,16 @@ export class SimRun {
     private noProgressMs = 0;
     private ignoreBossMs = 0;
 
-    constructor(character: string) {
+    /** Virtual health (-1 until the first tick), its maximum last tick, and the time left without taking hits. */
+    private hp = -1;
+    private maxHp = 0;
+    private invulnerableMs = 0;
+
+    constructor(character: string, private readonly invulnerabilityMs: number) {
         this.report = {
             done: false, character, levels: [], bossHits: {}, blows: {}, bossLife: [], xpByMinute: [], aliveByMinute: [], oneHitKillShare: 0, finalBossDeadAtS: undefined,
             endLevel: 1, endS: 0, kills: 0, end: '', build: '', speed: 0,
+            deathAtS: undefined, deathLevel: undefined, deaths: 0, lowestHpShare: 1, damageByMinute: [], maxHpByMinute: [], goldByMinute: [], profile: '',
         };
         window.__sim = this.report;
     }
@@ -128,6 +151,46 @@ export class SimRun {
             this.noProgressMs = 0;
         }
         return this.move.set(dx, dy).normalize();
+    }
+
+    /** Every step: regen and the hit invulnerability of the virtual health; it grows with the maximum, as the real one. */
+    tick(delta: number, elapsedMs: number, maxHp: number, regenPerSecond: number): void {
+        if (this.hp < 0) this.hp = maxHp;
+        else if (maxHp > this.maxHp) this.hp += maxHp - this.maxHp;
+        this.maxHp = maxHp;
+        this.invulnerableMs = Math.max(0, this.invulnerableMs - delta);
+        this.hp = Math.min(maxHp, this.hp + (regenPerSecond * delta) / 1000);
+        perMinute(this.report.maxHpByMinute, elapsedMs, () => maxHp);
+    }
+
+    /** A blow that landed, after armor. False while the virtual health is invulnerable (it would not count). */
+    onHurt(taken: number, elapsedMs: number, level: number): boolean {
+        if (taken <= 0 || this.invulnerableMs > 0 || this.hp < 0) return false;
+        this.invulnerableMs = this.invulnerabilityMs;
+        this.hp -= taken;
+        perMinute(this.report.damageByMinute, elapsedMs, (old) => old + taken);
+        const report = this.report;
+        if (report.deathAtS === undefined) report.lowestHpShare = Math.min(report.lowestHpShare, Math.max(0, this.hp) / this.maxHp);
+        if (this.hp <= 0) {
+            report.deaths++;
+            if (report.deathAtS === undefined) {
+                report.deathAtS = Math.round(elapsedMs / 1000);
+                report.deathLevel = level;
+            }
+            this.hp = this.maxHp;
+        }
+        return true;
+    }
+
+    onHeal(amount: number): void {
+        if (this.hp >= 0) this.hp = Math.min(this.maxHp, this.hp + amount);
+    }
+
+    onGold(amount: number, elapsedMs: number): void {
+        const totals = this.report.goldByMinute;
+        const minute = Math.floor(elapsedMs / 60000);
+        while (totals.length <= minute) totals.push(totals.at(-1) ?? 0);
+        totals[minute] = (totals[minute] ?? 0) + amount;
     }
 
     /** Picks one of the cards at random. */
@@ -218,4 +281,11 @@ export class SimRun {
         if (this.elapsedMs >= SIM_MAX_MS) return 'time limit (final boss alive)';
         return undefined;
     }
+}
+
+/** Sets the value of the current minute (index = minute), filling the minutes in between with 0. */
+function perMinute(list: number[], elapsedMs: number, value: (old: number) => number): void {
+    const minute = Math.floor(elapsedMs / 60000);
+    while (list.length <= minute) list.push(0);
+    list[minute] = value(list[minute] ?? 0);
 }

@@ -33,7 +33,15 @@ export class HBAsset extends Phaser.GameObjects.Sprite {
             && current.key !== key
             && this.lastBaseSheet === baseSheet
             && this.anims.isPlaying;
-        const startFrame = sameAnimationOtherDirection ? (this.anims.currentFrame?.index ?? 1) - 1 : 0;
+        // Not ready yet (its sheet is still being prepared): keep showing the current frame until it is. Playing an
+        // empty animation throws "reading 'frame'" in Phaser and freezes the run (found with `pnpm balance`, 22-oct-2026).
+        const frameCount = this.scene.anims.get(key)?.frames.length;
+        if (frameCount === 0) {
+            if (import.meta.env.DEV) console.warn(`HBAsset: animation not ready ${key}`);
+            return;
+        }
+        // Never start past the last frame of the new animation.
+        const startFrame = sameAnimationOtherDirection ? Math.max(0, Math.min((this.anims.currentFrame?.index ?? 1) - 1, (frameCount ?? 1) - 1)) : 0;
 
         this.lastBaseSheet = baseSheet;
         this.play({ key, frameRate, repeat: loop ? -1 : 0, startFrame }, false);
@@ -43,7 +51,10 @@ export class HBAsset extends Phaser.GameObjects.Sprite {
     private partialAnimation(sheetKey: string, first: number, count: number): string {
         const key = `${sheetKey}#${first}+${count}`;
         const anims = this.scene.anims;
-        if (!anims.exists(key)) {
+        // A big sprite (the Fire Wyvern) gets its sheets ready one by one: an animation made before its sheet was
+        // ready came out empty and stayed so, and playing it froze the run. Made again once the sheet exists.
+        if (anims.get(key)?.frames.length === 0) anims.remove(key);
+        if (!anims.exists(key) && this.scene.textures.exists(sheetKey)) {
             const animFrames: Phaser.Types.Animations.AnimationFrame[] = [];
             for (let i = first; i < first + count; i++) animFrames.push({ key: sheetKey, frame: String(i) });
             anims.create({ key, frames: animFrames });
