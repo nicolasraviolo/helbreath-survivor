@@ -1373,7 +1373,7 @@ export class GameScene extends Phaser.Scene {
                 this.player.restoreHp(1);
                 break;
             case 'sim':
-                this.sim = new SimRun(this.stats.def.name, this.stats.def.invulnerabilityMs);
+                this.sim = new SimRun(this.stats.def.name, this.stats.def.invulnerabilityMs, DEBUG_START.simBot);
                 this.sim.report.profile = this.simProfileLabel;
                 this.loot.enabled = false;
                 this.achievements.enabled = false;

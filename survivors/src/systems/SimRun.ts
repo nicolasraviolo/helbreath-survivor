@@ -79,6 +79,10 @@ export interface SimReport {
     goldByMinute: number[];
     /** Character profile of the run (?level= and its build), if any. */
     profile: string;
+    /** Potions picked up, and the health they gave (virtual health; the real one is always full). */
+    potions: number;
+    /** How the bot moved: 'circle' (default) or 'stand' (?bot=stand: stands still and lets the weapon work). */
+    bot: string;
 }
 
 declare global {
@@ -105,11 +109,11 @@ export class SimRun {
     private maxHp = 0;
     private invulnerableMs = 0;
 
-    constructor(character: string, private readonly invulnerabilityMs: number) {
+    constructor(character: string, private readonly invulnerabilityMs: number, private readonly bot: 'circle' | 'stand' = 'circle') {
         this.report = {
             done: false, character, levels: [], bossHits: {}, blows: {}, bossLife: [], xpByMinute: [], aliveByMinute: [], oneHitKillShare: 0, finalBossDeadAtS: undefined,
             endLevel: 1, endS: 0, kills: 0, end: '', build: '', speed: 0,
-            deathAtS: undefined, deathLevel: undefined, deaths: 0, lowestHpShare: 1, damageByMinute: [], maxHpByMinute: [], goldByMinute: [], profile: '',
+            deathAtS: undefined, deathLevel: undefined, deaths: 0, lowestHpShare: 1, damageByMinute: [], maxHpByMinute: [], goldByMinute: [], profile: '', potions: 0, bot,
         };
         window.__sim = this.report;
     }
@@ -129,6 +133,8 @@ export class SimRun {
      * around it (a real player goes to fight it).
      */
     nextMove(delta: number, fromX: number, fromY: number, boss: { x: number; y: number } | undefined): Phaser.Math.Vector2 {
+        // ?bot=stand: never moves, as a player who stands and lets the weapon hit everything that comes.
+        if (this.bot === 'stand') return this.move.set(0, 0);
         this.angle += (SIM_TURN_PER_S * delta) / 1000;
         this.ignoreBossMs = Math.max(0, this.ignoreBossMs - delta);
         if (!boss || this.ignoreBossMs > 0) return this.move.set(Math.cos(this.angle), Math.sin(this.angle));
@@ -183,6 +189,7 @@ export class SimRun {
     }
 
     onHeal(amount: number): void {
+        this.report.potions++;
         if (this.hp >= 0) this.hp = Math.min(this.maxHp, this.hp + amount);
     }
 

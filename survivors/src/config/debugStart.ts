@@ -32,6 +32,7 @@
 //   ?level=25        → partida de prueba como un personaje de ese Level: puntos repartidos y el mejor equipo que ya puede
 //                      ponerse (config/simProfile.ts; revisión de la dificultad, 22-oct-2026). Con &build=str:2,vit:1,dex:1
 //                      otro reparto (en partes); con &kit=start, solo el equipo de salida.
+//   ?bot=stand       → la partida simulada se queda quieta (por defecto corre en círculos)
 //   ?slash=2         → estilo de la estela del tajo (número en data/slash.ts; tecla Y para pasar al siguiente; M15)
 //   ?loading=hold    → la pantalla de carga se queda a medias, para verla con calma (M8)
 //   ?trees=off       → árboles grandes en ese modo solo en esta partida (on, off), sin guardarlo
@@ -161,6 +162,8 @@ interface DebugStart {
     level: number | undefined;
     build: Partial<Stats> | undefined;
     kit: SimKit;
+    /** ?bot=stand: the simulated run stands still instead of running in circles. */
+    simBot: 'circle' | 'stand';
 }
 
 function readDebugStart(): DebugStart {
@@ -168,7 +171,7 @@ function readDebugStart(): DebugStart {
         play: false, character: undefined, actions: [], trees: undefined, open: undefined, achievements: undefined, characters: undefined,
         sendMetrics: false, spells: { auto: undefined, active: undefined }, openClass: undefined, slash: undefined,
         holdLoading: false, gear: [], settingsTab: undefined, attribute: undefined, unlocks: undefined, unlockCounts: {}, map: undefined, maps: undefined, townSpot: undefined, townTalk: false, townShop: false, townSmith: undefined,
-        gold: undefined, upgrade: undefined, xelima: undefined, level: undefined, build: undefined, kit: 'best',
+        gold: undefined, upgrade: undefined, xelima: undefined, level: undefined, build: undefined, kit: 'best', simBot: 'circle',
     };
     if (!import.meta.env.DEV) return none;
     const params = new URLSearchParams(window.location.search);
@@ -219,6 +222,7 @@ function readDebugStart(): DebugStart {
         level: level !== null && /^\d+$/.test(level) ? Math.min(CHARACTER_LEVEL_MAX, Math.max(1, Number(level))) : undefined,
         build: readBuild(params.get('build')),
         kit: params.get('kit') === 'start' ? 'start' : 'best',
+        simBot: params.get('bot') === 'stand' ? 'stand' : 'circle',
     };
 }
 
