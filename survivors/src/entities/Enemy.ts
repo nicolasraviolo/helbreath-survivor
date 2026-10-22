@@ -16,7 +16,7 @@ import {
     BODY_SHADOW_SCALE_Y,
 } from '../config/gameConfig';
 import type { AudioSystem } from '../systems/AudioSystem';
-import { BOSS_HP_MULTIPLIER, enemySpeed, MONSTER_AI, MONSTER_DAMAGE, type EnemyDef } from '../data/enemies';
+import { enemySpeed, monsterBaseHp, MONSTER_AI, MONSTER_DAMAGE, type EnemyDef } from '../data/enemies';
 import { hitChance } from '../data/defense';
 import { ELITE } from '../data/elites';
 import { NO_DIFFICULTY, type MapDifficulty } from '../data/maps';
@@ -209,10 +209,10 @@ export class Enemy implements Poolable {
         if (this.flashMs <= 0) this.sprite.setTint(FREEZE_TINT);
     }
 
-    /** Full health: the elites have more, the champions much more, the bosses BOSS_HP_MULTIPLIER. */
+    /** Full health (data/enemies.ts, monsterBaseHp): the elites have more, the champions much more. */
     public get maxHp(): number {
-        const factor = this.champion ? CHAMPION.hpMultiplier : this.elite ? ELITE.hpMultiplier : this.def.boss ? BOSS_HP_MULTIPLIER : 1;
-        return Math.max(1, Math.round(this.def.maxHp * this.difficulty.hp * factor));
+        const factor = this.champion ? CHAMPION.hpMultiplier : this.elite ? ELITE.hpMultiplier : 1;
+        return Math.max(1, Math.round(monsterBaseHp(this.def) * this.difficulty.hp * factor));
     }
 
     /** XP it drops (a champion's is split into several gems by the game scene): the elites give more. */

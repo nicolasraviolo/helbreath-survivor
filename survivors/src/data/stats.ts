@@ -52,6 +52,13 @@ export const PHYSICAL_DAMAGE_PER_STR = 0.03;
 /** Daño mágico +3% por punto de Mag sobre 10 (en el original, +0,3%). Era +4% hasta la Fase 13C. */
 export const MAGIC_DAMAGE_PER_MAG = 0.03;
 
+/**
+ * Daño de todo tipo por cada Power de la partida, aparte de los stats (revisión de la dificultad, G, propietario
+ * 22-oct-2026): el daño del personaje crecía mucho menos que la vida de los monstruos y se formaba una "bola".
+ * 0,04 = +4% por Power: a Power 25, ×1,96.
+ */
+export const DAMAGE_PER_POWER = 0.04;
+
 /** Dex: +1% de velocidad de movimiento y +1% de velocidad de ataque por punto sobre 10. */
 export const MOVE_SPEED_PER_DEX = 0.01;
 export const ATTACK_SPEED_PER_DEX = 0.01;

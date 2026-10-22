@@ -20,6 +20,7 @@ export const RELEASE_NOTES: readonly ReleaseNote[] = [
             'Bosses are tougher: they take twice as long to defeat.',
             'Each character Level now adds health. The Mage is sturdier and can wear her robes and hats much sooner.',
             'More gold from monsters, and cheaper weapon upgrades.',
+            'Big monsters have less health and you deal more damage as your Power grows: fewer crowds late in a run.',
             'Fixed a rare freeze when the Fire Wyvern appeared.',
         ],
     },

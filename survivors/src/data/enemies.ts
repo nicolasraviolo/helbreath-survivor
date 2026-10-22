@@ -132,6 +132,20 @@ export const MONSTER_DAMAGE = { scale: 2.76, exponent: 0.7 } as const;
 export const BOSS_HP_MULTIPLIER = 2;
 
 /**
+ * Health of the normal monsters, compressed (revisión de la dificultad, G, propietario 22-oct-2026): la vida del Orc
+ * (60) al Ogre (1.040) crecía ×17 y el daño del personaje solo ×2,5–3 en una partida, así que desde el minuto 7 los
+ * monstruos se acumulaban en una "bola". Vida = reference × (maxHp / reference)^exponent: el Orc se queda en 60, los
+ * flojos casi igual y los grandes bajan (Ogre 1.040 → ~510). Su XP no cambia. Los jefes no entran (BOSS_HP_MULTIPLIER).
+ */
+export const MONSTER_HP = { reference: 60, exponent: 0.75 } as const;
+
+/** Full health of a monster before the map, elite and champion multipliers. */
+export function monsterBaseHp(def: EnemyDef): number {
+    if (def.boss) return def.maxHp * BOSS_HP_MULTIPLIER;
+    return MONSTER_HP.reference * (def.maxHp / MONSTER_HP.reference) ** MONSTER_HP.exponent;
+}
+
+/**
  * Monster AI rules of the original server (docs/hb-wiki/monstruos-comportamiento.md):
  * - attack interval = actionTimeMs minus one of `attackTimeCuts` at random, never under `minAttackIntervalMs`;
  * - attack strategy rolled on spawn with a 1..10 die: 2 = hit once and flee, 3 = hit twice and flee, else keep attacking;

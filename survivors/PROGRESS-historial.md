@@ -2,6 +2,14 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
+**Revisión de la dificultad (fuera de fase, 2026-10-22).**
+- **Qué se hizo:** herramienta de simulación (`pnpm balance`: partidas simuladas en paralelo con vida "de mentira", perfil `?level=N` con puntos y mejor equipo, `?bot=stand`, carrera en horas con `scripts/progression.mjs`) e informe con 330 partidas simuladas y las 30 reales de las métricas (https://claude.ai/artifact/Xk8DCaCytHNP1yASM2sFBV). Hallazgos: muro hacia el minuto 7–8 de cada mapa por la "bola" de monstruos, jefes muy fáciles, Level y +3 casi no ayudaban a aguantar, la Maga moría 2–3 veces antes, ~550 de oro por hora.
+- **Cambios (aprobados por el propietario):** B +2 de vida por Level del personaje; C Maga vida ×1,15 y Robe/Wizard Robe Mag 35, Wizard Cap 50, Wizard Hat 70; D jefes ×2 de vida; E monedas al 4% y mejoras a 0,5×/1,5×/3×; G vida de los monstruos normales comprimida (`MONSTER_HP`, Ogre 1.040 → ~510) y +4% de daño por Power (`DAMAGE_PER_POWER`). A (bajar el golpe de los monstruos) rechazada; F pendiente de que el propietario pruebe. What's new: página "Balance update".
+- **Fallo arreglado:** el Fire Wyvern podía congelar la partida con carga lenta (animación vacía en `HBAsset.partialAnimation`).
+- **Resultado simulado:** jefes 19–92 s (antes 11–61); la bola a la mitad; el Guerrero mata de un golpe al 76–93% y muere la mitad de veces; la Maga al 35–43% (antes 12–19%). El bot aún no gana Bleeding Isle. Quedarse quieto (`?bot=stand`) es seguro en Traveler Zone con equipo, pero en Bleeding Isle muere el doble de pronto.
+- **Comprobado:** build; `check game boss news charinfo equipmentmage smithupgrade` y Middleland con la Maga sin errores; 12 partidas seguidas sin el cuelgue.
+- **Probar:** `pnpm --dir survivors dev` → http://localhost:8090; Maga nueva en Traveler Zone: `?play=mage&map=traveler`. Tabla: `pnpm --dir survivors balance` (~20 min).
+
 **Personajes fijos (fuera de fase, 2026-10-22).**
 - **Qué hace:** cada cuenta trae ya **Gorn** (Guerrero, hueco 1) y **Kaila** (Maga, hueco 2), con nombre y aspecto fijos. Los huecos 3 y 4 salen **"Locked"** con una silueta oscura y quieta; al elegirlos, "Locked. New characters will be unlocked in the future." Los botones Create New Character y Delete Character salen apagados; la pantalla Create Character ya no existe. Los personajes guardados antes **se borran** con sus partidas (todos empiezan de cero); baúl, oro y desbloqueos de la tienda se conservan. What's new al día.
 - **Decisiones del propietario:** nombres Gorn y Kaila; empezar de cero; huecos bloqueados con "Locked" y una silueta que no se distingue.

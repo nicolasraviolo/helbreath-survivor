@@ -16,6 +16,7 @@
 - **24C hecho** (herrero Tom: Buy y Sell; la Stone of Xelima cae muy rara de cualquier monstruo; detalle en `PROGRESS-historial.md`). Probado por el propietario el 22-oct-2026.
 - **24D hecho** (Tom mejora armas y varitas a +1/+2/+3; tecla I en la ciudad abre Equipment; detalle en `PROGRESS-historial.md`). Probado por el propietario el 22-oct-2026.
 - **Personajes fijos (22-oct-2026, fuera de fase):** cada cuenta trae Gorn (Guerrero) y Kaila (Maga); huecos 3 y 4 "Locked" con silueta. Probado por el propietario. Detalle en `PROGRESS-historial.md`.
+- **Revisión de la dificultad (22-oct-2026, fuera de fase):** simulación con `pnpm balance` e informe (https://claude.ai/artifact/Xk8DCaCytHNP1yASM2sFBV). Aplicados B–E y G (vida por Level, Maga más fuerte, jefes ×2 de vida, más oro y mejoras baratas, monstruos grandes con menos vida y +4% de daño por Power) y arreglado un cuelgue del Fire Wyvern. **Pendiente de probar por el propietario**; **F** (Traveler Zone más suave) espera a que pruebe una Maga nueva (`?play=mage&map=traveler`). La Maga sigue por detrás del Guerrero (mata de un golpe la mitad). Detalle en `PROGRESS-historial.md`.
 - **Siguiente:** Fase 25 de `docs/PLAN-2.md` (`/fase 25` en una sesión nueva). Quedan como ideas de la 24 sin hacer: ampliar el baúl en Howard y logros que den oro. El 24A sigue pendiente de probar por el propietario.
 - **Oro y botín:** `data/gold.ts`, `systems/GoldStore.ts`, atributos de armadura en `data/attributes.ts`; ver NOTES.md, "Oro, botín especial y muerte a medias (Fase 24A)". Las armas y armaduras normales no caen: se compran a Tom (24C).
 - **Ciudad:** `data/town.ts` (sitios, NPCs y frases), `scenes/TownScene.ts`, `scenes/NpcDialogScene.ts`; ver NOTES.md, "La ciudad (Fase 23A)" y "NPCs y hablar (Fase 23B)". Los **récords locales (22F)** siguen aplazados en "Ideas para después".
@@ -25,7 +26,7 @@
 - **21C (anillos y collares) aplazado.** Spell 2 gastará **maná** (plan del propietario; ver NOTES.md, "Atributos y varitas").
 - **Sesiones en la nube (claude.ai/code):** trabajan en otra copia; el propietario ve los cambios con `git pull` en su rama.
 - **Abaddon's Blood (21E, 20-oct-2026):** mejora **permanente** para los 4 personajes, no un objeto; revive una vez por partida. Hasta la tienda (Fase 24) solo con `?unlocks=abaddon`.
-- **Pendiente de probar por el propietario:** oro, botín especial y morir con/sin Zem (24A); la ciudad en el móvil (23A); sombra del jugador (22G); Middleland (22E); Elvine Garden (22D); carga más rápida (22B, también en el móvil cuando se publique); Select Map en el móvil; pociones al 0,4%; atajo `onehp` / tecla U; baúl y morir con/sin Zem (21D); botín en partida normal; cambiar de pestaña y volver (B4); mando real.
+- **Pendiente de probar por el propietario:** la revisión de la dificultad (jefes, Maga, oro, bola de monstruos); oro, botín especial y morir con/sin Zem (24A); la ciudad en el móvil (23A); sombra del jugador (22G); Middleland (22E); Elvine Garden (22D); carga más rápida (22B, también en el móvil cuando se publique); Select Map en el móvil; pociones al 0,4%; atajo `onehp` / tecla U; baúl y morir con/sin Zem (21D); botín en partida normal; cambiar de pestaña y volver (B4); mando real.
 - **Ideas sin fecha:** jefes más difíciles de esquivar (nota en `data/defense.ts`).
 
 **Pistas para trabajar** (detalle en `survivors/NOTES.md`):

@@ -10,6 +10,7 @@ import {
     CRIT_BASE_CHANCE,
     CRIT_CHANCE_PER_CHR,
     CRIT_MAX_CHANCE,
+    DAMAGE_PER_POWER,
     HP_PER_LEVEL,
     HP_PER_VIT,
     HP_REGEN_PER_VIT,
@@ -102,7 +103,7 @@ export class CharacterStats {
     }
 
     public damageMultiplier(type: DamageType): number {
-        const shared = (1 + this.xelimaBonus) * (1 + this.attributeBonus) * this.buffDamageMultiplier;
+        const shared = (1 + this.xelimaBonus) * (1 + this.attributeBonus) * this.buffDamageMultiplier * (1 + DAMAGE_PER_POWER * (this.level - 1));
         if (type === 'physical') {
             return this.def.physicalDamageMultiplier * (1 + PHYSICAL_DAMAGE_PER_STR * (this.stats.str - STAT_BASELINE)) * shared;
         }
