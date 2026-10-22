@@ -76,6 +76,8 @@ export interface RunSnapshot {
     metrics: RunMetricsState | undefined;
     /** Items found, in the bag and put on (Fase 21A). Saves from before have none. */
     loot: RunLootState | undefined;
+    /** Gold picked up so far (Fase 24A). Saves from before have none. */
+    gold: number | undefined;
     /** Abaddon's Blood was already used in this run (Fase 21E). Saves from before: not used. */
     abaddonUsed: boolean;
     /** Minutes of this run's champions (Fase 21½C). Saves from before have none: new ones are rolled. */
@@ -219,6 +221,7 @@ function readSnapshot(entry: unknown): RunSnapshot | undefined {
         spellCooldownMs: readNumber(entry.spellCooldownMs),
         metrics: readMetrics(entry.metrics),
         loot: readLoot(entry.loot),
+        gold: readNumber(entry.gold),
         abaddonUsed: entry.abaddonUsed === true,
         rerollsLeft: readNumber(entry.rerollsLeft),
         skipsLeft: readNumber(entry.skipsLeft),

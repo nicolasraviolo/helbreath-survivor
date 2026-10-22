@@ -14,6 +14,15 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: readonly ReleaseNote[] = [
     {
+        version: 'Phase 24',
+        date: 'Oct 22, 2026',
+        changes: [
+            'Gold: monsters drop coins and bosses drop piles. You keep it even if you die.',
+            'Loot is rarer but always special: armor now comes with bonuses too.',
+            'Dying without a Zem now loses only half of your loot.',
+        ],
+    },
+    {
         version: 'Phase 23',
         date: 'Oct 21, 2026',
         changes: [

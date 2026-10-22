@@ -43,6 +43,8 @@ export interface HudBarState {
     level: number;
     elapsedMs: number;
     kills: number;
+    /** Gold picked up this run (Fase 24A). */
+    gold: number;
     /**
      * Orb of the active skill (Fase 19): the Warrior's Critical Strike charges, or the seconds left until the Mage's
      * spell is ready (nothing when it is). Undefined for a character without one.

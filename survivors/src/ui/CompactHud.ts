@@ -7,6 +7,7 @@ import Phaser from 'phaser';
 import { GAME_HEIGHT } from '../config/gameConfig';
 import { HUD_COMPACT, HUD_COMPACT_LAYOUT, HUD_DEPTH_TEXT, HUD_INFO_STYLE, HUD_REVIVE, HUD_TEXT_STYLE } from '../config/hud';
 import { ReviveIcon } from './ReviveIcon';
+import { formatGold } from '../data/gold';
 import { formatTime } from '../utils/format';
 import type { HudBar, HudBarActions, HudBarState } from './hudLayout';
 
@@ -75,7 +76,7 @@ export class CompactHud implements HudBar {
             this.mpText.setText(`${Math.ceil(state.mana)} / ${state.maxMana}`);
         }
         setGauge(this.xp, state.xpRatio);
-        this.infoText.setText(`Power ${state.level}   ${formatTime(state.elapsedMs)}   ${state.kills} kills`);
+        this.infoText.setText(`Power ${state.level}   ${formatTime(state.elapsedMs)}   ${state.kills} kills   ${formatGold(state.gold)} gold`);
         this.revive.update(state.revive);
     }
 

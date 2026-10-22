@@ -150,16 +150,16 @@ export const HOW_TO_PLAY_PAGES: readonly HowToPlayPage[] = [
         ],
     },
     {
-        // Fase 21A: botín en partida. Como mucho 7 filas.
+        // Fase 21A: botín en partida (24A: oro y solo objetos especiales). Como mucho 7 filas.
         name: 'Loot',
         rows: [
-            { control: 'Glowing items on the ground', action: 'Loot: monsters drop it now and then' },
-            { control: 'Bosses', action: 'Always drop loot' },
+            { control: 'Glowing items on the ground', action: 'Loot: rare, and always special' },
+            { control: 'Gold coins', action: 'Kept even if you die. Bosses drop piles' },
             { control: 'Step on it', action: 'Compare it with what you wear' },
             { control: 'Equip', action: 'Wear it now, for the rest of the run' },
             { control: 'Keep in bag', action: 'Take it with you for later' },
             { control: 'Red requirement', action: 'Too strong for you yet: keep it' },
-            { control: 'Win, or die wearing a Zem', action: 'Your loot goes to your character' },
+            { control: 'Win, or die wearing a Zem', action: 'All your loot goes to your character' },
         ],
     },
     {
@@ -168,8 +168,8 @@ export const HOW_TO_PLAY_PAGES: readonly HowToPlayPage[] = [
         rows: [
             { control: 'Talk to Howard (Town)', action: 'Warehouse: shared by all your characters' },
             { control: 'Click, Enter or pad A', action: 'Move one item to the other side' },
-            { control: 'Die without a Zem', action: 'You lose the items found in that run' },
-            { control: 'Zem slot (Equipment)', action: 'Wear a Zem to keep them: it is used up' },
+            { control: 'Die without a Zem', action: 'You lose half the items found in that run' },
+            { control: 'Zem slot (Equipment)', action: 'Wear a Zem to keep them all: it is used up' },
             { control: 'Bosses', action: 'Sometimes drop a Zem' },
         ],
     },

@@ -9,7 +9,8 @@
 //   Zem se pierde lo encontrado; el baúl compartido se llena a mano desde Select Character (data/warehouse.ts).
 // - Fase 21D: los hechizos solo caen si piden Manual (ninguno de los de hoy); el Zem cae aparte, de los jefes.
 // - Atributos (21B, decididos el 20-oct-2026): Sharp 10%, Poison 5%, Ancient 1%, solo en armas y varitas
-//   (data/attributes.ts). Las varitas de la Maga caen menos que sus hechizos, y Berserk y Kloness muchísimo menos.
+//   (data/attributes.ts). Fase 24A: todo lo que cae lleva atributo (armas o armaduras) y cae mucho menos (3–4 por
+//   partida); lo normal se compra al herrero. Las varitas de la Maga caen menos que sus hechizos, y Berserk y Kloness muchísimo menos.
 import type { SoundKey } from '../config/assetManifest';
 import type { ItemAttribute } from './attributes';
 import type { CharacterId } from './characters';
@@ -22,16 +23,22 @@ export interface OwnedItem {
     attribute?: ItemAttribute;
 }
 
-/** Chance that a monster drops an item when it dies (0..1). */
+/**
+ * Chance that a monster drops an item when it dies (0..1). Fase 24A (owner: 3–4 items a run, now that only special
+ * ones drop): before, 0.3% and 4% (~8 items a run). A 15-minute run (~3.000 kills, ~40 elites) gives ~1 from monsters.
+ */
 export const LOOT_DROP_CHANCE = {
-    normal: 0.003,
-    elite: 0.04,
+    normal: 0.0002,
+    elite: 0.01,
 } as const;
 
-/** Items dropped by a boss: always `count`, and one more with chance `extraChance`. */
+/**
+ * Items dropped by a boss: always `count`, and one more with chance `extraChance`. Fase 24A: mini-bosses 1 at 40%
+ * (before 1 + 30%), the final boss 1 (before 2). With the Champion's one, a won run gives ~3–4 items.
+ */
 export const LOOT_BOSS_DROPS = {
-    miniBoss: { count: 1, extraChance: 0.3 },
-    finalBoss: { count: 2, extraChance: 0 },
+    miniBoss: { count: 0, extraChance: 0.4 },
+    finalBoss: { count: 1, extraChance: 0 },
 } as const;
 
 /** Chance that each boss also drops a Zemstone of Sacrifice (owner, 20-oct-2026: 10%). ?debug=zem makes it always. */

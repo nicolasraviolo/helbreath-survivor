@@ -288,16 +288,21 @@ export function itemPower(id: ItemId): ItemPower {
 
 // ---- Atributos (Fase 21B, data/attributes.ts) ----
 
-/** Only weapons and wands have attributes, and wands are never Poison. */
+/**
+ * Weapon attributes on weapons and wands (wands are never Poison); armor attributes (Fase 24A) on armor pieces, MP
+ * Recovery only on the Mage's clothes.
+ */
 export function canHaveAttribute(id: ItemId, attribute: ItemAttribute): boolean {
-    if (isWandId(id)) return ATTRIBUTES[attribute].onWands;
+    const def = ATTRIBUTES[attribute];
+    if (def.kind === 'armor') return isArmorPieceId(id) && (def.onlySet === undefined || ARMOR_PIECES[id].set === def.onlySet);
+    if (isWandId(id)) return def.onWands;
     return isMeleeWeaponId(id);
 }
 
-/** Name with its attribute in front ("Sharp Long Sword"). */
+/** Name with a weapon's attribute in front ("Sharp Long Sword"); armor attributes don't change the name. */
 export function ownedItemName(item: Readonly<OwnedItem>): string {
     const name = itemInfo(item.id)?.name ?? item.id;
-    return item.attribute ? `${ATTRIBUTES[item.attribute].name} ${name}` : name;
+    return item.attribute && ATTRIBUTES[item.attribute].kind === 'weapon' ? `${ATTRIBUTES[item.attribute].name} ${name}` : name;
 }
 
 /**

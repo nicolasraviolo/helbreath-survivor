@@ -18,6 +18,7 @@ import type { Gender } from '../data/appearance';
 import { itemInfo, itemPicture } from '../data/items';
 import type { OwnedItem } from '../data/loot';
 import { attributeColor, ATTRIBUTES } from '../data/attributes';
+import { formatGold } from '../data/gold';
 import { setColouredTexture } from '../hb/additiveTint';
 import type { RunLootResult } from '../systems/CharacterStore';
 import { Action, InputSystem } from '../systems/InputSystem';
@@ -43,6 +44,8 @@ export interface GameOverSceneData {
     loot: readonly OwnedItem[];
     /** What happened to it (Fase 21D): lost (died without a Zem) or saved by a Zem. Undefined: kept as usual. */
     lootResult: RunLootResult | undefined;
+    /** Gold picked up this run and the device's gold after adding it (Fase 24A; kept even when dying). */
+    gold: { gained: number; total: number };
     gender: Gender;
     onRestart: () => void;
     /** Back to the town (Fase 23; it was Select Character before). */
@@ -87,7 +90,7 @@ export class GameOverScene extends Phaser.Scene {
 
         const lines = [
             `${p.className}  ·  Power ${p.level}`,
-            `Time ${formatTime(p.elapsedMs)}  ·  ${p.kills} kills`,
+            `Time ${formatTime(p.elapsedMs)}  ·  ${p.kills} kills  ·  +${formatGold(p.gold.gained)} gold (${formatGold(p.gold.total)})`,
             '',
             p.weaponName,
             p.armorNames.length > 0 ? p.armorNames.join(', ') : 'No armor',
@@ -151,15 +154,16 @@ export class GameOverScene extends Phaser.Scene {
         }).setOrigin(0.5, 0);
     }
 
-    /** Fase 21D: "Lost: N items (no Zem)" or "Your Zem saved N items", under the pictures. */
+    /** Fase 21D / 24A: "Lost 2 of 3 items (no Zem equipped)" or "Your Zem saved 3 items", under the pictures. */
     private addLootNote(result: RunLootResult | undefined): void {
-        if (!result || (!result.lost && !result.zemUsed)) return;
+        const lost = result?.lost.length ?? 0;
+        if (!result || (lost === 0 && !result.zemUsed)) return;
         const g = GAME_OVER;
         const items = `${result.found} item${result.found === 1 ? '' : 's'}`;
-        const text = result.lost ? `Lost: ${items} (no Zem equipped)` : `Your Zem saved ${items}`;
+        const text = lost > 0 ? `Lost ${lost} of ${items} (no Zem equipped)` : `Your Zem saved ${items}`;
         this.add.text(GAME_WIDTH / 2, g.lootNoteY, text, {
             ...UI_TEXT, fontSize: px(UI_FONT_SIZE.normal), fontStyle: 'bold', stroke: '#000000', strokeThickness: 3,
-            color: result.lost ? g.lootLostColor : g.lootSavedColor,
+            color: lost > 0 ? g.lootLostColor : g.lootSavedColor,
         }).setOrigin(0.5);
     }
 
@@ -181,8 +185,15 @@ export class GameOverScene extends Phaser.Scene {
         let x = (GAME_WIDTH - width) / 2;
         label.setX(x);
         x += label.width + g.lootGap * 2;
-        const lost = this.params.lootResult?.lost === true;
+        // Fase 24A: the lost ones, matched by item and attribute (after a Continue the same item may be a copy).
+        const lostLeft = [...(this.params.lootResult?.lost ?? [])];
+        const isLost = (item: OwnedItem): boolean => {
+            const index = lostLeft.findIndex((other) => other.id === item.id && other.attribute === item.attribute);
+            if (index >= 0) lostLeft.splice(index, 1);
+            return index >= 0;
+        };
         for (const item of shown) {
+            const lost = isLost(item);
             const first = this.children.length;
             const centre = x + g.lootIconSize / 2;
             // Fase 21B: an item with an attribute gets a frame of its colour.

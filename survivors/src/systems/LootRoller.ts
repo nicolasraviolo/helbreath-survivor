@@ -4,9 +4,10 @@
 // Fase 21B: los objetos raros (Berserk y Kloness Wand) casi siempre se cambian por el mejor no raro de debajo, y las
 // armas y varitas tiran su atributo (data/attributes.ts).
 // Fase 21D: la escalera solo lleva lo que puede caer (isLootDrop: ni el Zem ni los hechizos que se saben con la Int).
+// Fase 24A: todo lo que cae lleva atributo (de arma o de armadura); lo normal se compra al herrero.
 import { DEBUG_START } from '../config/debugStart';
-import { ATTRIBUTE_ROLL_ORDER, ATTRIBUTES, type ItemAttribute } from '../data/attributes';
-import { catalog, canChangeSlot, canEquip, EQUIP_SLOT_IDS, isLootDrop, type EquipSlotId, type ItemId } from '../data/items';
+import { ATTRIBUTES, ITEM_ATTRIBUTES, type ItemAttribute } from '../data/attributes';
+import { catalog, canChangeSlot, canEquip, canHaveAttribute, EQUIP_SLOT_IDS, isLootDrop, type EquipSlotId, type ItemId } from '../data/items';
 import type { CharacterId } from '../data/characters';
 import {
     LOOT_JUMP_STEPS, LOOT_RARE_KEEP_CHANCE, LOOT_SLOT_WEIGHTS, LOOT_SLOT_WEIGHTS_BY_CLASS, LOOT_TIER_WEIGHTS, type LootTier, type OwnedItem,
@@ -59,18 +60,14 @@ function rareCheck(ladder: readonly ItemId[], index: number): number {
     return index;
 }
 
-/** Sharp, Poison, Ancient or nothing, for a dropped weapon or wand (from the rarest; wands are never Poison). */
+/**
+ * The attribute of a dropped item (Fase 24A: every weapon and armor piece drops with one; the plain ones are sold by
+ * the blacksmith). Weighted among those the item can have; undefined only for items that can have none.
+ */
 export function rollAttribute(id: ItemId): ItemAttribute | undefined {
-    const wand = isWandId(id);
-    const allowed = (attribute: ItemAttribute): boolean => !wand || ATTRIBUTES[attribute].onWands;
-    if (DEBUG_START.attribute) return allowed(DEBUG_START.attribute) ? DEBUG_START.attribute : undefined;
-    let roll = Math.random();
-    for (const attribute of ATTRIBUTE_ROLL_ORDER) {
-        if (!allowed(attribute)) continue;
-        roll -= ATTRIBUTES[attribute].chance;
-        if (roll < 0) return attribute;
-    }
-    return undefined;
+    if (DEBUG_START.attribute) return canHaveAttribute(id, DEBUG_START.attribute) ? DEBUG_START.attribute : undefined;
+    return pickWeighted(ITEM_ATTRIBUTES.filter((attribute) => canHaveAttribute(id, attribute))
+        .map((attribute): [ItemAttribute, number] => [attribute, ATTRIBUTES[attribute].weight]));
 }
 
 /**
@@ -82,10 +79,11 @@ export function rollLoot(
     tierWeights: Readonly<Partial<Record<LootTier, number>>> = LOOT_TIER_WEIGHTS,
 ): OwnedItem | undefined {
     const weights = { ...LOOT_SLOT_WEIGHTS, ...LOOT_SLOT_WEIGHTS_BY_CLASS[classId] };
-    // ?attr= (debug): only weapons drop, to see the attribute every time.
+    // ?attr= (debug): only items that can have it drop (weapons for Sharp, armor for HP Recovery...), to see it every time.
     const ladderOf = (slot: EquipSlotId): ItemId[] => catalog(classId, slot).filter(isLootDrop);
+    const debugAttribute = DEBUG_START.attribute;
     const slots = EQUIP_SLOT_IDS.filter((slot) => canChangeSlot(classId, slot) && weights[slot] > 0 && ladderOf(slot).length > 0)
-        .filter((slot) => !DEBUG_START.attribute || slot === 'weapon')
+        .filter((slot) => !debugAttribute || ladderOf(slot).some((id) => canHaveAttribute(id, debugAttribute)))
         .map((slot): [EquipSlotId, number] => [slot, weights[slot]]);
     const slot = pickWeighted(slots);
     if (!slot) return undefined;
@@ -98,6 +96,6 @@ export function rollLoot(
     const tier = pickWeighted(Object.entries(tierWeights) as Array<[LootTier, number]>) ?? 'same';
     const id = ladder[rareCheck(ladder, tierIndex(tier, own, ladder.length))];
     if (!id) return undefined;
-    const attribute = slot === 'weapon' ? rollAttribute(id) : undefined;
+    const attribute = rollAttribute(id);
     return attribute ? { id, attribute } : { id };
 }

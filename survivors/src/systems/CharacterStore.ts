@@ -79,13 +79,31 @@ export interface ExpResult {
 export interface RunLootResult {
     /** Items found in the run (bag, put on, card not chosen). */
     found: number;
-    /** Died without a Zem: all of them lost. */
-    lost: boolean;
-    /** Died with a Zem, which saved them and was used up. */
+    /**
+     * Died without a Zem (Fase 24A): the items lost, half of them rounded up (the same objects as in the run's loot,
+     * so the end screen can dim them). Empty otherwise.
+     */
+    lost: OwnedItem[];
+    /** Died with a Zem, which saved everything and was used up. */
     zemUsed: boolean;
 }
 
+/** Items lost when dying without a Zem (Fase 24A, owner 21-oct-2026): half, always against the player (3 → 2, 5 → 3). */
+export function itemsLostOnDeath(found: number): number {
+    return Math.ceil(found / 2);
+}
+
 type Slots = Array<SavedCharacter | undefined>;
+
+/** A copy of `items` in random order. */
+function shuffled<T>(items: readonly T[]): T[] {
+    const copy = [...items];
+    for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j] as T, copy[i] as T];
+    }
+    return copy;
+}
 
 /** Level of the example Mage of ?characters=demo (development only). */
 const DEMO_MAGE_LEVEL = 25;
@@ -318,24 +336,29 @@ class CharacterStoreImpl {
     }
 
     /**
-     * A finished run's loot (Fase 21A; rules at death, Fase 21D). Won, or died with a Zem (used up only if something was
-     * found): the found items put on replace what the character wears in that slot (which goes to the inventory), and
-     * the bag goes to the inventory. Died without a Zem: everything found is lost; the gear it set out with never is.
+     * A finished run's loot (Fase 21A; rules at death, Fase 21D and 24A). Won, or died with a Zem (used up only if
+     * something was found): everything is kept. Died without a Zem: half of what was found (rounded up) is lost, at
+     * random; the gear it set out with never is. What is kept: the found items put on replace what the character wears in
+     * that slot (which goes to the inventory), and the rest goes to the inventory.
      */
     public finishRun(uid: string | undefined, loot: Readonly<RunLootState>, won: boolean): RunLootResult | undefined {
         const character = this.slots.find((c) => c !== undefined && c.uid === uid);
         if (!character) return undefined;
-        const equipped = Object.entries(loot.equipped) as Array<[EquipSlotId, OwnedItem]>;
-        const found = equipped.length + loot.bag.length + loot.pending.length;
-        const result: RunLootResult = { found, lost: false, zemUsed: false };
+        let equipped = Object.entries(loot.equipped) as Array<[EquipSlotId, OwnedItem]>;
+        let rest = [...loot.bag, ...loot.pending];
+        const found = equipped.length + rest.length;
+        const result: RunLootResult = { found, lost: [], zemUsed: false };
         if (found === 0) return result;
         if (!won) {
             if (character.equipment.zem === undefined) {
-                result.lost = true;
-                return result;
+                const all = [...equipped.map(([, item]) => item), ...rest];
+                result.lost = shuffled(all).slice(0, itemsLostOnDeath(found));
+                equipped = equipped.filter(([, item]) => !result.lost.includes(item));
+                rest = rest.filter((item) => !result.lost.includes(item));
+            } else {
+                delete character.equipment.zem;
+                result.zemUsed = true;
             }
-            delete character.equipment.zem;
-            result.zemUsed = true;
         }
         for (const [slot, item] of equipped) {
             if (!classCanWear(character.classId, item.id) || itemInfo(item.id)?.slot !== slot) {
@@ -346,7 +369,7 @@ class CharacterStoreImpl {
             character.equipment[slot] = item.id;
             if (item.attribute) character.attributes[slot] = item.attribute;
         }
-        character.inventory.push(...loot.bag, ...loot.pending);
+        character.inventory.push(...rest);
         this.write();
         return result;
     }

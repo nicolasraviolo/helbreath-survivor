@@ -85,6 +85,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Rareza de las cartas (Fase 21½A)
 - Reroll y Skip (Fase 21½B)
 - Evento Champion (Fase 21½C)
+- Oro, botín especial y muerte a medias (Fase 24A)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -992,3 +993,9 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - Guardado: `RunSnapshot.champions` (minutos) y `championsOut` (los ya salidos y muertos; uno vivo al guardar vuelve tras la calma de Continue).
 - Métricas: en la lista de jefes como "Champion <monstruo>" (aparición y muerte), sin tocar el servidor.
 - Probar: `?debug=god,champion` (sale a los 3 s; `check champion --wait=6000`). Sale fuera de la pantalla: para verlo en la captura, `--eval` que lo acerque (`g.champion.x = g.player.x + 90`).
+
+## Oro, botín especial y muerte a medias (Fase 24A)
+- **Oro:** `data/gold.ts` (monedas, montones, multiplicador por mapa, `formatGold`) y `systems/GoldStore.ts` (clave `hb-survivors.gold`, de todo el dispositivo; `?gold=N` lo fija). Las monedas son pickups (`coin`, `goldPile` en `data/pickups.ts`, dibujo "Gold" del original, item-ground 5/0) con `dropChance: 0`: las tira `GameScene.onEnemyKilled` / `dropGoldPiles`, no `PickupSystem.onKill`. El oro de la partida (`GameScene.runGold`) va en la partida guardada (`RunSnapshot.gold`) y se suma a `goldStore` en `endRun`, ganes o mueras.
+- **Atributos de armadura:** `ItemAttribute` = de arma (`WeaponAttribute`) o de armadura (`ArmorAttribute`), con `kind` en `ATTRIBUTES`. Solo los de arma van delante del nombre (`ownedItemName`) y tiñen el dibujo (`pictureAdd` opcional). `canHaveAttribute` decide dónde puede ir cada uno (MP Recovery solo en la ropa de la Maga). Se aplican en `Equipment.wear(piece, attribute)` → `recompute()` (Defense Ratio y Magic Resistance a los totales, `hpRecovery` multiplica la curación en `applyStats`). Al continuar una partida, una pieza conserva su atributo solo si el personaje la sigue llevando.
+- **Todo lo que cae lleva atributo:** `rollAttribute` elige por `weight` entre los que el objeto admite. `?attr=hpRecovery` hace que solo caigan objetos que lo admiten (`check lootarmor`).
+- **Muerte:** `characterStore.finishRun` pierde `itemsLostOnDeath(n)` = mitad redondeando arriba, al azar; `RunLootResult.lost` es la lista. La pantalla final atenúa los perdidos comparando id + atributo (tras un Continue, `found` y `bag` son copias distintas del mismo objeto).

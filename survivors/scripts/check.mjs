@@ -99,6 +99,9 @@ const PRESETS = {
     // --wait=7000 --eval="(g.debugPickUpLoot(), g.debugKeepLoot(), g.endRun(false))".
     deathnozem: 'play=warrior&characters=demo&debug=god,loot',
     deathzem: 'play=warrior&characters=demo&debug=god,loot&gear=zemstone',
+    // Fase 24A: oro (moneda y montón junto al jugador, recogidos por el imán) y armaduras con atributo.
+    gold: 'play=warrior&characters=demo&debug=god,pickups&gold=0',
+    lootarmor: 'play=warrior&characters=demo&debug=god,loot&attr=hpRecovery',
     // Abaddon's Blood (Fase 21E): Guerrero desbloqueado con una horda. Para morir y ver si revive (y el icono apagado):
     // --eval="new Promise((r) => { g.hurtPlayer(99999, true, 'test'); setTimeout(() => r({ hp: g.player.hp, dead: g.player.isDead }), 1500); })"
     revive: 'play=warrior&unlocks=abaddon&debug=horde',

@@ -130,6 +130,8 @@ interface DebugStart {
      */
     townSpot: 'portal' | NpcId | undefined;
     townTalk: boolean;
+    /** ?gold=50000: the device's gold is set to that when the page loads (Fase 24A). */
+    gold: number | undefined;
 }
 
 function readDebugStart(): DebugStart {
@@ -137,6 +139,7 @@ function readDebugStart(): DebugStart {
         play: false, character: undefined, actions: [], trees: undefined, open: undefined, achievements: undefined, characters: undefined,
         sendMetrics: false, spells: { auto: undefined, active: undefined }, openClass: undefined, slash: undefined,
         holdLoading: false, gear: [], settingsTab: undefined, attribute: undefined, unlocks: undefined, unlockCounts: {}, map: undefined, maps: undefined, townSpot: undefined, townTalk: false,
+        gold: undefined,
     };
     if (!import.meta.env.DEV) return none;
     const params = new URLSearchParams(window.location.search);
@@ -153,6 +156,7 @@ function readDebugStart(): DebugStart {
     const unlocks = params.get('unlocks');
     const map = params.get('map');
     const maps = params.get('maps');
+    const gold = params.get('gold');
     return {
         play: play !== null || actions.length > 0 || trees !== undefined || slash !== null || isMapId(map),
         character: isCharacterId(play) ? play : undefined,
@@ -175,6 +179,7 @@ function readDebugStart(): DebugStart {
         townSpot: parseTownSpot(params.get('town')),
         townTalk: params.has('talk'),
         unlockCounts: readUnlockCounts(unlocks),
+        gold: gold !== null && /^\d+$/.test(gold) ? Number(gold) : undefined,
     };
 }
 

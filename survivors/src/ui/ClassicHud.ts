@@ -23,6 +23,7 @@ import {
     HUD_TOP,
     HUD_XP,
 } from '../config/hud';
+import { formatGold } from '../data/gold';
 import { formatTime } from '../utils/format';
 import { ReviveIcon } from './ReviveIcon';
 import { CritIconState, sameOrb, type SkillOrb, type HudBar, type HudBarActions, type HudBarState } from './hudLayout';
@@ -77,7 +78,7 @@ export class ClassicHud implements HudBar {
             this.mpText.setText(`${Math.ceil(state.mana)} / ${state.maxMana}`);
         }
         setGauge(this.xp, state.xpRatio);
-        this.infoText.setText(`Power ${state.level}  ${formatTime(state.elapsedMs)}  ${state.kills} kills`);
+        this.infoText.setText(`Power ${state.level}  ${formatTime(state.elapsedMs)}  ${state.kills} kills  ${formatGold(state.gold)} gold`);
         this.showCrit(state.skillOrb);
         this.revive.update(state.revive);
         if (state.skillOrb) this.critIcon.setFrame(this.critState.frame(state.skillUses, this.scene.time.now, HUD_CRIT), false, false);
