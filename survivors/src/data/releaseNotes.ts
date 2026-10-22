@@ -14,6 +14,16 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: readonly ReleaseNote[] = [
     {
+        version: 'Phase 25',
+        date: 'Oct 22, 2026',
+        changes: [
+            'Fullscreen button always at hand, also on handheld PCs like the Steam Deck.',
+            'Handheld PCs now get the desktop interface.',
+            'Bigger buttons to assign stat points on phones.',
+            'Cleaner end-of-run screen.',
+        ],
+    },
+    {
         version: 'Visual update',
         date: 'Oct 22, 2026',
         changes: ['Sharper text and graphics, especially on phones and high-resolution screens.'],

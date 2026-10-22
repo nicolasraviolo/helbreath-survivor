@@ -1,8 +1,8 @@
 // Pantalla de final de partida (Fase 7): victoria al matar al jefe final o derrota al morir. Se abre encima de la
 // partida, que queda pausada. Muestra tiempo, Power, bajas, la EXP que ha ganado el personaje y su Level (Fase 20A; los
-// puntos nuevos se reparten en la ventana Character, desde Select Character), el arma o hechizo y la armadura que llevabas, y los logros
+// puntos nuevos se reparten en la ventana Character, desde Select Character), los logros
 // conseguidos en esta partida (Fase 14B; el aviso del HUD queda tapado por esta pantalla) y las miniaturas del botín
-// encontrado (Fase 21A, petición del propietario del 20-oct-2026).
+// encontrado (Fase 21A, petición del propietario del 20-oct-2026). El equipo que llevabas ya no sale (Fase 25).
 // Botones originales (dialogtext.spr): Restart = otra partida con la misma clase; Change = volver a elegir clase;
 // Log Out = volver al menú principal.
 // Se maneja con ←/→ o cruceta + Enter/A, o con el ratón.
@@ -30,10 +30,6 @@ export interface GameOverSceneData {
     level: number;
     kills: number;
     className: string;
-    /** Weapon or spell in hand. */
-    weaponName: string;
-    /** Armor pieces worn, by name. */
-    armorNames: readonly string[];
     /** Achievements unlocked during this run, by name. */
     achievementNames: readonly string[];
     /** Maps this win opened in Select Map (Fase 22A), by name. */
@@ -91,9 +87,6 @@ export class GameOverScene extends Phaser.Scene {
         const lines = [
             `${p.className}  ·  Power ${p.level}`,
             `Time ${formatTime(p.elapsedMs)}  ·  ${p.kills} kills  ·  +${formatGold(p.gold.gained)} gold (${formatGold(p.gold.total)})`,
-            '',
-            p.weaponName,
-            p.armorNames.length > 0 ? p.armorNames.join(', ') : 'No armor',
         ];
         this.add.text(GAME_WIDTH / 2, GAME_OVER.statsY, lines, {
             ...UI_TEXT, fontSize: px(UI_FONT_SIZE.large), color: '#e8d9a8', align: 'center', lineSpacing: 6,

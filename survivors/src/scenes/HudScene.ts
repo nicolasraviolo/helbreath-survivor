@@ -25,6 +25,7 @@ import {
 } from '../config/hud';
 import type { HudStyle } from '../config/settings';
 import { addTouchPauseButton } from '../ui/TouchPauseButton';
+import { addTouchFullscreenButton } from '../ui/fullscreen';
 import { ACHIEVEMENT_EVENT } from '../data/achievements';
 import { dodgeChance, resistChance } from '../data/defense';
 import { PASSIVE_IDS, PASSIVES } from '../data/passives';
@@ -174,6 +175,7 @@ export class HudScene extends Phaser.Scene {
         // The compact HUD has no floppy disk button: it needs the round one (also when forced with ?ui=compact on a PC).
         if (this.sys.game.device.input.touch || COMPACT_UI) {
             addTouchPauseButton(this, HUD_DEPTH_TEXT, () => this.openPause());
+            addTouchFullscreenButton(this, HUD_DEPTH_TEXT);
             this.minimap.setTop(MINIMAP.topUnderButtons);
             this.critButton = new CritButton(this, () => this.launchCritStrike());
             this.critButton.place(overlayBottom());

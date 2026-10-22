@@ -120,7 +120,8 @@ export const HUD_BUFF = { right: 12, bottomGap: byDevice(26, 32), lineHeight: by
 /** Big health bar of the boss at the top of the screen: its name (sprite font) over a wide bar. */
 export const HUD_BOSS = {
     y: byDevice(34, 38),
-    width: 420,
+    // Phones: a bit narrower, so it doesn't touch the fullscreen button at the top right (Fase 25).
+    width: byDevice(420, 360),
     height: 12,
     backColor: 0x200808,
     fillColor: 0xc02020,
@@ -161,8 +162,8 @@ export const HUD_COMPACT = {
     /** Level, time and kills: this far from the gauges. */
     infoGap: 4,
     statsButton: { x: 700, y: 40, frame: 7, litFrame: 6, scale: 1.2 },
-    /** Column at the top left. Stats panel under it; boss bar between it and the buttons. */
-    top: { x: 10, y: 10, gaugeScale: 1.5, gaugeStep: 22, statsPanelY: 112, bossCenterX: 470, bossWidth: 360 },
+    /** Column at the top left. Stats panel under it; boss bar between it and the buttons (narrower since Fase 25: fullscreen button). */
+    top: { x: 10, y: 10, gaugeScale: 1.5, gaugeStep: 22, statsPanelY: 112, bossCenterX: 445, bossWidth: 300 },
     /**
      * Row along the bottom edge, gauges side by side. `reserve` is the strip kept free at the bottom for them and the
      * info line: buffs, the stats panel and the level-up hint go above it.
@@ -203,29 +204,30 @@ export const HUD_ACHIEVEMENT = {
 
 /** End-of-run screen (scenes/GameOverScene.ts). Buttons from dialogtext.spr sheet 1: normal frame, lit = next frame. */
 export const GAME_OVER = {
+    // Fase 25: without the gear lines everything moved ~40 px towards the middle.
     shadeAlpha: 0.7,
-    titleY: 120,
+    titleY: 159,
     titleScale: 2.5,
     victoryColor: 0xffd860,
     defeatColor: 0xd83030,
-    statsY: 220,
+    statsY: 259,
     /** "Achievements: ..." unlocked this run, between the title and the stats (Fase 14B). */
-    achievementsY: 182,
+    achievementsY: 221,
     achievementsColor: '#ffd860',
     achievementsWrap: 700,
     /** Character Level block (Fase 20A): "+N EXP · Level N", the bar towards the next Level and a note under it. */
-    expY: 362,
-    expBarY: 390,
+    expY: 323,
+    expBarY: 351,
     expBarWidth: 300,
     expBarHeight: 8,
     expBarBack: 0x2a2014,
     expBarFill: 0xd8b048,
     expBarBorder: 0x8a7038,
-    expNoteY: 400,
+    expNoteY: 361,
     expLevelUpColor: '#60e060',
     expNoteColor: '#c8b888',
     /** Loot found this run (Fase 21A): "Loot" and a row of item pictures (with "+N" past the maximum). */
-    lootY: 448,
+    lootY: 409,
     lootIconSize: 34,
     lootGap: 8,
     lootMax: 12,
@@ -234,11 +236,11 @@ export const GAME_OVER = {
     lootSlotFill: 0x2e2216,
     lootSlotBorder: 0x8a7038,
     /** Fase 21D: line under the pictures when items are lost ("Lost 2 of 3 items" in red, the lost pictures dimmed; Fase 24A) or a Zem saved it. */
-    lootNoteY: 479,
+    lootNoteY: 440,
     lootLostColor: '#ff6050',
     lootSavedColor: '#9ccf7a',
     lootLostAlpha: 0.4,
-    buttonsY: 510,
+    buttonsY: 471,
     /** Distance between the centres of two buttons. */
     buttonGap: 140,
     buttonScale: 1.6,

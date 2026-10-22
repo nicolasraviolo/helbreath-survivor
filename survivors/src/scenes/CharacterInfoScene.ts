@@ -7,6 +7,7 @@
 // Teclado y mando: flechas / cruceta eligen stat o botón, Enter / A pulsa (+ en un stat), − o X del mando resta.
 import Phaser from 'phaser';
 import {
+    CHARACTER_INFO_BIG_STEPPER,
     CHARACTER_INFO_BOXES,
     CHARACTER_INFO_BUTTONS,
     CHARACTER_INFO_DETAILS,
@@ -32,7 +33,9 @@ import {
     CHARACTER_INFO_VALUE_STYLE,
     type InfoBox,
 } from '../config/characterInfo';
+import { COMPACT_UI } from '../config/device';
 import { GAME_HEIGHT, GAME_WIDTH } from '../config/gameConfig';
+import { UI_TEXT } from '../config/ui';
 import { STAT_POINT_CAP, totalExpForLevel, CHARACTER_LEVEL_MAX } from '../data/characterLevel';
 import { CHARACTERS, type CharacterId } from '../data/characters';
 import { DEFAULT_LOOKS } from '../data/appearance';
@@ -78,6 +81,16 @@ interface Button {
     action: () => void;
 }
 
+/** Fase 25: the phone panel with the chosen stat and its big − and + buttons. */
+interface BigStepper {
+    name: Phaser.GameObjects.Text;
+    value: Phaser.GameObjects.Text;
+    minus: Phaser.GameObjects.Container;
+    plus: Phaser.GameObjects.Container;
+    /** The stat the buttons act on: the last one chosen (it stays while Ok / Cancel has the focus). */
+    stat: StatId;
+}
+
 /** Focus: a stat, or one of the bottom buttons (by index). */
 type Focus = { kind: 'stat'; id: StatId } | { kind: 'button'; index: number };
 
@@ -99,6 +112,7 @@ export class CharacterInfoScene extends Phaser.Scene {
     /** Menu: health and mana a new run would start with (they change with Vit, Int and Mag). */
     private startTexts: { health: Phaser.GameObjects.Text; mana: Phaser.GameObjects.Text } | undefined;
     private openedAt = 0;
+    private stepper: BigStepper | undefined;
 
     constructor() {
         super('CharacterInfo');
@@ -114,6 +128,7 @@ export class CharacterInfoScene extends Phaser.Scene {
         this.pointsText = undefined;
         this.doll = undefined;
         this.startTexts = undefined;
+        this.stepper = undefined;
     }
 
     create(): void {
@@ -133,6 +148,7 @@ export class CharacterInfoScene extends Phaser.Scene {
             this.pointsText = this.add.text(this.sx(CHARACTER_INFO_SIZE.width / 2), this.sy(CHARACTER_INFO_POINTS_Y), '', CHARACTER_INFO_POINTS_STYLE)
                 .setOrigin(0.5);
             this.addButton(CHARACTER_INFO_BUTTONS.cancel, () => this.close());
+            if (COMPACT_UI) this.addBigStepper();
         }
         this.addButton(CHARACTER_INFO_BUTTONS.ok, () => this.confirm());
         const bottom = this.originY + CHARACTER_INFO_SIZE.height * CHARACTER_INFO_SCALE;
@@ -275,6 +291,39 @@ export class CharacterInfoScene extends Phaser.Scene {
         return image;
     }
 
+    /** Fase 25: phones get the chosen stat with big − and + buttons beside the window (see CHARACTER_INFO_BIG_STEPPER). */
+    private addBigStepper(): void {
+        const b = CHARACTER_INFO_BIG_STEPPER;
+        const style = { ...UI_TEXT, color: CHARACTER_INFO_VALUE_STYLE.color, fontStyle: 'bold' };
+        const name = this.add.text(b.centerX, b.nameY, '', { ...style, fontSize: `${b.nameSize}px` }).setOrigin(0.5);
+        const value = this.add.text(b.centerX, b.valueY, '', { ...style, fontSize: `${b.valueSize}px` }).setOrigin(0.5);
+        const minus = this.bigButton(b.centerX - b.buttonGap / 2, '−', -1);
+        const plus = this.bigButton(b.centerX + b.buttonGap / 2, '+', 1);
+        this.stepper = { name, value, minus, plus, stat: 'str' };
+    }
+
+    private bigButton(x: number, glyph: string, amount: 1 | -1): Phaser.GameObjects.Container {
+        const b = CHARACTER_INFO_BIG_STEPPER;
+        const half = b.buttonSize / 2;
+        const back = this.add.graphics();
+        const draw = (fill: number) => {
+            back.clear().fillStyle(fill, 1).fillRoundedRect(-half, -half, b.buttonSize, b.buttonSize, b.radius)
+                .lineStyle(b.borderWidth, b.border, 1).strokeRoundedRect(-half, -half, b.buttonSize, b.buttonSize, b.radius);
+        };
+        draw(b.fill);
+        const text = this.add.text(0, -2, glyph, { ...UI_TEXT, fontSize: `${b.glyphSize}px`, color: b.glyphColor, fontStyle: 'bold' }).setOrigin(0.5);
+        const container = this.add.container(x, b.buttonsY, [back, text]).setDepth(1);
+        const size = b.buttonSize + b.hitPad * 2;
+        container.setSize(size, size).setInteractive({ useHandCursor: true });
+        container.on(Phaser.Input.Events.POINTER_DOWN, () => draw(b.pressedFill));
+        container.on(Phaser.Input.Events.POINTER_OUT, () => draw(b.fill));
+        container.on(Phaser.Input.Events.POINTER_UP, () => {
+            draw(b.fill);
+            if (this.ready() && this.stepper) this.change(this.stepper.stat, amount);
+        });
+        return container;
+    }
+
     private addButton(place: { x: number; frame: number }, action: () => void): void {
         const b = CHARACTER_INFO_BUTTONS;
         const index = this.buttons.length;
@@ -330,6 +379,14 @@ export class CharacterInfoScene extends Phaser.Scene {
             this.startTexts.health.setText(String(start.maxHp));
             this.startTexts.mana.setText(String(start.maxMana));
         }
+        if (this.stepper) {
+            const id = this.stepper.stat;
+            const b = CHARACTER_INFO_BIG_STEPPER;
+            this.stepper.name.setText(STAT_INFO[id].name);
+            this.stepper.value.setText(String(stats[id])).setColor(this.pending[id] > 0 ? CHARACTER_INFO_PENDING_COLOR : CHARACTER_INFO_VALUE_STYLE.color);
+            this.stepper.plus.setAlpha(pointsLeft > 0 && stats[id] < STAT_POINT_CAP ? 1 : b.disabledAlpha);
+            this.stepper.minus.setAlpha(this.pending[id] > 0 ? 1 : b.disabledAlpha);
+        }
         this.pointsText?.setText(`Points left: ${pointsLeft}`).setColor(pointsLeft > 0 ? CHARACTER_INFO_POINTS_COLOR : CHARACTER_INFO_POINTS_STYLE.color);
     }
 
@@ -345,6 +402,10 @@ export class CharacterInfoScene extends Phaser.Scene {
             this.focusFrame.setPosition(this.sx(box.x) - 1, this.sy(box.y) - 1).setSize(box.width * s + 2, box.height * s + 2).setVisible(true);
             const info = STAT_INFO[focus.id];
             this.helpText.setText(`${info.name}: ${info.effect}.`);
+            if (this.stepper && this.stepper.stat !== focus.id) {
+                this.stepper.stat = focus.id;
+                this.refresh();
+            }
         } else {
             this.focusFrame.setVisible(false);
             this.helpText.setText(this.canAssign ? 'Points can never be moved once confirmed.' : '');

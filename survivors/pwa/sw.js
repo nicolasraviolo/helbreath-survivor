@@ -18,6 +18,6 @@ self.addEventListener('fetch', (event) => {
                 }
                 return response;
             })
-            .catch(() => caches.match(event.request.url).then((cached) => cached ?? Response.error())),
+            .catch(() => caches.match(event.request.url, { ignoreSearch: true }).then((cached) => cached ?? Response.error())),
     );
 });
