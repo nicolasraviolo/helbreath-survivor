@@ -22,6 +22,7 @@ import { SPELL_ITEM_ICON, type OwnedItem } from './loot';
 import { AUTO_SPELL_IDS, isAutoSpellId, SPELLS, type AutoSpellId } from './spells';
 import type { Stats } from './stats';
 import { getWand, isWandId, WAND_IDS, type WandId } from './wands';
+import { upgradeDamageBonus, upgradeOf, upgradeSuffix } from './upgrades';
 import { getMeleeWeapon, MELEE_FAMILIES, MELEE_WEAPONS, type MeleeWeaponId } from './weapons';
 
 export type SpellSlotId = 'spell1' | 'spell2';
@@ -51,7 +52,8 @@ export type SavedEquipment = Partial<Record<EquipSlotId, ItemId>>;
 
 export interface ItemInfo {
     name: string;
-    slot: EquipSlotId;
+    /** Undefined for items that are never put on (the Xelima stone, Fase 24C). */
+    slot?: EquipSlotId;
     equip: EquipRequirement;
     /** Spells have no picture yet: the screen writes their name. */
     icon?: ItemIcon;
@@ -123,7 +125,10 @@ export function itemInfo(id: ItemId): ItemInfo | undefined {
         const wand = getWand(id);
         return { name: wand.name, slot: 'weapon', equip: wand.equip, icon: wand.icon };
     }
-    if (isConsumableId(id)) return { name: CONSUMABLES[id].name, slot: 'zem', equip: {}, icon: CONSUMABLES[id].icon };
+    if (isConsumableId(id)) {
+        const def = CONSUMABLES[id];
+        return { name: def.name, ...(def.slot ? { slot: def.slot } : {}), equip: {}, icon: def.icon };
+    }
     const piece = ARMOR_PIECES[id];
     return { name: piece.name, slot: piece.slot, equip: piece.equip, icon: piece.icon };
 }
@@ -288,25 +293,39 @@ export function itemPower(id: ItemId): ItemPower {
 
 // ---- Atributos (Fase 21B, data/attributes.ts) ----
 
-/** Only weapons and wands have attributes, and wands are never Poison. */
+/**
+ * Weapon attributes on weapons and wands (wands are never Poison); armor attributes (Fase 24A) on armor pieces, MP
+ * Recovery only on the Mage's clothes.
+ */
 export function canHaveAttribute(id: ItemId, attribute: ItemAttribute): boolean {
-    if (isWandId(id)) return ATTRIBUTES[attribute].onWands;
+    const def = ATTRIBUTES[attribute];
+    if (def.kind === 'armor') return isArmorPieceId(id) && (def.onlySet === undefined || ARMOR_PIECES[id].set === def.onlySet);
+    if (isWandId(id)) return def.onWands;
     return isMeleeWeaponId(id);
 }
 
-/** Name with its attribute in front ("Sharp Long Sword"). */
+/**
+ * Name with a weapon's attribute in front ("Sharp Long Sword") and its "+" behind ("Sharp Long Sword +2", Fase 24D);
+ * armor attributes don't change the name.
+ */
 export function ownedItemName(item: Readonly<OwnedItem>): string {
     const name = itemInfo(item.id)?.name ?? item.id;
-    return item.attribute ? `${ATTRIBUTES[item.attribute].name} ${name}` : name;
+    const named = item.attribute && ATTRIBUTES[item.attribute].kind === 'weapon' ? `${ATTRIBUTES[item.attribute].name} ${name}` : name;
+    return `${named}${upgradeSuffix(upgradeOf(item))}`;
+}
+
+/** Extra damage of a weapon or wand from its attribute and its "+" together (Sharp +2: ×1.1 × 1.2 → +32%). */
+export function itemDamageBonus(item: Readonly<OwnedItem>): number {
+    return (1 + attributeDamageBonus(item.attribute)) * (1 + upgradeDamageBonus(upgradeOf(item))) - 1;
 }
 
 /**
- * itemPower counting the attribute: a weapon's damage grows by it; a wand's "+% magic damage" becomes the total extra
+ * itemPower counting the attribute and the "+" (Fase 24D): a weapon's damage grows by it; a wand's "+% magic damage" becomes the total extra
  * of the wand and the attribute together (Berserk +40% and Sharp: ×1.4 × 1.1 → +54%).
  */
 export function ownedItemPower(item: Readonly<OwnedItem>): ItemPower {
     const power = itemPower(item.id);
-    const bonus = attributeDamageBonus(item.attribute);
+    const bonus = itemDamageBonus(item);
     if (bonus === 0) return power;
     if (isMeleeWeaponId(item.id)) return { ...power, value: Math.round(power.value * (1 + bonus)) };
     if (isWandId(item.id)) return { ...power, value: Math.round(((1 + power.value / 100) * (1 + bonus) - 1) * 100) };

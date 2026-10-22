@@ -22,6 +22,9 @@ export interface MinimapMarkers {
     totems: readonly Phaser.Types.Math.Vector2Like[];
     /** Loot on the ground (Fase 21A). */
     loot: readonly Phaser.Types.Math.Vector2Like[];
+    /** Town NPCs and the teleport (Fase 23B). */
+    npcs?: readonly Phaser.Types.Math.Vector2Like[];
+    portals?: readonly Phaser.Types.Math.Vector2Like[];
 }
 
 /** Name of the texture frame cut out of the map picture. */
@@ -51,6 +54,8 @@ export class Minimap {
         this.dots = scene.add.graphics();
         this.container = scene.add.container(GAME_WIDTH - MINIMAP.margin - size, MINIMAP.margin, [back, picture, this.dots])
             .setDepth(depth);
+        // Fixed on screen also where the camera moves (the town draws it in its own scene, Fase 23).
+        this.container.setScrollFactor(0, 0, true);
     }
 
     public setTop(y: number): void {
@@ -64,6 +69,8 @@ export class Minimap {
     public update(markers: MinimapMarkers, timeMs: number): void {
         if (!this.container.visible) return;
         this.dots.clear();
+        for (const portal of markers.portals ?? []) this.drawDot(portal, MINIMAP_DOTS.portal, timeMs);
+        for (const npc of markers.npcs ?? []) this.drawDot(npc, MINIMAP_DOTS.npc, timeMs);
         for (const item of markers.loot) this.drawDot(item, MINIMAP_DOTS.loot, timeMs);
         for (const totem of markers.totems) this.drawDot(totem, MINIMAP_DOTS.totem, timeMs);
         for (const boss of markers.bosses) this.drawDot(boss, MINIMAP_DOTS.boss, timeMs);

@@ -49,7 +49,8 @@ import { totalExpForLevel, CHARACTER_LEVEL_MAX } from '../data/characterLevel';
 import { CHARACTERS } from '../data/characters';
 import { attributeColor, ATTRIBUTES, ITEM_ATTRIBUTES, type ItemAttribute } from '../data/attributes';
 import { setColouredTexture } from '../hb/additiveTint';
-import type { OwnedItem } from '../data/loot';
+import { sameOwnedItem, type OwnedItem } from '../data/loot';
+import { upgradeDescription, upgradeOf } from '../data/upgrades';
 import {
     canChangeSlot,
     canEmptySlot,
@@ -71,7 +72,7 @@ import {
 import { STAT_IDS } from '../data/stats';
 import { PaperDoll } from '../entities/PaperDoll';
 import { CharacterStats } from '../entities/CharacterStats';
-import { characterStore, permanentStats, type SavedCharacter } from '../systems/CharacterStore';
+import { characterStore, permanentStats, wornItem, type SavedCharacter } from '../systems/CharacterStore';
 import { Action, InputSystem } from '../systems/InputSystem';
 import { lookLoader } from '../systems/LookLoader';
 import type { MenuOverlayData } from './MenuOverlayScene';
@@ -82,9 +83,8 @@ export interface EquipmentSceneData {
 
 /** A row of the list: an item, or undefined for "Nothing" (empty the slot). */
 interface Row {
-    id: ItemId | undefined;
-    /** Its attribute, if it has one (Fase 21B). */
-    attribute: ItemAttribute | undefined;
+    /** With its attribute (Fase 21B) and "+" (Fase 24D). */
+    item: OwnedItem | undefined;
 }
 
 /** What is drawn of a row inside the visible part of the list. */
@@ -345,14 +345,14 @@ export class EquipmentScene extends Phaser.Scene {
     private listFor(character: Readonly<SavedCharacter>, slot: EquipSlotId): Row[] {
         const ladder = catalog(character.classId, slot);
         const items: OwnedItem[] = ladder.filter((id) => isFreeItem(character.classId, id)).map((id) => ({ id }));
-        const has = (item: OwnedItem) => items.some((other) => other.id === item.id && other.attribute === item.attribute);
+        const has = (item: OwnedItem) => items.some((other) => sameOwnedItem(other, item));
         const worn = characterStore.worn(this.uid, slot);
         if (worn && !has(worn)) items.push(worn);
         for (const { item } of characterStore.ownedFor(this.uid, slot)) if (!has(item)) items.push(item);
-        const order = (item: OwnedItem) => ladder.indexOf(item.id) * 10 + (item.attribute ? ITEM_ATTRIBUTES.indexOf(item.attribute) + 1 : 0);
+        const order = (item: OwnedItem) => (ladder.indexOf(item.id) * 10 + (item.attribute ? ITEM_ATTRIBUTES.indexOf(item.attribute) + 1 : 0)) * 10 + upgradeOf(item);
         items.sort((a, b) => order(a) - order(b));
-        const rows: Row[] = items.map((item) => ({ id: item.id, attribute: item.attribute }));
-        if (rows.length > 0 && canEmptySlot(slot)) rows.unshift({ id: undefined, attribute: undefined });
+        const rows: Row[] = items.map((item) => ({ item }));
+        if (rows.length > 0 && canEmptySlot(slot)) rows.unshift({ item: undefined });
         return rows;
     }
 
@@ -398,16 +398,15 @@ export class EquipmentScene extends Phaser.Scene {
     private createRow(character: Readonly<SavedCharacter>, index: number): RowView {
         const l = EQUIPMENT_LIST;
         const p = EQUIPMENT_PANEL;
-        const row = this.rows[index];
-        const id = row?.id;
-        const attribute = row?.attribute;
-        const item: OwnedItem | undefined = id ? (attribute ? { id, attribute } : { id }) : undefined;
+        const item = this.rows[index]?.item;
+        const id = item?.id;
+        const attribute = item?.attribute;
         const rowHeight = this.rowHeight;
         const iconSize = Math.min(l.iconSize, rowHeight - 4);
         const x = p.x + p.padding;
         const y = p.y + l.top + (index - this.firstRow) * rowHeight;
         const width = p.width - p.padding * 2;
-        const worn = character.equipment[this.slot] === id && character.attributes[this.slot] === attribute;
+        const worn = this.isWorn(item);
         const background = this.add.rectangle(x, y, width, rowHeight - 2, l.wornColor, worn ? 1 : 0).setOrigin(0);
         const objects: Phaser.GameObjects.GameObject[] = [];
         const middle = y + (rowHeight - 2) / 2;
@@ -419,7 +418,7 @@ export class EquipmentScene extends Phaser.Scene {
         const nameText = this.add.text(x + l.iconSize + 12, middle, name, { ...EQUIPMENT_ROW_STYLE, color }).setOrigin(0, 0.5);
         objects.push(nameText);
         // Fase 21A: how many the character keeps in its inventory.
-        const owned = id ? characterStore.ownedCount(this.uid, id, attribute) : 0;
+        const owned = item ? characterStore.ownedCount(this.uid, item) : 0;
         if (owned > 0) {
             objects.push(this.add.text(nameText.x + nameText.width + 6, middle, `×${owned}`, { ...EQUIPMENT_DETAIL_STYLE, color: EQUIPMENT_OWNED_COLOR })
                 .setOrigin(0, 0.5));
@@ -487,15 +486,16 @@ export class EquipmentScene extends Phaser.Scene {
             const zem = this.slot === 'zem' ? ` ${ZEM_HELP}` : '';
             return `${EQUIP_SLOT_NAMES[this.slot]}: ${worn ? ownedItemName(worn) : 'nothing'}.${zem}`;
         }
-        const row = this.rows[this.focus.index];
-        const id = row?.id;
-        if (!row || !id) return `Take off what you wear in this slot.`;
+        const item = this.rows[this.focus.index]?.item;
+        const id = item?.id;
+        if (!item || !id) return `Take off what you wear in this slot.`;
         const unmet = requirementChecks(id, permanentStats(character), character.level).filter((check) => !check.met);
         const needs = unmet.length > 0 ? ` Needs ${unmet.map((check) => check.label).join(', ')}.` : '';
-        const owned = characterStore.ownedCount(this.uid, id, row.attribute);
-        const kept = owned > 0 ? ` You keep ${owned} in your inventory.` : isFreeItem(character.classId, id) && !row.attribute ? '' : ' The one you wear.';
-        const attribute = row.attribute ? ` ${ATTRIBUTES[row.attribute].description}.` : '';
-        return `${ownedItemName({ id, attribute: row.attribute })}: ${describeItem(id)}.${attribute}${needs}${kept}`;
+        const owned = characterStore.ownedCount(this.uid, item);
+        const kept = owned > 0 ? ` You keep ${owned} in your inventory.` : isFreeItem(character.classId, id) && !item.attribute && !item.upgrade ? '' : ' The one you wear.';
+        const attribute = item.attribute ? ` ${ATTRIBUTES[item.attribute].description}.` : '';
+        const upgrade = item.upgrade ? ` ${upgradeDescription(item.upgrade)}.` : '';
+        return `${ownedItemName(item)}: ${describeItem(id)}.${attribute}${upgrade}${needs}${kept}`;
     }
 
     private moveSideways(dx: number): void {
@@ -524,9 +524,14 @@ export class EquipmentScene extends Phaser.Scene {
 
     /** Row of the item worn now (the first one if the slot holds nothing listed). */
     private wornRow(): number {
-        const worn = this.character?.equipment[this.slot];
-        const attribute = this.character?.attributes[this.slot];
-        return Math.max(0, this.rows.findIndex((row) => row.id === worn && row.attribute === attribute));
+        return Math.max(0, this.rows.findIndex((row) => this.isWorn(row.item)));
+    }
+
+    /** That item is the one worn in the slot (same attribute and "+"). */
+    private isWorn(item: Readonly<OwnedItem> | undefined): boolean {
+        const character = this.character;
+        const worn = character ? wornItem(character, this.slot) : undefined;
+        return item !== undefined && worn !== undefined && sameOwnedItem(worn, item);
     }
 
     private press(): void {
@@ -540,9 +545,8 @@ export class EquipmentScene extends Phaser.Scene {
         const row = this.rows[index];
         if (!row) return;
         // Already worn (an item with an attribute can't be put on again: it is no longer in the inventory).
-        const character = this.character;
-        if (row.id !== undefined && character?.equipment[this.slot] === row.id && character.attributes[this.slot] === row.attribute) return;
-        if (!characterStore.equip(this.uid, this.slot, row.id, row.attribute)) {
+        if (this.isWorn(row.item)) return;
+        if (!characterStore.equip(this.uid, this.slot, row.item)) {
             this.helpText.setText(`${this.describeFocus()} Assign points with Level Set.`);
             return;
         }

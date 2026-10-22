@@ -64,20 +64,37 @@ export class HBMap {
         return (this.flags[i] & FLAG_BLOCKED) === 0 && this.groundSprite[i] !== WATER_SPRITE;
     }
 
+    /** Marks a tile as blocked (Fase 23B: the tile a town NPC stands on). The map is cached, so it stays blocked. */
+    public blockTile(tx: number, ty: number): void {
+        if (this.isInside(tx, ty)) this.flags[this.index(tx, ty)] |= FLAG_BLOCKED;
+    }
+
     public isWalkableAtPixel(px: number, py: number): boolean {
         return this.isWalkableTile(Math.floor(px / TILE_SIZE), Math.floor(py / TILE_SIZE));
     }
 
-    /** Every tile sprite index used by ground and drawn objects, plus tree shadows (tree + 50). */
-    public requiredTileIndices(): Set<number> {
+    /**
+     * Tile sprite indices the game draws (Fase 22E): ground inside `area`, and objects (plus tree shadows, tree + 50)
+     * inside `area` grown by `objectMargin` tiles, as MapView does. Huge maps (Middleland, 524×524) only download
+     * the tiles of their play area.
+     */
+    public requiredTileIndices(area: { x: number; y: number; width: number; height: number }, objectMargin: number): Set<number> {
         const indices = new Set<number>();
-        for (let i = 0; i < this.groundSprite.length; i++) {
-            indices.add(this.groundSprite[i]);
-            const object = this.objectSprite[i];
-            if (object > 0 && !IGNORED_OBJECT_SPRITES.has(object)) {
-                indices.add(object);
-                if (isTreeSpriteIndex(object)) {
-                    indices.add(object + TREE_SHADOW_OFFSET);
+        const x0 = Math.max(0, area.x - objectMargin);
+        const y0 = Math.max(0, area.y - objectMargin);
+        const x1 = Math.min(this.width, area.x + area.width + objectMargin);
+        const y1 = Math.min(this.height, area.y + area.height + objectMargin);
+        for (let y = y0; y < y1; y++) {
+            for (let x = x0; x < x1; x++) {
+                const i = this.index(x, y);
+                const inArea = x >= area.x && x < area.x + area.width && y >= area.y && y < area.y + area.height;
+                if (inArea) indices.add(this.groundSprite[i]);
+                const object = this.objectSprite[i];
+                if (object > 0 && !IGNORED_OBJECT_SPRITES.has(object)) {
+                    indices.add(object);
+                    if (isTreeSpriteIndex(object)) {
+                        indices.add(object + TREE_SHADOW_OFFSET);
+                    }
                 }
             }
         }
@@ -106,6 +123,11 @@ function readHeaderValue(header: string, name: string): number {
 const parsedMaps = new Map<string, HBMap>();
 
 /** Parses a map binary loaded with `load.binary(key, …)` once and keeps it for later scenes. */
+/** True once the map was read (its buffer is no longer in the cache then). Added for Fase 22A. */
+export function hasMap(key: string): boolean {
+    return parsedMaps.has(key);
+}
+
 export function getMap(scene: Scene, key: string): HBMap {
     let map = parsedMaps.get(key);
     if (!map) {

@@ -18,13 +18,14 @@ import { getArmorPiece } from '../data/armor';
 import { canHaveAttribute, isArmorPieceId, isMeleeWeaponId, itemInfo, START_EQUIPMENT, type EquipSlotId, type SavedEquipment } from '../data/items';
 import type { ItemAttribute } from '../data/attributes';
 import { isWandId, type WandId } from '../data/wands';
+import { upgradeOf } from '../data/upgrades';
 import { LOOT_DEBUG, LOOT_SOUNDS, type OwnedItem } from '../data/loot';
 import { LootSystem } from '../systems/LootSystem';
 import { RunLoot } from '../systems/RunLoot';
 import type { LootSceneData } from './LootScene';
 import { MUSIC } from '../data/audio';
 import type { SoundKey } from '../config/assetManifest';
-import { PORTAL, WAVE_EVENTS, type WaveEventDef } from '../data/waves';
+import { PORTAL, finalBossMinute, type WaveEventDef } from '../data/waves';
 import { CHAMPION, championMessage, championMetricsName, rollChampionMinutes } from '../data/champion';
 import type { Enemy } from '../entities/Enemy';
 import { Portal } from '../entities/Portal';
@@ -32,9 +33,11 @@ import { BossSystem } from '../systems/BossSystem';
 import { EnemyProjectileSystem } from '../systems/EnemyProjectileSystem';
 import { MusicSystem } from '../systems/MusicSystem';
 import type { GameOverSceneData } from './GameOverScene';
+import { startTown } from './MapLoadScene';
 import { DEFAULT_LOOKS, GENDER_SOUNDS } from '../data/appearance';
 import { CHARACTERS, CHOSEN_CHARACTER_KEY, DEFAULT_CHARACTER, isCharacterId, type CharacterId } from '../data/characters';
-import { DEFAULT_MAP, MAPS_DATA, type MapId } from '../data/maps';
+import { CHOSEN_MAP_KEY, DEFAULT_MAP, isMapId, MAPS_DATA, type MapId } from '../data/maps';
+import { getTimeline } from '../data/waves';
 import { AUTOSAVE_EVERY_MS, RESUME_CALM_MS } from '../data/saves';
 import { STAT_IDS, type Stats } from '../data/stats';
 import type { MeleeWeaponId } from '../data/weapons';
@@ -53,6 +56,7 @@ import { PickupSystem } from '../systems/PickupSystem';
 import { EPIC_CARD_SOUND } from '../data/cardRarity';
 import { CARD_ACTION, SKIP_HEAL_SHARE, type CardAction } from '../data/rerollSkip';
 import { unlockStore } from '../systems/UnlockStore';
+import { GOLD, goldValue } from '../data/gold';
 import { CHEST_CARDS_TITLE, POTION_HEAL_SHARE, type PickupId } from '../data/pickups';
 import { getTotem, TOTEM_IDS, type TotemId } from '../data/totems';
 import { TotemSystem } from '../systems/TotemSystem';
@@ -75,6 +79,7 @@ import { GAMEPAD_RUMBLE } from '../data/feedback';
 import { DebugSystem } from '../systems/DebugSystem';
 import { EnemySystem } from '../systems/EnemySystem';
 import { assetStreamer } from '../systems/AssetStreamer';
+import { mapUnlockStore } from '../systems/MapUnlockStore';
 import { Action, InputSystem } from '../systems/InputSystem';
 import { SETTINGS_CHANGED, settings } from '../systems/Settings';
 import { AimArrow } from '../ui/AimArrow';
@@ -105,6 +110,7 @@ import { AchievementTracker } from '../systems/AchievementTracker';
 import { GAME_VERSION } from '../config/version';
 import { COMPACT_UI } from '../config/device';
 import { PASSIVE_IDS, getPassive } from '../data/passives';
+import { goldStore } from '../systems/GoldStore';
 import { RunMetrics, metricsAllowed, sendRunReport } from '../systems/RunMetrics';
 import type { RunResult } from '../config/metrics';
 
@@ -196,6 +202,8 @@ export class GameScene extends Phaser.Scene {
     private loot!: LootSystem;
     /** Items found, in the bag and put on this run (Fase 21A). */
     private runLoot!: RunLoot;
+    /** Gold picked up this run (Fase 24A): goes to the device's gold when the run ends, won or lost. */
+    private runGold = 0;
     /** ?debug=loot: an item falls by the player every few seconds (counted down here; negative = off). */
     private lootDebugInMs = -1;
     private buffs!: BuffSystem;
@@ -252,7 +260,9 @@ export class GameScene extends Phaser.Scene {
         const characterSlot = characterStore.slotOf(this.characterUid);
         this.saveSlot = resume && typeof resumeSlot === 'number' ? resumeSlot : characterSlot >= 0 ? characterSlot : characterStore.firstFree;
         this.autosaveInMs = AUTOSAVE_EVERY_MS;
-        this.mapId = resume?.map ?? DEFAULT_MAP;
+        // Fase 22A: the map of the saved run, or the one chosen in Select Map (it stays for Restart); debug runs: ?map= or Bleeding Isle.
+        const chosenMap: unknown = this.registry.get(CHOSEN_MAP_KEY);
+        this.mapId = resume?.map ?? (isMapId(chosenMap) ? chosenMap : DEFAULT_MAP);
         const mapDef = MAPS_DATA[this.mapId];
         const map = getMap(this, mapDef.asset);
         const area = mapDef.playArea;
@@ -277,6 +287,10 @@ export class GameScene extends Phaser.Scene {
         const startEquipment = savedCharacter?.equipment ?? START_EQUIPMENT[this.characterId];
         // Fase 21B: the attribute of the weapon or wand worn (?attr= gives one to any starting weapon that can have it).
         const startAttribute = savedCharacter?.attributes.weapon ?? DEBUG_START.attribute;
+        // Fase 24D: its "+" from the blacksmith (?upgrade= gives one in runs without a character).
+        const startUpgrade = savedCharacter ? savedCharacter.upgrades.weapon ?? 0 : DEBUG_START.upgrade ?? 0;
+        // Fase 24A: the attributes of the armor it wears (HP Recovery, Defense Ratio...).
+        const wornAttributes = savedCharacter?.attributes ?? {};
         void lookLoader.ensure(this, [...runSprites(character, look, startEquipment), 'item.pack']);
         this.player = new Player(this, (spawn.x + 0.5) * TILE_SIZE, (spawn.y + 0.5) * TILE_SIZE, character, look, map, areaPx);
         // Permanent stats (Fase 20A); debug runs without a character start with the class's.
@@ -306,18 +320,20 @@ export class GameScene extends Phaser.Scene {
         this.audio = new AudioSystem(this);
         this.enemies = new EnemySystem(this, this.audio);
         this.enemies.setPlayerHealthShare(() => this.player.hp / this.player.maxHp);
+        this.enemies.difficulty = mapDef.difficulty;
         this.spawner = new SpawnSystem(
-            camera, this.enemies, map, areaPx, (event, spawned) => this.onWaveEvent(event, spawned),
+            camera, this.enemies, map, areaPx, getTimeline(this.mapId), (event, spawned) => this.onWaveEvent(event, spawned),
             (id) => assetStreamer.isReady(id), (id) => assetStreamer.hurry(id), (champion) => this.onChampion(champion),
         );
         this.champion = undefined;
-        this.spawner.setChampions(rollChampionMinutes(WAVE_EVENTS), 0);
-        // Normally already running since the main menu; this covers starting a run any other way.
-        assetStreamer.start(this);
+        this.spawner.setChampions(this.rollChampions(), 0);
+        // Normally already started by the map's loading screen (Fase 22B); this covers starting a run any other way.
+        assetStreamer.start(this, this.mapId);
         this.damageNumbers = new DamageNumbers(this);
         this.xp = new XpSystem(this, this.audio);
         this.pickups = new PickupSystem(this, this.audio, (id) => this.collectPickup(id));
         this.runLoot = new RunLoot();
+        this.runGold = 0;
         this.lootDebugInMs = -1;
         this.loot = new LootSystem(this, this.audio, {
             classId: this.characterId, gender: look.gender, stats: this.permanentAtStart, level: this.characterLevel,
@@ -384,19 +400,20 @@ export class GameScene extends Phaser.Scene {
             this.meleeWeapon = new MeleeWeapon(weaponId);
             this.equipment.weapon = weaponId;
             this.equipment.weaponAttribute = startAttribute && canHaveAttribute(weaponId, startAttribute) ? startAttribute : undefined;
+            this.equipment.weaponUpgrade = startUpgrade;
             this.weapons.add(this.meleeWeapon);
             this.player.setGear('weapon', this.equipment.weaponLayer());
         } else {
             // Fase 21B: the Mage's wand (the starting one in debug runs).
             const wand = startEquipment.weapon !== undefined && isWandId(startEquipment.weapon) ? startEquipment.weapon : START_EQUIPMENT.mage.weapon;
-            if (wand !== undefined && isWandId(wand)) this.equipWand(wand, startAttribute && canHaveAttribute(wand, startAttribute) ? startAttribute : undefined);
+            if (wand !== undefined && isWandId(wand)) this.equipWand(wand, startAttribute && canHaveAttribute(wand, startAttribute) ? startAttribute : undefined, startUpgrade);
             // Fase 20D: the spell of the Spell 1 slot (debug ?spells= may change it).
             this.spellWeapon = new SpellWeapon(startSpells(startEquipment).auto ?? character.startWeapon.id);
             this.equipment.spell = this.spellWeapon.id;
             this.weapons.add(this.spellWeapon);
         }
         for (const id of Object.values(startEquipment)) {
-            if (isArmorPieceId(id)) for (const [slot, layer] of this.equipment.wear(id)) this.player.setGear(slot, layer);
+            if (isArmorPieceId(id)) for (const [slot, layer] of this.equipment.wear(id, wornAttributes[getArmorPiece(id).slot])) this.player.setGear(slot, layer);
         }
         this.weapons.setOwnerActionHandler((action, angle, durationMs) => {
             // Stands still until the blow lands or the spell leaves (as in the original), then can run again.
@@ -455,13 +472,13 @@ export class GameScene extends Phaser.Scene {
     private applyStats(): void {
         const stats = this.stats;
         this.player.setMaxHp(stats.maxHp);
-        this.player.regenPerSecond = stats.hpRegenPerSecond;
+        this.player.regenPerSecond = stats.hpRegenPerSecond * (1 + this.equipment.hpRecovery);
         this.player.speedMultiplier = stats.moveSpeedMultiplier;
         this.xp.magnetMultiplier = 1 + this.equipment.passiveBonus('magnetAmulet');
         this.weapons.setCooldownMultiplier(stats.cooldownMultiplier);
         stats.gearMagicBonus = this.equipment.magicDamageBonus;
         stats.xelimaBonus = this.equipment.passiveBonus('xelima');
-        stats.attributeBonus = this.equipment.attributeDamageBonus;
+        stats.attributeBonus = this.equipment.weaponDamageBonus;
         this.combat.poisonOnHit = this.equipment.poisons;
     }
 
@@ -482,6 +499,12 @@ export class GameScene extends Phaser.Scene {
             case 'finalChest':
                 this.chestCards++;
                 this.openPortalBeside(this.player.x, this.player.y);
+                break;
+            case 'coin':
+                this.runGold += goldValue(GOLD.coinValue, this.mapId);
+                break;
+            case 'goldPile':
+                this.runGold += goldValue(GOLD.pileValue, this.mapId);
                 break;
         }
     }
@@ -587,17 +610,19 @@ export class GameScene extends Phaser.Scene {
         })();
         if (id === undefined) return undefined;
         const attribute = slot === 'weapon' ? this.equipment.weaponAttribute : undefined;
-        return attribute ? { id, attribute } : { id };
+        const upgrade = slot === 'weapon' ? this.equipment.weaponUpgrade : 0;
+        return { id, ...(attribute ? { attribute } : {}), ...(upgrade > 0 ? { upgrade } : {}) };
     }
 
     /** Pauses the game and shows the card of the next item picked up (Fase 21A): Equip or Keep in bag. */
     private openLoot(): void {
         const item = this.runLoot.nextPending();
         const slot = item ? itemInfo(item.id)?.slot : undefined;
-        // Fase 21D: a Zem found goes straight to the bag (it is put on before a run, never during one).
+        // Fase 21D: a Zem found goes straight to the bag (it is put on before a run, never during one); so does a Xelima
+        // stone (Fase 24C), which is never put on.
         if (!item || !slot || slot === 'zem') {
-            if (item) this.runLoot.keep(item);
-            if (slot === 'zem') {
+            if (item) {
+                this.runLoot.keep(item);
                 this.audio.play(LOOT_SOUNDS.bag);
                 this.saveRun();
             }
@@ -637,10 +662,11 @@ export class GameScene extends Phaser.Scene {
         if (isMeleeWeaponId(id)) {
             if (this.meleeWeapon) {
                 this.equipment.weaponAttribute = item.attribute;
+                this.equipment.weaponUpgrade = upgradeOf(item);
                 this.equipMelee(id);
             }
         } else if (isWandId(id)) {
-            if (this.spellWeapon) this.equipWand(id, item.attribute);
+            if (this.spellWeapon) this.equipWand(id, item.attribute, upgradeOf(item));
         } else if (isAutoSpellId(id)) {
             if (this.spellWeapon) this.equipSpell(id);
         } else if (isActiveSpellId(id)) {
@@ -651,7 +677,7 @@ export class GameScene extends Phaser.Scene {
             if (spell) spell.infinite = old.infinite;
             this.activeSpell = spell;
         } else if (isArmorPieceId(id)) {
-            for (const [slot, layer] of this.equipment.wear(id)) this.player.setGear(slot, layer);
+            for (const [slot, layer] of this.equipment.wear(id, item.attribute)) this.player.setGear(slot, layer);
         }
         this.applyStats();
     }
@@ -695,10 +721,11 @@ export class GameScene extends Phaser.Scene {
         this.player.setGear('weapon', this.equipment.weaponLayer());
     }
 
-    /** The Mage's wand (Fase 21B): its look, its extra magic damage (Berserk, Kloness) and its attribute. */
-    private equipWand(id: WandId, attribute: ItemAttribute | undefined): void {
+    /** The Mage's wand (Fase 21B): its look, its extra magic damage (Berserk, Kloness), its attribute and "+" (24D). */
+    private equipWand(id: WandId, attribute: ItemAttribute | undefined, upgrade: number): void {
         this.equipment.wand = id;
         this.equipment.weaponAttribute = attribute;
+        this.equipment.weaponUpgrade = upgrade;
         this.player.setGear('weapon', this.equipment.weaponLayer());
     }
 
@@ -728,14 +755,19 @@ export class GameScene extends Phaser.Scene {
             if (run.spell && run.spell !== this.equipment.spell) this.equipSpell(run.spell);
             if (run.activeSpell && this.activeSpell && run.activeSpell !== this.activeSpell.id) this.activeSpell = this.createActiveSpell(run.activeSpell);
         }
+        // Fase 24A: a piece the character still wears keeps its attribute.
+        const owner = this.characterUid ? characterStore.byUid(this.characterUid) : undefined;
         for (const piece of Object.values(run.armor)) {
-            for (const [slot, layer] of this.equipment.wear(piece)) this.player.setGear(slot, layer);
+            const slot = getArmorPiece(piece).slot;
+            const attribute = owner?.equipment[slot] === piece ? owner.attributes[slot] : undefined;
+            for (const [gearSlot, layer] of this.equipment.wear(piece, attribute)) this.player.setGear(gearSlot, layer);
         }
         Object.assign(this.equipment.passives, run.passives);
         this.player.setMaxHp(stats.maxHp, true);
         this.applyStats();
         this.player.restoreHp(run.hp);
         this.combat.restoreKills(run.kills);
+        this.runGold = run.gold ?? 0;
         // Fase 21A: the bag, and the found items put on (over what the character wears now).
         if (run.loot) {
             this.runLoot.restore(run.loot);
@@ -753,7 +785,7 @@ export class GameScene extends Phaser.Scene {
         this.spawner.resumeAt(run.elapsedMs, RESUME_CALM_MS, run.bosses);
         // Fase 21½C: the same champions as before (saves from before roll new ones, only those still to come).
         if (run.champions) this.spawner.setChampions(run.champions, run.championsOut ?? 0);
-        else this.spawner.setChampions(rollChampionMinutes(WAVE_EVENTS).filter((m) => m * MS_PER_MINUTE > run.elapsedMs), 0);
+        else this.spawner.setChampions(this.rollChampions().filter((m) => m * MS_PER_MINUTE > run.elapsedMs), 0);
         // Saved after the final boss: the player starts somewhere else, so its chest (or the portal) appears next to them.
         if (run.finalBossDead) {
             this.finalBossDead = true;
@@ -794,6 +826,7 @@ export class GameScene extends Phaser.Scene {
             spellCooldownMs: this.activeSpell?.cooldownLeftMs,
             metrics: this.metrics.snapshot(),
             loot: this.runLoot.snapshot(),
+            gold: this.runGold,
             abaddonUsed: this.abaddon.spent,
             rerollsLeft: this.cardActionsLeft.reroll,
             skipsLeft: this.cardActionsLeft.skip,
@@ -844,6 +877,7 @@ export class GameScene extends Phaser.Scene {
                 level: this.stats.level,
                 elapsedMs: this.spawner.elapsed,
                 kills: this.combat.kills,
+                gold: this.runGold,
                 skillOrb: this.skillOrb(),
                 skillUses: this.critStrike.launched + (this.activeSpell?.casts ?? 0),
                 revive: this.abaddon.hudState,
@@ -1245,6 +1279,9 @@ export class GameScene extends Phaser.Scene {
                 this.pickups.drop('potion', x - DEBUG_PICKUP_SPACING, y + DEBUG_PICKUP_SPACING);
                 this.pickups.drop('magnet', x, y + DEBUG_PICKUP_SPACING * 1.5);
                 this.pickups.drop('chest', x + DEBUG_PICKUP_SPACING, y + DEBUG_PICKUP_SPACING);
+                // Fase 24A: a coin and a pile of gold above the player.
+                this.pickups.drop('coin', x - DEBUG_PICKUP_SPACING / 2, y - DEBUG_PICKUP_SPACING);
+                this.pickups.drop('goldPile', x + DEBUG_PICKUP_SPACING / 2, y - DEBUG_PICKUP_SPACING);
                 break;
             }
             case 'totems':
@@ -1349,6 +1386,12 @@ export class GameScene extends Phaser.Scene {
         }
     }
 
+    /** This run's champion minutes (Fase 21½C), away from this map's events and before its final boss (Fase 22). */
+    private rollChampions(): number[] {
+        const bossMinute = finalBossMinute(this.mapId) ?? Infinity;
+        return rollChampionMinutes(getTimeline(this.mapId).events).filter((minute) => minute < bossMinute);
+    }
+
     /** A champion appeared (Fase 21½C): its warning, its own roar, and the metrics. */
     private onChampion(champion: Enemy): void {
         this.champion = champion;
@@ -1377,6 +1420,7 @@ export class GameScene extends Phaser.Scene {
         if (enemy.champion) {
             // Fase 21½C: its guaranteed item (and maybe a Zem); its gems already fell (dropXp).
             this.loot.onChampionKill(enemy.x, enemy.y);
+            this.dropGoldPiles(enemy.x, enemy.y, GOLD.piles.champion);
             this.metrics.onBossDead(championMetricsName(enemy.def.name), this.spawner.elapsed);
             if (this.champion === enemy) this.champion = undefined;
             return;
@@ -1384,10 +1428,13 @@ export class GameScene extends Phaser.Scene {
         if (!boss) {
             this.sim?.onKill(enemy.hitsTaken);
             this.loot.onKill(enemy.x, enemy.y, enemy.elite);
+            // Fase 24A: sometimes a coin (elites, more often).
+            if (Math.random() < (enemy.elite ? GOLD.eliteCoinChance : GOLD.coinChance)) this.pickups.drop('coin', enemy.x, enemy.y);
             return;
         }
-        // Bosses always drop loot (Fase 21A); the final one, more.
+        // Bosses drop loot (Fase 21A; Fase 24A: mini-bosses sometimes, the final one always) and piles of gold.
         this.loot.onBossKill(enemy.x, enemy.y, boss.final);
+        this.dropGoldPiles(enemy.x, enemy.y, boss.final ? GOLD.piles.finalBoss : GOLD.piles.miniBoss);
         this.sim?.onBossDead(enemy.def.name, this.spawner.elapsed);
         this.metrics.onBossDead(enemy.def.name, this.spawner.elapsed);
         this.achievements.onBossKilled(enemy.def);
@@ -1419,7 +1466,7 @@ export class GameScene extends Phaser.Scene {
 
     private updateMusic(): void {
         const moment = this.bosses.music;
-        this.music.play(moment === 'finalBoss' ? MUSIC.finalBoss : moment === 'miniBoss' ? MUSIC.miniBoss : MUSIC.normal);
+        this.music.play(moment === 'finalBoss' ? MUSIC.finalBoss : moment === 'miniBoss' ? MUSIC.miniBoss : MAPS_DATA[this.mapId].music);
     }
 
     /** Boss for the big health bar at the top, if any. */
@@ -1461,11 +1508,24 @@ export class GameScene extends Phaser.Scene {
         }));
     }
 
+    /** Piles of gold around (x, y), a boss or the Champion (Fase 24A). */
+    private dropGoldPiles(x: number, y: number, count: number): void {
+        for (let i = 0; i < count; i++) {
+            const angle = (i / count) * Math.PI * 2 + Math.PI / count;
+            this.pickups.drop('goldPile', x + Math.cos(angle) * GOLD.pileSpread, y + Math.sin(angle) * GOLD.pileSpread);
+        }
+    }
+
     /** Opens the end screen over the paused game. */
     private endRun(victory: boolean): void {
         if (this.runOver) return;
         this.runOver = true;
         if (victory) this.achievements.onWin();
+        else this.achievements.onDeath();
+        // Fase 22A: a win opens the next map in Select Map (for every character of the device).
+        const levelBefore = characterStore.byUid(this.characterUid)?.level ?? 1;
+        const newMaps = victory && !this.sim ? mapUnlockStore.openedBy(this.mapId, levelBefore).map((id) => MAPS_DATA[id].name) : [];
+        if (victory && !this.sim) mapUnlockStore.recordWin(this.mapId);
         this.sim?.finish(victory ? 'portal' : 'died', this.stats.level, this.spawner.elapsed, this.combat.kills, this.simBuild());
         saveStore.clear(this.saveSlot);
         // All the run's XP goes to the character's permanent Level, won or lost (Fase 20A). Not for simulated runs.
@@ -1473,6 +1533,8 @@ export class GameScene extends Phaser.Scene {
         const exp = this.sim ? undefined : characterStore.addExp(this.characterUid, runXp);
         // Fase 21A: what was found goes to the character; Fase 21D: only if the run is won or a Zem saves it.
         const lootResult = this.sim ? undefined : characterStore.finishRun(this.characterUid, this.runLoot.snapshot(), victory);
+        // Fase 24A: the run's gold is always kept, won or lost.
+        if (!this.sim) goldStore.add(this.runGold);
         const armor = Object.values(this.equipment.armor).map((id) => getArmorPiece(id).name);
         this.sendMetrics(victory ? 'win' : 'death');
         const data: GameOverSceneData = {
@@ -1484,17 +1546,19 @@ export class GameScene extends Phaser.Scene {
             weaponName: this.meleeWeapon?.def.name ?? this.spellWeapon?.def.name ?? '',
             armorNames: armor,
             achievementNames: this.achievementsThisRun,
+            newMaps,
             exp,
             loot: [...this.runLoot.found],
             lootResult,
+            gold: { gained: this.runGold, total: goldStore.total },
             gender: this.player.look.gender,
             onRestart: () => {
                 this.scene.stop('GameOver');
                 this.scene.restart();
             },
-            onChangeClass: () => {
+            onTown: () => {
                 this.scene.stop('GameOver');
-                this.scene.start('CharacterSlots');
+                startTown(this);
             },
             onMainMenu: () => {
                 this.scene.stop('GameOver');

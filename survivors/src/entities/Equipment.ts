@@ -1,11 +1,14 @@
 // Lo que lleva puesto el personaje: el arma cuerpo a cuerpo o el hechizo "en la mano" y una pieza por hueco de armadura.
 // Calcula la defensa total, el bonus de daño mágico de la ropa y qué capas hay que dibujar al cambiar una pieza.
 // Fase 21B: la varita de la Maga (data/wands.ts) y el atributo del arma o la varita en la mano (data/attributes.ts).
-import { attributeColor, attributeDamageBonus, type ItemAttribute } from '../data/attributes';
+// Fase 24D: el "+" del arma o varita en la mano (data/upgrades.ts), que se multiplica con su atributo.
+// Fase 24A: los atributos de las armaduras (HP Recovery, Defense Ratio, Magic Resistance) se suman aquí.
+import { attributeColor, attributeDamageBonus, ATTRIBUTES, type ItemAttribute } from '../data/attributes';
 import { ARMOR_BY_SET, ARMOR_PIECES, ARMOR_SLOT_IDS, getArmorPiece, MAX_DEFENSE, type ArmorPieceId, type ArmorSlotId } from '../data/armor';
 import type { CharacterDef } from '../data/characters';
 import { passiveBonus, type PassiveId } from '../data/passives';
 import type { AutoSpellId } from '../data/spells';
+import { upgradeDamageBonus } from '../data/upgrades';
 import { getWand, type WandId } from '../data/wands';
 import { getMeleeWeapon, type MeleeWeaponId } from '../data/weapons';
 import type { GearLayer, GearSlot } from '../hb/playerAppearance';
@@ -24,8 +27,14 @@ export class Equipment {
     public wand: WandId | undefined;
     /** Sharp, Poison or Ancient of the weapon or wand in hand (Fase 21B). */
     public weaponAttribute: ItemAttribute | undefined;
+    /** "+" of the weapon or wand in hand (Fase 24D, 0–3). */
+    public weaponUpgrade = 0;
     /** One piece per armor slot; changed only through wear(), which keeps `totals` up to date. */
     private readonly worn: Partial<Record<ArmorSlotId, ArmorPieceId>> = {};
+    /** Attribute of each armor piece worn (Fase 24A: HP Recovery, Defense Ratio...). */
+    private readonly wornAttributes: Partial<Record<ArmorSlotId, ItemAttribute>> = {};
+    /** Extra health regeneration from the armor attributes (0.3 = +30%); recomputed in wear(). */
+    private hpRecoveryTotal = 0;
     /** Rank of each passive (0 = not taken). */
     public readonly passives: Record<PassiveId, number> = { xelima: 0, merien: 0, magnetAmulet: 0 };
     /** Sum of each armor value over the pieces worn; recomputed only in wear() (read every frame). */
@@ -57,6 +66,11 @@ export class Equipment {
         return Math.min(MAX_DEFENSE, this.totals.defense);
     }
 
+    /** Extra health healed by itself from the armor's HP Recovery (0.3 = +30%, Fase 24A). */
+    public get hpRecovery(): number {
+        return this.hpRecoveryTotal;
+    }
+
     /** Original defense ratio of all the armor worn: makes blows miss (data/defense.ts). */
     public get defenseRatio(): number {
         return this.totals.defenseRatio;
@@ -72,9 +86,12 @@ export class Equipment {
         return this.totals.magicDamageBonus + (this.wand ? getWand(this.wand).magicDamageBonus : 0);
     }
 
-    /** Extra damage of the weapon's attribute (Sharp +10%, Ancient +20%); for the Mage, of her spells. */
-    public get attributeDamageBonus(): number {
-        return attributeDamageBonus(this.weaponAttribute);
+    /**
+     * Extra damage of the weapon's attribute (Sharp +10%, Ancient +20%) and its "+" (+10% each, Fase 24D), multiplied
+     * together; for the Mage, of her spells.
+     */
+    public get weaponDamageBonus(): number {
+        return (1 + attributeDamageBonus(this.weaponAttribute)) * (1 + upgradeDamageBonus(this.weaponUpgrade)) - 1;
     }
 
     /** Hits poison the monsters (a Poison weapon). */
@@ -110,10 +127,12 @@ export class Equipment {
      * Wears a piece and returns the layers to redraw: the new piece's layers, plus the slots the old piece
      * covered going back to the starting look (e.g. Plate Mail sleeves → shirt again).
      */
-    public wear(piece: ArmorPieceId): Array<[GearSlot, GearLayer | undefined]> {
+    public wear(piece: ArmorPieceId, attribute?: ItemAttribute): Array<[GearSlot, GearLayer | undefined]> {
         const slot = ARMOR_PIECES[piece].slot;
         const changes = this.uncover(slot);
         this.worn[slot] = piece;
+        if (attribute && ATTRIBUTES[attribute].kind === 'armor') this.wornAttributes[slot] = attribute;
+        else delete this.wornAttributes[slot];
         this.recompute();
         for (const [gearSlot, layer] of Object.entries(ARMOR_PIECES[piece].look) as [GearSlot, GearLayer][]) {
             changes.set(gearSlot, layer);
@@ -138,6 +157,14 @@ export class Equipment {
             let total = 0;
             for (const id of Object.values(this.worn)) total += pieceValue(id, key);
             this.totals[key] = total;
+        }
+        // Fase 24A: what the armor attributes add.
+        this.hpRecoveryTotal = 0;
+        for (const attribute of Object.values(this.wornAttributes)) {
+            const def = ATTRIBUTES[attribute];
+            this.totals.defenseRatio += def.defenseRatio ?? 0;
+            this.totals.magicResistance += def.magicResistance ?? 0;
+            this.hpRecoveryTotal += def.hpRecovery ?? 0;
         }
     }
 }

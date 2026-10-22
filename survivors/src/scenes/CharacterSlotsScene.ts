@@ -10,6 +10,8 @@
 // y encima va "Level Set." (Fase 20A), que abre la ventana Character del personaje marcado para repartir sus puntos.
 // Teclado: ←/→ cambia de hueco, Enter juega (o crea si está vacío), C abre la ventana Character, Supr borra, Esc vuelve.
 // Mando: cruceta/stick, A, Y (Character) y B.
+// Equipment y Warehouse ya no tienen botón aquí (Fase 23B): se abren en la ciudad, desde Howard o el Cofre. Los atajos
+// de desarrollo ?open=equipment y ?open=warehouse siguen abriéndolas desde esta pantalla.
 import Phaser from 'phaser';
 import {
     SLOTS_BACKGROUND,
@@ -19,8 +21,6 @@ import {
     SLOTS_CHARACTER_SCALE,
     SLOTS_DIM_ALPHA,
     SLOTS_DISABLED_SHADE,
-    SLOTS_EQUIPMENT_LIT_COLOR,
-    SLOTS_EQUIPMENT_STYLE,
     SLOTS_HELP,
     SLOTS_HELP_STYLE,
     SLOTS_INPUT_DELAY_MS,
@@ -173,8 +173,6 @@ export class CharacterSlotsScene extends Phaser.Scene {
         if (input.justPressed(Action.Confirm)) this.enter(this.focused);
         if (input.justPressed(Action.Back)) this.scene.start('MainMenu');
         if (input.justPressed(Action.ToggleStats)) this.openCharacterInfo();
-        if (input.justPressed(Action.OpenEquipment)) this.openEquipment();
-        if (input.justPressed(Action.OpenWarehouse)) this.openWarehouse();
         if (deletePressed) this.deleteFocused();
     }
 
@@ -220,30 +218,9 @@ export class CharacterSlotsScene extends Phaser.Scene {
         image.on(Phaser.Input.Events.POINTER_UP, () => {
             if (this.ready()) this.openCharacterInfo();
         });
-        this.addTextButton(SLOTS_BUTTONS.equipment, 'Equipment', () => this.openEquipment());
-        this.addTextButton(SLOTS_BUTTONS.warehouse, 'Warehouse', () => this.openWarehouse());
     }
 
-    /** A button the original doesn't have (Equipment, Warehouse): text in a thin frame, lit under the pointer. */
-    private addTextButton(place: { x: number; y: number; width: number; height: number }, text: string, action: () => void): void {
-        const frame = this.add.rectangle(s(place.x), s(place.y), s(place.width), s(place.height), SLOTS_DISABLED_SHADE.color)
-            .setOrigin(0).setStrokeStyle(1, SLOTS_DISABLED_SHADE.border);
-        const label = this.add.text(s(place.x + place.width / 2), s(place.y + place.height / 2), text, SLOTS_EQUIPMENT_STYLE)
-            .setOrigin(0.5);
-        const pad = SLOTS_BUTTON_HIT_PAD;
-        frame.setInteractive({
-            hitArea: new Phaser.Geom.Rectangle(-pad.x, -pad.y, frame.width + pad.x * 2, frame.height + pad.y * 2),
-            hitAreaCallback: Phaser.Geom.Rectangle.Contains,
-            useHandCursor: true,
-        });
-        frame.on(Phaser.Input.Events.POINTER_OVER, () => label.setColor(SLOTS_EQUIPMENT_LIT_COLOR));
-        frame.on(Phaser.Input.Events.POINTER_OUT, () => label.setColor(SLOTS_EQUIPMENT_STYLE.color));
-        frame.on(Phaser.Input.Events.POINTER_UP, () => {
-            if (this.ready()) action();
-        });
-    }
-
-    /** The shared warehouse, with the inventory of the marked character (Fase 21D). */
+    /** The shared warehouse, with the inventory of the marked character (Fase 21D; only ?open=warehouse since 23B). */
     private openWarehouse(): void {
         const saved = characterStore.get(this.focused);
         if (!saved) {
@@ -254,7 +231,7 @@ export class CharacterSlotsScene extends Phaser.Scene {
         openOverlay(this, 'Warehouse', data);
     }
 
-    /** The Equipment screen of the marked character (Fase 20B). */
+    /** The Equipment screen of the marked character (Fase 20B; only ?open=equipment since 23B). */
     private openEquipment(): void {
         const saved = characterStore.get(this.focused);
         if (!saved) {
@@ -313,8 +290,8 @@ export class CharacterSlotsScene extends Phaser.Scene {
     }
 
     /**
-     * Plays with the character in that slot. With a saved run it asks first: Continue or New Run (RunChoiceScene,
-     * 21-oct-2026); without one, a new run starts. An empty slot opens Create Character.
+     * Plays with the character in that slot. With a saved run it asks first: Continue (in its map) or New Run
+     * (RunChoiceScene, 21-oct-2026); without one, Select Map opens (Fase 22A). An empty slot opens Create Character.
      */
     private enter(index: number): void {
         const saved = characterStore.get(index);

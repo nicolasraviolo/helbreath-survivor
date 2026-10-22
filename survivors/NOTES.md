@@ -76,9 +76,19 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Atributos y varitas (Fase 21B)
 - Baúl, "solo lo que tienes" y Zem (Fase 21D)
 - Abaddon's Blood: resurrección permanente (Fase 21E)
+- Varios mapas y Select Map (Fase 22A)
+- Carga por mapa y tiempos de carga (Fase 22B)
+- Elvine Garden (Fase 22D)
+- Middleland (Fase 22E)
+- Sombras del jugador y los monstruos (Fase 22G)
+- La ciudad (Fase 23A) y NPCs (23B)
 - Rareza de las cartas (Fase 21½A)
 - Reroll y Skip (Fase 21½B)
 - Evento Champion (Fase 21½C)
+- Oro, botín especial y muerte a medias (Fase 24A)
+- Tienda (Fase 24B)
+- Herrero y Stone of Xelima (Fase 24C)
+- Mejorar armas en el herrero (Fase 24D)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -97,6 +107,11 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - **Tipos (`SpriteType`):** Human, Monster, EquipmentPack, HairAndUndies, Bows, Weapons, Shields, Effect, Tiles, Interface, ItemPack, ItemGround.
 - **Visor de sprites (`sprites.html`, `src/tools/spriteViewer.ts`):** lee los `.spr` sin Phaser con `readSprFile` (`src/hb/HBSprite.ts`). Los nombres salen de `/sprite-catalog.json`, que `vite.config.ts` genera solo en desarrollo ejecutando los `.ts` de datos de sp-client (`scripts/spriteCatalog.ts`): `Items.ts` (icono en `item-pack.spr` = hoja `itemSheetIndex`, frame `itemSpriteIndex`), `Monsters.ts`, `NPCs.ts` y `Effects.ts`. No entra en el build.
 - **Origen:** `.pak` originales convertidos con `tools/PakToSprConverter`. Toma como transparente el color exacto del píxel (0,0), así que pueden quedar **bordes verdes o azules** en algunos sprites. Es una deducción nuestra; si molesta, se tapa con tinte o se reconvierte.
+- **`.pak` de servidores privados (21-oct-2026):** probados 44 de los repos `Saritagala/HBGhost` e `irwinlopez1023/Helbreath-Xsilium` (carpeta `Apks convertidos a paks`). Todos sin cifrar y convertibles. Dos rarezas:
+  - Algunos (dragones, wyverns, BlackDemon, GhostAbby de HBGhost) traen **basura en el campo "número de hojas"** (byte 20). La tabla de hojas está bien: la cantidad real es `(inicio de la primera hoja − 24) / 8`. El conversor original fallaría con ellos.
+  - `Gate.pak` tiene hojas vacías (BMP de 0×0).
+  - Los wyverns traen 24 hojas (no 40) y BlackDemon 39: el archivo termina ahí, no falta nada. Su reparto por estados hay que averiguarlo antes de usarlos.
+  - Sin SDK de .NET en el equipo; la conversión se hizo con un script de Node equivalente (verificado: el `Orc.pak` de HBGhost da exactamente nuestro `orc.spr`, 0 píxeles distintos).
 
 ## Animaciones: frames por estado y dirección
 - **Direcciones** (`utils/CoordinateUtils.ts`): `0=N, 1=NE, 2=E, 3=SE, 4=S, 5=SW, 6=W, 7=NW`. Normalmente hay **una hoja por dirección**.
@@ -567,7 +582,7 @@ Tabla completa en `docs/REQUISITOS_HB.md`. Lo no obvio:
 - **Minimapa original:** `telescope.spr` hoja 0, miniaturas de 128×128. Frame por mapa: huntzone2 9, middleland 4, arefarm 6, elvfarm 5, dglv4 14, icebound 24, druncncity 25. Punto del jugador: GameDialog hoja 4 frame 37. También hay `images/minimaps/<mapa>.jpg` (1500×1500).
 - **Bolsa original:** GameDialog hoja 7 frame 0 (226×188); objetos dibujados en (32+x, 44+y).
 - **Objetos Hero por bando:** Aresden = sufijo 2 en armaduras y `mantle01`/`04` en capas; Elvine = sufijo 1 y `mantle02`/`05`. Banderas en el suelo: 5/56 Aresden, 5/57 Elvine.
-- **Monstruos sin usar con sprite:** Frost, Ice Golem, Wyvern (el "de hielo", 3,6 MB), Dragon (`barlog`), Beholder, Stone/Clay Golem, Claw Turtle, Nizie, Tentocle, Giant Crayfish, Giant Lizard, Master Mage Orc, Centaurus, Sorceress, Cat, Rudolph, Mountain Giant, Unicorn, Guard. **No existen:** Yeti, Ice Lizard, otros dragones.
+- **Monstruos sin usar con sprite:** Frost, Ice Golem, Wyvern (el "de hielo", 3,6 MB), Dragon (`barlog`), Beholder, Stone/Clay Golem, Claw Turtle, Nizie, Tentocle, Giant Crayfish, Giant Lizard, Master Mage Orc, Centaurus, Sorceress, Rudolph, Mountain Giant, Unicorn, Guard. **No existen:** Yeti, Ice Lizard, otros dragones.
 - **Mapas medidos** (mejor 100×100 libre / descarga completa): icebound 91% / 9,2 MB; dglv4 63% (99% en 60×60) / 4,9 MB; druncncity 86% / 8,5 MB; arefarm/elvfarm 93–95% / 16,2 MB; aresden/elvine 92–96% / 22,2 MB.
 - **17-oct-2026:** `helbreath-survivor.pages.dev` publicado bien, pero desde la red del propietario no conectaba.
   - Su DNS daba 188.114.96.5 / 188.114.97.5 y la conexión se quedaba colgada.
@@ -897,6 +912,65 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - **Probar:** `pnpm check revive --eval="new Promise((r) => { g.hurtPlayer(99999, true, 'test'); setTimeout(() => r({ hp: g.player.hp, dead: g.player.isDead }), 1500); })"`.
 - **`pnpm check` en la nube:** `scripts/check.mjs` lanza `channel: 'chrome'`, que no existe en los contenedores de Claude Code web (solo `/opt/pw-browsers/chromium-1194`). Allí se usa una copia temporal con `executablePath` (y se borra después).
 
+## Varios mapas y Select Map (Fase 22A)
+- **Datos:** cada mapa en `data/maps.ts` (orden = el de Select Map y el del desbloqueo), su línea de tiempo en `data/waves.ts` → `TIMELINES`. Un mapa sin línea de tiempo tiene que llevar `comingSoon` (si no, `waves.ts` lanza un error al cargar). `size` es el tamaño del `.amd` en casillas: hace falta para recortar la zona de juego del minimapa antes de cargar el mapa.
+- **Zonas medidas (20-oct-2026, mejor ventana):** Traveler Zone (`default.amd`, 170×170): 100×100 al 84% en (40,38), 80×80 al 91% en (48,50). Elvine Garden (`elvuni`, 200×200): 150×150 al 86% en (24,26). Aresden Garden (`areuni`): 100×100 al 96%, 150×150 al 83%. Middleland (524×524): 150×150 al 94% en (36,274), 200×200 al 89% en (42,258). Visor de todos los mapas con su minimapa: http://localhost:8090/maps.html (`survivors/maps.html`).
+- **Carga:** `PreloadScene` ya no baja ningún mapa. Al pulsar Play (o Continue) pasa por `MapLoadScene`: `.amd`, minimapa y solo los paquetes de casillas que faltan; lo ya cargado no se repite (`hasMap` en `hb/HBMap.ts`, que borra el buffer de la caché al leerlo). Desde el 22B también baja monstruos y efectos (ver "Carga por mapa y tiempos de carga"). Select Map baja las 4 miniaturas (~700 KB) la primera vez que se abre.
+- **Desbloqueo:** `systems/MapUnlockStore.ts`, clave `hb-survivors.maps`, mapas **ganados** del dispositivo. Abierto = el primero, o el anterior ganado, o Level del personaje ≥ `recommendedLevel`. La primera vez que carga, si ya había personajes o partidas guardadas, cuenta la Traveler Zone como ganada (y Bleeding Isle si estaba el logro `winBisle`), para no cerrarle Bleeding Isle a quien ya jugaba; se guarda enseguida para no repetir esa cuenta.
+- **Dificultad por mapa:** `difficulty.hp` (vida y XP) y `.damage` de los monstruos normales (`Enemy.spawn`); los jefes nunca. Traveler Zone: 0,5 y 0,4.
+- **Jefes de Traveler Zone:** `stoneGolemBoss` (mismo sprite que el Stone Golem, otro id para que sea jefe sin tocar al normal) y `dummy` (`dummy.spr`, 40 hojas estándar de 4 frames, 69 KB, sin sonidos en sp-client: usa los del Clay Golem). `fixedDamage: 1` hace que cada golpe valga eso, sin dados ni mapa. Vida medida con la partida simulada (21-oct-2026): con 700/1800 la Maga los mataba en 5 s / 20 s; con 3500/7000 el Guerrero tardaba 1,5 / 2,5 min. Se dejó 2500/5000.
+- **Atajos:** `?map=traveler` (también arranca la partida), `?maps=all|reset`, `?open=mapselect`; checks `mapselect`, `mapsall`, `mapsnew`, `traveler`, `travelerboss`. `?play` sin `?map` sigue en Bleeding Isle.
+
+## Carga por mapa y tiempos de carga (Fase 22B)
+- **Antes del menú** (`PreloadScene`): solo interfaz, personajes y sonidos. Nunca un sprite de tipo `SpriteType.Monster`, ni `RUN_SPRITES` (efectos de partida y `item.ground`, en `config/assetManifest.ts`), ni los `runSprites` de cada clase (`data/characters.ts`; el Mago: `fx.effect3`, sus explosiones). Ningún menú usa efectos ni objetos del suelo: si alguno los necesita, habría que sacarlos de esas listas.
+- **Al elegir mapa** (`MapLoadScene`): mapa, minimapa, casillas, monstruos de la primera oleada de **ese** mapa (`firstWaveEnemies`), `RUN_SPRITES` y los `runSprites` de la clase elegida (`CHOSEN_CHARACTER_KEY`). Luego `assetStreamer.start(scene, map)` pone en cola solo los monstruos de ese mapa; el menú ya no descarga nada. `hurry` añade a la cola un monstruo que no estaba (jefes de atajos de prueba).
+- **Fallo que había (22A):** los monstruos que no salen en ninguna oleada (Gargoyle, Tigerworm, Hellclaw…) no eran ni "primera oleada" ni "en cola", y se bajaban antes del menú.
+- **Medir:** `pnpm check loadtime | loadtimetraveler | loadtimemage [--mobile]`. `systems/LoadTimer.ts` deja en `window.__loadTimes` el inicio, el fin de las descargas y el fin de la preparación de cada pantalla de carga; el script suma los MB con `performance.getEntriesByType('resource')` (amplía el búfer, que por defecto guarda 250 y en desarrollo el código ya son cientos). Red simulada por CDP: PC 50 Mbps/20 ms; móvil 9 Mbps/60 ms y CPU ×4.
+- **Tiempos (21-oct-2026, Guerrero en Bleeding Isle):** antes 29,7 MB en el Preload (7,2 s PC / 34,4 s móvil) + 6,1 MB del mapa (1,6 / 6,8 s). Después 15,7 MB (4,4 / 20,6 s) + 11,7 MB (2,6 / 12,3 s). Traveler Zone: el mapa pesa 16,5 MB (3,6 / 17,1 s; sus casillas son muchas). Lo lento es **descargar**: preparar es ~20% del total.
+- **Personajes (cierre del 22B):** antes del menú solo van las piezas de los dos aspectos por defecto (`UPFRONT_LOOK_SPRITES` en `config/assetManifest.ts`: Guerrero hombre y Maga mujer, piel clara, ropa de salida). Todo lo demás de `player.*` y `gear.*` está en `ON_DEMAND_SPRITES` (calculado), también la espada y el escudo del Guerrero (`msw`/`msh`, 2,2 MB; la daga está ahí): en los menús aparece un instante después la primera vez. `MapLoadScene` espera a lo que lleva puesto el personaje (`runSprites` de `LookLoader`), así que en partida no aparece nada tarde. Un `player.`/`gear.` nuevo es bajo demanda sin tocar nada; si debe estar antes del menú, va en `UPFRONT_LOOK_SPRITES`.
+- **Tiempos tras el recorte:** Preload 9,5 MB (PC 3,0 s / móvil 13,7 s); el mapa del Guerrero sube 1,4 MB (su espada): Bleeding Isle 13,1 MB (2,8 / 13,7 s). Total hasta jugar en móvil: 41 s al empezar el bloque → 27 s.
+
+## Elvine Garden (Fase 22D)
+- **Monstruos** (elegidos por el propietario el 21-oct-2026): Orc, Orc-Mage, Zombie, Scorpion, Giant Frog, Troll, Werewolf, Giant Tree y Cannibal Plant; sin Slime, Ant, Snake, Skeleton ni golems. Jefes: `hellhoundBoss` (min 4), `stalkerBoss` (min 8) y `cyclopsBoss` (final, min 12, con esbirros Troll / Giant Tree / Orc-Mage). Son copias con otro id, como `stoneGolemBoss`: los normales no cambian en Bleeding Isle. Dificultad ×1,3.
+- **Giant Tree:** `giantplant.spr` (918 KB), sonidos M120–M123 (el ataque M123 es el mismo archivo que el del Minotaur), sin animación especial. En el `NPC.cfg` de centuu/HelbreathServer no hay "Giant-Tree": su fila es **Giant-Plant** (ATime 700, alcance 2, MinBrvy 100, 8d6, HR 200). El servidor original (`reference/Server.cpp`, `MobGenerator` caso 7) lo saca en areuni/elvuni con Orc, Orc-Mage, Amphis, Troll, Unicorn (raro) y Cannibal Plant.
+- **Columnas del NPC.cfg:** el alcance de ataque es la **penúltima** columna (Troll 1, Cannibal-Plant 2, Cyclops 3); `ATime` es la columna tras los tres `1 10 0` (700, 800, 1200).
+- **`?debug=finalboss`** salta el tiempo y saca también los minijefes que quedaban por salir (en todos los mapas: Bleeding Isle sale con Ettin y Demon).
+- **Probar:** `check elvine`, `check elvineboss`, `check levelpaceelvine`, `check loadtimeelvine`.
+
+## Middleland (Fase 22E)
+- **Monstruos del original:** `middleland.txt` de centuu/HelbreathServer (`Files/GameServers/Middleland/MAPDATA/`) solo tiene `spot-mob-generator` (32 zonas fijas, ningún aleatorio): Ogre, Zombie, Scorpion, Snake (Amphis), Skeleton, Orc, Ant, Mountain Giant, Werewolf, Cyclops, Ettin, Stalker (hasta 40), Demon y Gargoyle (1). Troll, Hellhound y Hellclaw **no** salían allí.
+- **Elegidos por el propietario (21-oct-2026):** Orc, Zombie, Scorpion, Skeleton, Snake, Werewolf, Troll, Ogre, Cyclops, Stalker y Ettin; jefes Mountain Giant (min 4), Giant Lizard (min 8), Ettin Berserk (min 12) y **Unicorn** (final, min 15, con esbirros Stalker y Werewolf). ×1,6, 15 minutos.
+- **Copias con otro id:** `ettinRegular` (el `ettin` es el jefe de Bleeding Isle), `mountainGiantBoss`, `ettinBerserk`. El Ettin Berserk usa `EnemyDef.glows`: el brillo rojo de los élites sin su vida ni su daño extra. Sobre la piel naranja del Ettin se nota poco.
+- **Giant Lizard:** `giantlizard.spr`, sonidos M124–M127, sin animación especial. NPC.cfg: ATime 600, alcance 2, 10d10, HR 400. La wiki le da una embestida (no copiada).
+- **Unicorn:** `unicorn.spr`, quieto con 4 frames (`animations.idle`), sonidos M63–M66. NPC.cfg: ATime 700, alcance 4, 10d10, HR 500, magia 8. Lanza 5 rayos de Energy Strike (`fx.energyStrike.fly`, nuestros) cada 2,2 s.
+- **Carga solo de la zona de juego:** `HBMap.requiredTileIndices(area, margen)` baja el suelo de la zona de juego y los objetos con el mismo margen que dibuja `MapView` (`MAP_OBJECT_MARGIN_TILES`). Middleland (524×524) pasó de 25,0 a 16,4 MB; Elvine 14,0 y Bleeding Isle 13,1 no cambian.
+- **Medido (`check levelpacemiddleland`, 21-oct-2026):** Power 31 al final; jefes 35 / 39 / 53 / 87 s; cada golpe de jefe quita un 13–18% de la vida.
+- **Probar:** `check middleland`, `check middlelandboss`, `check levelpacemiddleland`, `check loadtimemiddleland`.
+
+## Sombras del jugador y los monstruos (Fase 22G)
+- **Como el original** (`sp-client/src/utils/ShadowManager.ts`): una copia negra del fotograma, `alpha 0,5`, girada −45° y aplastada a la mitad, con el pivote en el centro inferior del fotograma. Los números, compartidos, en `config/gameConfig.ts` (`BODY_SHADOW_*`). No cambia con el suelo, el mapa ni la hora.
+- **Jugador:** una sola sombra, sacada del **cuerpo desnudo** (capa `human`, `CharacterSprite.bodyFrame()`); ni ropa ni arma, igual que el original. `Player.syncShadow()` copia el fotograma en cada `update`. Se oculta al morir y vuelve al revivir (Abaddon's Blood). No parpadea con la invulnerabilidad: es un sprite aparte, fuera del contenedor del jugador.
+- **Monstruos sin sombra en el original** (`MonsterShadow.NoShadow`): Slime, Ant, Snake, Cat, Dire Boar, Scorpion, Tigerworm y **Unicorn** (este estaba mal hasta el 22G). Un monstruo nuevo: mirar su campo `shadow` en `sp-client/src/constants/Monsters.ts`.
+- **Rendimiento:** con 293 monstruos, 137–139 FPS antes y después (ordenador y `--mobile`, 21-oct-2026).
+
+## La ciudad (Fase 23A)
+- **Mapa:** recorte de `elvfarm.amd` (250×250) en `data/town.ts`, `playArea` (62,161) de 62×52, elegido por el propietario sobre una captura. Empieza en la fila 161: la 160 tiene 4 casillas de campo (x 115–118) que añaden `maptiles2` (2,5 MB). Lo que más pesa de lo nuevo es `tile388-402` (2,3 MB), el suelo del edificio de la derecha (Tom). Sitios (casillas), medidos el 21-oct-2026 sobre los puntos amarillos de la captura del propietario (recorte del minimapa `elvfarm.jpg` a 924 px, desde el píxel 226,588): Howard (79,193), Shop Keeper (90,178), William (95,176), Tom (111,192, a la derecha del yunque de 110,193 y mirando al SO, para que parezca que lo golpea), teleport (96,202), llegada (93,186). Los NPCs, afinados después con flechas del propietario sobre capturas del juego (1 casilla = 40 px en las capturas de `check`, 1000×750; en las del propietario, con zoom del navegador, ~67 px: medir con el tamaño de los personajes).
+- **Carga:** `MapLoadScene` con `{ town: true }` (`startTown(scene)`): mapa, minimapa, casillas, `fx.effect11` (portal), `fx.effect2` (polvo) y la ropa del personaje; nada de monstruos ni `RUN_SPRITES`. La música (`music.elvine`) está en `LATER_SOUNDS` (`config/assetManifest.ts`): `PreloadScene` se la salta y la baja la carga de la ciudad. Medido (21-oct-2026): 13,3 MB, 3,0 s en PC y 14,1 s en móvil; más de la mitad (`maptiles1`, árboles, efectos) la usan también los mapas de caza.
+- **Select Map encima:** el teleport hace `scene.pause()` de la ciudad y lanza `MapSelect` con `{ fromTown: true }`. "Back" para Select Map y reanuda la ciudad (sin recargar); "Play" para la ciudad y abre `MapLoad`. El teleport se dispara al entrar en su círculo (`PORTAL.enterRadius`) y no vuelve a abrirse hasta salir de él.
+- **Minimapa en una escena con cámara que se mueve:** el contenedor del minimapa lleva `setScrollFactor(0, 0, true)` (en el HUD daba igual). En el móvil, el botón "II" (`ui/TouchPauseButton.ts`, compartido con el HUD) y el minimapa debajo (`MINIMAP.topUnderButtons`).
+- **Botón "Town" de la pantalla final:** el original no tiene esa palabra (la hoja `ui.buttons` 1 trae Ok, Continue, Restart, Log Out, Change...). Se usa el marco del "Ok", se tapa su palabra con copias de una tira de su madera sin letras (frames propios `0-blank` / `1-blank` añadidos a la textura) y se escribe "Town" encima (`GAME_OVER.townButton`).
+- **Ojo:** un `TileSprite` con un frame de un `.spr` da `The image source is detached` (las hojas son `ImageBitmap` ya cerrados): para repetir un trozo, varias `Image` en fila con `setCrop` en la última.
+- **Atajos:** `?open=town` (con el primer personaje guardado), `?town=portal` (aparece sobre el teleport; solo la primera vez). Checks `town`, `townportal`, `loadtimetown`.
+
+### NPCs y hablar (Fase 23B)
+- **Datos:** `TOWN_NPCS` en `data/town.ts` (nombre, sprite, casilla, dirección, frase y opciones `equipment` / `warehouse` / `achievements` / `soon`). Aspecto (nombre, "Talk", botón táctil) en `config/town.ts`.
+- **Sprites:** `howard`, `shopkpr`, `william`, `tom`: 8 hojas (una por dirección) de 8 frames, solo quietos. Registrados como `SpriteType.Monster` (`npc.*`) para que nunca se bajen antes del menú; los baja la carga de la ciudad (`TOWN_SPRITES` en `MapLoadScene`).
+- **Sin Cofre:** hubo un cofre en el suelo junto a Howard con las mismas opciones; el propietario lo quitó (21-oct-2026): con hablar con Howard basta.
+- **Obstáculo:** `HBMap.blockTile` marca la casilla del NPC como bloqueada. El mapa está en caché, así que queda bloqueada para siempre (solo lo usa la ciudad).
+- **Hablar:** el NPC más cercano a menos de `TOWN_TALK.radiusPx` enseña "Talk". E, el botón A del mando, un clic en el NPC o en "Talk", o el botón táctil (`ui/TalkButton.ts`, en `TOUCH_RESERVED_CORNER`, que mientras se ve no abre el stick). La acción `Action.Talk` sustituye a `OpenEquipment` / `OpenWarehouse` (I/O, X/R1), que se quitaron con los botones de Select Character.
+- **Panel:** `NpcDialogScene` (un `MenuOverlayScene`). Equipment, Warehouse y Achievements se abren con `returnTo` = la ciudad y el panel se cierra: al salir se vuelve directo a la ciudad. Al reanudarse, la ciudad ignora "Talk" durante `MENU_INPUT_DELAY_MS` (si no, la A que cierra el panel lo volvía a abrir) y, si cambió el equipo, viste otra vez al personaje (`redressIfChanged`, bajando antes lo que falte con `lookLoader`).
+- **Atajos:** `?town=<npc>` (howard, shopKeeper, william, tom) aparece debajo de ese NPC; con `&talk` se abre su panel. Checks `townnpc`, `towntalk`.
+
 ## Rareza de las cartas (Fase 21½A)
 - Números en `data/cardRarity.ts`; sorteo en `systems/UpgradePool.ts` (`buildLevelUpChoices(equipment, chr, { chest, onlyPassives, allEpic })`). Desde la partida se piden siempre con `GameScene.levelUpChoices(fromChest)`, que lee la Chr de la partida y los atajos.
 - Cada carta sortea su rareza aparte. En las pasivas, `rank` es el rango **final** (actual + 1/2/3); si no caben los rangos, la rareza baja (`fitRarity`). La línea "antes" de la carta usa el rango actual del equipo, no `rank − 1`.
@@ -915,10 +989,43 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - Probar: `?unlocks=dice3,wine3&debug=levelup` (`check rerollskip`); `dice2` = 2, `dice` = 1, `?unlocks=reset` = ninguno.
 
 ## Evento Champion (Fase 21½C)
-- Números en `data/champion.ts`; `rollChampionMinutes(WAVE_EVENTS)` sortea los minutos al empezar la partida (`GameScene.create`).
-- `SpawnSystem.setChampions / runDueChampion`: sale como un jefe (`findBossPoint`, nunca se pierde) con un monstruo del tramo **siguiente** de `WAVES` (`pickChampion`), y nunca tras salir el jefe final. No pasa por `BossSystem`, así que no tiene barra grande arriba ni sale en el minimapa como jefe.
+- Números en `data/champion.ts`; `GameScene.rollChampions()` sortea los minutos al empezar la partida con los eventos de **su mapa** (`rollChampionMinutes`) y quita los que caen tras su jefe final (en Traveler Zone, el 7; fusión con la Fase 22).
+- `SpawnSystem.setChampions / runDueChampion`: sale como un jefe (`findBossPoint`, nunca se pierde) con un monstruo del tramo **siguiente** de las oleadas de su mapa (`pickChampion`), y nunca tras salir el jefe final. No pasa por `BossSystem`, así que no tiene barra grande arriba ni sale en el minimapa como jefe.
 - `Enemy.champion`: escala (`sizeFactor`, también su `radius` y `bodyY`), vida, daño, XP, velocidad y empuje; brilla como los élites (nunca es élite a la vez). Su barra la dibuja `Enemy.drawHealthBar` con la altura máxima de los frames vistos (para que no salte con la animación).
 - Al morir: `GameScene.dropXp` reparte su XP en 10 gemas en corro; `LootSystem.onChampionKill` tira con `CHAMPION.lootTiers` (solo `next` o `jump`) y 10% de Zem.
 - Guardado: `RunSnapshot.champions` (minutos) y `championsOut` (los ya salidos y muertos; uno vivo al guardar vuelve tras la calma de Continue).
 - Métricas: en la lista de jefes como "Champion <monstruo>" (aparición y muerte), sin tocar el servidor.
 - Probar: `?debug=god,champion` (sale a los 3 s; `check champion --wait=6000`). Sale fuera de la pantalla: para verlo en la captura, `--eval` que lo acerque (`g.champion.x = g.player.x + 90`).
+
+## Oro, botín especial y muerte a medias (Fase 24A)
+- **Oro:** `data/gold.ts` (monedas, montones, multiplicador por mapa, `formatGold`) y `systems/GoldStore.ts` (clave `hb-survivors.gold`, de todo el dispositivo; `?gold=N` lo fija). Las monedas son pickups (`coin`, `goldPile` en `data/pickups.ts`, dibujo "Gold" del original, item-ground 5/0) con `dropChance: 0`: las tira `GameScene.onEnemyKilled` / `dropGoldPiles`, no `PickupSystem.onKill`. El oro de la partida (`GameScene.runGold`) va en la partida guardada (`RunSnapshot.gold`) y se suma a `goldStore` en `endRun`, ganes o mueras.
+- **Atributos de armadura:** `ItemAttribute` = de arma (`WeaponAttribute`) o de armadura (`ArmorAttribute`), con `kind` en `ATTRIBUTES`. Solo los de arma van delante del nombre (`ownedItemName`) y tiñen el dibujo (`pictureAdd` opcional). `canHaveAttribute` decide dónde puede ir cada uno (MP Recovery solo en la ropa de la Maga). Se aplican en `Equipment.wear(piece, attribute)` → `recompute()` (Defense Ratio y Magic Resistance a los totales, `hpRecovery` multiplica la curación en `applyStats`). Al continuar una partida, una pieza conserva su atributo solo si el personaje la sigue llevando.
+- **Todo lo que cae lleva atributo:** `rollAttribute` elige por `weight` entre los que el objeto admite. `?attr=hpRecovery` hace que solo caigan objetos que lo admiten (`check lootarmor`).
+- **Muerte:** `characterStore.finishRun` pierde `itemsLostOnDeath(n)` = mitad redondeando arriba, al azar; `RunLootResult.lost` es la lista. La pantalla final atenúa los perdidos comparando id + atributo (tras un Continue, `found` y `bag` son copias distintas del mismo objeto).
+
+## Tienda (Fase 24B)
+- **Ventana "Item for Sale" del original:** panel `gamedialog86.spr` **hoja 1, frame 2** (258x339, pergamino con bolitas de plata; el frame 3 es su barra lateral de 23 px, no usada) y letrero `dialogtext.spr` **hoja 0, frame 11** ("Item for Sale", 258x31). En esa hoja 0 están todos los letreros de 258–361 px: 5 = "Item Upgrade" (para el herrero, 24C), 10 = "Repair Item", 21 = "Items In Storage". `gamedialog.spr`, `gamedialog1/2/86` comparten las hojas 0–5 y 7–10 (solo cambia la 6).
+- **Panel del herrero:** `gamedialog86.spr` hoja 2, frame 0 (270x381, con un martillo de fondo).
+- **Botones de `dialogtext.spr` hoja 1** (74x20, iluminado = frame + 1): Ok 0, No 2, Quest 4, Continue 6, Log Out 8, Level Set. 10, I Agree 12, Disagree 14, Cancel 16, Yes 18, Change 20, Connect 22, Create 24, Clear 26, Reset 28, **Purchase 30**, Accept 32, luego Reject 34, Restart 36, **Sell 38**, Decline 40, **Repair 42**, Party 44, **Upgrade 46** (de los cuatro últimos, comprobar en el visor antes de usarlos).
+- **Código:** lista y precios en `data/shop.ts`, medidas en `config/shop.ts` (en píxeles del panel, × `SHOP_PANEL.scale`), ventana `scenes/ShopScene.ts`. Abaddon's Blood y el dado/vino a 3/3 salen "Sold out" en gris claro; el Zem va al inventario del personaje de la ciudad. Atajos: `?open=town&town=shopKeeper&shop&gold=N`, `check shop` / `check shopsold`.
+- **Ojo con `setFrame` en los botones de `dialogtext`:** sus frames traen el pivote arriba a la izquierda, y `setFrame(f)` (al iluminar) vuelve a poner el origen en ese pivote aunque antes se hiciera `setOrigin(0.5)`. Para que sigan centrados: `setFrame(f, true, false)`.
+- **Ropa de serie en la ciudad:** camisa, pantalón, botas... salen de `appearance` de la clase (`data/characters.ts`), no de objetos equipados. Al volver de Equipment, `TownScene.redressIfChanged` pone primero esa ropa y encima lo equipado (antes vaciaba los huecos y el personaje quedaba en ropa interior).
+
+## Herrero y Stone of Xelima (Fase 24C)
+- **Ventana:** `scenes/SmithScene.ts`, medidas en `config/smith.ts`, precios y lista en `data/smith.ts`. Panel `gamedialog86.spr` hoja 2 frame 0 (270x381, martillo de fondo). Letreros de `dialogtext.spr` hoja 0: 11 "Item for Sale" (258 px) y 9 "Exchange Item" (270 px). Hoja 0 completa: 0 Character Info (panel), 1 Skills, 2 Level up Setting, 3 Party Menu, 4 Quest, 5 Item Upgrade, 6 System Menu, 7 Magic List, 8 Tinkering, 9 Exchange Item, 10 Repair Item, 11 Item for Sale, 12 User Agreement, 13 Change Password, 14 Spells, 15–17 Commander/Constructor/Soldier Menu, 18 Cityhall Menu, 19 Guild Menu, 20 Notice, 21 Items In Storage, 22 barra vacía de 361 px.
+- **Botones de la hoja 1 comprobados:** Sell 38, Upgrade 46 (iluminado +1), como decía la lista de la Tienda.
+- **Colores:** el panel del martillo es gris; el gris claro de "Sold out" de la tienda no se lee encima. Por eso `SMITH_COLORS` (rojo oscuro para lo que no puedes ponerte, gris oscuro para la pestaña apagada).
+- **Lista con scroll:** filas fijas (`visibleRows`) que se rellenan según `scroll`; rueda, flechas/mando, ▲/▼ y arrastrar el dedo. Los títulos de sección cuentan como filas.
+- **Stone of Xelima como objeto:** en `data/consumables.ts`, sin hueco (`slot` opcional en `ConsumableDef` e `ItemInfo`). Al cogerla va a la bolsa sin carta (`GameScene.openLoot`). Tirada propia en `LootSystem.onKill` (`LOOT_XELIMA_CHANCE`); `?debug=xelima` la sube al 5%. `?gear=inv:xelimaStone` la mete en el inventario aunque no sea de la clase. Mismo dibujo que la carta "Stone of Xelima" (item-pack 5/128), que es otra cosa.
+- **Atajos:** `?open=town&town=tom&smith=buy|sell&gold=N`; checks `smith`, `smithsell`, `xelima`. Para probar a mano por `--eval`: `game.scene.getScene('Smith')` y sus métodos `choose(i)`, `act()`, `setTab('sell')`.
+- **Panel de hablar:** con 3 opciones + Back no cabía; `NPC_DIALOG_LIST` (config/town.ts) junta un poco las opciones en todos los NPCs.
+
+## Mejorar armas en el herrero (Fase 24D)
+- **Dónde vive el "+":** en el objeto (`OwnedItem.upgrade`, 1–3, sin campo = +0) para inventario, baúl y botín; en `SavedCharacter.upgrades[slot]` para lo puesto (como `attributes`). `CHARACTERS_VERSION` 8. Reglas y daño en `data/upgrades.ts`; precios en `data/smith.ts` (`SMITH_UPGRADE_PRICE_FACTORS`, `smithUpgradePrice`, `smithUpgradeGoldSpent`).
+- **Comparar objetos:** usa siempre `sameOwnedItem` (id + atributo + "+"); comparar solo id y atributo mezcla una Long Sword +2 con una normal.
+- **Equipo de salida mejorado:** `isPlainFreeItem` (CharacterStore): solo la daga o varita **sin** atributo ni "+" desaparece al quitársela; mejorada va al inventario. `equip()` recibe el objeto entero (`OwnedItem`).
+- **Daño:** `Equipment.weaponUpgrade` + `weaponDamageBonus` = (1 + atributo) × (1 + 0,1 × "+") − 1, que va a `CharacterStats.attributeBonus` (vale también para los hechizos de la Maga con varita). `itemDamageBonus` / `ownedItemPower` lo muestran en las cartas.
+- **Ventana:** tercera pestaña de `SmithScene` (`dialogtext.spr` hoja 0 frame 5 "Item Upgrade"; botón Upgrade = hoja 1 frame 46). La subraya de la pestaña mide lo que su palabra. Sonido `sfx.itemEquip` (E28).
+- **Tecla I en la ciudad:** `Action.OpenInventory` abre Equipment con `openOverlay` (la ciudad queda en pausa debajo).
+- **Atajos:** `?xelima=N` (cada personaje con N piedras exactas), `?upgrade=N` (partida sin personaje con el arma a +N), `?gear=up2:longSword`, `smith=upgrade`, `?open=town&class=warrior` (la ciudad con el primer Guerrero). Checks `smithupgrade` y `upgradedmg` (`--eval="g.stats.attributeBonus"` → 0.3).
+

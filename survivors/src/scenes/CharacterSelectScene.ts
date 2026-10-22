@@ -363,13 +363,13 @@ export class CharacterSelectScene extends Phaser.Scene {
         preview.mirror.update(delta);
     }
 
-    /** "Create": saves the character in its slot and starts the game with it. No name = the class's default name. */
+    /** "Create": saves the character in its slot and goes to Select Map with it (Fase 22A). No name = the class's default name. */
     private startGame(): void {
         const name = this.nameInput.value || CHARACTERS[this.selected].playerName;
         const character = characterStore.create(this.slot, name, this.selected, this.look);
         this.registry.set(CHOSEN_CHARACTER_KEY, character.classId);
         this.registry.set(ACTIVE_CHARACTER_KEY, character.uid);
-        this.scene.start('Game');
+        this.scene.start('MapSelect');
     }
 
     /** "Cancel": back to the character slots. */

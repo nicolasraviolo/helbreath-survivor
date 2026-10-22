@@ -1,7 +1,16 @@
 // El jugador: posición libre en píxeles (sus pies), movimiento con choque contra el mapa,
 // vida con invulnerabilidad tras un golpe. El dibujo por capas lo hace CharacterSprite.
+// Sombra (Fase 22G): como en el original, una sola, sacada del cuerpo desnudo (sin ropa ni arma) y fotograma a
+// fotograma; desaparece al morir y vuelve al revivir.
 import Phaser from 'phaser';
-import { MOVE_DIRECTIONS, PLAYER_BLINK_MS } from '../config/gameConfig';
+import {
+    BODY_SHADOW_ALPHA,
+    BODY_SHADOW_ROTATION,
+    BODY_SHADOW_SCALE_Y,
+    DEPTH_GROUND_SHADOWS,
+    MOVE_DIRECTIONS,
+    PLAYER_BLINK_MS,
+} from '../config/gameConfig';
 import type { CharacterLook } from '../data/appearance';
 import type { CharacterDef } from '../data/characters';
 import type { HBMap } from '../hb/HBMap';
@@ -35,6 +44,7 @@ export class Player {
     public godMode = false;
     private readonly body: CharacterSprite;
     private readonly healthBar: Phaser.GameObjects.Graphics;
+    private readonly shadow: Phaser.GameObjects.Sprite;
     private readonly bounds = new Phaser.Geom.Rectangle();
     private invulnerableMs = 0;
     private readonly snapped = new Phaser.Math.Vector2();
@@ -58,6 +68,14 @@ export class Player {
         this.body = new CharacterSprite(scene, def, look);
         this.healthBar = scene.make.graphics({}, false);
         this.container = scene.add.container(x, y, [this.body.container, this.healthBar]);
+        this.shadow = scene.add.sprite(x, y, '__DEFAULT')
+            .setTint(0x000000)
+            .setAlpha(BODY_SHADOW_ALPHA)
+            .setRotation(BODY_SHADOW_ROTATION)
+            .setScale(1, BODY_SHADOW_SCALE_Y)
+            .setDepth(DEPTH_GROUND_SHADOWS + 1)
+            .setVisible(false);
+        this.syncShadow();
         this.drawHealthBar();
         // Settings → "Health bar over player": shows or hides it at once.
         const onSettings = () => this.healthBar.setVisible(settings.current.showPlayerHealthBar && !this.isDead);
@@ -116,6 +134,22 @@ export class Player {
         this.updateInvulnerability(deltaMs);
         this.regenerate(deltaMs);
         this.container.setPosition(this.x, this.y).setDepth(this.y);
+        this.syncShadow();
+    }
+
+    /** Copies the body's frame onto the shadow and pins it to the frame's bottom centre (sp-client ShadowManager). */
+    private syncShadow(): void {
+        const frame = this.isDead ? undefined : this.body.bodyFrame();
+        this.shadow.setVisible(frame !== undefined);
+        if (!frame) return;
+        if (this.shadow.frame !== frame) {
+            this.shadow.setTexture(frame.texture.key, frame.name);
+            // setTexture applies the frame's custom pivot; the shadow pivots on the frame's bottom centre.
+            this.shadow.setOrigin(0.5, 1);
+        }
+        const left = this.x - frame.pivotX * frame.width;
+        const top = this.y - frame.pivotY * frame.height;
+        this.shadow.setPosition(left + frame.width / 2, top + frame.height);
     }
 
     /**
@@ -204,6 +238,7 @@ export class Player {
         this.body.setPose(PlayerState.IdleCombat, this.direction);
         this.healthBar.setVisible(settings.current.showPlayerHealthBar);
         this.drawHealthBar();
+        this.syncShadow();
     }
 
     /** Continue (saved run): the health it had, within 1..maxHp. */
@@ -213,6 +248,11 @@ export class Player {
     }
 
     /** Debug invincibility, shown as a golden tint on every layer. */
+    /** Shows or hides the health bar over the head (hidden in the town, Fase 23). */
+    public setHealthBarVisible(visible: boolean): void {
+        this.healthBar.setVisible(visible);
+    }
+
     public setGodMode(enabled: boolean): void {
         this.godMode = enabled;
         this.body.setTint(enabled ? GOD_MODE_TINT : undefined);
@@ -237,6 +277,7 @@ export class Player {
         this.invulnerableMs = 0;
         this.container.setAlpha(1);
         this.healthBar.setVisible(false);
+        this.shadow.setVisible(false);
     }
 
     /** Blinks while invulnerable after a hit. */

@@ -9,7 +9,7 @@
 import type { SoundKey } from '../config/assetManifest';
 import type { EffectKey } from '../config/effects';
 
-export type PickupId = 'potion' | 'magnet' | 'chest' | 'finalChest';
+export type PickupId = 'potion' | 'magnet' | 'chest' | 'finalChest' | 'coin' | 'goldPile';
 
 export interface PickupDef {
     name: string;
@@ -37,6 +37,10 @@ export const PICKUPS = {
     chest: { name: 'Chest', sheet: 5, frame: 120, scale: 1.6, dropChance: 0, pickupSound: 'sfx.pickup' },
     // Cofre del jefe final (Fase 13): da una carta como los demás y, al abrirlo, se abre el portal de salida. Más grande.
     finalChest: { name: 'Chest', sheet: 5, frame: 120, scale: 2.2, dropChance: 0, pickupSound: 'sfx.pickup' },
+    // Fase 24A: oro, con el dibujo del "Gold" del original (item-ground 5/0). Cuánto cae y cuánto vale: data/gold.ts
+    // (lo tira GameScene, no dropChance). Las monedas duran como las pociones; los montones de los jefes, no se van.
+    coin: { name: 'Gold', sheet: 5, frame: 0, scale: 1.2, dropChance: 0, lifeMs: 60000, pickupSound: 'sfx.pickup', magnetPulls: true },
+    goldPile: { name: 'Gold', sheet: 5, frame: 0, scale: 1.9, dropChance: 0, pickupSound: 'sfx.pickup', magnetPulls: true },
 } as const satisfies Record<PickupId, PickupDef>;
 
 /** Health healed by a potion, as a share of maximum health. */

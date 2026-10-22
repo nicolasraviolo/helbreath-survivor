@@ -16,8 +16,9 @@ import { STAT_POINTS_PER_LEVEL } from '../data/characterLevel';
 import { itemPackTexture } from '../config/equipment';
 import type { Gender } from '../data/appearance';
 import { itemInfo, itemPicture } from '../data/items';
-import type { OwnedItem } from '../data/loot';
+import { sameOwnedItem, type OwnedItem } from '../data/loot';
 import { attributeColor, ATTRIBUTES } from '../data/attributes';
+import { formatGold } from '../data/gold';
 import { setColouredTexture } from '../hb/additiveTint';
 import type { RunLootResult } from '../systems/CharacterStore';
 import { Action, InputSystem } from '../systems/InputSystem';
@@ -35,15 +36,20 @@ export interface GameOverSceneData {
     armorNames: readonly string[];
     /** Achievements unlocked during this run, by name. */
     achievementNames: readonly string[];
+    /** Maps this win opened in Select Map (Fase 22A), by name. */
+    newMaps: readonly string[];
     /** What the run's EXP did to the character's Level (undefined for runs without a saved character). */
     exp: ExpResult | undefined;
     /** Every item picked up this run (Fase 21A), and the gender its pictures are drawn for. */
     loot: readonly OwnedItem[];
     /** What happened to it (Fase 21D): lost (died without a Zem) or saved by a Zem. Undefined: kept as usual. */
     lootResult: RunLootResult | undefined;
+    /** Gold picked up this run and the device's gold after adding it (Fase 24A; kept even when dying). */
+    gold: { gained: number; total: number };
     gender: Gender;
     onRestart: () => void;
-    onChangeClass: () => void;
+    /** Back to the town (Fase 23; it was Select Character before). */
+    onTown: () => void;
     onMainMenu: () => void;
 }
 
@@ -51,6 +57,8 @@ interface Button {
     image: Phaser.GameObjects.Image;
     frame: number;
     action: () => void;
+    /** A button with our own word over the original wood (the town's, Fase 23). */
+    word?: { strips: Array<{ image: Phaser.GameObjects.Image; cropWidth: number | undefined }>; text: Phaser.GameObjects.Text };
 }
 
 export class GameOverScene extends Phaser.Scene {
@@ -82,7 +90,7 @@ export class GameOverScene extends Phaser.Scene {
 
         const lines = [
             `${p.className}  ·  Power ${p.level}`,
-            `Time ${formatTime(p.elapsedMs)}  ·  ${p.kills} kills`,
+            `Time ${formatTime(p.elapsedMs)}  ·  ${p.kills} kills  ·  +${formatGold(p.gold.gained)} gold (${formatGold(p.gold.total)})`,
             '',
             p.weaponName,
             p.armorNames.length > 0 ? p.armorNames.join(', ') : 'No armor',
@@ -91,8 +99,12 @@ export class GameOverScene extends Phaser.Scene {
             ...UI_TEXT, fontSize: px(UI_FONT_SIZE.large), color: '#e8d9a8', align: 'center', lineSpacing: 6,
         }).setOrigin(0.5, 0);
 
-        if (p.achievementNames.length > 0) {
-            this.add.text(GAME_WIDTH / 2, GAME_OVER.achievementsY, `Achievements: ${p.achievementNames.join(', ')}`, {
+        const news = [
+            ...(p.achievementNames.length > 0 ? [`Achievements: ${p.achievementNames.join(', ')}`] : []),
+            ...(p.newMaps.length > 0 ? [`New map: ${p.newMaps.join(', ')}`] : []),
+        ];
+        if (news.length > 0) {
+            this.add.text(GAME_WIDTH / 2, GAME_OVER.achievementsY, news.join(' · '), {
                 ...UI_TEXT, fontSize: px(UI_FONT_SIZE.normal), fontStyle: 'bold', color: GAME_OVER.achievementsColor,
                 stroke: '#000000', strokeThickness: 3, align: 'center', wordWrap: { width: GAME_OVER.achievementsWrap },
             }).setOrigin(0.5);
@@ -103,7 +115,7 @@ export class GameOverScene extends Phaser.Scene {
         this.addLootNote(p.lootResult);
 
         this.addButton(GAME_OVER.restartFrame, -1, p.onRestart);
-        this.addButton(GAME_OVER.changeFrame, 0, p.onChangeClass);
+        this.addWordButton(0, p.onTown);
         this.addButton(GAME_OVER.logOutFrame, 1, p.onMainMenu);
         this.highlight(0);
 
@@ -142,15 +154,16 @@ export class GameOverScene extends Phaser.Scene {
         }).setOrigin(0.5, 0);
     }
 
-    /** Fase 21D: "Lost: N items (no Zem)" or "Your Zem saved N items", under the pictures. */
+    /** Fase 21D / 24A: "Lost 2 of 3 items (no Zem equipped)" or "Your Zem saved 3 items", under the pictures. */
     private addLootNote(result: RunLootResult | undefined): void {
-        if (!result || (!result.lost && !result.zemUsed)) return;
+        const lost = result?.lost.length ?? 0;
+        if (!result || (lost === 0 && !result.zemUsed)) return;
         const g = GAME_OVER;
         const items = `${result.found} item${result.found === 1 ? '' : 's'}`;
-        const text = result.lost ? `Lost: ${items} (no Zem equipped)` : `Your Zem saved ${items}`;
+        const text = lost > 0 ? `Lost ${lost} of ${items} (no Zem equipped)` : `Your Zem saved ${items}`;
         this.add.text(GAME_WIDTH / 2, g.lootNoteY, text, {
             ...UI_TEXT, fontSize: px(UI_FONT_SIZE.normal), fontStyle: 'bold', stroke: '#000000', strokeThickness: 3,
-            color: result.lost ? g.lootLostColor : g.lootSavedColor,
+            color: lost > 0 ? g.lootLostColor : g.lootSavedColor,
         }).setOrigin(0.5);
     }
 
@@ -172,8 +185,15 @@ export class GameOverScene extends Phaser.Scene {
         let x = (GAME_WIDTH - width) / 2;
         label.setX(x);
         x += label.width + g.lootGap * 2;
-        const lost = this.params.lootResult?.lost === true;
+        // Fase 24A: the lost ones, matched by item and attribute (after a Continue the same item may be a copy).
+        const lostLeft = [...(this.params.lootResult?.lost ?? [])];
+        const isLost = (item: OwnedItem): boolean => {
+            const index = lostLeft.findIndex((other) => sameOwnedItem(other, item));
+            if (index >= 0) lostLeft.splice(index, 1);
+            return index >= 0;
+        };
         for (const item of shown) {
+            const lost = isLost(item);
             const first = this.children.length;
             const centre = x + g.lootIconSize / 2;
             // Fase 21B: an item with an attribute gets a frame of its colour.
@@ -217,10 +237,52 @@ export class GameOverScene extends Phaser.Scene {
         this.buttons.push({ image, frame, action });
     }
 
+    /** The "Town" button: the "Ok" frame with its word covered by its own wood, and our word on top. */
+    private addWordButton(side: number, action: () => void): void {
+        const b = GAME_OVER.townButton;
+        this.addButton(b.frame, side, action);
+        const button = this.buttons[this.buttons.length - 1];
+        if (!button) return;
+        const { image } = button;
+        const scale = GAME_OVER.buttonScale;
+        const texture = this.textures.get(GAME_OVER.buttonTexture);
+        const source = texture.get(b.frame);
+        const height = source.cutHeight - b.strip.y * 2;
+        // One strip per frame (off and lit), added to the texture once.
+        for (const frame of [b.frame, b.frame + 1]) {
+            const name = `${frame}-blank`;
+            const from = texture.get(frame);
+            if (!texture.has(name)) texture.add(name, from.sourceIndex, from.cutX + b.strip.x, from.cutY + b.strip.y, b.strip.width, height);
+        }
+        const left = image.x - (source.cutWidth * scale) / 2 + b.cover.x * scale;
+        const top = image.y - (source.cutHeight * scale) / 2 + b.strip.y * scale;
+        // Copies of the strip side by side (the last one cut to fit).
+        const strips: NonNullable<Button['word']>['strips'] = [];
+        for (let x = 0; x < b.cover.width; x += b.strip.width) {
+            const image = this.add.image(left + x * scale, top, GAME_OVER.buttonTexture, `${b.frame}-blank`).setOrigin(0).setScale(scale);
+            const cropWidth = x + b.strip.width > b.cover.width ? b.cover.width - x : undefined;
+            if (cropWidth !== undefined) image.setCrop(0, 0, cropWidth, height);
+            strips.push({ image, cropWidth });
+        }
+        const text = this.add.text(image.x, image.y, b.word, {
+            fontFamily: b.fontFamily, fontSize: px(b.fontSize * scale), fontStyle: 'bold', color: b.color,
+            shadow: { offsetX: 1, offsetY: 1, color: b.shadow, fill: true },
+        }).setOrigin(0.5);
+        button.word = { strips, text };
+    }
+
     /** The highlighted button shows its lit frame (the next one). */
     private highlight(index: number): void {
         this.selected = index;
-        this.buttons.forEach((button, i) => button.image.setFrame(button.frame + (i === index ? 1 : 0)).setOrigin(0.5));
+        this.buttons.forEach((button, i) => {
+            const lit = i === index ? 1 : 0;
+            button.image.setFrame(button.frame + lit).setOrigin(0.5);
+            for (const { image, cropWidth } of button.word?.strips ?? []) {
+                image.setFrame(`${button.frame + lit}-blank`);
+                if (cropWidth !== undefined) image.setCrop(0, 0, cropWidth, image.height);
+            }
+            button.word?.text.setColor(lit ? GAME_OVER.townButton.litColor : GAME_OVER.townButton.color);
+        });
     }
 
     private choose(index: number): void {

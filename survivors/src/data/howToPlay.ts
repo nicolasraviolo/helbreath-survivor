@@ -33,7 +33,7 @@ export const HOW_TO_PLAY_PAGES: readonly HowToPlayPage[] = [
             // Caben 7 líneas, cada una en una sola fila: si una se parte en dos, la última pisa el selector "Page".
             'Glowing Mana Stones give a power-up. Chests give a free card.',
             'Defeat the Champions, big glowing monsters, for a better item.',
-            'Survive the waves and defeat the final boss to win.',
+            'Defeat the final boss to win, and a new map opens.',
         ],
     },
     {
@@ -111,6 +111,19 @@ export const HOW_TO_PLAY_PAGES: readonly HowToPlayPage[] = [
         ],
     },
     {
+        // Fase 23: la ciudad y hablar con sus NPCs (23B; 24B la tienda, 24C el herrero). Como mucho 7 filas.
+        name: 'Town',
+        rows: [
+            { control: 'Walk up to someone', action: '"Talk" shows over their name' },
+            { control: 'E, pad A, click or Talk button', action: 'Talk' },
+            { control: 'Howard', action: 'Your Equipment and the Warehouse' },
+            { control: 'William', action: 'Your Achievements' },
+            { control: 'Shop Keeper', action: "Zem, Abaddon's Blood, dice and wine" },
+            { control: 'Tom, the blacksmith', action: 'Buys and sells weapons and armor' },
+            { control: 'Teleport (on the grass)', action: 'Choose a map and start a run' },
+        ],
+    },
+    {
         // Fase 20A: Level permanente y Power de la partida. Como mucho 7 filas.
         name: 'Level',
         rows: [
@@ -127,8 +140,8 @@ export const HOW_TO_PLAY_PAGES: readonly HowToPlayPage[] = [
         // Fase 20B: pantalla Equipment. Como mucho 7 filas.
         name: 'Equipment',
         rows: [
-            { control: 'Equipment (Select Character)', action: 'Choose what your character wears' },
-            { control: 'I key or pad X', action: 'Open it for the marked character' },
+            // Fase 23B: se abre en la ciudad, hablando con Howard; desde el 24D, también con la tecla I.
+            { control: 'I (Town) or talk to Howard', action: 'Equipment: choose what your character wears' },
             { control: 'Each run', action: 'Starts with that equipment on' },
             { control: 'The lists', action: 'Only what you own: your starting gear and your loot' },
             { control: 'Requirements', action: 'Your permanent Str, Mag and Level: red = not met' },
@@ -137,28 +150,28 @@ export const HOW_TO_PLAY_PAGES: readonly HowToPlayPage[] = [
         ],
     },
     {
-        // Fase 21A: botín en partida. Como mucho 7 filas.
+        // Fase 21A: botín en partida (24A: oro y solo objetos especiales). Como mucho 7 filas.
         name: 'Loot',
         rows: [
-            { control: 'Glowing items on the ground', action: 'Loot: monsters drop it now and then' },
-            { control: 'Bosses', action: 'Always drop loot' },
+            { control: 'Glowing items on the ground', action: 'Loot: rare, and always special' },
+            { control: 'Gold coins', action: 'Kept even if you die. Bosses drop piles' },
             { control: 'Step on it', action: 'Compare it with what you wear' },
             { control: 'Equip', action: 'Wear it now, for the rest of the run' },
             { control: 'Keep in bag', action: 'Take it with you for later' },
             { control: 'Red requirement', action: 'Too strong for you yet: keep it' },
-            { control: 'Win, or die wearing a Zem', action: 'Your loot goes to your character' },
+            { control: 'Win, or die wearing a Zem', action: 'All your loot goes to your character' },
         ],
     },
     {
-        // Fase 21D: baúl compartido y Zem. Como mucho 7 filas.
+        // Fase 21D: baúl compartido y Zem (24C: la Stone of Xelima). Como mucho 7 filas.
         name: 'Warehouse',
         rows: [
-            { control: 'Warehouse (Select Character)', action: 'A chest shared by all your characters' },
-            { control: 'O key or pad R1', action: 'Open it for the marked character' },
+            { control: 'Talk to Howard (Town)', action: 'Warehouse: shared by all your characters' },
             { control: 'Click, Enter or pad A', action: 'Move one item to the other side' },
-            { control: 'Die without a Zem', action: 'You lose the items found in that run' },
-            { control: 'Zem slot (Equipment)', action: 'Wear a Zem to keep them: it is used up' },
+            { control: 'Die without a Zem', action: 'You lose half the items found in that run' },
+            { control: 'Zem slot (Equipment)', action: 'Wear a Zem to keep them all: it is used up' },
             { control: 'Bosses', action: 'Sometimes drop a Zem' },
+            { control: 'Stone of Xelima (red gem)', action: 'Very rare from any monster: for upgrades (soon)' },
         ],
     },
 ];

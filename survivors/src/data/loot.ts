@@ -9,7 +9,8 @@
 //   Zem se pierde lo encontrado; el baúl compartido se llena a mano desde Select Character (data/warehouse.ts).
 // - Fase 21D: los hechizos solo caen si piden Manual (ninguno de los de hoy); el Zem cae aparte, de los jefes.
 // - Atributos (21B, decididos el 20-oct-2026): Sharp 10%, Poison 5%, Ancient 1%, solo en armas y varitas
-//   (data/attributes.ts). Las varitas de la Maga caen menos que sus hechizos, y Berserk y Kloness muchísimo menos.
+//   (data/attributes.ts). Fase 24A: todo lo que cae lleva atributo (armas o armaduras) y cae mucho menos (3–4 por
+//   partida); lo normal se compra al herrero. Las varitas de la Maga caen menos que sus hechizos, y Berserk y Kloness muchísimo menos.
 import type { SoundKey } from '../config/assetManifest';
 import type { ItemAttribute } from './attributes';
 import type { CharacterId } from './characters';
@@ -20,22 +21,41 @@ import type { EquipSlotId, ItemId } from './items';
 export interface OwnedItem {
     id: ItemId;
     attribute?: ItemAttribute;
+    /** +1, +2 or +3 from the blacksmith (Fase 24D, data/upgrades.ts); missing = +0. */
+    upgrade?: number;
 }
 
-/** Chance that a monster drops an item when it dies (0..1). */
+/** The same kind of item: same id, attribute and "+" (two identical Long Swords are the same kind). */
+export function sameOwnedItem(a: Readonly<OwnedItem>, b: Readonly<OwnedItem>): boolean {
+    return a.id === b.id && a.attribute === b.attribute && (a.upgrade ?? 0) === (b.upgrade ?? 0);
+}
+
+/**
+ * Chance that a monster drops an item when it dies (0..1). Fase 24A (owner: 3–4 items a run, now that only special
+ * ones drop): before, 0.3% and 4% (~8 items a run). A 15-minute run (~3.000 kills, ~40 elites) gives ~1 from monsters.
+ */
 export const LOOT_DROP_CHANCE = {
-    normal: 0.003,
-    elite: 0.04,
+    normal: 0.0002,
+    elite: 0.01,
 } as const;
 
-/** Items dropped by a boss: always `count`, and one more with chance `extraChance`. */
+/**
+ * Items dropped by a boss: always `count`, and one more with chance `extraChance`. Fase 24A: mini-bosses 1 at 40%
+ * (before 1 + 30%), the final boss 1 (before 2). With the Champion's one, a won run gives ~3–4 items.
+ */
 export const LOOT_BOSS_DROPS = {
-    miniBoss: { count: 1, extraChance: 0.3 },
-    finalBoss: { count: 2, extraChance: 0 },
+    miniBoss: { count: 0, extraChance: 0.4 },
+    finalBoss: { count: 1, extraChance: 0 },
 } as const;
 
 /** Chance that each boss also drops a Zemstone of Sacrifice (owner, 20-oct-2026: 10%). ?debug=zem makes it always. */
 export const LOOT_ZEM_BOSS_CHANCE = 0.1;
+
+/**
+ * Chance that any monster drops a Stone of Xelima when it dies, apart from the normal roll (owner, 22-oct-2026: "any
+ * monster, very rare"). A 15-minute run (~3.000 kills) gives ~1–2. ?debug=xelima raises it to `debug`.
+ */
+export const LOOT_XELIMA_CHANCE = { normal: 0.0005, debug: 0.05 } as const;
 
 /** How far apart the items of one boss fall (px). */
 export const LOOT_BOSS_SPREAD = 40;

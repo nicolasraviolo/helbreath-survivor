@@ -7,6 +7,9 @@ import { TOUCH_POINTERS } from './config/touch';
 import { loadUiFont } from './config/ui';
 import { BootScene } from './scenes/BootScene';
 import { PreloadScene } from './scenes/PreloadScene';
+import { MapLoadScene } from './scenes/MapLoadScene';
+import { MapSelectScene } from './scenes/MapSelectScene';
+import { TownScene } from './scenes/TownScene';
 import { MainMenuScene } from './scenes/MainMenuScene';
 import { CharacterSelectScene } from './scenes/CharacterSelectScene';
 import { CharacterSlotsScene } from './scenes/CharacterSlotsScene';
@@ -18,11 +21,14 @@ import { GameOverScene } from './scenes/GameOverScene';
 import { PauseScene } from './scenes/PauseScene';
 import { CharacterInfoScene } from './scenes/CharacterInfoScene';
 import { EquipmentScene } from './scenes/EquipmentScene';
+import { ShopScene } from './scenes/ShopScene';
+import { SmithScene } from './scenes/SmithScene';
 import { WarehouseScene } from './scenes/WarehouseScene';
 import { SettingsScene } from './scenes/SettingsScene';
 import { ControlsScene } from './scenes/ControlsScene';
 import { CreditsScene } from './scenes/CreditsScene';
 import { RunChoiceScene } from './scenes/RunChoiceScene';
+import { NpcDialogScene } from './scenes/NpcDialogScene';
 import { ReleaseNotesScene } from './scenes/ReleaseNotesScene';
 import { HowToPlayScene } from './scenes/HowToPlayScene';
 import { AchievementsScene } from './scenes/AchievementsScene';
@@ -45,8 +51,8 @@ function startGame(): void {
         disableContextMenu: true,
         // HudScene, LevelUpScene y los menús que se abren encima (pausa, ajustes...) van después para dibujarse encima.
         scene: [
-            BootScene, PreloadScene, MainMenuScene, CharacterSlotsScene, CharacterSelectScene, GameScene, HudScene, LevelUpScene, LootScene, GameOverScene,
-            PauseScene, CharacterInfoScene, EquipmentScene, WarehouseScene, SettingsScene, ControlsScene, CreditsScene, RunChoiceScene, ReleaseNotesScene, AchievementsScene, HowToPlayScene, SpriteTestScene,
+            BootScene, PreloadScene, MainMenuScene, CharacterSlotsScene, CharacterSelectScene, TownScene, MapSelectScene, MapLoadScene, GameScene, HudScene, LevelUpScene, LootScene, GameOverScene,
+            PauseScene, CharacterInfoScene, EquipmentScene, WarehouseScene, SettingsScene, ControlsScene, CreditsScene, RunChoiceScene, NpcDialogScene, ShopScene, SmithScene, ReleaseNotesScene, AchievementsScene, HowToPlayScene, SpriteTestScene,
         ],
     });
 

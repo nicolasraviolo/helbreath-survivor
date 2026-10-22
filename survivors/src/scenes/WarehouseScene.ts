@@ -17,7 +17,8 @@ import {
 import { attributeColor, ATTRIBUTES } from '../data/attributes';
 import { CHARACTERS, type CharacterId } from '../data/characters';
 import { classCanWear, describeItem, EQUIP_SLOT_IDS, EQUIP_SLOT_NAMES, itemInfo, itemPicture, ownedItemName } from '../data/items';
-import type { OwnedItem } from '../data/loot';
+import { sameOwnedItem, type OwnedItem } from '../data/loot';
+import { upgradeDescription } from '../data/upgrades';
 import { WAREHOUSE_CAPACITY } from '../data/warehouse';
 import { setColouredTexture } from '../hb/additiveTint';
 import { characterStore, type SavedCharacter } from '../systems/CharacterStore';
@@ -32,7 +33,7 @@ export interface WarehouseSceneData {
 
 type Side = 'inventory' | 'warehouse';
 
-/** One kind of item (same item and attribute) and where its copies are in the source list. */
+/** One kind of item (same item, attribute and "+") and where its copies are in the source list. */
 interface Kind {
     item: OwnedItem;
     indices: number[];
@@ -207,7 +208,9 @@ export class WarehouseScene extends Phaser.Scene {
             }
             // On the right: the slot, or which class uses it if the marked character can't.
             const other = otherClass(classId, kind.item);
-            const note = other ? `${CHARACTERS[other].name} only` : EQUIP_SLOT_NAMES[itemInfo(kind.item.id)?.slot ?? 'weapon'];
+            // Items never put on (the Xelima stone, Fase 24C) say what they are for.
+            const slot = itemInfo(kind.item.id)?.slot;
+            const note = other ? `${CHARACTERS[other].name} only` : slot ? EQUIP_SLOT_NAMES[slot] : 'Blacksmith';
             column.objects.push(this.add.text(x + width - 6, middle, note, { ...EQUIPMENT_DETAIL_STYLE, color: other ? WAREHOUSE_OTHER_CLASS_COLOR : EQUIPMENT_DETAIL_STYLE.color })
                 .setOrigin(1, 0.5));
             background.setInteractive({ useHandCursor: true });
@@ -286,8 +289,9 @@ export class WarehouseScene extends Phaser.Scene {
         const kind = this.columns[focus.side].kinds[focus.index];
         if (!kind) return focus.side === 'inventory' ? 'Your inventory is empty.' : 'The warehouse is empty.';
         const attribute = kind.item.attribute ? ` ${ATTRIBUTES[kind.item.attribute].description}.` : '';
+        const upgrade = kind.item.upgrade ? ` ${upgradeDescription(kind.item.upgrade)}.` : '';
         const where = focus.side === 'inventory' ? 'to the warehouse' : 'to your inventory';
-        return `${ownedItemName(kind.item)}: ${describeItem(kind.item.id)}.${attribute} Click or press Enter to move one ${where}.`;
+        return `${ownedItemName(kind.item)}: ${describeItem(kind.item.id)}.${attribute}${upgrade} Click or press Enter to move one ${where}.`;
     }
 
     private moveSideways(side: Side): void {
@@ -342,15 +346,19 @@ export class WarehouseScene extends Phaser.Scene {
     }
 }
 
-/** One entry per kind (item and attribute), ordered by slot and then by name. */
+/** One entry per kind (item, attribute and "+"), ordered by slot and then by name. */
 function groupKinds(items: readonly Readonly<OwnedItem>[]): Kind[] {
     const kinds: Kind[] = [];
     items.forEach((item, index) => {
-        const kind = kinds.find((k) => k.item.id === item.id && k.item.attribute === item.attribute);
+        const kind = kinds.find((k) => sameOwnedItem(k.item, item));
         if (kind) kind.indices.push(index);
         else kinds.push({ item: { ...item }, indices: [index] });
     });
-    const slotOrder = (kind: Kind) => EQUIP_SLOT_IDS.indexOf(itemInfo(kind.item.id)?.slot ?? 'weapon');
+    // Items with no slot (the Xelima stone) go last.
+    const slotOrder = (kind: Kind) => {
+        const slot = itemInfo(kind.item.id)?.slot;
+        return slot ? EQUIP_SLOT_IDS.indexOf(slot) : EQUIP_SLOT_IDS.length;
+    };
     return kinds.sort((a, b) => slotOrder(a) - slotOrder(b) || ownedItemName(a.item).localeCompare(ownedItemName(b.item)));
 }
 

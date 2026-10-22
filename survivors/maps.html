@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Helbreath maps</title>
+<!-- Visor de mapas (solo desarrollo): todos los mapas de sp-client con su minimapa, para elegir los de cada fase. -->
+<style>
+    :root { --bg: #15130f; --card: #221e17; --text: #e9e1cf; --muted: #a39a86; --accent: #d9b45a; --good: #7fbf6a; --bad: #c96a5a; }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 16px; background: var(--bg); color: var(--text); font: 14px/1.4 system-ui, sans-serif; }
+    h1 { margin: 0 0 4px; font-size: 22px; color: var(--accent); }
+    p.intro { margin: 0 0 16px; color: var(--muted); }
+    h2 { margin: 24px 0 8px; font-size: 16px; color: var(--accent); border-bottom: 1px solid #3a3326; padding-bottom: 4px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+    .card { background: var(--card); border-radius: 8px; overflow: hidden; cursor: zoom-in; border: 2px solid transparent; }
+    .card.current { border-color: var(--good); }
+    .card img { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; background: #000; }
+    .card .info { padding: 8px 10px; }
+    .card .name { font-weight: bold; }
+    .card .id { color: var(--muted); font-family: monospace; font-size: 12px; }
+    .card .note { margin-top: 4px; font-size: 13px; }
+    .tag { display: inline-block; font-size: 11px; padding: 1px 6px; border-radius: 4px; margin-right: 4px; background: #3a3326; }
+    .tag.good { background: #2e4a26; color: var(--good); }
+    .tag.bad { background: #4a2a24; color: var(--bad); }
+    #zoom { position: fixed; inset: 0; background: rgba(0,0,0,.9); display: none; align-items: center; justify-content: center; cursor: zoom-out; padding: 16px; }
+    #zoom img { max-width: 100%; max-height: 100%; }
+</style>
+</head>
+<body>
+<h1>Helbreath maps</h1>
+<p class="intro">Every map in sp-client that has a minimap picture. Click one to see it big. Green border = the map we play now.</p>
+<div id="sections"></div>
+<div id="zoom"><img alt=""></div>
+<script>
+    // [archivo, nombre, nota, etiqueta] — notas de docs/PLAN-2.md ("Mapas candidatos", medido el 18-oct-2026).
+    const SECTIONS = [
+        ['Hunting maps', [
+            ['bisle', 'Bleeding Isle', 'The map we play now. 95% free.', 'current'],
+            ['icebound', 'Icebound', 'Open snow field, 91% free. ~9 MB.', 'good'],
+            ['areuni', 'Aresden Garden', 'Garden next to Aresden.', ''],
+            ['elvuni', 'Elvine Garden', 'Garden next to Elvine.', ''],
+            ['arefarm', 'Aresden Farm', 'Open and pretty, 93–95% free, but heavy (~16 MB).', ''],
+            ['elvfarm', 'Elvine Farm', 'Same as Aresden Farm, Elvine style.', ''],
+            ['huntzone1', 'Hunt Zone 1', '', ''],
+            ['huntzone2', 'Hunt Zone 2', 'Our first map (Eternal Field), saved for later.', ''],
+            ['huntzone3', 'Hunt Zone 3', '', ''],
+            ['huntzone4', 'Hunt Zone 4', '', ''],
+            ['middleland', 'Middleland', '99% free, but too plain (owner, 16-oct).', ''],
+            ['2ndmiddle', 'Promiseland', 'Fits; ~6.5 MB.', ''],
+            ['druncncity', 'Druncian City', 'Open squares, 86% free. Heaviest tiles (5 MB).', ''],
+            ['procella', 'Procella', 'Fits; ~10.6 MB.', ''],
+            ['default', 'Traveler Zone', 'The starting map of the original.', ''],
+        ]],
+        ['Dungeons', [
+            ['dglv4', 'Dungeon Level 4', 'Small arena (one 60×60 room). Very cheap, ~4.9 MB.', 'good'],
+            ['dglv2', 'Dungeon Level 2', 'All corridors.', 'bad'],
+            ['dglv3', 'Dungeon Level 3', 'All corridors.', 'bad'],
+            ['aresdend1', 'Aresden Dungeon 1', '', ''],
+            ['elvined1', 'Elvine Dungeon 1', '', ''],
+            ['middled1n', 'Middleland Dungeon North', '', ''],
+            ['middled1x', 'Middleland Dungeon', '', ''],
+            ['toh1', 'Tower of Hell 1', 'Corridors.', 'bad'],
+            ['toh2', 'Tower of Hell 2', 'Corridors.', 'bad'],
+            ['toh3', 'Tower of Hell 3', 'Corridors.', 'bad'],
+            ['maze', 'Maze', 'Corridors.', 'bad'],
+        ]],
+        ['Cities and war', [
+            ['aresden', 'Aresden', 'City, 92–96% free, but ~22 MB.', ''],
+            ['elvine', 'Elvine', 'City, 92–96% free, but ~22 MB.', ''],
+            ['btfield', 'Battlefield', '', ''],
+            ['HRampart', 'Heldenian Rampart', '', ''],
+            ['godh', "God's Hand", '', ''],
+        ]],
+        ['Other', [
+            ['abaddon', 'Abaddon', 'Hellish look, ~3.1 MB.', ''],
+            ['inferniaA', 'Infernia A', '', ''],
+            ['inferniaB', 'Infernia B', '', ''],
+            ['hbsh6', 'Sleepy Hollow 6', 'Unofficial map.', ''],
+        ]],
+    ];
+
+    const sections = document.getElementById('sections');
+    const zoom = document.getElementById('zoom');
+    for (const [title, maps] of SECTIONS) {
+        const h = document.createElement('h2');
+        h.textContent = title;
+        const grid = document.createElement('div');
+        grid.className = 'grid';
+        for (const [file, name, note, tag] of maps) {
+            const src = `/assets/images/minimaps/${file}.jpg`;
+            const card = document.createElement('div');
+            card.className = 'card' + (tag === 'current' ? ' current' : '');
+            const tagHtml = tag === 'good' ? '<span class="tag good">good fit</span>' : tag === 'bad' ? '<span class="tag bad">does not fit</span>' : '';
+            card.innerHTML = `<img loading="lazy" src="${src}" alt="${name}"><div class="info"><div class="name">${name}</div>`
+                + `<div class="id">${file}</div><div class="note">${tagHtml}${note}</div></div>`;
+            card.onclick = () => { zoom.querySelector('img').src = src; zoom.style.display = 'flex'; };
+            grid.appendChild(card);
+        }
+        sections.append(h, grid);
+    }
+    zoom.onclick = () => { zoom.style.display = 'none'; };
+</script>
+</body>
+</html>

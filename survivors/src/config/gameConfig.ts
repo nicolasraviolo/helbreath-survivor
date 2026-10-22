@@ -87,10 +87,10 @@ export const ENEMY_KNOCKBACK_DECAY = 12;
 /** Grid cell size for neighbour queries. */
 export const SPATIAL_CELL_SIZE = 48;
 
-/** Monster BodyShadow from sp-client ShadowManager: black copy, rotated and squashed. */
-export const MONSTER_SHADOW_ALPHA = 0.5;
-export const MONSTER_SHADOW_ROTATION = -Math.PI / 4;
-export const MONSTER_SHADOW_SCALE_Y = 0.5;
+/** Body shadow of monsters and the player (sp-client ShadowManager): black copy of the frame, rotated and squashed. */
+export const BODY_SHADOW_ALPHA = 0.5;
+export const BODY_SHADOW_ROTATION = -Math.PI / 4;
+export const BODY_SHADOW_SCALE_Y = 0.5;
 
 /** Player: blink period while invulnerable, and delay before the Game Over screen. */
 export const PLAYER_BLINK_MS = 80;

@@ -14,6 +14,44 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: readonly ReleaseNote[] = [
     {
+        version: 'Phase 24',
+        date: 'Oct 22, 2026',
+        changes: [
+            'Gold: monsters drop coins and bosses drop piles. You keep it even if you die.',
+            'Loot is rarer but always special: armor now comes with bonuses too.',
+            'Dying without a Zem now loses only half of your loot.',
+            "New shop in town: spend your gold on the Zem, Abaddon's Blood, dice and wine.",
+            'Your character no longer loses their clothes after changing equipment in town.',
+            'Tom the blacksmith buys, sells and upgrades weapons and wands up to +3.',
+            'New rare loot: the Stone of Xelima, used for weapon upgrades.',
+            'Press I in town to open your equipment.',
+        ],
+    },
+    {
+        version: 'Phase 23',
+        date: 'Oct 21, 2026',
+        changes: [
+            'New town: walk around the Elvine farm between runs.',
+            'Step on the teleport to choose your map.',
+            'After a run, the Town button takes you back to the farm.',
+            'Talk to the townsfolk: Howard keeps your gear, William your achievements.',
+        ],
+    },
+    {
+        version: 'Phase 22',
+        date: 'Oct 21, 2026',
+        changes: [
+            'New Select Map screen: choose where to fight.',
+            'New map: Traveler Zone, a short first adventure full of weak monsters (cats included).',
+            'New map: Elvine Garden, with walking trees and a giant Cyclops.',
+            'New map: Middleland, a long battle against a Giant Lizard, a Berserk Ettin and the Unicorn.',
+            'Win a map, or reach its Level, to open the next one.',
+            'Two new bosses, a giant Stone Golem and the Training Dummy, and two new achievements.',
+            'Faster start: each map now loads only what it needs.',
+            'Your character now casts a shadow, like the monsters.',
+        ],
+    },
+    {
         version: 'Phase 21½',
         date: 'Oct 21, 2026',
         changes: [

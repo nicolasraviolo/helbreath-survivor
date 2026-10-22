@@ -4,10 +4,10 @@
 import type Phaser from 'phaser';
 import { DEBUG_START } from '../config/debugStart';
 import { CHAMPION } from '../data/champion';
-import { ZEM_ID } from '../data/consumables';
+import { XELIMA_STONE_ID, ZEM_ID } from '../data/consumables';
 import type { Gender } from '../data/appearance';
 import type { CharacterId } from '../data/characters';
-import { LOOT_BOSS_DROPS, LOOT_BOSS_SPREAD, LOOT_DROP_CHANCE, LOOT_GROUND, LOOT_SOUNDS, LOOT_ZEM_BOSS_CHANCE, type OwnedItem } from '../data/loot';
+import { LOOT_BOSS_DROPS, LOOT_BOSS_SPREAD, LOOT_DROP_CHANCE, LOOT_GROUND, LOOT_SOUNDS, LOOT_XELIMA_CHANCE, LOOT_ZEM_BOSS_CHANCE, type OwnedItem } from '../data/loot';
 import type { Stats } from '../data/stats';
 import { LootDrop } from '../entities/LootDrop';
 import { Pool } from '../utils/Pool';
@@ -42,9 +42,11 @@ export class LootSystem {
         return this.drops.active;
     }
 
-    /** A monster died there: maybe drops an item (more often if it was elite). */
+    /** A monster died there: maybe drops an item (more often if it was elite) and, very rarely, a Xelima stone (24C). */
     public onKill(x: number, y: number, elite: boolean): void {
         if (Math.random() < (elite ? LOOT_DROP_CHANCE.elite : LOOT_DROP_CHANCE.normal)) this.dropRolled(x, y);
+        const xelima = DEBUG_START.actions.includes('xelima') ? LOOT_XELIMA_CHANCE.debug : LOOT_XELIMA_CHANCE.normal;
+        if (this.enabled && Math.random() < xelima) this.drop({ id: XELIMA_STONE_ID }, x, y);
     }
 
     /** A boss died there: its items (and, sometimes, a Zem: Fase 21D) fall in a small circle. */

@@ -20,6 +20,7 @@ import { MELEE_WEAPONS, type MeleeWeaponId } from '../data/weapons';
 import { isItemAttribute, type ItemAttribute } from '../data/attributes';
 import { canHaveAttribute, EQUIP_SLOT_IDS, isItemId, itemInfo, type EquipSlotId, type ItemId } from '../data/items';
 import type { OwnedItem } from '../data/loot';
+import { readUpgrade } from '../data/upgrades';
 import type { RunLootState } from './RunLoot';
 
 const STORAGE_KEY = 'hb-survivors.runs';
@@ -76,6 +77,8 @@ export interface RunSnapshot {
     metrics: RunMetricsState | undefined;
     /** Items found, in the bag and put on (Fase 21A). Saves from before have none. */
     loot: RunLootState | undefined;
+    /** Gold picked up so far (Fase 24A). Saves from before have none. */
+    gold: number | undefined;
     /** Abaddon's Blood was already used in this run (Fase 21E). Saves from before: not used. */
     abaddonUsed: boolean;
     /** Minutes of this run's champions (Fase 21½C). Saves from before have none: new ones are rolled. */
@@ -219,6 +222,7 @@ function readSnapshot(entry: unknown): RunSnapshot | undefined {
         spellCooldownMs: readNumber(entry.spellCooldownMs),
         metrics: readMetrics(entry.metrics),
         loot: readLoot(entry.loot),
+        gold: readNumber(entry.gold),
         abaddonUsed: entry.abaddonUsed === true,
         rerollsLeft: readNumber(entry.rerollsLeft),
         skipsLeft: readNumber(entry.skipsLeft),
@@ -232,7 +236,8 @@ function readSnapshot(entry: unknown): RunSnapshot | undefined {
 export function readOwnedItem(value: unknown): OwnedItem | undefined {
     if (!isRecord(value) || typeof value.id !== 'string' || !isItemId(value.id)) return undefined;
     const attribute = readAttribute(value.id, value.attribute);
-    return attribute ? { id: value.id, attribute } : { id: value.id };
+    const upgrade = readUpgrade(value.id, value.upgrade);
+    return { id: value.id, ...(attribute ? { attribute } : {}), ...(upgrade ? { upgrade } : {}) };
 }
 
 /** An attribute read back, if that item can have it. */

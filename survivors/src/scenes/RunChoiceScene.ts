@@ -1,6 +1,6 @@
 // Se abre en Select Character al elegir un personaje con una partida guardada (21-oct-2026): Continue la sigue;
 // New Run avisa de que esa partida se pierde (su EXP y su botín) y, si se acepta, la borra y empieza una nueva.
-// Cuando haya Select Map (Fase 22), la partida nueva pasará por ahí; de momento empieza en el único mapa.
+// Continue carga el mapa de esa partida; la partida nueva empieza en la ciudad (Fase 23), y su teleport abre Select Map.
 // Esc/B: desde el aviso vuelve a las dos opciones; desde ahí, a Select Character.
 import Phaser from 'phaser';
 import { MENU_OVERLAY, MENU_TEXT_STYLE, RUN_CHOICE } from '../config/menus';
@@ -9,6 +9,7 @@ import { ACTIVE_CHARACTER_KEY, characterStore } from '../systems/CharacterStore'
 import { RESUME_SLOT_KEY, saveStore } from '../systems/SaveStore';
 import { formatTime } from '../utils/format';
 import type { MenuItem } from '../ui/MenuList';
+import { startTown, type MapLoadSceneData } from './MapLoadScene';
 import { MenuOverlayScene, type MenuOverlayData } from './MenuOverlayScene';
 
 export interface RunChoiceSceneData extends MenuOverlayData {
@@ -16,15 +17,23 @@ export interface RunChoiceSceneData extends MenuOverlayData {
     slot: number;
 }
 
-/** Starts the game with the character in that slot: its saved run if `resume`, otherwise a new run. */
+/**
+ * Plays with the character in that slot: its saved run if `resume` (loading its map first, Fase 22A), otherwise
+ * the town opens (Fase 23), where the teleport leads to Select Map.
+ */
 export function startCharacterRun(scene: Phaser.Scene, slot: number, resume: boolean): void {
     const saved = characterStore.get(slot);
     if (!saved) return;
     scene.registry.set(CHOSEN_CHARACTER_KEY, saved.classId);
     scene.registry.set(ACTIVE_CHARACTER_KEY, saved.uid);
-    if (resume && saveStore.get(slot)) scene.registry.set(RESUME_SLOT_KEY, slot);
-    else scene.registry.remove(RESUME_SLOT_KEY);
-    scene.scene.start('Game');
+    const run = resume ? saveStore.get(slot) : undefined;
+    if (run) {
+        scene.registry.set(RESUME_SLOT_KEY, slot);
+        scene.scene.start('MapLoad', { map: run.map } satisfies MapLoadSceneData);
+        return;
+    }
+    scene.registry.remove(RESUME_SLOT_KEY);
+    startTown(scene);
 }
 
 export class RunChoiceScene extends MenuOverlayScene {

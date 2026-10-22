@@ -24,7 +24,7 @@ import {
     HUD_PORTAL,
 } from '../config/hud';
 import type { HudStyle } from '../config/settings';
-import { TOUCH_PAUSE_BUTTON } from '../config/touch';
+import { addTouchPauseButton } from '../ui/TouchPauseButton';
 import { ACHIEVEMENT_EVENT } from '../data/achievements';
 import { dodgeChance, resistChance } from '../data/defense';
 import { PASSIVE_IDS, PASSIVES } from '../data/passives';
@@ -173,7 +173,7 @@ export class HudScene extends Phaser.Scene {
         });
         // The compact HUD has no floppy disk button: it needs the round one (also when forced with ?ui=compact on a PC).
         if (this.sys.game.device.input.touch || COMPACT_UI) {
-            this.createTouchPauseButton();
+            addTouchPauseButton(this, HUD_DEPTH_TEXT, () => this.openPause());
             this.minimap.setTop(MINIMAP.topUnderButtons);
             this.critButton = new CritButton(this, () => this.launchCritStrike());
             this.critButton.place(overlayBottom());
@@ -364,21 +364,6 @@ export class HudScene extends Phaser.Scene {
         };
         this.scene.pause(this.gameSceneKey);
         openOverlay(this, 'CharacterInfo', data);
-    }
-
-    /** Round "II" button for fingers (touch screens only). */
-    private createTouchPauseButton(): void {
-        const b = TOUCH_PAUSE_BUTTON;
-        this.add.graphics({ x: b.x, y: b.y })
-            .fillStyle(b.color, b.alpha).fillCircle(0, 0, b.radius)
-            .lineStyle(2, b.ringColor, 0.6).strokeCircle(0, 0, b.radius)
-            .fillStyle(b.barColor, 1)
-            .fillRect(-b.barGap / 2 - b.barWidth, -b.barHeight / 2, b.barWidth, b.barHeight)
-            .fillRect(b.barGap / 2, -b.barHeight / 2, b.barWidth, b.barHeight)
-            .setDepth(HUD_DEPTH_TEXT);
-        const zone = this.add.zone(b.x, b.y, b.hitRadius * 2, b.hitRadius * 2)
-            .setInteractive(new Phaser.Geom.Circle(b.hitRadius, b.hitRadius, b.hitRadius), Phaser.Geom.Circle.Contains);
-        zone.on(Phaser.Input.Events.POINTER_DOWN, () => this.openPause());
     }
 
     /** Freezes the game and this bar and opens the pause menu on top (not while cards or the end screen show). */

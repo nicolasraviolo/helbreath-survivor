@@ -4,6 +4,7 @@ import Phaser from 'phaser';
 import { ENEMY_SEPARATION_MAX, ENEMY_SEPARATION_PER_PX, SPATIAL_CELL_SIZE } from '../config/gameConfig';
 import { ENEMIES, type EnemyDef, type EnemyId } from '../data/enemies';
 import { eliteChance } from '../data/elites';
+import { NO_DIFFICULTY, type MapDifficulty } from '../data/maps';
 import { Enemy, type EnemyWorld } from '../entities/Enemy';
 import { Pool } from '../utils/Pool';
 import type { AudioSystem } from './AudioSystem';
@@ -26,6 +27,8 @@ export class EnemySystem {
     private playerHealthShare: () => number = () => 1;
     /** Debug (?debug=elites): every monster that is not a boss comes out elite. */
     public allElite = false;
+    /** The map's multipliers for the normal monsters (Fase 22A); bosses keep their own numbers. */
+    public difficulty: MapDifficulty = NO_DIFFICULTY;
 
     constructor(scene: Phaser.Scene, audio: AudioSystem) {
         for (const id of Object.keys(ENEMIES) as EnemyId[]) {
@@ -64,7 +67,7 @@ export class EnemySystem {
     /** Champion (Fase 21½C, data/champion.ts): a much tougher monster of this kind, never elite on top. */
     public spawnChampion(id: EnemyId, x: number, y: number): Enemy {
         const enemy = this.getPool(id).acquire();
-        enemy.spawn(x, y, false, true);
+        enemy.spawn(x, y, false, this.difficulty, true);
         return enemy;
     }
 
@@ -73,7 +76,7 @@ export class EnemySystem {
         const enemy = this.getPool(id).acquire();
         const def = enemy.def;
         const elite = def.boss === undefined && (this.allElite || Math.random() < eliteChance(def, this.playerHealthShare()));
-        enemy.spawn(x, y, elite);
+        enemy.spawn(x, y, elite, def.boss === undefined ? this.difficulty : NO_DIFFICULTY);
         return enemy;
     }
 

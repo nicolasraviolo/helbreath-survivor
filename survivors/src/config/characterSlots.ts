@@ -39,21 +39,14 @@ export const SLOTS_BUTTONS = {
     back: { frame: 55, y: 408 },
     /** "Level Set." on the left of the Change Password row (Fase 20A). */
     levelSet: { frame: 10, litFrame: 11, x: 368, y: 380 },
-    /** "Equipment" on its right (Fase 20B): drawn with text, the original has no such button. */
-    equipment: { x: 446, y: 380, width: 90, height: 20 },
-    /** "Warehouse" (Fase 21D), drawn like Equipment, in the empty box under the help text. */
-    warehouse: { x: 174, y: 410, width: 110, height: 20 },
 } as const;
 export const SLOTS_BUTTON_LIT_OFFSET = 5;
 /** Empty slots, and in Continue the characters without a saved run. */
 export const SLOTS_DIM_ALPHA = 0.45;
 /** Covers Change Password (not used) under the "Level Set." button (Fase 20A), with a thin frame like the buttons'. */
-export const SLOTS_DISABLED_SHADE = { color: 0x2b241b, alpha: 1, border: 0x5a4a30 } as const;
-/** "Equipment" button: text and frame, lit while the pointer is over it. */
-export const SLOTS_EQUIPMENT_STYLE = { ...UI_TEXT, fontSize: byDevice('14px', '16px'), fontStyle: 'bold', color: '#d8c890' } as const;
-export const SLOTS_EQUIPMENT_LIT_COLOR = '#ffe890';
-/** Phones: touch area bigger than the button (they are 30 px apart, so only up to ~3 px up and down). */
+/** Phones: touch area bigger than the buttons (they are 30 px apart, so only up to ~3 px up and down). */
 export const SLOTS_BUTTON_HIT_PAD = byDevice({ x: 0, y: 0 }, { x: 4, y: 3 });
+export const SLOTS_DISABLED_SHADE = { color: 0x2b241b, alpha: 1, border: 0x5a4a30 } as const;
 
 /** Help text on the left of the buttons, as in the original (centred between x 98 and 357). */
 export const SLOTS_HELP = { x: 228, y: 330, width: 240 } as const;
