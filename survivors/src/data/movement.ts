@@ -6,8 +6,9 @@
  * - `direct`: straight at the player (the original behaviour).
  * - `flank`: comes in on a curve from one side and only goes straight when close, so packs arrive from several sides.
  * - `wander`: walks around at random (drifting roughly towards the player) until it sees the player or is hit.
+ * - `charge`: walks straight at the player, but now and then stops, shows a "!" and rushes in a straight line (27B).
  */
-export type MovementStyle = 'direct' | 'flank' | 'wander';
+export type MovementStyle = 'direct' | 'flank' | 'wander' | 'charge';
 
 /**
  * Flank: each monster picks a side (left or right) and an angle between `minAngleDeg` and `maxAngleDeg` when it
@@ -22,3 +23,23 @@ export const FLANK = { minAngleDeg: 35, maxAngleDeg: 60, nearPx: 110, farPx: 320
  * within `sightPx`, or as soon as it takes a hit, and from then on chases straight for good.
  */
 export const WANDER = { minLegMs: 900, maxLegMs: 2200, spreadDeg: 75, idleChance: 0.15, sightPx: 260 } as const;
+
+/**
+ * Charge (Fase 27B): when it is between `minPx` and `maxPx` from the player and its pause is over, it stops for
+ * `windupMs` with a "!" over its head, aimed at where the player stood when the "!" appeared. Then it rushes that way
+ * at `speedFactor` times its speed and runs `overshootPx` past that point (so if you stepped aside it misses and has to
+ * turn back). Next charge after `minCooldownMs`–`maxCooldownMs`; the first one comes at a random moment within
+ * `maxCooldownMs` of appearing, so a pack doesn't charge all at once.
+ */
+export const CHARGE = {
+    minPx: 70,
+    maxPx: 220,
+    windupMs: 600,
+    speedFactor: 2.2,
+    overshootPx: 110,
+    minCooldownMs: 3000,
+    maxCooldownMs: 4500,
+} as const;
+
+/** The "!" over a charging monster: colour, size and gap above its head (px). */
+export const CHARGE_WARNING = { text: '!', color: '#ffd020', fontSizePx: 26, gapAboveHeadPx: 4, maxShown: 40 } as const;

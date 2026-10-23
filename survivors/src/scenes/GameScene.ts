@@ -121,6 +121,8 @@ import { ScreenLayer, setGameViewport } from '../ui/renderScale';
 
 /** Enemies created by the debug "spawn many" key. */
 const DEBUG_SPAWN_COUNT = 100;
+/** ?debug=charge (Fase 27B): a ring of monsters that charge, at this distance (px) around the player. */
+const DEBUG_CHARGE = { enemies: ['bunny', 'ant', 'direBoar', 'minotaur'], count: 12, radiusPx: 260 } as const;
 /** Points added by the debug keys V (Str) and B (Int and Mag), to see links and armor show up quickly. */
 const DEBUG_STR_POINTS = 10;
 /** Distance from the player of the pickups dropped by the debug key P. */
@@ -1401,6 +1403,10 @@ export class GameScene extends Phaser.Scene {
                 break;
             case 'stampede':
                 this.spawner.runFirstEvent('stampede');
+                break;
+            case 'charge':
+                // Monsters that stop with a "!" and charge (Fase 27B); only those already downloaded on this map.
+                this.spawner.spawnRing(DEBUG_CHARGE.enemies, DEBUG_CHARGE.count, this.player.x, this.player.y, DEBUG_CHARGE.radiusPx);
                 break;
             case 'champion':
                 // A champion a few seconds from now (Fase 21½C).

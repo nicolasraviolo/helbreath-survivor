@@ -9,11 +9,14 @@ import { Enemy, type EnemyWorld } from '../entities/Enemy';
 import { Pool } from '../utils/Pool';
 import type { AudioSystem } from './AudioSystem';
 import { SpatialGrid } from '../utils/SpatialGrid';
+import { ChargeWarnings } from './ChargeWarnings';
 
 export class EnemySystem {
     private readonly pools = new Map<EnemyId, Pool<Enemy>>();
     private readonly grid = new SpatialGrid<Enemy>(SPATIAL_CELL_SIZE);
     private readonly finished: Enemy[] = [];
+    /** The "!" over monsters about to charge (Fase 27B). */
+    private readonly chargeWarnings: ChargeWarnings;
     private aliveCount = 0;
 
     /** Damage of the monster blows that landed on the player during the last update. */
@@ -31,6 +34,7 @@ export class EnemySystem {
     public difficulty: MapDifficulty = NO_DIFFICULTY;
 
     constructor(scene: Phaser.Scene, audio: AudioSystem) {
+        this.chargeWarnings = new ChargeWarnings(scene);
         for (const id of Object.keys(ENEMIES) as EnemyId[]) {
             this.pools.set(id, new Pool(() => new Enemy(scene, ENEMIES[id], audio)));
         }
@@ -118,12 +122,19 @@ export class EnemySystem {
                     this.finished.push(enemy);
                 } else if (enemy.isAlive) {
                     this.aliveCount++;
+                    if (enemy.isWindingUp) this.chargeWarnings.show(enemy);
                 }
             }
             // Released after the loop: releasing reorders `active` while we iterate it.
             for (const enemy of this.finished) pool.release(enemy);
             this.finished.length = 0;
         }
+        this.chargeWarnings.update();
+    }
+
+    /** "!" shown right now over monsters about to charge. */
+    public get chargeWarningsShown(): number {
+        return this.chargeWarnings.active;
     }
 
     /**

@@ -203,7 +203,7 @@ export const ENEMIES = {
         actionTimeMs: 2100, attackRange: 1, bravery: 1, damageDice: [1, 4], hitRatio: 30, hitSound: 'sfx.slime.hit', deathSound: 'sfx.slime.death', attackSound: 'sfx.slime.attack',
     },
     bunny: {
-        name: 'Bunny', sprite: 'enemy.bunny', temporalCoefficient: 1, hasShadow: true, maxHp: 16, xp: 4, radius: 8, bodyOffsetY: 10,
+        movement: 'charge', name: 'Bunny', sprite: 'enemy.bunny', temporalCoefficient: 1, hasShadow: true, maxHp: 16, xp: 4, radius: 8, bodyOffsetY: 10,
         actionTimeMs: 1500, attackRange: 1, bravery: 2, damageDice: [1, 5], hitRatio: 35, hitSound: 'sfx.bunny.hit', deathSound: 'sfx.bunny.death', attackSound: 'sfx.bunny.attack',
     },
     // Fase 22C, solo en Traveler Zone. NPC.cfg Cat: ATime 1500, AttkRange 1, MinBrvy 3, 2d4, HR 45 (tier 1, algo más
@@ -213,7 +213,7 @@ export const ENEMIES = {
         actionTimeMs: 1500, attackRange: 1, bravery: 3, damageDice: [2, 4], hitRatio: 45, hitSound: 'sfx.cat.hit', deathSound: 'sfx.cat.death', attackSound: 'sfx.cat.attack',
     },
     ant: {
-        name: 'Ant', sprite: 'enemy.ant', temporalCoefficient: 1, hasShadow: false, maxHp: 28, xp: 6, radius: 10, bodyOffsetY: 12,
+        movement: 'charge', name: 'Ant', sprite: 'enemy.ant', temporalCoefficient: 1, hasShadow: false, maxHp: 28, xp: 6, radius: 10, bodyOffsetY: 12,
         actionTimeMs: 1200, attackRange: 1, bravery: 2, damageDice: [2, 3], hitRatio: 40, hitSound: 'sfx.ant.hit', deathSound: 'sfx.ant.death', attackSound: 'sfx.ant.attack',
     },
     // Minutos 2–4 (tiers 1–4)
@@ -262,7 +262,7 @@ export const ENEMIES = {
         actionTimeMs: 1200, attackRange: 1, bravery: 100, damageDice: [7, 4], hitRatio: 135, hitSound: 'sfx.stoneGolem.hit', deathSound: 'sfx.stoneGolem.death', attackSound: 'sfx.stoneGolem.attack',
     },
     direBoar: {
-        name: 'Dire Boar', sprite: 'enemy.direBoar', temporalCoefficient: 1, hasShadow: false, maxHp: 280, xp: 56, radius: 16, bodyOffsetY: 18,
+        movement: 'charge', name: 'Dire Boar', sprite: 'enemy.direBoar', temporalCoefficient: 1, hasShadow: false, maxHp: 280, xp: 56, radius: 16, bodyOffsetY: 18,
         actionTimeMs: 800, attackRange: 1, bravery: 100, damageDice: [8, 8], hitRatio: 230, hitSound: 'sfx.direBoar.hit', deathSound: 'sfx.direBoar.death', attackSound: 'sfx.direBoar.attack',
     },
     // Minutos 6–8 (tiers 5–7)
@@ -332,7 +332,7 @@ export const ENEMIES = {
         actionTimeMs: 600, attackRange: 6, bravery: 100, damageDice: [18, 17], hitRatio: 1200, hitSound: 'sfx.lich.hit', deathSound: 'sfx.lich.death', attackSound: 'sfx.tigerworm.attack',
     },
     minotaur: {
-        name: 'Minotaur', sprite: 'enemy.minotaur', temporalCoefficient: 1, hasShadow: true, maxHp: 1400, xp: 280, radius: 18, bodyOffsetY: 44,
+        movement: 'charge', name: 'Minotaur', sprite: 'enemy.minotaur', temporalCoefficient: 1, hasShadow: true, maxHp: 1400, xp: 280, radius: 18, bodyOffsetY: 44,
         actionTimeMs: 500, attackRange: 2, bravery: 100, damageDice: [13, 11], hitRatio: 500, hitSound: 'sfx.minotaur.hit', deathSound: 'sfx.minotaur.death', attackSound: 'sfx.minotaur.attack',
     },
     // Jefes

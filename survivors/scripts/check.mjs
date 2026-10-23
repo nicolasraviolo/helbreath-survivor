@@ -53,6 +53,8 @@ const PRESETS = {
     finalboss: 'debug=god,finalboss',
     portal: 'debug=god,bosskill',
     stampede: 'debug=god,stampede',
+    // Fase 27B: Bunnies y Ants de Traveler Zone alrededor, que se paran con un "!" y embisten (--wait=3000 para verlos cargar).
+    charge: 'map=traveler&debug=god,charge',
     levelpace: 'debug=sim',
     // Lo mismo en Elvine Garden (Fase 22D).
     levelpaceelvine: 'debug=sim&map=elvineGarden',

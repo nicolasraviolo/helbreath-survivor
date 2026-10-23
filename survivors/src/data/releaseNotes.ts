@@ -16,7 +16,10 @@ export const RELEASE_NOTES: readonly ReleaseNote[] = [
     {
         version: 'Phase 27',
         date: 'Oct 23, 2026',
-        changes: ['Monsters move in different ways: some flank you from the sides, others wander until they spot you.'],
+        changes: [
+            'Monsters move in different ways: some flank you from the sides, others wander until they spot you.',
+            'Some monsters stop with a "!" and then charge at you: step aside to dodge them.',
+        ],
     },
     {
         version: 'Phase 26',

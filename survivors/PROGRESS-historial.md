@@ -2,6 +2,11 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
+**Fase 27B — Embestir (2026-10-23).**
+- **Qué se hizo:** forma de moverse **embestir** (`'charge'`, números en `CHARGE` de `data/movement.ts`) para Bunny, Ant, Dire Boar y Minotaur (el Giant Lizard no: es jefe). A 70–220 px se paran 0,6 s con un **"!" amarillo** encima, apuntan a donde estaba el jugador y cargan en línea recta a 2,2× su velocidad, 110 px más allá (si te apartas, pasan de largo y vuelven); otra carga cada 3–4,5 s. Reutiliza `Enemy.charge()` de la estampida. Los "!" con pool en `systems/ChargeWarnings.ts`. Atajo `?debug=charge` y `check charge`. What's new con una línea. Ver NOTES.md, "Monstruos que se mueven distinto (Fase 27)".
+- **Comprobado:** build; `check charge` (hasta 5 "!" a la vez, captura con los avisos), `game`, `horde --mobile`, Traveler Zone con ~310 monstruos embistiendo en `--mobile`, `menu` y `stampede`: sin errores a 60 FPS. **Pendiente de probar por el propietario.**
+- **Probar:** `pnpm --dir survivors dev` → http://localhost:8090/?map=traveler&debug=god,charge
+
 **Fase 27A — Rodear, deambular y separarse (2026-10-23).**
 - **Qué se hizo:** cada monstruo tiene una forma de moverse (`movement` en `data/enemies.ts`, números en `data/movement.ts`): **rodear** (Cat, Snake, Orc, Werewolf, Hellhound, Stalker: llegan en curva por un lado y van rectos al acercarse) y **deambular** (Slime, Zombie, Clay y Stone Golem: tramos al azar hacia el jugador hasta verlo a 260 px o recibir un golpe). El resto, directo; los jefes, siempre directos. **Separación** más fuerte y con un pequeño hueco entre cuerpos (`ENEMY_SEPARATION_SPACING`). What's new de la Fase 27 creado. Ver NOTES.md, "Monstruos que se mueven distinto (Fase 27)".
 - **Decisiones del propietario:** embestir avisará con "!" (27B); se acepta algo más de dificultad; los jefes no cambian (23-oct-2026).

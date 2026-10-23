@@ -25,7 +25,7 @@ import { POISON } from '../data/attributes';
 import { EFFECTS } from '../config/effects';
 import { FREEZE_TINT } from '../data/totems';
 import { ICE_SLOW } from '../data/activeSpells';
-import { FLANK, WANDER, type MovementStyle } from '../data/movement';
+import { CHARGE, FLANK, WANDER, type MovementStyle } from '../data/movement';
 import { DEPTH_DAMAGE_NUMBERS, DEPTH_EFFECT_OFFSET, TILE_SIZE } from '../config/gameConfig';
 import { HBAsset } from '../hb/HBAsset';
 import type { HBMap } from '../hb/HBMap';
@@ -125,6 +125,15 @@ export class Enemy implements Poolable {
     private headX = 0;
     private headY = 0;
     private headPace = 1;
+    /** Charge (Fase 27B): time left standing with the "!", where it will rush (unit vector) and how far. */
+    private windupMs = 0;
+    private windupX = 0;
+    private windupY = 0;
+    private windupDistance = 0;
+    /** Charge: time before it may charge again. */
+    private nextChargeMs = 0;
+    /** EnemySystem's ChargeWarnings has a "!" over it. */
+    public hasChargeWarning = false;
     /** Freeze totem (Fase 16B): time left standing still, animation paused and tinted blue. */
     private frozenMs = 0;
     /** Ice Strike (Fase 26D): time left slowed, and its share of normal speed (0.5 = half: walks, hits and animates slower). */
@@ -193,6 +202,8 @@ export class Enemy implements Poolable {
         this.blowsSinceFlee = 0;
         this.braveryChecked = false;
         this.chargeMs = 0;
+        this.windupMs = 0;
+        this.nextChargeMs = Phaser.Math.FloatBetween(0, CHARGE.maxCooldownMs);
         this.frozenMs = 0;
         this.slowMs = 0;
         this.slowFactor = 1;
@@ -232,6 +243,7 @@ export class Enemy implements Poolable {
         this.attackLeftMs = 0;
         this.hitInMs = -1;
         this.chargeMs = 0;
+        this.windupMs = 0;
         this.knockX = 0;
         this.knockY = 0;
         this.sprite.anims.pause();
@@ -477,6 +489,7 @@ export class Enemy implements Poolable {
         this.knockY *= fade;
         const inReach = this.inReach(dx, dy, distance, world.targetRadius);
         this.cooldownMs = Math.max(0, this.cooldownMs - ownMs);
+        if (this.movement === 'charge') this.nextChargeMs -= ownMs;
         let facingX = dx;
         let facingY = dy;
         let wanted = MonsterState.Move;
@@ -500,6 +513,13 @@ export class Enemy implements Poolable {
             vy += this.chargeY * pace;
             facingX = this.chargeX;
             facingY = this.chargeY;
+        } else if (this.windupMs > 0) {
+            // Charge: stands with the "!" facing where it will rush, then goes.
+            this.windupMs -= ownMs;
+            facingX = this.windupX;
+            facingY = this.windupY;
+            wanted = MonsterState.Idle;
+            if (this.windupMs <= 0) this.startOwnCharge();
         } else if (inReach) {
             if (this.cooldownMs <= 0) {
                 this.startAttack(dx, dy);
@@ -508,6 +528,14 @@ export class Enemy implements Poolable {
                 // Waits its action time facing the player.
                 wanted = MonsterState.Idle;
             }
+        } else if (this.wantsToCharge(distance)) {
+            this.windupMs = CHARGE.windupMs;
+            this.windupX = dx / distance;
+            this.windupY = dy / distance;
+            this.windupDistance = distance;
+            facingX = dx;
+            facingY = dy;
+            wanted = MonsterState.Idle;
         } else if (distance > world.targetRadius + this.radius) {
             this.pickHeading(dx, dy, distance, ownMs);
             vx += this.headX * speed * this.headPace;
@@ -575,6 +603,30 @@ export class Enemy implements Poolable {
         }
         this.headX = ux;
         this.headY = uy;
+    }
+
+    /** Charge: its pause is over and the player is at charging distance (not too close, not too far). */
+    private wantsToCharge(distance: number): boolean {
+        return this.movement === 'charge' && this.nextChargeMs <= 0 && distance >= CHARGE.minPx && distance <= CHARGE.maxPx;
+    }
+
+    /** Charge: rushes in a straight line to where the player stood, and a bit past it. */
+    private startOwnCharge(): void {
+        const travel = this.windupDistance + CHARGE.overshootPx;
+        this.charge(this.windupX, this.windupY, CHARGE.speedFactor, (travel / (this.speed * CHARGE.speedFactor)) * 1000);
+        this.nextChargeMs = Phaser.Math.FloatBetween(CHARGE.minCooldownMs, CHARGE.maxCooldownMs);
+    }
+
+    /** Standing with the "!" before a charge (EnemySystem shows it). */
+    public get isWindingUp(): boolean {
+        return this.windupMs > 0 && this.phase === EnemyPhase.Alive;
+    }
+
+    /** Highest point of its head seen so far (world y), for things drawn over it. */
+    public headTopY(): number {
+        const frame = this.sprite.frame;
+        this.headHeight = Math.max(this.headHeight, frame.pivotY * frame.height * this.sprite.scaleY);
+        return this.y - this.headHeight;
     }
 
     /** Wander: a new leg, roughly towards the player, or a pause. */
@@ -752,10 +804,8 @@ export class Enemy implements Poolable {
      */
     private drawHealthBar(): void {
         const { width, height, gapAboveHead, backColor, fillColor, backAlpha } = CHAMPION.bar;
-        const frame = this.sprite.frame;
-        this.headHeight = Math.max(this.headHeight, frame.pivotY * frame.height * this.sprite.scaleY);
         if (!this.healthBar) this.healthBar = this.sprite.scene.add.graphics();
-        const top = this.y - this.headHeight - gapAboveHead - height;
+        const top = this.headTopY() - gapAboveHead - height;
         const left = this.x - width / 2;
         const ratio = Phaser.Math.Clamp(this.hp / this.maxHp, 0, 1);
         this.healthBar.setVisible(true).setDepth(DEPTH_DAMAGE_NUMBERS - 1).clear()
