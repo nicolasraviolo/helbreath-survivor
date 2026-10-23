@@ -12,6 +12,7 @@
 // Sprites y sonidos: sp-client/src/constants/Monsters.ts.
 import type { SoundKey, SpriteKey } from '../config/assetManifest';
 import type { EffectKey } from '../config/effects';
+import type { MovementStyle } from './movement';
 
 /** A state whose sheets or frames differ from the standard layout (sp-client Monsters.ts → states.X.animation). */
 export interface EnemyAnimation {
@@ -91,6 +92,8 @@ export interface EnemyDef {
      * blows land despite the player's defense (data/defense.ts). Hellhound is not in the wiki: about a Troll's.
      */
     hitRatio: number;
+    /** How it walks towards the player (data/movement.ts, Fase 27); default 'direct'. Bosses always go direct. */
+    movement?: MovementStyle;
     /** Fires this projectile instead of hitting directly (Dark Elf arrows). */
     attackProjectile?: EnemyRangedAttack;
     /** XP of the gem dropped on death. */
@@ -196,7 +199,7 @@ const ARROW: EnemyRangedAttack = {
 export const ENEMIES = {
     // Minutos 0–2 (tier 1)
     slime: {
-        name: 'Slime', sprite: 'enemy.slime', temporalCoefficient: 1, hasShadow: false, maxHp: 20, xp: 4, radius: 10, bodyOffsetY: 10,
+        movement: 'wander', name: 'Slime', sprite: 'enemy.slime', temporalCoefficient: 1, hasShadow: false, maxHp: 20, xp: 4, radius: 10, bodyOffsetY: 10,
         actionTimeMs: 2100, attackRange: 1, bravery: 1, damageDice: [1, 4], hitRatio: 30, hitSound: 'sfx.slime.hit', deathSound: 'sfx.slime.death', attackSound: 'sfx.slime.attack',
     },
     bunny: {
@@ -206,7 +209,7 @@ export const ENEMIES = {
     // Fase 22C, solo en Traveler Zone. NPC.cfg Cat: ATime 1500, AttkRange 1, MinBrvy 3, 2d4, HR 45 (tier 1, algo más
     // duro que el Bunny).
     cat: {
-        name: 'Cat', sprite: 'enemy.cat', temporalCoefficient: 1, hasShadow: false, maxHp: 20, xp: 4, radius: 9, bodyOffsetY: 10,
+        movement: 'flank', name: 'Cat', sprite: 'enemy.cat', temporalCoefficient: 1, hasShadow: false, maxHp: 20, xp: 4, radius: 9, bodyOffsetY: 10,
         actionTimeMs: 1500, attackRange: 1, bravery: 3, damageDice: [2, 4], hitRatio: 45, hitSound: 'sfx.cat.hit', deathSound: 'sfx.cat.death', attackSound: 'sfx.cat.attack',
     },
     ant: {
@@ -215,7 +218,7 @@ export const ENEMIES = {
     },
     // Minutos 2–4 (tiers 1–4)
     orc: {
-        name: 'Orc', sprite: 'enemy.orc', temporalCoefficient: 1, hasShadow: true, maxHp: 60, xp: 12, radius: 12, bodyOffsetY: 28,
+        movement: 'flank', name: 'Orc', sprite: 'enemy.orc', temporalCoefficient: 1, hasShadow: true, maxHp: 60, xp: 12, radius: 12, bodyOffsetY: 28,
         actionTimeMs: 1200, attackRange: 1, bravery: 2, damageDice: [3, 3], hitRatio: 60, hitSound: 'sfx.orc.hit', deathSound: 'sfx.orc.death', attackSound: 'sfx.orc.attack',
     },
     orcMage: {
@@ -227,7 +230,7 @@ export const ENEMIES = {
         attackProjectile: ORC_FIREBALL,
     },
     snake: {
-        name: 'Snake', sprite: 'enemy.snake', temporalCoefficient: 0.5, hasShadow: false, maxHp: 40, xp: 8, radius: 9, bodyOffsetY: 8,
+        movement: 'flank', name: 'Snake', sprite: 'enemy.snake', temporalCoefficient: 0.5, hasShadow: false, maxHp: 40, xp: 8, radius: 9, bodyOffsetY: 8,
         actionTimeMs: 1000, attackRange: 1, bravery: 1, damageDice: [2, 4], hitRatio: 50, hitSound: 'sfx.snake.hit', deathSound: 'sfx.snake.death', attackSound: 'sfx.snake.attack',
     },
     scorpion: {
@@ -246,16 +249,16 @@ export const ENEMIES = {
         actionTimeMs: 800, attackRange: 2, bravery: 100, damageDice: [5, 4], hitRatio: 90, hitSound: 'sfx.skeleton.hit', deathSound: 'sfx.skeleton.death', attackSound: 'sfx.skeleton.attack',
     },
     zombie: {
-        name: 'Zombie', sprite: 'enemy.zombie', temporalCoefficient: 0.5, hasShadow: true, maxHp: 120, xp: 24, radius: 11, bodyOffsetY: 30,
+        movement: 'wander', name: 'Zombie', sprite: 'enemy.zombie', temporalCoefficient: 0.5, hasShadow: true, maxHp: 120, xp: 24, radius: 11, bodyOffsetY: 30,
         actionTimeMs: 1500, attackRange: 1, bravery: 100, damageDice: [4, 4], hitRatio: 85, hitSound: 'sfx.zombie.hit', deathSound: 'sfx.zombie.death', attackSound: 'sfx.zombie.attack',
     },
     // Golems (tier 3). NPC.cfg Clay-Golem y Stone-Golem: ATime 1200, alcance 1, MinBrvy 100, 7d4. sp-client: 0,5.
     clayGolem: {
-        name: 'Clay Golem', sprite: 'enemy.clayGolem', temporalCoefficient: 0.5, hasShadow: true, maxHp: 240, xp: 48, radius: 15, bodyOffsetY: 34,
+        movement: 'wander', name: 'Clay Golem', sprite: 'enemy.clayGolem', temporalCoefficient: 0.5, hasShadow: true, maxHp: 240, xp: 48, radius: 15, bodyOffsetY: 34,
         actionTimeMs: 1200, attackRange: 1, bravery: 100, damageDice: [7, 4], hitRatio: 135, hitSound: 'sfx.clayGolem.hit', deathSound: 'sfx.clayGolem.death', attackSound: 'sfx.clayGolem.attack',
     },
     stoneGolem: {
-        name: 'Stone Golem', sprite: 'enemy.stoneGolem', temporalCoefficient: 0.5, hasShadow: true, maxHp: 300, xp: 60, radius: 15, bodyOffsetY: 34,
+        movement: 'wander', name: 'Stone Golem', sprite: 'enemy.stoneGolem', temporalCoefficient: 0.5, hasShadow: true, maxHp: 300, xp: 60, radius: 15, bodyOffsetY: 34,
         actionTimeMs: 1200, attackRange: 1, bravery: 100, damageDice: [7, 4], hitRatio: 135, hitSound: 'sfx.stoneGolem.hit', deathSound: 'sfx.stoneGolem.death', attackSound: 'sfx.stoneGolem.attack',
     },
     direBoar: {
@@ -272,11 +275,11 @@ export const ENEMIES = {
         actionTimeMs: 700, attackRange: 3, bravery: 100, damageDice: [8, 7], hitRatio: 230, hitSound: 'sfx.ogre.hit', deathSound: 'sfx.ogre.death', attackSound: 'sfx.ogre.attack',
     },
     stalker: {
-        name: 'Stalker', sprite: 'enemy.stalker', temporalCoefficient: 1, hasShadow: true, maxHp: 420, xp: 84, radius: 13, bodyOffsetY: 32,
+        movement: 'flank', name: 'Stalker', sprite: 'enemy.stalker', temporalCoefficient: 1, hasShadow: true, maxHp: 420, xp: 84, radius: 13, bodyOffsetY: 32,
         actionTimeMs: 600, attackRange: 4, bravery: 100, damageDice: [8, 9], hitRatio: 300, hitSound: 'sfx.orc.hit', deathSound: 'sfx.orc.death', attackSound: 'sfx.orc.attack',
     },
     werewolf: {
-        name: 'Werewolf', sprite: 'enemy.werewolf', temporalCoefficient: 1, hasShadow: true, maxHp: 540, xp: 108, radius: 14, bodyOffsetY: 32,
+        movement: 'flank', name: 'Werewolf', sprite: 'enemy.werewolf', temporalCoefficient: 1, hasShadow: true, maxHp: 540, xp: 108, radius: 14, bodyOffsetY: 32,
         actionTimeMs: 700, attackRange: 1, bravery: 100, damageDice: [8, 8], hitRatio: 300, hitSound: 'sfx.werewolf.hit', deathSound: 'sfx.werewolf.death', attackSound: 'sfx.werewolf.attack',
     },
     // Minutos 8–10 (tiers 4–7)
@@ -305,7 +308,7 @@ export const ENEMIES = {
         actionTimeMs: 700, attackRange: 5, bravery: 100, damageDice: [8, 6], hitRatio: 230, hitSound: 'sfx.lich.hit', deathSound: 'sfx.lich.death', attackSound: 'sfx.lich.attack',
     },
     hellhound: {
-        name: 'Hellhound', sprite: 'enemy.hellhound', temporalCoefficient: 0.5, hasShadow: true, maxHp: 540, xp: 108, radius: 13, bodyOffsetY: 18,
+        movement: 'flank', name: 'Hellhound', sprite: 'enemy.hellhound', temporalCoefficient: 0.5, hasShadow: true, maxHp: 540, xp: 108, radius: 13, bodyOffsetY: 18,
         actionTimeMs: 900, attackRange: 1, bravery: 4, damageDice: [7, 5], hitRatio: 200, hitSound: 'sfx.hellhound.hit', deathSound: 'sfx.hellhound.death', attackSound: 'sfx.hellhound.attack',
     },
     // Desactivado (Fase 13): no sale en ninguna oleada ni como esbirro. Se deja para volver a usarlo más adelante.

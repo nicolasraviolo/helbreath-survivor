@@ -77,9 +77,13 @@ export const ENEMY_WALL_HALF_SIZE = 6;
 /** Enemies: how long the corpse stays after the death animation, then how long it takes to fade. */
 export const ENEMY_CORPSE_MS = 1500;
 export const ENEMY_FADE_MS = 400;
-/** Enemies: push-apart speed per pixel of overlap, and its cap (px/s). */
-export const ENEMY_SEPARATION_PER_PX = 10;
-export const ENEMY_SEPARATION_MAX = 80;
+/**
+ * Enemies: push-apart speed per pixel of overlap, and its cap (px/s). Fase 27: stronger, and they keep a little gap
+ * (`ENEMY_SEPARATION_SPACING` × the touching distance), so packs spread around the player instead of stacking.
+ */
+export const ENEMY_SEPARATION_PER_PX = 14;
+export const ENEMY_SEPARATION_MAX = 120;
+export const ENEMY_SEPARATION_SPACING = 1.25;
 /** Enemies: white flash when hit, in milliseconds. */
 export const ENEMY_HIT_FLASH_MS = 90;
 /** Enemies: how fast knockback fades (share lost per second, exponential). */

@@ -97,6 +97,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Ice Strike, Mass Ice Strike y ralentizar (Fase 26D)
 - Hechizos en línea y Libro Azul (Fase 26E)
 - Pantalla completa y consolas (Fase 25)
+- Monstruos que se mueven distinto (Fase 27)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -1111,3 +1112,11 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
   - **Guardados de una versión más nueva** (una copia antigua del juego cacheada en el móvil abre datos de la nueva): `CharacterStore` y `SaveStore` los dejan en **solo lectura** (`readOnly`). Se juega con Gorn y Kaila de Level 1 en memoria, pero nunca se escribe encima ni se borran sus partidas. Probado con un guardado de versión 99. `?characters=` (desarrollo) sí escribe.
   - **El hielo frena solo el paso del monstruo** (`Enemy.chase(..., pace)`): su andar, cargas y tiempos van más lentos, pero el empuje entre monstruos y el retroceso van a velocidad normal, para que no se amontonen.
   - La **Blue Potion** no cuenta como poción (retos "sin pociones" ni métricas).
+
+## Monstruos que se mueven distinto (Fase 27)
+- **Forma de moverse por monstruo:** `movement` en `data/enemies.ts` (`'direct'` por defecto, `'flank'`, `'wander'`); los números, en `data/movement.ts` (`FLANK`, `WANDER`). Los jefes (`def.boss`) van siempre directos aunque tengan `movement`. Se lee una vez en el constructor de `Enemy` (`this.movement`).
+- **Dónde actúa:** solo en la rama "andar hacia el jugador" de `Enemy.chase`, vía `pickHeading` (deja `headX/headY/headPace`). Atacar, huir (golpear y correr), la estampida y el hielo no cambian.
+- **Rodear (`flank`):** al aparecer elige lado (el mismo `sideBias` de rodear paredes) y ángulo 35–60°; el ángulo baja a 0 entre `farPx` y `nearPx`, así siempre acaba llegando. Coste: un `cos`/`sin` por monstruo y frame.
+- **Deambular (`wander`):** tramos al azar dentro de ±75° de la dirección al jugador (para que no se pierdan) o parado (15%). Se "fija" (`noticed`) al estar a `sightPx`, al recibir un golpe (`takeDamage`) o en una estampida (`charge`), y ya no vuelve a deambular. Los que se alejan demasiado los recoloca `SpawnSystem` como siempre.
+- **Separación:** `ENEMY_SEPARATION_SPACING` (1,25) agranda la distancia mínima entre cuerpos; empuje más fuerte (`PER_PX` 14, `MAX` 120). El radio de búsqueda en la rejilla crece igual.
+- **Rendimiento:** 60 FPS en PC y `--mobile` con ~150 monstruos a los 5 min en Traveler Zone (23-oct-2026).

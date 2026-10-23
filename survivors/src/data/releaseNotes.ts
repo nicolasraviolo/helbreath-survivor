@@ -14,6 +14,11 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: readonly ReleaseNote[] = [
     {
+        version: 'Phase 27',
+        date: 'Oct 23, 2026',
+        changes: ['Monsters move in different ways: some flank you from the sides, others wander until they spot you.'],
+    },
+    {
         version: 'Phase 26',
         date: 'Oct 23, 2026',
         changes: [

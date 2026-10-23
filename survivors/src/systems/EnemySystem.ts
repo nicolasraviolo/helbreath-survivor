@@ -1,7 +1,7 @@
 // Gestiona todos los enemigos: un pool por tipo, la rejilla de vecinos, la separación entre ellos
 // y los golpes que dan al jugador.
 import Phaser from 'phaser';
-import { ENEMY_SEPARATION_MAX, ENEMY_SEPARATION_PER_PX, SPATIAL_CELL_SIZE } from '../config/gameConfig';
+import { ENEMY_SEPARATION_MAX, ENEMY_SEPARATION_PER_PX, ENEMY_SEPARATION_SPACING, SPATIAL_CELL_SIZE } from '../config/gameConfig';
 import { ENEMIES, type EnemyDef, type EnemyId } from '../data/enemies';
 import { eliteChance } from '../data/elites';
 import { NO_DIFFICULTY, type MapDifficulty } from '../data/maps';
@@ -279,9 +279,9 @@ export class EnemySystem {
                 enemy.pushY = 0;
                 if (!enemy.isAlive) continue;
                 const r = enemy.radius;
-                this.grid.forEachNear(enemy.x, enemy.y, r * 2, (other) => {
+                this.grid.forEachNear(enemy.x, enemy.y, r * 2 * ENEMY_SEPARATION_SPACING, (other) => {
                     if (other === enemy) return;
-                    const minDistance = r + other.radius;
+                    const minDistance = (r + other.radius) * ENEMY_SEPARATION_SPACING;
                     let dx = enemy.x - other.x;
                     let dy = enemy.y - other.y;
                     let distSq = dx * dx + dy * dy;

@@ -25,6 +25,7 @@ import { POISON } from '../data/attributes';
 import { EFFECTS } from '../config/effects';
 import { FREEZE_TINT } from '../data/totems';
 import { ICE_SLOW } from '../data/activeSpells';
+import { FLANK, WANDER, type MovementStyle } from '../data/movement';
 import { DEPTH_DAMAGE_NUMBERS, DEPTH_EFFECT_OFFSET, TILE_SIZE } from '../config/gameConfig';
 import { HBAsset } from '../hb/HBAsset';
 import type { HBMap } from '../hb/HBMap';
@@ -109,6 +110,21 @@ export class Enemy implements Poolable {
     private chargeMs = 0;
     private chargeX = 0;
     private chargeY = 0;
+    /** How it walks towards the player (data/movement.ts, Fase 27): bosses always go direct. */
+    private readonly movement: MovementStyle;
+    /** Flank: angle off the straight line when far away (radians, signed: its side), rolled on spawn. */
+    private flankAngle = 0;
+    /** Wander: has it seen the player (or been hit)? Then it chases for good. */
+    private noticed = true;
+    /** Wander: time left on the current leg, its heading (unit vector) and its share of speed (0 = standing). */
+    private legMs = 0;
+    private legX = 0;
+    private legY = 0;
+    private legPace = 1;
+    /** Where it wants to walk this frame (unit vector) and at what share of its speed; set by `pickHeading`. */
+    private headX = 0;
+    private headY = 0;
+    private headPace = 1;
     /** Freeze totem (Fase 16B): time left standing still, animation paused and tinted blue. */
     private frozenMs = 0;
     /** Ice Strike (Fase 26D): time left slowed, and its share of normal speed (0.5 = half: walks, hits and animates slower). */
@@ -135,6 +151,7 @@ export class Enemy implements Poolable {
         this.baseScale = scale;
         this.baseAlpha = def.alpha ?? 1;
         this.baseSpeed = enemySpeed(def);
+        this.movement = def.boss ? 'direct' : def.movement ?? 'direct';
         this.sprite = scene.add.existing(new HBAsset(scene, 0, 0, def.sprite)).setScale(scale);
         if (def.hasShadow) {
             this.shadow = scene.add.sprite(0, 0, getSheetKey(def.sprite, 0), '0')
@@ -186,6 +203,10 @@ export class Enemy implements Poolable {
         this.strategy = roll === MONSTER_AI.hitAndRunRoll ? 'hitAndRun' : roll === MONSTER_AI.twoHitsAndRunRoll ? 'twoHitsAndRun' : 'normal';
         this.sprite.clearTint();
         this.sideBias = Math.random() < 0.5 ? 1 : -1;
+        const flankDeg = Phaser.Math.FloatBetween(FLANK.minAngleDeg, FLANK.maxAngleDeg);
+        this.flankAngle = Phaser.Math.DegToRad(flankDeg) * this.sideBias;
+        this.noticed = this.movement !== 'wander';
+        this.legMs = 0;
         this.sprite.setAlpha(this.baseAlpha);
         this.setActive(true);
         this.play(MonsterState.Move, true);
@@ -201,6 +222,7 @@ export class Enemy implements Poolable {
         this.chargeX = (dirX / length) * this.speed * speedFactor;
         this.chargeY = (dirY / length) * this.speed * speedFactor;
         this.chargeMs = ms;
+        this.noticed = true;
     }
 
     /** Freeze totem: stands still (no walking, no attacks, a blow on its way is cancelled) for `ms`. */
@@ -296,6 +318,7 @@ export class Enemy implements Poolable {
         if (!this.isAlive) return false;
         this.hp -= amount;
         this.hitsTaken++;
+        this.noticed = true;
         this.flashMs = ENEMY_HIT_FLASH_MS;
         this.sprite.setTintFill(0xffffff);
         this.push(fromX, fromY, knockback);
@@ -486,8 +509,12 @@ export class Enemy implements Poolable {
                 wanted = MonsterState.Idle;
             }
         } else if (distance > world.targetRadius + this.radius) {
-            vx += (dx / distance) * speed;
-            vy += (dy / distance) * speed;
+            this.pickHeading(dx, dy, distance, ownMs);
+            vx += this.headX * speed * this.headPace;
+            vy += this.headY * speed * this.headPace;
+            facingX = this.headX;
+            facingY = this.headY;
+            if (this.headPace === 0) wanted = MonsterState.Idle;
         }
 
         if (wanted !== MonsterState.Attack) {
@@ -512,6 +539,56 @@ export class Enemy implements Poolable {
                 this.sideBias = -this.sideBias;
             }
         }
+    }
+
+    /**
+     * Where to walk this frame (data/movement.ts): straight at the player, on a curve from its side (flank), or a
+     * random leg until it notices the player (wander). Sets headX/headY (unit vector) and headPace.
+     */
+    private pickHeading(dx: number, dy: number, distance: number, ownMs: number): void {
+        const ux = dx / distance;
+        const uy = dy / distance;
+        this.headPace = 1;
+        if (this.movement === 'wander' && !this.noticed) {
+            if (distance <= WANDER.sightPx) {
+                this.noticed = true;
+            } else {
+                this.legMs -= ownMs;
+                if (this.legMs <= 0) this.newLeg(dx, dy);
+                this.headX = this.legX;
+                this.headY = this.legY;
+                this.headPace = this.legPace;
+                return;
+            }
+        }
+        if (this.movement === 'flank') {
+            // Full angle far away, none at nearPx: it closes in straight.
+            const share = Phaser.Math.Clamp((distance - FLANK.nearPx) / (FLANK.farPx - FLANK.nearPx), 0, 1);
+            const angle = this.flankAngle * share;
+            if (angle !== 0) {
+                const cos = Math.cos(angle);
+                const sin = Math.sin(angle);
+                this.headX = ux * cos - uy * sin;
+                this.headY = ux * sin + uy * cos;
+                return;
+            }
+        }
+        this.headX = ux;
+        this.headY = uy;
+    }
+
+    /** Wander: a new leg, roughly towards the player, or a pause. */
+    private newLeg(dx: number, dy: number): void {
+        this.legMs = Phaser.Math.FloatBetween(WANDER.minLegMs, WANDER.maxLegMs);
+        if (Math.random() < WANDER.idleChance) {
+            this.legPace = 0;
+            return;
+        }
+        const spread = Phaser.Math.DegToRad(WANDER.spreadDeg);
+        const angle = Math.atan2(dy, dx) + Phaser.Math.FloatBetween(-spread, spread);
+        this.legX = Math.cos(angle);
+        this.legY = Math.sin(angle);
+        this.legPace = 1;
     }
 
     /**

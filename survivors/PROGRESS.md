@@ -11,8 +11,9 @@
 - 23-oct-2026: 26 Hechizos del Mago (26A–26E y revisión de código).
 
 ## Fase actual
-**Fase 26 (hechizos del Mago) ✅ completada** el 23-oct-2026, fusionada en `master` (etiqueta `fase-26`): 26A maná, 26B apuntar en el móvil, 26C Lightning Arrow / Chill Wind / Lightning Bolt y escalera de Int, 26D Ice Strike / Mass Ice Strike (ralentizan) y **26E** Bloody Shock Wave / Earth Shock Wave / Blizzard (en línea, `systems/LineSpell.ts`) con el **Libro Azul** que se aprende para siempre (`SavedCharacter.learnedSpells`, `LOOT_MANUAL_CHANCE`). Detalle en PROGRESS-historial.md y NOTES.md.
-- **Siguiente: Fase 27, monstruos que se mueven distinto** (`/fase 27` en una sesión nueva; `docs/PLAN-2.md`). Luego: 28 magias pasivas · 29 misiones de rescate · 30–33 mapas y únicos, Aresden/Elvine, Raids, Ranking.
+**Fase 27 (monstruos que se mueven distinto), en curso** en la rama `fase-27`. Hecho: **27A** rodear, deambular y separarse (`data/movement.ts`, `movement` en `data/enemies.ts`, `Enemy.pickHeading`; ver NOTES.md, "Monstruos que se mueven distinto (Fase 27)"). Decisiones: embestir avisa con **"!"** encima; se acepta algo más de dificultad; los **jefes no cambian**.
+- **Siguiente: 27B embestir** (`/fase 27` en una sesión nueva): Bunny, Ant, Dire Boar, Minotaur y Giant Lizard se paran ~0,6 s con un "!" (con pool) y cargan en línea recta más deprisa; si fallan siguen de largo y vuelven. Después **27C**: los de lejos (Orc Mage, Dark Elf, Lich) guardan distancia, `pnpm balance` antes/después (algo más difícil vale), atajo `?debug=movement`, FPS en `--mobile` con ~300 monstruos, What's new.
+- Fase 26 ✅ (23-oct-2026, etiqueta `fase-26`). Luego de la 27: 28 magias pasivas · 29 misiones de rescate · 30–33 mapas y únicos, Aresden/Elvine, Raids, Ranking.
 - **Menores de la revisión de la 26, sin hacer:** objetos nuevos al arrastrar el botón de la Maga y en cada lanzamiento; código muerto (`IceShardRain.chill`, comentario viejo en `RunSnapshot`, `case 'spelldrag'` vacío).
 - **Equilibrio de los hechizos nuevos** (daño y maná de 26E a criterio de Claude): revisar con las métricas o `pnpm balance` si la Maga de Int alta va corta o sobrada.
 - **Revisión de la dificultad (22-oct-2026):** aplicados B–E y G; **pendiente de probar por el propietario**; **F** (Traveler Zone más suave) espera a que pruebe una Maga nueva (`?play=mage&map=traveler`). La Maga sigue por detrás del Guerrero. Informe: https://claude.ai/artifact/Xk8DCaCytHNP1yASM2sFBV.
@@ -59,6 +60,7 @@
 - Esquiva y resistencia: `data/defense.ts`. Ver NOTES.md, "Esquiva física" y "Resistencia mágica".
 - Guardado: personajes y partidas (una por personaje) en `CharacterStore`/`SaveStore`, cada cosa en su clave; baúl igual; los récords (aplazados) irán igual. Ver NOTES.md, "Personajes guardados" y "Partidas guardadas".
 - Equilibrio: `data/leveling.ts`, `data/enemies.ts`, `data/stats.ts`; medir con `check levelpace` y las métricas. Ver NOTES.md, "Partida simulada y equilibrio".
+- Forma de moverse de los monstruos (Fase 27): `data/movement.ts`, `movement` en `data/enemies.ts`, `Enemy.pickHeading`; separación en `EnemySystem.applySeparation`.
 - Oleadas y monstruos por grupos: `data/enemies.ts`, `data/maps.ts`, `SpawnSystem`. Ver NOTES.md, "Monstruos de las oleadas".
 - Logros: basta con añadirlo a `data/achievements.ts`. Ver NOTES.md, "Logros".
 - Métricas: gráficas en https://helbreath-survivors-metrics.nicolasraviolo.workers.dev (clave en `metrics-server/.dev.vars`). Ver NOTES.md, "Métricas".
