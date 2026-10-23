@@ -18,12 +18,10 @@ export const RELEASE_NOTES: readonly ReleaseNote[] = [
         date: 'Oct 23, 2026',
         changes: [
             "The Mage's skill spell now costs mana, and a new Blue Potion refills it.",
-            'Wands with Mana Save and robes with MP Recovery now work.',
             "On phones, drag the Mage's spell button to aim it.",
-            'New Mage spells: Lightning Arrow, Chill Wind, Lightning Bolt, Ice Strike, Mass Ice Strike, Earth Shock Wave and Blizzard.',
-            'Find the rare Blue Book to learn Bloody Shock Wave for good.',
-            'Ice spells now slow monsters down.',
-            'Spells now unlock little by little as your Int grows.',
+            'Many new Mage spells of lightning, ice and earth, unlocked as your Int grows.',
+            'Ice spells slow monsters down, and a rare Blue Book teaches Bloody Shock Wave.',
+            'Wands with Mana Save and robes with MP Recovery now work.',
         ],
     },
     {
