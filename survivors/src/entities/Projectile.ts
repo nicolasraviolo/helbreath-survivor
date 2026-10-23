@@ -19,6 +19,8 @@ export class Projectile implements Poolable {
     /** Multiplies the spell's damage; set (with big numbers) for the shots of an active spell (Fase 20D). */
     public damageScale = 1;
     public fromSkill = false;
+    /** Time until the next spark of its trail (def.trail; Lightning Arrow). */
+    public trailWaitMs = 0;
     private vx = 0;
     private vy = 0;
     private remaining = 0;
@@ -34,6 +36,7 @@ export class Projectile implements Poolable {
         this.target = target;
         this.damageScale = 1;
         this.fromSkill = false;
+        this.trailWaitMs = 0;
         this.x = x;
         this.y = y;
         const dx = targetX - x;

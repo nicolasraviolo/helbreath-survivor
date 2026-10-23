@@ -79,6 +79,8 @@ export class CombatSystem {
         let mainCritical: boolean | undefined;
         this.enemies.forEachInRadius(hit.x, hit.y, hit.radius, (enemy) => {
             const isDirect = enemy === direct;
+            // No area damage (Lightning Arrow, Fase 26C): only the enemy it hit, not the ones rubbing against it.
+            if (!isDirect && hit.areaDamage <= 0) return;
             directInArea ||= isDirect;
             const critical = this.hitEnemy(enemy, hit.damageType, hit.areaDamage + (isDirect ? hit.directDamage : 0), hit.x, hit.y, hit.knockback, hit.bigNumbers);
             if (isDirect || (!direct && mainCritical === undefined)) mainCritical = critical;

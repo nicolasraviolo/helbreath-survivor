@@ -2,6 +2,12 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
+**Fase 26C — Hechizos automáticos nuevos y escalera de Int (2026-10-23).**
+- **Qué se hizo:** tres hechizos nuevos en el Spell 1 de la Maga: **Lightning Arrow** (rayo, Int 30: flecha rápida con chispas, de largo alcance; pega fuerte al objetivo y un poco a los de al lado), **Chill Wind** (hielo, Int 40: 4 gotas de hielo caen del cielo y dañan una zona; no ralentiza) y **Lightning Bolt** (rayo, Int 55: un rayo cae del cielo; mucho daño y poco alcance). Tipo de hechizo nuevo "cae del cielo" (`aim: 'sky'`), rayo dibujado a mano (`entities/LightningArc.ts`) y estela de chispas. Requisitos de Int en **escalera** (Mass Fire Strike 85 → 75, Meteor Strike 169 → 140; ninguno sube). Atajo `&slot=spell1` para abrir Equipment en un hueco. Ver NOTES.md, "Hechizos nuevos: Lightning Arrow, Chill Wind y Lightning Bolt (Fase 26C)".
+- **Decisiones del propietario:** lista de hechizos de la Fase 26 y su reparto en 26C/26D/26E, escalera de Int y área pequeña de Lightning Arrow (en `docs/DECISIONES.md`).
+- **Comprobado:** build; `check menu equipmentmage mana game` y cada hechizo con horda sin errores a 60 FPS; animaciones cargadas solo en partidas de Mago; muertes por segundo medidas frente a los hechizos de antes. Probado por el propietario: bien.
+- **Probar:** `pnpm --dir survivors dev` → `?play=mage&spells=lightningArrow&debug=horde,god` (o `chillWind`, `lightningBolt`); `?characters=demo&open=equipment&class=mage&slot=spell1`.
+
 **Fase 26B — Apuntar el Spell 2 en el móvil (2026-10-22).**
 - **Qué se hizo:** con la Maga, el botón rojo del móvil es un stick: mantener, arrastrar y soltar lanza el Spell 2 en esa dirección, a media distancia de su alcance (`stickShare`), haya o no monstruos. Mientras se arrastra salen la flecha del apuntado manual a los pies y un anillo en el suelo donde caerá (más apagado sin maná). Tocar sin arrastrar apunta solo. El centro sigue al dedo y el dedo se lee de los eventos del navegador. Primera versión: no giraba hacia abajo junto al borde; arreglado tras probarlo el propietario. How to Play y What's new al día. Ver NOTES.md, "Apuntar el Spell 2 en el móvil (Fase 26B)".
 - **Decisiones del propietario:** en PC nada cambia (clic derecho / stick derecho o automático); en el móvil siempre a media distancia; el botón del Guerrero igual.

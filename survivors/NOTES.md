@@ -93,6 +93,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Nitidez: lienzo a la resolución real (RENDER_SCALE)
 - Maná del Spell 2 (Fase 26A)
 - Apuntar el Spell 2 en el móvil (Fase 26B)
+- Hechizos nuevos: Lightning Arrow, Chill Wind y Lightning Bolt (Fase 26C)
 - Pantalla completa y consolas (Fase 25)
 
 ## Sprites (`.spr`): formato y carga
@@ -1077,3 +1078,12 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - El centro **sigue al dedo** más allá de `TOUCH_SPELL_DRAG.followRadius` (como el stick de apuntar): girar solo pide mover el dedo un poco al otro lado. Fuera de la zona muerta una vez, se queda apuntado aunque el dedo vuelva al centro. Mientras se arrastra, `GameScene` enseña la **misma flecha** del apuntado manual (`AimArrow`, con `spellDragAim`).
 - Con dirección, `ActiveSpellSystem.cast(level, { x, y, direction })` cae en `aimedPoint` (= `range × stickShare`) haya o no monstruos, por encima del stick de apuntar y del automático. El anillo (`ui/SpellAimMarker.ts`, `SPELL_AIM_MARKER` en data/targeting.ts) mide `activeSpellAreaRadius` y va en el suelo (`DEPTH_GROUND_SHADOWS + 1`).
 - Probar: `pnpm check spelldrag --mobile` (dedo de mentira arrastrando a la derecha; `--eval="g.debugReleaseSpellDrag()"` lo suelta y lanza). El check no hace toques de verdad: para eso, Playwright con `hasTouch` y CDP `Input.dispatchTouchEvent` sobre `hud.critButton.container` (posición × ancho del lienzo / 800).
+
+## Hechizos nuevos: Lightning Arrow, Chill Wind y Lightning Bolt (Fase 26C)
+- **Escalera de Int:** en el comentario de cabecera de `data/spells.ts` (Spell 1) y `data/activeSpells.ts` (Spell 2). Ya no es la Int del original. No subir nunca un requisito que ya existía: dejaría a jugadores con un hechizo puesto que ya no pueden llevar.
+- **Lightning Arrow** no está en `sp-client`; sale de `reference/Client.cpp` (efecto 137): proyectil `effect2.spr` hoja 0 (8 direcciones × 4 frames), chispas `effect2` hoja 1 frames 0–4 (`SpellDef.trail`, las pinta `WeaponSystem`), explota como el Energy Bolt. Desde el 23-oct-2026 (propietario) pega también un poco a los de al lado (área pequeña, 36 px, con menos daño). Si algún hechizo tiene `areaDamage` 0, `CombatSystem.hitArea` no toca a los vecinos (antes les daba un 0).
+- **Hechizos que caen del cielo:** `aim: 'sky'` (sin proyectil). `SpellWeapon` llama a `context.skyStrike`; `WeaponSystem.skyStrike` dibuja las explosiones (`SpellBurst.fallPx/fallMs`: el efecto cae mientras se anima, `Effect.play`) y aplica el daño tras `skyImpactMs` (`PendingSkyHit`). Con apuntado manual cae en el cursor o a `stickAreaDistance` del alcance, como Energy Strike.
+- **Chill Wind:** `effect4.spr` hoja 1, frames 0–14 a 33 fps, 4 gotas que caen 200 px a los desplazamientos del original. `effect4` (~0,38 MB) solo baja en partidas de Mago (`runSprites`). Sonido E45.
+- **Lightning Bolt:** rayo dibujado a mano (`entities/LightningArc.ts`, aspecto en `LIGHTNING_LOOK`), como sp-client: línea blanca de 3 px con dos brillos azules, 600 px hacia arriba, redibujada cada 20 ms durante 120 ms. Sonido E40.
+- **Atajo:** `?characters=demo&open=equipment&class=mage&slot=spell1` abre Equipment de Kaila con la lista del Spell 1.
+- **Medido (22-oct-2026, horda, Power 1–2, muertes por segundo):** Energy Bolt 0,9 · Lightning Arrow 1,3–1,6 (con su área pequeña) · Lightning Bolt 1,0 (fuerte contra uno, poco alcance) · Fire Strike 1,6 · Chill Wind 1,9 · Triple Energy Bolt 2,3.

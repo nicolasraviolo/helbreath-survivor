@@ -14,6 +14,7 @@ import { METEOR_LOOK, type BarrageSpellDef, type MeteorSpellDef } from '../data/
 import { MELEE_HIT_MOMENT, MELEE_HIT_SOUND, MELEE_SWING_SOUND, type MeleeWeaponDef } from '../data/weapons';
 import { Effect } from '../entities/Effect';
 import type { Enemy } from '../entities/Enemy';
+import { LightningArc } from '../entities/LightningArc';
 import { Meteor } from '../entities/Meteor';
 import { Projectile } from '../entities/Projectile';
 import { Slash } from '../entities/Slash';
@@ -37,6 +38,16 @@ class PendingBurst implements Poolable {
     public waitMs = 0;
 }
 
+/** A spell falling from the sky (Fase 26C): its damage lands after `waitMs` (Chill Wind's drops take a moment). */
+class PendingSkyHit implements Poolable {
+    public poolIndex = -1;
+    public def!: SpellDef;
+    public target: Enemy | undefined;
+    public x = 0;
+    public y = 0;
+    public waitMs = 0;
+}
+
 export class WeaponSystem {
     private readonly weapons: Weapon[] = [];
     private readonly projectiles: Pool<Projectile>;
@@ -49,6 +60,10 @@ export class WeaponSystem {
     private readonly slash: Slash;
     private readonly bursts = new Pool(() => new PendingBurst());
     private readonly finishedBursts: PendingBurst[] = [];
+    private readonly skyHits = new Pool(() => new PendingSkyHit());
+    private readonly finishedSkyHits: PendingSkyHit[] = [];
+    private readonly lightnings: Pool<LightningArc>;
+    private readonly finishedLightnings: LightningArc[] = [];
     private readonly targeting: Targeting;
     /** Critical Strike under way: blows still to land (axes spin twice) and when the next one lands. */
     /** Fase 19C: the Critical Strike or the Mage's active spell hit at least one monster (once per launch; the gamepad vibrates). */
@@ -69,6 +84,7 @@ export class WeaponSystem {
         this.projectiles = new Pool(() => new Projectile(scene));
         this.meteors = new Pool(() => new Meteor(scene, METEOR_LOOK));
         this.effects = new Pool(() => new Effect(scene));
+        this.lightnings = new Pool(() => new LightningArc(scene));
         this.slash = new Slash(scene);
         const targeting = new Targeting(enemies);
         this.targeting = targeting;
@@ -86,6 +102,7 @@ export class WeaponSystem {
             launchProjectile: (def, fromX, fromY, toX, toY, maxDistance, target) => {
                 this.projectiles.acquire().launch(def, fromX, fromY, toX, toY, maxDistance, target);
             },
+            skyStrike: (def, x, y, target) => this.skyStrike(def, x, y, target),
             castSpell: (angle, durationMs) => {
                 this.onOwnerAction('cast', angle, durationMs);
                 audio.play(CAST_SOUND, durationMs);
@@ -232,6 +249,12 @@ export class WeaponSystem {
 
         for (const projectile of this.projectiles.active) {
             const stillFlying = projectile.update(deltaMs);
+            const trail = projectile.def.trail;
+            if (trail && (projectile.trailWaitMs -= deltaMs) <= 0) {
+                projectile.trailWaitMs += trail.everyMs;
+                const spread = trail.spread;
+                this.spawnEffect(trail.effect, projectile.x + Phaser.Math.Between(-spread, spread), projectile.y + Phaser.Math.Between(-spread, spread));
+            }
             if (projectile.target && !projectile.target.isAlive) projectile.target = undefined;
             const radius = projectile.def.projectileRadius;
             const hit = projectile.target
@@ -269,8 +292,22 @@ export class WeaponSystem {
         }
         for (const pending of this.finishedBursts) this.bursts.release(pending);
         this.finishedBursts.length = 0;
+        for (const pending of this.skyHits.active) {
+            pending.waitMs -= deltaMs;
+            if (pending.waitMs <= 0) {
+                this.landSkyHit(pending);
+                this.finishedSkyHits.push(pending);
+            }
+        }
+        for (const pending of this.finishedSkyHits) this.skyHits.release(pending);
+        this.finishedSkyHits.length = 0;
+        for (const arc of this.lightnings.active) {
+            if (!arc.update(deltaMs)) this.finishedLightnings.push(arc);
+        }
+        for (const arc of this.finishedLightnings) this.lightnings.release(arc);
+        this.finishedLightnings.length = 0;
         for (const effect of this.effects.active) {
-            if (!effect.update()) this.finishedEffects.push(effect);
+            if (!effect.update(deltaMs)) this.finishedEffects.push(effect);
         }
         // Released after the loops: releasing reorders `active` while we iterate it.
         for (const projectile of this.finishedProjectiles) this.projectiles.release(projectile);
@@ -359,11 +396,34 @@ export class WeaponSystem {
         });
     }
 
-    /** Impact: the damage lands once; the explosions are drawn now or after their delay. */
-    private explode(projectile: Projectile, direct: Enemy | undefined): void {
-        const { def, x, y, damageScale, fromSkill } = projectile;
-        // The original hit spark on the enemy the spell hits, as with the melee blows.
-        if (direct?.isAlive) this.spawnEffect('fx.hit', direct.x, direct.bodyY);
+    /** A spell with aim 'sky' falls on (x, y): its drops or lightning now, the damage after `skyImpactMs`. */
+    private skyStrike(def: SpellDef, x: number, y: number, target: Enemy | undefined): void {
+        if (def.skyLightning) this.lightnings.acquire().strike(x, y);
+        this.drawBursts(def, x, y);
+        const pending = this.skyHits.acquire();
+        pending.def = def;
+        pending.target = target;
+        pending.x = x;
+        pending.y = y;
+        pending.waitMs = def.skyImpactMs ?? 0;
+        // A lightning hits at once (this frame), not one frame late.
+        if (pending.waitMs <= 0) {
+            this.landSkyHit(pending);
+            this.skyHits.release(pending);
+        }
+    }
+
+    /** The sky spell lands: the enemy it was aimed at takes the direct damage if it is still there. */
+    private landSkyHit(pending: PendingSkyHit): void {
+        const { def, x, y } = pending;
+        const aimed = pending.target?.isAlive && this.enemies.isTouching(pending.target, x, y, def.projectileRadius) ? pending.target : undefined;
+        const direct = def.directDamage > 0 ? aimed ?? this.enemies.findTouching(x, y, def.projectileRadius) : undefined;
+        pending.target = undefined;
+        this.hitSpell(def, x, y, direct, 1, false);
+    }
+
+    /** Draws the explosions of a spell at (x, y), now or after their delay. */
+    private drawBursts(def: SpellDef, x: number, y: number): void {
         for (const burst of def.bursts) {
             if (burst.delayMs <= 0) {
                 this.drawBurst(burst, x, y);
@@ -375,6 +435,19 @@ export class WeaponSystem {
             pending.y = y;
             pending.waitMs = burst.delayMs;
         }
+    }
+
+    /** Impact: the damage lands once; the explosions are drawn now or after their delay. */
+    private explode(projectile: Projectile, direct: Enemy | undefined): void {
+        const { def, x, y, damageScale, fromSkill } = projectile;
+        this.drawBursts(def, x, y);
+        this.hitSpell(def, x, y, direct, damageScale, fromSkill);
+    }
+
+    /** The damage of a spell's impact at (x, y), once, with the hit spark on the enemy it hit directly. */
+    private hitSpell(def: SpellDef, x: number, y: number, direct: Enemy | undefined, damageScale: number, fromSkill: boolean): void {
+        // The original hit spark on the enemy the spell hits, as with the melee blows.
+        if (direct?.isAlive) this.spawnEffect('fx.hit', direct.x, direct.bodyY);
         const critical = this.combat.hitArea({
             damageType: 'magic',
             x,
@@ -403,7 +476,7 @@ export class WeaponSystem {
     }
 
     private drawBurst(burst: SpellBurst, x: number, y: number): void {
-        this.effects.acquire().play(burst.effect, x + burst.dx, y + burst.dy);
+        this.effects.acquire().play(burst.effect, x + burst.dx, y + burst.dy, burst.fallPx, burst.fallMs);
         if (burst.sound) this.audio.play(burst.sound);
     }
 }

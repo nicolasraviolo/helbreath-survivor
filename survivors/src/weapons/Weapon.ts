@@ -21,6 +21,8 @@ export interface WeaponContext {
     inReach(maxDistance: number): boolean;
     /** `target`: the only enemy it may hit (a boss: it flies through the others). */
     launchProjectile(def: SpellDef, fromX: number, fromY: number, toX: number, toY: number, maxDistance: number, target?: Enemy): void;
+    /** Spells with aim 'sky' (Fase 26C): it falls on (x, y); `target` is the enemy it was aimed at, if any. */
+    skyStrike(def: SpellDef, x: number, y: number, target?: Enemy): void;
     /** Spells: plays the owner's cast animation and sound towards `angle` (radians). */
     castSpell(angle: number, durationMs: number): void;
     /** Melee: plays the owner's swing animation, the slash and the swing sound towards `angle` (radians). */

@@ -15,12 +15,14 @@ export interface ReleaseNote {
 export const RELEASE_NOTES: readonly ReleaseNote[] = [
     {
         version: 'Phase 26',
-        date: 'Oct 22, 2026',
+        date: 'Oct 23, 2026',
         changes: [
             "The Mage's skill spell now costs mana instead of recharging.",
             'New Blue Potion to refill mana.',
             'Wands with Mana Save and robes with MP Recovery now work.',
             "On phones, drag the Mage's spell button to aim it.",
+            'New Mage spells: Lightning Arrow, Chill Wind and Lightning Bolt.',
+            'Spells now unlock little by little as your Int grows.',
         ],
     },
     {

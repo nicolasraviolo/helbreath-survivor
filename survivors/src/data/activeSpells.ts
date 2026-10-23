@@ -2,8 +2,12 @@
 // (Espacio, R2 del mando o el botón táctil). Fase 26A (propietario, 22-oct-2026): ya no tienen recarga; **gastan maná**,
 // cada uno el suyo (el del original × ACTIVE_SPELL_MANA_SHARE). El maná se rellena solo con la Mag (data/stats.ts).
 // Fase 20D (propietario, 19-oct-2026): se equipan en el segundo hueco de hechizo (data/items.ts). Son los círculos 6–10
-// del original; los 1–5 son automáticos (data/spells.ts). Requisito: la Int del original, sin Level. Energy Strike es el
-// de salida y no pide nada.
+// del original; los 1–5 son automáticos (data/spells.ts). Requisito: Int, sin Level. Energy Strike es el de salida y no
+// pide nada.
+// Fase 26C (propietario, 22-oct-2026): escalera de Int para ir abriendo hechizos poco a poco (los activos piden más):
+// Energy Strike (gratis) → Ice Strike 50 → Mass Fire Strike 75 → Mass Ice Strike 100 → Bloody Shock Wave 120 (además
+// hay que encontrar su Manual) → Meteor Strike 140 → Earth Shock Wave 165 → Blizzard 190. Los de hielo y tierra y
+// Bloody Shock Wave llegan en los bloques 26D y 26E.
 // Dos tipos:
 // - 'meteor': Meteor Strike. Visual de sp-client/src/game/spells/MeteorStrike*.ts (ver hb/meteorStrike.ts). Daños
 //   orientados por la wiki (docs/hb-wiki/hechizos.md, Circle 9: 33 directo + 55 en área), adaptados a un survivors.
@@ -128,7 +132,7 @@ export const ACTIVE_SPELLS: Readonly<Record<ActiveSpellId, ActiveSpellDef>> = {
         castSound: 'sfx.energyBolt.cast',
         hudIcon: 'crit',
     },
-    // Int 85: 4 explosiones grandes de Mass Fire Strike repartidas por la zona.
+    // Int 75: 4 explosiones grandes de Mass Fire Strike repartidas por la zona.
     massFireStrike: {
         ...fromSpell('massFireStrike'),
         kind: 'barrage',
@@ -146,7 +150,8 @@ export const ACTIVE_SPELLS: Readonly<Record<ActiveSpellId, ActiveSpellDef>> = {
     meteorStrike: {
         name: 'Meteor Strike',
         circle: 9,
-        int: 169,
+        // Fase 26C: 169 (el original) → 140, en la escalera de Int.
+        int: 140,
         kind: 'meteor',
         sprite: 'fx.crueffect1',
         directDamage: 30,

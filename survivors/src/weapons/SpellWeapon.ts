@@ -3,6 +3,7 @@
 // - 'targets': cada proyectil va a un enemigo distinto, el más cercano primero.
 // - 'scatter': caen alrededor del enemigo elegido, uno cada `shotIntervalMs` (Energy Strike).
 // - 'pattern': todos a la vez en una zona pequeña, cada uno desplazado del enemigo elegido (Triple Energy Bolt).
+// - 'sky' (Fase 26C): sin proyectil; cae del cielo sobre el enemigo elegido (Chill Wind, Lightning Bolt).
 // A quién apuntan lo decide systems/Targeting.ts: un jefe cercano va antes que los demás (Fase 15A).
 // Con apuntado manual (15B), si hay algún enemigo al alcance: los proyectiles salen hacia donde apunta el jugador (en
 // abanico si son varios) y los que caen en zona caen en el cursor (sin pasar del alcance) o, con el stick, a una
@@ -73,6 +74,11 @@ export class SpellWeapon extends Weapon {
             this.releaseManual(context, context.manualAim);
             return;
         }
+        if (def.aim === 'sky') {
+            const target = context.findTarget(range);
+            if (target) context.skyStrike(def, target.x, target.bodyY, target);
+            return;
+        }
         if (def.aim === 'pattern') {
             const target = context.findTarget(range);
             if (target) this.patternShots(context, target.x, target.bodyY, bossOrUndefined(target));
@@ -104,7 +110,7 @@ export class SpellWeapon extends Weapon {
     private releaseManual(context: WeaponContext, aim: Readonly<ManualAim>): void {
         const def = this.def;
         const fromY = context.y - def.originOffsetY;
-        if (def.aim === 'scatter' || def.aim === 'pattern') {
+        if (def.aim === 'scatter' || def.aim === 'pattern' || def.aim === 'sky') {
             const point = aim.point;
             let distance = def.range * MANUAL_AIM.stickAreaDistance;
             if (point) distance = Math.min(def.range, Phaser.Math.Distance.Between(context.x, context.y, point.x, point.y));
@@ -112,6 +118,10 @@ export class SpellWeapon extends Weapon {
             this.aimX = context.x + Math.cos(angle) * distance;
             this.aimY = context.y + Math.sin(angle) * distance;
             this.aimBoss = undefined;
+            if (def.aim === 'sky') {
+                context.skyStrike(def, this.aimX, this.aimY);
+                return;
+            }
             if (def.aim === 'pattern') {
                 this.patternShots(context, this.aimX, this.aimY, undefined);
                 return;

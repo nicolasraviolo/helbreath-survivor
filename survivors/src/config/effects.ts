@@ -90,6 +90,13 @@ export const EFFECTS = {
     // como los del aura de la hoja 14, apuntan lejos del ancla: se devuelve al cuerpo (Enemy.syncPoisonCloud; medido en
     // partida, +115 como el sX+115 del original).
     'fx.poison.cloud': { sprite: 'fx.effect9', sheet: 15, frameRate: 10, loop: true, offsetX: 115, offsetY: 149 },
+    // Fase 26C. Lightning Arrow (no está en sp-client; reference/Client.cpp, efecto 137): effect2.spr hoja 0, 4 frames
+    // por dirección, con chispas detrás (efecto 8: effect2 hoja 1, frames 0–4), las dos con brillo. Explota como el
+    // Energy Bolt (efecto 10).
+    'fx.lightningArrow.fly': { sprite: 'fx.effect2', sheet: 0, frameRate: 20, loop: true, framesPerDirection: 4, additive: true },
+    'fx.lightningArrow.spark': { sprite: 'fx.effect2', sheet: 1, frames: [0, 4], frameRate: 20, loop: false, additive: true },
+    // Chill Wind (sp-client CHILL_WIND_DROPLET): effect4 hoja 1, frames 0–14 a 33 fps; cae 200 px mientras se anima.
+    'fx.chillWind.drop': { sprite: 'fx.effect4', sheet: 1, frames: [0, 14], frameRate: 33, loop: false, fadeFromFrame: 9 },
     'fx.footsteps':{ sprite: 'fx.effect2', sheet: 1, frames: [28, 32], frameRate: 10, loop: false, depthOffset: -1 },
 } as const satisfies Record<string, EffectDef>;
 

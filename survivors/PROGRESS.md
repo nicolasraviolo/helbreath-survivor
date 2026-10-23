@@ -8,12 +8,12 @@
 - 20-oct-2026: 21 Botín y baúl (21A, 21B, 21D, 21E; el 21C, anillos y collares, aplazado).
 - 21-oct-2026: 21½ Cartas y sorpresas (21½A–21½C) · 22 Sistema de mapas (22A–22E, 22G; los récords locales, 22F, aplazados) · 23 La ciudad (23A–23B).
 - 22-oct-2026: 24 Oro, tienda y herrero (24A–24D) · 25 Arreglos rápidos.
-- En curso: 26 Hechizos del Mago (26A ✅, 26B ✅).
+- En curso: 26 Hechizos del Mago (26A ✅, 26B ✅, 26C ✅).
 
 ## Fase actual
-**Fase 26 (hechizos del Mago), en curso** en la rama `fase-26`. **26A (maná)** y **26B (apuntar el Spell 2 en el móvil: arrastrar el botón, con flecha y anillo)** hechos el 22-oct-2026 y probados por el propietario. Ver NOTES.md, "Maná del Spell 2 (Fase 26A)" y "Apuntar el Spell 2 en el móvil (Fase 26B)".
-- **Siguiente:** **26C** (3–4 hechizos nuevos de círculos altos con `/anadir-arma`; candidatos justo debajo; preguntar al propietario cuáles). `/fase 26` en una sesión nueva. Después: 27 monstruos que se mueven distinto · 28 magias pasivas · 29 misiones de rescate · 30–33 mapas y únicos, Aresden/Elvine, Raids, Ranking.
-- **Candidatos del 26C** (tienen efecto visual en `sp-client/src/game/spells/`; coste y círculo en `docs/hb-wiki/hechizos.md`): hielo (Ice Strike 6, Mass Ice Strike 8, Ice Storm 6, Chill Wind 5, Blizzard 10), rayo (Lightning Bolt 6, Lightning Strike 8), tierra (Earthworm Strike 7, Earth Shock Wave 10), Bloody Shock Wave 8, Poison Cloud 5, Fire Wall 5, Spike Field 6, Armor Break 7. Sin visual en sp-client: Fury of Thor, Hellfire, Armageddon. Preguntar al propietario cuáles.
+**Fase 26 (hechizos del Mago), en curso** en la rama `fase-26`. **26A (maná)**, **26B (apuntar el Spell 2 en el móvil)** y **26C (Lightning Arrow, Chill Wind y Lightning Bolt en el Spell 1; escalera de Int)** hechos y probados por el propietario (22–23 oct 2026). Ver NOTES.md, "Maná del Spell 2 (Fase 26A)", "Apuntar el Spell 2 en el móvil (Fase 26B)" y "Hechizos nuevos… (Fase 26C)".
+- **Siguiente: 26D** (con `/anadir-arma`): activos **Ice Strike** (Int 50) y **Mass Ice Strike** (Int 100), trozos de hielo cayendo del cielo (sp-client `IceStrike.ts`, `IceStrikeShard.ts`, `MassIceStrike.ts`: effect4 hoja 2 y 3, sonido E46). **El hielo ralentiza, no congela** (tinte 0x88aaff del original; los jefes, menos). Hay un `freeze` del tótem en `Enemy.ts` que sirve de modelo. `/fase 26` en una sesión nueva.
+- **Después, 26E:** **Blizzard** (Int 190) y **Earth Shock Wave** (Int 165), que avanzan en línea de la Maga al objetivo (sp-client `Blizzard.ts`, `EarthShockWave.ts`), y **Bloody Shock Wave** (Int 120, **Rare**): solo con su **Libro Azul** (Manual de hechizo; `MANUAL_SPELL_IDS` en `data/items.ts`; icono probable item-pack hoja 5 frame 91, **mirarlo antes**), que cae muy poco (decidir cuánto). Luego: 27 monstruos que se mueven distinto · 28 magias pasivas · 29 misiones de rescate · 30–33 mapas y únicos, Aresden/Elvine, Raids, Ranking.
 - **Revisión de la dificultad (22-oct-2026):** aplicados B–E y G; **pendiente de probar por el propietario**; **F** (Traveler Zone más suave) espera a que pruebe una Maga nueva (`?play=mage&map=traveler`). La Maga sigue por detrás del Guerrero. Informe: https://claude.ai/artifact/Xk8DCaCytHNP1yASM2sFBV.
 - Ideas de la 24 sin hacer: ampliar el baúl en Howard y logros que den oro.
 - **Oro y botín:** `data/gold.ts`, `systems/GoldStore.ts`, atributos de armadura en `data/attributes.ts`; ver NOTES.md, "Oro, botín especial y muerte a medias (Fase 24A)". Las armas y armaduras normales no caen: se compran a Tom (24C).
@@ -52,7 +52,7 @@
 - Estela del tajo: estilos en `data/slash.ts` (`?slash=N`, tecla Y). Ver NOTES.md, "Estela del tajo del guerrero".
 - Equipo: `data/items.ts` (huecos, catálogo, requisitos), `scenes/EquipmentScene.ts`. Ver NOTES.md, "Equipo y pantalla Equipment".
 - Cartas: stat o pasiva (Xelima, Merien, Magnet) en `systems/UpgradePool.ts` y `data/passives.ts`; `?debug=stones`. Ver NOTES.md, "Cartas de Power (Fase 20C)".
-- Hechizos del Mago: automáticos (círculos 1–5, gratis) en `data/spells.ts`, activos (6–10, meteorito o ráfaga, gastan maná: `originalMana`, `ActiveSpellSystem`) en `data/activeSpells.ts`; huecos `spell1`/`spell2` en `data/items.ts`. Usan la esfera del crit hasta tener icono. Ver NOTES.md, "Hechizos equipables del Mago (Fase 20D)" y "Meteor Strike".
+- Hechizos del Mago: automáticos (Spell 1, gratis; tipos de puntería en `SpellWeapon`, también `'sky'`, Fase 26C) en `data/spells.ts`, activos (6–10, meteorito o ráfaga, gastan maná: `originalMana`, `ActiveSpellSystem`) en `data/activeSpells.ts`; huecos `spell1`/`spell2` en `data/items.ts`. Usan la esfera del crit hasta tener icono. Ver NOTES.md, "Hechizos equipables del Mago (Fase 20D)" y "Meteor Strike".
 - Crit y mando: `systems/CritStrikeSystem.ts`, `systems/Rumble.ts`. Ver NOTES.md, "Critical Strike (Fase 19A)" y "Vibración del mando".
 - Apuntado: todo pasa por `systems/Targeting.ts`. Ver NOTES.md, "Apuntado automático", "Apuntado manual" y "Stick de apuntar en el móvil".
 - Esquiva y resistencia: `data/defense.ts`. Ver NOTES.md, "Esquiva física" y "Resistencia mágica".

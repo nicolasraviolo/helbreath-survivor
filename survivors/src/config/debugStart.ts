@@ -44,7 +44,7 @@
 //   ?open=slots      → abre la pantalla de los 4 personajes guardados (Fase 17A)
 //   ?open=charinfo   → Select Character con la ventana Character abierta (Fase 20A), del primer personaje con puntos
 //   ?open=equipment  → Select Character con la pantalla Equipment abierta (Fase 20B), del Guerrero (o el primero;
-//                      con &class=mage, de la Maga)
+//                      con &class=mage, de la Maga); con &slot=spell1, con ese hueco elegido (Fase 26C)
 //                      sin repartir (o del primero); con ?characters=demo, Gorn tiene puntos
 //   ?gear=plateMail,helmet → con ?characters=demo, los dos de ejemplo llevan esos objetos (los que su clase pueda
 //                      ponerse, sin mirar requisitos; ids de data/weapons.ts y data/armor.ts). Para ver el equipo
@@ -78,6 +78,7 @@ import { isUnlockId, type UnlockId } from '../data/abaddon';
 import { isMapId, type MapId } from '../data/maps';
 import { isStackableUnlockId, type StackableUnlockId } from '../data/rerollSkip';
 import { isCharacterId, type CharacterId } from '../data/characters';
+import { EQUIP_SLOT_IDS, type EquipSlotId } from '../data/items';
 import { SMITH_TABS, type SmithTab } from '../data/smith';
 import { isAutoSpellId, type AutoSpellId } from '../data/spells';
 import { UPGRADE_MAX } from '../data/upgrades';
@@ -127,6 +128,8 @@ interface DebugStart {
     spells: { auto: AutoSpellId | undefined; active: ActiveSpellId | undefined };
     /** Class whose Equipment screen ?open=equipment shows (?class=mage; the Warrior if none). */
     openClass: CharacterId | undefined;
+    /** Slot the Equipment screen opens on (?slot=spell1), if one was given. */
+    openSlot: EquipSlotId | undefined;
     /** Melee slash style to compare (its number in data/slash.ts), if one was given. */
     slash: number | undefined;
     /** ?loading=hold: the loading screen stops halfway (to look at it). */
@@ -172,7 +175,7 @@ interface DebugStart {
 function readDebugStart(): DebugStart {
     const none: DebugStart = {
         play: false, character: undefined, actions: [], trees: undefined, open: undefined, achievements: undefined, characters: undefined,
-        sendMetrics: false, spells: { auto: undefined, active: undefined }, openClass: undefined, slash: undefined,
+        sendMetrics: false, spells: { auto: undefined, active: undefined }, openClass: undefined, openSlot: undefined, slash: undefined,
         holdLoading: false, gear: [], settingsTab: undefined, attribute: undefined, unlocks: undefined, unlockCounts: {}, map: undefined, maps: undefined, townSpot: undefined, townTalk: false, townShop: false, townSmith: undefined,
         gold: undefined, upgrade: undefined, xelima: undefined, level: undefined, build: undefined, kit: 'best', simBot: 'circle',
     };
@@ -186,6 +189,7 @@ function readDebugStart(): DebugStart {
     const actions = (params.get('debug') ?? '').split(',').map((a) => a.trim()).filter(isDebugAction);
     const spells = (params.get('spells') ?? '').split(',').map((s) => s.trim());
     const openClass = params.get('class');
+    const openSlot = params.get('slot');
     const slash = params.get('slash');
     const attribute = params.get('attr');
     const unlocks = params.get('unlocks');
@@ -206,6 +210,7 @@ function readDebugStart(): DebugStart {
         sendMetrics: params.get('metrics') === 'send',
         spells: { auto: spells.find(isAutoSpellId), active: spells.find(isActiveSpellId) },
         openClass: isCharacterId(openClass) ? openClass : undefined,
+        openSlot: EQUIP_SLOT_IDS.find((id) => id === openSlot),
         slash: slash !== null && /^\d+$/.test(slash) ? Number(slash) : undefined,
         holdLoading: params.get('loading') === 'hold',
         gear: (params.get('gear') ?? '').split(',').map((g) => g.trim()).filter((g) => g.length > 0),

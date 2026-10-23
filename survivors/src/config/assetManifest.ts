@@ -136,6 +136,8 @@ export const SPRITES = {
     'fx.effect2': { file: 'sprites/effect2.spr', type: SpriteType.Effect },
     // Brillo de los tótems: Casting Circle (hoja 7; ver data/totems.ts).
     'fx.effect5': { file: 'sprites/effect5.spr', type: SpriteType.Effect },
+    // Chill Wind (Fase 26C): gotas de hielo (hoja 1). ~0,38 MB: solo en partidas de Mago (runSprites de la clase).
+    'fx.effect4': { file: 'sprites/effect4.spr', type: SpriteType.Effect },
     // Critical Strike (Fase 19A): la espiral del Earthworm Strike (hoja 1). ~0,48 MB.
     'fx.effect6': { file: 'sprites/effect6.spr', type: SpriteType.Effect },
     // Meteor Strike, hechizo activo del Mago (Fase 19B, data/activeSpells.ts). ~1,25 MB: se descarga solo al empezar
@@ -314,6 +316,9 @@ export const SOUNDS = {
     // Tótems (Fase 16B): al aparecer, el "chin" de fabricar un objeto con éxito (E23); Freeze, fragmentos de hielo (E46).
     'sfx.totemAppear': { file: 'sounds/E23.mp3' },
     'sfx.freeze': { file: 'sounds/E46.mp3' },
+    // Hechizos de la Fase 26C: el trueno de Lightning Bolt (sp-client LIGHTNING_SOUND) y las gotas de Chill Wind.
+    'sfx.lightning': { file: 'sounds/E40.mp3' },
+    'sfx.chillWind': { file: 'sounds/E45.mp3' },
     // Pasos al correr (PLAYER_RUNNING).
     'sfx.footsteps': { file: 'sounds/C10.mp3' },
     // Recoger una gema: el sonido de "objeto añadido" del original (sp-client SoundFileNames.ts, ITEM_ADDED_SOUND).
