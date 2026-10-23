@@ -19,6 +19,7 @@ export const RELEASE_NOTES: readonly ReleaseNote[] = [
         changes: [
             'Monsters move in different ways: some flank you from the sides, others wander until they spot you.',
             'Some monsters stop with a "!" and then charge at you: step aside to dodge them.',
+            'Monsters that cast from afar now keep their distance and back away when you get close.',
         ],
     },
     {

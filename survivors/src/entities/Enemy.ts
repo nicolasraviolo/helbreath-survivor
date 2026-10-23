@@ -25,7 +25,7 @@ import { POISON } from '../data/attributes';
 import { EFFECTS } from '../config/effects';
 import { FREEZE_TINT } from '../data/totems';
 import { ICE_SLOW } from '../data/activeSpells';
-import { CHARGE, FLANK, WANDER, type MovementStyle } from '../data/movement';
+import { CHARGE, FLANK, KEEP_AWAY, WANDER, type MovementStyle } from '../data/movement';
 import { DEPTH_DAMAGE_NUMBERS, DEPTH_EFFECT_OFFSET, TILE_SIZE } from '../config/gameConfig';
 import { HBAsset } from '../hb/HBAsset';
 import type { HBMap } from '../hb/HBMap';
@@ -524,6 +524,13 @@ export class Enemy implements Poolable {
             if (this.cooldownMs <= 0) {
                 this.startAttack(dx, dy);
                 wanted = MonsterState.Attack;
+            } else if (this.movement === 'keepAway' && distance > 0) {
+                // Keep away (27C): backs off if the player is too close, else sidesteps around them while it waits.
+                const step = this.keepAwayStep(dx, dy, distance, ownMs);
+                vx += step.x * speed;
+                vy += step.y * speed;
+                facingX = step.x;
+                facingY = step.y;
             } else {
                 // Waits its action time facing the player.
                 wanted = MonsterState.Idle;
@@ -603,6 +610,25 @@ export class Enemy implements Poolable {
         }
         this.headX = ux;
         this.headY = uy;
+    }
+
+    /**
+     * Keep away: where it walks while waiting for its next attack (scaled by its share of speed). Straight away from
+     * the player when closer than KEEP_AWAY.tooCloseShare of its range; otherwise sideways (its `sideBias` side),
+     * swapping side now and then. Reuses the wander leg timer, which keepAway monsters never use.
+     */
+    private keepAwayStep(dx: number, dy: number, distance: number, ownMs: number): { x: number; y: number } {
+        const ux = dx / distance;
+        const uy = dy / distance;
+        if (distance < this.def.attackRange * TILE_SIZE * KEEP_AWAY.tooCloseShare) {
+            return { x: -ux * KEEP_AWAY.backPace, y: -uy * KEEP_AWAY.backPace };
+        }
+        this.legMs -= ownMs;
+        if (this.legMs <= 0) {
+            this.legMs = Phaser.Math.FloatBetween(KEEP_AWAY.minStrafeMs, KEEP_AWAY.maxStrafeMs);
+            if (Math.random() < KEEP_AWAY.swapChance) this.sideBias = -this.sideBias;
+        }
+        return { x: -uy * this.sideBias * KEEP_AWAY.strafePace, y: ux * this.sideBias * KEEP_AWAY.strafePace };
     }
 
     /** Charge: its pause is over and the player is at charging distance (not too close, not too far). */

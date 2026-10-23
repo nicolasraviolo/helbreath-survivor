@@ -7,8 +7,9 @@
  * - `flank`: comes in on a curve from one side and only goes straight when close, so packs arrive from several sides.
  * - `wander`: walks around at random (drifting roughly towards the player) until it sees the player or is hit.
  * - `charge`: walks straight at the player, but now and then stops, shows a "!" and rushes in a straight line (27B).
+ * - `keepAway`: monsters that hit from afar walk up to their range, then back off if the player comes too close (27C).
  */
-export type MovementStyle = 'direct' | 'flank' | 'wander' | 'charge';
+export type MovementStyle = 'direct' | 'flank' | 'wander' | 'charge' | 'keepAway';
 
 /**
  * Flank: each monster picks a side (left or right) and an angle between `minAngleDeg` and `maxAngleDeg` when it
@@ -43,3 +44,18 @@ export const CHARGE = {
 
 /** The "!" over a charging monster: colour, size and gap above its head (px). */
 export const CHARGE_WARNING = { text: '!', color: '#ffd020', fontSizePx: 26, gapAboveHeadPx: 4, maxShown: 40 } as const;
+
+/**
+ * Keep away (Fase 27C), for monsters that hit from afar (Mage-Orc, Lich, Dark Elf). While waiting for its next attack:
+ * if the player is closer than `tooCloseShare` of its attack range, it backs off at `backPace` of its speed (slower
+ * than the player, so a Warrior who chases it still catches it); otherwise it sidesteps around the player at
+ * `strafePace`, swapping side now and then (every `minStrafeMs`–`maxStrafeMs`, with `swapChance`).
+ */
+export const KEEP_AWAY = {
+    tooCloseShare: 0.6,
+    backPace: 0.7,
+    strafePace: 0.35,
+    minStrafeMs: 1500,
+    maxStrafeMs: 3000,
+    swapChance: 0.5,
+} as const;

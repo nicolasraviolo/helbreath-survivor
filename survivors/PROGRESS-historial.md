@@ -2,6 +2,11 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
+**Fase 27C — Guardar distancia y medidas (2026-10-23).**
+- **Qué se hizo:** forma de moverse **guardar distancia** (`'keepAway'`, números en `KEEP_AWAY` de `data/movement.ts`, lógica en `Enemy.keepAwayStep`) para Mage-Orc, Lich y Dark Elf. Mientras esperan su siguiente ataque, si te acercas a menos del 60% de su alcance retroceden (más despacio que el jugador); si no, se mueven de lado y cambian de lado de vez en cuando. Atajo `?debug=movement` / `check movement`: corro con Slime, Cat, Bunny y Mage-Orc (descarga antes los que falten). What's new con una línea. Ver NOTES.md, "Monstruos que se mueven distinto (Fase 27)".
+- **Comprobado:** build; `pnpm balance` antes/después sin cambio apreciable (`.check/balance-27c-before.json` / `-after.json`); Mage-Orc con el jugador a 50 px se aleja a ~100 px en 2 s; 60 FPS en `--mobile` con ~260 monstruos; a los 5 min en Traveler Zone los monstruos cercanos llegan por las 8 direcciones; `check menu news movement charge traveler` sin errores. Probado por el propietario: bien.
+- **Probar:** `pnpm --dir survivors dev` → http://localhost:8090/?map=traveler&debug=god,movement
+
 **Fase 27B — Embestir (2026-10-23).**
 - **Qué se hizo:** forma de moverse **embestir** (`'charge'`, números en `CHARGE` de `data/movement.ts`) para Bunny, Ant, Dire Boar y Minotaur (el Giant Lizard no: es jefe). A 70–220 px se paran 0,6 s con un **"!" amarillo** encima, apuntan a donde estaba el jugador y cargan en línea recta a 2,2× su velocidad, 110 px más allá (si te apartas, pasan de largo y vuelven); otra carga cada 3–4,5 s. Reutiliza `Enemy.charge()` de la estampida. Los "!" con pool en `systems/ChargeWarnings.ts`. Atajo `?debug=charge` y `check charge`. What's new con una línea. Ver NOTES.md, "Monstruos que se mueven distinto (Fase 27)".
 - **Comprobado:** build; `check charge` (hasta 5 "!" a la vez, captura con los avisos), `game`, `horde --mobile`, Traveler Zone con ~310 monstruos embistiendo en `--mobile`, `menu` y `stampede`: sin errores a 60 FPS. **Pendiente de probar por el propietario.**

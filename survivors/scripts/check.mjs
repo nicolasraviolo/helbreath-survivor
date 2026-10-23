@@ -55,6 +55,8 @@ const PRESETS = {
     stampede: 'debug=god,stampede',
     // Fase 27B: Bunnies y Ants de Traveler Zone alrededor, que se paran con un "!" y embisten (--wait=3000 para verlos cargar).
     charge: 'map=traveler&debug=god,charge',
+    // Fase 27C: una mezcla de todas las formas de moverse alrededor (deambular, rodear, embestir y los que guardan distancia).
+    movement: 'map=traveler&debug=god,movement',
     levelpace: 'debug=sim',
     // Lo mismo en Elvine Garden (Fase 22D).
     levelpaceelvine: 'debug=sim&map=elvineGarden',

@@ -225,7 +225,7 @@ export const ENEMIES = {
         // "Orc (spellcaster)" de la wiki: mismo sprite y sonidos que el Orc, pero lanza bolas de fuego (su hechizo
         // Fire-Ball, magia 3). NPC.cfg Orc-Mage: ATime 1500, MinBrvy 3, 4d3; su AttkRange es 1 (el hechizo va aparte):
         // usamos 5 casillas para que lance desde lejos. Bola lenta para poder esquivarla.
-        name: 'Mage-Orc', sprite: 'enemy.orc', temporalCoefficient: 1, hasShadow: true, maxHp: 80, xp: 16, radius: 12, bodyOffsetY: 28,
+        movement: 'keepAway', name: 'Mage-Orc', sprite: 'enemy.orc', temporalCoefficient: 1, hasShadow: true, maxHp: 80, xp: 16, radius: 12, bodyOffsetY: 28,
         actionTimeMs: 1500, attackRange: 5, bravery: 3, damageDice: [4, 3], hitRatio: 100, hitSound: 'sfx.orc.hit', deathSound: 'sfx.orc.death', attackSound: 'sfx.orc.attack',
         attackProjectile: ORC_FIREBALL,
     },
@@ -304,7 +304,7 @@ export const ENEMIES = {
         actionTimeMs: 700, attackRange: 2, bravery: 100, damageDice: [8, 7], hitRatio: 230, hitSound: 'sfx.mountainGiant.hit', deathSound: 'sfx.mountainGiant.death', attackSound: 'sfx.mountainGiant.attack',
     },
     lich: {
-        name: 'Lich', sprite: 'enemy.lich', temporalCoefficient: 1, hasShadow: true, maxHp: 680, xp: 136, radius: 14, bodyOffsetY: 36,
+        movement: 'keepAway', name: 'Lich', sprite: 'enemy.lich', temporalCoefficient: 1, hasShadow: true, maxHp: 680, xp: 136, radius: 14, bodyOffsetY: 36,
         actionTimeMs: 700, attackRange: 5, bravery: 100, damageDice: [8, 6], hitRatio: 230, hitSound: 'sfx.lich.hit', deathSound: 'sfx.lich.death', attackSound: 'sfx.lich.attack',
     },
     hellhound: {
@@ -314,7 +314,7 @@ export const ENEMIES = {
     // Desactivado (Fase 13): no sale en ninguna oleada ni como esbirro. Se deja para volver a usarlo más adelante.
     darkElf: {
         // Dispara flechas (NPC.cfg: alcance 8; servidor: "Dark Elf: 활 공격", ataque de arco).
-        name: 'Dark Elf', sprite: 'enemy.darkElf', temporalCoefficient: 1, hasShadow: true, maxHp: 640, xp: 128, radius: 11, bodyOffsetY: 32,
+        movement: 'keepAway', name: 'Dark Elf', sprite: 'enemy.darkElf', temporalCoefficient: 1, hasShadow: true, maxHp: 640, xp: 128, radius: 11, bodyOffsetY: 32,
         actionTimeMs: 700, attackRange: 8, bravery: 100, damageDice: [8, 4], hitRatio: 450, attackProjectile: ARROW,
         hitSound: 'sfx.darkElf.hit', deathSound: 'sfx.darkElf.death', attackSound: 'sfx.darkElf.attack',
     },
