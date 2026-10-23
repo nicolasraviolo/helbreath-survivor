@@ -8,12 +8,12 @@
 - 20-oct-2026: 21 Botín y baúl (21A, 21B, 21D, 21E; el 21C, anillos y collares, aplazado).
 - 21-oct-2026: 21½ Cartas y sorpresas (21½A–21½C) · 22 Sistema de mapas (22A–22E, 22G; los récords locales, 22F, aplazados) · 23 La ciudad (23A–23B).
 - 22-oct-2026: 24 Oro, tienda y herrero (24A–24D) · 25 Arreglos rápidos.
-- 23-oct-2026: 26 Hechizos del Mago (26A–26E y revisión de código).
+- 23-oct-2026: 26 Hechizos del Mago (26A–26E y revisión de código) · 27 Monstruos que se mueven distinto (27A–27C).
 
 ## Fase actual
-**Fase 27 (monstruos que se mueven distinto): bloques 27A–27C hechos** en la rama `fase-27` (rodear, deambular y separarse; embestir con "!"; los de lejos guardan distancia). Probado por el propietario: bien. Ver NOTES.md, "Monstruos que se mueven distinto (Fase 27)". Decisiones: embestir avisa con **"!"** encima; se acepta algo más de dificultad; los **jefes no cambian**.
+**Ninguna en curso.** Fase 27 ✅ (23-oct-2026, etiqueta `fase-27`): rodear, deambular, separarse, embestir con "!" y guardar distancia. Ver NOTES.md, "Monstruos que se mueven distinto (Fase 27)".
 - **Siguiente: Fase 28** (magias pasivas en la partida), con `/fase 28` en una sesión nueva.
-- Fase 26 ✅ (23-oct-2026, etiqueta `fase-26`). Luego de la 27: 28 magias pasivas · 29 misiones de rescate · 30–33 mapas y únicos, Aresden/Elvine, Raids, Ranking.
+- Después de la 28: 29 misiones de rescate · 30–33 mapas y únicos, Aresden/Elvine, Raids, Ranking.
 - **Menores de la revisión de la 26, sin hacer:** objetos nuevos al arrastrar el botón de la Maga y en cada lanzamiento; código muerto (`IceShardRain.chill`, comentario viejo en `RunSnapshot`, `case 'spelldrag'` vacío).
 - **Equilibrio de los hechizos nuevos** (daño y maná de 26E a criterio de Claude): revisar con las métricas o `pnpm balance` si la Maga de Int alta va corta o sobrada.
 - **Revisión de la dificultad (22-oct-2026):** aplicados B–E y G; **pendiente de probar por el propietario**; **F** (Traveler Zone más suave) espera a que pruebe una Maga nueva (`?play=mage&map=traveler`). La Maga sigue por detrás del Guerrero. Informe: https://claude.ai/artifact/Xk8DCaCytHNP1yASM2sFBV.
