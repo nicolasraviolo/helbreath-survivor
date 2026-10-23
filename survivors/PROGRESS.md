@@ -8,11 +8,12 @@
 - 20-oct-2026: 21 Botín y baúl (21A, 21B, 21D, 21E; el 21C, anillos y collares, aplazado).
 - 21-oct-2026: 21½ Cartas y sorpresas (21½A–21½C) · 22 Sistema de mapas (22A–22E, 22G; los récords locales, 22F, aplazados) · 23 La ciudad (23A–23B).
 - 22-oct-2026: 24 Oro, tienda y herrero (24A–24D) · 25 Arreglos rápidos.
-- En curso: 26 Hechizos del Mago (26A ✅, 26B ✅, 26C ✅, 26D ✅, 26E ✅).
+- 23-oct-2026: 26 Hechizos del Mago (26A–26E y revisión de código).
 
 ## Fase actual
-**Fase 26 (hechizos del Mago), en curso** en la rama `fase-26`, con **todos sus bloques hechos** y probados por el propietario (22–23 oct 2026): 26A maná, 26B apuntar en el móvil, 26C Lightning Arrow / Chill Wind / Lightning Bolt y escalera de Int, 26D Ice Strike / Mass Ice Strike (ralentizan) y **26E** Bloody Shock Wave / Earth Shock Wave / Blizzard (en línea, `systems/LineSpell.ts`) con el **Libro Azul** que se aprende para siempre (`SavedCharacter.learnedSpells`, `LOOT_MANUAL_CHANCE`). Detalle en PROGRESS-historial.md y NOTES.md.
-- **Siguiente: cerrar la Fase 26** (`/revisar` si se quiere y `/checkpoint fase`, en una sesión nueva). Luego: 27 monstruos que se mueven distinto · 28 magias pasivas · 29 misiones de rescate · 30–33 mapas y únicos, Aresden/Elvine, Raids, Ranking.
+**Fase 26 (hechizos del Mago) ✅ completada** el 23-oct-2026, fusionada en `master` (etiqueta `fase-26`): 26A maná, 26B apuntar en el móvil, 26C Lightning Arrow / Chill Wind / Lightning Bolt y escalera de Int, 26D Ice Strike / Mass Ice Strike (ralentizan) y **26E** Bloody Shock Wave / Earth Shock Wave / Blizzard (en línea, `systems/LineSpell.ts`) con el **Libro Azul** que se aprende para siempre (`SavedCharacter.learnedSpells`, `LOOT_MANUAL_CHANCE`). Detalle en PROGRESS-historial.md y NOTES.md.
+- **Siguiente: Fase 27, monstruos que se mueven distinto** (`/fase 27` en una sesión nueva; `docs/PLAN-2.md`). Luego: 28 magias pasivas · 29 misiones de rescate · 30–33 mapas y únicos, Aresden/Elvine, Raids, Ranking.
+- **Menores de la revisión de la 26, sin hacer:** objetos nuevos al arrastrar el botón de la Maga y en cada lanzamiento; código muerto (`IceShardRain.chill`, comentario viejo en `RunSnapshot`, `case 'spelldrag'` vacío).
 - **Equilibrio de los hechizos nuevos** (daño y maná de 26E a criterio de Claude): revisar con las métricas o `pnpm balance` si la Maga de Int alta va corta o sobrada.
 - **Revisión de la dificultad (22-oct-2026):** aplicados B–E y G; **pendiente de probar por el propietario**; **F** (Traveler Zone más suave) espera a que pruebe una Maga nueva (`?play=mage&map=traveler`). La Maga sigue por detrás del Guerrero. Informe: https://claude.ai/artifact/Xk8DCaCytHNP1yASM2sFBV.
 - Ideas de la 24 sin hacer: ampliar el baúl en Howard y logros que den oro.
