@@ -122,10 +122,17 @@ const DEMO_MAGE_LEVEL = 25;
 
 class CharacterStoreImpl {
     private slots: Slots;
+    /**
+     * The saved characters come from a newer version of the game (this is an older copy cached on the phone): it plays
+     * with stand-ins in memory and never writes, so the newer save is not lost (review of Fase 26).
+     */
+    private readonly readOnly: boolean;
 
     constructor() {
         const loaded = load();
         this.slots = loaded.slots;
+        // ?characters= (development) starts again on purpose: it may write.
+        this.readOnly = loaded.newer && !DEBUG_START.characters;
         // Saves older than the fixed characters: their runs go with them.
         if (loaded.dropped) saveStore.replaceAll([]);
         // Debug ?characters=reset / demo (debugStart.ts, development only). Their runs go too.
@@ -161,7 +168,8 @@ class CharacterStoreImpl {
                 changed ||= character !== undefined;
             } else if (!character || character.classId !== fixed.classId) {
                 this.slots[slot] = newCharacter(fixed.name, fixed.classId, fixed.look);
-                saveStore.clear(slot);
+                // A stand-in for a newer save keeps that save's run too.
+                if (!this.readOnly) saveStore.clear(slot);
                 changed = true;
             } else if (character.name !== fixed.name) {
                 character.name = fixed.name;
@@ -464,6 +472,7 @@ class CharacterStoreImpl {
     }
 
     private write(): void {
+        if (this.readOnly) return;
         try {
             localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: CHARACTERS_VERSION, slots: this.slots.map((c) => c ?? null) }));
         } catch {
@@ -503,21 +512,25 @@ function newCharacter(name: string, classId: CharacterId, look: CharacterLook): 
     };
 }
 
-/** The saved slots; `dropped` = there were characters from before the fixed ones (version < 9), now thrown away. */
-function load(): { slots: Slots; dropped: boolean } {
+/**
+ * The saved slots; `dropped` = there were characters from before the fixed ones (version < 9), now thrown away;
+ * `newer` = saved by a newer version of the game (none read, and nothing must be written over them).
+ */
+function load(): { slots: Slots; dropped: boolean; newer: boolean } {
     const slots = emptySlots();
     try {
         const raw = localStorage.getItem(STORAGE_KEY);
-        if (!raw) return { slots, dropped: false };
+        if (!raw) return { slots, dropped: false, newer: false };
         const data: unknown = JSON.parse(raw);
-        if (isRecord(data) && typeof data.version === 'number' && data.version < FIXED_CHARACTERS_VERSION) return { slots, dropped: true };
+        if (isRecord(data) && typeof data.version === 'number' && data.version < FIXED_CHARACTERS_VERSION) return { slots, dropped: true, newer: false };
+        if (isRecord(data) && typeof data.version === 'number' && data.version > CHARACTERS_VERSION) return { slots, dropped: false, newer: true };
         migrate(data).forEach((entry, i) => {
             if (i < CHARACTER_SLOT_COUNT) slots[i] = readCharacter(entry);
         });
     } catch {
         // Unreadable: as if there were no characters.
     }
-    return { slots, dropped: false };
+    return { slots, dropped: false, newer: false };
 }
 
 /**

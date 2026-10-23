@@ -116,6 +116,8 @@ export interface LineSpellDef extends ActiveSpellBase {
     pathRadius: number;
     pathDamage: number;
     pathHits: number;
+    /** The path hit of each step lands this long after the step (Blizzard: its shards take 200–500 ms to fall). */
+    pathHitDelayMs: number;
     /** On arrival, every enemy within `targetRadius` px of the point takes `targetDamage`, once per delay (ms after arrival). */
     targetRadius: number;
     targetDamage: number;
@@ -340,6 +342,7 @@ export const ACTIVE_SPELLS: Readonly<Record<ActiveSpellId, ActiveSpellDef>> = {
         pathRadius: 48,
         pathDamage: 14,
         pathHits: 1,
+        pathHitDelayMs: 0,
         targetRadius: 80,
         targetDamage: 26,
         targetHitDelaysMs: [0],
@@ -369,6 +372,7 @@ export const ACTIVE_SPELLS: Readonly<Record<ActiveSpellId, ActiveSpellDef>> = {
         pathRadius: 56,
         pathDamage: 14,
         pathHits: 2,
+        pathHitDelayMs: 0,
         targetRadius: 96,
         targetDamage: 18,
         targetHitDelaysMs: [0, 300],
@@ -398,6 +402,7 @@ export const ACTIVE_SPELLS: Readonly<Record<ActiveSpellId, ActiveSpellDef>> = {
         pathRadius: 64,
         pathDamage: 22,
         pathHits: 1,
+        pathHitDelayMs: 300,
         targetRadius: 110,
         targetDamage: 30,
         // The shards of the last step take 200–500 ms to land: the hit on the point waits for them.

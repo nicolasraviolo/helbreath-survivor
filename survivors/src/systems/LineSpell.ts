@@ -1,3 +1,4 @@
+// Ported from sp-client/src/game/spells/BloodyShockWave.ts, EarthShockWave.ts, Blizzard.ts and BlizzardShard.ts (MIT, Erko Knoll)
 // Hechizos activos en línea (Fase 26E): Bloody Shock Wave, Earth Shock Wave y Blizzard (data/activeSpells.ts, kind
 // 'line'). Como en sp-client (BloodyShockWave.ts, EarthShockWave.ts, Blizzard.ts), un punto invisible va en línea
 // recta de la Maga al sitio elegido y, cada `stepEveryMs`, deja sus dibujos (nudos rojos, chorros de roca o trozos de
@@ -14,9 +15,6 @@ import type { CombatSystem } from './CombatSystem';
 import type { EnemySystem } from './EnemySystem';
 import { chillEnemy, type IceShardRain } from './IceShardRain';
 import type { ScreenShake } from './ScreenShake';
-
-/** Blizzard's shards land 200–500 ms after their step: its path hit waits for them. */
-const BLIZZARD_PATH_HIT_DELAY_MS = 300;
 
 /** One cast on its way: from (fromX, fromY) to (toX, toY), `elapsedMs` since it left (negative while the Mage casts). */
 class LineCast implements Poolable {
@@ -102,7 +100,7 @@ export class LineSpell {
         for (const cast of this.casts.active) {
             cast.elapsedMs += deltaMs;
             if (cast.elapsedMs < 0) continue;
-            const pathDelay = cast.def.look === 'blizzard' ? BLIZZARD_PATH_HIT_DELAY_MS : 0;
+            const pathDelay = cast.def.pathHitDelayMs;
             while (cast.drawn < cast.totalSteps && cast.stepMs(cast.drawn) <= cast.elapsedMs) this.draw(cast, cast.drawn++);
             while (cast.pathHitsDone < cast.totalSteps && cast.stepMs(cast.pathHitsDone) + pathDelay <= cast.elapsedMs) {
                 this.hitPath(cast, cast.pathHitsDone++);

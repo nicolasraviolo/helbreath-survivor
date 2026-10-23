@@ -513,8 +513,8 @@ export class GameScene extends Phaser.Scene {
                 break;
             case 'bluePotion':
                 // Fase 26A: only drops for the Mage (PickupSystem); refills a share of the mana.
+                // Not counted as a potion: the "no potions" goals and the metrics' potions are about healing (review of Fase 26).
                 this.activeSpell?.addMana(this.stats.maxMana * BLUE_POTION_MANA_SHARE);
-                this.achievements.potionsDrunk++;
                 break;
             case 'magnet':
                 this.xp.attractAll();

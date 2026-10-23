@@ -1,3 +1,4 @@
+// Ported from sp-client/src/game/spells/IceStrike.ts, MassIceStrike.ts and IceStrikeShard.ts (MIT, Erko Knoll)
 // Ice Strike y Mass Ice Strike (Fase 26D): lluvia de trozos de hielo, hechizo activo del Mago (data/activeSpells.ts,
 // kind 'iceShards'). Como en sp-client (IceStrike.ts, IceStrikeShard.ts), todos los trozos empiezan a caer a la vez,
 // cada uno desde una altura y con una duración al azar, y al tocar el suelo se rompen con el sonido E46. El daño son

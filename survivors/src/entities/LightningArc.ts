@@ -1,3 +1,4 @@
+// Ported from sp-client/src/game/spells/LightningBolt.ts (MIT, Erko Knoll)
 // Rayo que cae del cielo (Lightning Bolt, Fase 26C), reciclable. Como sp-client/src/game/spells/LightningBolt.ts: una
 // línea quebrada blanca con dos brillos azules, redibujada al azar unas pocas veces mientras dura.
 import Phaser from 'phaser';

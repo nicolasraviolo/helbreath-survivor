@@ -399,11 +399,11 @@ export class Enemy implements Poolable {
                     return false;
                 }
                 if (this.slowMs > 0) {
-                    // Slowed: everything it does runs on a slower clock.
-                    const slowedMs = deltaMs * this.slowFactor;
+                    // Slowed: what it does runs on a slower clock (not the crowd's push nor the knockback).
+                    const pace = this.slowFactor;
                     this.slowMs -= deltaMs;
                     if (this.slowMs <= 0) this.endSlow();
-                    this.chase(slowedMs, world);
+                    this.chase(deltaMs, world, pace);
                     this.syncDisplay();
                     return false;
                 }
@@ -436,39 +436,45 @@ export class Enemy implements Poolable {
         this.applyStatusTint();
     }
 
-    private chase(deltaMs: number, world: EnemyWorld): void {
+    /**
+     * `pace` < 1 when slowed by ice (Fase 26D): its own walking, charging and timers go slower, while the push of the
+     * crowd and the knockback keep their real speed, so slowed packs don't pile up (review of Fase 26).
+     */
+    private chase(deltaMs: number, world: EnemyWorld, pace = 1): void {
         const dx = world.targetX - this.x;
         const dy = world.targetY - this.y;
         const distance = Math.hypot(dx, dy);
         const seconds = deltaMs / 1000;
+        const ownMs = deltaMs * pace;
+        const speed = this.speed * pace;
         let vx = this.pushX + this.knockX;
         let vy = this.pushY + this.knockY;
         const fade = Math.exp(-ENEMY_KNOCKBACK_DECAY * seconds);
         this.knockX *= fade;
         this.knockY *= fade;
         const inReach = this.inReach(dx, dy, distance, world.targetRadius);
-        this.cooldownMs = Math.max(0, this.cooldownMs - deltaMs);
+        this.cooldownMs = Math.max(0, this.cooldownMs - ownMs);
         let facingX = dx;
         let facingY = dy;
         let wanted = MonsterState.Move;
 
         if (this.attackLeftMs > 0) {
             // Attacking: stands still (only pushes and knockback move it) until the animation ends.
-            this.updateAttack(deltaMs, inReach, world);
+            this.updateAttack(ownMs, inReach, world);
             wanted = MonsterState.Attack;
         } else if (this.fleeMs > 0) {
             // Running away from the player (hit-and-run or scared at low health).
-            this.fleeMs -= deltaMs;
+            this.fleeMs -= ownMs;
             if (distance > 0) {
-                vx -= (dx / distance) * this.speed;
-                vy -= (dy / distance) * this.speed;
+                vx -= (dx / distance) * speed;
+                vy -= (dy / distance) * speed;
             }
             facingX = -dx;
             facingY = -dy;
         } else if (this.chargeMs > 0 && !(inReach && this.cooldownMs <= 0)) {
-            this.chargeMs -= deltaMs;
-            vx += this.chargeX;
-            vy += this.chargeY;
+            this.chargeMs -= ownMs;
+            vx += this.chargeX * pace;
+            vy += this.chargeY * pace;
             facingX = this.chargeX;
             facingY = this.chargeY;
         } else if (inReach) {
@@ -480,8 +486,8 @@ export class Enemy implements Poolable {
                 wanted = MonsterState.Idle;
             }
         } else if (distance > world.targetRadius + this.radius) {
-            vx += (dx / distance) * this.speed;
-            vy += (dy / distance) * this.speed;
+            vx += (dx / distance) * speed;
+            vy += (dy / distance) * speed;
         }
 
         if (wanted !== MonsterState.Attack) {
@@ -499,7 +505,7 @@ export class Enemy implements Poolable {
         const movedY = moveAxis(this, 0, vy * seconds, map, area, half, false);
         if (!movedX && !movedY) {
             // Stuck against a wall: walk sideways along it (perpendicular to the wanted direction).
-            const step = this.speed * seconds;
+            const step = speed * seconds;
             const sideX = (-vy / Math.hypot(vx, vy)) * step * this.sideBias;
             const sideY = (vx / Math.hypot(vx, vy)) * step * this.sideBias;
             if (!moveAxis(this, sideX, 0, map, area, half, false) && !moveAxis(this, 0, sideY, map, area, half, false)) {
