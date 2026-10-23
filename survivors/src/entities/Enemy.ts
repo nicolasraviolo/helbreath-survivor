@@ -24,6 +24,7 @@ import { CHAMPION } from '../data/champion';
 import { POISON } from '../data/attributes';
 import { EFFECTS } from '../config/effects';
 import { FREEZE_TINT } from '../data/totems';
+import { ICE_SLOW } from '../data/activeSpells';
 import { DEPTH_DAMAGE_NUMBERS, DEPTH_EFFECT_OFFSET, TILE_SIZE } from '../config/gameConfig';
 import { HBAsset } from '../hb/HBAsset';
 import type { HBMap } from '../hb/HBMap';
@@ -110,6 +111,9 @@ export class Enemy implements Poolable {
     private chargeY = 0;
     /** Freeze totem (Fase 16B): time left standing still, animation paused and tinted blue. */
     private frozenMs = 0;
+    /** Ice Strike (Fase 26D): time left slowed, and its share of normal speed (0.5 = half: walks, hits and animates slower). */
+    private slowMs = 0;
+    private slowFactor = 1;
     /** Elite (data/elites.ts): hits harder, has more health and gives more XP; glows red like the player's Berserk. */
     public elite = false;
     /** The map's multipliers for normal monsters (data/maps.ts → difficulty, Fase 22A); 1 for bosses. */
@@ -173,6 +177,9 @@ export class Enemy implements Poolable {
         this.braveryChecked = false;
         this.chargeMs = 0;
         this.frozenMs = 0;
+        this.slowMs = 0;
+        this.slowFactor = 1;
+        this.sprite.anims.timeScale = 1;
         this.cure();
         this.sprite.anims.resume();
         const roll = Phaser.Math.Between(1, MONSTER_AI.strategyDie);
@@ -207,6 +214,37 @@ export class Enemy implements Poolable {
         this.knockY = 0;
         this.sprite.anims.pause();
         if (this.flashMs <= 0) this.sprite.setTint(FREEZE_TINT);
+    }
+
+    /**
+     * Ice Strike (Fase 26D, propietario: el hielo ralentiza, no congela): for `ms` it lives at `factor` of its speed
+     * (walking, attacks and animation), tinted ice blue. A new hit renews the time; the strongest slow wins.
+     */
+    public slow(factor: number, ms: number): void {
+        if (!this.isAlive) return;
+        this.slowFactor = this.slowMs > 0 ? Math.min(this.slowFactor, factor) : factor;
+        this.slowMs = Math.max(this.slowMs, ms);
+        this.sprite.anims.timeScale = this.slowFactor;
+        this.applyStatusTint();
+    }
+
+    public get isSlowed(): boolean {
+        return this.slowMs > 0;
+    }
+
+    /** Freeze blue, Ice Strike blue or none (not while it flashes white from a hit). */
+    private applyStatusTint(): void {
+        if (this.flashMs > 0) return;
+        if (this.isFrozen) this.sprite.setTint(FREEZE_TINT);
+        else if (this.isSlowed) this.sprite.setTint(ICE_SLOW.tint);
+        else this.sprite.clearTint();
+    }
+
+    private endSlow(): void {
+        this.slowMs = 0;
+        this.slowFactor = 1;
+        this.sprite.anims.timeScale = 1;
+        this.applyStatusTint();
     }
 
     /** Full health (data/enemies.ts, monsterBaseHp): the elites have more, the champions much more. */
@@ -334,6 +372,7 @@ export class Enemy implements Poolable {
         this.phase = EnemyPhase.Dying;
         this.cure();
         if (this.isFrozen) this.thaw();
+        if (this.isSlowed) this.endSlow();
         this.shadow?.setVisible(false);
         this.healthBar?.setVisible(false);
         this.play(MonsterState.Dead, true);
@@ -350,16 +389,22 @@ export class Enemy implements Poolable {
     private step(deltaMs: number, world: EnemyWorld): boolean {
         if (this.flashMs > 0) {
             this.flashMs -= deltaMs;
-            if (this.flashMs <= 0) {
-                if (this.isFrozen) this.sprite.setTint(FREEZE_TINT);
-                else this.sprite.clearTint();
-            }
+            if (this.flashMs <= 0) this.applyStatusTint();
         }
         switch (this.phase) {
             case EnemyPhase.Alive:
                 if (this.frozenMs > 0) {
                     this.frozenMs -= deltaMs;
                     if (this.frozenMs <= 0) this.thaw();
+                    return false;
+                }
+                if (this.slowMs > 0) {
+                    // Slowed: what it does runs on a slower clock (not the crowd's push nor the knockback).
+                    const pace = this.slowFactor;
+                    this.slowMs -= deltaMs;
+                    if (this.slowMs <= 0) this.endSlow();
+                    this.chase(deltaMs, world, pace);
+                    this.syncDisplay();
                     return false;
                 }
                 this.chase(deltaMs, world);
@@ -388,42 +433,48 @@ export class Enemy implements Poolable {
     private thaw(): void {
         this.frozenMs = 0;
         this.sprite.anims.resume();
-        if (this.flashMs <= 0) this.sprite.clearTint();
+        this.applyStatusTint();
     }
 
-    private chase(deltaMs: number, world: EnemyWorld): void {
+    /**
+     * `pace` < 1 when slowed by ice (Fase 26D): its own walking, charging and timers go slower, while the push of the
+     * crowd and the knockback keep their real speed, so slowed packs don't pile up (review of Fase 26).
+     */
+    private chase(deltaMs: number, world: EnemyWorld, pace = 1): void {
         const dx = world.targetX - this.x;
         const dy = world.targetY - this.y;
         const distance = Math.hypot(dx, dy);
         const seconds = deltaMs / 1000;
+        const ownMs = deltaMs * pace;
+        const speed = this.speed * pace;
         let vx = this.pushX + this.knockX;
         let vy = this.pushY + this.knockY;
         const fade = Math.exp(-ENEMY_KNOCKBACK_DECAY * seconds);
         this.knockX *= fade;
         this.knockY *= fade;
         const inReach = this.inReach(dx, dy, distance, world.targetRadius);
-        this.cooldownMs = Math.max(0, this.cooldownMs - deltaMs);
+        this.cooldownMs = Math.max(0, this.cooldownMs - ownMs);
         let facingX = dx;
         let facingY = dy;
         let wanted = MonsterState.Move;
 
         if (this.attackLeftMs > 0) {
             // Attacking: stands still (only pushes and knockback move it) until the animation ends.
-            this.updateAttack(deltaMs, inReach, world);
+            this.updateAttack(ownMs, inReach, world);
             wanted = MonsterState.Attack;
         } else if (this.fleeMs > 0) {
             // Running away from the player (hit-and-run or scared at low health).
-            this.fleeMs -= deltaMs;
+            this.fleeMs -= ownMs;
             if (distance > 0) {
-                vx -= (dx / distance) * this.speed;
-                vy -= (dy / distance) * this.speed;
+                vx -= (dx / distance) * speed;
+                vy -= (dy / distance) * speed;
             }
             facingX = -dx;
             facingY = -dy;
         } else if (this.chargeMs > 0 && !(inReach && this.cooldownMs <= 0)) {
-            this.chargeMs -= deltaMs;
-            vx += this.chargeX;
-            vy += this.chargeY;
+            this.chargeMs -= ownMs;
+            vx += this.chargeX * pace;
+            vy += this.chargeY * pace;
             facingX = this.chargeX;
             facingY = this.chargeY;
         } else if (inReach) {
@@ -435,8 +486,8 @@ export class Enemy implements Poolable {
                 wanted = MonsterState.Idle;
             }
         } else if (distance > world.targetRadius + this.radius) {
-            vx += (dx / distance) * this.speed;
-            vy += (dy / distance) * this.speed;
+            vx += (dx / distance) * speed;
+            vy += (dy / distance) * speed;
         }
 
         if (wanted !== MonsterState.Attack) {
@@ -454,7 +505,7 @@ export class Enemy implements Poolable {
         const movedY = moveAxis(this, 0, vy * seconds, map, area, half, false);
         if (!movedX && !movedY) {
             // Stuck against a wall: walk sideways along it (perpendicular to the wanted direction).
-            const step = this.speed * seconds;
+            const step = speed * seconds;
             const sideX = (-vy / Math.hypot(vx, vy)) * step * this.sideBias;
             const sideY = (vx / Math.hypot(vx, vy)) * step * this.sideBias;
             if (!moveAxis(this, sideX, 0, map, area, half, false) && !moveAxis(this, 0, sideY, map, area, half, false)) {
@@ -594,14 +645,14 @@ export class Enemy implements Poolable {
     /**
      * Elites: draws the current frame from the sheet's red copy (the player's Berserk glow baked in, hb/glowTexture.ts),
      * made the first time. The animation sets the plain frame when it advances; this swaps it back each update.
-     * While frozen it shows the plain frame, so the Freeze blue reads clearly.
+     * While frozen or slowed it shows the plain frame, so the ice blue reads clearly.
      */
     private syncGlowTexture(): void {
         const sprite = this.sprite;
         const frame = sprite.frame;
         const key = frame.texture.key;
         const glowing = key.endsWith(ELITE_GLOW_SUFFIX);
-        const wanted = (this.elite || this.champion || this.def.glows === true) && !this.isFrozen;
+        const wanted = (this.elite || this.champion || this.def.glows === true) && !this.isFrozen && !this.isSlowed;
         if (wanted === glowing) return;
         if (!wanted) {
             sprite.setTexture(key.slice(0, -ELITE_GLOW_SUFFIX.length), frame.name);

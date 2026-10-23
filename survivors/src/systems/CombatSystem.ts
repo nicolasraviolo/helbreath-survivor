@@ -71,20 +71,25 @@ export class CombatSystem {
 
     /**
      * Explosion: every enemy in the circle takes the area damage, the direct target also the direct damage.
-     * Returns true if the main hit (the direct target, or else the first enemy hit) was critical.
+     * Returns true if the main hit (the direct target, or else the first enemy hit) was critical. `onHit` runs for each
+     * enemy hit (Ice Strike slows them, Fase 26D).
      */
-    public hitArea(hit: AreaHit): boolean {
+    public hitArea(hit: AreaHit, onHit?: (enemy: Enemy) => void): boolean {
         const { direct } = hit;
         let directInArea = false;
         let mainCritical: boolean | undefined;
         this.enemies.forEachInRadius(hit.x, hit.y, hit.radius, (enemy) => {
             const isDirect = enemy === direct;
+            // No area damage (Lightning Arrow, Fase 26C): only the enemy it hit, not the ones rubbing against it.
+            if (!isDirect && hit.areaDamage <= 0) return;
             directInArea ||= isDirect;
             const critical = this.hitEnemy(enemy, hit.damageType, hit.areaDamage + (isDirect ? hit.directDamage : 0), hit.x, hit.y, hit.knockback, hit.bigNumbers);
+            onHit?.(enemy);
             if (isDirect || (!direct && mainCritical === undefined)) mainCritical = critical;
         });
         if (direct && !directInArea) {
             mainCritical = this.hitEnemy(direct, hit.damageType, hit.directDamage, hit.x, hit.y, hit.knockback, hit.bigNumbers);
+            onHit?.(direct);
         }
         return mainCritical ?? false;
     }

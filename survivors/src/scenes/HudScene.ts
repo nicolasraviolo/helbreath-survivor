@@ -35,7 +35,8 @@ import { Action, InputSystem } from '../systems/InputSystem';
 import { SETTINGS_CHANGED, settings } from '../systems/Settings';
 import { SpriteText } from '../hb/SpriteText';
 import { ClassicHud } from '../ui/ClassicHud';
-import { CritButton } from '../ui/CritButton';
+import { CritButton, type CritButtonDrag } from '../ui/CritButton';
+import { TOUCH_SPELL_DRAG } from '../config/touch';
 import { CompactHud } from '../ui/CompactHud';
 import { activeHudStyle, overlayBottom, type HudBar, type HudBarState } from '../ui/hudLayout';
 import { Minimap, type MinimapInfo, type MinimapMarkers } from '../ui/Minimap';
@@ -80,6 +81,8 @@ export interface HudSceneData {
     minimap: MinimapInfo;
     /** The touch button of the Critical Strike was pressed. */
     launchCritStrike: () => void;
+    /** Fase 26B: the Mage drags that button to aim the Spell 2; undefined for the Warrior (a tap launches). */
+    spellDrag: CritButtonDrag | undefined;
     /** Saved character playing (its Level shows in the Character window); undefined in debug runs. */
     characterUid: string | undefined;
     classId: CharacterId;
@@ -90,6 +93,7 @@ export class HudScene extends Phaser.Scene {
     private gameSceneKey!: string;
     private minimapInfo!: MinimapInfo;
     private launchCritStrike!: () => void;
+    private spellDrag: CritButtonDrag | undefined;
     private characterUid: string | undefined;
     private classId!: CharacterId;
     private critButton: CritButton | undefined;
@@ -122,6 +126,7 @@ export class HudScene extends Phaser.Scene {
         this.gameSceneKey = data.gameSceneKey;
         this.minimapInfo = data.minimap;
         this.launchCritStrike = data.launchCritStrike;
+        this.spellDrag = data.spellDrag;
         this.characterUid = data.characterUid;
         this.classId = data.classId;
     }
@@ -177,8 +182,10 @@ export class HudScene extends Phaser.Scene {
             addTouchPauseButton(this, HUD_DEPTH_TEXT, () => this.openPause());
             addTouchFullscreenButton(this, HUD_DEPTH_TEXT);
             this.minimap.setTop(MINIMAP.topUnderButtons);
-            this.critButton = new CritButton(this, () => this.launchCritStrike());
+            this.critButton = new CritButton(this, () => this.launchCritStrike(), this.spellDrag);
             this.critButton.place(overlayBottom());
+            // ?debug=spelldrag: a pretend finger drags the Mage's button to the right (Fase 26B).
+            if (DEBUG_START.actions.includes('spelldrag')) this.critButton.debugDrag(TOUCH_SPELL_DRAG.followRadius, 0);
         } else {
             this.critButton = undefined;
         }

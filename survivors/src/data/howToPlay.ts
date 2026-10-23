@@ -74,16 +74,17 @@ export const HOW_TO_PLAY_PAGES: readonly HowToPlayPage[] = [
     },
     {
         // Fase 19A: Critical Strike del Guerrero; 19B: hechizo activo del Mago (desde el 20D, el del hueco Spell 2), con el mismo botón.
+        // Fase 26A: el del Mago gasta maná (barra azul) en vez de recargarse. 26B: en el móvil se apunta arrastrando el botón.
         name: 'Crit',
         rows: [
             // Como mucho 7 filas: con 8, la última pisa el selector "Page".
             { control: 'Space', action: 'Warrior: Critical Strike · Mage: active spell (Spell 2)' },
             { pad: ['R2'], action: 'Warrior: Critical Strike · Mage: active spell (Spell 2)' },
-            { control: 'Red orb button (touch)', action: 'Warrior: Critical Strike · Mage: active spell (Spell 2)' },
-            { control: 'Number on the red orb', action: 'Warrior: charges (+1 each 15 s) · Mage: secs left' },
+            { control: 'Red orb button (touch)', action: 'Same as Space · Mage: drag to aim, let go to cast' },
+            { control: 'Number on the red orb', action: 'Warrior: charges (+1 each 15 s) · Mage: mana missing' },
             { control: 'Getting hit', action: 'Warrior: also refills the charges' },
             { control: 'Every 10 Power', action: 'Warrior: one more charge, and more damage' },
-            { control: 'More Mag', action: 'Mage: the active spell recharges faster' },
+            { control: 'Mage: blue bar', action: 'Each spell costs mana · More Mag refills it faster' },
         ],
     },
     {

@@ -121,8 +121,8 @@ export const CHARACTERS = {
         appearance: MAGE_FEMALE_LOOK,
         startWeapon: { kind: 'spell', id: 'energyBolt' },
         armorSet: 'mage',
-        // Explosions of Fire Ball and the other spells (config/effects.ts, fx.explosion1–3).
-        runSprites: ['fx.effect3'],
+        // Explosions of Fire Ball and the other spells (config/effects.ts, fx.explosion1–3) and Chill Wind (effect4).
+        runSprites: ['fx.effect3', 'fx.effect4'],
     },
     warrior: {
         ...COMMON,

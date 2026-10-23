@@ -7,7 +7,8 @@
 // - Al cogerlo, carta de comparación (scenes/LootScene.ts): "Equip" o "Keep in bag".
 // - La bolsa va al inventario del personaje al terminar la partida (propietario, 20-oct-2026). Fase 21D: al morir sin
 //   Zem se pierde lo encontrado; el baúl compartido se llena a mano desde Select Character (data/warehouse.ts).
-// - Fase 21D: los hechizos solo caen si piden Manual (ninguno de los de hoy); el Zem cae aparte, de los jefes.
+// - Fase 21D: los hechizos solo caen si piden Manual; el Zem cae aparte, de los jefes. Fase 26E: el Manual (el Libro
+//   Azul de Bloody Shock Wave) tiene su propia tirada (LOOT_MANUAL_CHANCE) y al cogerlo se aprende para siempre.
 // - Atributos (21B, decididos el 20-oct-2026): Sharp 10%, Poison 5%, Ancient 1%, solo en armas y varitas
 //   (data/attributes.ts). Fase 24A: todo lo que cae lleva atributo (armas o armaduras) y cae mucho menos (3–4 por
 //   partida); lo normal se compra al herrero. Las varitas de la Maga caen menos que sus hechizos, y Berserk y Kloness muchísimo menos.
@@ -57,6 +58,20 @@ export const LOOT_ZEM_BOSS_CHANCE = 0.1;
  */
 export const LOOT_XELIMA_CHANCE = { normal: 0.0005, debug: 0.05 } as const;
 
+/**
+ * Manual spells (Fase 26E, MANUAL_SPELL_IDS): chance that any monster drops the book of one the character hasn't
+ * learned (owner, 23-oct-2026: "very rare, any monster", even without the Int). ~1 in 15 runs of ~3.000 kills; at most
+ * one book per run. ?debug=bluebook drops it beside the player at the start.
+ */
+export const LOOT_MANUAL_CHANCE = 1 / 45000;
+
+/** Picking up a Manual: the spell is learned for ever, with this sign over the player and the chime of the Epic cards. */
+export const MANUAL_LEARNED = {
+    text: (spellName: string) => `${spellName} learned`,
+    color: 0x9cc8ff,
+    sound: 'sfx.cardEpic',
+} as const satisfies { text: (spellName: string) => string; color: number; sound: SoundKey };
+
 /** How far apart the items of one boss fall (px). */
 export const LOOT_BOSS_SPREAD = 40;
 
@@ -95,8 +110,11 @@ export const LOOT_SLOT_WEIGHTS_BY_CLASS: Readonly<Partial<Record<CharacterId, Pa
  */
 export const LOOT_RARE_KEEP_CHANCE = 0.1;
 
-/** Picture of the spells (they have no icon of their own yet): the original's "Manual", a book (item-pack and item-ground 5/92). */
+/** Picture of the spells (they have no icon of their own yet): the original's "Manual", a red book (item-pack and item-ground 5/92). */
 export const SPELL_ITEM_ICON: ItemIconFrame = { sheet: 5, frame: 92 };
+
+/** The Blue Book of the Manual spells (Fase 26E, Bloody Shock Wave): the blue book next to it (5/91, seen in a run). */
+export const MANUAL_BOOK_ICON: ItemIconFrame = { sheet: 5, frame: 91 };
 
 /** Look of an item on the ground. */
 export const LOOT_GROUND = {

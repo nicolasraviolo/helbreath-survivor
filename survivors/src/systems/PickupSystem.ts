@@ -6,15 +6,19 @@ import { Pickup } from '../entities/Pickup';
 import { Pool } from '../utils/Pool';
 import type { AudioSystem } from './AudioSystem';
 
-/** Pickups that enemies can drop, checked in this order on each kill. */
-const ENEMY_DROPS = (Object.keys(PICKUPS) as PickupId[]).filter((id) => PICKUPS[id].dropChance > 0);
 
 export class PickupSystem {
     private readonly pickups: Pool<Pickup>;
     private readonly finished: Pickup[] = [];
+    /** Pickups that enemies can drop, checked in this order on each kill (the Blue Potion only with mana). */
+    private readonly enemyDrops: readonly PickupId[];
 
-    constructor(scene: Phaser.Scene, private readonly audio: AudioSystem, private readonly onPickup: (id: PickupId) => void) {
+    constructor(scene: Phaser.Scene, private readonly audio: AudioSystem, private readonly onPickup: (id: PickupId) => void, withMana: boolean) {
         this.pickups = new Pool(() => new Pickup(scene));
+        this.enemyDrops = (Object.keys(PICKUPS) as PickupId[]).filter((id) => {
+            const def: PickupDef = PICKUPS[id];
+            return def.dropChance > 0 && (withMana || !def.onlyWithMana);
+        });
     }
 
     public get active(): number {
@@ -23,7 +27,7 @@ export class PickupSystem {
 
     /** A kill: maybe drops a potion or a magnet there. */
     public onKill(x: number, y: number): void {
-        for (const id of ENEMY_DROPS) {
+        for (const id of this.enemyDrops) {
             if (Math.random() < PICKUPS[id].dropChance) {
                 this.drop(id, x, y);
                 break;

@@ -4,21 +4,22 @@
 //   vacíos en la pantalla de equipo hasta la Fase 21. Abaddon's Blood no es un hueco: es una mejora permanente (21E). El Zem funciona desde el 21D (data/consumables.ts).
 // - Fase 21D, "solo lo que tienes": armas, varitas, armaduras y el Zem solo se ponen si están en el inventario (o se
 //   llevan puestos). El equipo de salida (la daga, la varita MS0 y los dos hechizos de la Maga) nunca se acaba. Los
-//   hechizos se saben con la Int; los que estén en MANUAL_SPELL_IDS piden además haberlos encontrado (su Manual).
+//   hechizos se saben con la Int; los que estén en MANUAL_SPELL_IDS piden además haberlos encontrado (su Manual; desde
+//   la Fase 26E se aprenden para siempre al cogerlo, SavedCharacter.learnedSpells).
 //   Requisitos del original con las stats PERMANENTES y el Level (números en weapons.ts y armor.ts).
 // - Fase 21B: el Mago lleva varita en el hueco Weapon (data/wands.ts); el Guerrero, armas cuerpo a cuerpo. Cada clase
 //   solo ve y solo puede ponerse las suyas (classCanWear).
 // - Equipo de salida: el Guerrero, la daga; el Mago, Energy Bolt y Energy Strike, que no piden nada (propietario,
 //   19-oct-2026). Los huecos de hechizo y el del arma nunca se quedan vacíos.
 import type { GearLayer, GearSlot } from '../hb/playerAppearance';
-import { ACTIVE_SPELL_IDS, ACTIVE_SPELLS, activeSpellCooldownMs, isActiveSpellId, type ActiveSpellId } from './activeSpells';
+import { ACTIVE_SPELL_IDS, ACTIVE_SPELLS, activeSpellManaCost, isActiveSpellId, type ActiveSpellId } from './activeSpells';
 import type { Gender } from './appearance';
 import { ARMOR_PIECES, ARMOR_SLOT_NAMES, type ArmorPieceId, type ArmorSlotId } from './armor';
 import { attributeColor, ATTRIBUTES, attributeDamageBonus, type ItemAttribute } from './attributes';
 import type { CharacterId } from './characters';
 import { CONSUMABLES, isConsumableId, ZEM_ID, type ConsumableId } from './consumables';
 import type { EquipRequirement, ItemIcon, ItemIconFrame } from './itemTypes';
-import { SPELL_ITEM_ICON, type OwnedItem } from './loot';
+import { MANUAL_BOOK_ICON, SPELL_ITEM_ICON, type OwnedItem } from './loot';
 import { AUTO_SPELL_IDS, isAutoSpellId, SPELLS, type AutoSpellId } from './spells';
 import type { Stats } from './stats';
 import { getWand, isWandId, WAND_IDS, type WandId } from './wands';
@@ -74,24 +75,25 @@ const CLASS_SLOTS: Readonly<Record<CharacterId, readonly EquipSlotId[]>> = {
 const FREE_SPELLS: ReadonlySet<ItemId> = new Set(Object.values(START_EQUIPMENT.mage));
 
 /**
- * Spells that must be found (their Manual drops) besides having the Int (owner, 20-oct-2026). None of today's: the
- * ones to come (Blizzard, Lightning Strike, Bloody Shock Wave, Earth Shock Wave...) go here. Only these drop as loot.
+ * Spells that must be found (their Manual drops) besides having the Int (owner, 20-oct-2026). Fase 26E: Bloody Shock
+ * Wave, with its Blue Book. They don't come from the normal roll: the book has its own (LOOT_MANUAL_CHANCE) and, once
+ * picked up, the character knows the spell for ever (owner, 23-oct-2026: SavedCharacter.learnedSpells, never lost,
+ * sold or stored).
  */
-export const MANUAL_SPELL_IDS: ReadonlySet<SpellItemId> = new Set<SpellItemId>([]);
+export const MANUAL_SPELL_IDS: ReadonlySet<SpellItemId> = new Set<SpellItemId>(['bloodyShockWave']);
 
 /**
- * Items that never run out and are never kept in the inventory (Fase 21D): the class's starting equipment and the
- * spells known with the Int alone.
+ * Items that never run out and are never kept in the inventory (Fase 21D): the class's starting equipment, the
+ * spells known with the Int alone and (Fase 26E) the Manual spells in `learned`.
  */
-export function isFreeItem(classId: CharacterId, id: ItemId): boolean {
+export function isFreeItem(classId: CharacterId, id: ItemId, learned: readonly ItemId[] = []): boolean {
     if (Object.values(START_EQUIPMENT[classId]).includes(id)) return true;
-    return isSpellItemId(id) && !MANUAL_SPELL_IDS.has(id);
+    return isSpellItemId(id) && (!MANUAL_SPELL_IDS.has(id) || learned.includes(id));
 }
 
-/** Whether the normal loot roll may give it: never the Zem (it has its own boss roll), and only spells that need finding. */
+/** Whether the normal loot roll may give it: never the Zem (it has its own boss roll) nor spells (Manuals have theirs). */
 export function isLootDrop(id: ItemId): boolean {
-    if (isConsumableId(id)) return false;
-    return !isSpellItemId(id) || MANUAL_SPELL_IDS.has(id);
+    return !isConsumableId(id) && !isSpellItemId(id);
 }
 
 export function isMeleeWeaponId(id: string): id is MeleeWeaponId {
@@ -205,7 +207,8 @@ export function itemIcon(id: ItemId, gender: Gender): ItemIconFrame | undefined 
 
 /** Picture of any item, spells included (they use the original's "Manual" until they have their own; Fase 21A). */
 export function itemPicture(id: ItemId, gender: Gender): ItemIconFrame | undefined {
-    return isSpellItemId(id) ? SPELL_ITEM_ICON : itemIcon(id, gender);
+    if (isSpellItemId(id)) return MANUAL_SPELL_IDS.has(id) ? MANUAL_BOOK_ICON : SPELL_ITEM_ICON;
+    return itemIcon(id, gender);
 }
 
 /**
@@ -249,7 +252,7 @@ export function readEquipment(value: unknown, classId: CharacterId): SavedEquipm
 export function describeItem(id: ItemId): string {
     if (isActiveSpellId(id)) {
         const def = ACTIVE_SPELLS[id];
-        return `Circle ${def.circle}, skill button, ${Math.round(activeSpellCooldownMs(def, 0) / 1000)} s recharge (less with Mag)`;
+        return `Circle ${def.circle}, skill button, ${activeSpellManaCost(def)} mana`;
     }
     if (isSpellItemId(id)) {
         const spell = SPELLS[id];
@@ -332,7 +335,7 @@ export function ownedItemPower(item: Readonly<OwnedItem>): ItemPower {
     return power;
 }
 
-/** A wand's Mana Save, for the grey "(soon)" line (Fase 21B: kept for when the spells cost mana). */
+/** A wand's Mana Save (Fase 21B), shown on its loot card; since Fase 26A it makes the Spell 2 cheaper. */
 export function wandManaSave(id: ItemId): number | undefined {
     return isWandId(id) ? getWand(id).manaSave : undefined;
 }

@@ -14,7 +14,7 @@
 // cae trae un atributo: las armas, Sharp, Poison o Ancient (con los mismos pesos 10/5/1 de antes); las armaduras, uno de
 // los "stats" de las armaduras del original con sus nombres (docs/hb-wiki/armaduras.md, "Armor Attributes"):
 // HP Recovery, MP Recovery, Defense Ratio y Magic Resistance. Valores fijos nuestros. MP Recovery solo en la ropa de la
-// Maga y todavía sin efecto (no se gasta maná hasta el Spell 2: "(soon)", como el Mana Save de las varitas).
+// Maga; desde la Fase 26A rellena el maná un 30% más deprisa.
 import type { ArmorSetId } from './armor';
 import type { AddedColor } from '../hb/playerAppearance';
 
@@ -82,7 +82,7 @@ export const ATTRIBUTES: Readonly<Record<ItemAttribute, AttributeDef>> = {
     },
     mpRecovery: {
         kind: 'armor', name: 'MP Recovery', weight: 15, damageBonus: 0, onWands: false, onlySet: 'mage', mpRecovery: 0.3,
-        description: 'MP Recovery +30% (soon)', color: 0x70b0ff,
+        description: 'MP Recovery +30%', color: 0x70b0ff,
     },
 };
 

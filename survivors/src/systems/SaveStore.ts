@@ -72,7 +72,8 @@ export interface RunSnapshot {
     /** Critical Strike charges held (Fase 19A). Saves from before have none: they start full. */
     critCharges: number | undefined;
     /** Recharge left of the Mage's active spell, in ms (Fase 19B). Saves from before have none: it starts ready. */
-    spellCooldownMs: number | undefined;
+    /** The Mage's mana (Fase 26A; before, the Spell 2's recharge left, now ignored). */
+    mana: number | undefined;
     /** What the anonymous stats collected so far (Fase 14A). Saves from before have none. */
     metrics: RunMetricsState | undefined;
     /** Items found, in the bag and put on (Fase 21A). Saves from before have none. */
@@ -94,6 +95,8 @@ type Slots = Array<RunSnapshot | undefined>;
 
 class SaveStoreImpl {
     private slots: Slots = load();
+    /** The saved runs come from a newer version of the game: this copy plays on, but never writes over them. */
+    private readonly readOnly = savedByNewerVersion();
 
     /** One entry per slot (undefined = free). */
     public get all(): ReadonlyArray<Readonly<RunSnapshot> | undefined> {
@@ -135,6 +138,8 @@ class SaveStoreImpl {
     }
 
     private write(): void {
+        // Saved by a newer version of the game (an older copy cached on the phone): never written over (review of Fase 26).
+        if (this.readOnly) return;
         try {
             localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: SAVE_VERSION, slots: this.slots.map((slot) => slot ?? null) }));
         } catch {
@@ -145,6 +150,17 @@ class SaveStoreImpl {
 
 function emptySlots(): Slots {
     return Array.from({ length: SAVE_SLOT_COUNT }, () => undefined);
+}
+
+/** Whether the saved runs come from a newer version of the game than this one. */
+function savedByNewerVersion(): boolean {
+    try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        const data: unknown = raw ? JSON.parse(raw) : undefined;
+        return isRecord(data) && typeof data.version === 'number' && data.version > SAVE_VERSION;
+    } catch {
+        return false;
+    }
 }
 
 function load(): Slots {
@@ -219,7 +235,7 @@ function readSnapshot(entry: unknown): RunSnapshot | undefined {
         portalMsLeft: readNumber(entry.portalMsLeft),
         potionsDrunk: readNumber(entry.potionsDrunk) ?? 0,
         critCharges: readNumber(entry.critCharges),
-        spellCooldownMs: readNumber(entry.spellCooldownMs),
+        mana: readNumber(entry.mana),
         metrics: readMetrics(entry.metrics),
         loot: readLoot(entry.loot),
         gold: readNumber(entry.gold),

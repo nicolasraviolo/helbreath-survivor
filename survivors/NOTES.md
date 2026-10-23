@@ -91,6 +91,11 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Mejorar armas en el herrero (Fase 24D)
 - Revisión de la dificultad: `pnpm balance` (22-oct-2026)
 - Nitidez: lienzo a la resolución real (RENDER_SCALE)
+- Maná del Spell 2 (Fase 26A)
+- Apuntar el Spell 2 en el móvil (Fase 26B)
+- Hechizos nuevos: Lightning Arrow, Chill Wind y Lightning Bolt (Fase 26C)
+- Ice Strike, Mass Ice Strike y ralentizar (Fase 26D)
+- Hechizos en línea y Libro Azul (Fase 26E)
 - Pantalla completa y consolas (Fase 25)
 
 ## Sprites (`.spr`): formato y carga
@@ -902,7 +907,7 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - **Guardado:** personajes versión 6: `attributes` = atributo de lo puesto, por hueco (los objetos del inventario lo llevan en `OwnedItem.attribute`). En Equipment, el catálogo sigue libre, pero lo que tiene atributo sale del inventario al ponérselo y vuelve al quitárselo (`characterStore.equip(uid, slot, id, attribute)`). Las filas se estrechan si no caben (`EQUIPMENT_LIST.minRowHeight`).
 - **Equipment:** lo que se lleva puesto con atributo sale también en la lista (marcado), aunque ya no esté en el inventario.
 - **Varitas:** en el original **no pedían Int ni Mag**, solo Level (y Str 10 por peso, que ignoramos). Item.cfg da Level 30/40/50/90/95/100/120; el propietario prefirió los de la wiki (0/15/35/60/70/120). Berserk Wand no subía el daño por un error (`*(int)1.3` = ×1) y Kloness sumaba según la reputación: usamos +40% y +20% del propietario.
-- **Mana Save (para el futuro):** `WandDef.manaSave` (0,1 = 10%) aún no lo lee nadie; la carta lo enseña en gris "(soon)" junto a "Weapon". Al pasar la Spell 2 a maná: leer `getWand(equipment.wand).manaSave` en `ActiveSpellSystem` y quitar "(soon)" en `LootScene`.
+- **Mana Save:** desde la Fase 26A abarata el Spell 2 (`Equipment.manaSave` → `ActiveSpellSystem.manaSave`). Ver "Maná del Spell 2 (Fase 26A)".
 - **Probar:** `?attr=sharp|poison|ancient` (el arma de salida y todo el botín, siempre armas, con ese atributo), `pnpm check lootsharp`, `lootancient`, `poison`. `?gear=sharp:longSword` (con `?characters=demo`) mete esa arma en el inventario para verla en Equipment.
 
 ## Baúl, "solo lo que tienes" y Zem (Fase 21D)
@@ -1059,3 +1064,50 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - Con zoom, Phaser escala lo que tiene `scrollFactor 0` alrededor del centro de la cámara y se descoloca. Lo fijo en pantalla va dentro de una `ScreenLayer` (`addFixed`), que compensa el desplazamiento cada frame. No usar `setScrollFactor(0)` suelto.
 - Viewports de cámara en píxeles de juego: `setGameViewport()`. `this.scale.width/height` ya no es 800x600: usar `GAME_WIDTH/HEIGHT`.
 - Probar otro factor: `?scale=1|2|3`. El `check --mobile` simula densidad 1 (sale ×1); para ver el zoom en móvil añadir `scale=2` a la situación.
+
+## Maná del Spell 2 (Fase 26A)
+- **Dónde vive:** el maná de la partida está en `ActiveSpellSystem` (solo la Maga lo gasta; el Spell 1 es gratis). El máximo sigue en `CharacterStats.maxMana` (2·Mag + 2·Power + Int/2); el relleno por segundo, en `CharacterStats.manaRegenPerSecond` (`MANA_REGEN_BASE` + `MANA_REGEN_PER_MAG`·Mag, `data/stats.ts`) × (1 + `Equipment.mpRecovery`). Si el máximo sube (Power, cartas de Mag), la diferencia se suma al maná actual.
+- **Coste:** `originalMana` de cada hechizo en `data/activeSpells.ts` (el de la wiki) × `ACTIVE_SPELL_MANA_SHARE` (0,5) × (1 − Mana Save de la varita): `activeSpellManaCost`. Al portar un hechizo nuevo basta con poner su maná del original.
+- **Ritmo:** con Mag 14 sale como con la antigua recarga (Energy Strike cada ~12 s); a Mag 40, ~7 s (antes 8,4). `pnpm balance mage:bisle:10:0 mage:elvineGarden:25:0` dio el mismo Power, jefe final y EXP que antes.
+- **HUD:** la barra azul usa `activeSpell.mana`; el Guerrero la tiene siempre llena. El número del botón rojo es el maná que falta (`manaMissing`); el panel de stats enseña el coste.
+- **Blue Potion:** `bluePotion` en `data/pickups.ts` (item-ground 5/3), `onlyWithMana`: `PickupSystem` solo la tira si el personaje tiene Spell 2. Rellena `BLUE_POTION_MANA_SHARE` (30%) y cuenta en `potionsDrunk`.
+- **Guardado:** `RunSnapshot.mana` (sustituye a `spellCooldownMs`; las partidas viejas empiezan con la barra llena).
+- **Probar:** `?debug=nomana` (barra a 0), `check mana` / `nomana`; `?debug=crits` o la tecla H = sin gastar maná; `?play=mage&debug=pickups` deja una Blue Potion.
+
+## Apuntar el Spell 2 en el móvil (Fase 26B)
+- Solo la Maga: `GameScene.launchHud` pasa `spellDrag` al HUD y `ui/CritButton.ts` se vuelve un stick. Se lanza **al soltar** (con el Guerrero, al tocar). Si el dedo se mueve menos de `TOUCH_SPELL_DRAG.deadzone` (config/touch.ts), cuenta como toque: apuntado automático.
+- El dedo se sigue con los eventos **táctiles del navegador** (`touchmove` / `touchend` en `window`, como `TouchJoystick`): Phaser deja de ver un dedo en cuanto sale del dibujo del juego, y al arrastrar hacia abajo desde la esquina pasa enseguida (primera versión: no giraba hacia abajo). El ratón (`?ui=compact` en PC), con los de Phaser. Si el HUD se pausa a mitad (cartas, pausa), se suelta **sin lanzar**: el "levantar el dedo" podría no llegar nunca.
+- El centro **sigue al dedo** más allá de `TOUCH_SPELL_DRAG.followRadius` (como el stick de apuntar): girar solo pide mover el dedo un poco al otro lado. Fuera de la zona muerta una vez, se queda apuntado aunque el dedo vuelva al centro. Mientras se arrastra, `GameScene` enseña la **misma flecha** del apuntado manual (`AimArrow`, con `spellDragAim`).
+- Con dirección, `ActiveSpellSystem.cast(level, { x, y, direction })` cae en `aimedPoint` (= `range × stickShare`) haya o no monstruos, por encima del stick de apuntar y del automático. El anillo (`ui/SpellAimMarker.ts`, `SPELL_AIM_MARKER` en data/targeting.ts) mide `activeSpellAreaRadius` y va en el suelo (`DEPTH_GROUND_SHADOWS + 1`).
+- Probar: `pnpm check spelldrag --mobile` (dedo de mentira arrastrando a la derecha; `--eval="g.debugReleaseSpellDrag()"` lo suelta y lanza). El check no hace toques de verdad: para eso, Playwright con `hasTouch` y CDP `Input.dispatchTouchEvent` sobre `hud.critButton.container` (posición × ancho del lienzo / 800).
+
+## Hechizos nuevos: Lightning Arrow, Chill Wind y Lightning Bolt (Fase 26C)
+- **Escalera de Int:** en el comentario de cabecera de `data/spells.ts` (Spell 1) y `data/activeSpells.ts` (Spell 2). Ya no es la Int del original. No subir nunca un requisito que ya existía: dejaría a jugadores con un hechizo puesto que ya no pueden llevar.
+- **Lightning Arrow** no está en `sp-client`; sale de `reference/Client.cpp` (efecto 137): proyectil `effect2.spr` hoja 0 (8 direcciones × 4 frames), chispas `effect2` hoja 1 frames 0–4 (`SpellDef.trail`, las pinta `WeaponSystem`), explota como el Energy Bolt. Desde el 23-oct-2026 (propietario) pega también un poco a los de al lado (área pequeña, 36 px, con menos daño). Si algún hechizo tiene `areaDamage` 0, `CombatSystem.hitArea` no toca a los vecinos (antes les daba un 0).
+- **Hechizos que caen del cielo:** `aim: 'sky'` (sin proyectil). `SpellWeapon` llama a `context.skyStrike`; `WeaponSystem.skyStrike` dibuja las explosiones (`SpellBurst.fallPx/fallMs`: el efecto cae mientras se anima, `Effect.play`) y aplica el daño tras `skyImpactMs` (`PendingSkyHit`). Con apuntado manual cae en el cursor o a `stickAreaDistance` del alcance, como Energy Strike.
+- **Chill Wind:** `effect4.spr` hoja 1, frames 0–14 a 33 fps, 4 gotas que caen 200 px a los desplazamientos del original. `effect4` (~0,38 MB) solo baja en partidas de Mago (`runSprites`). Sonido E45.
+- **Lightning Bolt:** rayo dibujado a mano (`entities/LightningArc.ts`, aspecto en `LIGHTNING_LOOK`), como sp-client: línea blanca de 3 px con dos brillos azules, 600 px hacia arriba, redibujada cada 20 ms durante 120 ms. Sonido E40.
+- **Atajo:** `?characters=demo&open=equipment&class=mage&slot=spell1` abre Equipment de Kaila con la lista del Spell 1.
+- **Medido (22-oct-2026, horda, Power 1–2, muertes por segundo):** Energy Bolt 0,9 · Lightning Arrow 1,3–1,6 (con su área pequeña) · Lightning Bolt 1,0 (fuerte contra uno, poco alcance) · Fire Strike 1,6 · Chill Wind 1,9 · Triple Energy Bolt 2,3.
+
+## Ice Strike, Mass Ice Strike y ralentizar (Fase 26D)
+- **Tipo nuevo de activo `'iceShards'`** (`data/activeSpells.ts`), lo dibuja y golpea `systems/IceShardRain.ts` (con pool), que llama `WeaponSystem.castIceShards`. Como sp-client (`IceStrike.ts`, `MassIceStrike.ts`, `IceStrikeShard.ts`, `CastManager.ts` L609–645): **todos los trozos caen a la vez**, cada uno desde 200–400 px y en 400–600 ms; Ice Strike 15 grandes (uno en el centro) + 6 pequeños, Mass Ice Strike 24 + 8. Al llegar, la rotura y E46 (`sfx.freeze`, el mismo del tótem Freeze; los límites de audio dejan sonar unos pocos).
+- **Sprites:** `effect4.spr` hoja 2 (pequeños 0–23, grandes 24–31) y hoja 3 entera (rotura, 15 fps). En el original la animación del trozo dura exactamente su caída: `EffectDef.stretchToFall` hace `sprite.play({ key, duration: fallMs })`. `effect4` ya bajaba en partidas de Maga (Chill Wind).
+- **Daño:** golpes de área en momentos fijos (`hitDelaysMs`): Ice Strike 1 × 20 en 80 px, Mass Ice Strike 2 × 18 en 100 px, × el multiplicador de Power. Medido (23-oct-2026, horda, Power 1, bajas por lanzamiento): Energy Strike 6–10 · Ice Strike 8–10 · Mass Fire Strike 10–16 · Mass Ice Strike 8–13 · Meteor 10–13. Maná 29 y 57.
+- **Ralentizar:** `Enemy.slow(factor, ms)`, separado del `freeze` del tótem. El monstruo vive "a cámara lenta": `step` pasa `deltaMs × factor` a `chase` (anda, ataca y se aparta más despacio, sin descuadrar golpe y animación) y `anims.timeScale = factor`. Tinte `ICE_SLOW.tint` (0x88aaff) por `applyStatusTint` (prioridad: destello blanco > Freeze > hielo); las élites pierden el brillo rojo mientras dura, para que se vea el azul. Normales ×0,5 durante 3 s; jefes, minijefes y Champions ×0,75 durante 1,5 s (`ICE_SLOW`). Otro golpe renueva el tiempo y se queda el frenazo más fuerte. `CombatSystem.hitArea` acepta ahora `onHit` por cada monstruo tocado.
+- **Ojo al medirlo:** a Power 1 el hielo mata a casi todo lo que toca, así que no queda nadie ralentizado. Para verlo: `--eval="(g.activeSpell.def.damage=0.01, g.launchCritStrike())"`.
+- **Check:** `icestrike` / `massicestrike` (Maga con horda; `--eval="g.launchCritStrike()"`).
+
+## Hechizos en línea y Libro Azul (Fase 26E)
+- **Hechizos en línea** (`kind: 'line'` en `data/activeSpells.ts`, `systems/LineSpell.ts`): Bloody Shock Wave, Earth Shock Wave y Blizzard. Un punto invisible va de los pies de la Maga al sitio elegido; cada `stepEveryMs` dibuja lo suyo (`LINE_SPELL_LOOKS`) y golpea lo que hay en `pathRadius` (cada monstruo, `pathHits` veces como mucho por lanzamiento: `hitCount`). Al llegar, `targetHitDelaysMs` golpes de área en el punto. Earth Shock Wave usa `speed` (1.500 px/s) en vez de `travelMs` y se queda 400 ms en el punto. El golpe del camino del Blizzard espera 300 ms a que caigan los trozos (`pathHitDelayMs`).
+- **Gráficos** (sp-client): Blizzard = `effect7.spr` hojas 1–3 (trozos, al azar) y 6 (rotura), sonidos E46/E47; se descarga solo con Blizzard puesto (`activeSpellSprite`, como el Meteor). Earth Shock Wave = `effect11` hojas 2 (chorro) y 3 (polvo), E1. Bloody Shock Wave = `effect4` hoja 0 (anillos rojos), ±30 px de desorden, sale 40 px por encima de los pies, E1. Ninguno tiene brillo aditivo en sp-client.
+- **Los trozos del Blizzard** caen con `IceShardRain.dropShard` (con su propia rotura y sonido); el ralentizar es `chillEnemy` (`ICE_SLOW`).
+- **Libro Azul:** `item-pack`/`item-ground` hoja 5 **frame 91** es un libro **azul** (`MANUAL_BOOK_ICON`); el 92, "Manual" en sp-client, es **rojo granate** (`SPELL_ITEM_ICON`, el resto de hechizos). Visto en partida el 23-oct-2026.
+- **Aprender:** los hechizos de `MANUAL_SPELL_IDS` no salen de la tirada normal (`isLootDrop`); su libro tiene tirada propia (`LOOT_MANUAL_CHANCE`, uno por partida como mucho, `LootOwner.manuals`). Al cogerlo, `GameScene.onLootPickup` lo aprende en el acto (`characterStore.learnSpell`, guardado ya: morir no lo quita) y nunca va a la bolsa. `SavedCharacter.learnedSpells` (versión 10 del guardado); `isFreeItem(classId, id, learned)` lo vuelve libre. La partida simulada (`simBestEquipment`) nunca los elige.
+- **Probar:** `check bloodyshock` / `earthshock` / `blizzard` (con `--eval="g.launchCritStrike()"`), `check bluebook` (`--eval="g.debugPickUpLoot()"`), `check equipmentlearned`; `?gear=learn:bloodyShockWave` con `?characters=demo`.
+- **Ojo en el check:** `await import('/src/systems/CharacterStore.ts')` desde `--eval` da **otra copia** del módulo (otro `characterStore`, vacío de cambios): leer `localStorage` o la escena (`game.scene.getScene('Equipment').character`).
+
+- **Revisión de la Fase 26 (23-oct-2026):**
+  - **Guardados de una versión más nueva** (una copia antigua del juego cacheada en el móvil abre datos de la nueva): `CharacterStore` y `SaveStore` los dejan en **solo lectura** (`readOnly`). Se juega con Gorn y Kaila de Level 1 en memoria, pero nunca se escribe encima ni se borran sus partidas. Probado con un guardado de versión 99. `?characters=` (desarrollo) sí escribe.
+  - **El hielo frena solo el paso del monstruo** (`Enemy.chase(..., pace)`): su andar, cargas y tiempos van más lentos, pero el empuje entre monstruos y el retroceso van a velocidad normal, para que no se amontonen.
+  - La **Blue Potion** no cuenta como poción (retos "sin pociones" ni métricas).

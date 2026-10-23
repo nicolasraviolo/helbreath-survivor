@@ -15,11 +15,11 @@ import {
 import { onTouchFullscreenButton, TOUCH_AIM_STICK, TOUCH_AIM_ZONE_START, TOUCH_JOYSTICK, TOUCH_RESERVED_CORNER } from '../config/touch';
 import { ANNOUNCE_EVENT, QUIT_RUN_EVENT } from '../config/hud';
 import { getArmorPiece } from '../data/armor';
-import { canHaveAttribute, isArmorPieceId, isMeleeWeaponId, itemInfo, START_EQUIPMENT, type EquipSlotId, type SavedEquipment } from '../data/items';
+import { canHaveAttribute, classCanWear, isArmorPieceId, isMeleeWeaponId, isSpellItemId, itemInfo, MANUAL_SPELL_IDS, START_EQUIPMENT, type EquipSlotId, type SavedEquipment } from '../data/items';
 import type { ItemAttribute } from '../data/attributes';
 import { isWandId, type WandId } from '../data/wands';
 import { upgradeOf } from '../data/upgrades';
-import { LOOT_DEBUG, LOOT_SOUNDS, type OwnedItem } from '../data/loot';
+import { LOOT_DEBUG, LOOT_SOUNDS, MANUAL_LEARNED, type OwnedItem } from '../data/loot';
 import { LootSystem } from '../systems/LootSystem';
 import { RunLoot } from '../systems/RunLoot';
 import type { LootSceneData } from './LootScene';
@@ -57,7 +57,7 @@ import { EPIC_CARD_SOUND } from '../data/cardRarity';
 import { CARD_ACTION, SKIP_HEAL_SHARE, type CardAction } from '../data/rerollSkip';
 import { unlockStore } from '../systems/UnlockStore';
 import { GOLD, goldValue } from '../data/gold';
-import { CHEST_CARDS_TITLE, POTION_HEAL_SHARE, type PickupId } from '../data/pickups';
+import { BLUE_POTION_MANA_SHARE, CHEST_CARDS_TITLE, POTION_HEAL_SHARE, type PickupId } from '../data/pickups';
 import { getTotem, TOTEM_IDS, type TotemId } from '../data/totems';
 import { TotemSystem } from '../systems/TotemSystem';
 import { playerDefenseRatio, playerMagicResistance, RESIST_TEXT, type PlayerDefense } from '../data/defense';
@@ -83,6 +83,9 @@ import { mapUnlockStore } from '../systems/MapUnlockStore';
 import { Action, InputSystem } from '../systems/InputSystem';
 import { SETTINGS_CHANGED, settings } from '../systems/Settings';
 import { AimArrow } from '../ui/AimArrow';
+import type { DragDirection } from '../ui/CritButton';
+import { SpellAimMarker } from '../ui/SpellAimMarker';
+import type { ManualAim } from '../systems/Targeting';
 import { overlayBottom, playAreaBottom } from '../ui/hudLayout';
 import { TouchJoystick } from '../ui/TouchJoystick';
 import { SpawnSystem } from '../systems/SpawnSystem';
@@ -90,7 +93,7 @@ import { WeaponSystem } from '../systems/WeaponSystem';
 import { CritStrikeSystem } from '../systems/CritStrikeSystem';
 import { maxCritCharges } from '../data/critStrike';
 import { ActiveSpellSystem } from '../systems/ActiveSpellSystem';
-import { DEFAULT_ACTIVE_SPELL, isActiveSpellId, type ActiveSpellId } from '../data/activeSpells';
+import { activeSpellAreaRadius, activeSpellSprite, DEFAULT_ACTIVE_SPELL, isActiveSpellId, type ActiveSpellId } from '../data/activeSpells';
 import { registerEffectAnimations } from '../config/effects';
 import type { SkillOrb } from '../ui/hudLayout';
 import { XpSystem } from '../systems/XpSystem';
@@ -167,6 +170,11 @@ export class GameScene extends Phaser.Scene {
     private critStrike!: CritStrikeSystem;
     /** The Mage's active spell (Fase 19B); undefined for the Warrior. */
     private activeSpell: ActiveSpellSystem | undefined;
+    /** Fase 26B: ring where the Spell 2 will land, and the direction the Mage drags its touch button now (if any). */
+    private spellAimMarker!: SpellAimMarker;
+    private spellDrag: DragDirection;
+    /** The drag as a manual aim, for the arrow at the feet (reused every frame). */
+    private readonly spellDragAim: ManualAim = { dirX: 1, dirY: 0, point: undefined };
     private aimArrow!: AimArrow;
     private debug!: DebugSystem;
     /** ?debug=aim / debug key: aiming to the right by itself (reset at the start of each run). */
@@ -338,13 +346,16 @@ export class GameScene extends Phaser.Scene {
         assetStreamer.start(this, this.mapId);
         this.damageNumbers = new DamageNumbers(this);
         this.xp = new XpSystem(this, this.audio);
-        this.pickups = new PickupSystem(this, this.audio, (id) => this.collectPickup(id));
+        // Fase 26A: the Blue Potion only drops for a character with a Spell 2 (the Mage).
+        this.pickups = new PickupSystem(this, this.audio, (id) => this.collectPickup(id), CHARACTERS[this.characterId].startWeapon.kind === 'spell');
         this.runLoot = new RunLoot();
         this.runGold = 0;
         this.lootDebugInMs = -1;
+        const learned = characterStore.learnedSpells(this.characterUid);
         this.loot = new LootSystem(this, this.audio, {
             classId: this.characterId, gender: look.gender, stats: this.permanentAtStart, level: this.characterLevel,
-        }, (item) => this.runLoot.pickUp(item));
+            manuals: [...MANUAL_SPELL_IDS].filter((id) => classCanWear(this.characterId, id) && !learned.includes(id)),
+        }, (item) => this.onLootPickup(item));
         this.particles = new HitParticles(this);
         this.screenShake = new ScreenShake(camera);
         this.combat = new CombatSystem(this.enemies, this.damageNumbers, this.audio, this.particles, this.stats, (enemy) => {
@@ -360,6 +371,8 @@ export class GameScene extends Phaser.Scene {
         this.critStrike = new CritStrikeSystem(this.weapons, this.audio, this.screenShake);
         this.activeSpell = this.createActiveSpell(startSpells(startEquipment).active);
         this.aimArrow = new AimArrow(this);
+        this.spellAimMarker = new SpellAimMarker(this);
+        this.spellDrag = undefined;
         this.buffs = new BuffSystem(this, this.player, this.audio, (key, x, y) => this.weapons.spawnEffect(key, x, y));
         this.abaddon = new AbaddonRevive(this, this.audio, this.enemies, (key, x, y) => this.weapons.spawnEffect(key, x, y));
         // Its effect is a big file (5,6 MB): only when it is unlocked, while the run plays.
@@ -497,6 +510,11 @@ export class GameScene extends Phaser.Scene {
                 this.player.heal(Math.round(this.player.maxHp * POTION_HEAL_SHARE));
                 this.sim?.onHeal(this.player.maxHp * POTION_HEAL_SHARE);
                 this.achievements.potionsDrunk++;
+                break;
+            case 'bluePotion':
+                // Fase 26A: only drops for the Mage (PickupSystem); refills a share of the mana.
+                // Not counted as a potion: the "no potions" goals and the metrics' potions are about healing (review of Fase 26).
+                this.activeSpell?.addMana(this.stats.maxMana * BLUE_POTION_MANA_SHARE);
                 break;
             case 'magnet':
                 this.xp.attractAll();
@@ -684,7 +702,7 @@ export class GameScene extends Phaser.Scene {
             const old = this.activeSpell;
             if (!old || old.id === id) return;
             const spell = this.createActiveSpell(id);
-            spell?.restore(old.cooldownLeftMs, this.stats.stats.mag);
+            spell?.restore(old.mana);
             if (spell) spell.infinite = old.infinite;
             this.activeSpell = spell;
         } else if (isArmorPieceId(id)) {
@@ -792,7 +810,7 @@ export class GameScene extends Phaser.Scene {
         this.buffs.restore(run.buffs);
         if (run.critCharges !== undefined) this.critStrike.restore(run.critCharges, stats.level);
         else this.critStrike.restore(maxCritCharges(stats.level), stats.level);
-        this.activeSpell?.restore(run.spellCooldownMs ?? 0, stats.stats.mag);
+        this.activeSpell?.restore(run.mana);
         this.spawner.resumeAt(run.elapsedMs, RESUME_CALM_MS, run.bosses);
         // Fase 21½C: the same champions as before (saves from before roll new ones, only those still to come).
         if (run.champions) this.spawner.setChampions(run.champions, run.championsOut ?? 0);
@@ -834,7 +852,7 @@ export class GameScene extends Phaser.Scene {
             portalMsLeft: this.portal?.timeLeft ?? (this.portalInMs >= 0 ? PORTAL.durationMs : undefined),
             potionsDrunk: this.achievements.potionsDrunk,
             critCharges: this.critStrike.charges,
-            spellCooldownMs: this.activeSpell?.cooldownLeftMs,
+            mana: this.activeSpell?.mana,
             metrics: this.metrics.snapshot(),
             loot: this.runLoot.snapshot(),
             gold: this.runGold,
@@ -876,13 +894,23 @@ export class GameScene extends Phaser.Scene {
             gameSceneKey: this.scene.key,
             minimap: { key: mapDef.minimap, mapWidth: map.width, mapHeight: map.height, playArea: mapDef.playArea },
             launchCritStrike: () => this.launchCritStrike(),
+            // Fase 26B: the Mage's button is dragged to aim (the HUD only needs to know it is a Mage).
+            spellDrag: CHARACTERS[this.characterId].startWeapon.kind === 'spell' ? {
+                preview: (direction) => {
+                    this.spellDrag = direction && { ...direction };
+                },
+                release: (direction) => {
+                    this.spellDrag = undefined;
+                    this.castActiveSpell(direction);
+                },
+            } : undefined,
             characterUid: this.characterUid,
             classId: this.characterId,
             getState: () => ({
                 hp: this.player.hp,
                 maxHp: this.player.maxHp,
-                // Todavía no se gasta maná: siempre lleno.
-                mana: this.stats.maxMana,
+                // Fase 26A: the Mage's mana (spent by the Spell 2); the Warrior has no use for it and keeps it full.
+                mana: this.activeSpell?.mana ?? this.stats.maxMana,
                 maxMana: this.stats.maxMana,
                 xpRatio: this.stats.xpRatio,
                 level: this.stats.level,
@@ -980,7 +1008,14 @@ export class GameScene extends Phaser.Scene {
         this.updateActiveSpell(delta);
         this.weapons.update(delta, player.x, player.y, !player.isDead);
         this.combat.updatePoison(delta);
-        this.aimArrow.update(manualAim, player.x, player.y);
+        // Fase 26B: dragging the Mage's touch button shows the same arrow as aiming by hand (Spell 1), that way.
+        const spellDrag = this.spellDrag;
+        if (spellDrag) {
+            this.spellDragAim.dirX = spellDrag.x;
+            this.spellDragAim.dirY = spellDrag.y;
+        }
+        this.aimArrow.update(spellDrag && !player.isDead ? this.spellDragAim : manualAim, player.x, player.y);
+        this.updateSpellAimMarker();
         this.damageNumbers.update(delta);
         this.abaddon.update(delta);
         this.screenShake.update(delta);
@@ -1062,6 +1097,18 @@ export class GameScene extends Phaser.Scene {
         if (import.meta.env.DEV) this.loot.pickUpAll();
     }
 
+    /**
+     * Development (check spelldrag): lets go of the pretend drag of ?debug=spelldrag, which casts the Spell 2 that way.
+     * Returns where it was aimed and the casts so far, to read in the check.
+     */
+    public debugReleaseSpellDrag(): { direction: DragDirection; casts: number } | undefined {
+        if (!import.meta.env.DEV || !this.activeSpell) return undefined;
+        const direction = this.spellDrag;
+        this.spellDrag = undefined;
+        this.castActiveSpell(direction);
+        return { direction, casts: this.activeSpell.casts };
+    }
+
     /** Development (check deathzem): every item waiting for its card goes to the bag, without showing it. */
     public debugKeepLoot(): void {
         if (!import.meta.env.DEV) return;
@@ -1080,55 +1127,73 @@ export class GameScene extends Phaser.Scene {
         this.critStrike.launch(weapon.def, this.stats.level, player.look.gender, player.x, player.y, angleFromDirection(player.direction));
     }
 
-    /** The HUD orb: the Warrior's Critical Strike charges, or the seconds left of the Mage's spell (blank when ready). */
+    /** The HUD orb: the Warrior's Critical Strike charges, or the mana the Mage still lacks for the spell (blank when ready). */
     private skillOrb(): SkillOrb | undefined {
         const spell = this.activeSpell;
-        if (spell) return { text: spell.ready ? '' : String(Math.ceil(spell.cooldownLeftMs / 1000) || ''), ready: spell.ready };
+        if (spell) return { text: spell.ready ? '' : String(spell.manaMissing || ''), ready: spell.ready };
         if (!this.meleeWeapon) return undefined;
         const charges = this.critStrike.charges;
         return { text: String(charges), ready: charges > 0 };
     }
 
-    /** Stats panel: the Mage's spell with its recharge at this Mag, or the Warrior's maximum Critical Strike charges. */
+    /** Stats panel: the Mage's spell with its mana cost, or the Warrior's maximum Critical Strike charges. */
     private skillRow(): [string, string] | undefined {
         const spell = this.activeSpell;
-        if (spell) return [spell.def.name, `${(spell.cooldownMs(this.stats.stats.mag) / 1000).toFixed(1)} s`];
+        if (spell) return [spell.def.name, `${spell.cost} mana`];
         if (!this.meleeWeapon) return undefined;
         return ['Critical Strikes', `${maxCritCharges(this.stats.level)} max`];
     }
 
     /**
-     * Mage only: their active spell (Fase 19B; since 20D, the one in the Spell 2 slot). Meteor Strike's sprite is
-     * downloaded now (it is big; ON_DEMAND_SPRITES).
+     * Mage only: their active spell (Fase 19B; since 20D, the one in the Spell 2 slot). Meteor Strike's and Blizzard's
+     * sprites are downloaded now (they are big; ON_DEMAND_SPRITES).
      */
     private createActiveSpell(id: ActiveSpellId | undefined): ActiveSpellSystem | undefined {
         if (CHARACTERS[this.characterId].startWeapon.kind !== 'spell') return undefined;
         const spell = new ActiveSpellSystem(this.weapons, id ?? DEFAULT_ACTIVE_SPELL);
-        const def = spell.def;
-        if (def.kind === 'meteor') {
-            void lookLoader.ensure(this, [def.sprite]).then(() => {
+        const sprite = activeSpellSprite(spell.def);
+        if (sprite) {
+            void lookLoader.ensure(this, [sprite]).then(() => {
                 registerEffectAnimations(this.anims, this.textures);
-                spell.loaded = lookLoader.isReady(this, def.sprite);
+                spell.loaded = lookLoader.isReady(this, sprite);
             });
         }
         return spell;
     }
 
     /**
-     * The Mage's active spell (Fase 19B): recharges, and goes off with the Critical Strike button (Space / gamepad R2 /
-     * the touch button, which calls launchCritStrike). The simulated run casts it as soon as it is ready.
+     * The Mage's active spell (Fase 19B): refills its mana (Fase 26A), and goes off with the Critical Strike button (Space / gamepad R2 /
+     * the touch button, which calls launchCritStrike). The simulated run casts it as soon as it has the mana.
      */
     private updateActiveSpell(delta: number): void {
         const spell = this.activeSpell;
         if (!spell || this.player.isDead) return;
-        spell.update(delta);
+        spell.manaSave = this.equipment.manaSave;
+        spell.update(delta, this.stats.maxMana, this.stats.manaRegenPerSecond * (1 + this.equipment.mpRecovery));
         if (this.sim ? spell.ready : this.inputSystem.justPressed(Action.CritStrike)) this.castActiveSpell();
     }
 
-    /** Casts the Mage's active spell now, if it is ready and the Mage is free to act. */
-    private castActiveSpell(): void {
-        if (!this.activeSpell || this.player.isDead || this.levelUpOpen || this.runOver) return;
-        this.activeSpell.cast(this.stats.level, this.stats.stats.mag);
+    /**
+     * Casts the Mage's active spell now, if there is mana enough and the Mage is free to act: towards `direction` (dragging
+     * the touch button, Fase 26B) or, without one, where the player aims or the automatic target.
+     */
+    private castActiveSpell(direction?: DragDirection): void {
+        const spell = this.activeSpell;
+        const player = this.player;
+        if (!spell || player.isDead || this.levelUpOpen || this.runOver) return;
+        spell.cast(this.stats.level, direction && { x: player.x, y: player.y, direction });
+    }
+
+    /** Fase 26B: while the Mage drags the touch button, a ring where the spell will land (dimmed without mana enough). */
+    private updateSpellAimMarker(): void {
+        const spell = this.activeSpell;
+        const direction = this.spellDrag;
+        const player = this.player;
+        if (!spell || !direction || player.isDead) {
+            this.spellAimMarker.update(undefined, 0, false);
+            return;
+        }
+        this.spellAimMarker.update(spell.aimedPoint(player.x, player.y, direction), activeSpellAreaRadius(spell.def), spell.ready);
     }
 
     /** Opens the portal a moment after the final chest is picked up; true when the run is won (stepped in or time up). */
@@ -1256,6 +1321,21 @@ export class GameScene extends Phaser.Scene {
         }
     }
 
+    /**
+     * An item picked up: to its card (Equip / Keep in bag), except the book of a Manual spell (Fase 26E), which is
+     * learned for ever right now (saved at once: dying doesn't lose it) and never goes to the bag.
+     */
+    private onLootPickup(item: OwnedItem): void {
+        const id = item.id;
+        if (!isSpellItemId(id) || !MANUAL_SPELL_IDS.has(id)) {
+            this.runLoot.pickUp(item);
+            return;
+        }
+        characterStore.learnSpell(this.characterUid, id);
+        this.buffs.announce(MANUAL_LEARNED.text(itemInfo(id)?.name ?? id), MANUAL_LEARNED.color);
+        this.audio.play(MANUAL_LEARNED.sound);
+    }
+
     /** ?debug=loot: a rolled item a little to the right of the player. */
     private dropDebugLoot(): void {
         if (!this.player.isDead) this.loot.dropRolled(this.player.x + LOOT_DEBUG.distance, this.player.y);
@@ -1293,7 +1373,7 @@ export class GameScene extends Phaser.Scene {
                 break;
             case 'pickups': {
                 const { x, y } = this.player;
-                this.pickups.drop('potion', x - DEBUG_PICKUP_SPACING, y + DEBUG_PICKUP_SPACING);
+                this.pickups.drop(this.activeSpell ? 'bluePotion' : 'potion', x - DEBUG_PICKUP_SPACING, y + DEBUG_PICKUP_SPACING);
                 this.pickups.drop('magnet', x, y + DEBUG_PICKUP_SPACING * 1.5);
                 this.pickups.drop('chest', x + DEBUG_PICKUP_SPACING, y + DEBUG_PICKUP_SPACING);
                 // Fase 24A: a coin and a pile of gold above the player.
@@ -1335,6 +1415,9 @@ export class GameScene extends Phaser.Scene {
                 this.debugAimForced = !this.debugAimForced;
                 this.inputSystem.setForcedAim(this.debugAimForced ? { x: 1, y: 0 } : undefined);
                 break;
+            case 'spelldrag':
+                // Done by the HUD, which owns the touch button (HudScene.create).
+                break;
             case 'aimstick':
                 // A pretend finger on the aim stick, pushed to the right (touch screens only, Fase 15C).
                 this.aimStick?.debugHold(GAME_WIDTH * 0.75, playAreaBottom() / 2, TOUCH_AIM_STICK.radius, 0);
@@ -1347,8 +1430,12 @@ export class GameScene extends Phaser.Scene {
                     if (best) for (const [slot, layer] of this.equipment.wear(best)) this.player.setGear(slot, layer);
                 }
                 break;
+            case 'nomana':
+                // Fase 26A: the Mage starts with no mana, to watch it refill.
+                this.activeSpell?.empty();
+                break;
             case 'crits':
-                // Critical Strikes without spending charges and the Mage's spell without recharge, until pressed again (Fases 19A and 19B).
+                // Critical Strikes without spending charges and the Mage's spell without spending mana, until pressed again (Fases 19A and 19B).
                 this.critStrike.infinite = !this.critStrike.infinite;
                 if (this.activeSpell) this.activeSpell.infinite = this.critStrike.infinite;
                 break;
@@ -1358,6 +1445,13 @@ export class GameScene extends Phaser.Scene {
             case 'stones':
                 // Read when the cards are built (openLevelUp).
                 break;
+            case 'bluebook': {
+                // The Blue Book of Bloody Shock Wave by the player (Fase 26E), even if it was learned already.
+                const x = this.player.x + LOOT_DEBUG.distance;
+                const [first] = MANUAL_SPELL_IDS;
+                if (!this.loot.dropManual(x, this.player.y) && first) this.loot.drop({ id: first }, x, this.player.y);
+                break;
+            }
             case 'loot':
                 // An item by the player now and every few seconds (Fase 21A).
                 this.dropDebugLoot();

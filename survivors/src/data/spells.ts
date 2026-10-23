@@ -4,13 +4,18 @@
 // - Fase 20D (propietario, 19-oct-2026): los círculos 1–5 son automáticos (hueco 1) y los 6–10, activos (hueco 2,
 //   data/activeSpells.ts). Energy Strike y Mass Fire Strike (círculo 7) se quedan aquí solo como proyectil: los usa su
 //   versión activa. Requisito: la Int del original (reference/Magic.cfg), sin Level.
-// - Energy: rápido, a un objetivo. Fire: lento y en área.
+// - Energy: rápido, a un objetivo. Fire: lento y en área. Lightning (Fase 26C): a un objetivo y fuerte. Ice (26C): cae
+//   del cielo en zona (Chill Wind no ralentiza: decidido por el propietario el 22-oct-2026).
+// - Fase 26C (propietario, 22-oct-2026): la Int pedida ya no es la del original, sino una escalera para ir abriendo
+//   hechizos poco a poco, uno cada pocos Level. Spell 1: Energy Bolt (gratis) → Fire Ball 26 → Lightning Arrow 30 →
+//   Fire Strike 34 → Chill Wind 40 → Triple Energy Bolt 45 → Lightning Bolt 55. Spell 2 en data/activeSpells.ts.
+//   Lightning Bolt (círculo 6 en el original) va aquí, como automático.
 // - Visuales y sonidos de sp-client/src/game/spells/ y constants/Effects.ts (ver NOTES.md).
 // - Daños orientados por la wiki (docs/hb-wiki/hechizos.md), adaptados a un survivors.
 import type { SoundKey } from '../config/assetManifest';
 import type { EffectKey } from '../config/effects';
 
-export type SpellFamilyId = 'energy' | 'fire';
+export type SpellFamilyId = 'energy' | 'fire' | 'lightning' | 'ice';
 
 /** One explosion drawn at impact, `delayMs` after it and moved by (dx, dy) pixels. */
 export interface SpellBurst {
@@ -19,6 +24,16 @@ export interface SpellBurst {
     dy: number;
     delayMs: number;
     sound?: SoundKey;
+    /** Drawn `fallPx` above its point and falling onto it in `fallMs` while it animates (Chill Wind's drops). */
+    fallPx?: number;
+    fallMs?: number;
+}
+
+/** Sparks left behind a flying projectile, one every `everyMs`, up to `spread` px off its path (Lightning Arrow). */
+export interface SpellTrail {
+    effect: EffectKey;
+    everyMs: number;
+    spread: number;
 }
 
 export interface SpellDef {
@@ -53,9 +68,16 @@ export interface SpellDef {
     /**
      * Where each projectile goes: 'targets' = a different nearby enemy each (the nearest first);
      * 'scatter' = random points around the nearest enemy, within `scatterRadius`;
-     * 'pattern' = all at once, each to the nearest enemy moved by its `pattern` offset (a small area, like the original).
+     * 'pattern' = all at once, each to the nearest enemy moved by its `pattern` offset (a small area, like the original);
+     * 'sky' = no projectile: it falls from the sky on the nearest enemy (its bursts, and the damage after `skyImpactMs`).
      */
-    aim: 'targets' | 'scatter' | 'pattern';
+    aim: 'targets' | 'scatter' | 'pattern' | 'sky';
+    /** 'sky': time from the cast to the damage (the drops' fall); 0 = at once (a lightning). */
+    skyImpactMs?: number;
+    /** 'sky': a lightning drawn from far above onto the target as it strikes (sp-client LightningBolt). */
+    skyLightning?: boolean;
+    /** Sparks left while flying. */
+    trail?: SpellTrail;
     scatterRadius?: number;
     /** 'pattern': offset (px) from the target of each shot, one per shot. */
     pattern?: ReadonlyArray<readonly [number, number]>;
@@ -86,6 +108,16 @@ const MASS_FIRE_STRIKE_BURSTS: readonly SpellBurst[] = [
     { effect: 'fx.explosion2', dx: -30, dy: -15, delayMs: 60, sound: 'sfx.explosion' },
     { effect: 'fx.explosion2', dx: 35, dy: -30, delayMs: 100, sound: 'sfx.explosion' },
     { effect: 'fx.explosion2', dx: 20, dy: 30, delayMs: 140, sound: 'sfx.explosion' },
+];
+
+/** Chill Wind: 4 drops falling 200 px at 1500 px/s, at the original's offsets (sp-client ChillWind.ts, Client.cpp 15103). */
+const CHILL_WIND_FALL_PX = 200;
+const CHILL_WIND_FALL_MS = 133;
+const CHILL_WIND_BURSTS: readonly SpellBurst[] = [
+    { effect: 'fx.chillWind.drop', dx: 0, dy: 0, delayMs: 0, sound: 'sfx.chillWind', fallPx: CHILL_WIND_FALL_PX, fallMs: CHILL_WIND_FALL_MS },
+    { effect: 'fx.chillWind.drop', dx: -30, dy: -15, delayMs: 40, fallPx: CHILL_WIND_FALL_PX, fallMs: CHILL_WIND_FALL_MS },
+    { effect: 'fx.chillWind.drop', dx: 35, dy: -30, delayMs: 80, fallPx: CHILL_WIND_FALL_PX, fallMs: CHILL_WIND_FALL_MS },
+    { effect: 'fx.chillWind.drop', dx: 20, dy: 30, delayMs: 120, fallPx: CHILL_WIND_FALL_PX, fallMs: CHILL_WIND_FALL_MS },
 ];
 
 /** Energy Bolt cast height (sp-client ENERGY_BOLT_ORIGIN_OFFSET_Y = 50; a bit lower here). */
@@ -151,18 +183,52 @@ export const SPELLS = {
     },
     massFireStrike: {
         // wiki: 11 directo + 43 en área 5×5.
-        name: 'Mass Fire Strike', family: 'fire', circle: 7, int: 85,
+        name: 'Mass Fire Strike', family: 'fire', circle: 7, int: 75,
         directDamage: 11, areaDamage: 32, areaRadius: 96, cooldownMs: 1800,
         range: 340, maxDistance: 500, speed: 380, projectileRadius: 10, knockback: 240,
         shots: 1, shotIntervalMs: 0, aim: 'targets',
         flyEffect: 'fx.fireBall.fly', bursts: MASS_FIRE_STRIKE_BURSTS, originOffsetY: FIRE_ORIGIN_Y, impactShakePx: 6,
+    },
+    // Lightning (Fase 26C): fuerte contra uno solo.
+    lightningArrow: {
+        // wiki: 30 al objetivo, sin área (círculo 4). Aquí: rápida y de largo alcance, buena contra jefes. Propietario
+        // (23-oct-2026): también un poco a los de al lado, en un área pequeña y con menos daño, como Lightning Bolt.
+        name: 'Lightning Arrow', family: 'lightning', circle: 4, int: 30,
+        directDamage: 30, areaDamage: 9, areaRadius: 36, cooldownMs: 800,
+        range: 380, maxDistance: 560, speed: 700, projectileRadius: 8, knockback: 120,
+        shots: 1, shotIntervalMs: 0, aim: 'targets',
+        flyEffect: 'fx.lightningArrow.fly',
+        trail: { effect: 'fx.lightningArrow.spark', everyMs: 25, spread: 10 },
+        bursts: [{ effect: 'fx.energyBolt.explode', dx: 0, dy: 0, delayMs: 0, sound: 'sfx.energyBolt.impact' }],
+        castSound: 'sfx.energyBolt.cast', originOffsetY: ENERGY_ORIGIN_Y,
+    },
+    lightningBolt: {
+        // wiki: 30 al objetivo + 12 en el camino y la zona (círculo 6). Propietario (22-oct-2026): automático, mucho daño y
+        // poco alcance. Un rayo cae del cielo sobre el más cercano (como sp-client LightningBolt sin origen).
+        name: 'Lightning Bolt', family: 'lightning', circle: 6, int: 55,
+        directDamage: 60, areaDamage: 22, areaRadius: 60, cooldownMs: 1200,
+        range: 180, maxDistance: 0, speed: 0, projectileRadius: 24, knockback: 180,
+        shots: 1, shotIntervalMs: 0, aim: 'sky', skyImpactMs: 0, skyLightning: true,
+        flyEffect: 'fx.energyBolt.fly',
+        bursts: [{ effect: 'fx.energyBolt.explode', dx: 0, dy: 0, delayMs: 0, sound: 'sfx.lightning' }],
+        originOffsetY: ENERGY_ORIGIN_Y, impactShakePx: 4,
+    },
+    // Ice (Fase 26C): cae del cielo en zona.
+    chillWind: {
+        // wiki: 19 en área 3×3 (círculo 5). Sin ralentizar (propietario, 22-oct-2026). Cuatro gotas alrededor del objetivo;
+        // el daño, una vez, cuando caen.
+        name: 'Chill Wind', family: 'ice', circle: 5, int: 40,
+        directDamage: 0, areaDamage: 22, areaRadius: 80, cooldownMs: 1500,
+        range: 320, maxDistance: 0, speed: 0, projectileRadius: 0, knockback: 140,
+        shots: 1, shotIntervalMs: 0, aim: 'sky', skyImpactMs: CHILL_WIND_FALL_MS + 60,
+        flyEffect: 'fx.energyBolt.fly', bursts: CHILL_WIND_BURSTS, originOffsetY: 0,
     },
 } as const satisfies Record<string, SpellDef>;
 
 export type SpellId = keyof typeof SPELLS;
 
 /** The spells of circles 1–5 (they go in the first slot and cast themselves), in the order of their requirement. */
-export const AUTO_SPELL_IDS = ['energyBolt', 'fireBall', 'fireStrike', 'tripleEnergyBolt'] as const satisfies readonly SpellId[];
+export const AUTO_SPELL_IDS = ['energyBolt', 'fireBall', 'lightningArrow', 'fireStrike', 'chillWind', 'tripleEnergyBolt', 'lightningBolt'] as const satisfies readonly SpellId[];
 export type AutoSpellId = (typeof AUTO_SPELL_IDS)[number];
 
 export function isAutoSpellId(id: string): id is AutoSpellId {
@@ -181,3 +247,17 @@ export const CAST_SOUND: SoundKey = 'sfx.cast';
 export function getSpell(id: SpellId): SpellDef {
     return SPELLS[id];
 }
+
+/** Lightning drawn from the sky (Lightning Bolt, Fase 26C): sp-client LightningBolt.ts, without a caster origin. */
+export const LIGHTNING_LOOK = {
+    /** It starts this far above the target (LIGHTNING_SOURCE_OFFSET_Y). */
+    fromDy: 600,
+    segments: 20,
+    /** Random sideways shift of each joint (px); the original's jitter is 1 tile-ish, a bit wider here. */
+    jitterPx: 14,
+    /** Redrawn every `redrawMs` while it lasts `durationMs`. */
+    redrawMs: 20,
+    durationMs: 120,
+    core: { width: 3, color: 0xffffff, alpha: 0.95 },
+    glow: { width: 1, color: 0x6464ff, alpha: 0.6, offsetPx: 2 },
+} as const;

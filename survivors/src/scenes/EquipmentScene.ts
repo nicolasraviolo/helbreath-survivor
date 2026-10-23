@@ -12,6 +12,7 @@
 //   quita vuelve a él. Si no caben, las filas se estrechan y, si aún no caben, la lista se desplaza (rueda o flechas).
 // Teclado y mando: izquierda/derecha eligen hueco, abajo entra en la lista, Enter / A se pone el objeto marcado.
 import Phaser from 'phaser';
+import { DEBUG_START } from '../config/debugStart';
 import {
     CHARACTER_INFO_BOXES,
     CHARACTER_INFO_DOLL,
@@ -145,6 +146,8 @@ export class EquipmentScene extends Phaser.Scene {
         }
         this.openedAt = this.time.now;
         this.slot = canChangeSlot(character.classId, 'weapon') ? 'weapon' : 'body';
+        const debugSlot = DEBUG_START.openSlot;
+        if (debugSlot && canChangeSlot(character.classId, debugSlot)) this.slot = debugSlot;
         this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0x000000, CHARACTER_INFO_SHADE_ALPHA).setOrigin(0);
         const { x, y } = CHARACTER_INFO_POSITION.run;
         this.add.image(x, y, CHARACTER_INFO_TEXTURE, CHARACTER_INFO_FRAME).setOrigin(0).setScale(CHARACTER_INFO_SCALE);
@@ -344,7 +347,7 @@ export class EquipmentScene extends Phaser.Scene {
      */
     private listFor(character: Readonly<SavedCharacter>, slot: EquipSlotId): Row[] {
         const ladder = catalog(character.classId, slot);
-        const items: OwnedItem[] = ladder.filter((id) => isFreeItem(character.classId, id)).map((id) => ({ id }));
+        const items: OwnedItem[] = ladder.filter((id) => isFreeItem(character.classId, id, character.learnedSpells)).map((id) => ({ id }));
         const has = (item: OwnedItem) => items.some((other) => sameOwnedItem(other, item));
         const worn = characterStore.worn(this.uid, slot);
         if (worn && !has(worn)) items.push(worn);
@@ -492,7 +495,7 @@ export class EquipmentScene extends Phaser.Scene {
         const unmet = requirementChecks(id, permanentStats(character), character.level).filter((check) => !check.met);
         const needs = unmet.length > 0 ? ` Needs ${unmet.map((check) => check.label).join(', ')}.` : '';
         const owned = characterStore.ownedCount(this.uid, item);
-        const kept = owned > 0 ? ` You keep ${owned} in your inventory.` : isFreeItem(character.classId, id) && !item.attribute && !item.upgrade ? '' : ' The one you wear.';
+        const kept = owned > 0 ? ` You keep ${owned} in your inventory.` : isFreeItem(character.classId, id, character.learnedSpells) && !item.attribute && !item.upgrade ? '' : ' The one you wear.';
         const attribute = item.attribute ? ` ${ATTRIBUTES[item.attribute].description}.` : '';
         const upgrade = item.upgrade ? ` ${upgradeDescription(item.upgrade)}.` : '';
         return `${ownedItemName(item)}: ${describeItem(id)}.${attribute}${upgrade}${needs}${kept}`;

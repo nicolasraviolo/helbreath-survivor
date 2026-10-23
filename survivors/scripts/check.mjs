@@ -84,6 +84,23 @@ const PRESETS = {
     // Hechizo activo del Mago (Fase 20D) con horda y sin recarga: Energy Strike, el de salida. Para lanzarlo:
     // --eval="g.launchCritStrike()"; otro hechizo con atajo a mano: "play=mage&debug=god,horde,crits&spells=massFireStrike".
     activespell: 'play=mage&debug=god,horde,crits',
+    // Fase 26D: Ice Strike / Mass Ice Strike con horda (--eval="g.launchCritStrike()" lo lanza; ralentiza y tiñe de azul).
+    icestrike: 'play=mage&debug=god,horde,crits&spells=iceStrike',
+    massicestrike: 'play=mage&debug=god,horde,crits&spells=massIceStrike',
+    // Fase 26E: hechizos en línea (con --eval="g.launchCritStrike()" se lanzan).
+    bloodyshock: 'play=mage&debug=god,horde,crits&spells=bloodyShockWave',
+    earthshock: 'play=mage&debug=god,horde,crits&spells=earthShockWave',
+    blizzard: 'play=mage&debug=god,horde,crits&spells=blizzard',
+    // El Libro Azul junto a Kaila (con --eval="g.debugPickUpLoot()" se coge y se aprende).
+    bluebook: 'play=mage&characters=demo&debug=god,bluebook',
+    // Equipment de Kaila con Bloody Shock Wave aprendido (sale en rojo: le falta Int).
+    equipmentlearned: 'characters=demo&open=equipment&class=mage&gear=learn:bloodyShockWave',
+    // Fase 26A: la Maga con horda (lanza con --eval) y con el maná a 0 para verlo rellenarse.
+    mana: 'play=mage&debug=god,horde',
+    nomana: 'play=mage&debug=god,nomana',
+    // Fase 26B (con --mobile): un dedo de mentira arrastra a la derecha el botón del hechizo; sale el anillo donde caerá.
+    // Para soltarlo y lanzarlo hacia allí: --eval="g.debugReleaseSpellDrag()".
+    spelldrag: 'play=mage&debug=god,horde,spelldrag',
     // Botín (Fase 21A): Gorn (ejemplo) con un objeto cayendo a su derecha cada pocos segundos. Al pisarlo sale la carta
     // Equip / Keep in bag. Para cogerlo: --eval="g.debugPickUpLoot()".
     loot: 'play=warrior&characters=demo&debug=god,loot',

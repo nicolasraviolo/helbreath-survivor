@@ -46,6 +46,14 @@ export const HP_REGEN_PER_VIT = 0.02;
 export const MANA_PER_MAG = 2;
 export const MANA_PER_LEVEL = 2;
 export const MANA_PER_INT = 0.5;
+/**
+ * Maná que se recupera solo cada segundo (Fase 26A, propietario 22-oct-2026: "solo con Mag", como el original):
+ * base + porPunto·Mag. Ajustado para que, de media, el Spell 2 salga como con la antigua recarga: Mag 14 → 2,7/s
+ * (un Energy Strike cada ~12 s, como antes), Mag 40 → 4,4/s (~7 s; antes 8,4), Mag 60 → 5,7/s (~6 s, como antes).
+ * La ropa con MP Recovery lo sube un 30%.
+ */
+export const MANA_REGEN_BASE = 1.8;
+export const MANA_REGEN_PER_MAG = 0.065;
 
 /** Daño físico +3% por punto de Str sobre 10 (en el original, +0,2%). Igual que Mag (Fase 13C). */
 export const PHYSICAL_DAMAGE_PER_STR = 0.03;

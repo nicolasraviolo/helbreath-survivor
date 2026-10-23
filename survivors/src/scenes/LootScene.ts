@@ -161,9 +161,9 @@ export class LootScene extends Phaser.Scene {
         const lines: Array<{ text: string; color: string }> = [];
         if (id) {
             const slot = itemInfo(id)?.slot;
-            // A wand's Mana Save goes with the slot, in grey: it does nothing until the spells cost mana.
+            // A wand's Mana Save goes with the slot, in grey (since Fase 26A it makes the Spell 2 cheaper).
             const manaSave = wandManaSave(id);
-            const mana = manaSave ? ` · Mana save ${Math.round(manaSave * 100)}% (soon)` : '';
+            const mana = manaSave ? ` · Mana save ${Math.round(manaSave * 100)}%` : '';
             if (slot) lines.push({ text: `${EQUIP_SLOT_NAMES[slot]}${mana}`, color: L.dimColor });
             lines.push({ text: describeItem(id), color: L.textColor });
             if (attribute) lines.push({ text: attribute.description, color: colorString(attribute.color) });
