@@ -121,6 +121,10 @@ import { ScreenLayer, setGameViewport } from '../ui/renderScale';
 
 /** Enemies created by the debug "spawn many" key. */
 const DEBUG_SPAWN_COUNT = 100;
+/** ?debug=charge (Fase 27B): a ring of monsters that charge, at this distance (px) around the player. */
+const DEBUG_CHARGE = { enemies: ['bunny', 'ant', 'direBoar', 'minotaur'], count: 12, radiusPx: 260 } as const;
+/** ?debug=movement (Fase 27C): a ring mixing every way of moving (wander, flank, charge, keep away). */
+const DEBUG_MOVEMENT = { enemies: ['slime', 'cat', 'bunny', 'orcMage'], count: 16, radiusPx: 300, checkEveryMs: 250, maxWaitMs: 10000 } as const;
 /** Points added by the debug keys V (Str) and B (Int and Mag), to see links and armor show up quickly. */
 const DEBUG_STR_POINTS = 10;
 /** Distance from the player of the pickups dropped by the debug key P. */
@@ -1115,6 +1119,18 @@ export class GameScene extends Phaser.Scene {
         for (let item = this.runLoot.nextPending(); item; item = this.runLoot.nextPending()) this.runLoot.keep(item);
     }
 
+    /** ?debug=movement: asks for the monsters not downloaded yet and spawns the ring once they all are (or after maxWaitMs). */
+    private spawnMovementRing(waitedMs = 0): void {
+        const { enemies, count, radiusPx, checkEveryMs, maxWaitMs } = DEBUG_MOVEMENT;
+        const missing = enemies.filter((id) => !assetStreamer.isReady(id));
+        if (missing.length > 0 && waitedMs < maxWaitMs) {
+            missing.forEach((id) => assetStreamer.hurry(id));
+            this.time.delayedCall(checkEveryMs, () => this.spawnMovementRing(waitedMs + checkEveryMs));
+            return;
+        }
+        this.spawner.spawnRing(enemies, count, this.player.x, this.player.y, radiusPx);
+    }
+
     /** Launches a Critical Strike now, if the Warrior has a charge and is free to act. */
     public launchCritStrike(): void {
         if (this.activeSpell) {
@@ -1401,6 +1417,14 @@ export class GameScene extends Phaser.Scene {
                 break;
             case 'stampede':
                 this.spawner.runFirstEvent('stampede');
+                break;
+            case 'charge':
+                // Monsters that stop with a "!" and charge (Fase 27B); only those already downloaded on this map.
+                this.spawner.spawnRing(DEBUG_CHARGE.enemies, DEBUG_CHARGE.count, this.player.x, this.player.y, DEBUG_CHARGE.radiusPx);
+                break;
+            case 'movement':
+                // Every way of moving at once (Fase 27C): downloads the ones missing first (the Mage-Orc comes later in Traveler Zone).
+                this.spawnMovementRing();
                 break;
             case 'champion':
                 // A champion a few seconds from now (Fase 21½C).

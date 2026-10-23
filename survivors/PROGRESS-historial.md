@@ -2,6 +2,22 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
+**Fase 27C — Guardar distancia y medidas (2026-10-23).**
+- **Qué se hizo:** forma de moverse **guardar distancia** (`'keepAway'`, números en `KEEP_AWAY` de `data/movement.ts`, lógica en `Enemy.keepAwayStep`) para Mage-Orc, Lich y Dark Elf. Mientras esperan su siguiente ataque, si te acercas a menos del 60% de su alcance retroceden (más despacio que el jugador); si no, se mueven de lado y cambian de lado de vez en cuando. Atajo `?debug=movement` / `check movement`: corro con Slime, Cat, Bunny y Mage-Orc (descarga antes los que falten). What's new con una línea. Ver NOTES.md, "Monstruos que se mueven distinto (Fase 27)".
+- **Comprobado:** build; `pnpm balance` antes/después sin cambio apreciable (`.check/balance-27c-before.json` / `-after.json`); Mage-Orc con el jugador a 50 px se aleja a ~100 px en 2 s; 60 FPS en `--mobile` con ~260 monstruos; a los 5 min en Traveler Zone los monstruos cercanos llegan por las 8 direcciones; `check menu news movement charge traveler` sin errores. Probado por el propietario: bien.
+- **Probar:** `pnpm --dir survivors dev` → http://localhost:8090/?map=traveler&debug=god,movement
+
+**Fase 27B — Embestir (2026-10-23).**
+- **Qué se hizo:** forma de moverse **embestir** (`'charge'`, números en `CHARGE` de `data/movement.ts`) para Bunny, Ant, Dire Boar y Minotaur (el Giant Lizard no: es jefe). A 70–220 px se paran 0,6 s con un **"!" amarillo** encima, apuntan a donde estaba el jugador y cargan en línea recta a 2,2× su velocidad, 110 px más allá (si te apartas, pasan de largo y vuelven); otra carga cada 3–4,5 s. Reutiliza `Enemy.charge()` de la estampida. Los "!" con pool en `systems/ChargeWarnings.ts`. Atajo `?debug=charge` y `check charge`. What's new con una línea. Ver NOTES.md, "Monstruos que se mueven distinto (Fase 27)".
+- **Comprobado:** build; `check charge` (hasta 5 "!" a la vez, captura con los avisos), `game`, `horde --mobile`, Traveler Zone con ~310 monstruos embistiendo en `--mobile`, `menu` y `stampede`: sin errores a 60 FPS. **Pendiente de probar por el propietario.**
+- **Probar:** `pnpm --dir survivors dev` → http://localhost:8090/?map=traveler&debug=god,charge
+
+**Fase 27A — Rodear, deambular y separarse (2026-10-23).**
+- **Qué se hizo:** cada monstruo tiene una forma de moverse (`movement` en `data/enemies.ts`, números en `data/movement.ts`): **rodear** (Cat, Snake, Orc, Werewolf, Hellhound, Stalker: llegan en curva por un lado y van rectos al acercarse) y **deambular** (Slime, Zombie, Clay y Stone Golem: tramos al azar hacia el jugador hasta verlo a 260 px o recibir un golpe). El resto, directo; los jefes, siempre directos. **Separación** más fuerte y con un pequeño hueco entre cuerpos (`ENEMY_SEPARATION_SPACING`). What's new de la Fase 27 creado. Ver NOTES.md, "Monstruos que se mueven distinto (Fase 27)".
+- **Decisiones del propietario:** embestir avisará con "!" (27B); se acepta algo más de dificultad; los jefes no cambian (23-oct-2026).
+- **Comprobado:** build; `check menu horde stampede traveler` y Traveler Zone a los 5 min (PC y `--mobile`, con horda) sin errores a 60 FPS; captura con monstruos llegando repartidos. Probado por el propietario: bien.
+- **Probar:** `pnpm --dir survivors dev` → `?play&map=traveler`, J cinco veces.
+
 **Fase 26 — Revisión de código (2026-10-23).**
 - **Qué se hizo:** `/revisar` de toda la rama (8 hallazgos; el propietario eligió arreglar del 1 al 5): (1) un guardado de personajes o partidas de una **versión más nueva** ya no se pisa desde una copia antigua del juego (`readOnly` en `CharacterStore` y `SaveStore`); (2) la **Blue Potion** no cuenta como poción para los retos ni las métricas; (3) el **hielo frena solo el paso** del monstruo, no el empuje entre ellos ni el retroceso (`Enemy.chase(..., pace)`); (4) cabeceras "Ported from sp-client" en `LightningArc`, `IceShardRain` y `LineSpell`; (5) el retraso del golpe del Blizzard pasa a `data/activeSpells.ts` (`pathHitDelayMs`). Quedan sin hacer (menores): objetos nuevos al arrastrar el botón de la Maga y en cada lanzamiento, y algo de código muerto (`IceShardRain.chill`, comentario viejo en `RunSnapshot`, `case 'spelldrag'` vacío).
 - **Comprobado:** build; guardado falso de versión 99 intacto tras escribir; monstruo ralentizado a la mitad de paso (11 frente a 23 px/s); check de los hechizos sin errores.
