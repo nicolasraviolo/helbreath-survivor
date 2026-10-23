@@ -87,6 +87,14 @@ const PRESETS = {
     // Fase 26D: Ice Strike / Mass Ice Strike con horda (--eval="g.launchCritStrike()" lo lanza; ralentiza y tiñe de azul).
     icestrike: 'play=mage&debug=god,horde,crits&spells=iceStrike',
     massicestrike: 'play=mage&debug=god,horde,crits&spells=massIceStrike',
+    // Fase 26E: hechizos en línea (con --eval="g.launchCritStrike()" se lanzan).
+    bloodyshock: 'play=mage&debug=god,horde,crits&spells=bloodyShockWave',
+    earthshock: 'play=mage&debug=god,horde,crits&spells=earthShockWave',
+    blizzard: 'play=mage&debug=god,horde,crits&spells=blizzard',
+    // El Libro Azul junto a Kaila (con --eval="g.debugPickUpLoot()" se coge y se aprende).
+    bluebook: 'play=mage&characters=demo&debug=god,bluebook',
+    // Equipment de Kaila con Bloody Shock Wave aprendido (sale en rojo: le falta Int).
+    equipmentlearned: 'characters=demo&open=equipment&class=mage&gear=learn:bloodyShockWave',
     // Fase 26A: la Maga con horda (lanza con --eval) y con el maná a 0 para verlo rellenarse.
     mana: 'play=mage&debug=god,horde',
     nomana: 'play=mage&debug=god,nomana',

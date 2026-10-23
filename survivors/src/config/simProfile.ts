@@ -5,7 +5,7 @@
 import type { CharacterId } from '../data/characters';
 import { CHARACTERS } from '../data/characters';
 import { STAT_POINT_CAP, STAT_POINTS_PER_LEVEL } from '../data/characterLevel';
-import { canEquip, catalog, EQUIP_SLOT_IDS, START_EQUIPMENT, type SavedEquipment } from '../data/items';
+import { canEquip, catalog, EQUIP_SLOT_IDS, isSpellItemId, MANUAL_SPELL_IDS, START_EQUIPMENT, type SavedEquipment } from '../data/items';
 import { STAT_IDS, type Stats } from '../data/stats';
 import { getWand, isWandId } from '../data/wands';
 
@@ -49,12 +49,16 @@ export function simStats(classId: CharacterId, level: number, build: Partial<Sta
     return stats;
 }
 
-/** In each slot, the hardest item to wear that it can already wear (never the rare wands, which only drop). */
+/**
+ * In each slot, the hardest item to wear that it can already wear (never the rare wands, which only drop, nor the
+ * Manual spells, which need their book: Fase 26E).
+ */
 export function simBestEquipment(classId: CharacterId, stats: Readonly<Stats>, level: number): SavedEquipment {
     const equipment: SavedEquipment = { ...START_EQUIPMENT[classId] };
     for (const slot of EQUIP_SLOT_IDS) {
         if (slot === 'zem') continue;
-        const wearable = catalog(classId, slot).filter((id) => canEquip(id, stats, level) && !(isWandId(id) && getWand(id).rare === true));
+        const wearable = catalog(classId, slot).filter((id) => canEquip(id, stats, level) && !(isWandId(id) && getWand(id).rare === true)
+            && !(isSpellItemId(id) && MANUAL_SPELL_IDS.has(id)));
         const best = wearable.at(-1);
         if (best !== undefined) equipment[slot] = best;
     }

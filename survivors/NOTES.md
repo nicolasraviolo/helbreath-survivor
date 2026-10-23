@@ -95,6 +95,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Apuntar el Spell 2 en el móvil (Fase 26B)
 - Hechizos nuevos: Lightning Arrow, Chill Wind y Lightning Bolt (Fase 26C)
 - Ice Strike, Mass Ice Strike y ralentizar (Fase 26D)
+- Hechizos en línea y Libro Azul (Fase 26E)
 - Pantalla completa y consolas (Fase 25)
 
 ## Sprites (`.spr`): formato y carga
@@ -1096,3 +1097,13 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - **Ralentizar:** `Enemy.slow(factor, ms)`, separado del `freeze` del tótem. El monstruo vive "a cámara lenta": `step` pasa `deltaMs × factor` a `chase` (anda, ataca y se aparta más despacio, sin descuadrar golpe y animación) y `anims.timeScale = factor`. Tinte `ICE_SLOW.tint` (0x88aaff) por `applyStatusTint` (prioridad: destello blanco > Freeze > hielo); las élites pierden el brillo rojo mientras dura, para que se vea el azul. Normales ×0,5 durante 3 s; jefes, minijefes y Champions ×0,75 durante 1,5 s (`ICE_SLOW`). Otro golpe renueva el tiempo y se queda el frenazo más fuerte. `CombatSystem.hitArea` acepta ahora `onHit` por cada monstruo tocado.
 - **Ojo al medirlo:** a Power 1 el hielo mata a casi todo lo que toca, así que no queda nadie ralentizado. Para verlo: `--eval="(g.activeSpell.def.damage=0.01, g.launchCritStrike())"`.
 - **Check:** `icestrike` / `massicestrike` (Maga con horda; `--eval="g.launchCritStrike()"`).
+
+## Hechizos en línea y Libro Azul (Fase 26E)
+- **Hechizos en línea** (`kind: 'line'` en `data/activeSpells.ts`, `systems/LineSpell.ts`): Bloody Shock Wave, Earth Shock Wave y Blizzard. Un punto invisible va de los pies de la Maga al sitio elegido; cada `stepEveryMs` dibuja lo suyo (`LINE_SPELL_LOOKS`) y golpea lo que hay en `pathRadius` (cada monstruo, `pathHits` veces como mucho por lanzamiento: `hitCount`). Al llegar, `targetHitDelaysMs` golpes de área en el punto. Earth Shock Wave usa `speed` (1.500 px/s) en vez de `travelMs` y se queda 400 ms en el punto. El golpe del camino del Blizzard espera 300 ms a que caigan los trozos.
+- **Gráficos** (sp-client): Blizzard = `effect7.spr` hojas 1–3 (trozos, al azar) y 6 (rotura), sonidos E46/E47; se descarga solo con Blizzard puesto (`activeSpellSprite`, como el Meteor). Earth Shock Wave = `effect11` hojas 2 (chorro) y 3 (polvo), E1. Bloody Shock Wave = `effect4` hoja 0 (anillos rojos), ±30 px de desorden, sale 40 px por encima de los pies, E1. Ninguno tiene brillo aditivo en sp-client.
+- **Los trozos del Blizzard** caen con `IceShardRain.dropShard` (con su propia rotura y sonido); el ralentizar es `chillEnemy` (`ICE_SLOW`).
+- **Libro Azul:** `item-pack`/`item-ground` hoja 5 **frame 91** es un libro **azul** (`MANUAL_BOOK_ICON`); el 92, "Manual" en sp-client, es **rojo granate** (`SPELL_ITEM_ICON`, el resto de hechizos). Visto en partida el 23-oct-2026.
+- **Aprender:** los hechizos de `MANUAL_SPELL_IDS` no salen de la tirada normal (`isLootDrop`); su libro tiene tirada propia (`LOOT_MANUAL_CHANCE`, uno por partida como mucho, `LootOwner.manuals`). Al cogerlo, `GameScene.onLootPickup` lo aprende en el acto (`characterStore.learnSpell`, guardado ya: morir no lo quita) y nunca va a la bolsa. `SavedCharacter.learnedSpells` (versión 10 del guardado); `isFreeItem(classId, id, learned)` lo vuelve libre. La partida simulada (`simBestEquipment`) nunca los elige.
+- **Probar:** `check bloodyshock` / `earthshock` / `blizzard` (con `--eval="g.launchCritStrike()"`), `check bluebook` (`--eval="g.debugPickUpLoot()"`), `check equipmentlearned`; `?gear=learn:bloodyShockWave` con `?characters=demo`.
+- **Ojo en el check:** `await import('/src/systems/CharacterStore.ts')` desde `--eval` da **otra copia** del módulo (otro `characterStore`, vacío de cambios): leer `localStorage` o la escena (`game.scene.getScene('Equipment').character`).
+

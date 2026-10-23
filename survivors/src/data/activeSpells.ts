@@ -6,21 +6,26 @@
 // pide nada.
 // Fase 26C (propietario, 22-oct-2026): escalera de Int para ir abriendo hechizos poco a poco (los activos piden más):
 // Energy Strike (gratis) → Ice Strike 50 → Mass Fire Strike 75 → Mass Ice Strike 100 → Bloody Shock Wave 120 (además
-// hay que encontrar su Manual) → Meteor Strike 140 → Earth Shock Wave 165 → Blizzard 190. Los de hielo y tierra y
-// Bloody Shock Wave llegan en los bloques 26D y 26E.
+// hay que encontrar su Manual, el Libro Azul) → Meteor Strike 140 → Earth Shock Wave 165 → Blizzard 190.
 // Dos tipos:
 // - 'meteor': Meteor Strike. Visual de sp-client/src/game/spells/MeteorStrike*.ts (ver hb/meteorStrike.ts). Daños
 //   orientados por la wiki (docs/hb-wiki/hechizos.md, Circle 9: 33 directo + 55 en área), adaptados a un survivors.
 // - 'iceShards' (Fase 26D): Ice Strike y Mass Ice Strike. Muchos trozos de hielo caen a la vez del cielo sobre la zona
 //   (sp-client IceStrike.ts, MassIceStrike.ts, IceStrikeShard.ts); al llegar, uno o dos golpes de área (la wiki: 1 golpe
 //   de 33 / 2 de 25) que **ralentizan** (ICE_SLOW; propietario: el hielo ralentiza, no congela; los jefes, menos).
+// - 'line' (Fase 26E): Bloody Shock Wave, Earth Shock Wave y Blizzard. Avanzan en línea recta de la Maga al punto
+//   elegido (sp-client BloodyShockWave.ts, EarthShockWave.ts, Blizzard.ts), dañando lo que pillan por el camino (cada
+//   monstruo, `pathHits` veces como mucho por lanzamiento) y, al llegar, un golpe de área en el punto. Blizzard
+//   ralentiza como el hielo (ICE_SLOW). Daños de la wiki (path / target) adaptados: BSW 27/52, ESW 33+33, Blizzard 46/46.
 // - 'barrage': una ráfaga de proyectiles de un hechizo de data/spells.ts que caen alrededor del punto elegido (Energy
 //   Strike, Mass Fire Strike). Su daño es el del proyectil × `damageScale` × el multiplicador de Power.
 import type { SoundKey, SpriteKey } from '../config/assetManifest';
 import type { EffectKey } from '../config/effects';
 import { SPELLS, type SpellId } from './spells';
 
-export type ActiveSpellId = 'energyStrike' | 'iceStrike' | 'massFireStrike' | 'massIceStrike' | 'meteorStrike';
+export type ActiveSpellId =
+    | 'energyStrike' | 'iceStrike' | 'massFireStrike' | 'massIceStrike' | 'bloodyShockWave' | 'meteorStrike'
+    | 'earthShockWave' | 'blizzard';
 
 interface ActiveSpellBase {
     name: string;
@@ -91,7 +96,66 @@ export interface IceShardSpellDef extends ActiveSpellBase {
     shakeMs: number;
 }
 
-export type ActiveSpellDef = MeteorSpellDef | BarrageSpellDef | IceShardSpellDef;
+/** How a line spell looks as it travels (LINE_SPELL_LOOKS). */
+export type LineSpellLook = 'blizzard' | 'earthShock' | 'bloodyShock';
+
+export interface LineSpellDef extends ActiveSpellBase {
+    kind: 'line';
+    look: LineSpellLook;
+    /** Sprite downloaded when a run with this spell starts (only if no other run sprite has its pictures). */
+    sprite?: SpriteKey;
+    /** Time to go from the Mage to the chosen point (ms); with `speed` (px/s) it depends on the distance instead. */
+    travelMs: number;
+    speed?: number;
+    /** One step (pictures and the path hit) every this many ms while it travels. */
+    stepEveryMs: number;
+    /** It stays on the point this long after arriving, one more step every `holdStepMs` (Earth Shock Wave: 400 / 100). */
+    holdMs: number;
+    holdStepMs: number;
+    /** Every step, the enemies within `pathRadius` px take `pathDamage`, each at most `pathHits` times per cast. */
+    pathRadius: number;
+    pathDamage: number;
+    pathHits: number;
+    /** On arrival, every enemy within `targetRadius` px of the point takes `targetDamage`, once per delay (ms after arrival). */
+    targetRadius: number;
+    targetDamage: number;
+    targetHitDelaysMs: readonly number[];
+    /** The ice slows what it hits (ICE_SLOW). */
+    slows: boolean;
+    knockback: number;
+    /** Camera shake on arrival. */
+    shakePx: number;
+    shakeMs: number;
+}
+
+export type ActiveSpellDef = MeteorSpellDef | BarrageSpellDef | IceShardSpellDef | LineSpellDef;
+
+/** What each line spell draws as it travels (sp-client, see the header). */
+export const LINE_SPELL_LOOKS = {
+    // Blizzard: from 0 to `maxShards` shards per step and a spread from `minSpread` to `maxSpread` px as it goes (sp-client:
+    // 0→10 shards, 1→3 cells of 32 px). Each shard falls 300–500 px in 200–500 ms and breaks with E47.
+    blizzard: {
+        shards: ['fx.blizzard.shard1', 'fx.blizzard.shard2', 'fx.blizzard.shard3'],
+        impact: 'fx.blizzard.impact',
+        impactSound: 'sfx.blizzard.impact',
+        maxShards: 10,
+        minSpread: 32,
+        maxSpread: 96,
+        fallPx: [300, 500],
+        fallMs: [200, 500],
+    },
+    // Earth Shock Wave: a rock torrent and its dust on every step, with E1.
+    earthShock: { torrent: 'fx.earthShock.torrent', dust: 'fx.earthShock.dust', sound: 'sfx.shockWave' },
+    // Bloody Shock Wave: a red node on every step, up to `jitter` px off the line, starting `startDy` px over the feet; E1.
+    bloodyShock: { node: 'fx.bloodyShock.node', sound: 'sfx.shockWave', jitter: 30, startDy: -40 },
+} as const satisfies {
+    blizzard: {
+        shards: readonly EffectKey[]; impact: EffectKey; impactSound: SoundKey; maxShards: number; minSpread: number; maxSpread: number;
+        fallPx: readonly [number, number]; fallMs: readonly [number, number];
+    };
+    earthShock: { torrent: EffectKey; dust: EffectKey; sound: SoundKey };
+    bloodyShock: { node: EffectKey; sound: SoundKey; jitter: number; startDy: number };
+};
 
 /** Ice Strike: how its shards fall (sp-client CastManager: the same for both spells). */
 export const ICE_SHARD_LOOK = {
@@ -261,16 +325,112 @@ export const ACTIVE_SPELLS: Readonly<Record<ActiveSpellId, ActiveSpellDef>> = {
         impactSound: 'sfx.explosion',
         hudIcon: 'crit',
     },
+    // Int 120 y su Libro Azul (MANUAL_SPELL_IDS, propietario 22-oct-2026). Cadena de 20 nudos rojos en 0,4 s: 14 a cada
+    // monstruo del camino y 26 más en el punto. Maná 105 → 52.
+    bloodyShockWave: {
+        name: 'Bloody Shock Wave',
+        circle: 8,
+        int: 120,
+        kind: 'line',
+        look: 'bloodyShock',
+        travelMs: 400,
+        stepEveryMs: 20,
+        holdMs: 0,
+        holdStepMs: 0,
+        pathRadius: 48,
+        pathDamage: 14,
+        pathHits: 1,
+        targetRadius: 80,
+        targetDamage: 26,
+        targetHitDelaysMs: [0],
+        slows: false,
+        knockback: 120,
+        shakePx: 3,
+        shakeMs: 200,
+        originalMana: 105,
+        range: 400,
+        stickShare: 0.6,
+        castMs: 500,
+        hudIcon: 'crit',
+    },
+    // Int 165: ola de tierra a 1.500 px/s que se queda 0,4 s en el punto; dos golpes de 14 por el camino (el original:
+    // 33 y 33) y dos de 18 en el punto. Maná 190 → 95.
+    earthShockWave: {
+        name: 'Earth Shock Wave',
+        circle: 10,
+        int: 165,
+        kind: 'line',
+        look: 'earthShock',
+        travelMs: 0,
+        speed: 1500,
+        stepEveryMs: 20,
+        holdMs: 400,
+        holdStepMs: 100,
+        pathRadius: 56,
+        pathDamage: 14,
+        pathHits: 2,
+        targetRadius: 96,
+        targetDamage: 18,
+        targetHitDelaysMs: [0, 300],
+        slows: false,
+        knockback: 200,
+        shakePx: 7,
+        shakeMs: 350,
+        originalMana: 190,
+        range: 420,
+        stickShare: 0.6,
+        castMs: 500,
+        hudIcon: 'crit',
+    },
+    // Int 190, el más caro: en 0,3 s una lluvia de hielo cada vez más ancha hasta el punto; 22 por el camino y 30 en el
+    // punto, y todo lo que toca queda ralentizado. Maná 195 → 97.
+    blizzard: {
+        name: 'Blizzard',
+        circle: 10,
+        int: 190,
+        kind: 'line',
+        look: 'blizzard',
+        sprite: 'fx.effect7',
+        travelMs: 300,
+        stepEveryMs: 30,
+        holdMs: 0,
+        holdStepMs: 0,
+        pathRadius: 64,
+        pathDamage: 22,
+        pathHits: 1,
+        targetRadius: 110,
+        targetDamage: 30,
+        // The shards of the last step take 200–500 ms to land: the hit on the point waits for them.
+        targetHitDelaysMs: [350],
+        slows: true,
+        knockback: 60,
+        shakePx: 5,
+        shakeMs: 300,
+        originalMana: 195,
+        range: 420,
+        stickShare: 0.6,
+        castMs: 500,
+        hudIcon: 'crit',
+    },
 };
 
 /** Radius of the ground the spell covers (px): the meteor's explosion, or where a barrage scatters its shots. */
 export function activeSpellAreaRadius(def: ActiveSpellDef): number {
     if (def.kind === 'meteor') return def.areaRadius;
+    if (def.kind === 'line') return def.targetRadius;
     return def.kind === 'iceShards' ? def.radius : def.scatterRadius;
 }
 
+/** Sprite of its own downloaded when a run with it starts (Meteor Strike, Blizzard); until then it cannot be cast. */
+export function activeSpellSprite(def: ActiveSpellDef): SpriteKey | undefined {
+    if (def.kind === 'meteor') return def.sprite;
+    return def.kind === 'line' ? def.sprite : undefined;
+}
+
 /** In the order of their requirement (the Equipment screen's list). */
-export const ACTIVE_SPELL_IDS: readonly ActiveSpellId[] = ['energyStrike', 'iceStrike', 'massFireStrike', 'massIceStrike', 'meteorStrike'];
+export const ACTIVE_SPELL_IDS: readonly ActiveSpellId[] = [
+    'energyStrike', 'iceStrike', 'massFireStrike', 'massIceStrike', 'bloodyShockWave', 'meteorStrike', 'earthShockWave', 'blizzard',
+];
 
 export function isActiveSpellId(id: string): id is ActiveSpellId {
     return Object.prototype.hasOwnProperty.call(ACTIVE_SPELLS, id);

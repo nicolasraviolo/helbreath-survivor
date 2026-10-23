@@ -3,14 +3,15 @@
 // También los tajos cuerpo a cuerpo (animación, estela y daño) y el Critical Strike del Guerrero (Fase 19A): un golpe de
 // área inmediato cuya forma depende de la familia del arma (data/critStrike.ts); lo pide systems/CritStrikeSystem.ts.
 // Y los hechizos activos del Mago (Fase 19B y 20D, data/activeSpells.ts): el meteorito o una ráfaga de proyectiles;
-// los pide systems/ActiveSpellSystem.ts. La lluvia de hielo (Ice Strike, Fase 26D) vive en systems/IceShardRain.ts.
+// los pide systems/ActiveSpellSystem.ts. La lluvia de hielo (Ice Strike, Fase 26D) vive en systems/IceShardRain.ts y
+// los hechizos en línea (Blizzard, Earth / Bloody Shock Wave, Fase 26E) en systems/LineSpell.ts.
 import Phaser from 'phaser';
 import { MELEE_ORIGIN_OFFSET_Y } from '../config/gameConfig';
 import { SWING_SOUND_MS } from '../data/audio';
 import type { EffectKey } from '../config/effects';
 import { CAST_RELEASE_MOMENT, CAST_SOUND, SPELLS, type SpellBurst, type SpellDef } from '../data/spells';
 import { critReach, type CritShape } from '../data/critStrike';
-import { METEOR_LOOK, type BarrageSpellDef, type IceShardSpellDef, type MeteorSpellDef } from '../data/activeSpells';
+import { METEOR_LOOK, type BarrageSpellDef, type IceShardSpellDef, type LineSpellDef, type MeteorSpellDef } from '../data/activeSpells';
 import { MELEE_HIT_MOMENT, MELEE_HIT_SOUND, MELEE_SWING_SOUND, type MeleeWeaponDef } from '../data/weapons';
 import { Effect } from '../entities/Effect';
 import type { Enemy } from '../entities/Enemy';
@@ -24,6 +25,7 @@ import type { AudioSystem } from './AudioSystem';
 import type { CombatSystem } from './CombatSystem';
 import type { EnemySystem } from './EnemySystem';
 import { IceShardRain } from './IceShardRain';
+import { LineSpell } from './LineSpell';
 import type { ScreenShake } from './ScreenShake';
 import { type ManualAim, manualAimAngle, Targeting } from './Targeting';
 
@@ -67,6 +69,7 @@ export class WeaponSystem {
     private readonly finishedLightnings: LightningArc[] = [];
     private readonly targeting: Targeting;
     private readonly iceRain: IceShardRain;
+    private readonly lineSpell: LineSpell;
     /** Critical Strike under way: blows still to land (axes spin twice) and when the next one lands. */
     /** Fase 19C: the Critical Strike or the Mage's active spell hit at least one monster (once per launch; the gamepad vibrates). */
     public onSkillHit: ((skill: 'critStrike' | 'activeSpell') => void) | undefined;
@@ -90,6 +93,15 @@ export class WeaponSystem {
         this.slash = new Slash(scene);
         this.iceRain = new IceShardRain(
             (key, x, y, fallPx, fallMs) => this.effects.acquire().play(key, x, y, fallPx, fallMs),
+            combat,
+            audio,
+            screenShake,
+            () => this.onSkillHit?.('activeSpell'),
+        );
+        this.lineSpell = new LineSpell(
+            (key, x, y) => this.effects.acquire().play(key, x, y),
+            this.iceRain,
+            enemies,
             combat,
             audio,
             screenShake,
@@ -246,6 +258,13 @@ export class WeaponSystem {
         this.iceRain.cast(def, powerMultiplier, x, y, def.castMs * CAST_RELEASE_MOMENT);
     }
 
+    /** Bloody / Earth Shock Wave and Blizzard (Fase 26E): the cast animation, then it travels from the feet to (x, y). */
+    public castLine(def: LineSpellDef, powerMultiplier: number, x: number, y: number): void {
+        this.onOwnerAction('cast', Math.atan2(y - this.context.y, x - this.context.x), def.castMs);
+        this.audio.play(CAST_SOUND, def.castMs);
+        this.lineSpell.cast(def, powerMultiplier, this.context.x, this.context.y, x, y, def.castMs * CAST_RELEASE_MOMENT);
+    }
+
     public setCooldownMultiplier(value: number): void {
         this.context.cooldownMultiplier = value;
     }
@@ -299,6 +318,7 @@ export class WeaponSystem {
         this.updateStrike(deltaMs);
         this.updateBarrage(deltaMs);
         this.iceRain.update(deltaMs);
+        this.lineSpell.update(deltaMs);
         this.slash.update(deltaMs);
         for (const pending of this.bursts.active) {
             pending.waitMs -= deltaMs;

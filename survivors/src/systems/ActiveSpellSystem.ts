@@ -5,8 +5,8 @@
 // data/activeSpells.ts, menos el Mana Save de la varita). El maná vive aquí porque solo lo usa el Spell 2: se rellena
 // solo cada segundo (CharacterStats.manaRegenPerSecond, más con la ropa de MP Recovery) y con la Blue Potion.
 // Desde el 20D es el que lleve en el hueco Spell 2: Meteor Strike (meteorito), una ráfaga (Energy / Mass Fire Strike)
-// o una lluvia de hielo (Ice / Mass Ice Strike, Fase 26D).
-// El meteorito se descarga al empezar la partida (ON_DEMAND_SPRITES): hasta que llega no se puede lanzar.
+// una lluvia de hielo (Ice / Mass Ice Strike, Fase 26D) o un hechizo en línea (Blizzard, Earth / Bloody Shock Wave, 26E).
+// El meteorito y el Blizzard se descargan al empezar la partida (ON_DEMAND_SPRITES): hasta que llegan no se lanzan.
 // Fase 26B: en el móvil, arrastrar el botón le da una dirección (`cast(level, direction)`): cae a `stickShare` de su
 // alcance hacia allí, haya o no monstruos, por encima del stick de apuntar y del apuntado automático.
 // Con `infinite` (truco ?debug=crits o la tecla H) no gasta maná: para probarlo sin esperar.
@@ -14,6 +14,7 @@ import {
     ACTIVE_SPELLS,
     activeSpellManaCost,
     activeSpellPowerMultiplier,
+    activeSpellSprite,
     type ActiveSpellDef,
     type ActiveSpellId,
 } from '../data/activeSpells';
@@ -28,14 +29,14 @@ export class ActiveSpellSystem {
     private castCount = 0;
     /** Debug: casting costs nothing. */
     public infinite = false;
-    /** False until its sprite is downloaded (only Meteor Strike has one of its own). */
+    /** False until its sprite is downloaded (only Meteor Strike and Blizzard have one of their own). */
     public loaded: boolean;
     /** Share of the cost the wand in hand saves (Equipment.manaSave). */
     public manaSave = 0;
 
     constructor(private readonly weapons: WeaponSystem, public readonly id: ActiveSpellId) {
         this.def = ACTIVE_SPELLS[id];
-        this.loaded = this.def.kind !== 'meteor';
+        this.loaded = activeSpellSprite(this.def) === undefined;
     }
 
     /** Mana each cast costs now (with the wand's Mana Save). */
@@ -103,6 +104,7 @@ export class ActiveSpellSystem {
         const power = activeSpellPowerMultiplier(level);
         if (this.def.kind === 'meteor') this.weapons.castMeteor(this.def, power, target.x, target.y);
         else if (this.def.kind === 'iceShards') this.weapons.castIceShards(this.def, power, target.x, target.y);
+        else if (this.def.kind === 'line') this.weapons.castLine(this.def, power, target.x, target.y);
         else this.weapons.castBarrage(this.def, power, target.x, target.y);
         if (!this.infinite) this.manaNow = this.mana - this.cost;
         this.castCount++;

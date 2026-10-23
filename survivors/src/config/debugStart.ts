@@ -23,6 +23,8 @@
 //                      loot = cae un objeto de botín junto al jugador ahora y cada pocos segundos (Fase 21A)
 //                      zem = cada jefe suelta también un Zem (Fase 21D)
 //                      xelima = la Stone of Xelima cae del 5% de los monstruos (Fase 24C)
+//                      bluebook = cae junto al jugador el Libro Azul de Bloody Shock Wave (Fase 26E); al cogerlo se
+//                                 aprende para siempre (con ?characters=demo, Kaila; ?characters=reset lo olvida)
 //                      nomana = la Maga empieza con el maná a 0, para ver cómo se rellena (Fase 26A)
 //                      spelldrag = un dedo de mentira arrastra a la derecha el botón del hechizo de la Maga: se ve el anillo
 //                                  donde caerá el Spell 2 (con --mobile o ?ui=compact, Fase 26B)
@@ -51,6 +53,7 @@
 //                      dibujado en la ventana Character (M17). "sharp:longSword" lo mete en el inventario con ese
 //                      atributo (Fase 21B), para verlo en Equipment; "inv:plateMail", sin atributo (Fase 21D).
 //                      "zemstone" les pone un Zem (Fase 21D). "up2:longSword" la mete en el inventario a +2 (Fase 24D).
+//                      "learn:bloodyShockWave": Kaila ya ha aprendido ese hechizo de libro (Fase 26E).
 //   ?xelima=5        → cada personaje guardado tiene justo 5 Stone of Xelima en el inventario (Fase 24D)
 //   ?open=warehouse  → Select Character con el baúl compartido abierto (Fase 21D), del personaje marcado
 //   ?open=runchoice  → Select Character con la ventana Continue / New Run del personaje marcado (21-oct-2026), tenga
@@ -100,7 +103,7 @@ function isDebugScreen(value: string | null): value is DebugScreen {
 }
 
 /** Actions that ?debug= can run at the start of a run (the same ones as the debug keys of GameScene). */
-export const DEBUG_ACTIONS = ['horde', 'kill', 'levelup', 'levels', 'str', 'magic', 'pickups', 'totems', 'minute', 'boss', 'finalboss', 'bosskill', 'stampede', 'dodge', 'stats', 'god', 'crits', 'aim', 'aimstick', 'resume', 'sim', 'charexp', 'stones', 'elites', 'loot', 'zem', 'onehp', 'epic', 'champion', 'xelima', 'nomana', 'spelldrag'] as const;
+export const DEBUG_ACTIONS = ['horde', 'kill', 'levelup', 'levels', 'str', 'magic', 'pickups', 'totems', 'minute', 'boss', 'finalboss', 'bosskill', 'stampede', 'dodge', 'stats', 'god', 'crits', 'aim', 'aimstick', 'resume', 'sim', 'charexp', 'stones', 'elites', 'loot', 'zem', 'onehp', 'epic', 'champion', 'xelima', 'nomana', 'spelldrag', 'bluebook'] as const;
 export type DebugAction = (typeof DEBUG_ACTIONS)[number];
 
 function isDebugAction(value: string): value is DebugAction {

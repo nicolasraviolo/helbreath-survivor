@@ -20,8 +20,8 @@ import { CHARACTER_LEVEL_MAX, expToNextCharacterLevel, STAT_POINT_CAP, STAT_POIN
 import { CHARACTERS, isCharacterId, type CharacterId } from '../data/characters';
 import { isItemAttribute, type ItemAttribute } from '../data/attributes';
 import {
-    canChangeSlot, canHaveAttribute, canEmptySlot, canEquip, classCanWear, EQUIP_SLOT_IDS, isFreeItem, isItemId, itemInfo, readEquipment, START_EQUIPMENT,
-    type EquipSlotId, type SavedEquipment,
+    canChangeSlot, canHaveAttribute, canEmptySlot, canEquip, classCanWear, EQUIP_SLOT_IDS, isFreeItem, isItemId, isSpellItemId, itemInfo,
+    MANUAL_SPELL_IDS, readEquipment, START_EQUIPMENT, type EquipSlotId, type SavedEquipment, type SpellItemId,
 } from '../data/items';
 import { STAT_IDS, type StatId, type Stats } from '../data/stats';
 import { XELIMA_STONE_ID } from '../data/consumables';
@@ -40,7 +40,8 @@ const STORAGE_KEY = 'hb-survivors.characters';
 /** 7 (Fase 21D): the Zem slot. Older characters have it empty; what they wear stays theirs. */
 /** 8 (Fase 24D): the "+" of the gear worn. Older characters wear everything at +0. */
 /** 9 (22-oct-2026): fixed characters. Older saves are dropped, runs included: every account starts again with Gorn and Kaila. */
-const CHARACTERS_VERSION = 9;
+/** 10 (Fase 26E): the Manual spells learned. Older characters know none. */
+const CHARACTERS_VERSION = 10;
 
 /** Registry key (game.registry) with the uid of the character that plays the next run. */
 export const ACTIVE_CHARACTER_KEY = 'activeCharacter';
@@ -70,6 +71,8 @@ export interface SavedCharacter {
     upgrades: Partial<Record<EquipSlotId, number>>;
     /** Items kept from the runs (Fase 21A): the bag, and the gear that found items replaced. */
     inventory: OwnedItem[];
+    /** Manual spells learned for ever by picking up their book (Fase 26E, MANUAL_SPELL_IDS). */
+    learnedSpells: SpellItemId[];
     createdAt: number;
 }
 
@@ -179,7 +182,10 @@ class CharacterStoreImpl {
                     // Items with no slot (the Xelima stone, Fase 24C) go in whatever the class.
                     if (!isItemId(owned) || (itemInfo(owned)?.slot !== undefined && !classCanWear(character.classId, owned))) continue;
                     const upgrade = /^up([1-9])$/.exec(attribute ?? '')?.[1];
-                    if (attribute === 'inv') character.inventory.push({ id: owned });
+                    // "learn:bloodyShockWave": that Manual spell learned (Fase 26E).
+                    if (attribute === 'learn') {
+                        if (isSpellItemId(owned) && MANUAL_SPELL_IDS.has(owned) && !character.learnedSpells.includes(owned)) character.learnedSpells.push(owned);
+                    } else if (attribute === 'inv') character.inventory.push({ id: owned });
                     // "up3:longSword": into the inventory at +3 (Fase 24D).
                     else if (upgrade !== undefined && canUpgrade(owned)) character.inventory.push({ id: owned, upgrade: Math.min(UPGRADE_MAX, Number(upgrade)) });
                     else if (isItemAttribute(attribute) && canHaveAttribute(owned, attribute)) character.inventory.push({ id: owned, attribute });
@@ -294,7 +300,7 @@ class CharacterStoreImpl {
             if (itemInfo(id)?.slot !== slot || !classCanWear(character.classId, id) || !canEquip(id, permanentStats(character), character.level)) return false;
             const worn = wornItem(character, slot);
             if (worn && sameOwnedItem(worn, item)) return true;
-            const free = isPlainFreeItem(character.classId, item);
+            const free = isPlainFreeItem(character, item);
             const owned = free ? -1 : character.inventory.findIndex((other) => sameOwnedItem(other, item));
             if (!free && owned < 0) return false;
             this.takeOff(character, slot);
@@ -306,6 +312,23 @@ class CharacterStoreImpl {
     }
 
     /** What the character wears in that slot, with its attribute. */
+    /** Manual spells that character has learned (Fase 26E); none for an unknown one. */
+    public learnedSpells(uid: string | undefined): readonly SpellItemId[] {
+        return this.slots.find((c) => c !== undefined && c.uid === uid)?.learnedSpells ?? [];
+    }
+
+    /**
+     * Learns a Manual spell for ever (Fase 26E: its book picked up in a run). Saved at once, so dying doesn't lose it.
+     * False if it was already known or the character doesn't exist.
+     */
+    public learnSpell(uid: string | undefined, id: SpellItemId): boolean {
+        const character = this.slots.find((c) => c !== undefined && c.uid === uid);
+        if (!character || !MANUAL_SPELL_IDS.has(id) || character.learnedSpells.includes(id)) return false;
+        character.learnedSpells.push(id);
+        this.write();
+        return true;
+    }
+
     public worn(uid: string | undefined, slot: EquipSlotId): OwnedItem | undefined {
         const character = this.byUid(uid);
         return character ? wornItem(character, slot) : undefined;
@@ -331,7 +354,7 @@ class CharacterStoreImpl {
      */
     private takeOff(character: SavedCharacter, slot: EquipSlotId): void {
         const worn = wornItem(character, slot);
-        if (worn && !isPlainFreeItem(character.classId, worn)) character.inventory.push(worn);
+        if (worn && !isPlainFreeItem(character, worn)) character.inventory.push(worn);
         delete character.attributes[slot];
         delete character.upgrades[slot];
     }
@@ -475,6 +498,7 @@ function newCharacter(name: string, classId: CharacterId, look: CharacterLook): 
         attributes: {},
         upgrades: {},
         inventory: [],
+        learnedSpells: [],
         createdAt: now,
     };
 }
@@ -499,8 +523,8 @@ function load(): { slots: Slots; dropped: boolean } {
 /**
  * Old shapes → today's list of slots. readCharacter() fills what old versions lack: the class's look (version 1),
  * Level 1 without points, bestLevel read as bestPower (versions 1 and 2), the starting equipment (versions 1–3), an
- * empty inventory (versions 1–4), gear without attributes (versions 1–5), no Zem (versions 1–6) and gear at +0
- * (versions 1–7).
+ * empty inventory (versions 1–4), gear without attributes (versions 1–5), no Zem (versions 1–6), gear at +0
+ * (versions 1–7) and no Manual spells learned (versions 1–9).
  */
 /** First version with fixed characters: anything older is dropped (owner, 22-oct-2026: everyone starts again). */
 const FIXED_CHARACTERS_VERSION = 9;
@@ -529,6 +553,7 @@ function readCharacter(entry: unknown): SavedCharacter | undefined {
         attributes: readWornAttributes(entry.attributes, equipment),
         upgrades: readWornUpgrades(entry.upgrades, equipment),
         inventory: readOwnedItems(entry.inventory),
+        learnedSpells: readLearnedSpells(entry.learnedSpells),
         createdAt: readNumber(entry.createdAt) ?? 0,
     };
 }
@@ -581,9 +606,22 @@ export function wornItem(character: Readonly<SavedCharacter>, slot: EquipSlotId)
     return { id, ...(attribute ? { attribute } : {}), ...(upgrade ? { upgrade } : {}) };
 }
 
-/** A free item (starting gear, spells known with the Int) with no attribute and no "+": it never goes to the inventory. */
-function isPlainFreeItem(classId: CharacterId, item: Readonly<OwnedItem>): boolean {
-    return !item.attribute && !item.upgrade && isFreeItem(classId, item.id);
+/**
+ * A free item (starting gear, spells known with the Int or learned from their Manual) with no attribute and no "+": it
+ * never goes to the inventory.
+ */
+function isPlainFreeItem(character: Readonly<SavedCharacter>, item: Readonly<OwnedItem>): boolean {
+    return !item.attribute && !item.upgrade && isFreeItem(character.classId, item.id, character.learnedSpells);
+}
+
+/** Manual spells learned (Fase 26E): only known ids of MANUAL_SPELL_IDS, each once. */
+function readLearnedSpells(value: unknown): SpellItemId[] {
+    if (!Array.isArray(value)) return [];
+    const learned: SpellItemId[] = [];
+    for (const id of value) {
+        if (typeof id === 'string' && isSpellItemId(id) && MANUAL_SPELL_IDS.has(id) && !learned.includes(id)) learned.push(id);
+    }
+    return learned;
 }
 
 /** "+" of the gear worn, only where that item can have it (Fase 24D). */

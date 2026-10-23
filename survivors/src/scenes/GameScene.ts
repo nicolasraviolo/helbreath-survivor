@@ -15,11 +15,11 @@ import {
 import { onTouchFullscreenButton, TOUCH_AIM_STICK, TOUCH_AIM_ZONE_START, TOUCH_JOYSTICK, TOUCH_RESERVED_CORNER } from '../config/touch';
 import { ANNOUNCE_EVENT, QUIT_RUN_EVENT } from '../config/hud';
 import { getArmorPiece } from '../data/armor';
-import { canHaveAttribute, isArmorPieceId, isMeleeWeaponId, itemInfo, START_EQUIPMENT, type EquipSlotId, type SavedEquipment } from '../data/items';
+import { canHaveAttribute, classCanWear, isArmorPieceId, isMeleeWeaponId, isSpellItemId, itemInfo, MANUAL_SPELL_IDS, START_EQUIPMENT, type EquipSlotId, type SavedEquipment } from '../data/items';
 import type { ItemAttribute } from '../data/attributes';
 import { isWandId, type WandId } from '../data/wands';
 import { upgradeOf } from '../data/upgrades';
-import { LOOT_DEBUG, LOOT_SOUNDS, type OwnedItem } from '../data/loot';
+import { LOOT_DEBUG, LOOT_SOUNDS, MANUAL_LEARNED, type OwnedItem } from '../data/loot';
 import { LootSystem } from '../systems/LootSystem';
 import { RunLoot } from '../systems/RunLoot';
 import type { LootSceneData } from './LootScene';
@@ -93,7 +93,7 @@ import { WeaponSystem } from '../systems/WeaponSystem';
 import { CritStrikeSystem } from '../systems/CritStrikeSystem';
 import { maxCritCharges } from '../data/critStrike';
 import { ActiveSpellSystem } from '../systems/ActiveSpellSystem';
-import { activeSpellAreaRadius, DEFAULT_ACTIVE_SPELL, isActiveSpellId, type ActiveSpellId } from '../data/activeSpells';
+import { activeSpellAreaRadius, activeSpellSprite, DEFAULT_ACTIVE_SPELL, isActiveSpellId, type ActiveSpellId } from '../data/activeSpells';
 import { registerEffectAnimations } from '../config/effects';
 import type { SkillOrb } from '../ui/hudLayout';
 import { XpSystem } from '../systems/XpSystem';
@@ -351,9 +351,11 @@ export class GameScene extends Phaser.Scene {
         this.runLoot = new RunLoot();
         this.runGold = 0;
         this.lootDebugInMs = -1;
+        const learned = characterStore.learnedSpells(this.characterUid);
         this.loot = new LootSystem(this, this.audio, {
             classId: this.characterId, gender: look.gender, stats: this.permanentAtStart, level: this.characterLevel,
-        }, (item) => this.runLoot.pickUp(item));
+            manuals: [...MANUAL_SPELL_IDS].filter((id) => classCanWear(this.characterId, id) && !learned.includes(id)),
+        }, (item) => this.onLootPickup(item));
         this.particles = new HitParticles(this);
         this.screenShake = new ScreenShake(camera);
         this.combat = new CombatSystem(this.enemies, this.damageNumbers, this.audio, this.particles, this.stats, (enemy) => {
@@ -1143,17 +1145,17 @@ export class GameScene extends Phaser.Scene {
     }
 
     /**
-     * Mage only: their active spell (Fase 19B; since 20D, the one in the Spell 2 slot). Meteor Strike's sprite is
-     * downloaded now (it is big; ON_DEMAND_SPRITES).
+     * Mage only: their active spell (Fase 19B; since 20D, the one in the Spell 2 slot). Meteor Strike's and Blizzard's
+     * sprites are downloaded now (they are big; ON_DEMAND_SPRITES).
      */
     private createActiveSpell(id: ActiveSpellId | undefined): ActiveSpellSystem | undefined {
         if (CHARACTERS[this.characterId].startWeapon.kind !== 'spell') return undefined;
         const spell = new ActiveSpellSystem(this.weapons, id ?? DEFAULT_ACTIVE_SPELL);
-        const def = spell.def;
-        if (def.kind === 'meteor') {
-            void lookLoader.ensure(this, [def.sprite]).then(() => {
+        const sprite = activeSpellSprite(spell.def);
+        if (sprite) {
+            void lookLoader.ensure(this, [sprite]).then(() => {
                 registerEffectAnimations(this.anims, this.textures);
-                spell.loaded = lookLoader.isReady(this, def.sprite);
+                spell.loaded = lookLoader.isReady(this, sprite);
             });
         }
         return spell;
@@ -1319,6 +1321,21 @@ export class GameScene extends Phaser.Scene {
         }
     }
 
+    /**
+     * An item picked up: to its card (Equip / Keep in bag), except the book of a Manual spell (Fase 26E), which is
+     * learned for ever right now (saved at once: dying doesn't lose it) and never goes to the bag.
+     */
+    private onLootPickup(item: OwnedItem): void {
+        const id = item.id;
+        if (!isSpellItemId(id) || !MANUAL_SPELL_IDS.has(id)) {
+            this.runLoot.pickUp(item);
+            return;
+        }
+        characterStore.learnSpell(this.characterUid, id);
+        this.buffs.announce(MANUAL_LEARNED.text(itemInfo(id)?.name ?? id), MANUAL_LEARNED.color);
+        this.audio.play(MANUAL_LEARNED.sound);
+    }
+
     /** ?debug=loot: a rolled item a little to the right of the player. */
     private dropDebugLoot(): void {
         if (!this.player.isDead) this.loot.dropRolled(this.player.x + LOOT_DEBUG.distance, this.player.y);
@@ -1428,6 +1445,13 @@ export class GameScene extends Phaser.Scene {
             case 'stones':
                 // Read when the cards are built (openLevelUp).
                 break;
+            case 'bluebook': {
+                // The Blue Book of Bloody Shock Wave by the player (Fase 26E), even if it was learned already.
+                const x = this.player.x + LOOT_DEBUG.distance;
+                const [first] = MANUAL_SPELL_IDS;
+                if (!this.loot.dropManual(x, this.player.y) && first) this.loot.drop({ id: first }, x, this.player.y);
+                break;
+            }
             case 'loot':
                 // An item by the player now and every few seconds (Fase 21A).
                 this.dropDebugLoot();

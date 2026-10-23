@@ -105,6 +105,17 @@ export const EFFECTS = {
     'fx.iceStrike.smallShard': { sprite: 'fx.effect4', sheet: 2, frames: [0, 23], frameRate: 50, loop: false, stretchToFall: true },
     'fx.iceStrike.largeShard': { sprite: 'fx.effect4', sheet: 2, frames: [24, 31], frameRate: 30, loop: false, stretchToFall: true },
     'fx.iceStrike.impact': { sprite: 'fx.effect4', sheet: 3, frameRate: 15, loop: false },
+    // Fase 26E, hechizos en línea (sp-client Blizzard.ts / BlizzardShard.ts, EarthShockWave.ts, BloodyShockWave.ts).
+    // Blizzard: trozos de effect7 hojas 1, 2 o 3 cuya animación dura lo que tardan en caer, y la rotura (hoja 6, 15 fps).
+    'fx.blizzard.shard1': { sprite: 'fx.effect7', sheet: 1, frameRate: 20, loop: false, stretchToFall: true },
+    'fx.blizzard.shard2': { sprite: 'fx.effect7', sheet: 2, frameRate: 20, loop: false, stretchToFall: true },
+    'fx.blizzard.shard3': { sprite: 'fx.effect7', sheet: 3, frameRate: 20, loop: false, stretchToFall: true },
+    'fx.blizzard.impact': { sprite: 'fx.effect7', sheet: 6, frameRate: 15, loop: false, fadeFromFrame: 4 },
+    // Earth Shock Wave: chorro de roca (effect11 hoja 2) y polvo (hoja 3), juntos, a 50 fps.
+    'fx.earthShock.torrent': { sprite: 'fx.effect11', sheet: 2, frameRate: 50, loop: false },
+    'fx.earthShock.dust': { sprite: 'fx.effect11', sheet: 3, frameRate: 50, loop: false },
+    // Bloody Shock Wave: cada nudo rojo de la cadena (effect4 hoja 0, 30 fps).
+    'fx.bloodyShock.node': { sprite: 'fx.effect4', sheet: 0, frameRate: 30, loop: false },
     'fx.footsteps':{ sprite: 'fx.effect2', sheet: 1, frames: [28, 32], frameRate: 10, loop: false, depthOffset: -1 },
 } as const satisfies Record<string, EffectDef>;
 

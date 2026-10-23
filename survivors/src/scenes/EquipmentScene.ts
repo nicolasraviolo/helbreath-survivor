@@ -347,7 +347,7 @@ export class EquipmentScene extends Phaser.Scene {
      */
     private listFor(character: Readonly<SavedCharacter>, slot: EquipSlotId): Row[] {
         const ladder = catalog(character.classId, slot);
-        const items: OwnedItem[] = ladder.filter((id) => isFreeItem(character.classId, id)).map((id) => ({ id }));
+        const items: OwnedItem[] = ladder.filter((id) => isFreeItem(character.classId, id, character.learnedSpells)).map((id) => ({ id }));
         const has = (item: OwnedItem) => items.some((other) => sameOwnedItem(other, item));
         const worn = characterStore.worn(this.uid, slot);
         if (worn && !has(worn)) items.push(worn);
@@ -495,7 +495,7 @@ export class EquipmentScene extends Phaser.Scene {
         const unmet = requirementChecks(id, permanentStats(character), character.level).filter((check) => !check.met);
         const needs = unmet.length > 0 ? ` Needs ${unmet.map((check) => check.label).join(', ')}.` : '';
         const owned = characterStore.ownedCount(this.uid, item);
-        const kept = owned > 0 ? ` You keep ${owned} in your inventory.` : isFreeItem(character.classId, id) && !item.attribute && !item.upgrade ? '' : ' The one you wear.';
+        const kept = owned > 0 ? ` You keep ${owned} in your inventory.` : isFreeItem(character.classId, id, character.learnedSpells) && !item.attribute && !item.upgrade ? '' : ' The one you wear.';
         const attribute = item.attribute ? ` ${ATTRIBUTES[item.attribute].description}.` : '';
         const upgrade = item.upgrade ? ` ${upgradeDescription(item.upgrade)}.` : '';
         return `${ownedItemName(item)}: ${describeItem(id)}.${attribute}${upgrade}${needs}${kept}`;

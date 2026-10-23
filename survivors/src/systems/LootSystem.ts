@@ -7,7 +7,11 @@ import { CHAMPION } from '../data/champion';
 import { XELIMA_STONE_ID, ZEM_ID } from '../data/consumables';
 import type { Gender } from '../data/appearance';
 import type { CharacterId } from '../data/characters';
-import { LOOT_BOSS_DROPS, LOOT_BOSS_SPREAD, LOOT_DROP_CHANCE, LOOT_GROUND, LOOT_SOUNDS, LOOT_XELIMA_CHANCE, LOOT_ZEM_BOSS_CHANCE, type OwnedItem } from '../data/loot';
+import type { SpellItemId } from '../data/items';
+import {
+    LOOT_BOSS_DROPS, LOOT_BOSS_SPREAD, LOOT_DROP_CHANCE, LOOT_GROUND, LOOT_MANUAL_CHANCE, LOOT_SOUNDS, LOOT_XELIMA_CHANCE, LOOT_ZEM_BOSS_CHANCE,
+    type OwnedItem,
+} from '../data/loot';
 import type { Stats } from '../data/stats';
 import { LootDrop } from '../entities/LootDrop';
 import { Pool } from '../utils/Pool';
@@ -20,6 +24,8 @@ export interface LootOwner {
     gender: Gender;
     stats: Readonly<Stats>;
     level: number;
+    /** Manual spells whose book may drop (Fase 26E): the ones its class can use and it hasn't learned. */
+    manuals: SpellItemId[];
 }
 
 export class LootSystem {
@@ -42,11 +48,23 @@ export class LootSystem {
         return this.drops.active;
     }
 
-    /** A monster died there: maybe drops an item (more often if it was elite) and, very rarely, a Xelima stone (24C). */
+    /**
+     * A monster died there: maybe drops an item (more often if it was elite) and, very rarely, a Xelima stone (24C) or
+     * the book of a Manual spell (26E).
+     */
     public onKill(x: number, y: number, elite: boolean): void {
         if (Math.random() < (elite ? LOOT_DROP_CHANCE.elite : LOOT_DROP_CHANCE.normal)) this.dropRolled(x, y);
         const xelima = DEBUG_START.actions.includes('xelima') ? LOOT_XELIMA_CHANCE.debug : LOOT_XELIMA_CHANCE.normal;
         if (this.enabled && Math.random() < xelima) this.drop({ id: XELIMA_STONE_ID }, x, y);
+        if (this.owner.manuals.length > 0 && Math.random() < LOOT_MANUAL_CHANCE) this.dropManual(x, y);
+    }
+
+    /** The book of a Manual spell not learned yet at (x, y); only one of each per run. False if none is left. */
+    public dropManual(x: number, y: number): boolean {
+        const id = this.owner.manuals.shift();
+        if (!this.enabled || id === undefined) return false;
+        this.drop({ id }, x, y);
+        return true;
     }
 
     /** A boss died there: its items (and, sometimes, a Zem: Fase 21D) fall in a small circle. */

@@ -143,6 +143,9 @@ export const SPRITES = {
     // Meteor Strike, hechizo activo del Mago (Fase 19B, data/activeSpells.ts). ~1,25 MB: se descarga solo al empezar
     // una partida de Mago (ON_DEMAND_SPRITES).
     'fx.crueffect1': { file: 'sprites/crueffect1.spr', type: SpriteType.Effect },
+    // Blizzard (Fase 26E): trozos de hielo (hojas 1–3) y su rotura (hoja 6). ~0,7 MB: se descarga solo al empezar una
+    // partida con Blizzard puesto (ON_DEMAND_SPRITES, activeSpells.ts `sprite`).
+    'fx.effect7': { file: 'sprites/effect7.spr', type: SpriteType.Effect },
     // Abaddon's Blood (Fase 21E): "Abaddon Spirit 10" (sp-client Effects.ts), yseffect3.spr hoja 11, elegido por el
     // propietario en el visor. El archivo pesa 5,6 MB: se descarga solo si está desbloqueado, al empezar la partida.
     'fx.yseffect3': { file: 'sprites/yseffect3.spr', type: SpriteType.Effect },
@@ -319,6 +322,9 @@ export const SOUNDS = {
     // Hechizos de la Fase 26C: el trueno de Lightning Bolt (sp-client LIGHTNING_SOUND) y las gotas de Chill Wind.
     'sfx.lightning': { file: 'sounds/E40.mp3' },
     'sfx.chillWind': { file: 'sounds/E45.mp3' },
+    // Fase 26E: la rotura de los trozos de Blizzard (E47) y el golpe de Earth / Bloody Shock Wave (E1, como en sp-client).
+    'sfx.blizzard.impact': { file: 'sounds/E47.mp3' },
+    'sfx.shockWave': { file: 'sounds/E1.mp3' },
     // Pasos al correr (PLAYER_RUNNING).
     'sfx.footsteps': { file: 'sounds/C10.mp3' },
     // Recoger una gema: el sonido de "objeto añadido" del original (sp-client SoundFileNames.ts, ITEM_ADDED_SOUND).
@@ -441,7 +447,7 @@ const UPFRONT_LOOK_SPRITES: ReadonlySet<SpriteKey> = new Set<SpriteKey>([
  */
 export const ON_DEMAND_SPRITES: ReadonlySet<SpriteKey> = new Set<SpriteKey>([
     ...(Object.keys(SPRITES) as SpriteKey[]).filter((key) => (key.startsWith('player.') || key.startsWith('gear.')) && !UPFRONT_LOOK_SPRITES.has(key)),
-    'fx.crueffect1', 'fx.yseffect3', 'item.pack', 'item.equip.m', 'item.equip.w',
+    'fx.crueffect1', 'fx.effect7', 'fx.yseffect3', 'item.pack', 'item.equip.m', 'item.equip.w',
 ]);
 
 /**

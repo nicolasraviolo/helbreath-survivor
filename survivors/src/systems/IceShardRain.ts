@@ -2,8 +2,10 @@
 // kind 'iceShards'). Como en sp-client (IceStrike.ts, IceStrikeShard.ts), todos los trozos empiezan a caer a la vez,
 // cada uno desde una altura y con una duración al azar, y al tocar el suelo se rompen con el sonido E46. El daño son
 // uno o dos golpes de área en momentos fijos, y cada monstruo tocado queda **ralentizado** (Enemy.slow, ICE_SLOW).
-// Todo con pool (regla 5): los trozos y los golpes pendientes se reutilizan.
+// Todo con pool (regla 5): los trozos y los golpes pendientes se reutilizan. Fase 26E: Blizzard (systems/LineSpell.ts)
+// deja caer aquí sus trozos con `dropShard`, con su propia rotura y sonido.
 import Phaser from 'phaser';
+import type { SoundKey } from '../config/assetManifest';
 import type { EffectKey } from '../config/effects';
 import { ICE_SHARD_LOOK, ICE_SLOW, type IceShardSpellDef } from '../data/activeSpells';
 import type { Enemy } from '../entities/Enemy';
@@ -16,6 +18,8 @@ import type { ScreenShake } from './ScreenShake';
 class PendingShard implements Poolable {
     public poolIndex = -1;
     public key: EffectKey = ICE_SHARD_LOOK.largeShard;
+    public impact: EffectKey = ICE_SHARD_LOOK.impact;
+    public impactSound: SoundKey = ICE_SHARD_LOOK.impactSound;
     public x = 0;
     public y = 0;
     /** Until it starts falling, then until it lands. */
@@ -56,17 +60,19 @@ export class IceShardRain {
     public cast(def: IceShardSpellDef, power: number, x: number, y: number, releaseMs: number): void {
         const total = def.largeShards + def.smallShards;
         for (let i = 0; i < total; i++) {
-            const shard = this.shards.acquire();
-            shard.key = i < def.largeShards ? ICE_SHARD_LOOK.largeShard : ICE_SHARD_LOOK.smallShard;
             // The first big one on the centre; the rest anywhere inside the spread circle.
             const angle = Math.random() * Math.PI * 2;
             const distance = i === 0 ? 0 : Math.sqrt(Math.random()) * def.spreadRadius;
-            shard.x = x + Math.cos(angle) * distance;
-            shard.y = y + Math.sin(angle) * distance;
-            shard.waitMs = releaseMs;
-            shard.falling = false;
-            shard.fallPx = Phaser.Math.Between(ICE_SHARD_LOOK.fallPx[0], ICE_SHARD_LOOK.fallPx[1]);
-            shard.fallMs = Phaser.Math.Between(ICE_SHARD_LOOK.fallMs[0], ICE_SHARD_LOOK.fallMs[1]);
+            this.dropShard(
+                i < def.largeShards ? ICE_SHARD_LOOK.largeShard : ICE_SHARD_LOOK.smallShard,
+                ICE_SHARD_LOOK.impact,
+                ICE_SHARD_LOOK.impactSound,
+                x + Math.cos(angle) * distance,
+                y + Math.sin(angle) * distance,
+                releaseMs,
+                Phaser.Math.Between(ICE_SHARD_LOOK.fallPx[0], ICE_SHARD_LOOK.fallPx[1]),
+                Phaser.Math.Between(ICE_SHARD_LOOK.fallMs[0], ICE_SHARD_LOOK.fallMs[1]),
+            );
         }
         def.hitDelaysMs.forEach((delayMs, index) => {
             const hit = this.hits.acquire();
@@ -79,6 +85,22 @@ export class IceShardRain {
         });
     }
 
+    /** One shard (`key`) that starts falling on (x, y) after `waitMs`, lands after `fallMs` and breaks as `impact`. */
+    public dropShard(
+        key: EffectKey, impact: EffectKey, impactSound: SoundKey, x: number, y: number, waitMs: number, fallPx: number, fallMs: number,
+    ): void {
+        const shard = this.shards.acquire();
+        shard.key = key;
+        shard.impact = impact;
+        shard.impactSound = impactSound;
+        shard.x = x;
+        shard.y = y;
+        shard.waitMs = waitMs;
+        shard.falling = false;
+        shard.fallPx = fallPx;
+        shard.fallMs = fallMs;
+    }
+
     public update(deltaMs: number): void {
         for (const shard of this.shards.active) {
             shard.waitMs -= deltaMs;
@@ -89,8 +111,8 @@ export class IceShardRain {
                 this.playEffect(shard.key, shard.x, shard.y, shard.fallPx, shard.fallMs);
                 continue;
             }
-            this.playEffect(ICE_SHARD_LOOK.impact, shard.x, shard.y);
-            this.audio.play(ICE_SHARD_LOOK.impactSound);
+            this.playEffect(shard.impact, shard.x, shard.y);
+            this.audio.play(shard.impactSound);
             this.doneShards.push(shard);
         }
         for (const hit of this.hits.active) {
@@ -131,7 +153,12 @@ export class IceShardRain {
     }
 
     private chill(enemy: Enemy): void {
-        const slow = enemy.def.boss || enemy.champion ? ICE_SLOW.boss : ICE_SLOW.normal;
-        enemy.slow(slow.factor, slow.ms);
+        chillEnemy(enemy);
     }
+}
+
+/** The ice slows `enemy` (ICE_SLOW): normal monsters more, bosses, mini-bosses and Champions less. */
+export function chillEnemy(enemy: Enemy): void {
+    const slow = enemy.def.boss || enemy.champion ? ICE_SLOW.boss : ICE_SLOW.normal;
+    enemy.slow(slow.factor, slow.ms);
 }
