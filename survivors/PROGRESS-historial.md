@@ -2,6 +2,12 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
+**Fase 26D — Ice Strike, Mass Ice Strike y ralentizar (2026-10-23).**
+- **Qué se hizo:** dos hechizos nuevos en el Spell 2 de la Maga: **Ice Strike** (Int 50, 29 de maná) y **Mass Ice Strike** (Int 100, 57 de maná). Lluvia de trozos de hielo que caen a la vez del cielo, como en el original (21 y 32 trozos, `effect4` hojas 2 y 3, sonido E46); uno y dos golpes de área. Tipo de activo nuevo `'iceShards'` (`systems/IceShardRain.ts`, con pool). Los monstruos tocados quedan **ralentizados** (`Enemy.slow`): a cámara lenta y teñidos de azul claro; normales a la mitad 3 s, jefes, minijefes y Champions −25% 1,5 s (`ICE_SLOW`). Situaciones `check icestrike` / `massicestrike`. Ver NOTES.md, "Ice Strike, Mass Ice Strike y ralentizar (Fase 26D)".
+- **Decisiones del propietario:** plan y números de ralentizar aprobados tal cual (23-oct-2026).
+- **Comprobado:** build; `check menu icestrike massicestrike equipmentmage activespell totems` sin errores a 60 FPS; ralentizar medido (dura ~3 s y se quita); bajas por lanzamiento frente a los otros activos; capturas de la caída y de la lista de Equipment. Probado por el propietario: bien.
+- **Probar:** `pnpm --dir survivors dev` → `?play=mage&spells=massIceStrike&debug=horde,crits` (Espacio); `iceStrike` para el pequeño; `?characters=demo&open=equipment&class=mage&slot=spell2`.
+
 **Fase 26C — Hechizos automáticos nuevos y escalera de Int (2026-10-23).**
 - **Qué se hizo:** tres hechizos nuevos en el Spell 1 de la Maga: **Lightning Arrow** (rayo, Int 30: flecha rápida con chispas, de largo alcance; pega fuerte al objetivo y un poco a los de al lado), **Chill Wind** (hielo, Int 40: 4 gotas de hielo caen del cielo y dañan una zona; no ralentiza) y **Lightning Bolt** (rayo, Int 55: un rayo cae del cielo; mucho daño y poco alcance). Tipo de hechizo nuevo "cae del cielo" (`aim: 'sky'`), rayo dibujado a mano (`entities/LightningArc.ts`) y estela de chispas. Requisitos de Int en **escalera** (Mass Fire Strike 85 → 75, Meteor Strike 169 → 140; ninguno sube). Atajo `&slot=spell1` para abrir Equipment en un hueco. Ver NOTES.md, "Hechizos nuevos: Lightning Arrow, Chill Wind y Lightning Bolt (Fase 26C)".
 - **Decisiones del propietario:** lista de hechizos de la Fase 26 y su reparto en 26C/26D/26E, escalera de Int y área pequeña de Lightning Arrow (en `docs/DECISIONES.md`).

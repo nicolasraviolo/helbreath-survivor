@@ -11,13 +11,16 @@
 // Dos tipos:
 // - 'meteor': Meteor Strike. Visual de sp-client/src/game/spells/MeteorStrike*.ts (ver hb/meteorStrike.ts). Daños
 //   orientados por la wiki (docs/hb-wiki/hechizos.md, Circle 9: 33 directo + 55 en área), adaptados a un survivors.
+// - 'iceShards' (Fase 26D): Ice Strike y Mass Ice Strike. Muchos trozos de hielo caen a la vez del cielo sobre la zona
+//   (sp-client IceStrike.ts, MassIceStrike.ts, IceStrikeShard.ts); al llegar, uno o dos golpes de área (la wiki: 1 golpe
+//   de 33 / 2 de 25) que **ralentizan** (ICE_SLOW; propietario: el hielo ralentiza, no congela; los jefes, menos).
 // - 'barrage': una ráfaga de proyectiles de un hechizo de data/spells.ts que caen alrededor del punto elegido (Energy
 //   Strike, Mass Fire Strike). Su daño es el del proyectil × `damageScale` × el multiplicador de Power.
 import type { SoundKey, SpriteKey } from '../config/assetManifest';
 import type { EffectKey } from '../config/effects';
 import { SPELLS, type SpellId } from './spells';
 
-export type ActiveSpellId = 'energyStrike' | 'massFireStrike' | 'meteorStrike';
+export type ActiveSpellId = 'energyStrike' | 'iceStrike' | 'massFireStrike' | 'massIceStrike' | 'meteorStrike';
 
 interface ActiveSpellBase {
     name: string;
@@ -72,7 +75,52 @@ export interface BarrageSpellDef extends ActiveSpellBase {
     damageScale: number;
 }
 
-export type ActiveSpellDef = MeteorSpellDef | BarrageSpellDef;
+export interface IceShardSpellDef extends ActiveSpellBase {
+    kind: 'iceShards';
+    /** Shards that fall: big ones (one always on the centre) and small ones, at random points up to `spreadRadius` px. */
+    largeShards: number;
+    smallShards: number;
+    spreadRadius: number;
+    /** Every enemy within `radius` px of the centre takes `damage` (before the Power multiplier) once per hit. */
+    radius: number;
+    damage: number;
+    /** When each area hit lands, from the moment the shards start falling (the original: 1 hit, Mass Ice Strike 2). */
+    hitDelaysMs: readonly number[];
+    knockback: number;
+    shakePx: number;
+    shakeMs: number;
+}
+
+export type ActiveSpellDef = MeteorSpellDef | BarrageSpellDef | IceShardSpellDef;
+
+/** Ice Strike: how its shards fall (sp-client CastManager: the same for both spells). */
+export const ICE_SHARD_LOOK = {
+    largeShard: 'fx.iceStrike.largeShard',
+    smallShard: 'fx.iceStrike.smallShard',
+    impact: 'fx.iceStrike.impact',
+    /** Each shard starts 200–400 px above its spot and takes 400–600 ms to land, all at the same time. */
+    fallPx: [200, 400],
+    fallMs: [400, 600],
+    /** E46, played as each shard breaks (the audio limits keep a few of them). */
+    impactSound: 'sfx.freeze',
+} as const satisfies {
+    largeShard: EffectKey;
+    smallShard: EffectKey;
+    impact: EffectKey;
+    fallPx: readonly [number, number];
+    fallMs: readonly [number, number];
+    impactSound: SoundKey;
+};
+
+/**
+ * What the ice does to the monsters it hits (Fase 26D, plan aprobado por el propietario el 23-oct-2026): half speed for
+ * 3 s; bosses, mini-bosses and Champions only −25% for 1.5 s. Tinted ice blue (the original's 0x88aaff).
+ */
+export const ICE_SLOW = {
+    normal: { factor: 0.5, ms: 3000 },
+    boss: { factor: 0.75, ms: 1500 },
+    tint: 0x88aaff,
+} as const;
 
 /** Meteor Strike: what the falling meteor looks like (crueffect1.spr, as in sp-client). */
 export interface MeteorLook {
@@ -132,6 +180,28 @@ export const ACTIVE_SPELLS: Readonly<Record<ActiveSpellId, ActiveSpellDef>> = {
         castSound: 'sfx.energyBolt.cast',
         hudIcon: 'crit',
     },
+    // Int 50: 21 trozos de hielo (1 grande en el centro, 14 grandes y 6 pequeños alrededor), un golpe que ralentiza.
+    // Maná del original 59 → 29.
+    iceStrike: {
+        name: 'Ice Strike',
+        circle: 6,
+        int: 50,
+        kind: 'iceShards',
+        largeShards: 15,
+        smallShards: 6,
+        spreadRadius: 60,
+        radius: 80,
+        damage: 20,
+        hitDelaysMs: [500],
+        knockback: 60,
+        shakePx: 3,
+        shakeMs: 200,
+        originalMana: 59,
+        range: 380,
+        stickShare: 0.5,
+        castMs: 500,
+        hudIcon: 'crit',
+    },
     // Int 75: 4 explosiones grandes de Mass Fire Strike repartidas por la zona.
     massFireStrike: {
         ...fromSpell('massFireStrike'),
@@ -142,6 +212,27 @@ export const ACTIVE_SPELLS: Readonly<Record<ActiveSpellId, ActiveSpellDef>> = {
         scatterRadius: 72,
         damageScale: 0.45,
         originalMana: 72,
+        range: 400,
+        stickShare: 0.5,
+        castMs: 500,
+        hudIcon: 'crit',
+    },
+    // Int 100: 32 trozos (24 grandes y 8 pequeños) en una zona más ancha, dos golpes que ralentizan. Maná 115 → 57.
+    massIceStrike: {
+        name: 'Mass Ice Strike',
+        circle: 8,
+        int: 100,
+        kind: 'iceShards',
+        largeShards: 24,
+        smallShards: 8,
+        spreadRadius: 75,
+        radius: 100,
+        damage: 18,
+        hitDelaysMs: [450, 650],
+        knockback: 60,
+        shakePx: 5,
+        shakeMs: 250,
+        originalMana: 115,
         range: 400,
         stickShare: 0.5,
         castMs: 500,
@@ -174,11 +265,12 @@ export const ACTIVE_SPELLS: Readonly<Record<ActiveSpellId, ActiveSpellDef>> = {
 
 /** Radius of the ground the spell covers (px): the meteor's explosion, or where a barrage scatters its shots. */
 export function activeSpellAreaRadius(def: ActiveSpellDef): number {
-    return def.kind === 'meteor' ? def.areaRadius : def.scatterRadius;
+    if (def.kind === 'meteor') return def.areaRadius;
+    return def.kind === 'iceShards' ? def.radius : def.scatterRadius;
 }
 
 /** In the order of their requirement (the Equipment screen's list). */
-export const ACTIVE_SPELL_IDS: readonly ActiveSpellId[] = ['energyStrike', 'massFireStrike', 'meteorStrike'];
+export const ACTIVE_SPELL_IDS: readonly ActiveSpellId[] = ['energyStrike', 'iceStrike', 'massFireStrike', 'massIceStrike', 'meteorStrike'];
 
 export function isActiveSpellId(id: string): id is ActiveSpellId {
     return Object.prototype.hasOwnProperty.call(ACTIVE_SPELLS, id);

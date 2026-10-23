@@ -29,6 +29,8 @@ export interface EffectDef {
     offsetY?: number;
     /** Drawn bigger (1 = the original size; only Effect, the one-shot effects). */
     scale?: number;
+    /** Dropped from the sky (Effect.play with a fall): the whole animation lasts exactly the fall (sp-client IceStrikeShard). */
+    stretchToFall?: boolean;
 }
 
 export const EFFECTS = {
@@ -97,6 +99,12 @@ export const EFFECTS = {
     'fx.lightningArrow.spark': { sprite: 'fx.effect2', sheet: 1, frames: [0, 4], frameRate: 20, loop: false, additive: true },
     // Chill Wind (sp-client CHILL_WIND_DROPLET): effect4 hoja 1, frames 0–14 a 33 fps; cae 200 px mientras se anima.
     'fx.chillWind.drop': { sprite: 'fx.effect4', sheet: 1, frames: [0, 14], frameRate: 33, loop: false, fadeFromFrame: 9 },
+    // Fase 26D. Ice Strike / Mass Ice Strike (sp-client IceStrikeShard, constants/Effects.ts): trozos de effect4 hoja 2
+    // (pequeños 0–23, grandes 24–31) cuya animación dura lo que tardan en caer, y al tocar el suelo la rotura (hoja 3
+    // entera, a 15 fps como impactAnimationSpeed).
+    'fx.iceStrike.smallShard': { sprite: 'fx.effect4', sheet: 2, frames: [0, 23], frameRate: 50, loop: false, stretchToFall: true },
+    'fx.iceStrike.largeShard': { sprite: 'fx.effect4', sheet: 2, frames: [24, 31], frameRate: 30, loop: false, stretchToFall: true },
+    'fx.iceStrike.impact': { sprite: 'fx.effect4', sheet: 3, frameRate: 15, loop: false },
     'fx.footsteps':{ sprite: 'fx.effect2', sheet: 1, frames: [28, 32], frameRate: 10, loop: false, depthOffset: -1 },
 } as const satisfies Record<string, EffectDef>;
 

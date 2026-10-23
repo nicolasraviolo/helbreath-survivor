@@ -4,7 +4,8 @@
 // Fase 26A (propietario, 22-oct-2026): sin recarga; cada lanzamiento **gasta maná** (el coste de cada hechizo en
 // data/activeSpells.ts, menos el Mana Save de la varita). El maná vive aquí porque solo lo usa el Spell 2: se rellena
 // solo cada segundo (CharacterStats.manaRegenPerSecond, más con la ropa de MP Recovery) y con la Blue Potion.
-// Desde el 20D es el que lleve en el hueco Spell 2: Meteor Strike (meteorito) o una ráfaga (Energy / Mass Fire Strike).
+// Desde el 20D es el que lleve en el hueco Spell 2: Meteor Strike (meteorito), una ráfaga (Energy / Mass Fire Strike)
+// o una lluvia de hielo (Ice / Mass Ice Strike, Fase 26D).
 // El meteorito se descarga al empezar la partida (ON_DEMAND_SPRITES): hasta que llega no se puede lanzar.
 // Fase 26B: en el móvil, arrastrar el botón le da una dirección (`cast(level, direction)`): cae a `stickShare` de su
 // alcance hacia allí, haya o no monstruos, por encima del stick de apuntar y del apuntado automático.
@@ -101,6 +102,7 @@ export class ActiveSpellSystem {
         if (!target) return false;
         const power = activeSpellPowerMultiplier(level);
         if (this.def.kind === 'meteor') this.weapons.castMeteor(this.def, power, target.x, target.y);
+        else if (this.def.kind === 'iceShards') this.weapons.castIceShards(this.def, power, target.x, target.y);
         else this.weapons.castBarrage(this.def, power, target.x, target.y);
         if (!this.infinite) this.manaNow = this.mana - this.cost;
         this.castCount++;

@@ -25,7 +25,10 @@ export class Effect implements Poolable {
         this.fallLeftPx = fallPx > 0 && fallMs > 0 ? fallPx : 0;
         this.fallPxPerMs = this.fallLeftPx > 0 ? fallPx / fallMs : 0;
         this.sprite.setBlendMode(def.additive ? Phaser.BlendModes.ADD : Phaser.BlendModes.NORMAL);
-        this.sprite.setPosition(x + (def.offsetX ?? 0), y + (def.offsetY ?? 0) - this.fallLeftPx).setDepth(y + (def.depthOffset ?? DEPTH_EFFECT_OFFSET)).setScale(def.scale ?? 1).setAlpha(1).setActive(true).setVisible(true).play(key);
+        this.sprite.setPosition(x + (def.offsetX ?? 0), y + (def.offsetY ?? 0) - this.fallLeftPx).setDepth(y + (def.depthOffset ?? DEPTH_EFFECT_OFFSET)).setScale(def.scale ?? 1).setAlpha(1).setActive(true).setVisible(true);
+        // Ice shards: the animation runs once over the whole fall, as in sp-client (frame rate = frames / fall time).
+        if (def.stretchToFall && this.fallLeftPx > 0) this.sprite.play({ key, duration: fallMs });
+        else this.sprite.play(key);
     }
 
     /** Returns false when the animation has finished (the effect must go back to the pool). */

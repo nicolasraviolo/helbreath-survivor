@@ -84,6 +84,9 @@ const PRESETS = {
     // Hechizo activo del Mago (Fase 20D) con horda y sin recarga: Energy Strike, el de salida. Para lanzarlo:
     // --eval="g.launchCritStrike()"; otro hechizo con atajo a mano: "play=mage&debug=god,horde,crits&spells=massFireStrike".
     activespell: 'play=mage&debug=god,horde,crits',
+    // Fase 26D: Ice Strike / Mass Ice Strike con horda (--eval="g.launchCritStrike()" lo lanza; ralentiza y tiñe de azul).
+    icestrike: 'play=mage&debug=god,horde,crits&spells=iceStrike',
+    massicestrike: 'play=mage&debug=god,horde,crits&spells=massIceStrike',
     // Fase 26A: la Maga con horda (lanza con --eval) y con el maná a 0 para verlo rellenarse.
     mana: 'play=mage&debug=god,horde',
     nomana: 'play=mage&debug=god,nomana',

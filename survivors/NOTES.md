@@ -94,6 +94,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Maná del Spell 2 (Fase 26A)
 - Apuntar el Spell 2 en el móvil (Fase 26B)
 - Hechizos nuevos: Lightning Arrow, Chill Wind y Lightning Bolt (Fase 26C)
+- Ice Strike, Mass Ice Strike y ralentizar (Fase 26D)
 - Pantalla completa y consolas (Fase 25)
 
 ## Sprites (`.spr`): formato y carga
@@ -1087,3 +1088,11 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - **Lightning Bolt:** rayo dibujado a mano (`entities/LightningArc.ts`, aspecto en `LIGHTNING_LOOK`), como sp-client: línea blanca de 3 px con dos brillos azules, 600 px hacia arriba, redibujada cada 20 ms durante 120 ms. Sonido E40.
 - **Atajo:** `?characters=demo&open=equipment&class=mage&slot=spell1` abre Equipment de Kaila con la lista del Spell 1.
 - **Medido (22-oct-2026, horda, Power 1–2, muertes por segundo):** Energy Bolt 0,9 · Lightning Arrow 1,3–1,6 (con su área pequeña) · Lightning Bolt 1,0 (fuerte contra uno, poco alcance) · Fire Strike 1,6 · Chill Wind 1,9 · Triple Energy Bolt 2,3.
+
+## Ice Strike, Mass Ice Strike y ralentizar (Fase 26D)
+- **Tipo nuevo de activo `'iceShards'`** (`data/activeSpells.ts`), lo dibuja y golpea `systems/IceShardRain.ts` (con pool), que llama `WeaponSystem.castIceShards`. Como sp-client (`IceStrike.ts`, `MassIceStrike.ts`, `IceStrikeShard.ts`, `CastManager.ts` L609–645): **todos los trozos caen a la vez**, cada uno desde 200–400 px y en 400–600 ms; Ice Strike 15 grandes (uno en el centro) + 6 pequeños, Mass Ice Strike 24 + 8. Al llegar, la rotura y E46 (`sfx.freeze`, el mismo del tótem Freeze; los límites de audio dejan sonar unos pocos).
+- **Sprites:** `effect4.spr` hoja 2 (pequeños 0–23, grandes 24–31) y hoja 3 entera (rotura, 15 fps). En el original la animación del trozo dura exactamente su caída: `EffectDef.stretchToFall` hace `sprite.play({ key, duration: fallMs })`. `effect4` ya bajaba en partidas de Maga (Chill Wind).
+- **Daño:** golpes de área en momentos fijos (`hitDelaysMs`): Ice Strike 1 × 20 en 80 px, Mass Ice Strike 2 × 18 en 100 px, × el multiplicador de Power. Medido (23-oct-2026, horda, Power 1, bajas por lanzamiento): Energy Strike 6–10 · Ice Strike 8–10 · Mass Fire Strike 10–16 · Mass Ice Strike 8–13 · Meteor 10–13. Maná 29 y 57.
+- **Ralentizar:** `Enemy.slow(factor, ms)`, separado del `freeze` del tótem. El monstruo vive "a cámara lenta": `step` pasa `deltaMs × factor` a `chase` (anda, ataca y se aparta más despacio, sin descuadrar golpe y animación) y `anims.timeScale = factor`. Tinte `ICE_SLOW.tint` (0x88aaff) por `applyStatusTint` (prioridad: destello blanco > Freeze > hielo); las élites pierden el brillo rojo mientras dura, para que se vea el azul. Normales ×0,5 durante 3 s; jefes, minijefes y Champions ×0,75 durante 1,5 s (`ICE_SLOW`). Otro golpe renueva el tiempo y se queda el frenazo más fuerte. `CombatSystem.hitArea` acepta ahora `onHit` por cada monstruo tocado.
+- **Ojo al medirlo:** a Power 1 el hielo mata a casi todo lo que toca, así que no queda nadie ralentizado. Para verlo: `--eval="(g.activeSpell.def.damage=0.01, g.launchCritStrike())"`.
+- **Check:** `icestrike` / `massicestrike` (Maga con horda; `--eval="g.launchCritStrike()"`).
