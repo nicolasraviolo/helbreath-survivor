@@ -63,6 +63,31 @@ export const RUN_CHOICE = {
     textWrapWidth: byDevice(440, 520),
 } as const;
 
+/** Transfer Save (Fase 27½B): text lines, the code (or the box to type it) and the options, from the content row. */
+export const TRANSFER_MENU = {
+    /** Text lines start this far above the content row. */
+    textOffsetY: byDevice(-30, -34),
+    textWrapWidth: byDevice(480, 560),
+    /** The code shown big ("K7P-29X") and the box to type one, centred this far below the content row. */
+    codeOffsetY: byDevice(70, 84),
+    codeFontSize: byDevice(44, 54),
+    codeColor: '#ffd860',
+    /** Box to type a code (an HTML input over the canvas), in game pixels. */
+    inputWidth: byDevice(240, 300),
+    inputHeight: byDevice(46, 58),
+    inputFontSize: byDevice(30, 38),
+    /** Most characters the box takes ("k7p - 29x" with spaces still fits). */
+    inputMaxLength: 12,
+    /** Small line under the box when what was typed can't be a code. */
+    hintOffsetY: byDevice(112, 132),
+    hintColor: '#ff9a7a',
+    /** First option, from the content row, on each step. */
+    menuListOffsetY: byDevice(100, 116),
+    codeListOffsetY: byDevice(150, 176),
+    confirmListOffsetY: byDevice(110, 130),
+    messageListOffsetY: byDevice(110, 130),
+} as const;
+
 /** Options in the sprite font. Bigger on phones, with bigger areas for fingers. */
 export const MENU_ITEM = {
     scale: byDevice(1.6, 2),
@@ -117,6 +142,9 @@ export const SETTINGS_MENU = {
     /** Tab that is not open. */
     idleTabAlpha: 0.6,
     itemSpacing: byDevice(44, 48),
+    /** A tab with more options than this (Transfer Save, Fase 27½B) brings them closer so Back stays inside the frame. */
+    roomyRows: 5,
+    denseItemSpacing: byDevice(37, 42),
     /** Width of the value column (checkbox or "◄ Compact ►"). */
     valueBoxWidth: byDevice(150, 210),
     /** The one-line note about the anonymous stats (Fase 14A), just under the panel's bottom edge. */

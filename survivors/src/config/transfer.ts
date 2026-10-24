@@ -73,3 +73,14 @@ export function readTransferPackage(value: unknown): TransferPackage | undefined
     if (Object.keys(data).length === 0) return undefined;
     return { format: p.format, game: p.game, data };
 }
+
+// --- Solo el juego (27½B) ---
+
+/** The game gives up on the server after this long and says it can't reach it. */
+export const TRANSFER_TIMEOUT_MS = 10000;
+/** Before a code replaces the save, the old one is kept here (not under TRANSFER_KEYS, so it never travels). */
+export const TRANSFER_BACKUP_KEY = 'hb-survivors.transfer-backup';
+/** After loading a save, the page reloads this long after "Done!" so the player can read it. */
+export const TRANSFER_RELOAD_DELAY_MS = 1200;
+/** URL parameters kept when the page reloads after loading a save (?app=1 = installed app); debug ones are dropped. */
+export const TRANSFER_RELOAD_KEEP_PARAMS = ['app'] as const;

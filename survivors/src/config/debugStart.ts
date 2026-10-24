@@ -46,6 +46,7 @@
 //   ?loading=hold    → la pantalla de carga se queda a medias, para verla con calma (M8)
 //   ?trees=off       → árboles grandes en ese modo solo en esta partida (on, off), sin guardarlo
 //   ?open=howtoplay  → abre esa pantalla de los menús (howtoplay, settings, controls = Settings → Controls, credits, releasenotes = novedades, achievements)
+//   ?open=transfer   → la ventana Transfer Save (código de traspaso, Fase 27½B) sobre el menú principal
 //   ?tab=gameplay    → con ?open=settings, abre esa pestaña de Settings (audio, gameplay; M13)
 //   ?open=slots      → abre la pantalla de los 4 personajes guardados (Fase 17A)
 //   ?open=charinfo   → Select Character con la ventana Character abierta (Fase 20A), del primer personaje con puntos
@@ -99,7 +100,7 @@ import type { SimKit } from './simProfile';
 /** ?xelima= gives at most this many stones (a typo like 5000 would fill the inventory). */
 const DEBUG_XELIMA_MAX = 30;
 
-const DEBUG_SCREENS = { howtoplay: 'HowToPlay', settings: 'Settings', controls: 'Controls', credits: 'Credits', releasenotes: 'ReleaseNotes', achievements: 'Achievements', slots: 'CharacterSlots', mapselect: 'MapSelect', town: 'Town', charinfo: 'CharacterInfo', equipment: 'Equipment', warehouse: 'Warehouse', runchoice: 'RunChoice' } as const;
+const DEBUG_SCREENS = { howtoplay: 'HowToPlay', settings: 'Settings', controls: 'Controls', credits: 'Credits', releasenotes: 'ReleaseNotes', achievements: 'Achievements', slots: 'CharacterSlots', mapselect: 'MapSelect', town: 'Town', charinfo: 'CharacterInfo', equipment: 'Equipment', warehouse: 'Warehouse', runchoice: 'RunChoice', transfer: 'Transfer' } as const;
 type DebugScreen = keyof typeof DEBUG_SCREENS;
 
 function isDebugScreen(value: string | null): value is DebugScreen {

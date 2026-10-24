@@ -10,6 +10,8 @@
 // M13: dos pestañas, "Audio & Display" y "Gameplay", en el móvil y en el ordenador. Con menos filas por pestaña quedan
 // más separadas (mejor para el dedo) y hay sitio para opciones nuevas. Se cambia tocando la pestaña o, con teclado o
 // mando, con ◄ ► en la primera fila (la de las pestañas). Al volver a abrir Settings sale la última pestaña usada.
+// Fase 27½B: fila Transfer Save (código de traspaso), solo si Settings se abrió desde el menú principal: en la pausa
+// se mandaría una partida a medias.
 import Phaser from 'phaser';
 import { COMPACT_UI } from '../config/device';
 import { DEBUG_START } from '../config/debugStart';
@@ -151,8 +153,9 @@ export class SettingsScene extends MenuOverlayScene {
             label: '', keyboardOnly: true, onLeft: () => this.turnTab(-1), onRight: () => this.turnTab(1), onConfirm: () => this.turnTab(1),
         };
         const rows = this.tab === 0 ? this.audioDisplayRows() : this.gameplayRows();
+        const spacing = rows.length > SETTINGS_MENU.roomyRows ? SETTINGS_MENU.denseItemSpacing : this.itemSpacing;
         this.addList([tabRow, ...rows, { label: 'Back', onConfirm: () => this.close() }],
-            this.tabBarY - this.contentTop, SETTINGS_MENU.valueBoxWidth);
+            this.tabBarY - this.contentTop, SETTINGS_MENU.valueBoxWidth, spacing);
     }
 
     private audioDisplayRows(): MenuItem[] {
@@ -181,6 +184,9 @@ export class SettingsScene extends MenuOverlayScene {
         const aimStickRow = this.sys.game.device.input.touch ? [{ label: 'Aim Stick', ...checkbox('aimStick') }] : [];
         // Phone interface (no keyboard, a gamepad is rare): no Controls row (Fase 19C).
         const controlsRow: MenuItem[] = COMPACT_UI ? [] : [{ label: 'Controls', onConfirm: () => openOverlay(this, 'Controls') }];
+        const transferRow: MenuItem[] = this.returnScene === 'MainMenu'
+            ? [{ label: 'Transfer Save', onConfirm: () => openOverlay(this, 'Transfer') }]
+            : [];
         return [
             { label: 'Minimap', ...checkbox('showMinimap') },
             { label: 'Health Bar on Character', ...checkbox('showPlayerHealthBar') },
@@ -188,6 +194,7 @@ export class SettingsScene extends MenuOverlayScene {
             ...aimStickRow,
             ...controlsRow,
             { label: 'Anonymous Stats', ...checkbox('anonymousStats') },
+            ...transferRow,
         ];
     }
 

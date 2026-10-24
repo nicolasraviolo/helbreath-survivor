@@ -180,6 +180,8 @@ const PRESETS = {
     // Settings → Controls (Fase 19C): cambiar la tecla / el botón del crit y del panel de stats.
     controls: 'open=controls',
     settings: 'open=settings',
+    transfer: 'open=transfer',
+    settingsgameplay: 'open=settings&tab=gameplay',
 };
 /**
  * Simulated connection for the load times (Chrome DevTools numbers): a home connection for the computer and a "fast 4G"
@@ -281,7 +283,7 @@ async function runScenario(browser, name) {
     }
 
     // ?open= (debugStart.ts) shows a menu screen: wait for it instead of the game.
-    const openKey = { howtoplay: 'HowToPlay', settings: 'Settings', controls: 'Controls', credits: 'Credits', releasenotes: 'ReleaseNotes', achievements: 'Achievements', slots: 'CharacterSlots', mapselect: 'MapSelect', town: 'Town', charinfo: 'CharacterInfo', equipment: 'Equipment', warehouse: 'Warehouse', runchoice: 'RunChoice' }[params.get('open') ?? ''];
+    const openKey = { howtoplay: 'HowToPlay', settings: 'Settings', controls: 'Controls', credits: 'Credits', releasenotes: 'ReleaseNotes', achievements: 'Achievements', slots: 'CharacterSlots', mapselect: 'MapSelect', town: 'Town', charinfo: 'CharacterInfo', equipment: 'Equipment', warehouse: 'Warehouse', runchoice: 'RunChoice', transfer: 'Transfer' }[params.get('open') ?? ''];
     const target = params.has('loading') ? 'Preload' : params.get('town') === 'portal' ? 'MapSelect' : params.has('shop') ? 'Shop' : params.has('smith') ? 'Smith' : params.has('talk') ? 'NpcDialog' : openKey ?? (query ? 'Game' : 'MainMenu');
     await page.goto(url);
     const t0 = Date.now();

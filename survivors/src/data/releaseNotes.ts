@@ -14,6 +14,13 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: readonly ReleaseNote[] = [
     {
+        version: 'Phase 27½',
+        date: 'Oct 25, 2026',
+        changes: [
+            'Move your save to another device with a short code: Settings → Gameplay → Transfer Save.',
+        ],
+    },
+    {
         version: 'Phase 27',
         date: 'Oct 23, 2026',
         changes: [
