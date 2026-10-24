@@ -29,6 +29,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Sonidos ajustados a la animación (sp-client SoundManager.calculatePlaybackRate)
 - Hechizos portados (sp-client game/spells, constants/Effects.ts)
 - Buffs y objetos (sp-client)
+- Nombres de las letras (24-oct-2026)
 - Fuente dibujada del original (`sprfonts.spr`)
 - Monstruos de las oleadas (sp-client Monsters.ts)
 - Ataques de monstruos y golpe (original)
@@ -488,6 +489,12 @@ Tabla completa en `docs/REQUISITOS_HB.md`. Lo no obvio:
   - Crystal 15/46;
   - objeto que cae al suelo: E12.
 - No hay imán ni cofre en los gráficos del juego.
+
+## Nombres de las letras (24-oct-2026)
+Para hablar con el propietario, tres letras con nombre:
+- **Letra de títulos** = la caligráfica del original (`SpriteText`, fuente `'calligraphy'`, `sprfonts.spr` hoja 0): títulos de los menús, "Victory!", "Select Map", opciones de los menús, avisos como "Level Up" de la ciudad.
+- **Letra de cartas** = la negrita de 13 px (`SpriteText`, fuente `'title'`, `interface2.spr` hoja 1): títulos de las cartas de Power. Ojo: en el código se llama `'title'`, pero no es la "letra de títulos".
+- **Letra de texto** = Comic Neue (`UI_TEXT`): todo lo demás. Números de daño en Georgia.
 
 ## Fuente dibujada del original (`sprfonts.spr`)
 - **Hoja 0 (FONT1):**
@@ -987,6 +994,12 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - **Hablar:** el NPC más cercano a menos de `TOWN_TALK.radiusPx` enseña "Talk". E, el botón A del mando, un clic en el NPC o en "Talk", o el botón táctil (`ui/TalkButton.ts`, en `TOUCH_RESERVED_CORNER`, que mientras se ve no abre el stick). La acción `Action.Talk` sustituye a `OpenEquipment` / `OpenWarehouse` (I/O, X/R1), que se quitaron con los botones de Select Character.
 - **Panel:** `NpcDialogScene` (un `MenuOverlayScene`). Equipment, Warehouse y Achievements se abren con `returnTo` = la ciudad y el panel se cierra: al salir se vuelve directo a la ciudad. Al reanudarse, la ciudad ignora "Talk" durante `MENU_INPUT_DELAY_MS` (si no, la A que cierra el panel lo volvía a abrir) y, si cambió el equipo, viste otra vez al personaje (`redressIfChanged`, bajando antes lo que falte con `lookLoader`).
 - **Atajos:** `?town=<npc>` (howard, shopKeeper, william, tom) aparece debajo de ese NPC; con `&talk` se abre su panel. Checks `townnpc`, `towntalk`.
+
+### Character y Equipment sin ir a Howard (24-oct-2026)
+- En la ciudad: I = Equipment, C / Y del mando (`Action.ToggleStats`, la misma de la partida) = ventana Character **para repartir puntos** (como "Level Set."). Las dos ignoran la tecla durante `MENU_INPUT_DELAY_MS` al volver de un panel (`panelReady`), para que la C que cierra la ventana no la abra otra vez.
+- La pausa de la ciudad (`PauseSceneData.town`) añade Character y Equipment; con 7 opciones usa el panel grande (`creditsPanelScale`) y `townPauseItemSpacing`. Se abren con `returnTo` = la ciudad y la pausa se cierra (igual que el panel de Howard).
+- Aviso "Level Up" (`ui/LevelUpNotice.ts`, `TOWN_LEVEL_UP` en `config/town.ts`): abajo a la derecha si `unspentPoints > 0`; en táctil, encima de la esquina del botón "Talk". Se mira al crear la ciudad y al reanudarse. Un clic o toque abre Character.
+- **Trampa:** no animar la escala del contenedor que va en `ScreenLayer.addFixed` (se quedaba a 0,33); el latido va en un contenedor de dentro. Tampoco animar la transparencia de un `SpriteText`: la sombra negra medio transparente lo emborrona.
 
 ## Rareza de las cartas (Fase 21½A)
 - Números en `data/cardRarity.ts`; sorteo en `systems/UpgradePool.ts` (`buildLevelUpChoices(equipment, chr, { chest, onlyPassives, allEpic })`). Desde la partida se piden siempre con `GameScene.levelUpChoices(fromChest)`, que lee la Chr de la partida y los atajos.

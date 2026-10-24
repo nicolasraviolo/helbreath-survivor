@@ -2,6 +2,11 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
+**Extra — Level Up y Equipment en la ciudad (2026-10-24).**
+- **Qué se hizo:** en la ciudad, aviso **"Level Up"** abajo a la derecha con la letra de títulos mientras haya puntos sin repartir (un clic o toque abre la ventana Character para repartirlos; en táctil va encima del botón "Talk"). **C / Y del mando** abre Character; **I** sigue abriendo Equipment. La pausa de la ciudad añade **Character** y **Equipment** (panel grande para que quepan 7 opciones). Howard no cambia. How to Play y What's new actualizados. Nombres de las letras (títulos, cartas, texto) en NOTES.md. Ver NOTES.md, "Character y Equipment sin ir a Howard".
+- **Comprobado:** build; `check town` (PC y `--mobile`, aviso y pausa), pausa → Character → ciudad → Equipment, `check menu` y la pausa en partida sin errores. Probado por el propietario: bien.
+- **Probar:** `pnpm --dir survivors dev` → http://localhost:8090/?characters=demo&open=town
+
 **Fase 27C — Guardar distancia y medidas (2026-10-23).**
 - **Qué se hizo:** forma de moverse **guardar distancia** (`'keepAway'`, números en `KEEP_AWAY` de `data/movement.ts`, lógica en `Enemy.keepAwayStep`) para Mage-Orc, Lich y Dark Elf. Mientras esperan su siguiente ataque, si te acercas a menos del 60% de su alcance retroceden (más despacio que el jugador); si no, se mueven de lado y cambian de lado de vez en cuando. Atajo `?debug=movement` / `check movement`: corro con Slime, Cat, Bunny y Mage-Orc (descarga antes los que falten). What's new con una línea. Ver NOTES.md, "Monstruos que se mueven distinto (Fase 27)".
 - **Comprobado:** build; `pnpm balance` antes/después sin cambio apreciable (`.check/balance-27c-before.json` / `-after.json`); Mage-Orc con el jugador a 50 px se aleja a ~100 px en 2 s; 60 FPS en `--mobile` con ~260 monstruos; a los 5 min en Traveler Zone los monstruos cercanos llegan por las 8 direcciones; `check menu news movement charge traveler` sin errores. Probado por el propietario: bien.

@@ -34,3 +34,22 @@ export const NPC_DIALOG_LIST = {
     /** First option, from the content row (under the NPC's line). */
     offsetY: byDevice(48, 58),
 } as const;
+
+/**
+ * "Level Up" in the bottom-right corner of the town while the character has points to assign (24-oct-2026, owner),
+ * in the calligraphic title letters (SpriteText 'calligraphy'). A click or tap opens the Character window.
+ * On touch screens it sits above the "Talk" button corner (TOUCH_RESERVED_CORNER).
+ */
+export const TOWN_LEVEL_UP = {
+    text: 'Level Up',
+    color: 0xffd860,
+    scale: byDevice(2, 2.4),
+    /** Gap from the right and bottom edges of the screen (px). */
+    right: 16,
+    bottom: 14,
+    /** Touch: gap above the reserved corner. */
+    touchGap: 6,
+    /** Soft beat (it grows a little and back). Not a fade: half-transparent, its black shadow muddies it on the grass. */
+    pulseMs: 700,
+    pulseScale: 1.08,
+} as const;

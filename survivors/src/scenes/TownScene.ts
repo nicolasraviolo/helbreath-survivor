@@ -6,6 +6,8 @@
 // NPCs (Fase 23B): quietos en los sitios de data/town.ts. Al acercarse sale "Talk" encima del nombre; E, el botón A
 // del mando, un clic en el NPC o el botón táctil "Talk" abren su panel (NpcDialogScene) con la ciudad en pausa debajo.
 // Al volver de Equipment, el personaje se viste con lo que lleve ahora.
+// Sin ir a Howard (24-oct-2026, propietario): I abre Equipment y C (o Y del mando) la ventana Character, para repartir
+// los puntos; las dos también en la pausa. Con puntos sin repartir sale "Level Up" abajo a la derecha (ui/LevelUpNotice).
 import Phaser from 'phaser';
 import { DEBUG_START } from '../config/debugStart';
 import { MENU_INPUT_DELAY_MS } from '../config/menus';
@@ -34,6 +36,7 @@ import { Action, InputSystem } from '../systems/InputSystem';
 import { lookLoader, runSprites } from '../systems/LookLoader';
 import { MusicSystem } from '../systems/MusicSystem';
 import { SETTINGS_CHANGED, settings } from '../systems/Settings';
+import { LevelUpNotice } from '../ui/LevelUpNotice';
 import { Minimap } from '../ui/Minimap';
 import { TalkButton } from '../ui/TalkButton';
 import { addTouchPauseButton } from '../ui/TouchPauseButton';
@@ -41,6 +44,7 @@ import { addTouchFullscreenButton } from '../ui/fullscreen';
 import { TouchJoystick } from '../ui/TouchJoystick';
 import { Pool } from '../utils/Pool';
 import { openOverlay } from './MenuOverlayScene';
+import type { CharacterInfoSceneData } from './CharacterInfoScene';
 import type { EquipmentSceneData } from './EquipmentScene';
 import type { MapSelectSceneData } from './MapSelectScene';
 import { NPC_DIALOG_SCENE_KEY, type NpcDialogSceneData } from './NpcDialogScene';
@@ -80,6 +84,7 @@ export class TownScene extends Phaser.Scene {
     private classId: CharacterId = DEFAULT_CHARACTER;
     /** What the character wore when the town was dressed (to dress it again after Equipment only if it changed). */
     private dressedAs = '';
+    private levelUpNotice!: LevelUpNotice;
 
     constructor() {
         super(TOWN_SCENE_KEY);
@@ -150,6 +155,8 @@ export class TownScene extends Phaser.Scene {
             addTouchFullscreenButton(this, DEPTH_DEBUG - 1, TOUCH_FULLSCREEN_BUTTON.townX);
             this.minimap.setTop(MINIMAP.topUnderButtons);
         }
+        this.levelUpNotice = new LevelUpNotice(this, DEPTH_DEBUG - 1, this.sys.game.device.input.touch, () => this.openCharacter());
+        this.refreshLevelUp();
         this.mapView.setTreeMode(DEBUG_START.trees ?? settings.current.largeTrees);
         const onSettings = () => {
             this.mapView.setTreeMode(settings.current.largeTrees);
@@ -165,6 +172,7 @@ export class TownScene extends Phaser.Scene {
         this.events.on(Phaser.Scenes.Events.RESUME, () => {
             this.talkReadyAt = this.time.now + MENU_INPUT_DELAY_MS;
             this.redressIfChanged();
+            this.refreshLevelUp();
         });
         // ?town=<npc>&talk (development only): its panel opens at once. ?town=shopKeeper&shop: the shop (Fase 24B);
         // ?town=tom&smith=buy|sell|upgrade: the blacksmith (Fase 24C; upgrade, 24D).
@@ -202,6 +210,10 @@ export class TownScene extends Phaser.Scene {
             this.openInventory();
             return;
         }
+        if (input.justPressed(Action.ToggleStats)) {
+            this.openCharacter();
+            return;
+        }
         this.updatePortal();
     }
 
@@ -226,9 +238,26 @@ export class TownScene extends Phaser.Scene {
 
     /** I (Fase 24D, owner): the Equipment screen of the character walking the town, as Howard's "Equipment" does. */
     private openInventory(): void {
-        if (this.characterUid === undefined) return;
+        if (this.characterUid === undefined || !this.panelReady()) return;
         const data: Omit<EquipmentSceneData, 'returnTo'> = { characterUid: this.characterUid };
         openOverlay(this, 'Equipment', data);
+    }
+
+    /** C / pad Y / "Level Up": the Character window, where the points are assigned (as "Level Set." does). */
+    private openCharacter(): void {
+        if (this.characterUid === undefined || !this.scene.isActive() || !this.panelReady()) return;
+        const data: CharacterInfoSceneData = { characterUid: this.characterUid, classId: this.classId };
+        openOverlay(this, 'CharacterInfo', data);
+    }
+
+    /** The key that closed a panel must not open one again at once. */
+    private panelReady(): boolean {
+        return this.time.now >= this.talkReadyAt;
+    }
+
+    private refreshLevelUp(): void {
+        const saved = characterStore.byUid(this.characterUid);
+        this.levelUpNotice.setVisible((saved?.unspentPoints ?? 0) > 0);
     }
 
     private talkToNear(): void {
@@ -268,7 +297,11 @@ export class TownScene extends Phaser.Scene {
 
     private openPause(): void {
         if (!this.scene.isActive()) return;
-        const data: PauseSceneData = { gameSceneKey: this.scene.key };
+        const uid = this.characterUid;
+        const data: PauseSceneData = {
+            gameSceneKey: this.scene.key,
+            town: uid === undefined ? undefined : { characterUid: uid, classId: this.classId },
+        };
         openOverlay(this, 'Pause', data);
     }
 

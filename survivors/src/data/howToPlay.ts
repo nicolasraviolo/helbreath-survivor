@@ -131,7 +131,8 @@ export const HOW_TO_PLAY_PAGES: readonly HowToPlayPage[] = [
             { control: 'Power', action: 'Your level inside a run: it starts at 1 each run' },
             { control: 'End of a run (win or lose)', action: 'All its XP goes to your character\'s Level' },
             { control: 'Each Level', action: '3 stat points, kept forever' },
-            { control: 'Level Set. (Select Character)', action: 'Open the Character window to assign them' },
+            // 24-oct-2026: también en la ciudad (C, pad Y, la pausa o el aviso "Level Up").
+            { control: 'C, pad Y or "Level Up" (Town)', action: 'Character window: assign them (also Level Set.)' },
             { control: '+ / − next to a stat', action: 'Add a point / take it back' },
             { control: 'Ok', action: 'Confirm: points can never be moved again' },
             { control: 'Arrows, Enter, − key or pad X', action: 'Choose a stat, add a point, take it back' },
@@ -141,8 +142,8 @@ export const HOW_TO_PLAY_PAGES: readonly HowToPlayPage[] = [
         // Fase 20B: pantalla Equipment. Como mucho 7 filas.
         name: 'Equipment',
         rows: [
-            // Fase 23B: se abre en la ciudad, hablando con Howard; desde el 24D, también con la tecla I.
-            { control: 'I (Town) or talk to Howard', action: 'Equipment: choose what your character wears' },
+            // Fase 23B: se abre en la ciudad, hablando con Howard; desde el 24D, también con la tecla I (y la pausa, 24-oct-2026).
+            { control: 'I or pause (Town), or Howard', action: 'Equipment: choose what your character wears' },
             { control: 'Each run', action: 'Starts with that equipment on' },
             { control: 'The lists', action: 'Only what you own: your starting gear and your loot' },
             { control: 'Requirements', action: 'Your permanent Str, Mag and Level: red = not met' },

@@ -12,6 +12,7 @@
 
 ## Fase actual
 **Ninguna en curso.** Fase 27 ✅ (23-oct-2026, etiqueta `fase-27`): rodear, deambular, separarse, embestir con "!" y guardar distancia. Ver NOTES.md, "Monstruos que se mueven distinto (Fase 27)".
+- **Extra (24-oct-2026, probado):** en la ciudad, aviso "Level Up" (abre Character), tecla C / Y del mando y Character + Equipment en la pausa. Ver NOTES.md, "Character y Equipment sin ir a Howard".
 - **Siguiente: Fase 28** (magias pasivas en la partida), con `/fase 28` en una sesión nueva.
 - Después de la 28: 29 misiones de rescate · 30–33 mapas y únicos, Aresden/Elvine, Raids, Ranking.
 - **Menores de la revisión de la 26, sin hacer:** objetos nuevos al arrastrar el botón de la Maga y en cada lanzamiento; código muerto (`IceShardRain.chill`, comentario viejo en `RunSnapshot`, `case 'spelldrag'` vacío).
@@ -40,7 +41,7 @@
 - Rareza de las cartas: `data/cardRarity.ts`, `systems/UpgradePool.ts`, `GameScene.levelUpChoices`, `LevelUpScene.rarityParts`; `?debug=epic`, `check epic`. Ver NOTES.md, "Rareza de las cartas (Fase 21½A)".
 - Botín: `data/loot.ts`, `systems/LootRoller.ts`, `LootSystem`, `RunLoot`, `scenes/LootScene.ts`; inventario en `CharacterStore`. Ver NOTES.md, "Botín en partida (Fase 21A)".
 - Herrero (24C): `data/smith.ts`, `config/smith.ts`, `scenes/SmithScene.ts`; Stone of Xelima en `data/consumables.ts` y `LOOT_XELIMA_CHANCE`; `?open=town&town=tom&smith=buy|sell`, `?debug=xelima`, `check smith` / `smithsell` / `xelima`.
-- Mejoras (24D): `data/upgrades.ts`, `OwnedItem.upgrade` / `sameOwnedItem`, `SavedCharacter.upgrades`, `CharacterStore.upgrade`, `Equipment.weaponDamageBonus`; `smith=upgrade`, `?xelima=N`, `?upgrade=N`, `?open=town&class=warrior`, `check smithupgrade` / `upgradedmg`. Tecla I en la ciudad = Equipment (`Action.OpenInventory`). Ver NOTES.md, "Mejorar armas en el herrero (Fase 24D)".
+- Mejoras (24D): `data/upgrades.ts`, `OwnedItem.upgrade` / `sameOwnedItem`, `SavedCharacter.upgrades`, `CharacterStore.upgrade`, `Equipment.weaponDamageBonus`; `smith=upgrade`, `?xelima=N`, `?upgrade=N`, `?open=town&class=warrior`, `check smithupgrade` / `upgradedmg`. Tecla I en la ciudad = Equipment (`Action.OpenInventory`); C = Character (`Action.ToggleStats`), aviso "Level Up" en `ui/LevelUpNotice.ts`. Ver NOTES.md, "Mejorar armas en el herrero (Fase 24D)".
 - Tienda (24B): `data/shop.ts`, `config/shop.ts`, `scenes/ShopScene.ts`; `?open=town&town=shopKeeper&shop&gold=N`, `check shop` / `check shopsold`. Ver NOTES.md, "Tienda (Fase 24B)".
 - Oro y botín especial (24A): `data/gold.ts`, `GoldStore`, pickups `coin`/`goldPile`, `GameScene.runGold`, `ArmorAttribute`; `?gold=N`, `check gold`, `check lootarmor`.
 - Baúl, "solo lo que tienes", reglas al morir y Zem: `data/consumables.ts`, `data/warehouse.ts`, `WarehouseStore`, `scenes/WarehouseScene.ts`, `isFreeItem` en `data/items.ts`, `characterStore.finishRun`. Ver NOTES.md, "Baúl, "solo lo que tienes" y Zem (Fase 21D)".
@@ -69,7 +70,7 @@
 
 ## Reglas vigentes
 - Idioma del juego: **solo inglés** (regla 9 de CLAUDE.md).
-- Fuente: **Comic Neue** (15; 12 en la barra inferior). Números de daño en Georgia.
+- Fuente: **Comic Neue** (15; 12 en la barra inferior). Números de daño en Georgia. Con el propietario: "letra de títulos" = la caligráfica (`SpriteText` `'calligraphy'`), "letra de cartas" = `'title'`, "letra de texto" = Comic Neue.
 - Controles: nunca en pantalla; se explican en **How to Play** (`data/howToPlay.ts`).
 - Settings: sí/no con casilla (`MenuList`, `checked`); volumen y opciones de varios valores, con flechas ◄ ►.
 - **Level** permanente (máx. 140): recibe **toda** la EXP de la partida, ganes o mueras; si sales, espera guardada con la partida (M4). El nivel de la partida se llama **Power** en todos los textos.

@@ -46,6 +46,8 @@ export const MENU_OVERLAY = {
     /** First option / text line, from the panel's top edge. */
     contentOffsetY: byDevice(100, 104),
     itemSpacing: byDevice(40, 50),
+    /** Pause in the town (Character and Equipment too, 24-oct-2026): seven options inside the bigger panel. */
+    townPauseItemSpacing: byDevice(40, 42),
     /** Options with a value (Settings): label at the left, value at the right, this far from the centre. */
     valueColumnHalfWidth: byDevice(215, 270),
 } as const;
