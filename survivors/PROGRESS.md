@@ -11,9 +11,11 @@
 - 23-oct-2026: 26 Hechizos del Mago (26A–26E y revisión de código) · 27 Monstruos que se mueven distinto (27A–27C).
 
 ## Fase actual
-**Ninguna en curso.** Fase 27 ✅ (23-oct-2026, etiqueta `fase-27`): rodear, deambular, separarse, embestir con "!" y guardar distancia. Ver NOTES.md, "Monstruos que se mueven distinto (Fase 27)".
-- **Extra (24-oct-2026, probado):** en la ciudad, aviso "Level Up" (abre Character), tecla C / Y del mando y Character + Equipment en la pausa. Ver NOTES.md, "Character y Equipment sin ir a Howard".
-- **Siguiente: Fase 28** (magias pasivas en la partida), con `/fase 28` en una sesión nueva.
+**Fase 27½ — Código de traspaso** (rama `fase-27½`; mini, nueva 24-oct-2026; ver `docs/PLAN-2.md`). Pasar la partida a otro dispositivo con un código tipo `K7P-29X` (24 h, un solo uso, todo menos los ajustes).
+- **27½A ✅ (25-oct-2026):** servidor publicado y probado de verdad (`/transfer`, `/transfer/claim`, tabla `transfers`). Reglas en `src/config/transfer.ts`. Ver NOTES.md, "Código de traspaso (Fase 27½)".
+- **Siguiente: 27½B**, apartado **Transfer save** en Settings (Get code con Copy · Enter code con aviso de que sustituye la partida, cargar y volver al menú). Recoger y escribir las claves de `TRANSFER_KEYS`; tras importar, recargar la página es lo más seguro para que todos los stores relean. Probar con dos navegadores (`metrics-local` o el servidor real).
+- Antes, Fase 27 ✅ (23-oct-2026) y el extra de la ciudad (Level Up, C, Character + Equipment en la pausa, 24-oct-2026, probado).
+- **Después: Fase 28** (magias pasivas en la partida).
 - Después de la 28: 29 misiones de rescate · 30–33 mapas y únicos, Aresden/Elvine, Raids, Ranking.
 - **Menores de la revisión de la 26, sin hacer:** objetos nuevos al arrastrar el botón de la Maga y en cada lanzamiento; código muerto (`IceShardRain.chill`, comentario viejo en `RunSnapshot`, `case 'spelldrag'` vacío).
 - **Equilibrio de los hechizos nuevos** (daño y maná de 26E a criterio de Claude): revisar con las métricas o `pnpm balance` si la Maga de Int alta va corta o sobrada.

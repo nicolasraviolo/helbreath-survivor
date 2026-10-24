@@ -34,6 +34,7 @@ Fuentes de la investigación (17-oct-2026):
 | **25** | Arreglos rápidos *(mini, nueva 22-oct-2026)* | Pantalla completa en Steam Deck / Legion Go · pantalla final sin el equipo · botones + y − grandes en el móvil | Pequeño |
 | **26** | Hechizos del Mago *(nueva 22-oct-2026)* | El Spell 2 gasta maná · apuntar el Spell 2 · hechizos nuevos de círculos altos | Medio |
 | **27** | Monstruos que se mueven distinto *(nueva 22-oct-2026)* | Cada tipo con su forma de moverse, para romper la "bola" | Medio |
+| **27½** | Código de traspaso *(mini, nueva 24-oct-2026)* | Pasar la partida a otro dispositivo con un código corto, sin cuentas | Pequeño |
 | **28** | Magias pasivas en la partida *(nueva 22-oct-2026)* | Aura de daño · espadas que giran · hadas, para los dos personajes | Medio-grande |
 | **29** | Misiones de rescate y logros *(nueva 22-oct-2026)* | Rescatar a los NPCs de la ciudad en los mapas · logros de misiones · logros que se acumulan ("Kill 1,000 Slimes") | Grande |
 | **30** | Más mapas y objetos únicos | Un mapa por bloque, cada uno con sus únicos | Grande (por partes) |
@@ -698,6 +699,21 @@ Ojo con el rendimiento con 300 monstruos (sin búsquedas caras por monstruo) y c
 ### Aceptación
 - En Traveler Zone, a los 5 minutos, los monstruos llegan desde varios lados y no en una sola bola.
 - Se mantienen los FPS de hoy en el móvil.
+
+---
+
+## Fase 27½ — Código de traspaso *(mini, nueva 24-oct-2026)*
+
+### Idea del propietario (24-oct-2026)
+Poder llevarse la partida de un dispositivo a otro (PC ↔ móvil) de forma sencilla. Se descartan las cuentas y el archivo: **código para copiar y pegar**.
+
+### Bloques
+- **27½A. Servidor:** tabla `transfers` y `POST /transfer` + `POST /transfer/claim` en el Worker de las métricas. Reglas en `src/config/transfer.ts`.
+- **27½B. Juego:** apartado **Transfer save** en Settings: **Get code** (sube y enseña el código con Copy) y **Enter code** (avisa de que sustituye la partida, la carga y vuelve al menú).
+
+### Aceptación
+- Partida hecha en el PC → código → en el móvil (u otro navegador) aparecen los mismos personajes, oro, baúl, mapas, logros y desbloqueos.
+- El código no sirve dos veces ni pasadas 24 h. Sin red o con Cloudflare bloqueado, aviso claro y nada se pierde.
 
 ---
 

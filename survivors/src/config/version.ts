@@ -2,4 +2,4 @@
 // `/fase N` la cambia al empezar cada fase.
 
 /** Shown in the main menu's footer. */
-export const GAME_VERSION = 'Phase 27';
+export const GAME_VERSION = 'Phase 27½';

@@ -2,9 +2,11 @@
 //   POST /run          → el juego manda el resumen de una partida (config/metrics.ts); se comprueba y se guarda.
 //   GET  /             → la página de gráficas (dashboard.html). Pide la clave y luego llama a /api/summary.
 //   GET  /api/summary  → los datos de las gráficas, solo con la clave (secreto DASHBOARD_KEY, nunca en git).
+//   POST /transfer, /transfer/claim → código de traspaso de partida (Fase 27½, transfer.ts).
 // No se guarda la IP ni nada que identifique a quien juega.
 import { MAX_PAYLOAD_BYTES, type BossReport, type RunReport } from '../../src/config/metrics';
 import dashboardHtml from './dashboard.html';
+import { claimTransfer, createTransfer } from './transfer';
 
 interface MetricsEnv extends Env {
     DASHBOARD_KEY: string;
@@ -35,6 +37,14 @@ export default {
             if (request.method !== 'POST') return new Response('Method not allowed', { status: 405 });
             if (!cors) return new Response('Forbidden', { status: 403 });
             return saveRun(request, env, cors);
+        }
+        if (url.pathname === '/transfer' || url.pathname === '/transfer/claim') {
+            if (request.method === 'OPTIONS') {
+                return new Response(null, { status: 204, headers: { ...cors, 'Access-Control-Allow-Methods': 'POST', 'Access-Control-Allow-Headers': 'Content-Type' } });
+            }
+            if (request.method !== 'POST') return new Response('Method not allowed', { status: 405 });
+            if (!cors) return new Response('Forbidden', { status: 403 });
+            return url.pathname === '/transfer' ? createTransfer(request, env.DB, cors) : claimTransfer(request, env.DB, cors);
         }
         if (url.pathname === '/api/summary' && request.method === 'GET') {
             if (!env.DASHBOARD_KEY || request.headers.get('Authorization') !== `Bearer ${env.DASHBOARD_KEY}`) {
