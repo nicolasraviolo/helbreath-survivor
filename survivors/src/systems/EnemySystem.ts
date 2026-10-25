@@ -31,7 +31,11 @@ export class EnemySystem {
     /** Debug (?debug=elites): every monster that is not a boss comes out elite. */
     public allElite = false;
     /** The map's multipliers for the normal monsters (Fase 22A); bosses keep their own numbers. */
-    public difficulty: MapDifficulty = NO_DIFFICULTY;
+    private mapDifficulty: MapDifficulty = NO_DIFFICULTY;
+    /** The current wave's damage multiplier (WaveDef.damage, Fase 28½B), on top of the map's. */
+    private waveDamage = 1;
+    /** Map × wave: what new normal monsters get. Rebuilt only when one of them changes. */
+    private spawnDifficulty: MapDifficulty = NO_DIFFICULTY;
 
     constructor(scene: Phaser.Scene, audio: AudioSystem) {
         this.chargeWarnings = new ChargeWarnings(scene);
@@ -64,6 +68,22 @@ export class EnemySystem {
         return this.landedBoss;
     }
 
+    public get difficulty(): MapDifficulty {
+        return this.mapDifficulty;
+    }
+
+    public set difficulty(difficulty: MapDifficulty) {
+        this.mapDifficulty = difficulty;
+        this.spawnDifficulty = { hp: difficulty.hp, damage: difficulty.damage * this.waveDamage };
+    }
+
+    /** Damage multiplier of the wave now running (set by the spawn system); already-spawned monsters keep theirs. */
+    public setWaveDamage(factor: number): void {
+        if (factor === this.waveDamage) return;
+        this.waveDamage = factor;
+        this.difficulty = this.mapDifficulty;
+    }
+
     public setPlayerHealthShare(source: () => number): void {
         this.playerHealthShare = source;
     }
@@ -71,7 +91,7 @@ export class EnemySystem {
     /** Champion (Fase 21½C, data/champion.ts): a much tougher monster of this kind, never elite on top. */
     public spawnChampion(id: EnemyId, x: number, y: number): Enemy {
         const enemy = this.getPool(id).acquire();
-        enemy.spawn(x, y, false, this.difficulty, true);
+        enemy.spawn(x, y, false, this.spawnDifficulty, true);
         return enemy;
     }
 
@@ -80,7 +100,7 @@ export class EnemySystem {
         const enemy = this.getPool(id).acquire();
         const def = enemy.def;
         const elite = def.boss === undefined && (this.allElite || Math.random() < eliteChance(def, this.playerHealthShare()));
-        enemy.spawn(x, y, elite, def.boss === undefined ? this.difficulty : NO_DIFFICULTY);
+        enemy.spawn(x, y, elite, def.boss === undefined ? this.spawnDifficulty : NO_DIFFICULTY);
         return enemy;
     }
 

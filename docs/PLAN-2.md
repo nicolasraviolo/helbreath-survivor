@@ -37,6 +37,7 @@ Fuentes de la investigación (17-oct-2026):
 | **27½** | Código de traspaso *(mini, nueva 24-oct-2026)* | Pasar la partida a otro dispositivo con un código corto, sin cuentas | Pequeño |
 | **28** | Magias pasivas en la partida *(nueva 22-oct-2026)* | Aura de daño · espadas que giran · hadas, para los dos personajes | Medio-grande |
 | **28½** | Cartas y dificultad *(mini, nueva 25-oct-2026)* | La rareza ya no adelanta rangos (siempre 5 cartas) · Epic más rara y ligada a la Chr · Traveler Zone en 2–3 partidas | Medio |
+| **28¾** | Sprites suaves *(mini, nueva 25-oct-2026)* | Filtro xBR en la tarjeta gráfica para que los sprites ampliados no se vean a bloques · opción "Smooth Sprites" en Settings | Pequeño-medio |
 | **29** | Misiones de rescate y logros *(nueva 22-oct-2026)* | Rescatar a los NPCs de la ciudad en los mapas · logros de misiones · logros que se acumulan ("Kill 1,000 Slimes") | Grande |
 | **30** | Más mapas y objetos únicos | Un mapa por bloque, cada uno con sus únicos | Grande (por partes) |
 | **31** | Aresden y Elvine | Elegir bando · objetos Hero con EK | Medio |
@@ -765,6 +766,47 @@ Era "Pasivas con efecto" en "Mejoras de engagement". Magias para **los dos perso
 - 5 cartas Epic de Xelima = +100%; 5 normales = +50%; la carta Epic dice 1/5, 2/5…
 - Las Epic casi no salen con Chr 10 y se notan más con mucha Chr.
 - Con un personaje nuevo, Traveler Zone cuesta 2–3 partidas y la primera no se siente imposible.
+
+---
+
+## Fase 28¾ — Sprites suaves *(mini, nueva 25-oct-2026)*
+
+### Idea del propietario (25-oct-2026)
+- Al ampliar, los sprites de Helbreath se ven **demasiado pixelados**. Se compararon 5 métodos con el Orc y el cuerpo del personaje (original, suavizado simple, **filtro xBR**, IA Real-ESRGAN modelo anime y modelo vídeo). El propietario eligió **xBR**: redondea bordes y diagonales sin emborronar ni cambiar el estilo, no toca ningún archivo y se puede encender y apagar.
+- Descartado: suavizado simple (borroso) e IA (cambia el estilo con el modelo anime; con el de vídeo no gana claramente a xBR y obliga a reprocesar miles de fotogramas, con archivos 4–16 veces más pesados y riesgo de que la animación "tiemble").
+
+### Cómo es ahora (comprobado al plantearla)
+- `main.ts`: `pixelArt: true`; cada textura con `FilterMode.NEAREST` (`hb/HBSprite.ts`, `HBSpriteSheet.createTexture`). El lienzo es 800x600 × `RENDER_SCALE` (hasta 3) y las cámaras hacen zoom (`ui/renderScale.ts`).
+- No se usa ningún pipeline WebGL propio (ni `setPipeline` ni `postFX`). Los tintes "sumados" son copias de textura (`hb/additiveTint.ts`), así que no chocan con un shader.
+- Ajustes en `systems/Settings.ts` y `scenes/SettingsScene.ts` (casillas con `checkbox('clave')`).
+
+### Enfoque técnico
+- **Shader xBR por sprite** (pipeline WebGL propio, p. ej. subclase de `MultiPipeline` con fragment shader xBR-lv2 de Hyllian; **comprobar su licencia** y ponerlo en Credits). Calcula cada píxel de pantalla a partir de los píxeles originales de la textura, así que funciona con cualquier zoom y `RENDER_SCALE`. Necesita el tamaño de cada textura (uniform por textura o por lote).
+- Tiene que respetar la transparencia, `setTint` / `setTintFill` (destello de golpe), alpha y `blendMode` ADD de los efectos.
+- **No** CPU ni texturas preampliadas: cambiarían el tamaño de cada frame y los pivotes.
+
+### 28¾A. Prueba técnica (1 sesión)
+1. Pipeline xBR en `src/hb/` (o `src/render/`), registrado al arrancar el juego.
+2. Aplicado solo al Orc, con atajo `?debug=smooth` para comparar con y sin filtro (`config/debugStart.ts`).
+3. Medir FPS en PC y con `pnpm check ... --mobile`; si en móvil baja demasiado, la opción vendrá **apagada en móvil por defecto**.
+4. **Punto de control:** capturas antes/después y OK del propietario antes de seguir.
+
+### 28¾B. Aplicarlo a lo que se mueve (1 sesión)
+1. **Con filtro:** personaje (todas las capas del paper doll: cuerpo, pelo, armadura, arma, escudo), monstruos, NPCs de la ciudad, efectos de hechizos y objetos del suelo. Un único punto que lo decida (p. ej. `HBAsset` y las fábricas de efectos y botín), no sprite a sprite.
+2. **Sin filtro:** mapa, HUD, menús, iconos de inventario y textos (siguen nítidos). El mapa se puede probar más adelante.
+3. Comprobar tintes de monstruos (Champion, hielo, viento), destello al recibir daño, sombras y efectos aditivos.
+
+### 28¾C. Opción en Settings (media sesión)
+1. **Smooth Sprites: On/Off** en Settings (pestaña de vídeo o gráficos), guardado en `Settings`, que se aplica **al momento** sin reiniciar. Los ajustes no viajan con el código de traspaso (correcto).
+2. Valor por defecto: **decide el propietario** tras el 28¾A (propuesta: On en PC; en móvil, según los FPS medidos).
+3. Créditos del shader, `check` con capturas y nota en NOTES.md.
+
+### Aceptación
+- Con Smooth Sprites encendido, el personaje y los monstruos ampliados tienen bordes y diagonales suaves, sin verse borrosos ni cambiar de estilo; apagado, se ven como hoy.
+- El HUD y los textos siguen nítidos.
+- Cambiar la opción se nota al instante y se recuerda al volver a abrir el juego.
+- Los FPS no bajan de forma apreciable (en móvil, la opción por defecto respeta lo medido).
+- Referencia visual de la prueba: `survivors/.check/sprites-hd/` (comparativa.png y los GIF de la caminata, fuera de git).
 
 ---
 

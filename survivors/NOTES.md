@@ -92,6 +92,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Herrero y Stone of Xelima (Fase 24C)
 - Mejorar armas en el herrero (Fase 24D)
 - Revisión de la dificultad: `pnpm balance` (22-oct-2026)
+- Dificultad de Traveler Zone (Fase 28½B, 25-oct-2026)
 - Nitidez: lienzo a la resolución real (RENDER_SCALE)
 - Maná del Spell 2 (Fase 26A)
 - Apuntar el Spell 2 en el móvil (Fase 26B)
@@ -1016,10 +1017,15 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 
 ## Rareza de las cartas (Fase 21½A)
 - Números en `data/cardRarity.ts`; sorteo en `systems/UpgradePool.ts` (`buildLevelUpChoices(equipment, chr, { chest, onlyPassives, allEpic })`). Desde la partida se piden siempre con `GameScene.levelUpChoices(fromChest)`, que lee la Chr de la partida y los atajos.
-- Cada carta sortea su rareza aparte. En las pasivas, `rank` es el rango **final** (actual + 1/2/3); si no caben los rangos, la rareza baja (`fitRarity`). La línea "antes" de la carta usa el rango actual del equipo, no `rank − 1`.
+- Cada carta sortea su rareza aparte. **Desde la 28½A** las pasivas y magias suben siempre **1 rango** (`rank` = actual + 1) y la rareza da `value` (×1 / ×1,5 / ×2, `CARD_RARITY.value`): la carta trae el **valor final** (suma de lo que valen sus cartas). `fitRarity` ya no existe.
+  - `Equipment.passiveValues` / `magicValues` guardan esa suma; `passiveBonus(id, value)` sale de ella (no del rango). En las magias, `Equipment.magicExtra(id)` = `1 + (value − rank) × MAGIC_EXTRA_PER_POINT` multiplica el daño (dagas, angelito) o el radio del anillo (aura); el resto de cada rango no cambia.
+  - Se guarda en `RunSnapshot.passiveValues` / `magicValues` (opcionales: partidas viejas → valor = rango, todo Common), con `Equipment.restoreCards`. Al leer se limita entre el rango y 2× el rango.
+  - Los atajos `?debug=aura|daggers|angels` usan `GameScene.debugMagicRank` (cartas Common). F1 enseña el bono real de cada pasiva ("3/5 +70%").
+  - Probar: `check epicstones` (Epic de Stone 1/5 con "+0% → +20%").
+- Probabilidades desde la 28½A: pesos 86,5 / 12 / 1,5; la Chr multiplica Rare y Epic ×(1 + 0,02 por punto sobre 10), hasta ×3. Son **pesos**, no porcentajes: con Chr 60 la Epic sale ~2,6% (3 de 113,5) y con Chr 110+ ~3,5%.
 - El sonido de la Epic (`sfx.cardEpic`, E23, el mismo "chin" que los tótems) suena desde `GameScene.openLevelUp`, con el `AudioSystem`, no desde la escena de cartas.
 - Métricas: las Rare y Epic elegidas se cuentan en la misma tabla de cartas como `rarity:rare` y `rarity:epic` (salen en "Most picked cards" sin tocar el servidor).
-- Probar: `pnpm check epic` (todas Epic) y `?debug=epic`. Reparto medido con 3.000 cartas: 81/15/4 normal, 0/81/19 en cofres, 71/23/6 con Chr 60.
+- Probar: `pnpm check epic` (todas Epic) y `?debug=epic`. Reparto medido con 3.000 cartas (antes de la 28½A): 81/15/4 normal, 0/81/19 en cofres, 71/23/6 con Chr 60.
 
 ## Reroll y Skip (Fase 21½B)
 - Números y textos en `data/rerollSkip.ts`. Lo comprado (dado y vino, 0–3 cada uno) vive en `UnlockStore` (`count` / `buy`), clave `hb-survivors.unlocks` **versión 2** (añade `counts`; una versión 1 se lee como 0 de cada). La tienda de la Fase 24 solo tiene que llamar a `unlockStore.buy('dice' | 'wine')`.
@@ -1084,6 +1090,14 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - **`?bot=stand`** (caso `...@bot=stand`): el bot se queda quieto pegando. Medido el 22-oct-2026 (Guerrero): en Traveler Zone con buen equipo gana igual que corriendo (vida mínima 79–89%); en Bleeding Isle muere el doble de pronto (4:33 frente a 9:13 a Level 20), aunque mata más y la bola es la mitad. Recoge **menos** pociones y casi nada de oro (las monedas solo se cogen al pisarlas).
 - **Fallo encontrado con la simulación (arreglado):** `HBAsset.partialAnimation` (ataque en dos trozos del Fire Wyvern) creaba la animación aunque su hoja aún no estuviera lista; salía **vacía** y se quedaba así, y al reproducirla Phaser lanzaba "reading 'frame'" y la partida se congelaba. Solo con carga lenta (4 partidas a la vez; en un móvil, posible). Ahora no se crea hasta que existe la textura, se rehace si quedó vacía y `playDirectional` no reproduce una animación vacía. `balance.mjs` para la partida al primer error de página y guarda la pila.
 - **Métricas reales:** la base D1 `helbreath-survivors-metrics` se puede leer con el conector de Cloudflare (solo lectura). A 22-oct-2026 tenía 30 partidas, todas de Bleeding Isle, ninguna ganada.
+
+## Dificultad de Traveler Zone (Fase 28½B, 25-oct-2026)
+- **Daño por oleada:** `WaveDef.damage` (data/waves.ts, 1 si falta) multiplica el daño de los monstruos normales que salen en esa oleada (también encerronas y los que llama un jefe), encima de `MAPS_DATA.x.difficulty.damage`. `SpawnSystem.update` llama `EnemySystem.setWaveDamage` y `EnemySystem` rehace `spawnDifficulty` solo al cambiar. Los ya vivos conservan el suyo. Los jefes siguen con sus números (`NO_DIFFICULTY`).
+- **Por qué:** la simulación de un personaje nuevo moría en el **minuto 1–2** (el daño recibido era máximo al principio y casi nulo en los minutos 5–7). Ahora Traveler Zone va 0,5 → 0,45 → 0,6 → 0,85 → 1,3 → 2,5 → 3,1 por minuto, con tres encerronas más (hormigas en el 5, serpientes en el 6, conejos en el 6,5). La vida de los monstruos **no** cambia (propietario: "arrasar oleadas"; siguen ~85–93% muertos de un golpe).
+- **Jefes:** Stone Golem `maxHp` 3500 y `damageScale` 0,75 (pegaba 7, ahora ~15); Dummy sin `fixedDamage` (pega ~20–25 cada 2,6 s), 6500 de vida, llama a 12 bichos cada 5 s (máx. 60, también serpientes).
+- **Medido** (`.check/b28-before2.json` frente a `b28-after.json` + `b28-v7.json`, equipo de salida): primera muerte mediana 1:28–2:48 → **4:15–4:35** (casi siempre con el Golem); gana con Level 1: Guerrero 50% → 33%, Maga 67% → 17%; Level 4–7: 46–54%. Bleeding Isle (Level 10) y Elvine Garden (Level 25) con las magias siguen **sin** ganarse en la simulación: no se tocaron.
+- **+20% de vida a todos** (`MONSTER_HP_BONUS` en data/enemies.ts, jefes incluidos, sin tocar la EXP): el propietario ganó Traveler Zone y Bleeding Isle a la primera con el daño nuevo. Medido (`.check/b28-hp120.json`): Level 1 en Traveler Zone gana 1/16; los muertos de un golpe bajan de ~85% a 63% (Guerrero) y 76% (Maga), en Bleeding Isle (Level 10) de 53% a 39%.
+- **Ojo al medir:** el bot va **a por** los jefes sin esquivar, así que el Golem es casi cara o cruz para él y el resultado de 12 partidas cambia mucho de una tanda a otra (Guerrero Level 1: 1/12 y 7/12 con casi lo mismo). Usar ≥ 12 repeticiones y juntar tandas. Con `kit=start`: tras 1–2 partidas el jugador tiene 100–300 de oro y cada pieza cuesta ≥ 200 (`SMITH_PRICE.min`), así que el "mejor equipo" por defecto de `balance` exagera la 2.ª y 3.ª partida. Las partidas reales (métricas, hasta 25-oct) ganaban 13 de 14: el humano juega mejor que el bot.
 
 ## Nitidez: lienzo a la resolución real (RENDER_SCALE)
 - El juego piensa en 800x600, pero el lienzo mide 800x600 × `RENDER_SCALE` (1-3, `config/device.ts`) y `RenderScalePlugin` (`ui/renderScale.ts`) pone cada cámara principal con ese zoom al arrancar la escena (evento READY, antes de `create()`). El texto usa `resolution = RENDER_SCALE`, así se pinta 1:1. Antes el lienzo era 800x600 estirado por el navegador y el texto (a resolución ×3 con `pixelArt`) se encogía sin suavizar: letras rotas y borrosas.

@@ -14,6 +14,16 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: readonly ReleaseNote[] = [
     {
+        version: 'Phase 28½',
+        date: 'Oct 25, 2026',
+        changes: [
+            'Rare and Epic cards no longer skip ranks: they make each rank stronger instead.',
+            'Epic cards are rarer, and Charisma now brings better cards.',
+            'Monsters are tougher, and Traveler Zone starts gentler but ends harder.',
+            'The Stone Golem and the Training Dummy now fight back for real.',
+        ],
+    },
+    {
         version: 'Phase 28',
         date: 'Oct 25, 2026',
         changes: [

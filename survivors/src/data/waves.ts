@@ -21,6 +21,11 @@ export interface WaveDef {
     batchSize: number;
     /** No new spawns while this many enemies are alive. */
     maxAlive: number;
+    /**
+     * Damage of the normal monsters that appear during this wave (also in its events and boss calls), × the map's
+     * difficulty (Fase 28½B). 1 if missing. Lets a map start gently and press harder at the end.
+     */
+    damage?: number;
 }
 
 /** One map's timeline (Fase 22A): its waves and its events, by minute. */
@@ -80,20 +85,27 @@ const BISLE_EVENTS: readonly WaveEventDef[] = [
 const TRAVELER_WAVES: readonly WaveDef[] = [
 // 22C (21-oct-2026): el propietario la vio demasiado fácil. Entra el Cat, ~15–20% más bichos a la vez y algo más
 // seguidos desde el minuto 3, y una encerrona de gatos en el 3,5. Los jefes no cambian.
-    { fromMinute: 0, enemies: [{ enemy: 'slime', weight: 5 }, { enemy: 'bunny', weight: 4 }, { enemy: 'cat', weight: 3 }], startInterval: 0.9, endInterval: 0.6, batchSize: 3, maxAlive: 140 },
-    { fromMinute: 1, enemies: [{ enemy: 'slime', weight: 3 }, { enemy: 'bunny', weight: 3 }, { enemy: 'cat', weight: 3 }, { enemy: 'ant', weight: 4 }], startInterval: 0.7, endInterval: 0.5, batchSize: 3, maxAlive: 185 },
-    { fromMinute: 2, enemies: [{ enemy: 'slime', weight: 2 }, { enemy: 'bunny', weight: 2 }, { enemy: 'cat', weight: 3 }, { enemy: 'ant', weight: 3 }, { enemy: 'snake', weight: 3 }], startInterval: 0.6, endInterval: 0.45, batchSize: 4, maxAlive: 235 },
-    { fromMinute: 3, enemies: [{ enemy: 'slime', weight: 1 }, { enemy: 'bunny', weight: 2 }, { enemy: 'cat', weight: 2 }, { enemy: 'ant', weight: 3 }, { enemy: 'snake', weight: 4 }], startInterval: 0.5, endInterval: 0.36, batchSize: 4, maxAlive: 260 },
-    { fromMinute: 4, enemies: [{ enemy: 'slime', weight: 1 }, { enemy: 'bunny', weight: 1 }, { enemy: 'cat', weight: 2 }, { enemy: 'ant', weight: 3 }, { enemy: 'snake', weight: 5 }], startInterval: 0.45, endInterval: 0.35, batchSize: 4, maxAlive: 285 },
-    { fromMinute: 5, enemies: [{ enemy: 'slime', weight: 3 }, { enemy: 'bunny', weight: 2 }, { enemy: 'cat', weight: 2 }, { enemy: 'ant', weight: 3 }, { enemy: 'snake', weight: 3 }], startInterval: 0.4, endInterval: 0.3, batchSize: 5, maxAlive: 305 },
-    { fromMinute: 6, enemies: [{ enemy: 'slime', weight: 2 }, { enemy: 'bunny', weight: 2 }, { enemy: 'cat', weight: 3 }, { enemy: 'ant', weight: 3 }, { enemy: 'snake', weight: 4 }], startInterval: 0.35, endInterval: 0.3, batchSize: 5, maxAlive: 330 },
+// 28½B (25-oct-2026, propietario: "que cueste 2–3 partidas, arrasando oleadas"): la partida simulada moría en el
+// minuto 1–2 y luego casi no recibía daño. Ahora el daño de cada oleada (`damage`) empieza suave y aprieta al final;
+// la vida no cambia, para que los monstruos sigan cayendo de uno o dos golpes.
+    { fromMinute: 0, enemies: [{ enemy: 'slime', weight: 5 }, { enemy: 'bunny', weight: 4 }, { enemy: 'cat', weight: 3 }], startInterval: 0.9, endInterval: 0.6, batchSize: 3, maxAlive: 140, damage: 0.5 },
+    { fromMinute: 1, enemies: [{ enemy: 'slime', weight: 3 }, { enemy: 'bunny', weight: 3 }, { enemy: 'cat', weight: 3 }, { enemy: 'ant', weight: 4 }], startInterval: 0.7, endInterval: 0.5, batchSize: 3, maxAlive: 185, damage: 0.45 },
+    { fromMinute: 2, enemies: [{ enemy: 'slime', weight: 2 }, { enemy: 'bunny', weight: 2 }, { enemy: 'cat', weight: 3 }, { enemy: 'ant', weight: 3 }, { enemy: 'snake', weight: 3 }], startInterval: 0.6, endInterval: 0.45, batchSize: 4, maxAlive: 235, damage: 0.6 },
+    { fromMinute: 3, enemies: [{ enemy: 'slime', weight: 1 }, { enemy: 'bunny', weight: 2 }, { enemy: 'cat', weight: 2 }, { enemy: 'ant', weight: 3 }, { enemy: 'snake', weight: 4 }], startInterval: 0.5, endInterval: 0.36, batchSize: 4, maxAlive: 260, damage: 0.85 },
+    { fromMinute: 4, enemies: [{ enemy: 'slime', weight: 1 }, { enemy: 'bunny', weight: 1 }, { enemy: 'cat', weight: 2 }, { enemy: 'ant', weight: 3 }, { enemy: 'snake', weight: 5 }], startInterval: 0.45, endInterval: 0.35, batchSize: 4, maxAlive: 285, damage: 1.3 },
+    { fromMinute: 5, enemies: [{ enemy: 'slime', weight: 3 }, { enemy: 'bunny', weight: 2 }, { enemy: 'cat', weight: 2 }, { enemy: 'ant', weight: 3 }, { enemy: 'snake', weight: 3 }], startInterval: 0.4, endInterval: 0.3, batchSize: 5, maxAlive: 305, damage: 2.5 },
+    { fromMinute: 6, enemies: [{ enemy: 'slime', weight: 2 }, { enemy: 'bunny', weight: 2 }, { enemy: 'cat', weight: 3 }, { enemy: 'ant', weight: 3 }, { enemy: 'snake', weight: 4 }], startInterval: 0.35, endInterval: 0.3, batchSize: 5, maxAlive: 330, damage: 3.1 },
 ];
 
 const TRAVELER_EVENTS: readonly WaveEventDef[] = [
     { atMinute: 2.5, kind: 'surround', enemy: 'bunny', count: 24, message: 'You are surrounded!' },
     { atMinute: 3.5, kind: 'surround', enemy: 'cat', count: 28, message: 'Cats everywhere!' },
     { atMinute: 4, kind: 'boss', enemy: 'stoneGolemBoss', message: 'A Stone Golem blocks the way!' },
+    // 28½B: tres encerronas más al final, de monstruos flojos (se rompen a golpes, pero pegan con el daño del final).
+    { atMinute: 5, kind: 'surround', enemy: 'ant', count: 32, message: 'Ants close in!' },
     { atMinute: 5.5, kind: 'surround', enemy: 'slime', count: 30, message: 'Slimes everywhere!' },
+    { atMinute: 6, kind: 'surround', enemy: 'snake', count: 34, message: 'Snakes in the grass!' },
+    { atMinute: 6.5, kind: 'surround', enemy: 'bunny', count: 40, message: 'A bunny stampede!' },
     { atMinute: 7, kind: 'finalBoss', enemy: 'dummy', message: 'The Training Dummy wakes up!' },
 ];
 

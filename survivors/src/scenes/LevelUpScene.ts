@@ -16,7 +16,7 @@ import { px, UI_TEXT, UI_FONT_SIZE } from '../config/ui';
 import { itemPackTexture } from '../config/equipment';
 import { STAT_INFO, type StatId } from '../data/stats';
 import { getPassive, type PassiveIcon } from '../data/passives';
-import { getMagic, magicDamageType, magicMaxRank, magicRank, type MagicRank } from '../data/passiveMagic';
+import { getMagic, magicDamageType, magicExtraMultiplier, magicMaxRank, magicRank, type MagicRank } from '../data/passiveMagic';
 import { CARD_RARITY, EPIC_CARD_GLOW, type CardRarity } from '../data/cardRarity';
 import { CARD_ACTION, CARD_ACTIONS, DICE_FACE, WINE_ICON, type CardAction } from '../data/rerollSkip';
 import type { CharacterStats } from '../entities/CharacterStats';
@@ -404,12 +404,12 @@ function describeCard(stats: CharacterStats, equipment: Equipment, choice: Level
         }
         case 'passive': {
             const passive = getPassive(choice.passive);
-            const pct = (rank: number) => `${passive.sign}${Math.round(equipment.passiveBonus(choice.passive, rank) * 100)}%`;
-            // Rare and Epic cards add several ranks at once (Fase 21½A): "before" is the rank the player has now.
+            const pct = (value: number) => `${passive.sign}${Math.round(equipment.passiveBonus(choice.passive, value) * 100)}%`;
+            // Fase 28½A: always one rank more; Rare and Epic cards are worth more (Xelima Epic: +0% → +20%).
             return {
                 badge: PASSIVE_BADGE.text, badgeColor: PASSIVE_BADGE.color, icon: passive.icon, title: `${passive.name} ${choice.rank}/${passive.maxRank}`,
                 effect: passive.effect,
-                changes: [`${passive.statLabel} ${pct(equipment.passives[choice.passive])} → ${pct(choice.rank)}`],
+                changes: [`${passive.statLabel} ${pct(equipment.passiveValues[choice.passive])} → ${pct(choice.value)}`],
             };
         }
         case 'magic': {
@@ -418,8 +418,11 @@ function describeCard(stats: CharacterStats, equipment: Equipment, choice: Level
             const multiplier = stats.damageMultiplier(magicDamageType(stats.def));
             const before = magicRank(choice.magic, equipment.magics[choice.magic]);
             const after = magicRank(choice.magic, choice.rank);
-            const damage = (rank: MagicRank | undefined) => (rank ? String(Math.max(1, Math.round(rank.damage * multiplier))) : '—');
-            const radius = (rank: MagicRank | undefined) => (rank ? String(rank.radiusPx) : '—');
+            // Fase 28½A: the extra of the Rare and Epic cards (before: the ones taken; after: with this one too).
+            const extraBefore = equipment.magicExtra(choice.magic);
+            const extraAfter = magicExtraMultiplier(choice.rank, choice.value);
+            const damage = (rank: MagicRank | undefined, extra: number) => (rank ? String(Math.max(1, Math.round(rank.damage * multiplier * extra))) : '—');
+            const radius = (rank: MagicRank | undefined, extra: number) => (rank ? String(Math.round(rank.radiusPx * extra)) : '—');
             const count = (rank: MagicRank | undefined) => (rank?.count !== undefined ? String(rank.count) : '—');
             const slow = (rank: MagicRank | undefined) => (rank?.slow !== undefined ? `−${Math.round(rank.slow * 100)}%` : '—');
             const perSecond = (rank: MagicRank | undefined) => (rank?.shotEveryMs ? (1000 / rank.shotEveryMs).toFixed(1) : '—');
@@ -429,8 +432,8 @@ function describeCard(stats: CharacterStats, equipment: Equipment, choice: Level
                 ? `Shots/s ${perSecond(before)} → ${perSecond(after)}`
                 : `Daggers ${count(before)} → ${count(after)}`;
             const changes = after?.slow !== undefined
-                ? [`Slow ${slow(before)} → ${slow(after)}`, `Radius ${radius(before)} → ${radius(after)}`]
-                : [`Damage ${damage(before)} → ${damage(after)}`, second];
+                ? [`Slow ${slow(before)} → ${slow(after)}`, `Radius ${radius(before, extraBefore)} → ${radius(after, extraAfter)}`]
+                : [`Damage ${damage(before, extraBefore)} → ${damage(after, extraAfter)}`, second];
             return {
                 badge: MAGIC_BADGE.text, badgeColor: MAGIC_BADGE.color, icon: magic.icon,
                 title: `${magic.name} ${choice.rank}/${magicMaxRank(choice.magic)}`, effect: magic.effect,

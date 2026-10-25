@@ -10,6 +10,7 @@ import { ARMOR_PIECES, type ArmorPieceId, type ArmorSlotId } from '../data/armor
 import { isCharacterId, type CharacterId } from '../data/characters';
 import { ENEMIES, type EnemyId } from '../data/enemies';
 import { DEFAULT_MAP, MAPS_DATA, type MapId } from '../data/maps';
+import { CARD_RARITY } from '../data/cardRarity';
 import { PASSIVE_IDS, PASSIVES, type PassiveId } from '../data/passives';
 import { MAGIC_IDS, magicMaxRank, type MagicId } from '../data/passiveMagic';
 import { BUFFS, type BuffId } from '../data/pickups';
@@ -60,8 +61,12 @@ export interface RunSnapshot {
     activeSpell: ActiveSpellId | undefined;
     armor: Partial<Record<ArmorSlotId, ArmorPieceId>>;
     passives: Partial<Record<PassiveId, number>>;
+    /** What the cards of each passive are worth added up (Fase 28½A). Saves from before have none: all Common. */
+    passiveValues?: Partial<Record<PassiveId, number>>;
     /** Ranks of the run's magics (Fase 28). Saves from before have none. */
     magics: Partial<Record<MagicId, number>>;
+    /** What the cards of each magic are worth added up (Fase 28½A). */
+    magicValues?: Partial<Record<MagicId, number>>;
     /** Milliseconds left of each active buff. */
     buffs: Partial<Record<BuffId, number>>;
     /** Bosses that were alive: they come back after the calm. */
@@ -213,6 +218,19 @@ function readSnapshot(entry: unknown): RunSnapshot | undefined {
         const rank = readNumber(magicsIn[id]);
         if (rank !== undefined) magics[id] = Math.min(rank, magicMaxRank(id));
     }
+    // Fase 28½A: a card is worth 1 to 2, so the value is between the rank and twice it.
+    const readValues = <K extends string>(raw: unknown, ids: readonly K[], ranks: Partial<Record<K, number>>): Partial<Record<K, number>> | undefined => {
+        if (!isRecord(raw)) return undefined;
+        const values: Partial<Record<K, number>> = {};
+        for (const id of ids) {
+            const rank = ranks[id] ?? 0;
+            const value = readNumber(raw[id]);
+            values[id] = value === undefined ? rank : Math.min(Math.max(value, rank), rank * CARD_RARITY.epic.value);
+        }
+        return values;
+    };
+    const passiveValues = readValues(entry.passiveValues, PASSIVE_IDS, passives);
+    const magicValues = readValues(entry.magicValues, MAGIC_IDS, magics);
     const buffsIn = isRecord(entry.buffs) ? entry.buffs : {};
     const buffs: Partial<Record<BuffId, number>> = {};
     for (const [id, ms] of Object.entries(buffsIn)) {
@@ -238,7 +256,9 @@ function readSnapshot(entry: unknown): RunSnapshot | undefined {
         activeSpell: typeof entry.activeSpell === 'string' && isActiveSpellId(entry.activeSpell) ? entry.activeSpell : undefined,
         armor,
         passives,
+        passiveValues,
         magics,
+        magicValues,
         buffs,
         bosses: Array.isArray(entry.bosses) ? entry.bosses.filter((id): id is EnemyId => isKeyOf(ENEMIES, id)) : [],
         finalBossDead: entry.finalBossDead === true,

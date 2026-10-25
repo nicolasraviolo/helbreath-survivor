@@ -114,8 +114,8 @@ import { ACHIEVEMENT_EVENT, ACHIEVEMENT_SOUND } from '../data/achievements';
 import { AchievementTracker } from '../systems/AchievementTracker';
 import { GAME_VERSION } from '../config/version';
 import { COMPACT_UI } from '../config/device';
-import { PASSIVE_IDS, getPassive } from '../data/passives';
-import { ANGEL_DEBUG_RANK, AURA_DEBUG_RANK, DAGGER_DEBUG_RANK, MAGIC_IDS, getMagic, magicDamageType, magicMaxRank } from '../data/passiveMagic';
+import { PASSIVE_IDS, getPassive, type PassiveId } from '../data/passives';
+import { ANGEL_DEBUG_RANK, AURA_DEBUG_RANK, DAGGER_DEBUG_RANK, MAGIC_IDS, getMagic, magicDamageType, magicMaxRank, type MagicId } from '../data/passiveMagic';
 import { goldStore } from '../systems/GoldStore';
 import { RunMetrics, metricsAllowed, sendRunReport } from '../systems/RunMetrics';
 import type { RunResult } from '../config/metrics';
@@ -241,6 +241,7 @@ export class GameScene extends Phaser.Scene {
     private levelUpOpen = false;
     /** Simulated run to measure the balance (?debug=sim, development only). */
     private sim: SimRun | undefined;
+    private readonly passiveBonuses: Record<PassiveId, number> = { xelima: 0, merien: 0, magnetAmulet: 0 };
     /** The ?level= profile of this debug run, for the simulated run's report ('' without one). */
     private simProfileLabel = '';
     /** Anonymous stats of this run (Fase 14A), sent when it ends. */
@@ -745,9 +746,11 @@ export class GameScene extends Phaser.Scene {
                 break;
             case 'passive':
                 this.equipment.passives[choice.passive] = choice.rank;
+                this.equipment.passiveValues[choice.passive] = choice.value;
                 break;
             case 'magic':
                 this.equipment.magics[choice.magic] = choice.rank;
+                this.equipment.magicValues[choice.magic] = choice.value;
                 break;
         }
     }
@@ -803,8 +806,7 @@ export class GameScene extends Phaser.Scene {
             const attribute = owner?.equipment[slot] === piece ? owner.attributes[slot] : undefined;
             for (const [gearSlot, layer] of this.equipment.wear(piece, attribute)) this.player.setGear(gearSlot, layer);
         }
-        Object.assign(this.equipment.passives, run.passives);
-        Object.assign(this.equipment.magics, run.magics);
+        this.equipment.restoreCards(run.passives, run.passiveValues, run.magics, run.magicValues);
         this.player.setMaxHp(stats.maxHp, true);
         this.applyStats();
         this.player.restoreHp(run.hp);
@@ -837,6 +839,19 @@ export class GameScene extends Phaser.Scene {
         }
     }
 
+    /** Bonus of each passive for the HUD, in a record kept between frames. */
+    private passiveBonusesNow(): Record<PassiveId, number> {
+        for (const id of PASSIVE_IDS) this.passiveBonuses[id] = this.equipment.passiveBonus(id);
+        return this.passiveBonuses;
+    }
+
+    /** ?debug=aura|daggers|angels: that magic at `rank` (pressed again: one rank more), all its cards Common. */
+    private debugMagicRank(id: MagicId, rank: number): void {
+        const next = Math.min(magicMaxRank(id), Math.max(rank, this.equipment.magics[id] + 1));
+        this.equipment.magicValues[id] += next - this.equipment.magics[id];
+        this.equipment.magics[id] = next;
+    }
+
     /** What SaveStore keeps of this run. */
     private snapshot(): RunSnapshot {
         const { stats, equipment } = this;
@@ -859,7 +874,9 @@ export class GameScene extends Phaser.Scene {
             activeSpell: this.activeSpell?.id,
             armor: { ...equipment.armor },
             passives: { ...equipment.passives },
+            passiveValues: { ...equipment.passiveValues },
             magics: { ...equipment.magics },
+            magicValues: { ...equipment.magicValues },
             buffs: this.buffs.remaining,
             bosses: [...this.bosses.aliveIds, ...this.spawner.bossesWaiting],
             finalBossDead: this.finalBossDead,
@@ -945,6 +962,7 @@ export class GameScene extends Phaser.Scene {
                 defenseRatio: this.defenseRatio,
                 magicResistance: this.magicResistance,
                 passiveRanks: this.equipment.passives,
+                passiveBonuses: this.passiveBonusesNow(),
                 magicRanks: this.equipment.magics,
                 buffs: this.buffs.active.map(({ def, secondsLeft }) => ({ name: def.name, secondsLeft, color: def.color })),
                 minimap: { player: this.player, bosses: this.bosses.tracked.filter((boss) => boss.isAlive), totems: this.totems.active, loot: this.loot.active },
@@ -1483,15 +1501,15 @@ export class GameScene extends Phaser.Scene {
                 break;
             case 'aura':
                 // Fase 28A: the Eye of the Storm at rank AURA_DEBUG_RANK (pressed again: one rank more).
-                this.equipment.magics.aura = Math.min(magicMaxRank('aura'), Math.max(AURA_DEBUG_RANK, this.equipment.magics.aura + 1));
+                this.debugMagicRank('aura', AURA_DEBUG_RANK);
                 break;
             case 'daggers':
                 // Fase 28B: the Spinning Daggers at rank DAGGER_DEBUG_RANK (pressed again: one rank more).
-                this.equipment.magics.daggers = Math.min(magicMaxRank('daggers'), Math.max(DAGGER_DEBUG_RANK, this.equipment.magics.daggers + 1));
+                this.debugMagicRank('daggers', DAGGER_DEBUG_RANK);
                 break;
             case 'angels':
                 // Fase 28C: the Tutelary Angels at rank ANGEL_DEBUG_RANK (pressed again: one rank more).
-                this.equipment.magics.angels = Math.min(magicMaxRank('angels'), Math.max(ANGEL_DEBUG_RANK, this.equipment.magics.angels + 1));
+                this.debugMagicRank('angels', ANGEL_DEBUG_RANK);
                 break;
             case 'bluebook': {
                 // The Blue Book of Bloody Shock Wave by the player (Fase 26E), even if it was learned already.

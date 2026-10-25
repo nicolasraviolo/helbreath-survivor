@@ -108,6 +108,7 @@ export class SpawnSystem {
     public update(deltaMs: number): void {
         if (!this.enabled) return;
         this.elapsedMs += deltaMs;
+        this.enemies.setWaveDamage(this.wave.damage ?? 1);
         this.runDueEvents();
         this.runDebugEvent();
         this.runDueChampion(deltaMs);

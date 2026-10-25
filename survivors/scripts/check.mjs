@@ -37,6 +37,7 @@ const PRESETS = {
     levelup: 'debug=levelup',
     // Fase 21½A: todas las cartas Epic (marco morado, cinta, brillo y sonido).
     epic: 'debug=epic,levelup',
+    epicstones: 'play=warrior&debug=epic,stones,levelup', // Fase 28½A: Epic Stone cards that go up 1/5 and say +0% → +20%
     // Fase 21½B: 3 Reroll y 3 Skip comprados, con las cartas abiertas.
     rerollskip: 'unlocks=dice3,wine3&debug=levelup',
     // Fase 21½C: un Champion a los 3 segundos (usar --wait=6000 para verlo en la captura).
