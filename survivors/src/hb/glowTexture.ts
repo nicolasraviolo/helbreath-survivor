@@ -10,9 +10,10 @@ const WHOLE_SHEET_FRAME = '__glowWhole';
 
 /**
  * Makes (once) `key`: `baseKey` with itself drawn over in ADD mode, tinted `tint` at `alpha`, with the same frames and
- * pivots. Returns false if the base texture isn't loaded yet.
+ * pivots. Returns false if the base texture isn't loaded yet. With `fill`, the copy on top is a flat silhouette in
+ * `tint` instead of the picture tinted (lightens dark pictures too: a tinted dark picture adds almost nothing).
  */
-export function ensureGlowTexture(scene: Phaser.Scene, baseKey: string, key: string, tint: number, alpha: number): boolean {
+export function ensureGlowTexture(scene: Phaser.Scene, baseKey: string, key: string, tint: number, alpha: number, fill = false): boolean {
     const textures = scene.textures;
     if (textures.exists(key)) return true;
     if (!textures.exists(baseKey)) return false;
@@ -24,7 +25,10 @@ export function ensureGlowTexture(scene: Phaser.Scene, baseKey: string, key: str
     const whole = base.add(WHOLE_SHEET_FRAME, 0, 0, 0, source.width, source.height);
     const image = scene.make.image({ key: baseKey, frame: WHOLE_SHEET_FRAME }, false).setOrigin(0, 0);
     copy.draw(image, 0, 0);
-    copy.draw(image.setBlendMode(Phaser.BlendModes.ADD).setTint(tint).setAlpha(alpha), 0, 0);
+    image.setBlendMode(Phaser.BlendModes.ADD).setAlpha(alpha);
+    if (fill) image.setTintFill(tint);
+    else image.setTint(tint);
+    copy.draw(image, 0, 0);
     image.destroy();
     if (whole) base.remove(WHOLE_SHEET_FRAME);
     copy.setFilter(Phaser.Textures.FilterMode.NEAREST);

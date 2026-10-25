@@ -115,7 +115,7 @@ import { AchievementTracker } from '../systems/AchievementTracker';
 import { GAME_VERSION } from '../config/version';
 import { COMPACT_UI } from '../config/device';
 import { PASSIVE_IDS, getPassive } from '../data/passives';
-import { AURA_DEBUG_RANK, MAGIC_IDS, getMagic, magicDamageType, magicMaxRank } from '../data/passiveMagic';
+import { AURA_DEBUG_RANK, DAGGER_DEBUG_RANK, MAGIC_IDS, getMagic, magicDamageType, magicMaxRank } from '../data/passiveMagic';
 import { goldStore } from '../systems/GoldStore';
 import { RunMetrics, metricsAllowed, sendRunReport } from '../systems/RunMetrics';
 import type { RunResult } from '../config/metrics';
@@ -223,7 +223,7 @@ export class GameScene extends Phaser.Scene {
     /** ?debug=loot: an item falls by the player every few seconds (counted down here; negative = off). */
     private lootDebugInMs = -1;
     private buffs!: BuffSystem;
-    /** The run's magics (Fase 28): the Damage Aura. */
+    /** The run's magics (Fase 28): the Eye of the Storm and the Spinning Daggers. */
     private magics!: PassiveMagicSystem;
     /** Abaddon's Blood (Fase 21E): gets up once per run after dying, if unlocked. */
     private abaddon!: AbaddonRevive;
@@ -1482,8 +1482,12 @@ export class GameScene extends Phaser.Scene {
                 // Read when the cards are built (openLevelUp).
                 break;
             case 'aura':
-                // Fase 28A: the Damage Aura at rank AURA_DEBUG_RANK (pressed again: one rank more).
+                // Fase 28A: the Eye of the Storm at rank AURA_DEBUG_RANK (pressed again: one rank more).
                 this.equipment.magics.aura = Math.min(magicMaxRank('aura'), Math.max(AURA_DEBUG_RANK, this.equipment.magics.aura + 1));
+                break;
+            case 'daggers':
+                // Fase 28B: the Spinning Daggers at rank DAGGER_DEBUG_RANK (pressed again: one rank more).
+                this.equipment.magics.daggers = Math.min(magicMaxRank('daggers'), Math.max(DAGGER_DEBUG_RANK, this.equipment.magics.daggers + 1));
                 break;
             case 'bluebook': {
                 // The Blue Book of Bloody Shock Wave by the player (Fase 26E), even if it was learned already.

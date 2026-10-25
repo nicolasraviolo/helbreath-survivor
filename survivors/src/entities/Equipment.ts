@@ -41,7 +41,7 @@ export class Equipment {
     /** Rank of each passive (0 = not taken). */
     public readonly passives: Record<PassiveId, number> = { xelima: 0, merien: 0, magnetAmulet: 0 };
     /** Rank of each magic of the run (Fase 28; 0 = not taken). */
-    public readonly magics: Record<MagicId, number> = { aura: 0, swords: 0, angels: 0 };
+    public readonly magics: Record<MagicId, number> = { aura: 0, daggers: 0, angels: 0 };
     /** Sum of each armor value over the pieces worn; recomputed only in wear() (read every frame). */
     private readonly totals: Record<ArmorTotal, number> = { defense: 0, defenseRatio: 0, magicResistance: 0, magicDamageBonus: 0 };
 

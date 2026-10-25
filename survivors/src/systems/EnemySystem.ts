@@ -250,7 +250,7 @@ export class EnemySystem {
     /** Calls `visit` for every living enemy whose body (at its `bodyY`) is inside the circle. */
     /**
      * Living enemies whose feet are inside a flat ellipse on the ground around (x, y): `radius` across, `yShare` of it
-     * up and down (the Damage Aura's ring, drawn in perspective; Fase 28A).
+     * up and down (the Eye of the Storm's ring, drawn in perspective; Fase 28A).
      */
     public forEachInGroundEllipse(x: number, y: number, radius: number, yShare: number, visit: (enemy: Enemy) => void): void {
         this.grid.forEachNear(x, y, radius + SPATIAL_CELL_SIZE, (enemy) => {

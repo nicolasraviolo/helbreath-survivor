@@ -420,10 +420,16 @@ function describeCard(stats: CharacterStats, equipment: Equipment, choice: Level
             const after = magicRank(choice.magic, choice.rank);
             const damage = (rank: MagicRank | undefined) => (rank ? String(Math.max(1, Math.round(rank.damage * multiplier))) : '—');
             const radius = (rank: MagicRank | undefined) => (rank ? String(rank.radiusPx) : '—');
+            const count = (rank: MagicRank | undefined) => (rank?.count !== undefined ? String(rank.count) : '—');
+            const slow = (rank: MagicRank | undefined) => (rank?.slow !== undefined ? `−${Math.round(rank.slow * 100)}%` : '—');
+            // The aura (Eye of the Storm) only slows: its slow and reach. The daggers (28B): damage and how many circle.
+            const changes = after?.slow !== undefined
+                ? [`Slow ${slow(before)} → ${slow(after)}`, `Radius ${radius(before)} → ${radius(after)}`]
+                : [`Damage ${damage(before)} → ${damage(after)}`, `Daggers ${count(before)} → ${count(after)}`];
             return {
                 badge: MAGIC_BADGE.text, badgeColor: MAGIC_BADGE.color, icon: magic.icon,
                 title: `${magic.name} ${choice.rank}/${magicMaxRank(choice.magic)}`, effect: magic.effect,
-                changes: [`Damage ${damage(before)} → ${damage(after)}`, `Radius ${radius(before)} → ${radius(after)}`],
+                changes,
             };
         }
     }

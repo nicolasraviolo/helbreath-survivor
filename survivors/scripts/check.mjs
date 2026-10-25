@@ -57,8 +57,9 @@ const PRESETS = {
     charge: 'map=traveler&debug=god,charge',
     // Fase 27C: una mezcla de todas las formas de moverse alrededor (deambular, rodear, embestir y los que guardan distancia).
     movement: 'map=traveler&debug=god,movement',
-    // Fase 28A: el Damage Aura en rango 3 con una horda alrededor.
+    // Fase 28A: el Eye of the Storm (frena) en rango 3 con una horda alrededor.
     aura: 'debug=god,aura,horde',
+    daggers: 'play=warrior&debug=god,daggers,horde',
     levelpace: 'debug=sim',
     // Lo mismo en Elvine Garden (Fase 22D).
     levelpaceelvine: 'debug=sim&map=elvineGarden',
