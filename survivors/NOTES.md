@@ -92,6 +92,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Herrero y Stone of Xelima (Fase 24C)
 - Mejorar armas en el herrero (Fase 24D)
 - Revisión de la dificultad: `pnpm balance` (22-oct-2026)
+- Dificultad de Traveler Zone (Fase 28½B, 25-oct-2026)
 - Nitidez: lienzo a la resolución real (RENDER_SCALE)
 - Maná del Spell 2 (Fase 26A)
 - Apuntar el Spell 2 en el móvil (Fase 26B)
@@ -1089,6 +1090,14 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - **`?bot=stand`** (caso `...@bot=stand`): el bot se queda quieto pegando. Medido el 22-oct-2026 (Guerrero): en Traveler Zone con buen equipo gana igual que corriendo (vida mínima 79–89%); en Bleeding Isle muere el doble de pronto (4:33 frente a 9:13 a Level 20), aunque mata más y la bola es la mitad. Recoge **menos** pociones y casi nada de oro (las monedas solo se cogen al pisarlas).
 - **Fallo encontrado con la simulación (arreglado):** `HBAsset.partialAnimation` (ataque en dos trozos del Fire Wyvern) creaba la animación aunque su hoja aún no estuviera lista; salía **vacía** y se quedaba así, y al reproducirla Phaser lanzaba "reading 'frame'" y la partida se congelaba. Solo con carga lenta (4 partidas a la vez; en un móvil, posible). Ahora no se crea hasta que existe la textura, se rehace si quedó vacía y `playDirectional` no reproduce una animación vacía. `balance.mjs` para la partida al primer error de página y guarda la pila.
 - **Métricas reales:** la base D1 `helbreath-survivors-metrics` se puede leer con el conector de Cloudflare (solo lectura). A 22-oct-2026 tenía 30 partidas, todas de Bleeding Isle, ninguna ganada.
+
+## Dificultad de Traveler Zone (Fase 28½B, 25-oct-2026)
+- **Daño por oleada:** `WaveDef.damage` (data/waves.ts, 1 si falta) multiplica el daño de los monstruos normales que salen en esa oleada (también encerronas y los que llama un jefe), encima de `MAPS_DATA.x.difficulty.damage`. `SpawnSystem.update` llama `EnemySystem.setWaveDamage` y `EnemySystem` rehace `spawnDifficulty` solo al cambiar. Los ya vivos conservan el suyo. Los jefes siguen con sus números (`NO_DIFFICULTY`).
+- **Por qué:** la simulación de un personaje nuevo moría en el **minuto 1–2** (el daño recibido era máximo al principio y casi nulo en los minutos 5–7). Ahora Traveler Zone va 0,5 → 0,45 → 0,6 → 0,85 → 1,3 → 2,5 → 3,1 por minuto, con tres encerronas más (hormigas en el 5, serpientes en el 6, conejos en el 6,5). La vida de los monstruos **no** cambia (propietario: "arrasar oleadas"; siguen ~85–93% muertos de un golpe).
+- **Jefes:** Stone Golem `maxHp` 3500 y `damageScale` 0,75 (pegaba 7, ahora ~15); Dummy sin `fixedDamage` (pega ~20–25 cada 2,6 s), 6500 de vida, llama a 12 bichos cada 5 s (máx. 60, también serpientes).
+- **Medido** (`.check/b28-before2.json` frente a `b28-after.json` + `b28-v7.json`, equipo de salida): primera muerte mediana 1:28–2:48 → **4:15–4:35** (casi siempre con el Golem); gana con Level 1: Guerrero 50% → 33%, Maga 67% → 17%; Level 4–7: 46–54%. Bleeding Isle (Level 10) y Elvine Garden (Level 25) con las magias siguen **sin** ganarse en la simulación: no se tocaron.
+- **+20% de vida a todos** (`MONSTER_HP_BONUS` en data/enemies.ts, jefes incluidos, sin tocar la EXP): el propietario ganó Traveler Zone y Bleeding Isle a la primera con el daño nuevo. Medido (`.check/b28-hp120.json`): Level 1 en Traveler Zone gana 1/16; los muertos de un golpe bajan de ~85% a 63% (Guerrero) y 76% (Maga), en Bleeding Isle (Level 10) de 53% a 39%.
+- **Ojo al medir:** el bot va **a por** los jefes sin esquivar, así que el Golem es casi cara o cruz para él y el resultado de 12 partidas cambia mucho de una tanda a otra (Guerrero Level 1: 1/12 y 7/12 con casi lo mismo). Usar ≥ 12 repeticiones y juntar tandas. Con `kit=start`: tras 1–2 partidas el jugador tiene 100–300 de oro y cada pieza cuesta ≥ 200 (`SMITH_PRICE.min`), así que el "mejor equipo" por defecto de `balance` exagera la 2.ª y 3.ª partida. Las partidas reales (métricas, hasta 25-oct) ganaban 13 de 14: el humano juega mejor que el bot.
 
 ## Nitidez: lienzo a la resolución real (RENDER_SCALE)
 - El juego piensa en 800x600, pero el lienzo mide 800x600 × `RENDER_SCALE` (1-3, `config/device.ts`) y `RenderScalePlugin` (`ui/renderScale.ts`) pone cada cámara principal con ese zoom al arrancar la escena (evento READY, antes de `create()`). El texto usa `resolution = RENDER_SCALE`, así se pinta 1:1. Antes el lienzo era 800x600 estirado por el navegador y el texto (a resolución ×3 con `pixelArt`) se encogía sin suavizar: letras rotas y borrosas.

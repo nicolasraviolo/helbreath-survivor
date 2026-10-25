@@ -85,7 +85,7 @@ export interface EnemyDef {
      * 1–2 blows; a Mage of the level you usually have when it appears should take about 5.
      */
     damageScale?: number;
-    /** Every blow does exactly this much, whatever the dice and the map (the Dummy's 1, Fase 22A). */
+    /** Every blow does exactly this much, whatever the dice and the map (the Dummy had 1 until Fase 28½B; unused now). */
     fixedDamage?: number;
     /**
      * Original physical hit ratio (docs/hb-wiki/monstruos.md, without the dash attack): the higher, the more often its
@@ -142,10 +142,16 @@ export const BOSS_HP_MULTIPLIER = 2;
  */
 export const MONSTER_HP = { reference: 60, exponent: 0.75 } as const;
 
+/**
+ * Health of every monster, bosses included, × this (Fase 28½B, propietario 25-oct-2026: ganó Traveler Zone y Bleeding
+ * Isle a la primera con el daño nuevo; "un 20% más de vida a todos"). Su EXP no cambia.
+ */
+export const MONSTER_HP_BONUS = 1.2;
+
 /** Full health of a monster before the map, elite and champion multipliers. */
 export function monsterBaseHp(def: EnemyDef): number {
-    if (def.boss) return def.maxHp * BOSS_HP_MULTIPLIER;
-    return MONSTER_HP.reference * (def.maxHp / MONSTER_HP.reference) ** MONSTER_HP.exponent;
+    if (def.boss) return def.maxHp * BOSS_HP_MULTIPLIER * MONSTER_HP_BONUS;
+    return MONSTER_HP.reference * (def.maxHp / MONSTER_HP.reference) ** MONSTER_HP.exponent * MONSTER_HP_BONUS;
 }
 
 /**
@@ -350,20 +356,21 @@ export const ENEMIES = {
         boss: { title: 'Demon', dropsChest: true, final: false },
     },
     // Jefes de Traveler Zone (Fase 22A, mapa de introducción). El Stone Golem jefe es el de siempre, más grande y con más
-    // vida; pega flojo para ser el primer jefe que ve un jugador nuevo.
+    // vida. 28½B (25-oct-2026, propietario: "jefes de verdad"): pegaba 7 y moría en ~27 s; ahora pega ~15 y aguanta más.
     stoneGolemBoss: {
-        name: 'Stone Golem', sprite: 'enemy.stoneGolem', temporalCoefficient: 0.5, hasShadow: true, maxHp: 2500, xp: 120, radius: 20, bodyOffsetY: 44,
+        name: 'Stone Golem', sprite: 'enemy.stoneGolem', temporalCoefficient: 0.5, hasShadow: true, maxHp: 3500, xp: 120, radius: 20, bodyOffsetY: 44,
         actionTimeMs: 1200, attackRange: 1, bravery: 100, damageDice: [7, 4], hitRatio: 135, hitSound: 'sfx.stoneGolem.hit', deathSound: 'sfx.stoneGolem.death', attackSound: 'sfx.stoneGolem.attack',
-        scale: 1.4, knockbackTaken: 0, damageScale: 0.35,
+        scale: 1.4, knockbackTaken: 0, damageScale: 0.75,
         boss: { title: 'Stone Golem', dropsChest: true, final: false },
     },
     // Muñeco de prácticas del original (dummy.spr, 40 hojas estándar de 4 frames; 200.000 de vida y no ataca). Aquí
-    // (propietario, 20-oct-2026) es el jefe final de Traveler Zone: anda muy despacio y pega, pero siempre 1 de daño.
+    // (propietario, 20-oct-2026) es el jefe final de Traveler Zone: anda muy despacio. Pegaba siempre 1; desde la 28½B
+    // (25-oct-2026, "jefes de verdad") pega como el Golem pero más fuerte y más despacio, y llama a más bichos.
     // Sin sonidos propios en sp-client: los del Clay Golem. ATime nuestro (2600 ms ≈ más lento que un Slime).
     dummy: {
-        name: 'Dummy', sprite: 'enemy.dummy', temporalCoefficient: 0.5, hasShadow: true, maxHp: 5000, xp: 600, radius: 16, bodyOffsetY: 40,
-        actionTimeMs: 2600, attackRange: 1, bravery: 100, damageDice: [1, 1], hitRatio: 100, hitSound: 'sfx.clayGolem.hit', deathSound: 'sfx.clayGolem.death', attackSound: 'sfx.clayGolem.attack',
-        scale: 1.6, knockbackTaken: 0, fixedDamage: 1,
+        name: 'Dummy', sprite: 'enemy.dummy', temporalCoefficient: 0.5, hasShadow: true, maxHp: 6500, xp: 600, radius: 16, bodyOffsetY: 40,
+        actionTimeMs: 2600, attackRange: 1, bravery: 100, damageDice: [7, 4], hitRatio: 100, hitSound: 'sfx.clayGolem.hit', deathSound: 'sfx.clayGolem.death', attackSound: 'sfx.clayGolem.attack',
+        scale: 1.6, knockbackTaken: 0, damageScale: 1.3,
         boss: { title: 'Dummy', dropsChest: true, final: true },
     },
     // Jefes de Elvine Garden (Fase 22D, decididos por el propietario el 21-oct-2026): Hellhound y Stalker de minijefes y
@@ -484,7 +491,7 @@ export interface BossMinions {
 export const BOSS_MINIONS: Partial<Record<EnemyId, BossMinions>> = {
     fireWyvern: { enemies: ['stoneGolem', 'frog'], everyMs: 8000, count: 6, maxAlive: 24, radius: 110 },
     // Traveler Zone: el Dummy no se queda solo; lo rodean bichos flojos mientras le pegas.
-    dummy: { enemies: ['slime', 'bunny', 'cat', 'ant'], everyMs: 6000, count: 8, maxAlive: 40, radius: 110 },
+    dummy: { enemies: ['slime', 'bunny', 'cat', 'ant', 'snake'], everyMs: 5000, count: 12, maxAlive: 60, radius: 110 },
     // Elvine Garden: el Cyclops llama a los más duros del jardín.
     cyclopsBoss: { enemies: ['troll', 'giantTree', 'orcMage'], everyMs: 8000, count: 6, maxAlive: 24, radius: 120 },
     // Middleland: el Unicorn llama a Stalkers y Werewolf.
