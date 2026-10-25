@@ -4,3 +4,5 @@ public/assets/
 *.log
 .DS_Store
 .check/
+.env.local
+*.local

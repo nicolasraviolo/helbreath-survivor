@@ -1195,3 +1195,8 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - En el móvil (`COMPACT_UI`) la cámara de la partida y de la ciudad acerca un 25 % más: `WORLD_ZOOM` en `config/device.ts` (`PHONE_WORLD_ZOOM`), aplicado con `zoomWorldCamera(camera)` (`ui/renderScale.ts`) en `GameScene` y `TownScene`. Para probar otro valor: `?zoom=1.5` (también en el PC).
 - Lo fijo en pantalla (minimapa de la ciudad, joysticks, botones) va en una `ScreenLayer`, que ahora se encoge `RENDER_SCALE / cam.zoom` para quedar al tamaño de siempre. Todo lo nuevo fijo en pantalla dentro de esas escenas debe ir en una `ScreenLayer`.
 - La interfaz de la partida (HudScene) es otra escena y no se toca. Los monstruos aparecen según `camera.worldView`, así que se ajusta solo (se ve algo menos de mapa).
+
+## Anuncios en Discord
+- `pnpm --dir survivors announce [--dry] ["Phase N"]` publica la entrada de `src/data/releaseNotes.ts` en #announcements mediante un webhook.
+- El webhook está en `survivors/.env.local` (ignorado por git). Si se filtra, se borra en Discord (Edit Channel → Integrations → Webhooks), se crea otro y se pega ahí.
+- Necesita Node 22.18+ (importa el `.ts` directamente, quitando los tipos).
