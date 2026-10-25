@@ -116,6 +116,9 @@ export const EFFECTS = {
     'fx.earthShock.dust': { sprite: 'fx.effect11', sheet: 3, frameRate: 50, loop: false },
     // Bloody Shock Wave: cada nudo rojo de la cadena (effect4 hoja 0, 30 fps).
     'fx.bloodyShock.node': { sprite: 'fx.effect4', sheet: 0, frameRate: 30, loop: false },
+    // Fase 28A, Damage Aura (data/passiveMagic.ts): el Protection Ring del original (sp-client Effects.ts), effect5 hoja 1,
+    // en bucle bajo los pies; PassiveMagicSystem lo estira al radio del rango.
+    'fx.aura.ring': { sprite: 'fx.effect5', sheet: 1, frameRate: 15, loop: true, depthOffset: -1 },
     'fx.footsteps':{ sprite: 'fx.effect2', sheet: 1, frames: [28, 32], frameRate: 10, loop: false, depthOffset: -1 },
 } as const satisfies Record<string, EffectDef>;
 

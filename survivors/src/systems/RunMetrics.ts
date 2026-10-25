@@ -131,5 +131,7 @@ function cardKey(choice: LevelUpChoice): string {
             return `stat:${choice.stat}`;
         case 'passive':
             return `passive:${choice.passive}`;
+        case 'magic':
+            return `magic:${choice.magic}`;
     }
 }

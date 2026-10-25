@@ -14,6 +14,13 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: readonly ReleaseNote[] = [
     {
+        version: 'Phase 28',
+        date: 'Oct 25, 2026',
+        changes: [
+            'New run magic: the Damage Aura hurts the monsters around you and grows with your cards.',
+        ],
+    },
+    {
         version: 'Phase 27½',
         date: 'Oct 25, 2026',
         changes: [

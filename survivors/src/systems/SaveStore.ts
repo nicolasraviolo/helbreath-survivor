@@ -11,6 +11,7 @@ import { isCharacterId, type CharacterId } from '../data/characters';
 import { ENEMIES, type EnemyId } from '../data/enemies';
 import { DEFAULT_MAP, MAPS_DATA, type MapId } from '../data/maps';
 import { PASSIVE_IDS, PASSIVES, type PassiveId } from '../data/passives';
+import { MAGIC_IDS, magicMaxRank, type MagicId } from '../data/passiveMagic';
 import { BUFFS, type BuffId } from '../data/pickups';
 import { SAVE_SLOT_COUNT } from '../data/saves';
 import { isAutoSpellId, type AutoSpellId } from '../data/spells';
@@ -59,6 +60,8 @@ export interface RunSnapshot {
     activeSpell: ActiveSpellId | undefined;
     armor: Partial<Record<ArmorSlotId, ArmorPieceId>>;
     passives: Partial<Record<PassiveId, number>>;
+    /** Ranks of the run's magics (Fase 28). Saves from before have none. */
+    magics: Partial<Record<MagicId, number>>;
     /** Milliseconds left of each active buff. */
     buffs: Partial<Record<BuffId, number>>;
     /** Bosses that were alive: they come back after the calm. */
@@ -204,6 +207,12 @@ function readSnapshot(entry: unknown): RunSnapshot | undefined {
         const rank = readNumber(passivesIn[id]);
         if (rank !== undefined) passives[id] = Math.min(rank, PASSIVES[id].maxRank);
     }
+    const magicsIn = isRecord(entry.magics) ? entry.magics : {};
+    const magics: Partial<Record<MagicId, number>> = {};
+    for (const id of MAGIC_IDS) {
+        const rank = readNumber(magicsIn[id]);
+        if (rank !== undefined) magics[id] = Math.min(rank, magicMaxRank(id));
+    }
     const buffsIn = isRecord(entry.buffs) ? entry.buffs : {};
     const buffs: Partial<Record<BuffId, number>> = {};
     for (const [id, ms] of Object.entries(buffsIn)) {
@@ -229,6 +238,7 @@ function readSnapshot(entry: unknown): RunSnapshot | undefined {
         activeSpell: typeof entry.activeSpell === 'string' && isActiveSpellId(entry.activeSpell) ? entry.activeSpell : undefined,
         armor,
         passives,
+        magics,
         buffs,
         bosses: Array.isArray(entry.bosses) ? entry.bosses.filter((id): id is EnemyId => isKeyOf(ENEMIES, id)) : [],
         finalBossDead: entry.finalBossDead === true,

@@ -100,6 +100,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Hechizos en línea y Libro Azul (Fase 26E)
 - Pantalla completa y consolas (Fase 25)
 - Monstruos que se mueven distinto (Fase 27)
+- Magias pasivas de la partida (Fase 28)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -1151,3 +1152,10 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - **`?debug=movement` / `check movement`:** corro de Slime, Cat, Bunny y Mage-Orc. Pide con `assetStreamer.hurry` los que falten (el Mage-Orc no está descargado al empezar en Traveler Zone) y espera hasta 10 s (`GameScene.spawnMovementRing`).
 - **Medidas 27C (23-oct-2026):** `pnpm balance` antes/después (`.check/balance-27c-before.json` / `-after.json`): sin cambio apreciable (dentro del ruido del bot). 60 FPS en `--mobile` con ~260 monstruos a los 5 min; a los 5 min en Traveler Zone, los monstruos a menos de 350 px se reparten en las 8 direcciones (12–19 en cada una).
 - **Ojo con `pnpm balance` y el servidor:** si el propietario tiene `pnpm dev` abierto, el script usa ese servidor (puerto 8090), y cualquier cambio guardado en `src/` durante la medición recarga el juego a mitad. Medir sin tocar `src/`. Una copia con `git worktree` en otra carpeta da "A network error occurred" (sin resolver).
+
+## Magias pasivas de la partida (Fase 28)
+- **Datos:** `data/passiveMagic.ts` (`MAGICS`: aura, swords, angels; `ready: false` = aún no sale en las cartas; `ranks` con daño base y radio; `MAX_MAGICS_PER_RUN` = 2). Rango guardado en `Equipment.magics` y en la partida (`RunSnapshot.magics`, `SaveStore`). Una carta de magia es `kind: 'magic'` en `UpgradePool` y comparte los `MAX_ITEM_CARDS` huecos con las Stones (`rankedCards`); `?debug=stones` también las ofrece.
+- **Daño:** `PassiveMagicSystem` llama a `CombatSystem.hitEnemy` con el tipo de la clase (`magicDamageType`: físico en el Guerrero, mágico en la Maga), así que cuentan Str/Mag, Xelima, buffs, Power y crítico. La carta enseña el daño ya multiplicado.
+- **Aura (28A):** el Protection Ring, effect5 hoja 1 (`fx.aura.ring`), a profundidad `DEPTH_GROUND_SHADOWS + 1` (bajo todos los personajes). A escala 1 mide ~40 px de radio a izquierda y derecha y, por la perspectiva, solo el 55% arriba y abajo (`AURA_RING_RADIUS_PX`, `AURA_RING_Y_SHARE`; medido en captura: las capturas del check a 1000×750 van ×1,25). Por eso golpea en elipse por los pies (`EnemySystem.forEachInGroundEllipse`), no con `forEachInRadius` (que es un círculo y usa el cuerpo).
+- **Pruebas:** `?debug=aura` (rango 3; repetido, uno más), `check aura`. Partida simulada de la Maga (25-oct-2026): sin aura 2.768 bajas, nivel 30; con el aura al 5 desde el minuto 0, 3.312 bajas, nivel 31.
+- **Iconos para las siguientes:** Short Sword (item-pack hoja 0, frame 1); Angelic Pendant (hoja 19, frames 10–13). Angelitos: `tutelarangel1–4.spr` (48 hojas cada uno, como el jugador: animación × 8 + dirección; translúcidos; los de INT/MAG van 15 px más altos; reference/Client.cpp:3621 y 42543). No están en el manifest.

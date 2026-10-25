@@ -29,6 +29,7 @@ import { addTouchFullscreenButton } from '../ui/fullscreen';
 import { ACHIEVEMENT_EVENT } from '../data/achievements';
 import { dodgeChance, resistChance } from '../data/defense';
 import { PASSIVE_IDS, PASSIVES } from '../data/passives';
+import { getMagic, MAGIC_IDS, magicMaxRank, type MagicId } from '../data/passiveMagic';
 import type { CharacterId } from '../data/characters';
 import type { CharacterStats } from '../entities/CharacterStats';
 import { Action, InputSystem } from '../systems/InputSystem';
@@ -63,6 +64,8 @@ export interface HudState extends HudBarState {
     magicResistance: number;
     /** Rank of each passive. */
     passiveRanks: Readonly<Record<keyof typeof PASSIVES, number>>;
+    /** Rank of each magic of the run (Fase 28). */
+    magicRanks: Readonly<Record<MagicId, number>>;
     /** Boss shown on the big bar at the top, if one is alive. */
     /** Bosses alive, the final one first (one bar each, up to HUD_BOSS.maxShown). */
     bosses: ReadonlyArray<{ name: string; hp: number; maxHp: number }>;
@@ -398,6 +401,10 @@ function describeDerived(state: HudState): [string, string][] {
     gear.push(['Magic resist', `${Math.round(resistChance(state.magicResistance) * 100)}%`]);
     // Always shown, at any rank (0 too), so the panel keeps the height it was built with.
     for (const id of PASSIVE_IDS) gear.push([PASSIVES[id].name, `${state.passiveRanks[id]}/${PASSIVES[id].maxRank}`]);
+    // Fase 28: the magics that already work, also always shown.
+    for (const id of MAGIC_IDS) {
+        if (getMagic(id).ready) gear.push([getMagic(id).name, `${state.magicRanks[id]}/${magicMaxRank(id)}`]);
+    }
     return [
         ...gear,
         ['Health', String(stats.maxHp)],

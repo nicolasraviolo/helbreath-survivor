@@ -6,6 +6,7 @@
 import { attributeColor, attributeDamageBonus, ATTRIBUTES, type ItemAttribute } from '../data/attributes';
 import { ARMOR_BY_SET, ARMOR_PIECES, ARMOR_SLOT_IDS, getArmorPiece, MAX_DEFENSE, type ArmorPieceId, type ArmorSlotId } from '../data/armor';
 import type { CharacterDef } from '../data/characters';
+import { MAGIC_IDS, type MagicId } from '../data/passiveMagic';
 import { passiveBonus, type PassiveId } from '../data/passives';
 import type { AutoSpellId } from '../data/spells';
 import { upgradeDamageBonus } from '../data/upgrades';
@@ -39,6 +40,8 @@ export class Equipment {
     private mpRecoveryTotal = 0;
     /** Rank of each passive (0 = not taken). */
     public readonly passives: Record<PassiveId, number> = { xelima: 0, merien: 0, magnetAmulet: 0 };
+    /** Rank of each magic of the run (Fase 28; 0 = not taken). */
+    public readonly magics: Record<MagicId, number> = { aura: 0, swords: 0, angels: 0 };
     /** Sum of each armor value over the pieces worn; recomputed only in wear() (read every frame). */
     private readonly totals: Record<ArmorTotal, number> = { defense: 0, defenseRatio: 0, magicResistance: 0, magicDamageBonus: 0 };
 
@@ -55,6 +58,11 @@ export class Equipment {
     /** Total bonus of a passive at its current rank (or at `rank`), e.g. 0.3 = +30%. */
     public passiveBonus(id: PassiveId, rank = this.passives[id]): number {
         return passiveBonus(id, rank);
+    }
+
+    /** How many different magics the run has (at most MAX_MAGICS_PER_RUN). */
+    public get magicCount(): number {
+        return MAGIC_IDS.filter((id) => this.magics[id] > 0).length;
     }
 
     /** A piece in every armor slot the class can wear (achievement "Fully Armored"). */
