@@ -12,7 +12,7 @@
 - 25-oct-2026: 27½ Código de traspaso (27½A–27½B) · 28 Magias pasivas en la partida (28A–28C).
 
 ## Fase actual
-**Ninguna abierta.** La siguiente es la **29, misiones de rescate** (`/fase 29` en sesión nueva). La 28 (magias pasivas: Eye of the Storm, Spinning Daggers y Tutelary Angels) está cerrada; el angelito, **pendiente de probar por el propietario** en partida normal. Decisiones: DECISIONES.md, 25-oct-2026.
+**Ninguna abierta.** La siguiente es la **28½, cartas y dificultad** (`/fase 28½` en sesión nueva; plan aprobado en `docs/PLAN-2.md`: 28½A cartas, 28½B dificultad). Después, la 29 (misiones de rescate). La 28 (magias pasivas: Eye of the Storm, Spinning Daggers y Tutelary Angels) está cerrada; el angelito, **pendiente de probar por el propietario** en partida normal. Decisiones: DECISIONES.md, 25-oct-2026.
 - **Magias (28):** `data/passiveMagic.ts` (`ready`, `ranks`, `MAX_MAGICS_PER_RUN`), `systems/PassiveMagicSystem.ts`, `Equipment.magics`, carta `kind: 'magic'` en `UpgradePool`/`LevelUpScene`; frenado con aspecto en `Enemy.slow(..., 'wind')`; `?debug=aura|daggers|angels`, `check aura` / `daggers` / `angels`. Papeles: aura = control, dagas = daño cerca, angelitos = daño a distancia. Ver NOTES.md, "Magias pasivas de la partida (Fase 28)" (sprites de los angelitos).
 - **Código de traspaso (27½ ✅):** Settings → Gameplay → Transfer Save; `config/transfer.ts`, `systems/TransferClient.ts`, `scenes/TransferScene.ts`, `?open=transfer`. Si se añade una clave de guardado nueva, **añadirla a `TRANSFER_KEYS`**. Ver NOTES.md, "Código de traspaso (Fase 27½)".
 - Después: 29 misiones de rescate · 30–33 mapas y únicos, Aresden/Elvine, Raids, Ranking.

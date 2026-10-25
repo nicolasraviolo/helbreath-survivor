@@ -36,6 +36,7 @@ Fuentes de la investigación (17-oct-2026):
 | **27** | Monstruos que se mueven distinto *(nueva 22-oct-2026)* | Cada tipo con su forma de moverse, para romper la "bola" | Medio |
 | **27½** | Código de traspaso *(mini, nueva 24-oct-2026)* | Pasar la partida a otro dispositivo con un código corto, sin cuentas | Pequeño |
 | **28** | Magias pasivas en la partida *(nueva 22-oct-2026)* | Aura de daño · espadas que giran · hadas, para los dos personajes | Medio-grande |
+| **28½** | Cartas y dificultad *(mini, nueva 25-oct-2026)* | La rareza ya no adelanta rangos (siempre 5 cartas) · Epic más rara y ligada a la Chr · Traveler Zone en 2–3 partidas | Medio |
 | **29** | Misiones de rescate y logros *(nueva 22-oct-2026)* | Rescatar a los NPCs de la ciudad en los mapas · logros de misiones · logros que se acumulan ("Kill 1,000 Slimes") | Grande |
 | **30** | Más mapas y objetos únicos | Un mapa por bloque, cada uno con sus únicos | Grande (por partes) |
 | **31** | Aresden y Elvine | Elegir bando · objetos Hero con EK | Medio |
@@ -732,6 +733,38 @@ Era "Pasivas con efecto" en "Mejoras de engagement". Magias para **los dos perso
 ### Aceptación
 - En una partida me sale la carta del aura, la cojo y la subo de nivel; se nota en pantalla y mata a los monstruos que se acercan.
 - Al terminar la partida, el aura ya no está.
+
+---
+
+## Fase 28½ — Cartas y dificultad *(mini, nueva 25-oct-2026)*
+
+### Idea del propietario (25-oct-2026, al cerrar la Fase 28)
+- Con las magias la partida es mucho más sencilla: hay que **nivelar la dificultad**. Ya antes estaba algo fácil: **superar Traveler Zone debería llevar al menos 2 o 3 partidas**, sin pasar tan rápido al siguiente mapa, **pero sin que desmotive**.
+- **Siempre 5 cartas de cada tipo:** que salga Epic no "adelanta" el nivel. Ejemplo: 5 Xelima normales = +50% de daño; 3 normales y 2 Epic = +70%.
+- **Las Epic, más difíciles de sacar**, y que salgan más **según la Charisma**.
+
+### Cómo es ahora (comprobado al plantearla)
+- `data/cardRarity.ts`: Common 80 / Rare 16 / Epic 4; la Chr sube Rare y Epic +1% por punto sobre 10, hasta ×2. Las Stones, Magnet y magias Rare suben **2 rangos** y las Epic **3** (`passiveRanks`; `fitRarity` en `systems/UpgradePool.ts` baja la rareza si no caben). Stats: +3 / +5 / +8 puntos (sin máximo: no cambia).
+- `data/passives.ts`: el bono sale del rango (`passiveBonus(id, rank)`, `add` o `chain`); `Equipment.passives` y `Equipment.magics` guardan solo el rango.
+
+### 28½A. Cartas: la rareza no adelanta rangos (plan aprobado)
+1. **Cada carta sube 1 rango**, sea cual sea su rareza (máximo 5 cartas). La rareza decide **cuánto vale esa carta**: Common ×1, **Rare ×1,5, Epic ×2**. Xelima: +10% / +15% / +20% por carta; igual Merien (en cadena) y Magnet.
+2. Se guarda **lo que ha dado cada carta** (p. ej. la suma de multiplicadores, o la lista de rarezas) además del rango, en `Equipment`, `RunSnapshot` y `SaveStore`. Partidas guardadas viejas: todas sus cartas cuentan como Common.
+3. **Magias:** también 1 rango por carta; la rareza da un extra a lo principal de cada una: **daño** en las dagas y el angelito, **tamaño del anillo** en el Eye of the Storm (no el frenado: con dos Epic casi pararía a los monstruos).
+4. La carta enseña el valor real de su rareza ("Damage +30% → +50%"). Se quita `fitRarity` para pasivas y magias (ya siempre cabe 1 rango).
+5. **Epic más rara y con Chr:** base **Common 86,5 / Rare 12 / Epic 1,5** (~1 Epic por partida con Chr 10); la Chr sube Rare y Epic **+2% por punto sobre 10, hasta ×3** (Chr 60 → Epic 3%; Chr 110+ → 4,5%). Los cofres siguen sin dar Common. Texto de la Chr: "Critical hits and better cards" (`data/stats.ts`).
+6. Probar: `?play=warrior&debug=epic,stones,levelup` → cartas Epic de Stone que suben 1/5 y dicen "+0% → +20%"; `check levelup epic rerollskip`; guardar y continuar conserva el valor.
+
+### 28½B. Nivelar la dificultad (después del 28½A, que también la cambia)
+1. **Objetivo:** un personaje **nuevo** (Level 1, equipo de salida) **no gana Traveler Zone a la primera**: la primera partida muere a mitad o en el último tercio; la segunda llega más lejos; **la 2.ª o la 3.ª la gana** con el Level y el oro ganados en las anteriores. Nunca una primera partida que muera en los primeros minutos (desmotiva).
+2. **Medir** con `pnpm --dir survivors balance` (casos `warrior:traveler:1:0:...:start`, `mage:...`, y Level 2–6 para la 2.ª y 3.ª partida) y `node survivors/scripts/progression.mjs` (cuántas partidas y horas hasta abrir Bleeding Isle). El bot coge cartas al azar, magias incluidas. Mirar también las métricas reales si hay partidas de Traveler Zone. Comparar con la revisión del 22-oct (NOTES.md, "Revisión de la dificultad").
+3. **Ajustar solo números de `data/`** (vida y daño de los monstruos de Traveler Zone, ritmo de las oleadas, su jefe, el Level que da cada partida), empezando por Traveler Zone; revisar después que los otros mapas no queden fáciles con las magias.
+4. Enseñar al propietario una tabla **antes / después** (minuto de la primera muerte, gana o no, partidas hasta ganar, por clase) antes de dejarlo.
+
+### Aceptación
+- 5 cartas Epic de Xelima = +100%; 5 normales = +50%; la carta Epic dice 1/5, 2/5…
+- Las Epic casi no salen con Chr 10 y se notan más con mucha Chr.
+- Con un personaje nuevo, Traveler Zone cuesta 2–3 partidas y la primera no se siente imposible.
 
 ---
 
