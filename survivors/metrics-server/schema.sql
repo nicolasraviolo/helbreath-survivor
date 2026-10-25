@@ -26,3 +26,11 @@ CREATE TABLE IF NOT EXISTS runs (
     potions INTEGER NOT NULL DEFAULT 0
 );
 CREATE INDEX IF NOT EXISTS runs_version ON runs (version);
+
+-- Código de traspaso (Fase 27½): una fila por código vivo. Se borra al canjearlo o a las 24 h. Sin IP ni nada personal.
+CREATE TABLE IF NOT EXISTS transfers (
+    code TEXT PRIMARY KEY,
+    created_at INTEGER NOT NULL, -- milisegundos (Date.now())
+    data TEXT NOT NULL           -- la partida tal cual la manda el juego (TransferPackage en JSON)
+);
+CREATE INDEX IF NOT EXISTS transfers_created ON transfers (created_at);

@@ -50,6 +50,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Partida simulada y equilibrio (Fase 13C)
 - Logros (Fase 14B)
 - Métricas (Fase 14A)
+- Código de traspaso (Fase 27½)
 - Apuntado automático (Fase 15A)
 - Apuntado manual (Fase 15B)
 - Stick de apuntar en el móvil (Fase 15C)
@@ -708,6 +709,17 @@ Para hablar con el propietario, tres letras con nombre:
 - **Seguridad:** el Worker solo acepta envíos desde github.io y localhost (cabecera Origin), máx. 8 KB, y comprueba cada campo. No guarda IP ni nada personal. Cuerpo `text/plain` para que el navegador no haga petición previa (CORS).
 - **Probar la página en local** con datos de mentira: `metrics-local` en `.claude/launch.json` (puerto 8787, clave `localtest`, base de datos local en `metrics-server/.wrangler/`).
 - **Ojo:** la red del propietario bloquea a veces las IPs de Cloudflare (LaLiga, Fase 9). Si la página no abre, probar con datos móviles o más tarde.
+
+## Código de traspaso (Fase 27½)
+- **Reglas** (alfabeto, 6 letras, 24 h, 256 KB, claves que viajan, comprobación del paquete): `src/config/transfer.ts`, importado por el juego y por el Worker. Viajan las claves de `TRANSFER_KEYS` tal cual están en localStorage; los ajustes no. Si se añade una clave nueva de guardado, **añadirla ahí** o no viajará.
+- **Servidor:** `metrics-server/src/transfer.ts`, tabla `transfers` (en `schema.sql`). `POST /transfer` (cuerpo = `TransferPackage`) → `{ code, expiresAt }`; `POST /transfer/claim` (cuerpo = código, admite minúsculas, espacios y guion) → la partida, o 404 si no existe o caducó. Canjear borra la fila con `DELETE … RETURNING`: un código sirve una sola vez aunque dos dispositivos lo intenten a la vez. Los caducados se borran al crear uno nuevo. Máx. 5.000 códigos vivos (si no, 503).
+- **Mismo control de origen** que `/run` (github.io y localhost). Cuerpos `text/plain`.
+- **Publicar** (cuenta del propietario): crear la tabla en la base real, `pnpm --dir survivors exec wrangler d1 execute helbreath-survivors-metrics --remote --config metrics-server/wrangler.toml --file metrics-server/schema.sql` (todo es `IF NOT EXISTS`, no toca `runs`), y luego `pnpm --dir survivors metrics:deploy`.
+- **Probar en local:** `wrangler d1 execute … --local --file metrics-server/schema.sql`, arrancar `metrics-local` (puerto 8787) y llamar con `curl -H "Origin: http://localhost:8090" --data-binary …`. Probado (24-oct-2026): crear, canjear, segundo canje 404, inventado 404, caducado 404, 300 KB 413, clave de ajustes 400, otra web 403, UTF-8 intacto.
+- **Juego (27½B):** `systems/TransferClient.ts` (juntar, subir, canjear, escribir, recargar) y `scenes/TransferScene.ts` (Settings → Gameplay → Transfer Save, **solo** si Settings se abrió desde el menú principal; `?open=transfer`, `check transfer`). Errores: sin red, Cloudflare bloqueado o más de 10 s = `offline`; 404 = `notFound` (sin Try Again). Primero se confirma y **luego** se canjea, para no gastar el código si el jugador dice No.
+- **La casilla del código es un `<input>` HTML** encima del lienzo (teclado del móvil y pegar), recolocado cada frame con `getBoundingClientRect`. Phaser escucha las teclas en `window` y bloquea WASD y otras: la casilla hace `stopPropagation` en keydown/keyup, o no se podrían escribir esas letras.
+- **Antes de sustituir** se guarda la partida vieja en `hb-survivors.transfer-backup` (no viaja). Las claves que el paquete no trae se **borran**, para no mezclar partidas. Luego se recarga quitando los parámetros de depuración (`?characters=demo` volvería a pisar la partida); solo se conserva `?app=1`.
+- **Probado (25-oct-2026)** con dos navegadores de Playwright y el servidor real: todo igual en B, Copy al portapapeles, WASD en la casilla, segundo canje "not found" sin tocar nada, sin red "Can't reach the server". Para pulsar teclas con Playwright hay que mantenerlas ~100 ms (`keyboard.down`/`up`): un `press` instantáneo no llega a `justPressed`.
 
 ## Apuntado automático (Fase 15A)
 - **Un solo sitio decide a quién se ataca:** `systems/Targeting.ts` (`findTarget`, `findTargets`), usado por todas las armas a través de `WeaponContext`. Un jefe (`def.boss`) a menos de `AUTO_AIM.bossPriorityRadius` (250 px, `data/targeting.ts`) y al alcance del arma va primero; si no, el más cercano. El apuntado manual del 15B debe entrar aquí, por encima de todo.

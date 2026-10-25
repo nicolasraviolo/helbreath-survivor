@@ -2,6 +2,16 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
+**Fase 27½B — Código de traspaso: juego (2026-10-25).**
+- **Qué se hizo:** Settings → Gameplay → **Transfer Save** (solo abriendo Settings desde el menú principal): **Get Code** sube la partida y enseña el código en grande con **Copy**; **Enter Code** tiene una casilla HTML encima del lienzo (teclado del móvil y pegar; admite minúsculas, espacios y guion), aviso con No / Replace, baja la partida, guarda la vieja en `hb-survivors.transfer-backup`, escribe las claves y recarga la página sin parámetros de depuración. Errores claros sin tocar nada (sin red, código no encontrado, servidor ocupado). Con muchas opciones, las pestañas de Settings juntan las filas (`SETTINGS_MENU.denseItemSpacing`). Código en `systems/TransferClient.ts` y `scenes/TransferScene.ts`; atajo `?open=transfer`, situaciones `check transfer` y `settingsgameplay`. What's new de la Fase 27½. Ver NOTES.md, "Código de traspaso (Fase 27½)".
+- **Comprobado:** build; `check menu settings settingsgameplay transfer game` (PC y `--mobile`) sin errores; prueba con dos navegadores de Playwright y el servidor real: todo igual en el segundo, Copy, WASD en la casilla, aviso de código mal escrito, segundo canje "not found" sin tocar nada, sin red "Can't reach the server". Probado por el propietario: bien.
+- **Probar:** `pnpm --dir survivors dev` → http://localhost:8090 → Settings → Gameplay → Transfer Save, en dos navegadores.
+
+**Fase 27½A — Código de traspaso: servidor (2026-10-25).**
+- **Qué se hizo:** en el Worker de las métricas, `POST /transfer` (guarda la partida y da un código de 6 letras sin O/0/I/1/L) y `POST /transfer/claim` (devuelve la partida y borra el código: un solo uso; caduca a las 24 h). Tabla `transfers` en D1. Reglas compartidas con el juego en `src/config/transfer.ts`; viajan todas las claves de guardado menos los ajustes. Fase nueva en PLAN-2 y decisión en DECISIONES. Ver NOTES.md, "Código de traspaso (Fase 27½)".
+- **Comprobado:** `metrics:check`, build, `check menu`; en local: crear, canjear (en minúsculas), segundo canje 404, inventado 404, caducado 404, 300 KB 413, clave de ajustes 400, otra web 403, UTF-8 intacto. Publicado por el propietario y probado en el servidor real: crear 200, canjear 200, otra vez 404, otra web 403, página de métricas 200.
+- **Probar:** aún nada en el juego (llega en 27½B).
+
 **Extra — Level Up y Equipment en la ciudad (2026-10-24).**
 - **Qué se hizo:** en la ciudad, aviso **"Level Up"** abajo a la derecha con la letra de títulos mientras haya puntos sin repartir (un clic o toque abre la ventana Character para repartirlos; en táctil va encima del botón "Talk"). **C / Y del mando** abre Character; **I** sigue abriendo Equipment. La pausa de la ciudad añade **Character** y **Equipment** (panel grande para que quepan 7 opciones). Howard no cambia. How to Play y What's new actualizados. Nombres de las letras (títulos, cartas, texto) en NOTES.md. Ver NOTES.md, "Character y Equipment sin ir a Howard".
 - **Comprobado:** build; `check town` (PC y `--mobile`, aviso y pausa), pausa → Character → ciudad → Equipment, `check menu` y la pausa en partida sin errores. Probado por el propietario: bien.
