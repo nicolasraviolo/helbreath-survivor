@@ -9,11 +9,11 @@
 - 21-oct-2026: 21½ Cartas y sorpresas (21½A–21½C) · 22 Sistema de mapas (22A–22E, 22G; los récords locales, 22F, aplazados) · 23 La ciudad (23A–23B).
 - 22-oct-2026: 24 Oro, tienda y herrero (24A–24D) · 25 Arreglos rápidos.
 - 23-oct-2026: 26 Hechizos del Mago (26A–26E y revisión de código) · 27 Monstruos que se mueven distinto (27A–27C).
+- 25-oct-2026: 27½ Código de traspaso (27½A–27½B).
 
 ## Fase actual
-**Fase 27½ — Código de traspaso** (rama `fase-27½`): **27½A ✅** (servidor) y **27½B ✅** (Settings → Gameplay → Transfer Save, 25-oct-2026, probado por el propietario). Código en `config/transfer.ts`, `systems/TransferClient.ts`, `scenes/TransferScene.ts`; `?open=transfer`. Ver NOTES.md, "Código de traspaso (Fase 27½)". Si se añade una clave de guardado nueva, **añadirla a `TRANSFER_KEYS`**.
-- Antes, Fase 27 ✅ (23-oct-2026) y el extra de la ciudad (Level Up, C, Character + Equipment en la pausa, 24-oct-2026, probado).
-- **Después: Fase 28** (magias pasivas en la partida).
+**Ninguna abierta.** Siguiente: **Fase 28 — Magias pasivas en la partida** (`/fase 28`; ver `docs/PLAN-2.md`).
+- **Código de traspaso (27½ ✅):** Settings → Gameplay → Transfer Save; `config/transfer.ts`, `systems/TransferClient.ts`, `scenes/TransferScene.ts`, `?open=transfer`. Si se añade una clave de guardado nueva, **añadirla a `TRANSFER_KEYS`**. Ver NOTES.md, "Código de traspaso (Fase 27½)".
 - Después de la 28: 29 misiones de rescate · 30–33 mapas y únicos, Aresden/Elvine, Raids, Ranking.
 - **Menores de la revisión de la 26, sin hacer:** objetos nuevos al arrastrar el botón de la Maga y en cada lanzamiento; código muerto (`IceShardRain.chill`, comentario viejo en `RunSnapshot`, `case 'spelldrag'` vacío).
 - **Equilibrio de los hechizos nuevos** (daño y maná de 26E a criterio de Claude): revisar con las métricas o `pnpm balance` si la Maga de Int alta va corta o sobrada.
