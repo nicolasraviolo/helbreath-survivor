@@ -6,8 +6,8 @@
 import { attributeColor, attributeDamageBonus, ATTRIBUTES, type ItemAttribute } from '../data/attributes';
 import { ARMOR_BY_SET, ARMOR_PIECES, ARMOR_SLOT_IDS, getArmorPiece, MAX_DEFENSE, type ArmorPieceId, type ArmorSlotId } from '../data/armor';
 import type { CharacterDef } from '../data/characters';
-import { MAGIC_IDS, type MagicId } from '../data/passiveMagic';
-import { passiveBonus, type PassiveId } from '../data/passives';
+import { MAGIC_IDS, magicExtraMultiplier, type MagicId } from '../data/passiveMagic';
+import { PASSIVE_IDS, passiveBonus, type PassiveId } from '../data/passives';
 import type { AutoSpellId } from '../data/spells';
 import { upgradeDamageBonus } from '../data/upgrades';
 import { getWand, type WandId } from '../data/wands';
@@ -38,10 +38,14 @@ export class Equipment {
     private hpRecoveryTotal = 0;
     /** Extra mana regeneration from the Mage's clothes with MP Recovery (Fase 26A); recomputed in wear(). */
     private mpRecoveryTotal = 0;
-    /** Rank of each passive (0 = not taken). */
+    /** Rank of each passive (0 = not taken): how many cards of it. */
     public readonly passives: Record<PassiveId, number> = { xelima: 0, merien: 0, magnetAmulet: 0 };
+    /** What the cards of each passive are worth added up (Fase 28½A: Common 1, Rare 1.5, Epic 2). */
+    public readonly passiveValues: Record<PassiveId, number> = { xelima: 0, merien: 0, magnetAmulet: 0 };
     /** Rank of each magic of the run (Fase 28; 0 = not taken). */
     public readonly magics: Record<MagicId, number> = { aura: 0, daggers: 0, angels: 0 };
+    /** What the cards of each magic are worth added up (Fase 28½A). */
+    public readonly magicValues: Record<MagicId, number> = { aura: 0, daggers: 0, angels: 0 };
     /** Sum of each armor value over the pieces worn; recomputed only in wear() (read every frame). */
     private readonly totals: Record<ArmorTotal, number> = { defense: 0, defenseRatio: 0, magicResistance: 0, magicDamageBonus: 0 };
 
@@ -55,9 +59,29 @@ export class Equipment {
         this.spell = start.kind === 'spell' ? start.id : undefined;
     }
 
-    /** Total bonus of a passive at its current rank (or at `rank`), e.g. 0.3 = +30%. */
-    public passiveBonus(id: PassiveId, rank = this.passives[id]): number {
-        return passiveBonus(id, rank);
+    /** Total bonus of a passive now (or with its cards worth `value`), e.g. 0.3 = +30%. */
+    public passiveBonus(id: PassiveId, value = this.passiveValues[id]): number {
+        return passiveBonus(id, value);
+    }
+
+    /** How much bigger a magic's main value is for its Rare and Epic cards (1 = none; Fase 28½A). */
+    public magicExtra(id: MagicId): number {
+        return magicExtraMultiplier(this.magics[id], this.magicValues[id]);
+    }
+
+    /** Ranks and card values of a saved run; saves from before Fase 28½A have no values: all their cards were Common. */
+    public restoreCards(
+        passives: Partial<Record<PassiveId, number>>, passiveValues: Partial<Record<PassiveId, number>> | undefined,
+        magics: Partial<Record<MagicId, number>>, magicValues: Partial<Record<MagicId, number>> | undefined,
+    ): void {
+        for (const id of PASSIVE_IDS) {
+            this.passives[id] = passives[id] ?? 0;
+            this.passiveValues[id] = passiveValues?.[id] ?? this.passives[id];
+        }
+        for (const id of MAGIC_IDS) {
+            this.magics[id] = magics[id] ?? 0;
+            this.magicValues[id] = magicValues?.[id] ?? this.magics[id];
+        }
     }
 
     /** How many different magics the run has (at most MAX_MAGICS_PER_RUN). */

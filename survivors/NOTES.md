@@ -1016,10 +1016,15 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 
 ## Rareza de las cartas (Fase 21½A)
 - Números en `data/cardRarity.ts`; sorteo en `systems/UpgradePool.ts` (`buildLevelUpChoices(equipment, chr, { chest, onlyPassives, allEpic })`). Desde la partida se piden siempre con `GameScene.levelUpChoices(fromChest)`, que lee la Chr de la partida y los atajos.
-- Cada carta sortea su rareza aparte. En las pasivas, `rank` es el rango **final** (actual + 1/2/3); si no caben los rangos, la rareza baja (`fitRarity`). La línea "antes" de la carta usa el rango actual del equipo, no `rank − 1`.
+- Cada carta sortea su rareza aparte. **Desde la 28½A** las pasivas y magias suben siempre **1 rango** (`rank` = actual + 1) y la rareza da `value` (×1 / ×1,5 / ×2, `CARD_RARITY.value`): la carta trae el **valor final** (suma de lo que valen sus cartas). `fitRarity` ya no existe.
+  - `Equipment.passiveValues` / `magicValues` guardan esa suma; `passiveBonus(id, value)` sale de ella (no del rango). En las magias, `Equipment.magicExtra(id)` = `1 + (value − rank) × MAGIC_EXTRA_PER_POINT` multiplica el daño (dagas, angelito) o el radio del anillo (aura); el resto de cada rango no cambia.
+  - Se guarda en `RunSnapshot.passiveValues` / `magicValues` (opcionales: partidas viejas → valor = rango, todo Common), con `Equipment.restoreCards`. Al leer se limita entre el rango y 2× el rango.
+  - Los atajos `?debug=aura|daggers|angels` usan `GameScene.debugMagicRank` (cartas Common). F1 enseña el bono real de cada pasiva ("3/5 +70%").
+  - Probar: `check epicstones` (Epic de Stone 1/5 con "+0% → +20%").
+- Probabilidades desde la 28½A: pesos 86,5 / 12 / 1,5; la Chr multiplica Rare y Epic ×(1 + 0,02 por punto sobre 10), hasta ×3. Son **pesos**, no porcentajes: con Chr 60 la Epic sale ~2,6% (3 de 113,5) y con Chr 110+ ~3,5%.
 - El sonido de la Epic (`sfx.cardEpic`, E23, el mismo "chin" que los tótems) suena desde `GameScene.openLevelUp`, con el `AudioSystem`, no desde la escena de cartas.
 - Métricas: las Rare y Epic elegidas se cuentan en la misma tabla de cartas como `rarity:rare` y `rarity:epic` (salen en "Most picked cards" sin tocar el servidor).
-- Probar: `pnpm check epic` (todas Epic) y `?debug=epic`. Reparto medido con 3.000 cartas: 81/15/4 normal, 0/81/19 en cofres, 71/23/6 con Chr 60.
+- Probar: `pnpm check epic` (todas Epic) y `?debug=epic`. Reparto medido con 3.000 cartas (antes de la 28½A): 81/15/4 normal, 0/81/19 en cofres, 71/23/6 con Chr 60.
 
 ## Reroll y Skip (Fase 21½B)
 - Números y textos en `data/rerollSkip.ts`. Lo comprado (dado y vino, 0–3 cada uno) vive en `UnlockStore` (`count` / `buy`), clave `hb-survivors.unlocks` **versión 2** (añade `counts`; una versión 1 se lee como 0 de cada). La tienda de la Fase 24 solo tiene que llamar a `unlockStore.buy('dice' | 'wine')`.

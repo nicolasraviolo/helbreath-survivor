@@ -8,6 +8,7 @@
 // y no salen en las cartas.
 import type { CharacterDef } from './characters';
 import type { DamageType } from '../entities/CharacterStats';
+import { MAGIC_EXTRA_PER_POINT } from './cardRarity';
 import type { PassiveIcon } from './passives';
 
 export type MagicId = 'aura' | 'daggers' | 'angels';
@@ -230,6 +231,14 @@ export const ANGEL_BOLT = {
 
 export function getMagic(id: MagicId): MagicDef {
     return MAGICS[id];
+}
+
+/**
+ * Fase 28½A: how much bigger the magic's main value is (damage of the daggers and the angel, the aura's ring) for the
+ * Rare and Epic cards taken: `value` = what its cards are worth added up, `rank` = how many cards (1 each).
+ */
+export function magicExtraMultiplier(rank: number, value: number): number {
+    return 1 + Math.max(0, value - rank) * MAGIC_EXTRA_PER_POINT;
 }
 
 export function magicMaxRank(id: MagicId): number {

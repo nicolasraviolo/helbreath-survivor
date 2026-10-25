@@ -175,7 +175,9 @@ export class PassiveMagicSystem {
             this.auraPlaying = true;
         }
         const { x, y } = this.player;
-        this.auraRing.setPosition(x, y).setScale(rank.radiusPx / AURA_RING_RADIUS_PX);
+        // Fase 28½A: Rare and Epic cards make the ring bigger (not the slow).
+        const radiusPx = rank.radiusPx * this.equipment.magicExtra('aura');
+        this.auraRing.setPosition(x, y).setScale(radiusPx / AURA_RING_RADIUS_PX);
         this.auraWaitMs -= deltaMs;
         if (this.auraWaitMs > 0) return;
         const magic = getMagic('aura');
@@ -183,7 +185,7 @@ export class PassiveMagicSystem {
         this.auraWaitMs = Math.max(0, this.auraWaitMs) + magic.hitEveryMs;
         const slow = rank.slow ?? 0;
         // The monsters whose feet are on the ring's ellipse.
-        this.enemies.forEachInGroundEllipse(x, y, rank.radiusPx, AURA_RING_Y_SHARE, (enemy) => {
+        this.enemies.forEachInGroundEllipse(x, y, radiusPx, AURA_RING_Y_SHARE, (enemy) => {
             const share = enemy.def.boss || enemy.champion ? slow * AURA_BOSS_SLOW_SHARE : slow;
             enemy.slow(1 - share, AURA_SLOW_MS, 'wind');
         });
@@ -234,7 +236,7 @@ export class PassiveMagicSystem {
                 if (next !== undefined && next > this.clockMs) return;
                 this.daggerCooldowns.set(enemy, this.clockMs + magic.hitEveryMs);
                 // Pushed away from the player, not from the dagger.
-                this.combat.hitEnemy(enemy, this.damageType, rank.damage, this.player.x, this.player.y, magic.knockback);
+                this.combat.hitEnemy(enemy, this.damageType, rank.damage * this.equipment.magicExtra('daggers'), this.player.x, this.player.y, magic.knockback);
             });
         });
         if (this.daggerCooldowns.size > DAGGER_COOLDOWN_PRUNE_AT) {
@@ -283,7 +285,7 @@ export class PassiveMagicSystem {
                 const target = targets.length > 0 ? targets[i % targets.length] : undefined;
                 if (target) {
                     const fromY = angel.y - ANGEL_BOLT.fromLiftPx;
-                    this.bolts.acquire().launch(angel.x, fromY, target, rank.damage);
+                    this.bolts.acquire().launch(angel.x, fromY, target, rank.damage * this.equipment.magicExtra('angels'));
                     angel.facing = directionFromVector(target.x - angel.x, target.bodyY - fromY) ?? angel.facing;
                     angel.attackUntilMs = this.clockMs + ANGEL_ATTACK_MS;
                     angel.waitMs = Math.max(0, angel.waitMs) + shotEveryMs;

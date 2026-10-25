@@ -49,8 +49,11 @@ export function getPassive(id: PassiveId): PassiveDef {
     return PASSIVES[id];
 }
 
-/** Total bonus of a passive at that rank, e.g. 0.3 = +30% (or −30% for Merien). */
-export function passiveBonus(id: PassiveId, rank: number): number {
+/**
+ * Total bonus of a passive, e.g. 0.3 = +30% (or −30% for Merien). `value` = what its cards are worth added up
+ * (Fase 28½A: Common 1, Rare 1.5, Epic 2; data/cardRarity.ts), so 5 Epic Xelima = +100%.
+ */
+export function passiveBonus(id: PassiveId, value: number): number {
     const def = getPassive(id);
-    return def.stacking === 'add' ? def.perRank * rank : 1 - (1 - def.perRank) ** rank;
+    return def.stacking === 'add' ? def.perRank * value : 1 - (1 - def.perRank) ** value;
 }

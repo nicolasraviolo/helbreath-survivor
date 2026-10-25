@@ -1,8 +1,10 @@
 // Rareza de las cartas de Power (Fase 21½A; decidido por el propietario el 21-oct-2026, docs/PLAN-2.md "Fase 21½").
-// - Cada carta sortea su rareza por separado: Common 80%, Rare 16%, Epic 4% (~3 Epic en una partida entera).
-// - Stat: +3 / +5 / +8. Piedras y Magnet: +1 / +2 / +3 rangos, sin pasar del máximo. Si no caben los rangos de una
-//   rareza, la carta baja a la que quepa (systems/UpgradePool.ts).
-// - La Chr de la partida sube Rare y Epic: +1% de su probabilidad por punto sobre 10, hasta el doble.
+// - Cada carta sortea su rareza por separado. Fase 28½A (propietario, 25-oct-2026): Common 86,5%, Rare 12%, Epic 1,5%
+//   (~1 Epic por partida con Chr 10); antes 80 / 16 / 4.
+// - Stat: +3 / +5 / +8. Piedras, Magnet y magias: desde la 28½A **siempre 1 rango** (5 cartas como mucho); la rareza
+//   decide cuánto vale esa carta: ×1 / ×1,5 / ×2 (Xelima Epic = +20%). En las magias el extra va al daño (dagas,
+//   angelito) o al tamaño del anillo (aura): MAGIC_EXTRA_PER_POINT.
+// - La Chr de la partida sube Rare y Epic: +2% de su probabilidad por punto sobre 10, hasta ×3 (Chr 110+).
 // - Las cartas de los cofres ("Treasure!") nunca salen Common.
 // - ?debug=epic: todas las cartas salen Epic.
 import type { SoundKey } from '../config/assetManifest';
@@ -17,24 +19,29 @@ export interface CardRarityDef {
     weight: number;
     /** Points of a stat card. */
     statPoints: number;
-    /** Ranks a passive card adds at once. */
-    passiveRanks: number;
+    /** What a passive or magic card is worth (it always adds one rank): Xelima ×1 = +10%, ×2 = +20%. */
+    value: number;
     /** Inner frame and label of the card. */
     color: number;
 }
 
 export const CARD_RARITY: Readonly<Record<CardRarity, CardRarityDef>> = {
-    common: { label: '', weight: 80, statPoints: 3, passiveRanks: 1, color: 0x8a7038 },
-    rare: { label: 'Rare', weight: 16, statPoints: 5, passiveRanks: 2, color: 0x4a90ff },
-    epic: { label: 'Epic', weight: 4, statPoints: 8, passiveRanks: 3, color: 0xc060ff },
+    common: { label: '', weight: 86.5, statPoints: 3, value: 1, color: 0x8a7038 },
+    rare: { label: 'Rare', weight: 12, statPoints: 5, value: 1.5, color: 0x4a90ff },
+    epic: { label: 'Epic', weight: 1.5, statPoints: 8, value: 2, color: 0xc060ff },
 };
 
 /** Chr over this value raises the chance of Rare and Epic cards. */
 export const RARITY_CHR_BASE = 10;
-/** Each Chr point over the base multiplies the Rare and Epic weights by this much more (0.01 = +1%). */
-export const RARITY_CHR_PER_POINT = 0.01;
-/** The Chr bonus never more than doubles the Rare and Epic chances. */
-export const RARITY_CHR_MAX_MULTIPLIER = 2;
+/** Each Chr point over the base multiplies the Rare and Epic weights by this much more (0.02 = +2%). */
+export const RARITY_CHR_PER_POINT = 0.02;
+/** The Chr bonus never more than triples the Rare and Epic chances. */
+export const RARITY_CHR_MAX_MULTIPLIER = 3;
+/**
+ * Magics: each point a card is worth over 1 (Rare 0.5, Epic 1) makes the magic's main value this much bigger: the damage
+ * of the daggers and the angel, the aura's ring (not its slow). 5 Epic cards = +50% (Claude, 25-oct-2026).
+ */
+export const MAGIC_EXTRA_PER_POINT = 0.1;
 
 /** Epic cards: a soft glow that grows and fades in a loop behind the card, and a sound when the cards appear. */
 export const EPIC_CARD_GLOW = { pad: 10, alpha: { min: 0.15, max: 0.45 }, pulseMs: 800 } as const;

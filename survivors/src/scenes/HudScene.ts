@@ -64,6 +64,8 @@ export interface HudState extends HudBarState {
     magicResistance: number;
     /** Rank of each passive. */
     passiveRanks: Readonly<Record<keyof typeof PASSIVES, number>>;
+    /** Total bonus of each passive (0.7 = +70%; Fase 28½A: Rare and Epic cards are worth more than their rank). */
+    passiveBonuses: Readonly<Record<keyof typeof PASSIVES, number>>;
     /** Rank of each magic of the run (Fase 28). */
     magicRanks: Readonly<Record<MagicId, number>>;
     /** Boss shown on the big bar at the top, if one is alive. */
@@ -400,7 +402,11 @@ function describeDerived(state: HudState): [string, string][] {
     gear.push(['Dodge', `${Math.round(dodgeChance(state.defenseRatio) * 100)}%`]);
     gear.push(['Magic resist', `${Math.round(resistChance(state.magicResistance) * 100)}%`]);
     // Always shown, at any rank (0 too), so the panel keeps the height it was built with.
-    for (const id of PASSIVE_IDS) gear.push([PASSIVES[id].name, `${state.passiveRanks[id]}/${PASSIVES[id].maxRank}`]);
+    for (const id of PASSIVE_IDS) {
+        const rank = state.passiveRanks[id];
+        const value = rank > 0 ? ` ${PASSIVES[id].sign}${Math.round(state.passiveBonuses[id] * 100)}%` : '';
+        gear.push([PASSIVES[id].name, `${rank}/${PASSIVES[id].maxRank}${value}`]);
+    }
     // Fase 28: the magics that already work, also always shown.
     for (const id of MAGIC_IDS) {
         if (getMagic(id).ready) gear.push([getMagic(id).name, `${state.magicRanks[id]}/${magicMaxRank(id)}`]);

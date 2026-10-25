@@ -30,7 +30,7 @@ export const STAT_INFO: Record<StatId, StatInfo> = {
     dex: { short: 'Dex', name: 'Dexterity', effect: 'Movement and attack speed, dodge', color: 0xd09020 },
     int: { short: 'Int', name: 'Intelligence', effect: 'Required by spells', color: 0x3070d0 },
     mag: { short: 'Mag', name: 'Magic', effect: 'Magic damage and mana, magic resist', color: 0x8040c0 },
-    chr: { short: 'Chr', name: 'Charisma', effect: 'Critical hit chance', color: 0xe0c040 },
+    chr: { short: 'Chr', name: 'Charisma', effect: 'Critical hits and better cards', color: 0xe0c040 },
 };
 
 /** Stat value that counts as "neutral" for the percentage effects (the original minimum is 10). */
