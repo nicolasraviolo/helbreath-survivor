@@ -84,8 +84,8 @@ export const AURA_RING_Y_SHARE = 0.55;
 /** ?debug=aura starts the run with the Damage Aura at this rank. */
 export const AURA_DEBUG_RANK = 3;
 
-/** Opacity of the aura's ring (it is under every monster: fully opaque would hide the ground too much). */
-export const AURA_RING_ALPHA = 0.85;
+/** Opacity of the aura's ring: half see-through, so it doesn't take over the scene (owner, 25-oct-2026). */
+export const AURA_RING_ALPHA = 0.5;
 
 export function getMagic(id: MagicId): MagicDef {
     return MAGICS[id];
