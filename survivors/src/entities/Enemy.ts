@@ -37,6 +37,8 @@ import { Direction, directionFromVector } from '../hb/directions';
 import { MONSTER_DEFAULT_FRAMES_PER_SHEET, MONSTER_SHEET_BASE, MonsterState, monsterFrameRate } from '../hb/monsterSheets';
 import { moveAxis } from '../utils/collision';
 import type { Poolable } from '../utils/Pool';
+import { DEBUG_START } from '../config/debugStart';
+import { XBR_PIPELINE } from '../hb/XbrPipeline';
 
 /** Texture key suffix of a sheet's red copy for the elites (hb/additiveTint.ts → tintedKey). */
 /** The poison cloud's animation (config/effects.ts). */
@@ -66,6 +68,9 @@ export interface EnemyWorld {
     /** Told about every blow that reaches the player, landed or dodged (the simulated run counts them). */
     onBlow?: (source: string, damage: number, landed: boolean) => void;
 }
+
+/** Fase 28¾A: the only sprite the xBR test filter goes on. */
+const SMOOTH_TEST_SPRITE = 'enemy.orc';
 
 export class Enemy implements Poolable {
     public poolIndex = -1;
@@ -170,6 +175,8 @@ export class Enemy implements Poolable {
         this.baseSpeed = enemySpeed(def);
         this.movement = def.boss ? 'direct' : def.movement ?? 'direct';
         this.sprite = scene.add.existing(new HBAsset(scene, 0, 0, def.sprite)).setScale(scale);
+        // Fase 28¾A: prueba del filtro xBR, de momento solo en el Orc y con ?debug=smooth.
+        if (def.sprite === SMOOTH_TEST_SPRITE && DEBUG_START.actions.includes('smooth')) this.sprite.setPipeline(XBR_PIPELINE);
         if (def.hasShadow) {
             this.shadow = scene.add.sprite(0, 0, getSheetKey(def.sprite, 0), '0')
                 .setTint(0x000000)

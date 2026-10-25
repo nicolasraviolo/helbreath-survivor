@@ -58,6 +58,9 @@ const PRESETS = {
     charge: 'map=traveler&debug=god,charge',
     // Fase 27C: una mezcla de todas las formas de moverse alrededor (deambular, rodear, embestir y los que guardan distancia).
     movement: 'map=traveler&debug=god,movement',
+    // Fase 28¾A: Orcs de cerca sin y con el filtro xBR (comparar las dos capturas y los FPS).
+    orcs: 'map=traveler&debug=god,orcs,orcs,orcs,orcs,orcs',
+    smooth: 'map=traveler&debug=god,orcs,orcs,orcs,orcs,orcs,smooth',
     // Fase 28A: el Eye of the Storm (frena) en rango 3 con una horda alrededor.
     aura: 'debug=god,aura,horde',
     daggers: 'play=warrior&debug=god,daggers,horde',

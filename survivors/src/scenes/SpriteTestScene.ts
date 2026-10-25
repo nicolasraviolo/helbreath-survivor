@@ -1,7 +1,9 @@
 import Phaser from 'phaser';
 import { BACKGROUND_COLOR, DEFAULT_ANIMATION_FRAME_RATE, GAME_HEIGHT, GAME_WIDTH } from '../config/gameConfig';
 import { ENEMIES, type EnemyDef } from '../data/enemies';
+import { DEBUG_START } from '../config/debugStart';
 import { HBAsset } from '../hb/HBAsset';
+import { XBR_PIPELINE } from '../hb/XbrPipeline';
 import { getSheetKey } from '../hb/HBSprite';
 import { DIRECTION_COUNT, DIRECTION_NAMES, Direction } from '../hb/directions';
 import {
@@ -49,6 +51,8 @@ export class SpriteTestScene extends Phaser.Scene {
 
         this.addFootMarker(cx, cy);
         this.main = this.add.existing(new HBAsset(this, cx, cy, this.enemy.sprite)).setScale(MAIN_SCALE);
+        // Fase 28¾A: with ?debug=smooth, every Orc here wears the xBR filter (to compare with and without).
+        if (DEBUG_START.actions.includes('smooth')) [this.main, ...this.ring].forEach((orc) => orc.setPipeline(XBR_PIPELINE));
 
         this.info = this.add.text(12, 10, '', { fontFamily: 'monospace', fontSize: '14px', color: '#e0d090' });
         this.add.text(12, GAME_HEIGHT - 26, '← → turn   ↑ ↓ animation   Space pause   Esc back', {

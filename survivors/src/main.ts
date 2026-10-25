@@ -34,6 +34,7 @@ import { HowToPlayScene } from './scenes/HowToPlayScene';
 import { AchievementsScene } from './scenes/AchievementsScene';
 import { SpriteTestScene } from './scenes/SpriteTestScene';
 import { initInstall } from './ui/install';
+import { registerXbrPipeline } from './hb/XbrPipeline';
 import { CANVAS_HEIGHT, CANVAS_WIDTH, RenderScalePlugin } from './ui/renderScale';
 
 function startGame(): void {
@@ -51,6 +52,8 @@ function startGame(): void {
         input: { activePointers: TOUCH_POINTERS },
         // El clic derecho apunta (Fase 15B): sin el menú del navegador encima del juego.
         disableContextMenu: true,
+        // Filtro xBR para los sprites ampliados (Fase 28¾): cada sprite lo activa con setPipeline(XBR_PIPELINE).
+        callbacks: { postBoot: registerXbrPipeline },
         plugins: { scene: [{ key: 'RenderScale', plugin: RenderScalePlugin, mapping: 'renderScale' }] },
         // HudScene, LevelUpScene y los menús que se abren encima (pausa, ajustes...) van después para dibujarse encima.
         scene: [
