@@ -16,6 +16,7 @@ import { px, UI_TEXT, UI_FONT_SIZE } from '../config/ui';
 import { itemPackTexture } from '../config/equipment';
 import { STAT_INFO, type StatId } from '../data/stats';
 import { getPassive, type PassiveIcon } from '../data/passives';
+import { getMagic, magicDamageType, magicMaxRank, magicRank, type MagicRank } from '../data/passiveMagic';
 import { CARD_RARITY, EPIC_CARD_GLOW, type CardRarity } from '../data/cardRarity';
 import { CARD_ACTION, CARD_ACTIONS, DICE_FACE, WINE_ICON, type CardAction } from '../data/rerollSkip';
 import type { CharacterStats } from '../entities/CharacterStats';
@@ -75,6 +76,8 @@ const ICON_MAX_SCALE = 2;
 const TEXT_COLOR = '#e8d9a8';
 /** Badge of a passive card while its picture is not loaded yet (item-pack.spr downloads when the run starts). */
 const PASSIVE_BADGE = { text: 'Pas', color: 0x508050 } as const;
+/** The same for a magic card (Fase 28). */
+const MAGIC_BADGE = { text: 'Mag', color: 0x7050b0 } as const;
 /** Rare and Epic cards: inner frame (inset from the edge) and the ribbon with the rarity's name on the top edge. */
 const RARITY_FRAME_INSET = 6;
 const RARITY_FRAME_WIDTH = 3;
@@ -407,6 +410,31 @@ function describeCard(stats: CharacterStats, equipment: Equipment, choice: Level
                 badge: PASSIVE_BADGE.text, badgeColor: PASSIVE_BADGE.color, icon: passive.icon, title: `${passive.name} ${choice.rank}/${passive.maxRank}`,
                 effect: passive.effect,
                 changes: [`${passive.statLabel} ${pct(equipment.passives[choice.passive])} → ${pct(choice.rank)}`],
+            };
+        }
+        case 'magic': {
+            // Fase 28: damage of each hit with the character's multipliers now, and the reach; "—" before taking it.
+            const magic = getMagic(choice.magic);
+            const multiplier = stats.damageMultiplier(magicDamageType(stats.def));
+            const before = magicRank(choice.magic, equipment.magics[choice.magic]);
+            const after = magicRank(choice.magic, choice.rank);
+            const damage = (rank: MagicRank | undefined) => (rank ? String(Math.max(1, Math.round(rank.damage * multiplier))) : '—');
+            const radius = (rank: MagicRank | undefined) => (rank ? String(rank.radiusPx) : '—');
+            const count = (rank: MagicRank | undefined) => (rank?.count !== undefined ? String(rank.count) : '—');
+            const slow = (rank: MagicRank | undefined) => (rank?.slow !== undefined ? `−${Math.round(rank.slow * 100)}%` : '—');
+            const perSecond = (rank: MagicRank | undefined) => (rank?.shotEveryMs ? (1000 / rank.shotEveryMs).toFixed(1) : '—');
+            // The aura (Eye of the Storm) only slows: its slow and reach. The daggers (28B): damage and how many circle.
+            // The angels (28C, always one): damage and shots per second.
+            const second = choice.magic === 'angels'
+                ? `Shots/s ${perSecond(before)} → ${perSecond(after)}`
+                : `Daggers ${count(before)} → ${count(after)}`;
+            const changes = after?.slow !== undefined
+                ? [`Slow ${slow(before)} → ${slow(after)}`, `Radius ${radius(before)} → ${radius(after)}`]
+                : [`Damage ${damage(before)} → ${damage(after)}`, second];
+            return {
+                badge: MAGIC_BADGE.text, badgeColor: MAGIC_BADGE.color, icon: magic.icon,
+                title: `${magic.name} ${choice.rank}/${magicMaxRank(choice.magic)}`, effect: magic.effect,
+                changes,
             };
         }
     }

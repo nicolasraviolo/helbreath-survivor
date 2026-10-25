@@ -52,6 +52,7 @@ import { FOOTSTEP_DUST_EVERY_PX, FOOTSTEPS_PER_RUN_CYCLE } from '../data/audio';
 import { PLAYER_FRAMES_PER_DIRECTION } from '../hb/playerAppearance';
 import { CharacterStats } from '../entities/CharacterStats';
 import { BuffSystem } from '../systems/BuffSystem';
+import { PassiveMagicSystem } from '../systems/PassiveMagicSystem';
 import { PickupSystem } from '../systems/PickupSystem';
 import { EPIC_CARD_SOUND } from '../data/cardRarity';
 import { CARD_ACTION, SKIP_HEAL_SHARE, type CardAction } from '../data/rerollSkip';
@@ -114,6 +115,7 @@ import { AchievementTracker } from '../systems/AchievementTracker';
 import { GAME_VERSION } from '../config/version';
 import { COMPACT_UI } from '../config/device';
 import { PASSIVE_IDS, getPassive } from '../data/passives';
+import { ANGEL_DEBUG_RANK, AURA_DEBUG_RANK, DAGGER_DEBUG_RANK, MAGIC_IDS, getMagic, magicDamageType, magicMaxRank } from '../data/passiveMagic';
 import { goldStore } from '../systems/GoldStore';
 import { RunMetrics, metricsAllowed, sendRunReport } from '../systems/RunMetrics';
 import type { RunResult } from '../config/metrics';
@@ -221,6 +223,8 @@ export class GameScene extends Phaser.Scene {
     /** ?debug=loot: an item falls by the player every few seconds (counted down here; negative = off). */
     private lootDebugInMs = -1;
     private buffs!: BuffSystem;
+    /** The run's magics (Fase 28): the Eye of the Storm and the Spinning Daggers. */
+    private magics!: PassiveMagicSystem;
     /** Abaddon's Blood (Fase 21E): gets up once per run after dying, if unlocked. */
     private abaddon!: AbaddonRevive;
     private totems!: TotemSystem;
@@ -405,6 +409,7 @@ export class GameScene extends Phaser.Scene {
         this.killFinalBossPending = false;
         this.runOver = false;
         this.equipment = new Equipment(character);
+        this.magics = new PassiveMagicSystem(this, this.player, this.equipment, this.combat, this.enemies, magicDamageType(this.stats.def));
         this.achievementsThisRun = [];
         this.achievements = new AchievementTracker(this.characterId, this.mapId, () => ({
             elapsedMs: this.spawner.elapsed,
@@ -741,6 +746,9 @@ export class GameScene extends Phaser.Scene {
             case 'passive':
                 this.equipment.passives[choice.passive] = choice.rank;
                 break;
+            case 'magic':
+                this.equipment.magics[choice.magic] = choice.rank;
+                break;
         }
     }
 
@@ -796,6 +804,7 @@ export class GameScene extends Phaser.Scene {
             for (const [gearSlot, layer] of this.equipment.wear(piece, attribute)) this.player.setGear(gearSlot, layer);
         }
         Object.assign(this.equipment.passives, run.passives);
+        Object.assign(this.equipment.magics, run.magics);
         this.player.setMaxHp(stats.maxHp, true);
         this.applyStats();
         this.player.restoreHp(run.hp);
@@ -850,6 +859,7 @@ export class GameScene extends Phaser.Scene {
             activeSpell: this.activeSpell?.id,
             armor: { ...equipment.armor },
             passives: { ...equipment.passives },
+            magics: { ...equipment.magics },
             buffs: this.buffs.remaining,
             bosses: [...this.bosses.aliveIds, ...this.spawner.bossesWaiting],
             finalBossDead: this.finalBossDead,
@@ -935,6 +945,7 @@ export class GameScene extends Phaser.Scene {
                 defenseRatio: this.defenseRatio,
                 magicResistance: this.magicResistance,
                 passiveRanks: this.equipment.passives,
+                magicRanks: this.equipment.magics,
                 buffs: this.buffs.active.map(({ def, secondsLeft }) => ({ name: def.name, secondsLeft, color: def.color })),
                 minimap: { player: this.player, bosses: this.bosses.tracked.filter((boss) => boss.isAlive), totems: this.totems.active, loot: this.loot.active },
             }),
@@ -1012,6 +1023,7 @@ export class GameScene extends Phaser.Scene {
         this.updateActiveSpell(delta);
         this.weapons.update(delta, player.x, player.y, !player.isDead);
         this.combat.updatePoison(delta);
+        this.magics.update(delta);
         // Fase 26B: dragging the Mage's touch button shows the same arrow as aiming by hand (Spell 1), that way.
         const spellDrag = this.spellDrag;
         if (spellDrag) {
@@ -1469,6 +1481,18 @@ export class GameScene extends Phaser.Scene {
             case 'stones':
                 // Read when the cards are built (openLevelUp).
                 break;
+            case 'aura':
+                // Fase 28A: the Eye of the Storm at rank AURA_DEBUG_RANK (pressed again: one rank more).
+                this.equipment.magics.aura = Math.min(magicMaxRank('aura'), Math.max(AURA_DEBUG_RANK, this.equipment.magics.aura + 1));
+                break;
+            case 'daggers':
+                // Fase 28B: the Spinning Daggers at rank DAGGER_DEBUG_RANK (pressed again: one rank more).
+                this.equipment.magics.daggers = Math.min(magicMaxRank('daggers'), Math.max(DAGGER_DEBUG_RANK, this.equipment.magics.daggers + 1));
+                break;
+            case 'angels':
+                // Fase 28C: the Tutelary Angels at rank ANGEL_DEBUG_RANK (pressed again: one rank more).
+                this.equipment.magics.angels = Math.min(magicMaxRank('angels'), Math.max(ANGEL_DEBUG_RANK, this.equipment.magics.angels + 1));
+                break;
             case 'bluebook': {
                 // The Blue Book of Bloody Shock Wave by the player (Fase 26E), even if it was learned already.
                 const x = this.player.x + LOOT_DEBUG.distance;
@@ -1626,7 +1650,8 @@ export class GameScene extends Phaser.Scene {
         const armor = Object.values(equipment.armor).map((id) => getArmorPiece(id).name);
         const passives = PASSIVE_IDS.filter((id) => equipment.passives[id] > 0)
             .map((id) => `${getPassive(id).name} ${equipment.passives[id]}`);
-        const gear = [this.meleeWeapon?.def.name, this.spellWeapon?.def.name, this.activeSpell?.def.name, ...armor, ...passives]
+        const magics = MAGIC_IDS.filter((id) => equipment.magics[id] > 0).map((id) => `${getMagic(id).name} ${equipment.magics[id]}`);
+        const gear = [this.meleeWeapon?.def.name, this.spellWeapon?.def.name, this.activeSpell?.def.name, ...armor, ...passives, ...magics]
             .filter((name): name is string => !!name);
         sendRunReport(this.metrics.report({
             version: GAME_VERSION,

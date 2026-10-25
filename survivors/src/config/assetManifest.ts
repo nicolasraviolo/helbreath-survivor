@@ -149,6 +149,9 @@ export const SPRITES = {
     // Abaddon's Blood (Fase 21E): "Abaddon Spirit 10" (sp-client Effects.ts), yseffect3.spr hoja 11, elegido por el
     // propietario en el visor. El archivo pesa 5,6 MB: se descarga solo si está desbloqueado, al empezar la partida.
     'fx.yseffect3': { file: 'sprites/yseffect3.spr', type: SpriteType.Effect },
+    // Tutelary Angels (Fase 28C): el angelito celeste del Angelic Pendant (INT), elegido por el propietario. 48 hojas como
+    // un monstruo (animación × 8 + dirección). ~260 KB: se descarga solo al tener la magia (ON_DEMAND_SPRITES).
+    'fx.tutelaryAngel': { file: 'sprites/tutelarangel3.spr', type: SpriteType.Monster },
 
     // Interfaz: barra inferior original 800x600 (hoja 6; ver config/hud.ts para frames y posiciones)
     // y fondo de "Create New Character" 640x480 (hoja 9; ver config/characterSelect.ts).
@@ -447,7 +450,7 @@ const UPFRONT_LOOK_SPRITES: ReadonlySet<SpriteKey> = new Set<SpriteKey>([
  */
 export const ON_DEMAND_SPRITES: ReadonlySet<SpriteKey> = new Set<SpriteKey>([
     ...(Object.keys(SPRITES) as SpriteKey[]).filter((key) => (key.startsWith('player.') || key.startsWith('gear.')) && !UPFRONT_LOOK_SPRITES.has(key)),
-    'fx.crueffect1', 'fx.effect7', 'fx.yseffect3', 'item.pack', 'item.equip.m', 'item.equip.w',
+    'fx.crueffect1', 'fx.effect7', 'fx.yseffect3', 'fx.tutelaryAngel', 'item.pack', 'item.equip.m', 'item.equip.w',
 ]);
 
 /**

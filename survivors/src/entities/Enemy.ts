@@ -19,6 +19,7 @@ import type { AudioSystem } from '../systems/AudioSystem';
 import { enemySpeed, monsterBaseHp, MONSTER_AI, MONSTER_DAMAGE, type EnemyDef } from '../data/enemies';
 import { hitChance } from '../data/defense';
 import { ELITE } from '../data/elites';
+import { AURA_SLOW_LOOK } from '../data/passiveMagic';
 import { NO_DIFFICULTY, type MapDifficulty } from '../data/maps';
 import { CHAMPION } from '../data/champion';
 import { POISON } from '../data/attributes';
@@ -41,6 +42,11 @@ import type { Poolable } from '../utils/Pool';
 /** The poison cloud's animation (config/effects.ts). */
 const POISON_CLOUD_EFFECT = 'fx.poison.cloud';
 const ELITE_GLOW_SUFFIX = tintedKey('', 'elite');
+/** The same for the whitish copy of the monsters the Eye of the Storm slows (Fase 28). */
+const WIND_GLOW_SUFFIX = tintedKey('', 'wind');
+
+/** Who slowed it: the ice (blue) or the Eye of the Storm's wind (greyish white, Fase 28). */
+export type SlowLook = 'ice' | 'wind';
 
 export enum EnemyPhase {
     Alive = 'alive',
@@ -139,6 +145,8 @@ export class Enemy implements Poolable {
     /** Ice Strike (Fase 26D): time left slowed, and its share of normal speed (0.5 = half: walks, hits and animates slower). */
     private slowMs = 0;
     private slowFactor = 1;
+    /** Look of the slow now: the strongest one's. */
+    private slowLook: SlowLook = 'ice';
     /** Elite (data/elites.ts): hits harder, has more health and gives more XP; glows red like the player's Berserk. */
     public elite = false;
     /** The map's multipliers for normal monsters (data/maps.ts → difficulty, Fase 22A); 1 for bosses. */
@@ -252,10 +260,12 @@ export class Enemy implements Poolable {
 
     /**
      * Ice Strike (Fase 26D, propietario: el hielo ralentiza, no congela): for `ms` it lives at `factor` of its speed
-     * (walking, attacks and animation), tinted ice blue. A new hit renews the time; the strongest slow wins.
+     * (walking, attacks and animation), tinted ice blue, or greyish white for the Eye of the Storm (`look`). A new hit
+     * renews the time; the strongest slow wins, with its look.
      */
-    public slow(factor: number, ms: number): void {
+    public slow(factor: number, ms: number, look: SlowLook = 'ice'): void {
         if (!this.isAlive) return;
+        if (this.slowMs <= 0 || factor <= this.slowFactor) this.slowLook = look;
         this.slowFactor = this.slowMs > 0 ? Math.min(this.slowFactor, factor) : factor;
         this.slowMs = Math.max(this.slowMs, ms);
         this.sprite.anims.timeScale = this.slowFactor;
@@ -270,7 +280,7 @@ export class Enemy implements Poolable {
     private applyStatusTint(): void {
         if (this.flashMs > 0) return;
         if (this.isFrozen) this.sprite.setTint(FREEZE_TINT);
-        else if (this.isSlowed) this.sprite.setTint(ICE_SLOW.tint);
+        else if (this.isSlowed) this.sprite.setTint(this.slowLook === 'wind' ? AURA_SLOW_LOOK.tint : ICE_SLOW.tint);
         else this.sprite.clearTint();
     }
 
@@ -800,21 +810,28 @@ export class Enemy implements Poolable {
     /**
      * Elites: draws the current frame from the sheet's red copy (the player's Berserk glow baked in, hb/glowTexture.ts),
      * made the first time. The animation sets the plain frame when it advances; this swaps it back each update.
-     * While frozen or slowed it shows the plain frame, so the ice blue reads clearly.
+     * While frozen or slowed by the ice it shows the plain frame, so the ice blue reads clearly. Slowed by the Eye of the
+     * Storm (Fase 28), it shows the whitish copy instead (a tint alone can't lighten).
      */
     private syncGlowTexture(): void {
         const sprite = this.sprite;
         const frame = sprite.frame;
         const key = frame.texture.key;
-        const glowing = key.endsWith(ELITE_GLOW_SUFFIX);
-        const wanted = (this.elite || this.champion || this.def.glows === true) && !this.isFrozen && !this.isSlowed;
-        if (wanted === glowing) return;
+        const current = key.endsWith(ELITE_GLOW_SUFFIX) ? ELITE_GLOW_SUFFIX : key.endsWith(WIND_GLOW_SUFFIX) ? WIND_GLOW_SUFFIX : '';
+        let wanted = '';
+        if (this.isFrozen) wanted = '';
+        else if (this.isSlowed) wanted = this.slowLook === 'wind' ? WIND_GLOW_SUFFIX : '';
+        else if (this.elite || this.champion || this.def.glows === true) wanted = ELITE_GLOW_SUFFIX;
+        if (wanted === current) return;
+        const baseKey = current ? key.slice(0, -current.length) : key;
         if (!wanted) {
-            sprite.setTexture(key.slice(0, -ELITE_GLOW_SUFFIX.length), frame.name);
+            sprite.setTexture(baseKey, frame.name);
             return;
         }
-        const glowKey = key + ELITE_GLOW_SUFFIX;
-        if (ensureGlowTexture(sprite.scene, key, glowKey, ELITE.glowTint, ELITE.glowAlpha)) sprite.setTexture(glowKey, frame.name);
+        const wind = wanted === WIND_GLOW_SUFFIX;
+        const glow = wind ? AURA_SLOW_LOOK : ELITE;
+        if (ensureGlowTexture(sprite.scene, baseKey, baseKey + wanted, glow.glowTint, glow.glowAlpha, wind)) sprite.setTexture(baseKey + wanted, frame.name);
+        else if (current) sprite.setTexture(baseKey, frame.name);
     }
 
     /** Its kind's size, or bigger for a champion (sprite and shadow). */

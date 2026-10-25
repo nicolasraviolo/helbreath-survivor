@@ -14,6 +14,14 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: readonly ReleaseNote[] = [
     {
+        version: 'Phase 28',
+        date: 'Oct 25, 2026',
+        changes: [
+            'New run magics, won and raised with your cards: the Eye of the Storm slows the monsters around you, and Spinning Daggers cut them.',
+            'A Tutelary Angel can fly by your side and shoot light at faraway monsters.',
+        ],
+    },
+    {
         version: 'Phase 27½',
         date: 'Oct 25, 2026',
         changes: [
