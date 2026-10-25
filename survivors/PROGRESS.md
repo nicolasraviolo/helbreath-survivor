@@ -9,10 +9,10 @@
 - 21-oct-2026: 21½ Cartas y sorpresas (21½A–21½C) · 22 Sistema de mapas (22A–22E, 22G; los récords locales, 22F, aplazados) · 23 La ciudad (23A–23B).
 - 22-oct-2026: 24 Oro, tienda y herrero (24A–24D) · 25 Arreglos rápidos.
 - 23-oct-2026: 26 Hechizos del Mago (26A–26E y revisión de código) · 27 Monstruos que se mueven distinto (27A–27C).
-- 25-oct-2026: 27½ Código de traspaso (27½A–27½B) · 28 Magias pasivas en la partida (28A–28C).
+- 25-oct-2026: 27½ Código de traspaso (27½A–27½B) · 28 Magias pasivas en la partida (28A–28C) · 28½ Cartas y dificultad (28½A–28½B).
 
 ## Fase actual
-**Fase 28½, cartas y dificultad** (rama `fase-28½`): **28½A (cartas) ✅** y **28½B (dificultad) ✅**; falta cerrarla con `/checkpoint fase` (fusionar en master, etiqueta). 28½A **pendiente de probar por el propietario** (`?play=warrior&debug=epic,stones,levelup`). **Siguiente: la 28¾ (sprites suaves: filtro xBR activable, `docs/PLAN-2.md`, "Fase 28¾")** y luego la 29 (misiones de rescate). El angelito de la 28, **pendiente de probar por el propietario** en partida normal. Decisiones: DECISIONES.md, 25-oct-2026.
+**Siguiente: Fase 28¾, sprites suaves** (filtro xBR activable, `docs/PLAN-2.md`, "Fase 28¾"; empezar con `/fase 28¾`). Después, la 29 (misiones de rescate). **Pendiente de probar por el propietario:** las cartas Epic de la 28½A (`?play=warrior&debug=epic,stones,levelup`) y el angelito de la 28 en partida normal. Decisiones: DECISIONES.md, 25-oct-2026.
 - **Dificultad (28½B):** daño por oleada `WaveDef.damage` (data/waves.ts), `MONSTER_HP_BONUS` (+20% de vida a todos), jefes de Traveler Zone más duros; medir con `pnpm balance ...::start --repeat=12` (el bot es muy irregular). Ver NOTES.md, "Dificultad de Traveler Zone (Fase 28½B)".
 - **Rareza (28½A):** `data/cardRarity.ts` (`value`, `MAGIC_EXTRA_PER_POINT`), `Equipment.passiveValues` / `magicValues` / `magicExtra` / `restoreCards`; ver NOTES.md, "Rareza de las cartas (Fase 21½A)".
 - **Magias (28):** `data/passiveMagic.ts` (`ready`, `ranks`, `MAX_MAGICS_PER_RUN`), `systems/PassiveMagicSystem.ts`, `Equipment.magics`, carta `kind: 'magic'` en `UpgradePool`/`LevelUpScene`; frenado con aspecto en `Enemy.slow(..., 'wind')`; `?debug=aura|daggers|angels`, `check aura` / `daggers` / `angels`. Papeles: aura = control, dagas = daño cerca, angelitos = daño a distancia. Ver NOTES.md, "Magias pasivas de la partida (Fase 28)" (sprites de los angelitos).
