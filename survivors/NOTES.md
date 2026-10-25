@@ -990,6 +990,7 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - **Como el original** (`sp-client/src/utils/ShadowManager.ts`): una copia negra del fotograma, `alpha 0,5`, girada −45° y aplastada a la mitad, con el pivote en el centro inferior del fotograma. Los números, compartidos, en `config/gameConfig.ts` (`BODY_SHADOW_*`). No cambia con el suelo, el mapa ni la hora.
 - **Jugador:** una sola sombra, sacada del **cuerpo desnudo** (capa `human`, `CharacterSprite.bodyFrame()`); ni ropa ni arma, igual que el original. `Player.syncShadow()` copia el fotograma en cada `update`. Se oculta al morir y vuelve al revivir (Abaddon's Blood). No parpadea con la invulnerabilidad: es un sprite aparte, fuera del contenedor del jugador.
 - **Monstruos sin sombra en el original** (`MonsterShadow.NoShadow`): Slime, Ant, Snake, Cat, Dire Boar, Scorpion, Tigerworm y **Unicorn** (este estaba mal hasta el 22G). Un monstruo nuevo: mirar su campo `shadow` en `sp-client/src/constants/Monsters.ts`.
+- **Óvalo en el suelo** (25-oct-2026): los monstruos con `hasShadow: false` llevan en su lugar un óvalo negro difuminado (`GROUND_SHADOW` en `config/gameConfig.ts`; textura dibujada una vez en `Enemy.ts`). Sin él, serpientes y hormigas no se distinguían del suelo en el móvil. La sombra del original (copia aplastada del sprite) casi no se ve en monstruos tan planos.
 - **Rendimiento:** con 293 monstruos, 137–139 FPS antes y después (ordenador y `--mobile`, 21-oct-2026).
 
 ## La ciudad (Fase 23A)

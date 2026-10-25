@@ -95,6 +95,22 @@ export const SPATIAL_CELL_SIZE = 48;
 export const BODY_SHADOW_ALPHA = 0.5;
 export const BODY_SHADOW_ROTATION = -Math.PI / 4;
 export const BODY_SHADOW_SCALE_Y = 0.5;
+/**
+ * Dark oval on the ground under the monsters with no body shadow in the original (Snake, Ant, Slime...), so they
+ * stand out from the floor, above all on the phone. Its size grows with the monster's radius (and champion size).
+ */
+export const GROUND_SHADOW = {
+    texture: 'fx.groundShadow',
+    /** Size of the drawn texture (px); it is stretched to the monster's size. */
+    textureWidth: 64,
+    textureHeight: 32,
+    /** Oval size on screen, in monster radii. */
+    widthPerRadius: 3.6,
+    heightPerRadius: 1.6,
+    alpha: 0.5,
+    /** Soft edge: rings drawn from the outside in, each one darker (share of the full size, alpha). */
+    rings: [[1, 0.25], [0.85, 0.5], [0.7, 0.8], [0.55, 1]],
+} as const;
 
 /** Player: blink period while invulnerable, and delay before the Game Over screen. */
 export const PLAYER_BLINK_MS = 80;

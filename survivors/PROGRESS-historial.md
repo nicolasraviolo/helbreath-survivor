@@ -2,6 +2,12 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
+**Arreglo suelto — óvalo de sombra bajo los monstruos sin sombra (2026-10-25).**
+- **Qué hace:** Slime, Ant, Snake, Cat, Dire Boar, Scorpion, Tigerworm y Unicorn (sin sombra en el original) llevan un óvalo negro difuminado bajo los pies, al 50%, para que no se fundan con el suelo en el móvil. Se probó antes la sombra del original (copia aplastada del sprite): en monstruos tan planos casi no se ve.
+- **Código:** `GROUND_SHADOW` en `config/gameConfig.ts` (tamaño por radio, `alpha`, anillos del difuminado); `Enemy.groundShadow`, `scaleGroundShadow` (crece con los Champion) y `ensureGroundShadowTexture` en `entities/Enemy.ts`. Línea nueva en What's new (Phase 28¾). Nota en NOTES.md, "Sombras del jugador y los monstruos (Fase 22G)".
+- **Comprobado:** build; `check horde traveler --mobile` a 116–123 FPS sin errores; capturas de serpientes y hormigas quietas comparando antes / 75% / 50%.
+- **Probar:** `pnpm --dir survivors dev` → http://localhost:8090/?play=warrior&map=traveler&ui=compact; sombra suave bajo serpientes, hormigas, slimes y gatos.
+
 **Fase 28¾C — Opción Smooth Sprites en Settings (2026-10-25). Cierra la Fase 28¾.**
 - **Qué se hizo:** casilla **Smooth Sprites** en Settings (primera pestaña, bajo Large Trees), ajuste `smoothSprites` en `config/settings.ts` (On por defecto en PC y móvil, decidido). Se aplica al momento, también en partida: `smoothSprite` apunta cada sprite en un `Set` y al cambiar el ajuste les pone o quita el pipeline (`setPipeline` / `resetPipeline`). `?debug=nosmooth` sigue apagándolo. Créditos "Smooth Sprites: xBR-lv2 shader by Hyllian (MIT)", línea en What's new, `g.debugSetSmooth(on)` para el check y nota en NOTES.md.
 - **Comprobado:** build; `check settings` (también `--mobile`), `menu smooth nosmooth` sin errores; `check smooth --eval` con 220 sprites: apagar → 0 con filtro, encender → 220. Probado por el propietario: va bien.

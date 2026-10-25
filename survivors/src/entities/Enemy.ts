@@ -14,6 +14,7 @@ import {
     BODY_SHADOW_ROTATION,
     MONSTER_ATTACK,
     BODY_SHADOW_SCALE_Y,
+    GROUND_SHADOW,
 } from '../config/gameConfig';
 import type { AudioSystem } from '../systems/AudioSystem';
 import { enemySpeed, monsterBaseHp, MONSTER_AI, MONSTER_DAMAGE, type EnemyDef } from '../data/enemies';
@@ -159,6 +160,8 @@ export class Enemy implements Poolable {
     private poisonCloud: Phaser.GameObjects.Sprite | undefined;
     /** Champion (Fase 21½C, data/champion.ts): bigger, much tougher, glows like the elites and shows its health bar. */
     public champion = false;
+    /** Dark oval under the monsters with no body shadow (GROUND_SHADOW), instead of `shadow`. */
+    private readonly groundShadow: Phaser.GameObjects.Image | undefined;
     /** Its health bar over the head; made the first time this (pooled) enemy is a champion. */
     private healthBar: Phaser.GameObjects.Graphics | undefined;
     /** Highest point of its frames seen so far, above the feet (px): the bar sits over it without jumping. */
@@ -178,6 +181,13 @@ export class Enemy implements Poolable {
                 .setRotation(BODY_SHADOW_ROTATION)
                 .setScale(scale, BODY_SHADOW_SCALE_Y * scale)
                 .setDepth(DEPTH_GROUND_SHADOWS + 1);
+        } else {
+            // No body shadow in the original: a dark oval instead, so it doesn't blend into the floor.
+            ensureGroundShadowTexture(scene);
+            this.groundShadow = scene.add.image(0, 0, GROUND_SHADOW.texture)
+                .setAlpha(GROUND_SHADOW.alpha)
+                .setDepth(DEPTH_GROUND_SHADOWS + 1);
+            this.scaleGroundShadow(scale);
         }
         this.setActive(false);
     }
@@ -420,6 +430,7 @@ export class Enemy implements Poolable {
         if (this.isFrozen) this.thaw();
         if (this.isSlowed) this.endSlow();
         this.shadow?.setVisible(false);
+        this.groundShadow?.setVisible(false);
         this.healthBar?.setVisible(false);
         this.play(MonsterState.Dead, true);
         return true;
@@ -793,6 +804,7 @@ export class Enemy implements Poolable {
     private syncDisplay(): void {
         this.sprite.setPosition(this.x, this.y).setDepth(this.y);
         if (this.champion) this.drawHealthBar();
+        this.groundShadow?.setPosition(this.x, this.y);
         const shadow = this.shadow;
         if (!shadow || this.state === MonsterState.Dead || this.state === MonsterState.TakeDamage) return;
         const frame = this.sprite.frame;
@@ -840,6 +852,14 @@ export class Enemy implements Poolable {
         const scale = this.baseScale * this.sizeFactor;
         this.sprite.setScale(scale);
         this.shadow?.setScale(scale, BODY_SHADOW_SCALE_Y * scale);
+        this.scaleGroundShadow(scale);
+    }
+
+    /** Sizes the ground oval from the monster's radius and its current scale. */
+    private scaleGroundShadow(scale: number): void {
+        const { widthPerRadius, heightPerRadius, textureWidth, textureHeight } = GROUND_SHADOW;
+        const radius = this.def.radius * (scale / this.baseScale);
+        this.groundShadow?.setScale((radius * widthPerRadius) / textureWidth, (radius * heightPerRadius) / textureHeight);
     }
 
     /**
@@ -862,7 +882,20 @@ export class Enemy implements Poolable {
     private setActive(active: boolean): void {
         this.sprite.setActive(active).setVisible(active);
         this.shadow?.setActive(active).setVisible(active);
+        this.groundShadow?.setActive(active).setVisible(active);
         if (!active || !this.champion) this.healthBar?.setVisible(false);
         if (!active) this.sprite.anims.stop();
     }
+}
+
+/** Draws the ground oval texture once (it stays for the whole game): black, darker towards the middle. */
+function ensureGroundShadowTexture(scene: Phaser.Scene): void {
+    const { texture, textureWidth, textureHeight, rings } = GROUND_SHADOW;
+    if (scene.textures.exists(texture)) return;
+    const graphics = scene.make.graphics({}, false);
+    for (const [size, alpha] of rings) {
+        graphics.fillStyle(0x000000, alpha).fillEllipse(textureWidth / 2, textureHeight / 2, textureWidth * size, textureHeight * size);
+    }
+    graphics.generateTexture(texture, textureWidth, textureHeight);
+    graphics.destroy();
 }
