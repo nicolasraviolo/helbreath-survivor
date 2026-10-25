@@ -1,6 +1,7 @@
 // Varitas de la Maga (Fase 21B; decidido por el propietario el 20-oct-2026). Van en el hueco Weapon, como las armas
 // del Guerrero, y son las del original (reference/Item.cfg y Item3.cfg; docs/hb-wiki/armas.md, "Wands"):
-// - Requisito: solo el Level del original. No piden Str ni Int.
+// - Requisito: solo Level. No piden Str ni Int. Escalera propia (propietario, 25-oct-2026): las cuatro raras ya no
+//   piden todas 120: Kloness MS10 90, Kloness MS20 100, Berserk MS10 110, Berserk MS20 120.
 // - Mana Save: el % del original. Desde la Fase 26A abarata el Spell 2 (Equipment.manaSave → ActiveSpellSystem).
 // - Daño: en el original las varitas no suben el daño. Solo Berserk Wand (+40%) y Kloness Wand (+20%), números del
 //   propietario, que además caen muy poco (`rare`, ver LOOT_RARE_KEEP_CHANCE en data/loot.ts).
@@ -32,15 +33,15 @@ export const WANDS = {
     wizardStaffMS10: { name: 'Wizard Staff (MS10)', manaSave: 0.1, magicDamageBonus: 0, sprite: 'gear.wand.m', equip: { level: 60 }, icon: MAGIC_WAND_ICON },
     wizardStaffMS20: { name: 'Wizard Staff (MS20)', manaSave: 0.2, magicDamageBonus: 0, sprite: 'gear.wand.m', equip: { level: 70 }, icon: MAGIC_WAND_ICON },
     klonessWandMS10: {
-        name: 'Kloness Wand (MS10)', manaSave: 0.1, magicDamageBonus: 0.2, rare: true, sprite: 'gear.wand.kloness.m', equip: { level: 120 },
+        name: 'Kloness Wand (MS10)', manaSave: 0.1, magicDamageBonus: 0.2, rare: true, sprite: 'gear.wand.kloness.m', equip: { level: 90 },
         icon: { sheet: 16, frame: 5 },
     },
     klonessWandMS20: {
-        name: 'Kloness Wand (MS20)', manaSave: 0.2, magicDamageBonus: 0.2, rare: true, sprite: 'gear.wand.kloness.m', equip: { level: 120 },
+        name: 'Kloness Wand (MS20)', manaSave: 0.2, magicDamageBonus: 0.2, rare: true, sprite: 'gear.wand.kloness.m', equip: { level: 100 },
         icon: { sheet: 16, frame: 5 },
     },
     berserkWandMS10: {
-        name: 'Berserk Wand (MS10)', manaSave: 0.1, magicDamageBonus: 0.4, rare: true, sprite: 'gear.wand.berserk.m', equip: { level: 120 },
+        name: 'Berserk Wand (MS10)', manaSave: 0.1, magicDamageBonus: 0.4, rare: true, sprite: 'gear.wand.berserk.m', equip: { level: 110 },
         icon: { sheet: 16, frame: 4 },
     },
     berserkWandMS20: {

@@ -21,6 +21,7 @@ export const RELEASE_NOTES: readonly ReleaseNote[] = [
             'Prefer the classic pixels? Turn off Smooth Sprites in Settings.',
             'Snakes, ants and other low monsters now have a soft shadow, so they stand out from the ground.',
             'On phones, the world is shown bigger so characters and monsters are easier to see.',
+            'Armor, wands and spells unlock more gradually: something new every few points.',
         ],
     },
     {

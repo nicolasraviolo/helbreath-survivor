@@ -2,6 +2,12 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
+**Requisitos por grupo, bloque A (2026-10-25, fuera de fase).**
+- **Qué hace:** cada grupo de equipo y hechizos tiene su propia escalera de requisitos, sin saltos grandes. Armaduras del Guerrero: Helmet 45, Plate Mail 60 (antes 100), Full Helmet 75, Winged 95, Horned 120 (Str; Level igual). Ropa de la Maga (Mag): Robe 30, Wizard Cap 45, Wizard Hat 60, Wizard Robe 75 (+ Level 80). Varitas raras (Level): Kloness 90/100, Berserk 110/120. Hechizos (Int): Mass Ice Strike 88, Bloody Shock Wave 105, Meteor Strike 125, Earth Shock Wave 150, Blizzard 175. Los precios de Tom bajan solos (salen del requisito, `SMITH_PRICE`). El requisito solo se mira al ponerse algo: quien ya lleva la Wizard Robe no la pierde.
+- **Código:** solo datos y comentarios en `data/armor.ts`, `data/wands.ts`, `data/activeSpells.ts`. Línea en What's new (Phase 28¾).
+- **Comprobado:** build; `check equipmentowned smith equipmentmage` sin errores. Probado por el propietario: OK.
+- **Probar:** `pnpm --dir survivors dev` → http://localhost:8090/?characters=demo&open=town&town=tom&smith=buy&gold=50000 (Plate Mail pide Str 60).
+
 **Arreglo suelto — zoom del 125 % en el móvil (2026-10-25).**
 - **Qué hace:** en el móvil, la partida y la ciudad se ven un 25 % más grandes (se ve algo menos de mapa). La interfaz, el minimapa, los joysticks y los botones quedan igual. En el PC no cambia nada.
 - **Código:** `WORLD_ZOOM` / `PHONE_WORLD_ZOOM` en `config/device.ts` (`?zoom=1.5` para probar otro valor), `zoomWorldCamera` en `ui/renderScale.ts` (lo llaman `GameScene` y `TownScene`); `ScreenLayer` se encoge `RENDER_SCALE / zoom` para que lo fijo en pantalla no crezca. Línea en What's new (Phase 28¾). Nota en NOTES.md, "Zoom del mundo en el móvil".

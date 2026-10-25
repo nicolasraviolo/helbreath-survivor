@@ -7,6 +7,8 @@
 // Fase 26C (propietario, 22-oct-2026): escalera de Int para ir abriendo hechizos poco a poco (los activos piden más):
 // Energy Strike (gratis) → Ice Strike 50 → Mass Fire Strike 75 → Mass Ice Strike 100 → Bloody Shock Wave 120 (además
 // hay que encontrar su Manual, el Libro Azul) → Meteor Strike 140 → Earth Shock Wave 165 → Blizzard 190.
+// Requisitos por grupo (propietario, 25-oct-2026): por encima de 75 bajan para que no haya saltos de 25 de Int:
+// Mass Ice Strike 88 → Bloody Shock Wave 105 → Meteor Strike 125 → Earth Shock Wave 150 → Blizzard 175.
 // Dos tipos:
 // - 'meteor': Meteor Strike. Visual de sp-client/src/game/spells/MeteorStrike*.ts (ver hb/meteorStrike.ts). Daños
 //   orientados por la wiki (docs/hb-wiki/hechizos.md, Circle 9: 33 directo + 55 en área), adaptados a un survivors.
@@ -287,7 +289,7 @@ export const ACTIVE_SPELLS: Readonly<Record<ActiveSpellId, ActiveSpellDef>> = {
     massIceStrike: {
         name: 'Mass Ice Strike',
         circle: 8,
-        int: 100,
+        int: 88,
         kind: 'iceShards',
         largeShards: 24,
         smallShards: 8,
@@ -308,7 +310,7 @@ export const ACTIVE_SPELLS: Readonly<Record<ActiveSpellId, ActiveSpellDef>> = {
         name: 'Meteor Strike',
         circle: 9,
         // Fase 26C: 169 (el original) → 140, en la escalera de Int.
-        int: 140,
+        int: 125,
         kind: 'meteor',
         sprite: 'fx.crueffect1',
         directDamage: 30,
@@ -332,7 +334,7 @@ export const ACTIVE_SPELLS: Readonly<Record<ActiveSpellId, ActiveSpellDef>> = {
     bloodyShockWave: {
         name: 'Bloody Shock Wave',
         circle: 8,
-        int: 120,
+        int: 105,
         kind: 'line',
         look: 'bloodyShock',
         travelMs: 400,
@@ -361,7 +363,7 @@ export const ACTIVE_SPELLS: Readonly<Record<ActiveSpellId, ActiveSpellDef>> = {
     earthShockWave: {
         name: 'Earth Shock Wave',
         circle: 10,
-        int: 165,
+        int: 150,
         kind: 'line',
         look: 'earthShock',
         travelMs: 0,
@@ -386,12 +388,12 @@ export const ACTIVE_SPELLS: Readonly<Record<ActiveSpellId, ActiveSpellDef>> = {
         castMs: 500,
         hudIcon: 'crit',
     },
-    // Int 190, el más caro: en 0,3 s una lluvia de hielo cada vez más ancha hasta el punto; 22 por el camino y 30 en el
+    // Int 175 (antes 190), el más caro: en 0,3 s una lluvia de hielo cada vez más ancha hasta el punto; 22 por el camino y 30 en el
     // punto, y todo lo que toca queda ralentizado. Maná 195 → 97.
     blizzard: {
         name: 'Blizzard',
         circle: 10,
-        int: 190,
+        int: 175,
         kind: 'line',
         look: 'blizzard',
         sprite: 'fx.effect7',

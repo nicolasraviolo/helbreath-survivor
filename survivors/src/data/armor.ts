@@ -10,6 +10,9 @@
 // Fase 20B: huecos nuevos de pantalones, botas y capa (solo en la pantalla de equipo, no en las cartas), y en cada pieza
 // `equip` = requisito ORIGINAL (Str = peso/100, Level y Mag de reference/Item*.cfg) e `icon` (item-pack.spr).
 // `set` = clase que la lleva (logro Fully Armored). Desde la Fase 20C las cartas ya no dan armaduras.
+// Requisitos por grupo (propietario, 25-oct-2026): las armaduras del Guerrero tienen su propia escalera de Str, sin
+// saltos grandes: Helmet 45, Plate Mail 60 (antes 100), Full Helmet 75, Winged 95 y Horned 120 (con su Level).
+// La ropa de la Maga, la suya de Mag: Robe 30, Wizard Cap 45, Wizard Hat 60, Wizard Robe 75 (+ Level 80).
 import type { GearLayer, GearSlot } from '../hb/playerAppearance';
 import type { EquipRequirement, ItemIcon } from './itemTypes';
 
@@ -72,13 +75,13 @@ export const ARMOR_PIECES = {
     plateMail: {
         name: 'Plate Mail', slot: 'body', set: 'warrior', defense: 0.2, defenseRatio: 37,
         look: { armor: { sprite: 'gear.armor.plate.m' }, hauberk: { sprite: 'gear.hauberk.m' } },
-        equip: { str: 100 }, icon: { sheet: 8, frame: 3, female: { sheet: 12, frame: 5 } },
+        equip: { str: 60 }, icon: { sheet: 8, frame: 3, female: { sheet: 12, frame: 5 } },
     },
     // Guerrero · Casco
-    helmet: { name: 'Helmet', slot: 'helm', set: 'warrior', defense: 0.04, defenseRatio: 8, look: { helm: { sprite: 'gear.helm.basic.m' } }, equip: { str: 52 }, icon: { sheet: 18, frame: 0 } },
-    fullHelmet: { name: 'Full Helmet', slot: 'helm', set: 'warrior', defense: 0.07, defenseRatio: 10, look: { helm: { sprite: 'gear.helm.full.m' } }, equip: { str: 85 }, icon: { sheet: 18, frame: 1 } },
-    wingedHelmet: { name: 'Winged Helmet', slot: 'helm', set: 'warrior', defense: 0.1, defenseRatio: 15, magicResistance: 4, look: { helm: { sprite: 'gear.helm.winged.m' } }, equip: { str: 130, level: 100 }, icon: { sheet: 18, frame: 3 } },
-    hornedHelmet: { name: 'Horned Helmet', slot: 'helm', set: 'warrior', defense: 0.13, defenseRatio: 19, magicResistance: 8, look: { helm: { sprite: 'gear.helm.horned.m' } }, equip: { str: 160, level: 120 }, icon: { sheet: 18, frame: 2 } },
+    helmet: { name: 'Helmet', slot: 'helm', set: 'warrior', defense: 0.04, defenseRatio: 8, look: { helm: { sprite: 'gear.helm.basic.m' } }, equip: { str: 45 }, icon: { sheet: 18, frame: 0 } },
+    fullHelmet: { name: 'Full Helmet', slot: 'helm', set: 'warrior', defense: 0.07, defenseRatio: 10, look: { helm: { sprite: 'gear.helm.full.m' } }, equip: { str: 75 }, icon: { sheet: 18, frame: 1 } },
+    wingedHelmet: { name: 'Winged Helmet', slot: 'helm', set: 'warrior', defense: 0.1, defenseRatio: 15, magicResistance: 4, look: { helm: { sprite: 'gear.helm.winged.m' } }, equip: { str: 95, level: 100 }, icon: { sheet: 18, frame: 3 } },
+    hornedHelmet: { name: 'Horned Helmet', slot: 'helm', set: 'warrior', defense: 0.13, defenseRatio: 19, magicResistance: 8, look: { helm: { sprite: 'gear.helm.horned.m' } }, equip: { str: 120, level: 120 }, icon: { sheet: 18, frame: 2 } },
     // Guerrero · Escudo (msh.spr: 7 hojas por escudo, empieza en startSheet)
     woodShield: { name: 'Wood Shield', slot: 'shield', set: 'warrior', defense: 0.03, defenseRatio: 8, look: { shield: { sprite: 'gear.shields.m', startSheet: 0 } }, equip: { str: 8 }, icon: { sheet: 2, frame: 0 } },
     leatherShield: { name: 'Leather Shield', slot: 'shield', set: 'warrior', defense: 0.04, defenseRatio: 10, look: { shield: { sprite: 'gear.shields.m', startSheet: 7 } }, equip: { str: 10 }, icon: { sheet: 2, frame: 1 } },
@@ -89,15 +92,15 @@ export const ARMOR_PIECES = {
     // Maga · Túnica y gorro. Revisión de la dificultad (C, propietario 22-oct-2026): piden mucha menos Mag que en el original
     // (Robe y Wizard Robe 100 → 35, Wizard Cap 110 → 50, Wizard Hat 130 → 70), para que la Maga tenga su defensa hacia
     // Level 15–30 y no 40–60. El Level 80 de la Wizard Robe se queda.
-    robe: { name: 'Robe', slot: 'body', set: 'mage', defense: 0.04, defenseRatio: 12, magicResistance: 8, magicDamageBonus: 0.06, look: { armor: { sprite: 'gear.armor.robe.w' } }, equip: { str: 10, mag: 35 }, icon: { sheet: 8, frame: 5, female: { sheet: 12, frame: 6 } } },
+    robe: { name: 'Robe', slot: 'body', set: 'mage', defense: 0.04, defenseRatio: 12, magicResistance: 8, magicDamageBonus: 0.06, look: { armor: { sprite: 'gear.armor.robe.w' } }, equip: { str: 10, mag: 30 }, icon: { sheet: 8, frame: 5, female: { sheet: 12, frame: 6 } } },
     wizardRobe: {
         name: 'Wizard Robe', slot: 'body', set: 'mage', defense: 0.07, defenseRatio: 14, magicResistance: 15, magicDamageBonus: 0.14,
         look: { armor: { sprite: 'gear.armor.robe.w', tint: WIZARD_ROBE_TINT } },
-        equip: { str: 10, mag: 35, level: 80 }, icon: { sheet: 8, frame: 5, female: { sheet: 12, frame: 6 } },
+        equip: { str: 10, mag: 75, level: 80 }, icon: { sheet: 8, frame: 5, female: { sheet: 12, frame: 6 } },
     },
     // Maga · Gorro
-    wizardCap: { name: 'Wizard Cap', slot: 'helm', set: 'mage', defense: 0.03, defenseRatio: 8, magicResistance: 5, magicDamageBonus: 0.05, look: { helm: { sprite: 'gear.helm.wizardCap.w' } }, equip: { str: 15, mag: 50 }, icon: { sheet: 18, frame: 4 } },
-    wizardHat: { name: 'Wizard Hat', slot: 'helm', set: 'mage', defense: 0.05, defenseRatio: 10, magicResistance: 10, magicDamageBonus: 0.1, look: { helm: { sprite: 'gear.helm.wizardHat.w' } }, equip: { str: 15, mag: 70 }, icon: { sheet: 18, frame: 5 } },
+    wizardCap: { name: 'Wizard Cap', slot: 'helm', set: 'mage', defense: 0.03, defenseRatio: 8, magicResistance: 5, magicDamageBonus: 0.05, look: { helm: { sprite: 'gear.helm.wizardCap.w' } }, equip: { str: 15, mag: 45 }, icon: { sheet: 18, frame: 4 } },
+    wizardHat: { name: 'Wizard Hat', slot: 'helm', set: 'mage', defense: 0.05, defenseRatio: 10, magicResistance: 10, magicDamageBonus: 0.1, look: { helm: { sprite: 'gear.helm.wizardHat.w' } }, equip: { str: 15, mag: 60 }, icon: { sheet: 18, frame: 5 } },
     // Fase 20B: pantalones, botas y capa, solo en la pantalla de equipo (no salen en las cartas). Defensa propia, pequeña.
     chainHose: {
         name: 'Chain Hose', slot: 'legs', set: 'warrior', defense: 0.05, defenseRatio: 8,
