@@ -95,7 +95,7 @@ export class MainMenuScene extends Phaser.Scene {
 
     /** Footer text and version, then the "What's new" link (ReleaseNotesScene), all centred together. */
     private addFooter(): void {
-        const footer = this.add.text(0, MAIN_MENU_FOOTER_Y, MAIN_MENU.footerText + MAIN_MENU.footerSeparator + GAME_VERSION + MAIN_MENU.footerSeparator, MENU_FOOTER_STYLE)
+        const footer = this.add.text(0, MAIN_MENU_FOOTER_Y, GAME_VERSION + MAIN_MENU.footerSeparator, MENU_FOOTER_STYLE)
             .setOrigin(0, 0.5);
         const link = this.add.text(0, MAIN_MENU_FOOTER_Y, MAIN_MENU_NEWS_LINK.label, { ...MENU_FOOTER_STYLE, color: MAIN_MENU_NEWS_LINK.color })
             .setOrigin(0, 0.5);

@@ -26,8 +26,7 @@ export const MAIN_MENU = {
     itemsAtFullSpacing: 6,
     /** Black strip over the original's "Multiplayer Online Game…" line, with our own footer. */
     footerHeight: 42,
-    footerText: 'Unofficial fan project  ·  free and non-profit',
-    /** The version (config/version.ts) goes after the footer text, separated like this. */
+    /** The version (config/version.ts) and the "What's new" link are separated like this. */
     footerSeparator: '  ·  ',
 } as const;
 
