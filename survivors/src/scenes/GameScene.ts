@@ -82,6 +82,7 @@ import { EnemySystem } from '../systems/EnemySystem';
 import { assetStreamer } from '../systems/AssetStreamer';
 import { mapUnlockStore } from '../systems/MapUnlockStore';
 import { Action, InputSystem } from '../systems/InputSystem';
+import { smoothSpriteCount } from '../hb/XbrPipeline';
 import { SETTINGS_CHANGED, settings } from '../systems/Settings';
 import { AimArrow } from '../ui/AimArrow';
 import type { DragDirection } from '../ui/CritButton';
@@ -1146,6 +1147,13 @@ export class GameScene extends Phaser.Scene {
     }
 
     /** Development (check deathzem): every item waiting for its card goes to the bag, without showing it. */
+    /** `check smooth --eval="g.debugSetSmooth(false)"`: flips Settings → Smooth Sprites; gives how many sprites wear the filter after. */
+    public debugSetSmooth(on: boolean): number {
+        if (!import.meta.env.DEV) return 0;
+        settings.set('smoothSprites', on);
+        return smoothSpriteCount();
+    }
+
     public debugKeepLoot(): void {
         if (!import.meta.env.DEV) return;
         for (let item = this.runLoot.nextPending(); item; item = this.runLoot.nextPending()) this.runLoot.keep(item);

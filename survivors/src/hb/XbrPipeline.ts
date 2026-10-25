@@ -22,6 +22,7 @@
 
 import Phaser from 'phaser';
 import { DEBUG_START } from '../config/debugStart';
+import { SETTINGS_CHANGED, settings } from '../systems/Settings';
 
 /** Key the pipeline is registered with (game config `pipeline`) and that `setPipeline` uses. */
 export const XBR_PIPELINE = 'Xbr';
@@ -201,18 +202,44 @@ export function registerXbrPipeline(game: Phaser.Game): void {
 type PipelineObject = Phaser.GameObjects.GameObject & Phaser.GameObjects.Components.Pipeline;
 
 /**
- * Whether sprites that move (character, monsters, NPCs, effects, ground items) wear the xBR filter (Fase 28¾B).
- * On by default (owner, 25-oct-2026); `?debug=nosmooth` turns it off to compare. Fase 28¾C: the Settings option.
+ * Whether sprites that move (character, monsters, NPCs, effects, ground items) wear the xBR filter (Fase 28¾).
+ * Settings → Smooth Sprites, on by default (owner, 25-oct-2026); `?debug=nosmooth` turns it off to compare.
  */
 export function smoothSpritesOn(): boolean {
-    return !DEBUG_START.actions.includes('nosmooth');
+    return settings.current.smoothSprites && !DEBUG_START.actions.includes('nosmooth');
 }
+
+/** Every sprite that went through smoothSprite and is still alive, to switch the filter on or off at once. */
+const smoothable = new Set<PipelineObject>();
+let appliedOn = smoothSpritesOn();
 
 /**
  * The single place that decides whether a sprite is drawn smooth: every moving sprite goes through here when it
  * is made. The map, HUD, menus, icons and texts never do, so they stay sharp.
  */
 export function smoothSprite<T extends PipelineObject>(object: T): T {
+    if (!smoothable.has(object)) {
+        smoothable.add(object);
+        object.once(Phaser.GameObjects.Events.DESTROY, () => smoothable.delete(object));
+    }
     if (smoothSpritesOn()) object.setPipeline(XBR_PIPELINE);
     return object;
 }
+
+/** Sprites that wear the filter right now (for `check`: `g.debugSetSmooth(false)` should give 0). */
+export function smoothSpriteCount(): number {
+    let count = 0;
+    for (const object of smoothable) if (object.pipeline?.name === XBR_PIPELINE) count += 1;
+    return count;
+}
+
+// Changing the option applies at once, even in the middle of a run (Settings from the pause menu).
+settings.on(SETTINGS_CHANGED, () => {
+    const on = smoothSpritesOn();
+    if (on === appliedOn) return;
+    appliedOn = on;
+    for (const object of smoothable) {
+        if (on) object.setPipeline(XBR_PIPELINE);
+        else object.resetPipeline();
+    }
+});

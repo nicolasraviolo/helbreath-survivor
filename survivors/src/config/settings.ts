@@ -42,6 +42,8 @@ export interface GameSettings {
     showMinimap: boolean;
     /** Gamepad vibration when hurt and with the Critical / Meteor Strike (Fase 19C, data/feedback.ts). */
     vibration: boolean;
+    /** xBR filter on the sprites that move: character, monsters, NPCs, effects, ground items (Fase 28¾, hb/XbrPipeline.ts). */
+    smoothSprites: boolean;
     /** Keys and buttons picked in Settings → Controls (Fase 19C). */
     controls: ControlBindings;
 }
@@ -57,6 +59,8 @@ export const DEFAULT_SETTINGS: Readonly<GameSettings> = {
     aimStick: true,
     showMinimap: true,
     vibration: true,
+    // On on PC and phones (owner, 25-oct-2026): it ran well on their phone.
+    smoothSprites: true,
     controls: DEFAULT_CONTROLS,
 };
 

@@ -175,6 +175,7 @@ export class SettingsScene extends MenuOverlayScene {
             { label: 'Sound', ...volume('sfxVolume') },
             ...fullscreenCheckboxItem(this),
             { label: 'Large Trees', value: () => TREE_MODE_NAMES[settings.current.largeTrees], onLeft: toggleTrees, onRight: toggleTrees },
+            { label: 'Smooth Sprites', ...checkbox('smoothSprites') },
             ...hudRow,
         ];
     }
@@ -203,7 +204,7 @@ export class SettingsScene extends MenuOverlayScene {
     }
 }
 
-type CheckboxSetting = 'showPlayerHealthBar' | 'screenShake' | 'anonymousStats' | 'aimStick' | 'showMinimap';
+type CheckboxSetting = 'showPlayerHealthBar' | 'screenShake' | 'anonymousStats' | 'aimStick' | 'showMinimap' | 'smoothSprites';
 
 function checkbox(key: CheckboxSetting): Partial<MenuItem> {
     const toggle = () => settings.set(key, !settings.current[key]);

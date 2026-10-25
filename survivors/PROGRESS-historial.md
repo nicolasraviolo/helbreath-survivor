@@ -2,6 +2,11 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
+**Fase 28¾C — Opción Smooth Sprites en Settings (2026-10-25). Cierra la Fase 28¾.**
+- **Qué se hizo:** casilla **Smooth Sprites** en Settings (primera pestaña, bajo Large Trees), ajuste `smoothSprites` en `config/settings.ts` (On por defecto en PC y móvil, decidido). Se aplica al momento, también en partida: `smoothSprite` apunta cada sprite en un `Set` y al cambiar el ajuste les pone o quita el pipeline (`setPipeline` / `resetPipeline`). `?debug=nosmooth` sigue apagándolo. Créditos "Smooth Sprites: xBR-lv2 shader by Hyllian (MIT)", línea en What's new, `g.debugSetSmooth(on)` para el check y nota en NOTES.md.
+- **Comprobado:** build; `check settings` (también `--mobile`), `menu smooth nosmooth` sin errores; `check smooth --eval` con 220 sprites: apagar → 0 con filtro, encender → 220. Probado por el propietario: va bien.
+- **Probar:** `pnpm --dir survivors dev` → partida → Esc → Settings → quitar/poner Smooth Sprites; F5 y sigue como se dejó.
+
 **Fase 28¾B — Sprites suaves en todo lo que se mueve (2026-10-25).**
 - **Qué se hizo:** un único interruptor `smoothSprite()` / `smoothSpritesOn()` en `hb/XbrPipeline.ts` (encendido; `?debug=nosmooth` lo apaga, sustituye a `?debug=smooth`). Lo llevan monstruos y NPCs (`HBAsset`), todas las capas del personaje (`CharacterSprite`, también en la ventana Character y al elegir personaje; `PaperDoll`), sombras, efectos, proyectiles, meteorito, portal, tótems, auras, magias pasivas, gemas, botín y pickups. Sin filtro: mapa, HUD, menús, iconos, textos y chispas. Decisiones del propietario: encendido por defecto en PC y móvil; muñeco de Character también con filtro.
 - **Comprobado:** build; `check smooth nosmooth town` (también `--mobile`), `champion poison activespell charinfo slots crit` sin errores y 117–124 FPS; 200 monstruos: 0,58 → 0,74 ms por imagen; comparativa `.check/compare-28-3-4B.jpg`. Probado por el propietario: le gusta.

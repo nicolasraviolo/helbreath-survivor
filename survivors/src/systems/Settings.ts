@@ -41,6 +41,7 @@ function load(): GameSettings {
             aimStick: typeof stored.aimStick === 'boolean' ? stored.aimStick : DEFAULT_SETTINGS.aimStick,
             showMinimap: typeof stored.showMinimap === 'boolean' ? stored.showMinimap : DEFAULT_SETTINGS.showMinimap,
             vibration: typeof stored.vibration === 'boolean' ? stored.vibration : DEFAULT_SETTINGS.vibration,
+            smoothSprites: typeof stored.smoothSprites === 'boolean' ? stored.smoothSprites : DEFAULT_SETTINGS.smoothSprites,
             controls: readControls(stored.controls),
         };
     } catch {

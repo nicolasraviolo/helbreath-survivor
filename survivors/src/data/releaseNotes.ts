@@ -18,6 +18,7 @@ export const RELEASE_NOTES: readonly ReleaseNote[] = [
         date: 'Oct 25, 2026',
         changes: [
             'Characters, monsters and effects now have smooth edges instead of blocky pixels.',
+            'Prefer the classic pixels? Turn off Smooth Sprites in Settings.',
         ],
     },
     {
