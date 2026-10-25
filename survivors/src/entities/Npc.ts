@@ -11,6 +11,7 @@ import { HBAsset } from '../hb/HBAsset';
 import type { HBMap } from '../hb/HBMap';
 import { getSheetKey } from '../hb/HBSprite';
 import type { Direction } from '../hb/directions';
+import { smoothSprite } from '../hb/XbrPipeline';
 
 export class Npc {
     /** Its feet: the centre of its tile. */
@@ -32,7 +33,7 @@ export class Npc {
         sprite.setDepth(this.y);
         this.body = sprite;
         this.headHeight = tallestFrame(scene, getSheetKey(def.sprite, def.direction));
-        this.shadow = scene.add.sprite(0, 0, getSheetKey(def.sprite, def.direction), '0')
+        this.shadow = smoothSprite(scene.add.sprite(0, 0, getSheetKey(def.sprite, def.direction), '0'))
             .setTint(0x000000)
             .setAlpha(BODY_SHADOW_ALPHA)
             .setRotation(BODY_SHADOW_ROTATION)

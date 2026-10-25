@@ -10,6 +10,7 @@ import { hitChance, spellHitChance, type PlayerDefense } from '../data/defense';
 import type { EnemyRangedAttack } from '../data/enemies';
 import { Pool, type Poolable } from '../utils/Pool';
 import type { AudioSystem } from './AudioSystem';
+import { smoothSprite } from '../hb/XbrPipeline';
 
 class EnemyProjectile implements Poolable {
     public poolIndex = -1;
@@ -31,7 +32,7 @@ class EnemyProjectile implements Poolable {
     private readonly sprite: Phaser.GameObjects.Sprite;
 
     constructor(scene: Phaser.Scene) {
-        this.sprite = scene.add.sprite(0, 0, '__DEFAULT').setActive(false).setVisible(false);
+        this.sprite = smoothSprite(scene.add.sprite(0, 0, '__DEFAULT')).setActive(false).setVisible(false);
     }
 
     public launch(attack: EnemyRangedAttack, source: string, damage: number, fromBoss: boolean, hitRatio: number | undefined, x: number, y: number, angle: number): void {

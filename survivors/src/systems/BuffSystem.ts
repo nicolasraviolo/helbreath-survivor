@@ -10,6 +10,7 @@ import { BUFF_CAST_SOUND, BUFF_NAME_FLOAT, BUFF_OVERLAY_ALPHA, BUFFS, getBuff, t
 import { SpriteText } from '../hb/SpriteText';
 import type { Player } from '../entities/Player';
 import type { AudioSystem } from './AudioSystem';
+import { smoothSprite } from '../hb/XbrPipeline';
 
 const BUFF_IDS = Object.keys(BUFFS) as BuffId[];
 
@@ -37,7 +38,7 @@ export class BuffSystem {
     ) {
         for (const id of BUFF_IDS) {
             const def = getBuff(id);
-            if (def.auraEffect) this.auras.set(id, scene.add.sprite(0, 0, '__DEFAULT').setVisible(false));
+            if (def.auraEffect) this.auras.set(id, smoothSprite(scene.add.sprite(0, 0, '__DEFAULT')).setVisible(false));
         }
     }
 

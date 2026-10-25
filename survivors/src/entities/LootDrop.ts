@@ -10,6 +10,7 @@ import { getSheetKey } from '../hb/HBSprite';
 import { setColouredTexture } from '../hb/additiveTint';
 import { attributeColor } from '../data/attributes';
 import type { Poolable } from '../utils/Pool';
+import { smoothSprite } from '../hb/XbrPipeline';
 
 export class LootDrop implements Poolable {
     public poolIndex = -1;
@@ -28,7 +29,7 @@ export class LootDrop implements Poolable {
         // Under the XP gems and the potions: a gem on top of it still shows.
         this.glow = scene.add.circle(0, 0, g.glowRadius, g.glowColor).setBlendMode(Phaser.BlendModes.ADD)
             .setDepth(DEPTH_GEMS - 3).setActive(false).setVisible(false);
-        this.image = scene.add.image(0, 0, '__DEFAULT').setDepth(DEPTH_GEMS - 2).setActive(false).setVisible(false);
+        this.image = smoothSprite(scene.add.image(0, 0, '__DEFAULT')).setDepth(DEPTH_GEMS - 2).setActive(false).setVisible(false);
     }
 
     public drop(item: OwnedItem, x: number, y: number, gender: Gender): void {

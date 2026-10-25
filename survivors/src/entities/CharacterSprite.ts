@@ -22,6 +22,7 @@ import {
     type GearSlot,
 } from '../hb/playerAppearance';
 import { lookLoader } from '../systems/LookLoader';
+import { smoothSprite } from '../hb/XbrPipeline';
 
 /** Slots that come from the look, not from the class or the armor. */
 const LOOK_SLOTS: ReadonlySet<GearSlot> = new Set<GearSlot>(['human', 'hair', 'underwear']);
@@ -84,7 +85,7 @@ export class CharacterSprite {
             current.def = layer;
             this.applyTint(current.sprite, layer);
         } else {
-            const sprite = this.scene.make.sprite({ x: 0, y: 0, key: '__DEFAULT' }, false);
+            const sprite = smoothSprite(this.scene.make.sprite({ x: 0, y: 0, key: '__DEFAULT' }, false));
             this.applyTint(sprite, layer);
             this.container.add(sprite);
             this.layers.set(slot, { def: layer, sprite });
@@ -227,7 +228,7 @@ export class CharacterSprite {
     private syncOverlay(slot: GearSlot, sprite: Phaser.GameObjects.Sprite): void {
         let overlay = this.overlays.get(slot);
         if (!overlay) {
-            overlay = this.scene.make.sprite({ x: 0, y: 0, key: '__DEFAULT' }, false).setBlendMode(Phaser.BlendModes.ADD);
+            overlay = smoothSprite(this.scene.make.sprite({ x: 0, y: 0, key: '__DEFAULT' }, false)).setBlendMode(Phaser.BlendModes.ADD);
             this.container.add(overlay);
             this.overlays.set(slot, overlay);
         }

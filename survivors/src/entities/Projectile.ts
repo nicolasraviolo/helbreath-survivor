@@ -8,6 +8,7 @@ import { DEPTH_EFFECT_OFFSET } from '../config/gameConfig';
 import type { SpellDef } from '../data/spells';
 import type { Enemy } from './Enemy';
 import type { Poolable } from '../utils/Pool';
+import { smoothSprite } from '../hb/XbrPipeline';
 
 export class Projectile implements Poolable {
     public poolIndex = -1;
@@ -27,7 +28,7 @@ export class Projectile implements Poolable {
     private readonly sprite: Phaser.GameObjects.Sprite;
 
     constructor(scene: Phaser.Scene) {
-        this.sprite = scene.add.sprite(0, 0, '__DEFAULT').setActive(false).setVisible(false);
+        this.sprite = smoothSprite(scene.add.sprite(0, 0, '__DEFAULT')).setActive(false).setVisible(false);
     }
 
     /** Starts flying from (x, y) towards (targetX, targetY), up to `maxDistance` pixels. */

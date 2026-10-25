@@ -6,6 +6,7 @@
 import Phaser from 'phaser';
 import { getSheetKey } from './HBSprite';
 import type { Direction } from './directions';
+import { smoothSprite } from './XbrPipeline';
 
 export interface DirectionalPlayOptions {
     /** First sheet of the animation; the played sheet is `baseSheet + direction`. */
@@ -22,6 +23,8 @@ export class HBAsset extends Phaser.GameObjects.Sprite {
 
     constructor(scene: Phaser.Scene, x: number, y: number, public readonly spriteKey: string) {
         super(scene, x, y, getSheetKey(spriteKey, 0), '0');
+        // Monsters and town NPCs: xBR filter for smooth edges when the option is on (Fase 28¾B).
+        smoothSprite(this);
     }
 
     /** Plays the sheet for a direction. Keeps the current frame index when only the direction changes. */

@@ -37,6 +37,7 @@ import { Direction, directionFromVector } from '../hb/directions';
 import { MONSTER_DEFAULT_FRAMES_PER_SHEET, MONSTER_SHEET_BASE, MonsterState, monsterFrameRate } from '../hb/monsterSheets';
 import { moveAxis } from '../utils/collision';
 import type { Poolable } from '../utils/Pool';
+import { smoothSprite } from '../hb/XbrPipeline';
 
 /** Texture key suffix of a sheet's red copy for the elites (hb/additiveTint.ts → tintedKey). */
 /** The poison cloud's animation (config/effects.ts). */
@@ -171,7 +172,7 @@ export class Enemy implements Poolable {
         this.movement = def.boss ? 'direct' : def.movement ?? 'direct';
         this.sprite = scene.add.existing(new HBAsset(scene, 0, 0, def.sprite)).setScale(scale);
         if (def.hasShadow) {
-            this.shadow = scene.add.sprite(0, 0, getSheetKey(def.sprite, 0), '0')
+            this.shadow = smoothSprite(scene.add.sprite(0, 0, getSheetKey(def.sprite, 0), '0'))
                 .setTint(0x000000)
                 .setAlpha(BODY_SHADOW_ALPHA)
                 .setRotation(BODY_SHADOW_ROTATION)
@@ -375,7 +376,7 @@ export class Enemy implements Poolable {
         this.poisonLevel = level;
         this.poisonTickMs = POISON.tickMs;
         if (!this.poisonCloud) {
-            this.poisonCloud = this.sprite.scene.add.sprite(0, 0, '__DEFAULT').setAlpha(POISON.cloudAlpha);
+            this.poisonCloud = smoothSprite(this.sprite.scene.add.sprite(0, 0, '__DEFAULT')).setAlpha(POISON.cloudAlpha);
         }
         if (this.sprite.scene.anims.exists(POISON_CLOUD_EFFECT)) this.poisonCloud.setActive(true).setVisible(true).play(POISON_CLOUD_EFFECT);
         this.syncPoisonCloud();

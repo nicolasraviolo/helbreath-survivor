@@ -10,4 +10,5 @@ export const CREDITS_LINES: readonly string[] = [
     'Technical base: helbreath-base-game (MIT) by Erko Knoll.',
     'Made with Phaser 3.',
     'UI font: Comic Neue (SIL Open Font License).',
+    'Smooth Sprites: xBR-lv2 shader by Hyllian (MIT).',
 ];

@@ -14,6 +14,14 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: readonly ReleaseNote[] = [
     {
+        version: 'Phase 28¾',
+        date: 'Oct 25, 2026',
+        changes: [
+            'Characters, monsters and effects now have smooth edges instead of blocky pixels.',
+            'Prefer the classic pixels? Turn off Smooth Sprites in Settings.',
+        ],
+    },
+    {
         version: 'Phase 28½',
         date: 'Oct 25, 2026',
         changes: [

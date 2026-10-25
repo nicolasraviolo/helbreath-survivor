@@ -13,6 +13,7 @@ import { getSheetKey } from '../hb/HBSprite';
 import { PlayerState } from '../hb/playerAppearance';
 import { lookLoader } from '../systems/LookLoader';
 import { CharacterSprite } from './CharacterSprite';
+import { smoothSprite } from '../hb/XbrPipeline';
 
 export interface PaperDollPlacement {
     /** Top-left corner of the window on screen, and the window's scale. */
@@ -70,7 +71,7 @@ export class PaperDoll {
         for (const piece of pieces) {
             const texture = this.textureOf(getSheetKey(spriteKey, piece.sheet), piece);
             if (!texture || !textures.get(texture).has(String(piece.frame))) continue;
-            const image = this.scene.add.image(piece.x, piece.y, texture, String(piece.frame));
+            const image = smoothSprite(this.scene.add.image(piece.x, piece.y, texture, String(piece.frame)));
             if (piece.tint !== undefined) image.setTint(piece.tint);
             this.container.add(image);
         }

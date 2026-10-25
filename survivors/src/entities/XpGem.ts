@@ -5,6 +5,7 @@ import { DEPTH_GEMS } from '../config/gameConfig';
 import { GEM_FLY_ACCELERATION, GEM_FLY_MAX_SPEED, GEM_FLY_START_SPEED, GEM_SCALE, GEM_SHEET, GEM_TIERS } from '../data/leveling';
 import { getSheetKey } from '../hb/HBSprite';
 import type { Poolable } from '../utils/Pool';
+import { smoothSprite } from '../hb/XbrPipeline';
 
 const GEM_TEXTURE = getSheetKey('item.ground', GEM_SHEET);
 
@@ -18,7 +19,7 @@ export class XpGem implements Poolable {
     private readonly image: Phaser.GameObjects.Image;
 
     constructor(scene: Phaser.Scene) {
-        this.image = scene.add.image(0, 0, GEM_TEXTURE, firstFrame()).setScale(GEM_SCALE).setDepth(DEPTH_GEMS).setActive(false).setVisible(false);
+        this.image = smoothSprite(scene.add.image(0, 0, GEM_TEXTURE, firstFrame())).setScale(GEM_SCALE).setDepth(DEPTH_GEMS).setActive(false).setVisible(false);
     }
 
     public drop(x: number, y: number, value: number): void {
