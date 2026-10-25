@@ -115,7 +115,7 @@ import { AchievementTracker } from '../systems/AchievementTracker';
 import { GAME_VERSION } from '../config/version';
 import { COMPACT_UI } from '../config/device';
 import { PASSIVE_IDS, getPassive } from '../data/passives';
-import { AURA_DEBUG_RANK, DAGGER_DEBUG_RANK, MAGIC_IDS, getMagic, magicDamageType, magicMaxRank } from '../data/passiveMagic';
+import { ANGEL_DEBUG_RANK, AURA_DEBUG_RANK, DAGGER_DEBUG_RANK, MAGIC_IDS, getMagic, magicDamageType, magicMaxRank } from '../data/passiveMagic';
 import { goldStore } from '../systems/GoldStore';
 import { RunMetrics, metricsAllowed, sendRunReport } from '../systems/RunMetrics';
 import type { RunResult } from '../config/metrics';
@@ -1488,6 +1488,10 @@ export class GameScene extends Phaser.Scene {
             case 'daggers':
                 // Fase 28B: the Spinning Daggers at rank DAGGER_DEBUG_RANK (pressed again: one rank more).
                 this.equipment.magics.daggers = Math.min(magicMaxRank('daggers'), Math.max(DAGGER_DEBUG_RANK, this.equipment.magics.daggers + 1));
+                break;
+            case 'angels':
+                // Fase 28C: the Tutelary Angels at rank ANGEL_DEBUG_RANK (pressed again: one rank more).
+                this.equipment.magics.angels = Math.min(magicMaxRank('angels'), Math.max(ANGEL_DEBUG_RANK, this.equipment.magics.angels + 1));
                 break;
             case 'bluebook': {
                 // The Blue Book of Bloody Shock Wave by the player (Fase 26E), even if it was learned already.

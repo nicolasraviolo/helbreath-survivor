@@ -422,10 +422,15 @@ function describeCard(stats: CharacterStats, equipment: Equipment, choice: Level
             const radius = (rank: MagicRank | undefined) => (rank ? String(rank.radiusPx) : '—');
             const count = (rank: MagicRank | undefined) => (rank?.count !== undefined ? String(rank.count) : '—');
             const slow = (rank: MagicRank | undefined) => (rank?.slow !== undefined ? `−${Math.round(rank.slow * 100)}%` : '—');
+            const perSecond = (rank: MagicRank | undefined) => (rank?.shotEveryMs ? (1000 / rank.shotEveryMs).toFixed(1) : '—');
             // The aura (Eye of the Storm) only slows: its slow and reach. The daggers (28B): damage and how many circle.
+            // The angels (28C, always one): damage and shots per second.
+            const second = choice.magic === 'angels'
+                ? `Shots/s ${perSecond(before)} → ${perSecond(after)}`
+                : `Daggers ${count(before)} → ${count(after)}`;
             const changes = after?.slow !== undefined
                 ? [`Slow ${slow(before)} → ${slow(after)}`, `Radius ${radius(before)} → ${radius(after)}`]
-                : [`Damage ${damage(before)} → ${damage(after)}`, `Daggers ${count(before)} → ${count(after)}`];
+                : [`Damage ${damage(before)} → ${damage(after)}`, second];
             return {
                 badge: MAGIC_BADGE.text, badgeColor: MAGIC_BADGE.color, icon: magic.icon,
                 title: `${magic.name} ${choice.rank}/${magicMaxRank(choice.magic)}`, effect: magic.effect,

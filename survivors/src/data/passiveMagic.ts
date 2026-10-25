@@ -21,10 +21,13 @@ export interface MagicRank {
     /**
      * Aura: radius of the ring around the player's feet, in px (left and right; up and down, AURA_RING_Y_SHARE of it).
      * Daggers: radius of their circle around the player (up and down, DAGGER_ORBIT_Y_SHARE of it).
+     * Angels: how far from the player they find a monster to shoot.
      */
     radiusPx: number;
-    /** Daggers: how many circle at once. */
+    /** Daggers: how many circle at once. Angels: how many float beside the player. */
     count?: number;
+    /** Angels: time between two shots of each angel (ms). */
+    shotEveryMs?: number;
     /** Daggers: turns per second. */
     turnsPerSecond?: number;
 }
@@ -83,13 +86,24 @@ export const MAGICS = {
         knockback: 60,
     },
     angels: {
-        name: 'Tutelary Angels', effect: 'Little angels attack nearby monsters',
-        // Angelic Pendant (STR) (item-pack.spr hoja 19, frame 10).
-        icon: { kind: 'item', sheet: 19, frame: 10 },
-        ready: false,
-        ranks: [{ damage: 0, radiusPx: 0 }],
+        name: 'Tutelary Angels', effect: 'Little angels shoot light at faraway monsters',
+        // Angelic Pendant (INT) (item-pack.spr hoja 19, frame 12): el del angelito celeste (tutelarangel3.spr), el único
+        // que sale (propietario, 25-oct-2026).
+        icon: { kind: 'item', sheet: 19, frame: 12 },
+        ready: true,
+        // Daño a distancia (28C): cada angelito dispara un rayo de luz al monstruo más cercano dentro de radiusPx, aunque
+        // esté lejos. Daño parecido a las dagas (a criterio de Claude). Siempre un solo angelito (propietario, 25-oct-2026):
+        // en los rangos 3–5 dispara tan seguido como lo harían 2 o 3 (antes: 2 de 950 ms, 2 de 800 ms y 3 de 750 ms).
+        ranks: [
+            { damage: 10, radiusPx: 260, count: 1, shotEveryMs: 1100 },
+            { damage: 12, radiusPx: 280, count: 1, shotEveryMs: 950 },
+            { damage: 14, radiusPx: 300, count: 1, shotEveryMs: 475 },
+            { damage: 16, radiusPx: 320, count: 1, shotEveryMs: 400 },
+            { damage: 19, radiusPx: 340, count: 1, shotEveryMs: 250 },
+        ],
+        // Unused by the angels (each one has its own shotEveryMs).
         hitEveryMs: 1000,
-        knockback: 0,
+        knockback: 40,
     },
 } as const satisfies Record<MagicId, MagicDef>;
 
@@ -159,6 +173,59 @@ export const DAGGER_LOOK = {
     haloAlpha: { min: 0.55, max: 1 },
     /** One breath of the halo, in ms. */
     haloPulseMs: 700,
+} as const;
+
+/** ?debug=angels starts the run with the Tutelary Angels at this rank. */
+export const ANGEL_DEBUG_RANK = 3;
+
+/**
+ * Where each angel floats, from the player's feet (px): where the original drew it (reference/Client.cpp DrawAngel:
+ * 20 px right and 20 up from the player, the INT angel 15 px higher). Only one angel (owner, 25-oct-2026); a list in
+ * case more come back (the 2nd went at x -22, y -30 and the 3rd at x 0, y -68). Its own pivot lifts it off the ground.
+ */
+export const ANGEL_SPOTS: readonly { x: number; y: number }[] = [
+    { x: 22, y: -30 },
+];
+
+/**
+ * Look of the angels (tutelarangel3.spr, the light blue one: owner, 25-oct-2026). Like the player: sheet = animation
+ * base + direction (0 = N … 7 = NW); idle 0 (8 frames), fly 8, attack 16 (4 frames, arm forward: used to shoot),
+ * death 24, cast 32 (16 frames), hurt 40. The original drew them see-through (PutTransSprite).
+ */
+export const ANGEL_LOOK = {
+    sprite: 'fx.tutelaryAngel',
+    idleSheet: 0,
+    attackSheet: 16,
+    idleFrameRate: 10,
+    /** The attack's 4 frames, played fast. */
+    attackFrameRate: 16,
+    alpha: 0.85,
+    scale: 1.2,
+    /** Gentle up-and-down float (px and ms per breath), each angel a bit out of step. */
+    bobPx: 3,
+    bobMs: 1400,
+    /** They follow the player a bit late (share of the gap closed per 1/60 s): they look like they fly. */
+    followShare: 0.18,
+} as const;
+
+/**
+ * The angels' shot: a small homing ball of light (the daggers' halo texture, light blue, ADD) that flies to the
+ * monster. Small and with no burst on hitting (owner, 25-oct-2026: at 28 px and with the Energy Bolt's spark, at up to
+ * 4 shots a second, it was too big and too noisy).
+ */
+export const ANGEL_BOLT = {
+    speed: 380,
+    /** Size of the ball of light (px) and its brighter core. */
+    sizePx: 14,
+    coreSizePx: 6,
+    color: 0x7fd8ff,
+    coreColor: 0xe8fbff,
+    /** It hits when it is this close to the monster's body. */
+    hitRadiusPx: 10,
+    /** If the monster dies on the way, the ball flies on to where it was and vanishes after this long at most. */
+    maxFlightMs: 1500,
+    /** Leaves from the angel's hands: px above the angel's position. */
+    fromLiftPx: 18,
 } as const;
 
 export function getMagic(id: MagicId): MagicDef {

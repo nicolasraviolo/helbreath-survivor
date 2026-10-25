@@ -60,6 +60,8 @@ const PRESETS = {
     // Fase 28A: el Eye of the Storm (frena) en rango 3 con una horda alrededor.
     aura: 'debug=god,aura,horde',
     daggers: 'play=warrior&debug=god,daggers,horde',
+    // Fase 28C: los Tutelary Angels en rango 3 disparando a una horda.
+    angels: 'play=warrior&debug=god,angels,horde',
     levelpace: 'debug=sim',
     // Lo mismo en Elvine Garden (Fase 22D).
     levelpaceelvine: 'debug=sim&map=elvineGarden',

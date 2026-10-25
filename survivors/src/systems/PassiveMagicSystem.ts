@@ -2,14 +2,17 @@
 // jugador que cada `hitEveryMs` frena a todos los monstruos con los pies dentro de su elipse (Enemy.slow, sin daño;
 // tinte blanco grisáceo). 28B: las Spinning Daggers, dagas con
 // brillo que giran a la altura del pecho; cada una golpea a los monstruos que toca, y al mismo monstruo no se le vuelve a
-// golpear hasta `hitEveryMs` después. Los angelitos (28C), más adelante, aquí también.
+// golpear hasta `hitEveryMs` después. 28C: los Tutelary Angels, angelitos celestes que flotan junto al jugador y
+// disparan cada `shotEveryMs` una bola de luz que persigue al monstruo más cercano dentro de su alcance. Su sprite se
+// descarga solo al tener la magia (LookLoader).
 import Phaser from 'phaser';
-import { DEPTH_GROUND_SHADOWS } from '../config/gameConfig';
+import { DEPTH_EFFECT_OFFSET, DEPTH_GROUND_SHADOWS } from '../config/gameConfig';
 import {
-    AURA_BOSS_SLOW_SHARE, AURA_RING_ALPHA, AURA_RING_RADIUS_PX, AURA_RING_Y_SHARE, AURA_SLOW_MS, DAGGER_HIT_RADIUS_PX, DAGGER_LIFT_PX, DAGGER_LOOK, DAGGER_ORBIT_Y_SHARE,
+    ANGEL_BOLT, ANGEL_LOOK, ANGEL_SPOTS, AURA_BOSS_SLOW_SHARE, AURA_RING_ALPHA, AURA_RING_RADIUS_PX, AURA_RING_Y_SHARE, AURA_SLOW_MS, DAGGER_HIT_RADIUS_PX, DAGGER_LIFT_PX, DAGGER_LOOK, DAGGER_ORBIT_Y_SHARE,
     getMagic, magicMaxRank, magicRank,
 } from '../data/passiveMagic';
 import type { Enemy } from '../entities/Enemy';
+import { Direction, directionFromVector } from '../hb/directions';
 import { ensureGlowTexture } from '../hb/glowTexture';
 import { getSheetKey } from '../hb/HBSprite';
 import type { DamageType } from '../entities/CharacterStats';
@@ -17,6 +20,8 @@ import type { Equipment } from '../entities/Equipment';
 import type { Player } from '../entities/Player';
 import type { CombatSystem } from './CombatSystem';
 import type { EnemySystem } from './EnemySystem';
+import { lookLoader } from './LookLoader';
+import { Pool, type Poolable } from '../utils/Pool';
 
 /** Effect key of the aura's ring. */
 const AURA_EFFECT = 'fx.aura.ring';
@@ -38,6 +43,70 @@ interface DaggerSprite {
     blade: Phaser.GameObjects.Image;
 }
 
+/** How long the attack animation lasts: its 4 frames at attackFrameRate. */
+const ANGEL_ATTACK_MS = (4 / ANGEL_LOOK.attackFrameRate) * 1000;
+
+/** One angel beside the player (pooled: made once, as many as the top rank has). */
+interface AngelSprite {
+    sprite: Phaser.GameObjects.Sprite;
+    /** Where it is now: it follows its spot a bit late. */
+    x: number;
+    y: number;
+    /** Time until its next shot. */
+    waitMs: number;
+    facing: Direction;
+    /** Until when it shows the attack animation. */
+    attackUntilMs: number;
+}
+
+/** The angels' shot: a homing ball of light (a glow and a brighter core). */
+class AngelBolt implements Poolable {
+    public poolIndex = -1;
+    public target: Enemy | undefined;
+    public damage = 0;
+    public x = 0;
+    public y = 0;
+    /** Where it flies (the monster's body; where it was if it died on the way). */
+    public toX = 0;
+    public toY = 0;
+    public ageMs = 0;
+    private readonly glow: Phaser.GameObjects.Image;
+    private readonly core: Phaser.GameObjects.Image;
+
+    constructor(scene: Phaser.Scene, texture: string) {
+        this.glow = scene.add.image(0, 0, texture).setBlendMode(Phaser.BlendModes.ADD).setTint(ANGEL_BOLT.color)
+            .setDisplaySize(ANGEL_BOLT.sizePx, ANGEL_BOLT.sizePx).setVisible(false);
+        this.core = scene.add.image(0, 0, texture).setBlendMode(Phaser.BlendModes.ADD).setTint(ANGEL_BOLT.coreColor)
+            .setDisplaySize(ANGEL_BOLT.coreSizePx, ANGEL_BOLT.coreSizePx).setVisible(false);
+    }
+
+    public launch(x: number, y: number, target: Enemy, damage: number): void {
+        this.target = target;
+        this.damage = damage;
+        this.x = x;
+        this.y = y;
+        this.toX = target.x;
+        this.toY = target.bodyY;
+        this.ageMs = 0;
+        this.glow.setVisible(true);
+        this.core.setVisible(true);
+        this.draw();
+    }
+
+    public draw(): void {
+        // Over the characters around it: a shot of light in the air.
+        const depth = this.y + DEPTH_EFFECT_OFFSET;
+        this.glow.setPosition(this.x, this.y).setDepth(depth);
+        this.core.setPosition(this.x, this.y).setDepth(depth);
+    }
+
+    public hide(): void {
+        this.target = undefined;
+        this.glow.setVisible(false);
+        this.core.setVisible(false);
+    }
+}
+
 export class PassiveMagicSystem {
     private readonly auraRing: Phaser.GameObjects.Sprite;
     private auraPlaying = false;
@@ -51,6 +120,13 @@ export class PassiveMagicSystem {
     private clockMs = 0;
     /** When each monster can be hit by the daggers again. */
     private readonly daggerCooldowns = new Map<Enemy, number>();
+    private readonly angels: AngelSprite[] = [];
+    private readonly bolts: Pool<AngelBolt>;
+    private readonly finishedBolts: AngelBolt[] = [];
+    /** Monsters the angels shoot this frame (reused list). */
+    private readonly angelTargets: Enemy[] = [];
+    /** The angel's sprite was asked for (it downloads only once a run has the magic). */
+    private angelSpriteRequested = false;
 
     constructor(
         private readonly scene: Phaser.Scene,
@@ -69,12 +145,21 @@ export class PassiveMagicSystem {
             const blade = scene.add.image(0, 0, '__DEFAULT').setVisible(false);
             this.daggers.push({ halo, blade });
         }
+        const topAngels = magicRank('angels', magicMaxRank('angels'))?.count ?? 0;
+        for (let i = 0; i < Math.min(topAngels, ANGEL_SPOTS.length); i++) {
+            const sprite = scene.add.sprite(0, 0, '__DEFAULT').setVisible(false).setAlpha(ANGEL_LOOK.alpha).setScale(ANGEL_LOOK.scale);
+            this.angels.push({ sprite, x: 0, y: 0, waitMs: 0, facing: Direction.South, attackUntilMs: 0 });
+        }
+        const boltTexture = ensureHaloTexture(scene);
+        this.bolts = new Pool(() => new AngelBolt(scene, boltTexture));
     }
 
     public update(deltaMs: number): void {
         this.clockMs += deltaMs;
         this.updateAura(deltaMs);
         this.updateDaggers(deltaMs);
+        this.updateAngels(deltaMs);
+        this.updateBolts(deltaMs);
     }
 
     private updateAura(deltaMs: number): void {
@@ -157,6 +242,100 @@ export class PassiveMagicSystem {
                 if (next <= this.clockMs) this.daggerCooldowns.delete(enemy);
             }
         }
+    }
+
+    private updateAngels(deltaMs: number): void {
+        const rank = magicRank('angels', this.equipment.magics.angels);
+        let count = this.player.isDead || !rank ? 0 : Math.min(rank.count ?? 0, this.angels.length);
+        if (count > 0 && !lookLoader.isReady(this.scene, ANGEL_LOOK.sprite)) {
+            if (!this.angelSpriteRequested) void lookLoader.ensure(this.scene, [ANGEL_LOOK.sprite]);
+            this.angelSpriteRequested = true;
+            count = 0;
+        }
+        if (!rank || count === 0) {
+            for (const angel of this.angels) angel.sprite.setVisible(false);
+            return;
+        }
+        const { x: px, y: py } = this.player;
+        const follow = 1 - Math.pow(1 - ANGEL_LOOK.followShare, deltaMs / (1000 / 60));
+        const shotEveryMs = rank.shotEveryMs ?? getMagic('angels').hitEveryMs;
+        // The monsters to shoot this frame, looked for only when an angel is ready: the closest ones, one each.
+        let targets: Enemy[] | undefined;
+        this.angels.forEach((angel, i) => {
+            if (i >= count) {
+                angel.sprite.setVisible(false);
+                return;
+            }
+            const spot = ANGEL_SPOTS[i] ?? { x: 0, y: 0 };
+            const bob = Math.sin((this.clockMs / ANGEL_LOOK.bobMs + i / 3) * Math.PI * 2) * ANGEL_LOOK.bobPx;
+            if (!angel.sprite.visible) {
+                // Appears right on its spot; the first shots are spread out so they don't all fire together.
+                angel.x = px + spot.x;
+                angel.y = py + spot.y;
+                angel.waitMs = (shotEveryMs * i) / count;
+                angel.sprite.setVisible(true);
+            }
+            angel.x += (px + spot.x - angel.x) * follow;
+            angel.y += (py + spot.y - angel.y) * follow;
+            angel.waitMs -= deltaMs;
+            if (angel.waitMs <= 0) {
+                targets ??= this.enemies.findNearestSeveral(px, py, rank.radiusPx, count, this.angelTargets);
+                const target = targets.length > 0 ? targets[i % targets.length] : undefined;
+                if (target) {
+                    const fromY = angel.y - ANGEL_BOLT.fromLiftPx;
+                    this.bolts.acquire().launch(angel.x, fromY, target, rank.damage);
+                    angel.facing = directionFromVector(target.x - angel.x, target.bodyY - fromY) ?? angel.facing;
+                    angel.attackUntilMs = this.clockMs + ANGEL_ATTACK_MS;
+                    angel.waitMs = Math.max(0, angel.waitMs) + shotEveryMs;
+                } else {
+                    // Nobody in reach: it looks again next frame.
+                    angel.waitMs = 0;
+                }
+            }
+            const attacking = angel.attackUntilMs > this.clockMs;
+            if (!attacking) angel.facing = this.player.direction;
+            const key = getSheetKey(ANGEL_LOOK.sprite, (attacking ? ANGEL_LOOK.attackSheet : ANGEL_LOOK.idleSheet) + angel.facing);
+            if (angel.sprite.anims.currentAnim?.key !== key) {
+                angel.sprite.play({ key, frameRate: attacking ? ANGEL_LOOK.attackFrameRate : ANGEL_LOOK.idleFrameRate, repeat: -1 });
+            }
+            // Just in front of the player: it floats beside it.
+            angel.sprite.setPosition(angel.x, angel.y + bob).setDepth(py + 1);
+        });
+    }
+
+    private updateBolts(deltaMs: number): void {
+        const step = (ANGEL_BOLT.speed * deltaMs) / 1000;
+        for (const bolt of this.bolts.active) {
+            bolt.ageMs += deltaMs;
+            const target = bolt.target?.isAlive ? bolt.target : undefined;
+            if (target) {
+                bolt.toX = target.x;
+                bolt.toY = target.bodyY;
+            }
+            const dx = bolt.toX - bolt.x;
+            const dy = bolt.toY - bolt.y;
+            const distance = Math.hypot(dx, dy);
+            if (distance <= Math.max(ANGEL_BOLT.hitRadiusPx + (target?.radius ?? 0), step)) {
+                if (target) {
+                    // Pushed along the shot.
+                    this.combat.hitEnemy(target, this.damageType, bolt.damage, bolt.x, bolt.y, getMagic('angels').knockback);
+                }
+                this.finishedBolts.push(bolt);
+                continue;
+            }
+            if (bolt.ageMs > ANGEL_BOLT.maxFlightMs) {
+                this.finishedBolts.push(bolt);
+                continue;
+            }
+            bolt.x += (dx / distance) * step;
+            bolt.y += (dy / distance) * step;
+            bolt.draw();
+        }
+        for (const bolt of this.finishedBolts) {
+            bolt.hide();
+            this.bolts.release(bolt);
+        }
+        this.finishedBolts.length = 0;
     }
 }
 
