@@ -375,6 +375,8 @@ export type MinimapKey = keyof typeof MINIMAPS;
 export const UI_IMAGES = {
     // Magnet Amulet, aportada por el propietario.
     'card.magnet': { file: 'image/magnetpng.png' },
+    // Logo de Discord (botón del menú principal que abre la invitación al servidor).
+    'ui.discord': { file: 'image/discord.svg' },
 } as const satisfies Record<string, { file: string }>;
 
 export type UiImageKey = keyof typeof UI_IMAGES;

@@ -3,6 +3,7 @@
 // Fase 12C: es una casilla de Settings, una opción de la Pausa y un icono pequeño en una esquina del menú principal.
 // En la app instalada no sale en ningún sitio: ya se abre a pantalla completa.
 import Phaser from 'phaser';
+import { GAME_WIDTH } from '../config/gameConfig';
 import { FULLSCREEN_BUTTON } from '../config/menus';
 import { TOUCH_FULLSCREEN_BUTTON } from '../config/touch';
 import { ScreenLayer } from './renderScale';
@@ -39,7 +40,7 @@ export function fullscreenCheckboxItem(scene: Phaser.Scene): MenuItem[] {
 export function addFullscreenButton(scene: Phaser.Scene, ready: () => boolean): void {
     if (!fullscreenAvailable(scene)) return;
     const { margin, size, corner, lineWidth } = FULLSCREEN_BUTTON;
-    const x = scene.scale.gameSize.width - margin;
+    const x = GAME_WIDTH - margin;
     const y = margin;
     const g = scene.add.graphics({ x, y });
     const draw = (color: number) => {

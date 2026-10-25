@@ -161,6 +161,17 @@ export const CONTROLS_MENU = {
 } as const;
 
 /** Small fullscreen button in a corner of the main menu (Fase 12C; before, it was an option of the list). */
+/** Discord button in the main menu's top-right corner (left of the fullscreen one): opens the invite in a new tab. */
+export const DISCORD_BUTTON = {
+    url: 'https://discord.gg/n7FwKTmgaZ',
+    texture: 'ui.discord',
+    /** Side of the icon on screen. */
+    size: byDevice(28, 42),
+    /** Slightly darker until the pointer is over it. */
+    alpha: 0.85,
+    hoverScale: 1.12,
+} as const;
+
 export const FULLSCREEN_BUTTON = {
     /** Centre, from the top-right corner of the screen. */
     margin: byDevice(28, 40),

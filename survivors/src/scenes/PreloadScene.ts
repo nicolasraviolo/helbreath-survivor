@@ -56,7 +56,11 @@ export class PreloadScene extends Phaser.Scene {
             if ((LATER_SOUNDS as readonly string[]).includes(key)) continue;
             this.load.audio(key, sound.file);
         }
-        for (const [key, image] of Object.entries(UI_IMAGES)) this.load.image(key, image.file);
+        // SVGs (the Discord logo) need Phaser's own SVG loader.
+        for (const [key, image] of Object.entries(UI_IMAGES)) {
+            if (image.file.endsWith('.svg')) this.load.svg(key, image.file);
+            else this.load.image(key, image.file);
+        }
     }
 
     async create(): Promise<void> {

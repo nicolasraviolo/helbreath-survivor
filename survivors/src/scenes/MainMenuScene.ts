@@ -1,6 +1,6 @@
 // Menú principal (Fase 8): la pantalla de título del Helbreath original con un panel de opciones a la derecha.
 // Play → los 4 personajes (las partidas guardadas se continúan al elegir su personaje) (CharacterSlotsScene, Fase 17A); How to Play (Fase 11), Achievements, Settings y Credits se abren encima, y "What's new" (novedades) desde el link del pie; Install
-// (Fase 12), si el navegador lo permite. Pantalla completa: icono pequeño arriba a la derecha (Fase 12C). Suena la música por defecto del original.
+// (Fase 12), si el navegador lo permite. Pantalla completa: icono pequeño arriba a la derecha (Fase 12C), y a su izquierda el de Discord. Suena la música por defecto del original.
 // Se maneja con ↑/↓ (cruceta o stick) + Enter/A, o con el ratón.
 import Phaser from 'phaser';
 import { DEBUG_START } from '../config/debugStart';
@@ -19,6 +19,7 @@ import {
 import { MUSIC } from '../data/audio';
 import { InputSystem } from '../systems/InputSystem';
 import { MusicSystem } from '../systems/MusicSystem';
+import { addDiscordButton } from '../ui/discordButton';
 import { addFullscreenButton } from '../ui/fullscreen';
 import { INSTALL_CHANGED, installEvents, installItem } from '../ui/install';
 import { MenuList } from '../ui/MenuList';
@@ -49,6 +50,7 @@ export class MainMenuScene extends Phaser.Scene {
         this.list = undefined;
         this.buildList();
         addFullscreenButton(this, () => this.ready());
+        addDiscordButton(this, () => this.ready());
         // Chrome can offer installing (or stop offering it) while the menu is open: the options are built again.
         const onInstallChanged = () => this.buildList();
         installEvents.on(INSTALL_CHANGED, onInstallChanged);
