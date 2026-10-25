@@ -4,6 +4,7 @@ import Phaser from 'phaser';
 import { EFFECTS, type EffectDef, type EffectKey } from '../config/effects';
 import { DEPTH_EFFECT_OFFSET } from '../config/gameConfig';
 import type { Poolable } from '../utils/Pool';
+import { smoothSprite } from '../hb/XbrPipeline';
 
 export class Effect implements Poolable {
     public poolIndex = -1;
@@ -11,7 +12,7 @@ export class Effect implements Poolable {
     private readonly sprite: Phaser.GameObjects.Sprite;
 
     constructor(scene: Phaser.Scene) {
-        this.sprite = scene.add.sprite(0, 0, '__DEFAULT').setActive(false).setVisible(false);
+        this.sprite = smoothSprite(scene.add.sprite(0, 0, '__DEFAULT')).setActive(false).setVisible(false);
     }
 
     /** Pixels still to fall and their speed (px/ms): effects dropped from the sky (Chill Wind, Fase 26C). */

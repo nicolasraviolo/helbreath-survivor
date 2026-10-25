@@ -21,6 +21,7 @@
 // (setTint, setTintFill del destello de golpe) igual que su shader normal.
 
 import Phaser from 'phaser';
+import { DEBUG_START } from '../config/debugStart';
 
 /** Key the pipeline is registered with (game config `pipeline`) and that `setPipeline` uses. */
 export const XBR_PIPELINE = 'Xbr';
@@ -194,4 +195,24 @@ export function registerXbrPipeline(game: Phaser.Game): void {
     if (renderer instanceof Phaser.Renderer.WebGL.WebGLRenderer && !renderer.pipelines.has(XBR_PIPELINE)) {
         renderer.pipelines.add(XBR_PIPELINE, new XbrPipeline(game));
     }
+}
+
+/** Anything that can wear a WebGL pipeline (sprites and images). */
+type PipelineObject = Phaser.GameObjects.GameObject & Phaser.GameObjects.Components.Pipeline;
+
+/**
+ * Whether sprites that move (character, monsters, NPCs, effects, ground items) wear the xBR filter (Fase 28¾B).
+ * On by default (owner, 25-oct-2026); `?debug=nosmooth` turns it off to compare. Fase 28¾C: the Settings option.
+ */
+export function smoothSpritesOn(): boolean {
+    return !DEBUG_START.actions.includes('nosmooth');
+}
+
+/**
+ * The single place that decides whether a sprite is drawn smooth: every moving sprite goes through here when it
+ * is made. The map, HUD, menus, icons and texts never do, so they stay sharp.
+ */
+export function smoothSprite<T extends PipelineObject>(object: T): T {
+    if (smoothSpritesOn()) object.setPipeline(XBR_PIPELINE);
+    return object;
 }

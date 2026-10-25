@@ -7,6 +7,7 @@ import { GEM_FLY_ACCELERATION, GEM_FLY_MAX_SPEED, GEM_FLY_START_SPEED } from '..
 import { PICKUP_BLINK_MS, PICKUP_BLINK_PERIOD_MS, PICKUPS, type PickupId } from '../data/pickups';
 import { getSheetKey } from '../hb/HBSprite';
 import type { Poolable } from '../utils/Pool';
+import { smoothSprite } from '../hb/XbrPipeline';
 
 export class Pickup implements Poolable {
     public poolIndex = -1;
@@ -22,7 +23,7 @@ export class Pickup implements Poolable {
 
     constructor(scene: Phaser.Scene) {
         // Just under the XP gems, so a gem on top of a potion still shows.
-        this.image = scene.add.image(0, 0, '__DEFAULT').setDepth(DEPTH_GEMS - 1).setActive(false).setVisible(false);
+        this.image = smoothSprite(scene.add.image(0, 0, '__DEFAULT')).setDepth(DEPTH_GEMS - 1).setActive(false).setVisible(false);
     }
 
     public drop(id: PickupId, x: number, y: number): void {

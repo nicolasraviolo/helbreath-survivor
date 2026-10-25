@@ -14,6 +14,13 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: readonly ReleaseNote[] = [
     {
+        version: 'Phase 28¾',
+        date: 'Oct 25, 2026',
+        changes: [
+            'Characters, monsters and effects now have smooth edges instead of blocky pixels.',
+        ],
+    },
+    {
         version: 'Phase 28½',
         date: 'Oct 25, 2026',
         changes: [

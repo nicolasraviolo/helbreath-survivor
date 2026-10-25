@@ -19,6 +19,7 @@ import { PlayerState, type GearLayer, type GearSlot } from '../hb/playerAppearan
 import { settings, SETTINGS_CHANGED } from '../systems/Settings';
 import { canStandAt, moveAxis } from '../utils/collision';
 import { CharacterSprite } from './CharacterSprite';
+import { smoothSprite } from '../hb/XbrPipeline';
 
 /** Approximate size of the drawn character, used to fade map objects that cover it. */
 const VISUAL_WIDTH = 32;
@@ -68,7 +69,7 @@ export class Player {
         this.body = new CharacterSprite(scene, def, look);
         this.healthBar = scene.make.graphics({}, false);
         this.container = scene.add.container(x, y, [this.body.container, this.healthBar]);
-        this.shadow = scene.add.sprite(x, y, '__DEFAULT')
+        this.shadow = smoothSprite(scene.add.sprite(x, y, '__DEFAULT'))
             .setTint(0x000000)
             .setAlpha(BODY_SHADOW_ALPHA)
             .setRotation(BODY_SHADOW_ROTATION)

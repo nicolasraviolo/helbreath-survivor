@@ -1463,8 +1463,8 @@ export class GameScene extends Phaser.Scene {
                 // Fase 28¾: Orcs close by (downloaded first if this map has not got them yet).
                 this.spawnDebugRing(DEBUG_ORCS);
                 break;
-            case 'smooth':
-                // Read by Enemy when it is made (the xBR filter on the Orc, Fase 28¾A).
+            case 'nosmooth':
+                // Read by smoothSprite when each sprite is made (hb/XbrPipeline.ts, Fase 28¾B).
                 break;
             case 'champion':
                 // A champion a few seconds from now (Fase 21½C).

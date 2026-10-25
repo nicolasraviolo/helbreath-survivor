@@ -22,6 +22,7 @@ import type { CombatSystem } from './CombatSystem';
 import type { EnemySystem } from './EnemySystem';
 import { lookLoader } from './LookLoader';
 import { Pool, type Poolable } from '../utils/Pool';
+import { smoothSprite } from '../hb/XbrPipeline';
 
 /** Effect key of the aura's ring. */
 const AURA_EFFECT = 'fx.aura.ring';
@@ -137,17 +138,17 @@ export class PassiveMagicSystem {
         private readonly damageType: DamageType,
     ) {
         // Over the ground and its shadows, under every character: the monsters walk over it.
-        this.auraRing = scene.add.sprite(0, 0, '__DEFAULT').setVisible(false).setAlpha(AURA_RING_ALPHA).setDepth(DEPTH_GROUND_SHADOWS + 1);
+        this.auraRing = smoothSprite(scene.add.sprite(0, 0, '__DEFAULT')).setVisible(false).setAlpha(AURA_RING_ALPHA).setDepth(DEPTH_GROUND_SHADOWS + 1);
         // Pooled: made once (at most the top rank's count) and only shown or hidden.
         const top = magicRank('daggers', magicMaxRank('daggers'));
         for (let i = 0; i < (top?.count ?? 0); i++) {
             const halo = scene.add.image(0, 0, ensureHaloTexture(scene)).setVisible(false).setBlendMode(Phaser.BlendModes.ADD).setTint(DAGGER_LOOK.haloColor);
-            const blade = scene.add.image(0, 0, '__DEFAULT').setVisible(false);
+            const blade = smoothSprite(scene.add.image(0, 0, '__DEFAULT')).setVisible(false);
             this.daggers.push({ halo, blade });
         }
         const topAngels = magicRank('angels', magicMaxRank('angels'))?.count ?? 0;
         for (let i = 0; i < Math.min(topAngels, ANGEL_SPOTS.length); i++) {
-            const sprite = scene.add.sprite(0, 0, '__DEFAULT').setVisible(false).setAlpha(ANGEL_LOOK.alpha).setScale(ANGEL_LOOK.scale);
+            const sprite = smoothSprite(scene.add.sprite(0, 0, '__DEFAULT')).setVisible(false).setAlpha(ANGEL_LOOK.alpha).setScale(ANGEL_LOOK.scale);
             this.angels.push({ sprite, x: 0, y: 0, waitMs: 0, facing: Direction.South, attackUntilMs: 0 });
         }
         const boltTexture = ensureHaloTexture(scene);

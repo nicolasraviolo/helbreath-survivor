@@ -3,6 +3,7 @@
 import Phaser from 'phaser';
 import { EFFECTS } from '../config/effects';
 import { PORTAL } from '../data/waves';
+import { smoothSprite } from '../hb/XbrPipeline';
 
 const PORTAL_EFFECT = 'fx.portal';
 
@@ -13,7 +14,7 @@ export class Portal {
     constructor(scene: Phaser.Scene, public readonly x: number, public readonly y: number, msLeft: number) {
         this.msLeft = msLeft;
         const def = EFFECTS[PORTAL_EFFECT];
-        this.sprite = scene.add.sprite(x + def.offsetX, y + def.offsetY, '__DEFAULT').setDepth(y + def.depthOffset).play(PORTAL_EFFECT);
+        this.sprite = smoothSprite(scene.add.sprite(x + def.offsetX, y + def.offsetY, '__DEFAULT')).setDepth(y + def.depthOffset).play(PORTAL_EFFECT);
     }
 
     /** Milliseconds before the run ends on its own. */

@@ -6,6 +6,7 @@ import { TILE_SIZE } from '../config/gameConfig';
 import { PICKUP_BLINK_MS, PICKUP_BLINK_PERIOD_MS } from '../data/pickups';
 import { TOTEM_LOOK, TOTEM_PICKUP, TOTEM_SPAWN, type TotemId } from '../data/totems';
 import type { Poolable } from '../utils/Pool';
+import { smoothSprite } from '../hb/XbrPipeline';
 
 export class Totem implements Poolable {
     public poolIndex = -1;
@@ -19,7 +20,7 @@ export class Totem implements Poolable {
     private readonly orb: Phaser.GameObjects.Sprite;
 
     constructor(scene: Phaser.Scene) {
-        this.orb = scene.add.sprite(0, 0, '__DEFAULT').setBlendMode(Phaser.BlendModes.ADD).setScale(TOTEM_LOOK.scale)
+        this.orb = smoothSprite(scene.add.sprite(0, 0, '__DEFAULT')).setBlendMode(Phaser.BlendModes.ADD).setScale(TOTEM_LOOK.scale)
             .setActive(false).setVisible(false);
     }
 

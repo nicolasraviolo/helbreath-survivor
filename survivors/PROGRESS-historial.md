@@ -2,6 +2,11 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
+**Fase 28¾B — Sprites suaves en todo lo que se mueve (2026-10-25).**
+- **Qué se hizo:** un único interruptor `smoothSprite()` / `smoothSpritesOn()` en `hb/XbrPipeline.ts` (encendido; `?debug=nosmooth` lo apaga, sustituye a `?debug=smooth`). Lo llevan monstruos y NPCs (`HBAsset`), todas las capas del personaje (`CharacterSprite`, también en la ventana Character y al elegir personaje; `PaperDoll`), sombras, efectos, proyectiles, meteorito, portal, tótems, auras, magias pasivas, gemas, botín y pickups. Sin filtro: mapa, HUD, menús, iconos, textos y chispas. Decisiones del propietario: encendido por defecto en PC y móvil; muñeco de Character también con filtro.
+- **Comprobado:** build; `check smooth nosmooth town` (también `--mobile`), `champion poison activespell charinfo slots crit` sin errores y 117–124 FPS; 200 monstruos: 0,58 → 0,74 ms por imagen; comparativa `.check/compare-28-3-4B.jpg`. Probado por el propietario: le gusta.
+- **Probar:** `pnpm --dir survivors dev` → http://localhost:8090/?play=warrior&debug=horde,daggers,angels (añadir `,nosmooth` para comparar).
+
 **Fase 28¾A — Sprites suaves: prueba técnica del filtro xBR (2026-10-25).**
 - **Qué se hizo:** filtro xBR-lv2 de Hyllian (MIT) como pipeline WebGL propio (`hb/XbrPipeline.ts`, registrado al arrancar). Redondea bordes y diagonales a partir de los píxeles originales, con cualquier zoom, sin tocar tamaños ni pivotes; tiene en cuenta la transparencia (suaviza la silueta) y respeta tintes, destello de golpe y alpha. De momento solo en el Orc con `?debug=smooth` (también en la escena de prueba del Orc, tecla T). Atajo `?debug=orcs` (corro de Orcs) y `check orcs` / `check smooth`.
 - **Comprobado:** build; `check orcs smooth menu` (también `--mobile`) sin errores y mismos FPS; 30 Orcs: 0,22 → 0,25 ms por imagen en PC; capturas antes/después (`.check/sprites-hd/comparativa-28-3-4A.png`) y de tintes. Probado por el propietario en PC y en su móvil: le gusta y va bien.

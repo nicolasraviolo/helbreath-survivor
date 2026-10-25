@@ -6,6 +6,7 @@ import type Phaser from 'phaser';
 import { DEPTH_EFFECT_OFFSET } from '../config/gameConfig';
 import type { MeteorSpellDef, MeteorLook } from '../data/activeSpells';
 import type { Poolable } from '../utils/Pool';
+import { smoothSprite } from '../hb/XbrPipeline';
 
 export class Meteor implements Poolable {
     public poolIndex = -1;
@@ -27,7 +28,7 @@ export class Meteor implements Poolable {
     private readonly sprites: Phaser.GameObjects.Sprite[];
 
     constructor(scene: Phaser.Scene, private readonly look: MeteorLook) {
-        this.sprites = look.flight.map(() => scene.add.sprite(0, 0, '__DEFAULT').setActive(false).setVisible(false));
+        this.sprites = look.flight.map(() => smoothSprite(scene.add.sprite(0, 0, '__DEFAULT')).setActive(false).setVisible(false));
     }
 
     /** Starts falling towards (x, y). */
