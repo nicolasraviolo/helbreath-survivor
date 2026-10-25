@@ -103,6 +103,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Monstruos que se mueven distinto (Fase 27)
 - Magias pasivas de la partida (Fase 28)
 - Sprites suaves: filtro xBR (Fase 28¾)
+- Zoom del mundo en el móvil (25-oct-2026)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -1189,3 +1190,8 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - Coste medido (28¾B, PC, 200 monstruos + dagas + angelitos): 0,58 → 0,74 ms por imagen (medido con `gl.finish` alrededor de `preRender`/`postRender` en `--eval`); FPS iguales (tope).
 - **Opción en Settings (28¾C):** `smoothSprites` en `config/settings.ts` (por defecto On en PC y móvil), casilla en la primera pestaña. Se aplica al momento: `smoothSprite` apunta cada objeto en un `Set` (sale al destruirse) y, al cambiar el ajuste, a todos se les pone `setPipeline(XBR_PIPELINE)` o `resetPipeline()`. Por eso **nadie más** debe poner otro pipeline a esos sprites (lo quitaría `resetPipeline`). Probar el cambio en caliente: `check smooth --eval="g.debugSetSmooth(false)"` → 0 sprites con filtro; `true` → todos otra vez. No viaja con el código de traspaso (los ajustes no viajan).
 - Comparar: `check smooth` / `check nosmooth` (horda con élites, dagas, angelitos y pickups); `check orcs` / `orcsnosmooth` (30 Orcs); tecla **T** = escena de prueba del Orc (`SpriteTestScene`). Capturas en `.check/sprites-hd/comparativa-28-3-4A.png` y `.check/compare-28-3-4B.jpg`.
+
+## Zoom del mundo en el móvil (25-oct-2026)
+- En el móvil (`COMPACT_UI`) la cámara de la partida y de la ciudad acerca un 25 % más: `WORLD_ZOOM` en `config/device.ts` (`PHONE_WORLD_ZOOM`), aplicado con `zoomWorldCamera(camera)` (`ui/renderScale.ts`) en `GameScene` y `TownScene`. Para probar otro valor: `?zoom=1.5` (también en el PC).
+- Lo fijo en pantalla (minimapa de la ciudad, joysticks, botones) va en una `ScreenLayer`, que ahora se encoge `RENDER_SCALE / cam.zoom` para quedar al tamaño de siempre. Todo lo nuevo fijo en pantalla dentro de esas escenas debe ir en una `ScreenLayer`.
+- La interfaz de la partida (HudScene) es otra escena y no se toca. Los monstruos aparecen según `camera.worldView`, así que se ajusta solo (se ve algo menos de mapa).

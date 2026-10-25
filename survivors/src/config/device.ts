@@ -44,3 +44,18 @@ export const RENDER_SCALE = detectRenderScale();
 
 /** Text is prepared at the same scale it is painted with, so it is drawn 1:1 (sharp, no shrinking). */
 export const TEXT_RESOLUTION = RENDER_SCALE;
+
+function detectWorldZoom(): number {
+    const forced = Number(new URLSearchParams(window.location.search).get('zoom'));
+    if (forced > 0) return forced;
+    return byDevice(1, PHONE_WORLD_ZOOM);
+}
+
+/** How much closer the camera sits in a run and in the town on phones (1.25 = everything 25 % bigger). */
+const PHONE_WORLD_ZOOM = 1.25;
+
+/**
+ * Zoom del mundo (25-oct-2026): en el móvil la partida y la ciudad se ven un 25 % más grandes (se ve algo menos de
+ * mapa). Solo la cámara del mundo; la interfaz y lo fijo en pantalla quedan igual. Para probar otro valor: ?zoom=1.5.
+ */
+export const WORLD_ZOOM = detectWorldZoom();

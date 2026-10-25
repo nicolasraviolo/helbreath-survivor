@@ -4,7 +4,7 @@
 // - Los toques y clics (`pointer.x`) llegan en píxeles del lienzo: `toGame` los pasa a 800x600.
 // - Lo que va fijo en pantalla (scrollFactor 0) Phaser lo descoloca con zoom: se mete en una `ScreenLayer`.
 import Phaser from 'phaser';
-import { RENDER_SCALE } from '../config/device';
+import { RENDER_SCALE, WORLD_ZOOM } from '../config/device';
 import { GAME_HEIGHT, GAME_WIDTH } from '../config/gameConfig';
 
 /** Canvas size in real pixels. */
@@ -19,6 +19,11 @@ export function toGame(canvasPx: number): number {
 /** Camera viewport given in game pixels. */
 export function setGameViewport(camera: Phaser.Cameras.Scene2D.Camera, x: number, y: number, width: number, height: number): void {
     camera.setViewport(x * RENDER_SCALE, y * RENDER_SCALE, width * RENDER_SCALE, height * RENDER_SCALE);
+}
+
+/** The camera that shows the map (run and town): closer on phones (WORLD_ZOOM). Fixed things use a ScreenLayer. */
+export function zoomWorldCamera(camera: Phaser.Cameras.Scene2D.Camera): void {
+    camera.setZoom(RENDER_SCALE * WORLD_ZOOM);
 }
 
 /** Zooms the main camera of every scene as it starts (before its create(), which may still move or follow). */
@@ -57,10 +62,14 @@ export class ScreenLayer extends Phaser.GameObjects.Container {
         return this;
     }
 
-    /** The camera draws scrollFactor-0 points at origin + zoom * (p - origin): shift so p lands at zoom * p. */
+    /**
+     * The camera draws scrollFactor-0 points at origin + zoom * (p - origin): shift so p lands at RENDER_SCALE * p.
+     * With the world zoom of phones the camera zooms more than RENDER_SCALE, so the layer shrinks by the difference.
+     */
     private place(): void {
         const cam = this.camera;
         const zoom = cam.zoom;
         this.setPosition(cam.width * cam.originX * (1 - 1 / zoom), cam.height * cam.originY * (1 - 1 / zoom));
+        this.setScale(RENDER_SCALE / zoom);
     }
 }

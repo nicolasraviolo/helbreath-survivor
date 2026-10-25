@@ -2,6 +2,12 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
+**Arreglo suelto — zoom del 125 % en el móvil (2026-10-25).**
+- **Qué hace:** en el móvil, la partida y la ciudad se ven un 25 % más grandes (se ve algo menos de mapa). La interfaz, el minimapa, los joysticks y los botones quedan igual. En el PC no cambia nada.
+- **Código:** `WORLD_ZOOM` / `PHONE_WORLD_ZOOM` en `config/device.ts` (`?zoom=1.5` para probar otro valor), `zoomWorldCamera` en `ui/renderScale.ts` (lo llaman `GameScene` y `TownScene`); `ScreenLayer` se encoge `RENDER_SCALE / zoom` para que lo fijo en pantalla no crezca. Línea en What's new (Phase 28¾). Nota en NOTES.md, "Zoom del mundo en el móvil".
+- **Comprobado:** build; `check game horde town townnpc --mobile` y aimstick con horda, sin errores y 116–124 FPS; en PC el zoom sigue igual (`check game town`); capturas de ciudad con y sin zoom.
+- **Probar:** `pnpm --dir survivors dev` → http://localhost:8090/?play&ui=compact (con `&zoom=1` para comparar); ciudad: http://localhost:8090/?characters=demo&open=town&ui=compact.
+
 **Arreglo suelto — óvalo de sombra bajo los monstruos sin sombra (2026-10-25).**
 - **Qué hace:** Slime, Ant, Snake, Cat, Dire Boar, Scorpion, Tigerworm y Unicorn (sin sombra en el original) llevan un óvalo negro difuminado bajo los pies, al 50%, para que no se fundan con el suelo en el móvil. Se probó antes la sombra del original (copia aplastada del sprite): en monstruos tan planos casi no se ve.
 - **Código:** `GROUND_SHADOW` en `config/gameConfig.ts` (tamaño por radio, `alpha`, anillos del difuminado); `Enemy.groundShadow`, `scaleGroundShadow` (crece con los Champion) y `ensureGroundShadowTexture` en `entities/Enemy.ts`. Línea nueva en What's new (Phase 28¾). Nota en NOTES.md, "Sombras del jugador y los monstruos (Fase 22G)".

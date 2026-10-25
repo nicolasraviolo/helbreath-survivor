@@ -9,6 +9,7 @@
 // Sin ir a Howard (24-oct-2026, propietario): I abre Equipment y C (o Y del mando) la ventana Character, para repartir
 // los puntos; las dos también en la pausa. Con puntos sin repartir sale "Level Up" abajo a la derecha (ui/LevelUpNotice).
 import Phaser from 'phaser';
+import { zoomWorldCamera } from '../ui/renderScale';
 import { DEBUG_START } from '../config/debugStart';
 import { MENU_INPUT_DELAY_MS } from '../config/menus';
 import { CAMERA_LERP, DEPTH_DEBUG, GAME_HEIGHT, MAP_OBJECT_MARGIN_TILES, TILE_SIZE } from '../config/gameConfig';
@@ -129,6 +130,7 @@ export class TownScene extends Phaser.Scene {
         this.onPortal = false;
 
         const camera = this.cameras.main;
+        zoomWorldCamera(camera);
         camera.setBounds(areaPx.x, areaPx.y, areaPx.width, areaPx.height);
         camera.startFollow(this.player.container, true, CAMERA_LERP, CAMERA_LERP);
         camera.centerOn(this.player.x, this.player.y);

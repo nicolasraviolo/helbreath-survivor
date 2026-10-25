@@ -120,7 +120,7 @@ import { ANGEL_DEBUG_RANK, AURA_DEBUG_RANK, DAGGER_DEBUG_RANK, MAGIC_IDS, getMag
 import { goldStore } from '../systems/GoldStore';
 import { RunMetrics, metricsAllowed, sendRunReport } from '../systems/RunMetrics';
 import type { RunResult } from '../config/metrics';
-import { ScreenLayer, setGameViewport } from '../ui/renderScale';
+import { ScreenLayer, setGameViewport, zoomWorldCamera } from '../ui/renderScale';
 
 /** Enemies created by the debug "spawn many" key. */
 const DEBUG_SPAWN_COUNT = 100;
@@ -341,6 +341,7 @@ export class GameScene extends Phaser.Scene {
         // The classic bottom bar covers the last rows of the screen: the camera only draws above it, so the player stays
         // centred in what is visible (with the compact HUD of phones it draws down to the bottom; see fitPlayArea).
         const camera = this.cameras.main;
+        zoomWorldCamera(camera);
         camera.setBounds(areaPx.x, areaPx.y, areaPx.width, areaPx.height);
         camera.startFollow(this.player.container, true, CAMERA_LERP, CAMERA_LERP);
 
