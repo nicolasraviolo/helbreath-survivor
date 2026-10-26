@@ -47,7 +47,10 @@ export function critDamageMultiplier(level: number): number {
     return CRIT_STRIKE.damageBase + level / CRIT_STRIKE.damagePerLevel;
 }
 
-/** Strike of each weapon family (owner, 18-oct-2026). Hammers, fencing and axes are not in the game yet. */
+/**
+ * Strike of each weapon family (owner, 18-oct-2026). Fencing is not in the game yet. Hammers (bloque C) slam the ground:
+ * the circle is their wave, plus a crack HAMMER_SLAM.critCrackLength times as long as the weapon's (WeaponSystem).
+ */
 export const CRIT_SHAPES: Record<MeleeFamilyId, CritShape> = {
     /** Short swords: a wide sweep 1 tile further than the normal swing. */
     shortSword: { extraTiles: 1, arcDegrees: 140, hits: 1, repeatMs: 0, knockback: 260, damageBonus: 0 },

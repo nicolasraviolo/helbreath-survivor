@@ -1,5 +1,7 @@
 // Armas cuerpo a cuerpo del Guerrero. Los hechizos de la Maga están en data/spells.ts.
 import type { SoundKey, SpriteKey } from '../config/assetManifest';
+import type { EffectKey } from '../config/effects';
+import type { LinePathDef } from './activeSpells';
 import type { EquipRequirement, ItemIcon } from './itemTypes';
 
 // ---------------------------------------------------------------------------------------------------------
@@ -36,10 +38,12 @@ export interface MeleeWeaponDef {
     equip?: EquipRequirement;
     /** Picture in item-pack.spr (Equipment screen). */
     icon?: ItemIcon;
+    /** Hammers (bloque C): the crack in a line towards the target, `length` px long, `damage` to each monster on it. */
+    crack?: { damage: number; length: number };
 }
 
-/** How a family attacks: a swing in an arc towards the target, or a spin all around (axes). */
-export type MeleeAttackStyle = 'swing' | 'spin';
+/** How a family attacks: a swing in an arc towards the target, a spin all around (axes) or a ground slam (hammers). */
+export type MeleeAttackStyle = 'swing' | 'spin' | 'slam';
 
 export interface MeleeFamilyDef {
     name: string;
@@ -77,6 +81,43 @@ export const AXE_SPIN = {
     /** Turns clockwise on screen. */
     clockwise: true,
 } as const;
+
+/**
+ * Ground slam of the hammers (bloque C, owner 25-oct-2026): the normal swing towards the target, and when the hammer hits
+ * the ground a wave hurts every monster in the circle around the player and a crack runs in a line towards the target.
+ */
+export const HAMMER_SLAM = {
+    /** The hammer hits the ground at this point of the swing (later than a sword's: it is heavy). */
+    hitMoment: 0.4,
+    /** Stands still until just after the blow. */
+    rootMoment: 0.5,
+    /** Slams when a monster is within this share of the crack's length (the crack reaches it), not only the circle. */
+    triggerShare: 0.75,
+    /** Played when the hammer hits the ground (a dull blow, C5), instead of the sword's swing and hit. */
+    impactSound: 'sfx.melee.blunt',
+    /** Light camera shake on every slam. */
+    shakePx: 2,
+    shakeMs: 120,
+    /** The Critical Strike's crack is this many times as long as the weapon's own. */
+    critCrackLength: 1.6,
+    /** Dust puffs around the player when the hammer hits the ground, at `dustShare` of the wave's radius (no ring: owner, 26-oct-2026). */
+    wave: { dust: 'fx.earthShock.dust', dustCount: 6, dustShare: 0.7 },
+} as const satisfies {
+    hitMoment: number; rootMoment: number; triggerShare: number; impactSound: SoundKey; shakePx: number; shakeMs: number; critCrackLength: number;
+    wave: { dust: EffectKey; dustCount: number; dustShare: number };
+};
+
+/**
+ * The hammers' crack (bloque C): the Earth Shock Wave's rocks (systems/LineSpell.ts), short and physical. Each monster on
+ * it takes the weapon's `crack.damage` once (here `pathDamage` 1 × that damage, passed as the cast's power).
+ */
+export const HAMMER_CRACK: LinePathDef = {
+    look: 'earthShock', damageType: 'physical', bigNumbers: false,
+    travelMs: 0, speed: 900, stepEveryMs: 40, holdMs: 0, holdStepMs: 0,
+    pathRadius: 36, pathDamage: 1, pathHits: 1, pathHitDelayMs: 0,
+    targetRadius: 0, targetDamage: 0, targetHitDelaysMs: [],
+    slows: false, knockback: 140, shakePx: 0, shakeMs: 0,
+};
 
 export const MELEE_WEAPONS = {
     // Short Swords: rápidas, poco alcance, poco requisito.
@@ -127,9 +168,20 @@ export const MELEE_WEAPONS = {
         range: 100, arcDegrees: 170, knockback: 200, sprite: { key: SWORD_SPRITE, startSheet: 616 },
         equip: { str: 60 }, icon: { sheet: 0, frame: 11 },
     },
-    // Desactivadas (solo datos, sin ataque propio ni sprite cargado todavía). Números provisionales.
-    hammer: { name: 'Hammer', family: 'hammer', damage: 40, cooldownMs: 1600, swingMs: 700, range: 90, arcDegrees: 360, knockback: 260 },
-    battleHammer: { name: 'Battle Hammer', family: 'hammer', damage: 55, cooldownMs: 1700, swingMs: 700, range: 100, arcDegrees: 360, knockback: 280 },
+    // Hammers (bloque C, 26-oct-2026): golpe al suelo (HAMMER_SLAM). La onda daña todo el círculo de `range` y la grieta
+    // (`crack`) sale en línea hacia el objetivo. Lentos y pesados: más daño por golpe que espadas y hachas, menos golpes.
+    // Icono: hoja 14 de item-pack.spr, como las hachas (Item.cfg Spr 15).
+    hammer: {
+        name: 'Hammer', family: 'hammer', damage: 46, cooldownMs: 1500, swingMs: 650,
+        range: 80, arcDegrees: 360, knockback: 240, sprite: { key: 'gear.hammers.hammer', startSheet: 0 },
+        equip: { str: 70 }, icon: { sheet: AXE_ICON_SHEET, frame: 7 }, crack: { damage: 28, length: 200 },
+    },
+    battleHammer: {
+        name: 'Battle Hammer', family: 'hammer', damage: 62, cooldownMs: 1550, swingMs: 650,
+        range: 90, arcDegrees: 360, knockback: 270, sprite: { key: 'gear.hammers.battle', startSheet: 0 },
+        equip: { str: 95 }, icon: { sheet: AXE_ICON_SHEET, frame: 8 }, crack: { damage: 38, length: 240 },
+    },
+    // Desactivada (solo datos, sin ataque propio ni sprite cargado todavía). Números provisionales.
     rapier: { name: 'Rapier', family: 'fencing', damage: 10, cooldownMs: 400, swingMs: 320, range: 90, arcDegrees: 25, knockback: 40 },
     // Axes (bloque B, 25-oct-2026): giran sobre sí mismos y golpean todo el círculo (AXE_SPIN). Hacen menos daño por golpe
     // que la espada larga de Str parecida porque dan a todo lo que rodea al jugador. Requisitos aprobados por el propietario.
@@ -166,7 +218,7 @@ export type MeleeWeaponId = keyof typeof MELEE_WEAPONS;
 export const MELEE_FAMILIES = {
     shortSword: { name: 'Short Swords', enabled: true, attack: 'swing', links: ['dagger', 'shortSword', 'falchion'] },
     longSword: { name: 'Long Swords', enabled: true, attack: 'swing', links: ['longSword', 'scimitar', 'broadSword', 'claymore', 'greatSword', 'flamberge'] },
-    hammer: { name: 'Hammers', enabled: false, attack: 'swing', links: ['hammer', 'battleHammer'] },
+    hammer: { name: 'Hammers', enabled: true, attack: 'slam', links: ['hammer', 'battleHammer'] },
     fencing: { name: 'Fencing', enabled: false, attack: 'swing', links: ['rapier'] },
     axe: { name: 'Axes', enabled: true, attack: 'spin', links: ['lightAxe', 'tomahawk', 'doubleAxe', 'warAxe', 'battleAxe'] },
 } as const satisfies Record<MeleeFamilyId, MeleeFamilyDef>;

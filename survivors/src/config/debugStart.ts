@@ -43,7 +43,8 @@
 //   ?attr=sharp      → el arma de salida y todo el botín (que siempre es un arma) con ese atributo: sharp, poison o
 //                      ancient (Fase 21B; las varitas nunca son poison)
 //   ?weapon=lightAxe → el Guerrero empieza la partida con esa arma en la mano (id de data/weapons.ts), sin mirar
-//                      requisitos ni lo que lleve puesto (bloque B, hachas: lightAxe, tomahawk, doubleAxe, warAxe, battleAxe)
+//                      requisitos ni lo que lleve puesto (bloque B, hachas: lightAxe, tomahawk, doubleAxe, warAxe, battleAxe;
+//                      bloque C, martillos: hammer, battleHammer)
 //   ?upgrade=3       → el arma (o varita) de salida a +3 en las partidas de prueba sin personaje (1–3; Fase 24D)
 //   ?level=25        → partida de prueba como un personaje de ese Level: puntos repartidos y el mejor equipo que ya puede
 //                      ponerse (config/simProfile.ts; revisión de la dificultad, 22-oct-2026). Con &build=str:2,vit:1,dex:1

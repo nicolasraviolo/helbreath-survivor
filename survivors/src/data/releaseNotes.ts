@@ -23,6 +23,7 @@ export const RELEASE_NOTES: readonly ReleaseNote[] = [
             'On phones, the world is shown bigger so characters and monsters are easier to see.',
             'Armor, wands and spells unlock more gradually: something new every few points.',
             'Axes are here: the Warrior spins around and hits every monster close to him. Buy them from Tom.',
+            'Hammers are here: the Warrior slams the ground, hurting everything around him, and a crack runs towards the monsters. Buy them from Tom.',
         ],
     },
     {

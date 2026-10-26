@@ -23,6 +23,7 @@
 //   Strike, Mass Fire Strike). Su daño es el del proyectil × `damageScale` × el multiplicador de Power.
 import type { SoundKey, SpriteKey } from '../config/assetManifest';
 import type { EffectKey } from '../config/effects';
+import type { DamageType } from '../entities/CharacterStats';
 import { SPELLS, type SpellId } from './spells';
 
 export type ActiveSpellId =
@@ -101,11 +102,16 @@ export interface IceShardSpellDef extends ActiveSpellBase {
 /** How a line spell looks as it travels (LINE_SPELL_LOOKS). */
 export type LineSpellLook = 'blizzard' | 'earthShock' | 'bloodyShock';
 
-export interface LineSpellDef extends ActiveSpellBase {
-    kind: 'line';
+/**
+ * What travels in a line (systems/LineSpell.ts): the line spells and, since bloque C, the hammers' crack
+ * (HAMMER_CRACK in data/weapons.ts), which is physical and shows normal numbers.
+ */
+export interface LinePathDef {
     look: LineSpellLook;
-    /** Sprite downloaded when a run with this spell starts (only if no other run sprite has its pictures). */
-    sprite?: SpriteKey;
+    /** 'magic' when left out (the spells). */
+    damageType?: DamageType;
+    /** Every number shown as a big one (the spells); false = big only on a critical hit (the hammers' crack). */
+    bigNumbers?: boolean;
     /** Time to go from the Mage to the chosen point (ms); with `speed` (px/s) it depends on the distance instead. */
     travelMs: number;
     speed?: number;
@@ -130,6 +136,12 @@ export interface LineSpellDef extends ActiveSpellBase {
     /** Camera shake on arrival. */
     shakePx: number;
     shakeMs: number;
+}
+
+export interface LineSpellDef extends ActiveSpellBase, LinePathDef {
+    kind: 'line';
+    /** Sprite downloaded when a run with this spell starts (only if no other run sprite has its pictures). */
+    sprite?: SpriteKey;
 }
 
 export type ActiveSpellDef = MeteorSpellDef | BarrageSpellDef | IceShardSpellDef | LineSpellDef;

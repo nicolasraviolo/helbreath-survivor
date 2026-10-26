@@ -65,8 +65,8 @@ const CLOTHES: Partial<Record<SpriteKey, CfgPicture>> = {
 const SHIELD_SPR = 3;
 /** msh/wsh.spr have 7 sheets per shield, in the Item.cfg frame order. */
 const SHIELD_SHEETS_PER_FRAME = 7;
-/** Item.cfg group of each weapon family's pictures (swords 1, axes 15). */
-const WEAPON_SPR: Partial<Record<MeleeFamilyId, number>> = { shortSword: 1, longSword: 1, axe: 15 };
+/** Item.cfg group of each weapon family's pictures (swords 1, axes and hammers 15). */
+const WEAPON_SPR: Partial<Record<MeleeFamilyId, number>> = { shortSword: 1, longSword: 1, axe: 15, hammer: 15 };
 
 type DollPlace = 'body' | 'back' | 'shield' | 'weapon' | 'head';
 

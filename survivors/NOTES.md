@@ -105,6 +105,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Sprites suaves: filtro xBR (Fase 28¾)
 - Zoom del mundo en el móvil (25-oct-2026)
 - Hachas: giro en torbellino (bloque B, 25-oct-2026)
+- Martillos: golpe al suelo y grieta (bloque C, 26-oct-2026)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -1208,3 +1209,12 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - Ataque: `MELEE_FAMILIES[f].attack = 'spin'` → `MeleeWeapon` llama a `context.spinMelee`; `Player.spin` recorre las 8 direcciones con el fotograma `AXE_SPIN.poseFrame` (5 = hacha baja, en pleno barrido; 3 = levantada) fijado en `CharacterSprite.heldFrame`; `Slash.showSpin` dibuja la estela circular (`SPIN_TRAIL` en `data/slash.ts`). El daño cae una vez sobre todo el círculo en `AXE_SPIN.hitMoment`. Quieto todo el giro; un golpe recibido (Hurt) lo corta, como a las espadas.
 - El crit de las hachas (2 giros, `data/critStrike.ts`) usa el mismo giro y estela (`WeaponSystem.startStrikeAnimation`).
 - La partida simulada (`simBestEquipment`) se queda con las espadas (`SIM_WEAPON_FAMILIES`) para que las medidas sigan comparables; `?weapon=lightAxe` pone otra arma (también `pnpm balance warrior:bisle:10:0@weapon=tomahawk`). `check axe` / `battleaxe` / `levelpaceaxe`.
+
+## Martillos: golpe al suelo y grieta (bloque C, 26-oct-2026)
+- Sprites: `mhammer.spr` (Hammer) y `mbhammer.spr` (Battle Hammer), 56 hojas cada uno, `startSheet: 0` (claves `gear.hammers.*`). El original usa el de hombre también para la mujer; solo los lleva Gorn. En IdleCombat se ven bien (no están rotos como `maxe*`). Existen `whammer`, `wbhammer` y los del Barbarian Hammer (`mbabhammer`/`wbabhammer`, Str 200, para los únicos).
+- Iconos: `item-pack.spr` hoja 14 (como las hachas), frame 7 (Hammer) y 8 (Battle Hammer); en la ventana Character, grupo 15 (`WEAPON_SPR`).
+- Ataque: `attack: 'slam'` → `MeleeWeapon` llama a `context.slamMelee` (tajo normal hacia el objetivo, quieto hasta `HAMMER_SLAM.rootMoment`) y en `HAMMER_SLAM.hitMoment` `WeaponSystem.groundSlam`: daño en todo el círculo de `range`, polvo `fx.earthShock.dust` alrededor, golpe sordo C5 (`sfx.melee.blunt`), temblor suave y la grieta.
+- Grieta: reutiliza `systems/LineSpell.ts` con `HAMMER_CRACK` (look `earthShock`, daño físico, números normales). `LinePathDef` (data/activeSpells.ts) es la parte de "camino" de `LineSpellDef`; `pathDamage: 1` y el daño de la grieta del arma va como `power`. Tiene su propio `LineSpell` (`hammerCracks`) para que no vibre el mando como un hechizo activo.
+- El martillo ataca también si el monstruo está fuera del círculo pero al alcance de la grieta (`HAMMER_SLAM.triggerShare` × largo).
+- Crit: el círculo de `CRIT_SHAPES.hammer` y una grieta `critCrackLength` (×1,6) más larga, con su daño escalado como el del golpe.
+- `check hammer` / `battlehammer` / `levelpacehammer`; `?weapon=hammer|battleHammer`. Para ver la grieta de cerca: `"play=warrior&weapon=battleHammer&debug=god,crits,aim&zoom=2&trees=off"` y `--eval="(g.launchCritStrike(), new Promise(r => setTimeout(r, 420)))"`.

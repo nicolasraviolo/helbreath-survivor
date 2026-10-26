@@ -4,10 +4,11 @@
 // recta de la Maga al sitio elegido y, cada `stepEveryMs`, deja sus dibujos (nudos rojos, chorros de roca o trozos de
 // hielo) y golpea a los monstruos que hay cerca de ese punto. Cada monstruo recibe el golpe del camino `pathHits` veces
 // como mucho por lanzamiento; al llegar, uno o dos golpes de área en el punto. Blizzard ralentiza (chillEnemy).
+// Bloque C (26-oct-2026): la grieta de los martillos usa lo mismo (HAMMER_CRACK, daño físico y números normales).
 // Todo con pool (regla 5): los lanzamientos se reutilizan; los trozos de hielo caen con IceShardRain.dropShard.
 import Phaser from 'phaser';
 import type { EffectKey } from '../config/effects';
-import { LINE_SPELL_LOOKS, type LineSpellDef } from '../data/activeSpells';
+import { LINE_SPELL_LOOKS, type LinePathDef } from '../data/activeSpells';
 import type { Enemy } from '../entities/Enemy';
 import { Pool, type Poolable } from '../utils/Pool';
 import type { AudioSystem } from './AudioSystem';
@@ -19,7 +20,7 @@ import type { ScreenShake } from './ScreenShake';
 /** One cast on its way: from (fromX, fromY) to (toX, toY), `elapsedMs` since it left (negative while the Mage casts). */
 class LineCast implements Poolable {
     public poolIndex = -1;
-    public def!: LineSpellDef;
+    public def!: LinePathDef;
     public power = 1;
     public fromX = 0;
     public fromY = 0;
@@ -75,7 +76,7 @@ export class LineSpell {
     ) {}
 
     /** Starts one from (fromX, fromY) to (toX, toY), leaving after `releaseMs` (the cast animation). */
-    public cast(def: LineSpellDef, power: number, fromX: number, fromY: number, toX: number, toY: number, releaseMs: number): void {
+    public cast(def: LinePathDef, power: number, fromX: number, fromY: number, toX: number, toY: number, releaseMs: number): void {
         const cast = this.casts.acquire();
         cast.def = def;
         cast.power = power;
@@ -176,8 +177,8 @@ export class LineSpell {
             cast.hitCount.set(enemy, count + 1);
             // Radius 0 and no area damage: only this enemy takes it.
             this.combat.hitArea({
-                damageType: 'magic', x, y, radius: 0, areaDamage: 0, direct: enemy, directDamage: def.pathDamage * cast.power,
-                knockback: def.knockback, bigNumbers: true,
+                damageType: def.damageType ?? 'magic', x, y, radius: 0, areaDamage: 0, direct: enemy, directDamage: def.pathDamage * cast.power,
+                knockback: def.knockback, bigNumbers: def.bigNumbers ?? true,
             });
             this.touch(cast, enemy);
         });
@@ -187,8 +188,8 @@ export class LineSpell {
     private hitTarget(cast: LineCast): void {
         const { def } = cast;
         this.combat.hitArea({
-            damageType: 'magic', x: cast.toX, y: cast.toY, radius: def.targetRadius, areaDamage: def.targetDamage * cast.power,
-            direct: undefined, directDamage: 0, knockback: def.knockback, bigNumbers: true,
+            damageType: def.damageType ?? 'magic', x: cast.toX, y: cast.toY, radius: def.targetRadius, areaDamage: def.targetDamage * cast.power,
+            direct: undefined, directDamage: 0, knockback: def.knockback, bigNumbers: def.bigNumbers ?? true,
         }, (enemy) => this.touch(cast, enemy));
     }
 

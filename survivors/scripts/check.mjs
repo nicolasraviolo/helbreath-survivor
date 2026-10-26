@@ -82,6 +82,12 @@ const PRESETS = {
     battleaxe: 'play=warrior&weapon=battleAxe&debug=god,horde',
     // Ritmo de partida con un hacha (comparar con levelpace, que lleva la daga de salida).
     levelpaceaxe: 'debug=sim&weapon=lightAxe',
+    // Martillos (bloque C): golpe al suelo con onda y grieta en una horda. Crit con grieta larga: --eval="g.launchCritStrike()".
+    hammer: 'play=warrior&weapon=hammer&debug=god,horde,crits',
+    // El Battle Hammer (Str 95), para ver el dibujo en la mano.
+    battlehammer: 'play=warrior&weapon=battleHammer&debug=god,horde',
+    // Ritmo de partida con un martillo.
+    levelpacehammer: 'debug=sim&weapon=hammer',
     // Meteor Strike del Mago (Fase 19B): horda alrededor y sin recarga. Para lanzarlo: --eval="g.launchCritStrike()"
     // (el mismo botón que el crit); con --wait da tiempo a que caiga y explote.
     meteor: 'play=mage&debug=god,horde,crits',

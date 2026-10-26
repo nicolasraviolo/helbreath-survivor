@@ -3,8 +3,10 @@
 // Con apuntado manual (Fase 15B), el tajo va hacia donde apunta el jugador, si hay algún enemigo a su alcance.
 // Las hachas (bloque B, 25-oct-2026) giran en vez de dar un tajo: el personaje recorre las 8 direcciones y el daño
 // cae una vez sobre todo el círculo (AXE_SPIN); el giro empieza mirando al objetivo.
+// Los martillos (bloque C, 26-oct-2026) dan el tajo hacia el objetivo y, al tocar el suelo, onda en círculo y grieta en
+// línea hacia él (HAMMER_SLAM; lo dibuja y aplica WeaponSystem.groundSlam).
 // Los números de cada arma viven en data/weapons.ts (MELEE_WEAPONS).
-import { AXE_SPIN, MELEE_HIT_MOMENT, meleeAttackStyle, type MeleeWeaponDef, type MeleeWeaponId, MELEE_WEAPONS } from '../data/weapons';
+import { AXE_SPIN, HAMMER_SLAM, MELEE_HIT_MOMENT, meleeAttackStyle, type MeleeWeaponDef, type MeleeWeaponId, MELEE_WEAPONS } from '../data/weapons';
 import { MELEE_ORIGIN_OFFSET_Y } from '../config/gameConfig';
 import { manualAimAngle } from '../systems/Targeting';
 import { Weapon, type WeaponContext } from './Weapon';
@@ -33,7 +35,9 @@ export class MeleeWeapon extends Weapon {
 
     protected fire(context: WeaponContext): boolean {
         const def = this.def;
-        const reach = def.range + TARGET_MARGIN_PX;
+        // Hammers (bloque C): they also slam when the monster is out of the circle but the crack reaches it.
+        const crackReach = def.crack ? def.crack.length * HAMMER_SLAM.triggerShare : 0;
+        const reach = Math.max(def.range + TARGET_MARGIN_PX, crackReach);
         const originY = context.y - MELEE_ORIGIN_OFFSET_Y;
         let angle: number;
         if (context.manualAim) {
@@ -45,9 +49,13 @@ export class MeleeWeapon extends Weapon {
             angle = Math.atan2(target.bodyY - originY, target.x - context.x);
         }
         const durationMs = def.swingMs * context.cooldownMultiplier;
-        if (meleeAttackStyle(def) === 'spin') {
+        const style = meleeAttackStyle(def);
+        if (style === 'spin') {
             context.spinMelee(def, angle, durationMs);
             this.pendingHitMs = durationMs * AXE_SPIN.hitMoment;
+        } else if (style === 'slam') {
+            context.slamMelee(def, angle, durationMs);
+            this.pendingHitMs = durationMs * HAMMER_SLAM.hitMoment;
         } else {
             context.swingMelee(def, angle, durationMs);
             this.pendingHitMs = durationMs * MELEE_HIT_MOMENT;

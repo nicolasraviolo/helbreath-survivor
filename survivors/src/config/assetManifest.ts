@@ -85,6 +85,10 @@ export const SPRITES = {
     'gear.axes.double': { file: 'sprites/waxe1.spr', type: SpriteType.Weapons },
     'gear.axes.war': { file: 'sprites/waxe2.spr', type: SpriteType.Weapons },
     'gear.axes.battle': { file: 'sprites/waxe6.spr', type: SpriteType.Weapons },
+    // Martillos (bloque C, 26-oct-2026): un archivo de 56 hojas por martillo, como las hachas. El original usa el de
+    // hombre también para la mujer (Items.ts); solo los lleva el Guerrero (Gorn, hombre).
+    'gear.hammers.hammer': { file: 'sprites/mhammer.spr', type: SpriteType.Weapons },
+    'gear.hammers.battle': { file: 'sprites/mbhammer.spr', type: SpriteType.Weapons },
     // Mago: túnica, sombrero de mago (Wizard Hat) y varita. Fase 21B: las varitas son las del original (data/wands.ts);
     // todas las Magic Wand y Wizard Staff se dibujan con mstaff2 (Appr 36 del Item.cfg).
     'gear.armor.robe.m': { file: 'sprites/mrobe1.spr', type: SpriteType.EquipmentPack },
@@ -319,6 +323,8 @@ export const SOUNDS = {
     // Armas cuerpo a cuerpo: tajo del jugador (PLAYER_MELEE_ATTACK) y golpe con filo en un monstruo (TAKE_DAMAGE_BLADE).
     'sfx.melee.swing': { file: 'sounds/C18.mp3' },
     'sfx.melee.hit': { file: 'sounds/C6.mp3' },
+    // Golpe sordo (el del original para golpes sin filo): el de los martillos al estampar (bloque C).
+    'sfx.melee.blunt': { file: 'sounds/C5.mp3' },
     // Explosión de fuego (EFFECT_EXPLOSION) y lanzar hechizo (PLAYER_CAST).
     'sfx.explosion': { file: 'sounds/E4.mp3' },
     'sfx.cast': { file: 'sounds/C16.mp3' },

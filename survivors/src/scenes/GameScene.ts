@@ -46,7 +46,7 @@ import { RESUME_SLOT_KEY, saveStore, type RunSnapshot } from '../systems/SaveSto
 import { ACTIVE_CHARACTER_KEY, characterStore, permanentStats } from '../systems/CharacterStore';
 import { lookLoader, runSprites } from '../systems/LookLoader';
 import { MIN_DAMAGE_TAKEN } from '../data/armor';
-import { AXE_SPIN, MELEE_ROOT_MOMENT } from '../data/weapons';
+import { AXE_SPIN, HAMMER_SLAM, MELEE_ROOT_MOMENT } from '../data/weapons';
 import { CAST_RELEASE_MOMENT } from '../data/spells';
 import { FOOTSTEP_DUST_EVERY_PX, FOOTSTEPS_PER_RUN_CYCLE } from '../data/audio';
 import { PLAYER_FRAMES_PER_DIRECTION } from '../hb/playerAppearance';
@@ -456,6 +456,7 @@ export class GameScene extends Phaser.Scene {
             const direction = directionFromVector(Math.cos(angle), Math.sin(angle)) ?? this.player.direction;
             if (action === 'melee') this.player.act(PlayerState.Melee, direction, durationMs, durationMs * MELEE_ROOT_MOMENT);
             else if (action === 'spin') this.player.spin(angle, durationMs, AXE_SPIN.clockwise, AXE_SPIN.poseFrame);
+            else if (action === 'slam') this.player.act(PlayerState.Melee, direction, durationMs, durationMs * HAMMER_SLAM.rootMoment);
             else this.player.act(PlayerState.Cast, direction, durationMs, durationMs * CAST_RELEASE_MOMENT);
         });
         this.player.setMaxHp(this.stats.maxHp, true);

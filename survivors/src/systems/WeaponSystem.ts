@@ -5,6 +5,8 @@
 // Y los hechizos activos del Mago (Fase 19B y 20D, data/activeSpells.ts): el meteorito o una ráfaga de proyectiles;
 // los pide systems/ActiveSpellSystem.ts. La lluvia de hielo (Ice Strike, Fase 26D) vive en systems/IceShardRain.ts y
 // los hechizos en línea (Blizzard, Earth / Bloody Shock Wave, Fase 26E) en systems/LineSpell.ts.
+// Bloque C: el golpe al suelo de los martillos (groundSlam): onda en círculo (polvo alrededor) y grieta en línea
+// (HAMMER_CRACK, con su propio LineSpell para que no cuente como hechizo activo).
 import Phaser from 'phaser';
 import { MELEE_ORIGIN_OFFSET_Y } from '../config/gameConfig';
 import { SWING_SOUND_MS } from '../data/audio';
@@ -12,7 +14,7 @@ import type { EffectKey } from '../config/effects';
 import { CAST_RELEASE_MOMENT, CAST_SOUND, SPELLS, type SpellBurst, type SpellDef } from '../data/spells';
 import { critReach, type CritShape } from '../data/critStrike';
 import { METEOR_LOOK, type BarrageSpellDef, type IceShardSpellDef, type LineSpellDef, type MeteorSpellDef } from '../data/activeSpells';
-import { AXE_SPIN, MELEE_HIT_MOMENT, MELEE_HIT_SOUND, MELEE_SWING_SOUND, meleeAttackStyle, type MeleeWeaponDef } from '../data/weapons';
+import { AXE_SPIN, HAMMER_CRACK, HAMMER_SLAM, MELEE_HIT_MOMENT, MELEE_HIT_SOUND, MELEE_SWING_SOUND, meleeAttackStyle, type MeleeWeaponDef } from '../data/weapons';
 import { Effect } from '../entities/Effect';
 import type { Enemy } from '../entities/Enemy';
 import { LightningArc } from '../entities/LightningArc';
@@ -30,7 +32,7 @@ import type { ScreenShake } from './ScreenShake';
 import { type ManualAim, manualAimAngle, Targeting } from './Targeting';
 
 /** Owner animation asked by a weapon: a melee swing or a cast. */
-export type OwnerAction = 'melee' | 'cast' | 'spin';
+export type OwnerAction = 'melee' | 'cast' | 'spin' | 'slam';
 
 /** An explosion waiting to be drawn (Fire Strike: 4 explosions 0–140 ms apart). */
 class PendingBurst implements Poolable {
@@ -70,10 +72,12 @@ export class WeaponSystem {
     private readonly targeting: Targeting;
     private readonly iceRain: IceShardRain;
     private readonly lineSpell: LineSpell;
+    /** Hammers (bloque C): their cracks. */
+    private readonly hammerCracks: LineSpell;
     /** Critical Strike under way: blows still to land (axes spin twice) and when the next one lands. */
     /** Fase 19C: the Critical Strike or the Mage's active spell hit at least one monster (once per launch; the gamepad vibrates). */
     public onSkillHit: ((skill: 'critStrike' | 'activeSpell') => void) | undefined;
-    private readonly strike = { hitsLeft: 0, landed: false, waitMs: 0, angle: 0, radius: 0, arc: 0, damage: 0, knockback: 0, repeatMs: 0, swingMs: 0, spin: false };
+    private readonly strike = { hitsLeft: 0, landed: false, waitMs: 0, angle: 0, radius: 0, arc: 0, damage: 0, knockback: 0, repeatMs: 0, swingMs: 0, spin: false, slam: false, crackDamage: 0, crackLength: 0 };
     /** Active spell barrage under way (Fase 20D): shots still to throw around (x, y), and when the next one goes. */
     private readonly barrage = { def: undefined as BarrageSpellDef | undefined, shotsLeft: 0, waitMs: 0, x: 0, y: 0, damageScale: 1, landed: false };
     /** Plays the owner's swing or cast animation (set by the game scene). */
@@ -107,6 +111,15 @@ export class WeaponSystem {
             screenShake,
             () => this.onSkillHit?.('activeSpell'),
         );
+        this.hammerCracks = new LineSpell(
+            (key, x, y) => this.effects.acquire().play(key, x, y),
+            this.iceRain,
+            enemies,
+            combat,
+            audio,
+            screenShake,
+            () => undefined,
+        );
         const targeting = new Targeting(enemies);
         this.targeting = targeting;
         this.context = {
@@ -136,7 +149,12 @@ export class WeaponSystem {
                 this.onOwnerAction('spin', angle, durationMs);
                 this.slash.showSpin(this.context.x, this.context.y - MELEE_ORIGIN_OFFSET_Y, def.range, angle, durationMs, AXE_SPIN.clockwise);
             },
+            slamMelee: (_def, angle, durationMs) => this.onOwnerAction('slam', angle, durationMs),
             hitMelee: (def, angle) => {
+                if (meleeAttackStyle(def) === 'slam') {
+                    this.groundSlam(def.range, angle, def.damage, def.knockback, false, def.crack?.damage ?? 0, def.crack?.length ?? 0);
+                    return;
+                }
                 // As in the original: the swing sound plays when the blow lands (frame 2), squeezed to the attack length.
                 audio.play(MELEE_SWING_SOUND, SWING_SOUND_MS);
                 const hits = combat.hitArc({
@@ -204,8 +222,13 @@ export class WeaponSystem {
         strike.hitsLeft = shape.hits;
         strike.landed = false;
         // Axes spin (bloque B): each blow is a whole turn with its round trail, instead of a swing.
-        strike.spin = meleeAttackStyle(def) === 'spin';
-        strike.waitMs = swingMs * (strike.spin ? AXE_SPIN.hitMoment : MELEE_HIT_MOMENT);
+        const style = meleeAttackStyle(def);
+        strike.spin = style === 'spin';
+        // Hammers (bloque C): a ground slam with a wider wave and a longer crack, its damage scaled like the blow's.
+        strike.slam = style === 'slam';
+        strike.crackDamage = def.crack ? def.crack.damage * damage / def.damage : 0;
+        strike.crackLength = def.crack ? def.crack.length * HAMMER_SLAM.critCrackLength : 0;
+        strike.waitMs = swingMs * (strike.spin ? AXE_SPIN.hitMoment : strike.slam ? HAMMER_SLAM.hitMoment : MELEE_HIT_MOMENT);
         strike.angle = angle;
         strike.radius = radius;
         strike.arc = Phaser.Math.DegToRad(shape.arcDegrees);
@@ -219,6 +242,10 @@ export class WeaponSystem {
     /** The owner's swing (or spin, with its trail) of the Critical Strike under way. */
     private startStrikeAnimation(): void {
         const strike = this.strike;
+        if (strike.slam) {
+            this.onOwnerAction('slam', strike.angle, strike.swingMs);
+            return;
+        }
         if (!strike.spin) {
             this.onOwnerAction('melee', strike.angle, strike.swingMs);
             return;
@@ -336,6 +363,7 @@ export class WeaponSystem {
         this.updateBarrage(deltaMs);
         this.iceRain.update(deltaMs);
         this.lineSpell.update(deltaMs);
+        this.hammerCracks.update(deltaMs);
         this.slash.update(deltaMs);
         for (const pending of this.bursts.active) {
             pending.waitMs -= deltaMs;
@@ -377,6 +405,23 @@ export class WeaponSystem {
         strike.hitsLeft--;
         const x = this.context.x;
         const y = this.context.y - MELEE_ORIGIN_OFFSET_Y;
+        const hits = strike.slam
+            ? this.groundSlam(strike.radius, strike.angle, strike.damage, strike.knockback, true, strike.crackDamage, strike.crackLength)
+            : this.strikeArc(x, y);
+        // Only the first blow that touches a monster (an axe spins twice): the gamepad vibrates once per strike.
+        if (hits > 0 && !strike.landed) {
+            strike.landed = true;
+            this.onSkillHit?.('critStrike');
+        }
+        if (strike.hitsLeft > 0) {
+            strike.waitMs = strike.repeatMs;
+            this.startStrikeAnimation();
+        }
+    }
+
+    /** One blow of a sword or axe Critical Strike: the arc (or circle) around (x, y). Returns how many it hit. */
+    private strikeArc(x: number, y: number): number {
+        const strike = this.strike;
         this.audio.play(MELEE_SWING_SOUND, SWING_SOUND_MS);
         if (!strike.spin) this.slash.show(x, y, strike.radius, strike.angle, strike.arc);
         const hits = this.combat.hitArc({
@@ -391,15 +436,38 @@ export class WeaponSystem {
             bigNumbers: true,
         }, (enemy) => this.spawnEffect('fx.hit', enemy.x, enemy.bodyY));
         if (hits > 0) this.audio.play(MELEE_HIT_SOUND);
-        // Only the first blow that touches a monster (an axe spins twice): the gamepad vibrates once per strike.
-        if (hits > 0 && !strike.landed) {
-            strike.landed = true;
-            this.onSkillHit?.('critStrike');
+        return hits;
+    }
+
+    /**
+     * Hammers (bloque C): the hammer hits the ground at the owner's feet. Every monster within `radius` takes `damage`
+     * (the wave), and a crack `crackLength` px long runs towards `angle`, hitting each monster on it with `crackDamage`.
+     * Returns how many the wave hit.
+     */
+    private groundSlam(radius: number, angle: number, damage: number, knockback: number, bigNumbers: boolean, crackDamage: number, crackLength: number): number {
+        const { x, y } = this.context;
+        const wave = HAMMER_SLAM.wave;
+        this.audio.play(HAMMER_SLAM.impactSound);
+        this.screenShake.shake(HAMMER_SLAM.shakePx, HAMMER_SLAM.shakeMs);
+        for (let i = 0; i < wave.dustCount; i++) {
+            const around = angle + (i / wave.dustCount) * Math.PI * 2;
+            this.spawnEffect(wave.dust, x + Math.cos(around) * radius * wave.dustShare, y + Math.sin(around) * radius * wave.dustShare);
         }
-        if (strike.hitsLeft > 0) {
-            strike.waitMs = strike.repeatMs;
-            this.startStrikeAnimation();
+        const hits = this.combat.hitArc({
+            damageType: 'physical',
+            x,
+            y: y - MELEE_ORIGIN_OFFSET_Y,
+            radius,
+            angle,
+            arc: Math.PI * 2,
+            damage,
+            knockback,
+            bigNumbers,
+        }, (enemy) => this.spawnEffect('fx.hit', enemy.x, enemy.bodyY));
+        if (crackDamage > 0 && crackLength > 0) {
+            this.hammerCracks.cast(HAMMER_CRACK, crackDamage, x, y, x + Math.cos(angle) * crackLength, y + Math.sin(angle) * crackLength, 0);
         }
+        return hits;
     }
 
     /** Throws the shots of the barrage when their time comes, from the Mage's hands to around the chosen point. */
