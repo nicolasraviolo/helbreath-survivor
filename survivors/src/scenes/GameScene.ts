@@ -656,7 +656,10 @@ export class GameScene extends Phaser.Scene {
             }
         })();
         if (id === undefined) return undefined;
-        const attribute = slot === 'weapon' ? this.equipment.weaponAttribute : undefined;
+        // Bug 26-oct-2026: armor kept its attribute in the run but the card showed it without one.
+        const attribute = slot === 'weapon'
+            ? this.equipment.weaponAttribute
+            : slot === 'spell1' || slot === 'spell2' || slot === 'zem' ? undefined : this.equipment.armorAttribute(slot);
         const upgrade = slot === 'weapon' ? this.equipment.weaponUpgrade : 0;
         return { id, ...(attribute ? { attribute } : {}), ...(upgrade > 0 ? { upgrade } : {}) };
     }

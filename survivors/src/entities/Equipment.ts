@@ -53,6 +53,11 @@ export class Equipment {
         return this.worn;
     }
 
+    /** Attribute of the armor piece worn in that slot (HP Recovery...), or undefined. */
+    public armorAttribute(slot: ArmorSlotId): ItemAttribute | undefined {
+        return this.wornAttributes[slot];
+    }
+
     constructor(private readonly def: CharacterDef) {
         const start = def.startWeapon;
         this.weapon = start.kind === 'melee' ? start.id : undefined;
