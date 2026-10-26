@@ -2,10 +2,16 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
+**Equilibrio de los martillos (2026-10-26, fuera de fase).**
+- **Qué hace:** grieta de los martillos −30% (Hammer 28→20, Battle Hammer 38→27) y golpe del Hammer 46→42. El Hammer queda ~1 min por encima de la Flamberge (Str 60) y el Battle Hammer parecido a ella en Middleland; antes eran la familia más fuerte con diferencia.
+- **Cómo se midió:** `pnpm balance` con cada arma en un Level donde el Guerrero ya tiene la Str que pide (Elvine Garden 25/35, Middleland 40; `@weapon=...`; 4–8 repeticiones). Datos en `.check/balance-hammers*.json`; resumen en NOTES.md, "Equilibrio de los martillos".
+- **Comprobado:** build; `check hammer battlehammer levelpacehammer` sin errores.
+- **Probar:** `pnpm --dir survivors dev` → http://localhost:8090/?play=warrior&weapon=hammer (números de daño algo más bajos).
+
 **Martillos con golpe al suelo, bloque C (2026-10-26, fuera de fase).**
 - **Qué hace:** la familia Hammer ya está activa: Hammer (Str 70, daño 46, grieta 28 de ~200 px) y Battle Hammer (Str 95, 62, grieta 38 de ~240 px), cada ~1,5 s. El Guerrero da el golpe hacia el monstruo y, al tocar el suelo, daña y empuja todo el círculo (con polvo alrededor) y una grieta de rocas (la del Earth Shock Wave) sale en línea hacia él. Ataca también si el monstruo está fuera del círculo pero la grieta lo alcanza. Crit: círculo 2 casillas más grande con mucho empuje y grieta ×1,6. Golpe sordo C5 y temblor suave. Tom los vende y mejora; icono en Equipment y dibujo en la ventana Character. El anillo claro en el suelo se quitó a petición del propietario.
 - **Código:** `data/weapons.ts` (`attack: 'slam'`, `HAMMER_SLAM`, `HAMMER_CRACK`, `crack` en el arma), `MeleeWeapon` + `WeaponContext.slamMelee`, `WeaponSystem.groundSlam` (y crit de martillo), `LineSpell` acepta `LinePathDef` (daño físico, números normales; `data/activeSpells.ts`), `WEAPON_SPR` con hammer 15, sprites `gear.hammers.*` y sonido `sfx.melee.blunt`. `check hammer` / `battlehammer` / `levelpacehammer`. Línea en What's new (Phase 28¾). Nota en NOTES.md, "Martillos: golpe al suelo y grieta".
-- **Comprobado:** build; `check hammer battlehammer` en PC y `--mobile`, `smith`, `earthshock` (comparte código con la grieta), `axe`; sin errores (~115–140 FPS). Capturas del martillo en la mano y de la grieta. Ritmo con `pnpm balance` sin medir. Probado por el propietario: OK.
+- **Comprobado:** build; `check hammer battlehammer` en PC y `--mobile`, `smith`, `earthshock` (comparte código con la grieta), `axe`; sin errores (~115–140 FPS). Capturas del martillo en la mano y de la grieta. Ritmo medido después (ver "Equilibrio de los martillos"). Probado por el propietario: OK.
 - **Probar:** `pnpm --dir survivors dev` → http://localhost:8090/?play=warrior&weapon=hammer&debug=god,horde,crits (Espacio = crit).
 
 **Hachas con giro en torbellino, bloque B (2026-10-25, fuera de fase).**
