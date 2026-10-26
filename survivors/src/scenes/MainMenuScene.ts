@@ -16,9 +16,7 @@ import {
     MENU_INPUT_DELAY_MS,
     MENU_PANEL,
 } from '../config/menus';
-import { MUSIC } from '../data/audio';
 import { InputSystem } from '../systems/InputSystem';
-import { MusicSystem } from '../systems/MusicSystem';
 import { addDiscordButton } from '../ui/discordButton';
 import { addFullscreenButton } from '../ui/fullscreen';
 import { INSTALL_CHANGED, installEvents, installItem } from '../ui/install';
@@ -61,7 +59,6 @@ export class MainMenuScene extends Phaser.Scene {
         this.events.on(Phaser.Scenes.Events.RESUME, () => {
             this.openedAt = this.time.now;
         });
-        new MusicSystem(this).play(MUSIC.menu);
         // ?open= (debugStart.ts): show that menu screen once, as if it had been chosen here.
         if (DEBUG_START.open && DEBUG_START.open !== 'CharacterSlots' && DEBUG_START.open !== 'CharacterInfo' && DEBUG_START.open !== 'Equipment' && DEBUG_START.open !== 'Warehouse' && DEBUG_START.open !== 'RunChoice' && !debugScreenOpened) {
             debugScreenOpened = true;

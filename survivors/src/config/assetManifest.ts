@@ -313,8 +313,6 @@ export const SOUNDS = {
     'sfx.wyvern.death': { file: 'sounds/M105.mp3' },
     // Música (sp-client public/assets/music; ver systems/MusicSystem.ts).
     'music.middleland': { file: 'music/middleland.mp3' },
-    // Música del menú principal: la pista por defecto de sp-client (la de los mapas sin música propia).
-    'music.menu': { file: 'music/default.mp3' },
     'music.dungeon': { file: 'music/dungeon.mp3' },
     'music.abaddon': { file: 'music/abaddon.mp3' },
     // Música de la ciudad (Fase 23, elegida por el propietario). No va antes del menú: la baja la carga de la ciudad

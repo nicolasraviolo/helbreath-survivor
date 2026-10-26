@@ -29,14 +29,13 @@ export const FOOTSTEPS_PER_RUN_CYCLE = 2;
 export const FOOTSTEP_DUST_EVERY_PX = 32;
 
 /**
- * Music by moment of the run (docs/DESIGN.md → Audio): default in the main menu, middleland while playing, dungeon while a mini-boss is alive,
- * abaddon for the final boss. Volume 0..1 and cross-fade length.
+ * Music by moment of the run (docs/DESIGN.md → Audio): middleland while playing, dungeon while a mini-boss is alive,
+ * abaddon for the final boss. The main menu is silent (owner's choice, 25-oct-2026). Volume 0..1 and cross-fade length.
  */
 export const MUSIC = {
     normal: 'music.middleland',
-    menu: 'music.menu',
     miniBoss: 'music.dungeon',
     finalBoss: 'music.abaddon',
     volume: 0.35,
     fadeMs: 1500,
-} as const satisfies { normal: SoundKey; menu: SoundKey; miniBoss: SoundKey; finalBoss: SoundKey; volume: number; fadeMs: number };
+} as const satisfies { normal: SoundKey; miniBoss: SoundKey; finalBoss: SoundKey; volume: number; fadeMs: number };
