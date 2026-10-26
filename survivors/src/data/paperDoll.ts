@@ -13,7 +13,7 @@ import type { AddedColor, GearLayer, GearSlot } from '../hb/playerAppearance';
 import { gearForGender, type CharacterLook, type Gender } from './appearance';
 import type { CharacterDef } from './characters';
 import { equipmentLook, isMeleeWeaponId, type EquipSlotId, type SavedEquipment } from './items';
-import { getMeleeWeapon } from './weapons';
+import { getMeleeWeapon, type MeleeFamilyId } from './weapons';
 
 export const PAPER_DOLL_SPRITES: Record<Gender, SpriteKey> = { male: 'item.equip.m', female: 'item.equip.w' };
 
@@ -65,7 +65,8 @@ const CLOTHES: Partial<Record<SpriteKey, CfgPicture>> = {
 const SHIELD_SPR = 3;
 /** msh/wsh.spr have 7 sheets per shield, in the Item.cfg frame order. */
 const SHIELD_SHEETS_PER_FRAME = 7;
-const SWORD_SPR = 1;
+/** Item.cfg group of each weapon family's pictures (swords 1, axes 15). */
+const WEAPON_SPR: Partial<Record<MeleeFamilyId, number>> = { shortSword: 1, longSword: 1, axe: 15 };
 
 type DollPlace = 'body' | 'back' | 'shield' | 'weapon' | 'head';
 
@@ -97,9 +98,10 @@ export interface PaperDollPiece {
 
 function picture(slot: GearSlot, layer: GearLayer, equipment: Readonly<SavedEquipment>): CfgPicture | undefined {
     if (slot === 'weapon' && equipment.weapon && isMeleeWeaponId(equipment.weapon)) {
-        // The sword's icon frame is the Item.cfg's SFrame, the same as its picture here.
-        const icon = getMeleeWeapon(equipment.weapon).icon;
-        return icon ? { spr: SWORD_SPR, frame: icon.frame } : undefined;
+        // The weapon's icon frame is the Item.cfg's SFrame, the same as its picture here.
+        const weapon = getMeleeWeapon(equipment.weapon);
+        const spr = WEAPON_SPR[weapon.family];
+        return weapon.icon && spr !== undefined ? { spr, frame: weapon.icon.frame } : undefined;
     }
     if (slot === 'shield') return { spr: SHIELD_SPR, frame: Math.floor((layer.startSheet ?? 0) / SHIELD_SHEETS_PER_FRAME) };
     return CLOTHES[layer.sprite];

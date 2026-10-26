@@ -55,5 +55,11 @@ export const DEFAULT_SLASH_STYLE = SLASH_STYLES.findIndex((style) => style.id ==
 /** Sparks of the "sparks" style: speed in px/s, life in ms, length in px. */
 export const SLASH_SPARK = { minSpeed: 120, maxSpeed: 260, lifeMs: 240, length: 10, width: 2.5, color: 0xffe9a8, spreadDegrees: 50 };
 
+/**
+ * Round trail of the axes' spin (bloque B, 25-oct-2026), drawn with the style in use: the head goes round once in the
+ * spin's time and the trail behind it is this fraction of the circle. Thicker than the sword's thin edge so the circle reads.
+ */
+export const SPIN_TRAIL = { trail: 0.55, thickness: 0.1 };
+
 /** Slices the arc is cut into to draw a band whose thickness and alpha change along it. */
 export const SLASH_SLICES = 24;

@@ -36,6 +36,8 @@ export class CharacterSprite {
     public stateTime = 0;
     /** Length of the current melee swing or cast (its frames are spread over it). */
     public actionDurationMs = 1;
+    /** Axes' spin (bloque B): the melee animation stays on this frame while the direction turns; undefined = it plays. */
+    public heldFrame: number | undefined;
     private readonly layers = new Map<GearSlot, { def: GearLayer; sprite: Phaser.GameObjects.Sprite }>();
     private shownFrame = -1;
     private orderKey = '';
@@ -166,6 +168,7 @@ export class CharacterSprite {
             case PlayerState.Cast:
             case PlayerState.Hurt: {
                 const frames = framesPerDirection(this.state);
+                if (this.state === PlayerState.Melee && this.heldFrame !== undefined) return Math.min(frames - 1, this.heldFrame);
                 return Math.min(frames - 1, Math.floor((this.stateTime / this.actionDurationMs) * frames));
             }
             case PlayerState.Run:

@@ -38,9 +38,13 @@ export interface MeleeWeaponDef {
     icon?: ItemIcon;
 }
 
+/** How a family attacks: a swing in an arc towards the target, or a spin all around (axes). */
+export type MeleeAttackStyle = 'swing' | 'spin';
+
 export interface MeleeFamilyDef {
     name: string;
     enabled: boolean;
+    attack: MeleeAttackStyle;
     /** Links from weakest to strongest. */
     links: readonly MeleeWeaponId[];
 }
@@ -58,6 +62,21 @@ export const MELEE_HIT_MOMENT = 0.25;
 export const MELEE_ROOT_MOMENT = 0.375;
 /** Swords are drawn from msw.spr in blocks of 56 sheets (7 states × 8 directions); see sp-client Items.ts. */
 const SWORD_SPRITE: SpriteKey = 'gear.swords.m';
+/** Axes in item-pack.spr (Item.cfg Spr 15). */
+const AXE_ICON_SHEET = 14;
+
+/**
+ * Spin of the axes (bloque B, 25-oct-2026): the character turns through the 8 directions in `swingMs`, with a round
+ * trail, and every enemy inside the circle is hit once. Stands still for the whole spin (as in the original attack).
+ */
+export const AXE_SPIN = {
+    /** Damage lands at this point of the spin (half a turn). */
+    hitMoment: 0.5,
+    /** Frame of the attack animation (0–7) held in each direction: the blade low and forward, mid-sweep (frame 3 = raised). */
+    poseFrame: 5,
+    /** Turns clockwise on screen. */
+    clockwise: true,
+} as const;
 
 export const MELEE_WEAPONS = {
     // Short Swords: rápidas, poco alcance, poco requisito.
@@ -112,23 +131,50 @@ export const MELEE_WEAPONS = {
     hammer: { name: 'Hammer', family: 'hammer', damage: 40, cooldownMs: 1600, swingMs: 700, range: 90, arcDegrees: 360, knockback: 260 },
     battleHammer: { name: 'Battle Hammer', family: 'hammer', damage: 55, cooldownMs: 1700, swingMs: 700, range: 100, arcDegrees: 360, knockback: 280 },
     rapier: { name: 'Rapier', family: 'fencing', damage: 10, cooldownMs: 400, swingMs: 320, range: 90, arcDegrees: 25, knockback: 40 },
-    lightAxe: { name: 'Light Axe', family: 'axe', damage: 12, cooldownMs: 800, swingMs: 500, range: 70, arcDegrees: 360, knockback: 100 },
-    tomahawk: { name: 'Tomahawk', family: 'axe', damage: 15, cooldownMs: 800, swingMs: 500, range: 72, arcDegrees: 360, knockback: 110 },
-    doubleAxe: { name: 'Double Axe', family: 'axe', damage: 19, cooldownMs: 850, swingMs: 520, range: 75, arcDegrees: 360, knockback: 120 },
-    warAxe: { name: 'War Axe', family: 'axe', damage: 26, cooldownMs: 900, swingMs: 550, range: 80, arcDegrees: 360, knockback: 140 },
-    battleAxe: { name: 'Battle Axe', family: 'axe', damage: 38, cooldownMs: 1000, swingMs: 600, range: 85, arcDegrees: 360, knockback: 160 },
+    // Axes (bloque B, 25-oct-2026): giran sobre sí mismos y golpean todo el círculo (AXE_SPIN). Hacen menos daño por golpe
+    // que la espada larga de Str parecida porque dan a todo lo que rodea al jugador. Requisitos aprobados por el propietario.
+    // Dibujo en la mano: waxe*.spr también para el hombre (maxe* está roto en IdleCombat; ver NOTES.md). Icono: hoja 14.
+    lightAxe: {
+        name: 'Light Axe', family: 'axe', damage: 15, cooldownMs: 1100, swingMs: 360,
+        range: 72, arcDegrees: 360, knockback: 110, sprite: { key: 'gear.axes.light', startSheet: 0 },
+        equip: { str: 12 }, icon: { sheet: AXE_ICON_SHEET, frame: 2 },
+    },
+    tomahawk: {
+        name: 'Tomahawk', family: 'axe', damage: 19, cooldownMs: 1100, swingMs: 360,
+        range: 75, arcDegrees: 360, knockback: 120, sprite: { key: 'gear.axes.tomahawk', startSheet: 0 },
+        equip: { str: 20 }, icon: { sheet: AXE_ICON_SHEET, frame: 3 },
+    },
+    doubleAxe: {
+        name: 'Double Axe', family: 'axe', damage: 24, cooldownMs: 1150, swingMs: 380,
+        range: 78, arcDegrees: 360, knockback: 130, sprite: { key: 'gear.axes.double', startSheet: 0 },
+        equip: { str: 33 }, icon: { sheet: AXE_ICON_SHEET, frame: 0 },
+    },
+    warAxe: {
+        name: 'War Axe', family: 'axe', damage: 29, cooldownMs: 1150, swingMs: 380,
+        range: 82, arcDegrees: 360, knockback: 145, sprite: { key: 'gear.axes.war', startSheet: 0 },
+        equip: { str: 46 }, icon: { sheet: AXE_ICON_SHEET, frame: 1 },
+    },
+    battleAxe: {
+        name: 'Battle Axe', family: 'axe', damage: 42, cooldownMs: 1200, swingMs: 400,
+        range: 88, arcDegrees: 360, knockback: 170, sprite: { key: 'gear.axes.battle', startSheet: 0 },
+        equip: { str: 80 }, icon: { sheet: AXE_ICON_SHEET, frame: 6 },
+    },
 } as const satisfies Record<string, MeleeWeaponDef>;
 
 export type MeleeWeaponId = keyof typeof MELEE_WEAPONS;
 
 export const MELEE_FAMILIES = {
-    shortSword: { name: 'Short Swords', enabled: true, links: ['dagger', 'shortSword', 'falchion'] },
-    longSword: { name: 'Long Swords', enabled: true, links: ['longSword', 'scimitar', 'broadSword', 'claymore', 'greatSword', 'flamberge'] },
-    hammer: { name: 'Hammers', enabled: false, links: ['hammer', 'battleHammer'] },
-    fencing: { name: 'Fencing', enabled: false, links: ['rapier'] },
-    axe: { name: 'Axes', enabled: false, links: ['lightAxe', 'tomahawk', 'doubleAxe', 'warAxe', 'battleAxe'] },
+    shortSword: { name: 'Short Swords', enabled: true, attack: 'swing', links: ['dagger', 'shortSword', 'falchion'] },
+    longSword: { name: 'Long Swords', enabled: true, attack: 'swing', links: ['longSword', 'scimitar', 'broadSword', 'claymore', 'greatSword', 'flamberge'] },
+    hammer: { name: 'Hammers', enabled: false, attack: 'swing', links: ['hammer', 'battleHammer'] },
+    fencing: { name: 'Fencing', enabled: false, attack: 'swing', links: ['rapier'] },
+    axe: { name: 'Axes', enabled: true, attack: 'spin', links: ['lightAxe', 'tomahawk', 'doubleAxe', 'warAxe', 'battleAxe'] },
 } as const satisfies Record<MeleeFamilyId, MeleeFamilyDef>;
 
 export function getMeleeWeapon(id: MeleeWeaponId): MeleeWeaponDef {
     return MELEE_WEAPONS[id];
+}
+
+export function meleeAttackStyle(def: MeleeWeaponDef): MeleeAttackStyle {
+    return MELEE_FAMILIES[def.family].attack;
 }

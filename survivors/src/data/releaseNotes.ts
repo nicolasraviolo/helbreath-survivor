@@ -22,6 +22,7 @@ export const RELEASE_NOTES: readonly ReleaseNote[] = [
             'Snakes, ants and other low monsters now have a soft shadow, so they stand out from the ground.',
             'On phones, the world is shown bigger so characters and monsters are easier to see.',
             'Armor, wands and spells unlock more gradually: something new every few points.',
+            'Axes are here: the Warrior spins around and hits every monster close to him. Buy them from Tom.',
         ],
     },
     {

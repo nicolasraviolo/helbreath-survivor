@@ -12,7 +12,7 @@ import type { EffectKey } from '../config/effects';
 import { CAST_RELEASE_MOMENT, CAST_SOUND, SPELLS, type SpellBurst, type SpellDef } from '../data/spells';
 import { critReach, type CritShape } from '../data/critStrike';
 import { METEOR_LOOK, type BarrageSpellDef, type IceShardSpellDef, type LineSpellDef, type MeteorSpellDef } from '../data/activeSpells';
-import { MELEE_HIT_MOMENT, MELEE_HIT_SOUND, MELEE_SWING_SOUND, type MeleeWeaponDef } from '../data/weapons';
+import { AXE_SPIN, MELEE_HIT_MOMENT, MELEE_HIT_SOUND, MELEE_SWING_SOUND, meleeAttackStyle, type MeleeWeaponDef } from '../data/weapons';
 import { Effect } from '../entities/Effect';
 import type { Enemy } from '../entities/Enemy';
 import { LightningArc } from '../entities/LightningArc';
@@ -30,7 +30,7 @@ import type { ScreenShake } from './ScreenShake';
 import { type ManualAim, manualAimAngle, Targeting } from './Targeting';
 
 /** Owner animation asked by a weapon: a melee swing or a cast. */
-export type OwnerAction = 'melee' | 'cast';
+export type OwnerAction = 'melee' | 'cast' | 'spin';
 
 /** An explosion waiting to be drawn (Fire Strike: 4 explosions 0–140 ms apart). */
 class PendingBurst implements Poolable {
@@ -73,7 +73,7 @@ export class WeaponSystem {
     /** Critical Strike under way: blows still to land (axes spin twice) and when the next one lands. */
     /** Fase 19C: the Critical Strike or the Mage's active spell hit at least one monster (once per launch; the gamepad vibrates). */
     public onSkillHit: ((skill: 'critStrike' | 'activeSpell') => void) | undefined;
-    private readonly strike = { hitsLeft: 0, landed: false, waitMs: 0, angle: 0, radius: 0, arc: 0, damage: 0, knockback: 0, repeatMs: 0, swingMs: 0 };
+    private readonly strike = { hitsLeft: 0, landed: false, waitMs: 0, angle: 0, radius: 0, arc: 0, damage: 0, knockback: 0, repeatMs: 0, swingMs: 0, spin: false };
     /** Active spell barrage under way (Fase 20D): shots still to throw around (x, y), and when the next one goes. */
     private readonly barrage = { def: undefined as BarrageSpellDef | undefined, shotsLeft: 0, waitMs: 0, x: 0, y: 0, damageScale: 1, landed: false };
     /** Plays the owner's swing or cast animation (set by the game scene). */
@@ -131,6 +131,10 @@ export class WeaponSystem {
             swingMelee: (def, angle, durationMs) => {
                 this.onOwnerAction('melee', angle, durationMs);
                 this.slash.show(this.context.x, this.context.y - MELEE_ORIGIN_OFFSET_Y, def.range, angle, Phaser.Math.DegToRad(def.arcDegrees));
+            },
+            spinMelee: (def, angle, durationMs) => {
+                this.onOwnerAction('spin', angle, durationMs);
+                this.slash.showSpin(this.context.x, this.context.y - MELEE_ORIGIN_OFFSET_Y, def.range, angle, durationMs, AXE_SPIN.clockwise);
             },
             hitMelee: (def, angle) => {
                 // As in the original: the swing sound plays when the blow lands (frame 2), squeezed to the attack length.
@@ -199,7 +203,9 @@ export class WeaponSystem {
         const strike = this.strike;
         strike.hitsLeft = shape.hits;
         strike.landed = false;
-        strike.waitMs = swingMs * MELEE_HIT_MOMENT;
+        // Axes spin (bloque B): each blow is a whole turn with its round trail, instead of a swing.
+        strike.spin = meleeAttackStyle(def) === 'spin';
+        strike.waitMs = swingMs * (strike.spin ? AXE_SPIN.hitMoment : MELEE_HIT_MOMENT);
         strike.angle = angle;
         strike.radius = radius;
         strike.arc = Phaser.Math.DegToRad(shape.arcDegrees);
@@ -207,7 +213,18 @@ export class WeaponSystem {
         strike.knockback = shape.knockback;
         strike.repeatMs = shape.repeatMs;
         strike.swingMs = swingMs;
-        this.onOwnerAction('melee', angle, swingMs);
+        this.startStrikeAnimation();
+    }
+
+    /** The owner's swing (or spin, with its trail) of the Critical Strike under way. */
+    private startStrikeAnimation(): void {
+        const strike = this.strike;
+        if (!strike.spin) {
+            this.onOwnerAction('melee', strike.angle, strike.swingMs);
+            return;
+        }
+        this.onOwnerAction('spin', strike.angle, strike.swingMs);
+        this.slash.showSpin(this.context.x, this.context.y - MELEE_ORIGIN_OFFSET_Y, strike.radius, strike.angle, strike.swingMs, AXE_SPIN.clockwise);
     }
 
     /**
@@ -361,7 +378,7 @@ export class WeaponSystem {
         const x = this.context.x;
         const y = this.context.y - MELEE_ORIGIN_OFFSET_Y;
         this.audio.play(MELEE_SWING_SOUND, SWING_SOUND_MS);
-        this.slash.show(x, y, strike.radius, strike.angle, strike.arc);
+        if (!strike.spin) this.slash.show(x, y, strike.radius, strike.angle, strike.arc);
         const hits = this.combat.hitArc({
             damageType: 'physical',
             x,
@@ -381,7 +398,7 @@ export class WeaponSystem {
         }
         if (strike.hitsLeft > 0) {
             strike.waitMs = strike.repeatMs;
-            this.onOwnerAction('melee', strike.angle, strike.swingMs);
+            this.startStrikeAnimation();
         }
     }
 

@@ -5,9 +5,17 @@
 import type { CharacterId } from '../data/characters';
 import { CHARACTERS } from '../data/characters';
 import { STAT_POINT_CAP, STAT_POINTS_PER_LEVEL } from '../data/characterLevel';
-import { canEquip, catalog, EQUIP_SLOT_IDS, isSpellItemId, MANUAL_SPELL_IDS, START_EQUIPMENT, type SavedEquipment } from '../data/items';
+import { canEquip, catalog, EQUIP_SLOT_IDS, isMeleeWeaponId, isSpellItemId, MANUAL_SPELL_IDS, START_EQUIPMENT, type ItemId, type SavedEquipment } from '../data/items';
 import { STAT_IDS, type Stats } from '../data/stats';
 import { getWand, isWandId } from '../data/wands';
+import { getMeleeWeapon, type MeleeFamilyId } from '../data/weapons';
+
+/**
+ * The simulated Warrior keeps to the swords, so the measures stay comparable with the ones before the axes (bloque B);
+ * ?weapon=lightAxe puts another weapon in his hand.
+ */
+const SIM_WEAPON_FAMILIES: ReadonlySet<MeleeFamilyId> = new Set<MeleeFamilyId>(['shortSword', 'longSword']);
+const simWeaponAllowed = (id: ItemId) => !isMeleeWeaponId(id) || SIM_WEAPON_FAMILIES.has(getMeleeWeapon(id).family);
 
 export type SimKit = 'best' | 'start';
 
@@ -58,7 +66,7 @@ export function simBestEquipment(classId: CharacterId, stats: Readonly<Stats>, l
     for (const slot of EQUIP_SLOT_IDS) {
         if (slot === 'zem') continue;
         const wearable = catalog(classId, slot).filter((id) => canEquip(id, stats, level) && !(isWandId(id) && getWand(id).rare === true)
-            && !(isSpellItemId(id) && MANUAL_SPELL_IDS.has(id)));
+            && !(isSpellItemId(id) && MANUAL_SPELL_IDS.has(id)) && simWeaponAllowed(id));
         const best = wearable.at(-1);
         if (best !== undefined) equipment[slot] = best;
     }

@@ -78,6 +78,13 @@ export const SPRITES = {
     'gear.armor.plate.m': { file: 'sprites/mpmail.spr', type: SpriteType.EquipmentPack },
     'gear.swords.m': { file: 'sprites/msw.spr', type: SpriteType.Weapons },
     'gear.shields.m': { file: 'sprites/msh.spr', type: SpriteType.Shields },
+    // Hachas (bloque B, 25-oct-2026): un archivo de 56 hojas por hacha. Se usa el de mujer (waxe*) para los dos sexos:
+    // las maxe* están rotas en IdleCombat y el original también las cambia (NOTES.md, WEAPON_SPRITE_OVERWRITES).
+    'gear.axes.light': { file: 'sprites/waxe3.spr', type: SpriteType.Weapons },
+    'gear.axes.tomahawk': { file: 'sprites/waxe4.spr', type: SpriteType.Weapons },
+    'gear.axes.double': { file: 'sprites/waxe1.spr', type: SpriteType.Weapons },
+    'gear.axes.war': { file: 'sprites/waxe2.spr', type: SpriteType.Weapons },
+    'gear.axes.battle': { file: 'sprites/waxe6.spr', type: SpriteType.Weapons },
     // Mago: túnica, sombrero de mago (Wizard Hat) y varita. Fase 21B: las varitas son las del original (data/wands.ts);
     // todas las Magic Wand y Wizard Staff se dibujan con mstaff2 (Appr 36 del Item.cfg).
     'gear.armor.robe.m': { file: 'sprites/mrobe1.spr', type: SpriteType.EquipmentPack },

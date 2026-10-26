@@ -5,7 +5,7 @@
 // cada una con su grosor (media luna) y su alfa (estela del barrido); el brillo va aparte con mezcla aditiva.
 import Phaser from 'phaser';
 import { DEPTH_EFFECT_OFFSET } from '../config/gameConfig';
-import { DEFAULT_SLASH_STYLE, SLASH_SLICES, SLASH_SPARK, SLASH_STYLES, type SlashStyle } from '../data/slash';
+import { DEFAULT_SLASH_STYLE, SLASH_SLICES, SLASH_SPARK, SLASH_STYLES, SPIN_TRAIL, type SlashStyle } from '../data/slash';
 
 const CLASSIC_WIDTH = 5;
 
@@ -30,6 +30,14 @@ export class Slash {
     private radius = 0;
     private start = 0;
     private arc = 0;
+    /** Timing of the trail shown now: the style's own, or the spin's (showSpin). */
+    private sweepMs = 0;
+    private lifeMs = 0;
+    private trail = 1;
+    /** Thickness of the band shown now, as a fraction of the radius. */
+    private thicknessShare = 0;
+    /** A whole circle: twice the slices so it stays round. */
+    private slices = SLASH_SLICES;
 
     constructor(scene: Phaser.Scene) {
         this.glow = scene.add.graphics().setVisible(false).setBlendMode(Phaser.BlendModes.ADD);
@@ -60,6 +68,32 @@ export class Slash {
         const flip = Math.sin(to) < Math.sin(from);
         this.start = flip ? to : from;
         this.arc = flip ? -arc : arc;
+        const style = this.style;
+        this.sweepMs = style.sweepMs;
+        this.lifeMs = style.lifeMs;
+        this.trail = style.trail;
+        this.thicknessShare = style.thickness;
+        this.slices = SLASH_SLICES;
+        this.begin(x, y);
+    }
+
+    /**
+     * Axes (bloque B): a round trail centred on (x, y) whose head goes once round the circle in `durationMs`, starting
+     * at `angle` (radians), clockwise on screen or not.
+     */
+    public showSpin(x: number, y: number, radius: number, angle: number, durationMs: number, clockwise: boolean): void {
+        this.radius = radius;
+        this.start = angle;
+        this.arc = clockwise ? Math.PI * 2 : -Math.PI * 2;
+        this.sweepMs = durationMs;
+        this.trail = SPIN_TRAIL.trail;
+        this.lifeMs = durationMs * (1 + SPIN_TRAIL.trail);
+        this.thicknessShare = SPIN_TRAIL.thickness;
+        this.slices = SLASH_SLICES * 2;
+        this.begin(x, y);
+    }
+
+    private begin(x: number, y: number): void {
         this.elapsedMs = 0;
         this.active = true;
         const depth = y + DEPTH_EFFECT_OFFSET;
@@ -72,7 +106,7 @@ export class Slash {
     public update(deltaMs: number): void {
         if (!this.active) return;
         this.elapsedMs += deltaMs;
-        if (this.elapsedMs >= this.style.lifeMs) {
+        if (this.elapsedMs >= this.lifeMs) {
             this.active = false;
             this.graphics.setVisible(false);
             this.glow.setVisible(false);
@@ -102,19 +136,20 @@ export class Slash {
         }
         const r = this.radius;
         const outer = r * style.outerRadius;
-        const maxThick = r * style.thickness;
+        const maxThick = r * this.thicknessShare;
         const t = this.elapsedMs;
         // With a sweep the trail fades by itself; without one the whole arc fades over its life.
-        const head = style.sweepMs > 0 ? t / style.sweepMs : Number.POSITIVE_INFINITY;
-        const fade = style.sweepMs > 0 ? 1 : 1 - t / style.lifeMs;
+        const head = this.sweepMs > 0 ? t / this.sweepMs : Number.POSITIVE_INFINITY;
+        const fade = this.sweepMs > 0 ? 1 : 1 - t / this.lifeMs;
         const glowPad = maxThick * 0.5 + 4;
-        for (let i = 0; i < SLASH_SLICES; i++) {
-            const u0 = i / SLASH_SLICES;
-            const u1 = (i + 1) / SLASH_SLICES;
+        const slices = this.slices;
+        for (let i = 0; i < slices; i++) {
+            const u0 = i / slices;
+            const u1 = (i + 1) / slices;
             const mid = (u0 + u1) / 2;
             if (mid > head) break;
             const behind = head - mid;
-            const trailAlpha = style.sweepMs > 0 ? 1 - behind / style.trail : 1;
+            const trailAlpha = this.sweepMs > 0 ? 1 - behind / this.trail : 1;
             if (trailAlpha <= 0) continue;
             const alpha = style.alpha * fade * trailAlpha;
             const th0 = this.thickness(style, maxThick, u0);
@@ -175,7 +210,7 @@ export class Slash {
             spark.vx = Math.cos(dir) * speed;
             spark.vy = Math.sin(dir) * speed;
             spark.lifeMs = SLASH_SPARK.lifeMs * Phaser.Math.FloatBetween(0.6, 1);
-            spark.waitMs = this.style.sweepMs;
+            spark.waitMs = this.sweepMs;
         }
     }
 
@@ -197,7 +232,7 @@ export class Slash {
     private drawClassic(style: SlashStyle): void {
         const start = this.start;
         const end = this.start + this.arc;
-        const fade = 1 - this.elapsedMs / style.lifeMs;
+        const fade = 1 - this.elapsedMs / this.lifeMs;
         this.graphics
             .lineStyle(CLASSIC_WIDTH, style.color, 0.9 * fade)
             .beginPath()

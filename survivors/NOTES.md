@@ -104,6 +104,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Magias pasivas de la partida (Fase 28)
 - Sprites suaves: filtro xBR (Fase 28¾)
 - Zoom del mundo en el móvil (25-oct-2026)
+- Hachas: giro en torbellino (bloque B, 25-oct-2026)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -1200,3 +1201,10 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - `pnpm --dir survivors announce [--dry] ["Phase N"]` publica la entrada de `src/data/releaseNotes.ts` en #announcements mediante un webhook.
 - El webhook está en `survivors/.env.local` (ignorado por git). Si se filtra, se borra en Discord (Edit Channel → Integrations → Webhooks), se crea otro y se pega ahí.
 - Necesita Node 22.18+ (importa el `.ts` directamente, quitando los tipos).
+
+## Hachas: giro en torbellino (bloque B, 25-oct-2026)
+- Cada hacha es un `.spr` propio de 56 hojas (7 estados × 8 direcciones, `startSheet: 0`): Light Axe `waxe3`, Tomahawk `waxe4`, Double Axe `waxe1`, War Axe `waxe2`, Battle Axe `waxe6`. Se usan las `waxe*` también para el hombre (claves `gear.axes.*`, sin pareja `.m`/`.w`); sobre el cuerpo de hombre encajan bien.
+- Iconos: `item-pack.spr` hoja 14 (Item.cfg Spr 15), frame = SFrame (Light 2, Tomahawk 3, Double 0, War 1, Battle 6). En la ventana Character, el grupo 15 es la hoja 11 de `item-equip*` (`WEAPON_SPR` en `data/paperDoll.ts`).
+- Ataque: `MELEE_FAMILIES[f].attack = 'spin'` → `MeleeWeapon` llama a `context.spinMelee`; `Player.spin` recorre las 8 direcciones con el fotograma `AXE_SPIN.poseFrame` (5 = hacha baja, en pleno barrido; 3 = levantada) fijado en `CharacterSprite.heldFrame`; `Slash.showSpin` dibuja la estela circular (`SPIN_TRAIL` en `data/slash.ts`). El daño cae una vez sobre todo el círculo en `AXE_SPIN.hitMoment`. Quieto todo el giro; un golpe recibido (Hurt) lo corta, como a las espadas.
+- El crit de las hachas (2 giros, `data/critStrike.ts`) usa el mismo giro y estela (`WeaponSystem.startStrikeAnimation`).
+- La partida simulada (`simBestEquipment`) se queda con las espadas (`SIM_WEAPON_FAMILIES`) para que las medidas sigan comparables; `?weapon=lightAxe` pone otra arma (también `pnpm balance warrior:bisle:10:0@weapon=tomahawk`). `check axe` / `battleaxe` / `levelpaceaxe`.

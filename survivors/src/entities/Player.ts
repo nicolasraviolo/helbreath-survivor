@@ -53,6 +53,8 @@ export class Player {
     private swingLeftMs = 0;
     /** Time left standing still at the start of a swing (until the blow lands), as in the original. */
     private rootLeftMs = 0;
+    /** Axes' spin (bloque B): time left, its length, the angle it started at and which way it turns (1 / -1). */
+    private readonly spinning = { leftMs: 0, durationMs: 1, start: 0, sign: 1 };
 
     constructor(
         scene: Phaser.Scene,
@@ -117,6 +119,7 @@ export class Player {
 
         this.swingLeftMs = Math.max(0, this.swingLeftMs - deltaMs);
         this.rootLeftMs = Math.max(0, this.rootLeftMs - deltaMs);
+        this.turnSpin(deltaMs);
         const moving = move.lengthSq() > 0 && this.rootLeftMs === 0;
         // Once the blow has landed, moving cuts the rest of the swing so the character runs instead of sliding.
         if (moving && this.swingLeftMs > 0) this.swingLeftMs = 0;
@@ -159,12 +162,55 @@ export class Player {
      */
     public act(action: PlayerState.Melee | PlayerState.Cast | PlayerState.Hurt, direction: Direction, durationMs: number, rootMs: number): void {
         if (this.isDead) return;
+        this.stopSpin();
         this.swingLeftMs = durationMs;
         this.rootLeftMs = rootMs;
         this.body.actionDurationMs = durationMs;
         // Restart the animation even if the previous one was still showing.
         this.body.setPose(PlayerState.IdleCombat, direction);
         this.body.setPose(action, direction);
+    }
+
+    /**
+     * Axes (bloque B): turns through the 8 directions in `durationMs`, starting towards `angle` (radians), showing the
+     * attack frame `poseFrame` in each one. Stands still for the whole spin.
+     */
+    public spin(angle: number, durationMs: number, clockwise: boolean, poseFrame: number): void {
+        if (this.isDead) return;
+        this.swingLeftMs = durationMs;
+        this.rootLeftMs = durationMs;
+        const spin = this.spinning;
+        spin.leftMs = durationMs;
+        spin.durationMs = Math.max(1, durationMs);
+        spin.start = angle;
+        spin.sign = clockwise ? 1 : -1;
+        this.body.actionDurationMs = durationMs;
+        this.body.heldFrame = poseFrame;
+        this.body.setPose(PlayerState.Melee, this.spinDirection());
+    }
+
+    private turnSpin(deltaMs: number): void {
+        const spin = this.spinning;
+        if (spin.leftMs <= 0) return;
+        spin.leftMs -= deltaMs;
+        if (spin.leftMs <= 0 || this.swingLeftMs === 0) {
+            this.stopSpin();
+            return;
+        }
+        this.body.setPose(PlayerState.Melee, this.spinDirection());
+    }
+
+    /** Facing at this point of the spin (a whole turn over its length). */
+    private spinDirection(): Direction {
+        const spin = this.spinning;
+        const done = 1 - spin.leftMs / spin.durationMs;
+        const angle = spin.start + spin.sign * done * Math.PI * 2;
+        return directionFromVector(Math.cos(angle), Math.sin(angle)) ?? this.direction;
+    }
+
+    private stopSpin(): void {
+        this.spinning.leftMs = 0;
+        this.body.heldFrame = undefined;
     }
 
     /** Additive colour glow over the player (Berserk); undefined removes it. */
@@ -236,6 +282,7 @@ export class Player {
         this.invulnerableMs = invulnerableMs;
         this.swingLeftMs = 0;
         this.rootLeftMs = 0;
+        this.stopSpin();
         this.body.setPose(PlayerState.IdleCombat, this.direction);
         this.healthBar.setVisible(settings.current.showPlayerHealthBar);
         this.drawHealthBar();

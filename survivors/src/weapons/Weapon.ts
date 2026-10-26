@@ -27,6 +27,8 @@ export interface WeaponContext {
     castSpell(angle: number, durationMs: number): void;
     /** Melee: plays the owner's swing animation, the slash and the swing sound towards `angle` (radians). */
     swingMelee(def: MeleeWeaponDef, angle: number, durationMs: number): void;
+    /** Axes: the owner spins all around starting towards `angle` (radians), with a round trail and the swing sound. */
+    spinMelee(def: MeleeWeaponDef, angle: number, durationMs: number): void;
     /** Melee: applies the damage of a swing towards `angle`. */
     hitMelee(def: MeleeWeaponDef, angle: number): void;
     readonly audio: AudioSystem;

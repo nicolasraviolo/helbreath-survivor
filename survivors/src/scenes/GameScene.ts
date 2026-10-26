@@ -46,7 +46,7 @@ import { RESUME_SLOT_KEY, saveStore, type RunSnapshot } from '../systems/SaveSto
 import { ACTIVE_CHARACTER_KEY, characterStore, permanentStats } from '../systems/CharacterStore';
 import { lookLoader, runSprites } from '../systems/LookLoader';
 import { MIN_DAMAGE_TAKEN } from '../data/armor';
-import { MELEE_ROOT_MOMENT } from '../data/weapons';
+import { AXE_SPIN, MELEE_ROOT_MOMENT } from '../data/weapons';
 import { CAST_RELEASE_MOMENT } from '../data/spells';
 import { FOOTSTEP_DUST_EVERY_PX, FOOTSTEPS_PER_RUN_CYCLE } from '../data/audio';
 import { PLAYER_FRAMES_PER_DIRECTION } from '../hb/playerAppearance';
@@ -310,7 +310,9 @@ export class GameScene extends Phaser.Scene {
         const profile = DEBUG_START.level !== undefined
             ? simProfile(this.characterId, DEBUG_START.level, DEBUG_START.build, DEBUG_START.kit) : undefined;
         // What the saved character wears (Fase 20B), and the item icons for the Xelima and Merien cards (Fase 20C).
-        const startEquipment = profile?.equipment ?? savedCharacter?.equipment ?? START_EQUIPMENT[this.characterId];
+        const wornEquipment = profile?.equipment ?? savedCharacter?.equipment ?? START_EQUIPMENT[this.characterId];
+        // ?weapon=lightAxe (bloque B): that weapon in the Warrior's hand for this run, whatever he wears.
+        const startEquipment = DEBUG_START.weapon && character.startWeapon.kind === 'melee' ? { ...wornEquipment, weapon: DEBUG_START.weapon } : wornEquipment;
         // Fase 21B: the attribute of the weapon or wand worn (?attr= gives one to any starting weapon that can have it).
         const startAttribute = (profile ? undefined : savedCharacter?.attributes.weapon) ?? DEBUG_START.attribute;
         // Fase 24D: its "+" from the blacksmith (?upgrade= gives one in runs without a character, or with ?level=).
@@ -453,6 +455,7 @@ export class GameScene extends Phaser.Scene {
             // Stands still until the blow lands or the spell leaves (as in the original), then can run again.
             const direction = directionFromVector(Math.cos(angle), Math.sin(angle)) ?? this.player.direction;
             if (action === 'melee') this.player.act(PlayerState.Melee, direction, durationMs, durationMs * MELEE_ROOT_MOMENT);
+            else if (action === 'spin') this.player.spin(angle, durationMs, AXE_SPIN.clockwise, AXE_SPIN.poseFrame);
             else this.player.act(PlayerState.Cast, direction, durationMs, durationMs * CAST_RELEASE_MOMENT);
         });
         this.player.setMaxHp(this.stats.maxHp, true);

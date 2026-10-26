@@ -76,6 +76,12 @@ const PRESETS = {
     // Critical Strike (Fase 19A): Guerrero con una horda alrededor y cargas infinitas. Para lanzarlo:
     // --eval="g.launchCritStrike()"; con --mobile se ve el botón de la espada roja.
     crit: 'play=warrior&debug=god,horde,crits',
+    // Hachas (bloque B): Guerrero con una Light Axe girando en una horda. Crit de dos giros: --eval="g.launchCritStrike()".
+    axe: 'play=warrior&weapon=lightAxe&debug=god,horde,crits',
+    // La Battle Axe (Str 80), la más grande, para ver el dibujo en la mano y el círculo más ancho.
+    battleaxe: 'play=warrior&weapon=battleAxe&debug=god,horde',
+    // Ritmo de partida con un hacha (comparar con levelpace, que lleva la daga de salida).
+    levelpaceaxe: 'debug=sim&weapon=lightAxe',
     // Meteor Strike del Mago (Fase 19B): horda alrededor y sin recarga. Para lanzarlo: --eval="g.launchCritStrike()"
     // (el mismo botón que el crit); con --wait da tiempo a que caiga y explote.
     meteor: 'play=mage&debug=god,horde,crits',

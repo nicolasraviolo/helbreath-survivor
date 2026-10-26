@@ -42,6 +42,8 @@
 //                      orden; los ids de data/spells.ts y data/activeSpells.ts), sin mirar requisitos (Fase 20D)
 //   ?attr=sharp      → el arma de salida y todo el botín (que siempre es un arma) con ese atributo: sharp, poison o
 //                      ancient (Fase 21B; las varitas nunca son poison)
+//   ?weapon=lightAxe → el Guerrero empieza la partida con esa arma en la mano (id de data/weapons.ts), sin mirar
+//                      requisitos ni lo que lleve puesto (bloque B, hachas: lightAxe, tomahawk, doubleAxe, warAxe, battleAxe)
 //   ?upgrade=3       → el arma (o varita) de salida a +3 en las partidas de prueba sin personaje (1–3; Fase 24D)
 //   ?level=25        → partida de prueba como un personaje de ese Level: puntos repartidos y el mejor equipo que ya puede
 //                      ponerse (config/simProfile.ts; revisión de la dificultad, 22-oct-2026). Con &build=str:2,vit:1,dex:1
@@ -91,7 +93,7 @@ import { isUnlockId, type UnlockId } from '../data/abaddon';
 import { isMapId, type MapId } from '../data/maps';
 import { isStackableUnlockId, type StackableUnlockId } from '../data/rerollSkip';
 import { isCharacterId, type CharacterId } from '../data/characters';
-import { EQUIP_SLOT_IDS, type EquipSlotId } from '../data/items';
+import { EQUIP_SLOT_IDS, isMeleeWeaponId, type EquipSlotId } from '../data/items';
 import { SMITH_TABS, type SmithTab } from '../data/smith';
 import { isAutoSpellId, type AutoSpellId } from '../data/spells';
 import { UPGRADE_MAX } from '../data/upgrades';
@@ -99,6 +101,7 @@ import { isNpcId, type NpcId } from '../data/town';
 import { TREE_MODES, type TreeMode } from './settings';
 import { CHARACTER_LEVEL_MAX } from '../data/characterLevel';
 import { STAT_IDS, type Stats } from '../data/stats';
+import type { MeleeWeaponId } from '../data/weapons';
 import type { SimKit } from './simProfile';
 
 /** Menu screens that ?open= shows straight away, and the scene of each one. */
@@ -171,6 +174,8 @@ interface DebugStart {
     townShop: boolean;
     /** ?town=tom&smith=buy|sell|upgrade: the blacksmith opens at once on that tab (Fase 24C; upgrade, 24D). */
     townSmith: SmithTab | undefined;
+    /** ?weapon=lightAxe: the Warrior's weapon in hand for the run, whatever he wears (bloque B, axes). */
+    weapon: MeleeWeaponId | undefined;
     /** ?upgrade=3: the starting weapon or wand of a run without a character at that "+" (Fase 24D). */
     upgrade: number | undefined;
     /** ?xelima=5: every saved character keeps exactly that many Stones of Xelima (Fase 24D). */
@@ -190,7 +195,7 @@ function readDebugStart(): DebugStart {
         play: false, character: undefined, actions: [], trees: undefined, open: undefined, achievements: undefined, characters: undefined,
         sendMetrics: false, spells: { auto: undefined, active: undefined }, openClass: undefined, openSlot: undefined, slash: undefined,
         holdLoading: false, gear: [], settingsTab: undefined, attribute: undefined, unlocks: undefined, unlockCounts: {}, map: undefined, maps: undefined, townSpot: undefined, townTalk: false, townShop: false, townSmith: undefined,
-        gold: undefined, upgrade: undefined, xelima: undefined, level: undefined, build: undefined, kit: 'best', simBot: 'circle',
+        gold: undefined, weapon: undefined, upgrade: undefined, xelima: undefined, level: undefined, build: undefined, kit: 'best', simBot: 'circle',
     };
     if (!import.meta.env.DEV) return none;
     const params = new URLSearchParams(window.location.search);
@@ -210,6 +215,7 @@ function readDebugStart(): DebugStart {
     const maps = params.get('maps');
     const gold = params.get('gold');
     const upgrade = params.get('upgrade');
+    const weapon = params.get('weapon');
     const xelima = params.get('xelima');
     const level = params.get('level');
     return {
@@ -236,6 +242,7 @@ function readDebugStart(): DebugStart {
         townTalk: params.has('talk'),
         townShop: params.has('shop'),
         townSmith: SMITH_TABS.find((tab) => tab === params.get('smith')),
+        weapon: weapon !== null && isMeleeWeaponId(weapon) ? weapon : undefined,
         upgrade: upgrade !== null && /^[1-9]$/.test(upgrade) ? Math.min(UPGRADE_MAX, Number(upgrade)) : undefined,
         xelima: xelima !== null && /^\d+$/.test(xelima) ? Math.min(DEBUG_XELIMA_MAX, Number(xelima)) : undefined,
         unlockCounts: readUnlockCounts(unlocks),
