@@ -172,14 +172,14 @@ export const MELEE_WEAPONS = {
     // (`crack`) sale en línea hacia el objetivo. Lentos y pesados: más daño por golpe que espadas y hachas, menos golpes.
     // Icono: hoja 14 de item-pack.spr, como las hachas (Item.cfg Spr 15).
     hammer: {
-        name: 'Hammer', family: 'hammer', damage: 46, cooldownMs: 1500, swingMs: 650,
+        name: 'Hammer', family: 'hammer', damage: 42, cooldownMs: 1500, swingMs: 650,
         range: 80, arcDegrees: 360, knockback: 240, sprite: { key: 'gear.hammers.hammer', startSheet: 0 },
-        equip: { str: 70 }, icon: { sheet: AXE_ICON_SHEET, frame: 7 }, crack: { damage: 28, length: 200 },
+        equip: { str: 70 }, icon: { sheet: AXE_ICON_SHEET, frame: 7 }, crack: { damage: 20, length: 200 },
     },
     battleHammer: {
         name: 'Battle Hammer', family: 'hammer', damage: 62, cooldownMs: 1550, swingMs: 650,
         range: 90, arcDegrees: 360, knockback: 270, sprite: { key: 'gear.hammers.battle', startSheet: 0 },
-        equip: { str: 95 }, icon: { sheet: AXE_ICON_SHEET, frame: 8 }, crack: { damage: 38, length: 240 },
+        equip: { str: 95 }, icon: { sheet: AXE_ICON_SHEET, frame: 8 }, crack: { damage: 27, length: 240 },
     },
     // Desactivada (solo datos, sin ataque propio ni sprite cargado todavía). Números provisionales.
     rapier: { name: 'Rapier', family: 'fencing', damage: 10, cooldownMs: 400, swingMs: 320, range: 90, arcDegrees: 25, knockback: 40 },

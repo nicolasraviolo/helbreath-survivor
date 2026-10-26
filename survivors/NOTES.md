@@ -106,6 +106,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Zoom del mundo en el móvil (25-oct-2026)
 - Hachas: giro en torbellino (bloque B, 25-oct-2026)
 - Martillos: golpe al suelo y grieta (bloque C, 26-oct-2026)
+- Equilibrio de los martillos (26-oct-2026)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -1218,3 +1219,9 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - El martillo ataca también si el monstruo está fuera del círculo pero al alcance de la grieta (`HAMMER_SLAM.triggerShare` × largo).
 - Crit: el círculo de `CRIT_SHAPES.hammer` y una grieta `critCrackLength` (×1,6) más larga, con su daño escalado como el del golpe.
 - `check hammer` / `battlehammer` / `levelpacehammer`; `?weapon=hammer|battleHammer`. Para ver la grieta de cerca: `"play=warrior&weapon=battleHammer&debug=god,crits,aim&zoom=2&trees=off"` y `--eval="(g.launchCritStrike(), new Promise(r => setTimeout(r, 420)))"`.
+
+## Equilibrio de los martillos (26-oct-2026)
+- **Prueba justa:** cada arma en un Level donde el Guerrero ya tiene la Str que pide (Hammer Str 70 ≈ Level 23; Battle Hammer Str 95 ≈ Level 33; Flamberge Str 60). Casos `warrior:elvineGarden:25|35:0@weapon=...` y `warrior:middleland:40:0@weapon=...`, `--repeat=4`. La primera medida (Level 5/10) no valía: la simulación pone el arma sin mirar requisitos.
+- **Antes:** el Battle Hammer ganaba 4/4 en Elvine Garden 35 (Flamberge 2/4) y en Middleland 40 moría 3,5 veces (Flamberge 5) con la mitad de bola. El Battle Axe (Str 80) va como la Flamberge o peor.
+- **Cambio:** daño de la grieta −30% (Hammer 28→20, Battle Hammer 38→27). **Después:** Middleland 40 Battle Hammer 6 muertes, bola ~70 (más cerca de la Flamberge); Elvine Garden casi igual (allí la partida ya se gana; poco sirve para comparar). El Hammer en Elvine Garden 25 sigue ~2 min por encima de la Flamberge: la ventaja viene sobre todo del golpe en círculo, no de la grieta. Datos: `.check/balance-hammers-fair.json` y `.check/balance-hammers-nerf.json`.
+- **Segundo cambio:** golpe del Hammer 46→42. Medido con `--repeat=8` frente a la Flamberge (`.check/balance-hammers-42.json`): Elvine Garden 25, 1ª muerte 9:10 frente a 8:08; Middleland 40, 10:36 frente a 9:44 (4 muertes frente a 5,5); Elvine Garden 35, gana 8/8 frente a 7/8. Queda ~1 min por encima, con menos bola y menos monstruos muertos de un golpe (0,25–0,36 frente a 0,37–0,57): aceptado como ventaja de un arma más pesada.
