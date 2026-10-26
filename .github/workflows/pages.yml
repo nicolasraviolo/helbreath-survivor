@@ -1,6 +1,6 @@
 # Publica el juego en GitHub Pages (https://nicolasraviolo.github.io/helbreath-survivor/) cada vez que se sube a master.
-# Es una copia de la versión de Cloudflare Pages, para cuando las IPs de Cloudflare están bloqueadas (LaLiga en España).
-# Hace lo mismo que Cloudflare: instala, ejecuta `pnpm build` en survivors/ (que copia los assets) y publica dist/.
+# Es la única versión publicada del juego (Cloudflare Pages está desactivado; ver docs/PUBLICAR.md).
+# Instala, ejecuta `pnpm build` en survivors/ (que copia los assets) y publica dist/.
 # También se puede lanzar a mano: pestaña Actions → "Deploy to GitHub Pages" → Run workflow.
 name: Deploy to GitHub Pages
 
