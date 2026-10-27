@@ -2,6 +2,13 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
+**Hechizos de jefe con marca en el suelo (2026-10-27, suelto antes de la Fase 30).**
+- **Qué hace:** los hechizos de impacto de jefes y minijefes marcan la zona antes de caer, como el rayo del Guard, y solo dañan si sigues dentro (una vez por lanzamiento; la resistencia mágica puede pararlos). Tres patrones: `single` (Guard, igual que antes), `scatter` (Fire Wyvern: 5 bolas de fuego, una bajo los pies y cuatro alrededor, marcas naranjas) y `line` (Unicorn: Energy Strike en fila de 9 desde él, pasando por el jugador, que se enciende marca a marca; violeta). Mismo daño que sus proyectiles anteriores (9 y 10). Línea en What's new (Phase 30).
+- **Decisión (propietario, 27-oct-2026):** regla para todo hechizo de impacto de jefe; patrones distintos, todos esquivables moviéndose (DECISIONES.md).
+- **Código:** `EnemySkySpell.pattern/impact/markColor/damage` y `BossInfo.skySpell` (`data/enemies.ts`), `EnemyProjectileSystem.strikeAt` (patrones, `castsThatHit`), `BossSystem.updateSpell`; nota en NOTES.md, "Hechizos de impacto con marca en el suelo".
+- **Comprobado:** build; `check finalboss` (5 marcas), `middlelandboss` (9 marcas en orden desde el Unicorn), `rescue` (Guard: 1 marca, 750 ms), sin errores, 60 FPS.
+- **Probar:** `pnpm --dir survivors dev` → http://localhost:8090/?debug=god,finalboss (Wyvern) · http://localhost:8090/?play=warrior&map=middleland&debug=god,finalboss (Unicorn).
+
 **Fase 29C, logros que se acumulan (2026-10-27).**
 - **Qué hace:** 8 logros sin recompensa que suman las bajas de un monstruo en todas las partidas y de los dos personajes juntos: Slime Squasher (3,000 Slimes), Snake Charmer (5,000 Snakes), Orc Bane (2,000 Orcs), Bone Breaker (2,000 Skeletons), Troll Hunter (2,000 Trolls), Silver Fang (2,000 Werewolves), Lumberjack (2,000 Giant Trees) y One-Eyed No More (1,000 Cyclops). Jefes no cuentan; Champions y élites sí. La pantalla Achievements añade "(312 / 3,000)" a los pendientes. Línea en What's new (Phase 29).
 - **Decisiones (propietario, 27-oct-2026):** solo por monstruo; contadores del dispositivo; progreso visible; cifras subidas tras estimar ~8–10 partidas por logro (DECISIONES.md).

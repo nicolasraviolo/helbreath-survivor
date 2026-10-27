@@ -51,10 +51,23 @@ export interface EnemyRangedAttack {
 }
 
 /**
- * A spell that falls from the sky on the player (the Guards' Lightning Bolt, Fase 29A): the monster casts it from up
- * to `rangePx` away, a mark shows on the ground where the player stood for `warnMs`, then the bolt strikes it. It hurts
- * the player only if still within `radius` of that point (so you can step aside), and the magic resistance can stop it.
- * Damage = the caster's own blow × `damageShare`.
+ * Where the marks of a sky spell go (Fase 30, owner 27-oct-2026: "different patterns, all of them escapable"):
+ * - `single`: one mark at the player's feet (the Guards).
+ * - `scatter`: one at the player's feet and `count - 1` more around it, between `minPx` and `maxPx` away.
+ * - `line`: `count` marks `spacingPx` apart in a line from the caster through the player (the player's one in the
+ *   middle); they light up one after another, `stepMs` apart, from the caster's side, so you step out sideways.
+ */
+export type SkySpellPattern =
+    | { kind: 'single' }
+    | { kind: 'scatter'; count: number; minPx: number; maxPx: number }
+    | { kind: 'line'; count: number; spacingPx: number; stepMs: number };
+
+/**
+ * An impact spell (the Guards' Lightning Bolt, Fase 29A; every boss impact spell since Fase 30): the monster casts it
+ * from up to `rangePx` away, its marks show on the ground for `warnMs` (`pattern`), then it strikes each of them. It
+ * hurts the player only if still within `radius` of a mark (so you can step aside), at most once per cast, and the
+ * magic resistance can stop it. RULE (owner, 27-oct-2026): every boss spell that lands on a spot marks it first;
+ * only projectiles you can see flying (arrows, fireballs in flight) skip the mark.
  */
 export interface EnemySkySpell {
     rangePx: number;
@@ -63,9 +76,18 @@ export interface EnemySkySpell {
     maxCooldownMs: number;
     warnMs: number;
     radius: number;
+    /** Damage = the caster's own blow × `damageShare` (the Guards)... */
     damageShare: number;
+    /** ...or exactly this much (bosses, like their old projectiles). */
+    damage?: number;
     magicHitRatio: number;
     sound: SoundKey;
+    /** Default `single`. */
+    pattern?: SkySpellPattern;
+    /** What falls on each mark: the Lightning Bolt (default) or this effect (config/effects.ts). */
+    impact?: 'lightning' | EffectKey;
+    /** Colour of the marks (default SKY_SPELL_MARK.color, the bolt's blue-white). */
+    markColor?: number;
 }
 
 export interface BossInfo {
@@ -75,8 +97,10 @@ export interface BossInfo {
     dropsChest: boolean;
     /** Killing it wins the game. */
     final: boolean;
-    /** Extra attack of its own, besides its normal blows (the Fire Wyvern's fireballs). */
+    /** Extra attack of its own, besides its normal blows: projectiles that fly at the player (none since Fase 30). */
     ranged?: EnemyRangedAttack;
+    /** Impact spell with marks on the ground (Fase 30: the Fire Wyvern's fireballs, the Unicorn's Energy Strike). */
+    skySpell?: EnemySkySpell;
 }
 
 export interface EnemyDef {
@@ -224,6 +248,26 @@ const ORC_FIREBALL: EnemyRangedAttack = {
 /** The Guards' Lightning Bolt (Fase 29A): our own idea, the original guards only hit up close (reference/Server.cpp). */
 const GUARD_LIGHTNING: EnemySkySpell = {
     rangePx: 7 * 32, minCooldownMs: 2600, maxCooldownMs: 3800, warnMs: 750, radius: 30, damageShare: 1.2, magicHitRatio: 70, sound: 'sfx.lightning',
+};
+
+/**
+ * Fire Wyvern (Fase 30): its fireballs no longer fly in a fan, they fall on 5 marks, one at your feet and four around.
+ * Same damage and magic hit ratio as the old fireballs (9, 80); the cooldown is a little longer for the bigger area.
+ */
+const WYVERN_FIREBALLS: EnemySkySpell = {
+    rangePx: 520, minCooldownMs: 2800, maxCooldownMs: 3600, warnMs: 900, radius: 34, damageShare: 0, damage: 9, magicHitRatio: 80,
+    sound: 'sfx.explosion', impact: 'fx.fireBall.explode', markColor: 0xff8a3d,
+    pattern: { kind: 'scatter', count: 5, minPx: 70, maxPx: 150 },
+};
+
+/**
+ * Unicorn (Fase 30): its Energy Strike runs in a line from it through you, mark after mark: step out sideways.
+ * Same damage and magic hit ratio as the old fan of bolts (10, 85).
+ */
+const UNICORN_ENERGY_STRIKE: EnemySkySpell = {
+    rangePx: 520, minCooldownMs: 2400, maxCooldownMs: 3200, warnMs: 800, radius: 28, damageShare: 0, damage: 10, magicHitRatio: 85,
+    sound: 'sfx.energyBolt.impact', impact: 'fx.energyBolt.explode', markColor: 0xd9b8ff,
+    pattern: { kind: 'line', count: 9, spacingPx: 50, stepMs: 70 },
 };
 
 /**
@@ -469,10 +513,7 @@ export const ENEMIES = {
         animations: { idle: { sheet: 0, firstFrame: 0, frameCount: 4 } },
         boss: {
             title: 'Unicorn', dropsChest: true, final: true,
-            ranged: {
-                flyEffect: 'fx.energyStrike.fly', explodeEffect: 'fx.energyBolt.explode', sound: 'sfx.energyBolt.impact',
-                magicHitRatio: 85, damage: 10, cooldownMs: 2200, range: 520, speed: 260, shots: 5, spreadDegrees: 50, radius: 10,
-            },
+            skySpell: UNICORN_ENERGY_STRIKE,
         },
     },
     // Fase 29A: el Guard que tiene secuestrado a un NPC de la ciudad (data/rescues.ts). guard.spr, con las hojas
@@ -495,10 +536,7 @@ export const ENEMIES = {
         animations: { idle: { sheet: 0, firstFrame: 0, frameCount: 4 }, attack: { sheet: 0, firstFrame: 3, frameCount: 4 }, dead: { sheet: 16 } },
         boss: {
             title: 'Fire Wyvern', dropsChest: true, final: true,
-            ranged: {
-                flyEffect: 'fx.fireBall.fly', explodeEffect: 'fx.fireBall.explode', sound: 'sfx.explosion',
-                magicHitRatio: 80, damage: 9, cooldownMs: 2600, range: 520, speed: 230, shots: 3, spreadDegrees: 30, radius: 12,
-            },
+            skySpell: WYVERN_FIREBALLS,
         },
     },
 } as const satisfies Record<string, EnemyDef>;

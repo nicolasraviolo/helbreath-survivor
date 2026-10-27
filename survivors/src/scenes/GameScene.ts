@@ -414,7 +414,7 @@ export class GameScene extends Phaser.Scene {
         // Fase 29A: the Guards' Lightning Bolt falls where the player stood when it was cast.
         this.enemies.setSpellHandler((enemy) => {
             const spell = enemy.def.skySpell;
-            if (spell) this.enemyShots.strikeAt(spell, enemy.def.name, enemy.spellX, enemy.spellY, enemy.spellDamage);
+            if (spell) this.enemyShots.strikeAt(spell, enemy.def.name, enemy.spellX, enemy.spellY, enemy.spellDamage, enemy.x, enemy.y);
         });
         // Not in the simulated runs (?debug=sim), which measure the waves and bosses alone.
         const simulated = DEBUG_START.actions.includes('sim');

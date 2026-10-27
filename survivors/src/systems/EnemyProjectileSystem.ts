@@ -5,6 +5,8 @@
 // Se reciclan con un pool (regla 5). Usan los mismos efectos que el Fire Ball de la Maga.
 // Fase 29A: también los hechizos que caen del cielo (el Lightning Bolt de los Guards): una marca en el suelo y, al poco,
 // el rayo; solo hace daño si el jugador sigue dentro de la marca, y la resistencia mágica puede pararlo.
+// Fase 30: lo mismo para los hechizos de los jefes, con varios patrones de marcas (una, repartidas o en línea) y su
+// propio efecto al caer; cada lanzamiento hace daño una vez como mucho.
 import type Phaser from 'phaser';
 import { effectAnimationKey, type EffectKey } from '../config/effects';
 import { DEPTH_EFFECT_OFFSET, DEPTH_GROUND_SHADOWS, PLAYER_BODY_OFFSET_Y } from '../config/gameConfig';
@@ -75,7 +77,7 @@ class EnemyProjectile implements Poolable {
     }
 }
 
-/** A sky spell on its way (Fase 29A): its mark on the ground at (x, y) (the player's feet), until it strikes. */
+/** One mark of a sky spell on its way (Fase 29A; several per cast since Fase 30), until it strikes. */
 class SkyStrike implements Poolable {
     public poolIndex = -1;
     public x = 0;
@@ -83,6 +85,12 @@ class SkyStrike implements Poolable {
     public spell!: EnemySkySpell;
     public damage = 0;
     public source = '';
+    public fromBoss = false;
+    /** The cast it belongs to: a cast hurts the player once at most, however many of its marks touch. */
+    public cast = 0;
+    /** The last mark of its cast to strike (then the cast is forgotten). */
+    public last = false;
+    private warnMs = 0;
     private leftMs = 0;
     private readonly mark: Phaser.GameObjects.Graphics;
 
@@ -90,13 +98,18 @@ class SkyStrike implements Poolable {
         this.mark = scene.add.graphics().setActive(false).setVisible(false).setDepth(DEPTH_GROUND_SHADOWS + 2);
     }
 
-    public start(spell: EnemySkySpell, source: string, damage: number, x: number, y: number): void {
+    public start(spell: EnemySkySpell, source: string, damage: number, fromBoss: boolean, cast: number, last: boolean,
+        x: number, y: number, warnMs: number): void {
         this.spell = spell;
         this.source = source;
         this.damage = damage;
+        this.fromBoss = fromBoss;
+        this.cast = cast;
+        this.last = last;
         this.x = x;
         this.y = y;
-        this.leftMs = spell.warnMs;
+        this.warnMs = warnMs;
+        this.leftMs = warnMs;
         this.mark.setActive(true).setVisible(true);
         this.draw();
     }
@@ -115,13 +128,14 @@ class SkyStrike implements Poolable {
 
     private draw(): void {
         const look = SKY_SPELL_MARK;
+        const color = this.spell.markColor ?? look.color;
         const width = this.spell.radius * 2;
         const height = width * look.yShare;
-        const grown = 1 - Math.max(0, this.leftMs) / this.spell.warnMs;
+        const grown = 1 - Math.max(0, this.leftMs) / this.warnMs;
         this.mark.clear()
-            .lineStyle(look.ringWidth, look.color, look.ringAlpha)
+            .lineStyle(look.ringWidth, color, look.ringAlpha)
             .strokeEllipse(this.x, this.y, width, height)
-            .fillStyle(look.color, look.fillAlpha)
+            .fillStyle(color, look.fillAlpha)
             .fillEllipse(this.x, this.y, width * grown, height * grown);
     }
 }
@@ -130,6 +144,9 @@ export class EnemyProjectileSystem {
     private readonly projectiles: Pool<EnemyProjectile>;
     private readonly strikes: Pool<SkyStrike>;
     private readonly finishedStrikes: SkyStrike[] = [];
+    /** Casts counted so far, and the ones that already hurt the player (each cast hurts once at most). */
+    private casts = 0;
+    private readonly castsThatHit = new Set<number>();
     private readonly lightnings: Pool<LightningArc>;
     private readonly finishedLightnings: LightningArc[] = [];
     private readonly finished: EnemyProjectile[] = [];
@@ -149,9 +166,37 @@ export class EnemyProjectileSystem {
         this.lightnings = new Pool(() => new LightningArc(scene));
     }
 
-    /** A sky spell will fall on (x, y) (the player's feet) after its warning (a Guard's Lightning Bolt, Fase 29A). */
-    public strikeAt(spell: EnemySkySpell, source: string, x: number, y: number, damage: number): void {
-        this.strikes.acquire().start(spell, source, damage, x, y);
+    /**
+     * A sky spell aimed at (x, y) (the player's feet), cast from (fromX, fromY): its marks go down following its
+     * pattern and each one strikes after its warning (a Guard's Lightning Bolt, Fase 29A; bosses' spells, Fase 30).
+     */
+    public strikeAt(spell: EnemySkySpell, source: string, x: number, y: number, damage: number, fromX: number, fromY: number, fromBoss = false): void {
+        const cast = ++this.casts;
+        const pattern = spell.pattern ?? { kind: 'single' };
+        const add = (px: number, py: number, warnMs: number, last: boolean) =>
+            this.strikes.acquire().start(spell, source, damage, fromBoss, cast, last, px, py, warnMs);
+        if (pattern.kind === 'single') {
+            add(x, y, spell.warnMs, true);
+        } else if (pattern.kind === 'scatter') {
+            add(x, y, spell.warnMs, pattern.count <= 1);
+            // The others evenly around, each at its own distance, so there is always a gap to run through.
+            const turn = Math.random() * Math.PI * 2;
+            const others = pattern.count - 1;
+            for (let i = 0; i < others; i++) {
+                const angle = turn + (i / others) * Math.PI * 2;
+                const distance = pattern.minPx + Math.random() * (pattern.maxPx - pattern.minPx);
+                add(x + Math.cos(angle) * distance, y + Math.sin(angle) * distance * SKY_SPELL_MARK.yShare, spell.warnMs, i === others - 1);
+            }
+        } else {
+            // From the caster's side through the player: the player's mark is the middle one.
+            const angle = Math.atan2((y - fromY) / SKY_SPELL_MARK.yShare, x - fromX);
+            const ux = Math.cos(angle) * pattern.spacingPx;
+            const uy = Math.sin(angle) * pattern.spacingPx * SKY_SPELL_MARK.yShare;
+            const middle = Math.floor(pattern.count / 2);
+            for (let i = 0; i < pattern.count; i++) {
+                add(x + ux * (i - middle), y + uy * (i - middle), spell.warnMs + i * pattern.stepMs, i === pattern.count - 1);
+            }
+        }
     }
 
     public get active(): number {
@@ -233,28 +278,34 @@ export class EnemyProjectileSystem {
         for (const projectile of this.finished) this.projectiles.release(projectile);
         this.finished.length = 0;
 
-        // Sky spells: strike when their warning ends, hurting the player only if still inside the mark.
+        // Sky spells: each mark strikes when its warning ends, hurting the player only if still inside it (once per cast).
         const feetY = bodyY + PLAYER_BODY_OFFSET_Y;
         for (const strike of this.strikes.active) {
             if (!strike.update(deltaMs)) continue;
             const { spell } = strike;
-            this.lightnings.acquire().strike(strike.x, strike.y);
+            const impact = spell.impact ?? 'lightning';
+            if (impact === 'lightning') this.lightnings.acquire().strike(strike.x, strike.y);
+            else this.spawnEffect(impact, strike.x, strike.y);
             this.audio.play(spell.sound);
             const reach = spell.radius + bodyRadius;
             const dx = strike.x - bodyX;
             const dy = (strike.y - feetY) / SKY_SPELL_MARK.yShare;
-            if (dx * dx + dy * dy <= reach * reach) {
+            if (!this.castsThatHit.has(strike.cast) && dx * dx + dy * dy <= reach * reach) {
+                // Resisted or not, the cast is spent on the player: its other marks no longer touch.
+                this.castsThatHit.add(strike.cast);
                 const hit = Math.random() < spellHitChance(spell.magicHitRatio, defense.magicResistance);
                 onBlow?.(strike.source, strike.damage, hit);
                 if (!hit) this.onResist(bodyX, bodyY);
                 else {
                     damage += strike.damage;
+                    this.bossHit ||= strike.fromBoss;
                     if (strike.damage > strongest) {
                         strongest = strike.damage;
                         this.hitSource = strike.source;
                     }
                 }
             }
+            if (strike.last) this.castsThatHit.delete(strike.cast);
             strike.deactivate();
             this.finishedStrikes.push(strike);
         }

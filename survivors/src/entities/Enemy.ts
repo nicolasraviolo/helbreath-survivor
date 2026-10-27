@@ -803,7 +803,7 @@ export class Enemy implements Poolable {
             if (this.hitInMs < 0) {
                 const spell = this.def.skySpell;
                 if (this.casting && spell) {
-                    this.spellDamage = Math.max(1, Math.round(this.rollDamage() * spell.damageShare));
+                    this.spellDamage = spell.damage ?? Math.max(1, Math.round(this.rollDamage() * spell.damageShare));
                     this.spellX = world.targetX;
                     this.spellY = world.targetY;
                 } else if (this.def.attackProjectile) this.shotDamage = this.rollDamage();

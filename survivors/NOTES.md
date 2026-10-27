@@ -108,6 +108,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Martillos: golpe al suelo y grieta (bloque C, 26-oct-2026)
 - Equilibrio de los martillos (26-oct-2026)
 - Rescates y Guards (Fase 29A, 27-oct-2026; logros y Missions, 29B)
+- Hechizos de impacto con marca en el suelo (27-oct-2026)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -1240,3 +1241,12 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - **Logros y Missions (29B):** meta `{ kind: 'rescue', npc? }` en `data/achievements.ts` (sin `npc` = todos). Se desbloquean en `AchievementTracker.onRescue` (GameScene, cuando `RescueSystem.onEnemyKilled` devuelve true) y además, en silencio, al abrir el juego (`AchievementStore`, `rescueGoalMet`): así cuentan los rescates guardados antes de existir el logro. Ojo: `?achievements=reset` los vuelve a dar si hay rescates guardados; usar también `?rescued=reset`.
 - Missions de William: `scenes/MissionsScene.ts` (lee `RESCUES`, estado con `rescueStore` y `mapUnlockStore.isOpen` con el Level del personaje), textos y colores en `MISSIONS_SCREEN` (`config/menus.ts`). Atajos `?open=missions`, `?open=town&town=william&missions`; `check missions` / `missionsone` / `missionsall`.
 - Para matar al Guard desde `--eval` (killAll no sirve): `g.enemies.forEachAlive(e => { if (e.isGuard) g.combat.hitEnemy(e, 'physical', 1e9, e.x, e.y, 0); })`.
+
+## Hechizos de impacto con marca en el suelo (27-oct-2026)
+- **Regla (propietario):** todo hechizo de jefe o minijefe que cae en un sitio **marca la zona antes** y deja escapar. Solo los proyectiles que se ven volar (flechas, bolas del Orc Mage) van sin marca.
+- Datos: `EnemySkySpell` en `data/enemies.ts`: `pattern` (`single` = bajo los pies; `scatter` = uno bajo los pies y el resto repartido alrededor, con huecos; `line` = fila desde el que lanza, pasando por el jugador, que se enciende marca a marca cada `stepMs`), `impact` (`'lightning'` o un efecto de `config/effects.ts`), `markColor`, y `damage` fijo (jefes) o `damageShare` (golpe × parte, Guards).
+- Monstruos normales: `EnemyDef.skySpell` (lo lanza `Enemy` como un ataque). Jefes: `BossInfo.skySpell` (lo lanza `BossSystem.updateSpell` con su recarga). `BossInfo.ranged` (proyectiles en abanico) sigue existiendo, pero ya ningún jefe lo usa.
+- `EnemyProjectileSystem.strikeAt` coloca las marcas; **cada lanzamiento hace daño una sola vez**, aunque toquen varias marcas (`castsThatHit`). La resistencia mágica puede pararlo ("Resist").
+- Ahora: Guard = Lightning Bolt `single` (azul); Fire Wyvern = 5 bolas de fuego `scatter` (naranja); Unicorn = Energy Strike `line` de 9 marcas (violeta).
+- Probar: `check finalboss` (Wyvern) / `middlelandboss` (Unicorn) / `rescue` (Guard). Para contar marcas: `--eval="g.enemyShots.strikes.active.length"`.
+

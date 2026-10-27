@@ -14,6 +14,13 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: readonly ReleaseNote[] = [
     {
+        version: 'Phase 30',
+        date: 'Oct 27, 2026',
+        changes: [
+            'Boss spells now mark the ground before they land: step out of the marks to avoid them.',
+        ],
+    },
+    {
         version: 'Phase 29',
         date: 'Oct 27, 2026',
         changes: [
