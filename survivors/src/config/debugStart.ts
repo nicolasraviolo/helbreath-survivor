@@ -90,6 +90,8 @@
 //   ?unlocks=abaddon  → desbloquea Abaddon's Blood en este dispositivo (Fase 21E; reset = quita los desbloqueos)
 //                      dice3,wine2 → 3 dados (Reroll) y 2 vinos (Skip) comprados (Fase 21½B; "dice" solo = 1, "dice0" = 0)
 //   ?achievements=reset → borra los logros conseguidos al cargar (all = los da todos, para ver la pantalla llena; Fase 14B)
+//                      (reset también pone a 0 los contadores de bajas de la Fase 29C)
+//   ?kills=slime:2995,orc:1500 → pone esos contadores de bajas de todas las partidas (logros que se acumulan, Fase 29C)
 //   ?metrics=send    → enviar las métricas de esta partida al servidor de verdad (en desarrollo no se envían; Fase 14A)
 //   Se combina con ?ui=compact (interfaz de móvil).
 // En el build publicado no hace nada.
@@ -172,6 +174,8 @@ interface DebugStart {
     maps: 'all' | 'reset' | undefined;
     /** ?rescued=howard,tom marks those NPCs as rescued; all / reset (Fase 29A). */
     rescued: NpcId[] | 'all' | 'reset' | undefined;
+    /** ?kills=slime:2995,orc:1500 sets those all-runs kill counters (Fase 29C); monster ids are checked by AchievementStore. */
+    kills: Record<string, number>;
     /**
      * ?town=portal: the character appears on the town's teleport, so Select Map opens over the town (Fase 23).
      * ?town=<npc>: next to that NPC (Fase 23B); with &talk, its panel opens too.
@@ -200,11 +204,21 @@ interface DebugStart {
     simBot: 'circle' | 'stand';
 }
 
+/** "slime:2995,orc:1500" → { slime: 2995, orc: 1500 } (Fase 29C). */
+function parseKills(text: string | null): Record<string, number> {
+    const kills: Record<string, number> = {};
+    for (const part of (text ?? '').split(',')) {
+        const [enemy, count] = part.split(':').map((p) => p.trim());
+        if (enemy && count && /^\d+$/.test(count)) kills[enemy] = Number(count);
+    }
+    return kills;
+}
+
 function readDebugStart(): DebugStart {
     const none: DebugStart = {
         play: false, character: undefined, actions: [], trees: undefined, open: undefined, achievements: undefined, characters: undefined,
         sendMetrics: false, spells: { auto: undefined, active: undefined }, openClass: undefined, openSlot: undefined, slash: undefined,
-        holdLoading: false, gear: [], settingsTab: undefined, attribute: undefined, unlocks: undefined, unlockCounts: {}, map: undefined, maps: undefined, rescued: undefined, townSpot: undefined, townTalk: false, townShop: false, townMissions: false, townSmith: undefined,
+        holdLoading: false, gear: [], settingsTab: undefined, attribute: undefined, unlocks: undefined, unlockCounts: {}, map: undefined, maps: undefined, rescued: undefined, kills: {}, townSpot: undefined, townTalk: false, townShop: false, townMissions: false, townSmith: undefined,
         gold: undefined, weapon: undefined, upgrade: undefined, xelima: undefined, level: undefined, build: undefined, kit: 'best', simBot: 'circle',
     };
     if (!import.meta.env.DEV) return none;
@@ -250,6 +264,7 @@ function readDebugStart(): DebugStart {
         map: isMapId(map) ? map : undefined,
         maps: maps === 'all' || maps === 'reset' ? maps : undefined,
         rescued: rescued === 'all' || rescued === 'reset' ? rescued : rescued ? rescued.split(',').map((r) => r.trim()).filter(isNpcId) : undefined,
+        kills: parseKills(params.get('kills')),
         townSpot: parseTownSpot(params.get('town')),
         townTalk: params.has('talk'),
         townShop: params.has('shop'),

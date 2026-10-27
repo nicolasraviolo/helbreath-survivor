@@ -2,6 +2,13 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
+**Fase 29C, logros que se acumulan (2026-10-27).**
+- **Qué hace:** 8 logros sin recompensa que suman las bajas de un monstruo en todas las partidas y de los dos personajes juntos: Slime Squasher (3,000 Slimes), Snake Charmer (5,000 Snakes), Orc Bane (2,000 Orcs), Bone Breaker (2,000 Skeletons), Troll Hunter (2,000 Trolls), Silver Fang (2,000 Werewolves), Lumberjack (2,000 Giant Trees) y One-Eyed No More (1,000 Cyclops). Jefes no cuentan; Champions y élites sí. La pantalla Achievements añade "(312 / 3,000)" a los pendientes. Línea en What's new (Phase 29).
+- **Decisiones (propietario, 27-oct-2026):** solo por monstruo; contadores del dispositivo; progreso visible; cifras subidas tras estimar ~8–10 partidas por logro (DECISIONES.md).
+- **Código:** meta `killTotal` en `data/achievements.ts`; `AchievementStore` guarda `kills` por tipo (misma clave, versión 2, migra la 1), `killCount`/`addKills`/`killGoalMet` y repaso al arrancar; `AchievementTracker.onKill`/`saveKills()` (cada 500 ms, en `saveRun` y al terminar); `GameScene.onEnemyKilled`; `AchievementsScene` (progreso); `?kills=` en `debugStart.ts`; `check achievementprogress` / `killcount`. Nota en NOTES.md, "Logros".
+- **Comprobado:** build; `check achievementprogress` (PC y `--mobile`, última página: cabe en una línea), `killcount --cards --wait=40000` (sale "Slime Squasher", contadores guardados en versión 2), `achievementlist game` sin errores, 60 FPS. La migración de la versión 1 no se probó en el navegador (revisada en el código).
+- **Probar:** `pnpm --dir survivors dev` → http://localhost:8090/?kills=slime:2990&play=warrior&map=traveler (matar ~10 Slimes) · http://localhost:8090/?open=achievements (última página).
+
 **Fase 29B, logros de rescate y Missions (2026-10-27).**
 - **Qué hace:** 4 logros nuevos sin recompensa: Keeper of Keys (Howard), Smith's Debt (Tom), Back in Business (Shop Keeper) y Hero of the Town (los tres). Saltan al matar al Guard, con el aviso de siempre; los rescates ya guardados dan su logro al abrir el juego. William → Missions (antes "Coming soon"): "1 / 3 completed" y una fila por rescate con el mapa, "Rescue Howard" y Done (dorado) / Pending (gris); si el mapa está cerrado para ese personaje, "???" y Locked. Línea en What's new (Phase 29).
 - **Decisiones (propietario, 27-oct-2026):** lista con estado y misiones de mapas cerrados ocultas; nombres por NPC; logro extra por rescatar a todos.

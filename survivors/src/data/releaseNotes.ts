@@ -19,6 +19,7 @@ export const RELEASE_NOTES: readonly ReleaseNote[] = [
         changes: [
             'Howard, Tom and the Shop Keeper are held captive by Guards. Find them on the maps and set them free to bring them back to town.',
             "New achievements for every rescue, and William's Missions list shows who is still held captive.",
+            'New achievements that add up over all your runs: kill thousands of Slimes, Snakes, Orcs, Trolls and more. The Achievements screen shows how far you are.',
         ],
     },
     {

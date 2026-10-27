@@ -922,6 +922,8 @@ export class GameScene extends Phaser.Scene {
 
     /** Saves the run, unless it is already decided (dead, or over). With the portal open, its countdown is kept. */
     private saveRun(): void {
+        // Fase 29C: the kills not yet added to the device's counters (also when the run is over).
+        this.achievements.saveKills();
         if (this.runOver || this.player.isDead || this.saveSlot < 0) return;
         saveStore.save(this.saveSlot, this.snapshot());
     }
@@ -1643,6 +1645,8 @@ export class GameScene extends Phaser.Scene {
             if (this.rescue.onEnemyKilled(enemy)) this.achievements.onRescue();
             return;
         }
+        // Fase 29C: one more of its kind for the achievements that add up every run (Champions and elites included).
+        if (!boss) this.achievements.onKill(enemy.def);
         if (enemy.champion) {
             // Fase 21½C: its guaranteed item (and maybe a Zem); its gems already fell (dropXp).
             this.loot.onChampionKill(enemy.x, enemy.y);
@@ -1747,6 +1751,7 @@ export class GameScene extends Phaser.Scene {
     private endRun(victory: boolean): void {
         if (this.runOver) return;
         this.runOver = true;
+        this.achievements.saveKills();
         if (victory) this.achievements.onWin();
         else this.achievements.onDeath();
         // Fase 22A: a win opens the next map in Select Map (for every character of the device).

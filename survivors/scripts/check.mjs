@@ -52,6 +52,10 @@ const PRESETS = {
     missions: 'characters=demo&open=town&town=william&rescued=reset&maps=reset&missions',
     missionsone: 'characters=demo&open=town&town=william&rescued=howard&missions',
     missionsall: 'characters=demo&open=town&town=william&rescued=all&missions',
+    // Fase 29C: logros que se acumulan, con contadores a medias (sin achievements=reset, el resto se queda como esté).
+    achievementprogress: 'achievements=reset&kills=slime:312,snake:4999,orc:1999,cyclops:12&open=achievements',
+    // Fase 29C: Traveler Zone con 2,999 Slimes y 4,999 Snakes ya contados y una horda: a los pocos segundos, "Slime Squasher".
+    killcount: 'achievements=reset&kills=slime:2999,snake:4999,cat:7&play=warrior&map=traveler&debug=god,horde',
     // Minimapa (Fase 16A): con un jefe vivo, para ver su punto rojo junto al del jugador.
     minimap: 'debug=god,boss',
     horde: 'debug=god,horde,horde,horde',

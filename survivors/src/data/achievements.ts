@@ -25,7 +25,10 @@ export type AchievementGoal =
     | { kind: 'die'; map?: MapId }
     /** Free a captive from its Guard (Fase 29B; data/rescues.ts); without `npc`, every one of them. Unlike the rest,
      *  it is also checked when the game opens, so a rescue saved before this goal existed still counts. */
-    | { kind: 'rescue'; npc?: NpcId };
+    | { kind: 'rescue'; npc?: NpcId }
+    /** Monsters of one kind killed, adding up every run of every character on this device (Fase 29C). Bosses are other
+     *  kinds (stoneGolemBoss…), so they never count; Champions and elites are the same kind, so they do. */
+    | { kind: 'killTotal'; enemy: EnemyId; count: number };
 
 export interface AchievementDef {
     name: string;
@@ -62,6 +65,16 @@ export const ACHIEVEMENTS = {
     rescueTom: { name: "Smith's Debt", description: 'Rescue Tom on Bleeding Isle.', goal: { kind: 'rescue', npc: 'tom' } },
     rescueShopKeeper: { name: 'Back in Business', description: 'Rescue the Shop Keeper in Elvine Garden.', goal: { kind: 'rescue', npc: 'shopKeeper' } },
     rescueAll: { name: 'Hero of the Town', description: 'Rescue everyone held captive.', goal: { kind: 'rescue' } },
+    // Fase 29C (propietario, 27-oct-2026): uno por monstruo típico de cada mapa, sumando todas las partidas. Cifras
+    // pensadas para unas 8–10 partidas del mapa donde más sale cada uno (Cyclops, ~4 de Middleland). Sin recompensa.
+    killSlimes: { name: 'Slime Squasher', description: 'Kill 3,000 Slimes.', goal: { kind: 'killTotal', enemy: 'slime', count: 3000 } },
+    killSnakes: { name: 'Snake Charmer', description: 'Kill 5,000 Snakes.', goal: { kind: 'killTotal', enemy: 'snake', count: 5000 } },
+    killOrcs: { name: 'Orc Bane', description: 'Kill 2,000 Orcs.', goal: { kind: 'killTotal', enemy: 'orc', count: 2000 } },
+    killSkeletons: { name: 'Bone Breaker', description: 'Kill 2,000 Skeletons.', goal: { kind: 'killTotal', enemy: 'skeleton', count: 2000 } },
+    killTrolls: { name: 'Troll Hunter', description: 'Kill 2,000 Trolls.', goal: { kind: 'killTotal', enemy: 'troll', count: 2000 } },
+    killWerewolves: { name: 'Silver Fang', description: 'Kill 2,000 Werewolves.', goal: { kind: 'killTotal', enemy: 'werewolf', count: 2000 } },
+    killGiantTrees: { name: 'Lumberjack', description: 'Kill 2,000 Giant Trees.', goal: { kind: 'killTotal', enemy: 'giantTree', count: 2000 } },
+    killCyclops: { name: 'One-Eyed No More', description: 'Kill 1,000 Cyclops.', goal: { kind: 'killTotal', enemy: 'cyclops', count: 1000 } },
 } as const satisfies Record<string, AchievementDef>;
 
 export type AchievementId = keyof typeof ACHIEVEMENTS;
@@ -78,5 +91,6 @@ export const ACHIEVEMENT_EVENT = 'achievement';
 /** Played when one is unlocked: the original's spell-cast chime (the same as a chest buff). */
 export const ACHIEVEMENT_SOUND: SoundKey = 'sfx.buff';
 
-/** How often the run is checked for the goals that grow (time, level, kills, armor). */
+/** How often the run is checked for the goals that grow (time, level, kills, armor). The kill counters of the
+ *  'killTotal' goals are saved at the same pace, not at every kill. */
 export const ACHIEVEMENT_CHECK_EVERY_MS = 500;
