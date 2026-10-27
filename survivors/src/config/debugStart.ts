@@ -82,6 +82,9 @@
 //                      con &talk, además se abre su panel
 //   ?town=shopKeeper&shop → con ?open=town, se abre la tienda directamente (Fase 24B)
 //   ?town=tom&smith=buy → con ?open=town, se abre el herrero en Buy (o sell, o upgrade: Fase 24D) directamente (Fase 24C)
+//   ?rescued=howard,tom → da esos NPCs por rescatados en este dispositivo (all = todos; reset = ninguno; Fase 29A).
+//                      ?town=<npc> también pone a ese NPC en la ciudad, sin guardarlo
+//   ?debug=rescue    → en una partida, el NPC secuestrado y su Guard aparecen cerca del jugador (Fase 29A)
 //   ?unlocks=abaddon  → desbloquea Abaddon's Blood en este dispositivo (Fase 21E; reset = quita los desbloqueos)
 //                      dice3,wine2 → 3 dados (Reroll) y 2 vinos (Skip) comprados (Fase 21½B; "dice" solo = 1, "dice0" = 0)
 //   ?achievements=reset → borra los logros conseguidos al cargar (all = los da todos, para ver la pantalla llena; Fase 14B)
@@ -117,7 +120,7 @@ function isDebugScreen(value: string | null): value is DebugScreen {
 }
 
 /** Actions that ?debug= can run at the start of a run (the same ones as the debug keys of GameScene). */
-export const DEBUG_ACTIONS = ['horde', 'kill', 'levelup', 'levels', 'str', 'magic', 'pickups', 'totems', 'minute', 'boss', 'finalboss', 'bosskill', 'stampede', 'dodge', 'stats', 'god', 'crits', 'aim', 'aimstick', 'resume', 'sim', 'charexp', 'stones', 'elites', 'loot', 'zem', 'onehp', 'epic', 'champion', 'xelima', 'nomana', 'spelldrag', 'bluebook', 'charge', 'movement', 'aura', 'daggers', 'angels', 'orcs', 'nosmooth'] as const;
+export const DEBUG_ACTIONS = ['horde', 'kill', 'levelup', 'levels', 'str', 'magic', 'pickups', 'totems', 'minute', 'boss', 'finalboss', 'bosskill', 'stampede', 'dodge', 'stats', 'god', 'crits', 'aim', 'aimstick', 'resume', 'sim', 'charexp', 'stones', 'elites', 'loot', 'zem', 'onehp', 'epic', 'champion', 'xelima', 'nomana', 'spelldrag', 'bluebook', 'charge', 'movement', 'aura', 'daggers', 'angels', 'orcs', 'nosmooth', 'rescue'] as const;
 export type DebugAction = (typeof DEBUG_ACTIONS)[number];
 
 function isDebugAction(value: string): value is DebugAction {
@@ -165,6 +168,8 @@ interface DebugStart {
     map: MapId | undefined;
     /** ?maps=all opens every map in Select Map; reset forgets the maps won (Fase 22A). */
     maps: 'all' | 'reset' | undefined;
+    /** ?rescued=howard,tom marks those NPCs as rescued; all / reset (Fase 29A). */
+    rescued: NpcId[] | 'all' | 'reset' | undefined;
     /**
      * ?town=portal: the character appears on the town's teleport, so Select Map opens over the town (Fase 23).
      * ?town=<npc>: next to that NPC (Fase 23B); with &talk, its panel opens too.
@@ -195,7 +200,7 @@ function readDebugStart(): DebugStart {
     const none: DebugStart = {
         play: false, character: undefined, actions: [], trees: undefined, open: undefined, achievements: undefined, characters: undefined,
         sendMetrics: false, spells: { auto: undefined, active: undefined }, openClass: undefined, openSlot: undefined, slash: undefined,
-        holdLoading: false, gear: [], settingsTab: undefined, attribute: undefined, unlocks: undefined, unlockCounts: {}, map: undefined, maps: undefined, townSpot: undefined, townTalk: false, townShop: false, townSmith: undefined,
+        holdLoading: false, gear: [], settingsTab: undefined, attribute: undefined, unlocks: undefined, unlockCounts: {}, map: undefined, maps: undefined, rescued: undefined, townSpot: undefined, townTalk: false, townShop: false, townSmith: undefined,
         gold: undefined, weapon: undefined, upgrade: undefined, xelima: undefined, level: undefined, build: undefined, kit: 'best', simBot: 'circle',
     };
     if (!import.meta.env.DEV) return none;
@@ -214,6 +219,7 @@ function readDebugStart(): DebugStart {
     const unlocks = params.get('unlocks');
     const map = params.get('map');
     const maps = params.get('maps');
+    const rescued = params.get('rescued');
     const gold = params.get('gold');
     const upgrade = params.get('upgrade');
     const weapon = params.get('weapon');
@@ -239,6 +245,7 @@ function readDebugStart(): DebugStart {
         unlocks: unlocks === 'reset' ? 'reset' : unlocks ? unlocks.split(',').map((u) => u.trim()).filter(isUnlockId) : undefined,
         map: isMapId(map) ? map : undefined,
         maps: maps === 'all' || maps === 'reset' ? maps : undefined,
+        rescued: rescued === 'all' || rescued === 'reset' ? rescued : rescued ? rescued.split(',').map((r) => r.trim()).filter(isNpcId) : undefined,
         townSpot: parseTownSpot(params.get('town')),
         townTalk: params.has('talk'),
         townShop: params.has('shop'),

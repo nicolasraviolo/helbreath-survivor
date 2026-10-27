@@ -50,6 +50,24 @@ export interface EnemyRangedAttack {
     magicHitRatio?: number;
 }
 
+/**
+ * A spell that falls from the sky on the player (the Guards' Lightning Bolt, Fase 29A): the monster casts it from up
+ * to `rangePx` away, a mark shows on the ground where the player stood for `warnMs`, then the bolt strikes it. It hurts
+ * the player only if still within `radius` of that point (so you can step aside), and the magic resistance can stop it.
+ * Damage = the caster's own blow × `damageShare`.
+ */
+export interface EnemySkySpell {
+    rangePx: number;
+    /** Time between two casts: from `minCooldownMs` to `maxCooldownMs`, at random. The first one comes after the minimum. */
+    minCooldownMs: number;
+    maxCooldownMs: number;
+    warnMs: number;
+    radius: number;
+    damageShare: number;
+    magicHitRatio: number;
+    sound: SoundKey;
+}
+
 export interface BossInfo {
     /** Name shown on the big health bar and the warning. */
     title: string;
@@ -96,6 +114,10 @@ export interface EnemyDef {
     movement?: MovementStyle;
     /** Fires this projectile instead of hitting directly (Dark Elf arrows). */
     attackProjectile?: EnemyRangedAttack;
+    /** Besides its blows, casts this spell from afar when the player is out of reach (the Guards, Fase 29A). */
+    skySpell?: EnemySkySpell;
+    /** Shows a health bar over its head, like a champion (the Guards, Fase 29A). */
+    healthBar?: boolean;
     /** XP of the gem dropped on death. */
     xp: number;
     /** Body radius in pixels, for contact with the player and separation between enemies. */
@@ -150,7 +172,8 @@ export const MONSTER_HP_BONUS = 1.2;
 
 /** Full health of a monster before the map, elite and champion multipliers. */
 export function monsterBaseHp(def: EnemyDef): number {
-    if (def.boss) return def.maxHp * BOSS_HP_MULTIPLIER * MONSTER_HP_BONUS;
+    // The Guards (Fase 29A) are mini-bosses without the rest of a boss: their health is counted like the bosses'.
+    if (def.boss || def.movement === 'guard') return def.maxHp * BOSS_HP_MULTIPLIER * MONSTER_HP_BONUS;
     return MONSTER_HP.reference * (def.maxHp / MONSTER_HP.reference) ** MONSTER_HP.exponent * MONSTER_HP_BONUS;
 }
 
@@ -198,6 +221,17 @@ const ORC_FIREBALL: EnemyRangedAttack = {
 };
 
 /** Dark Elf arrows (sp-client ArrowProjectile: effect.spr sheet 7, 2 frames per direction). Damage = its own dice. */
+/** The Guards' Lightning Bolt (Fase 29A): our own idea, the original guards only hit up close (reference/Server.cpp). */
+const GUARD_LIGHTNING: EnemySkySpell = {
+    rangePx: 7 * 32, minCooldownMs: 2600, maxCooldownMs: 3800, warnMs: 750, radius: 30, damageShare: 1.2, magicHitRatio: 70, sound: 'sfx.lightning',
+};
+
+/**
+ * The mark on the ground where a sky spell will fall: a flat ellipse (`yShare` of its width high) the spell's size,
+ * filling up as the bolt comes. Blue-white, like the bolt.
+ */
+export const SKY_SPELL_MARK = { yShare: 0.5, color: 0x9db4ff, ringAlpha: 0.9, ringWidth: 2, fillAlpha: 0.28 } as const;
+
 const ARROW: EnemyRangedAttack = {
     flyEffect: 'fx.arrow', physical: true, cooldownMs: 0, range: 8 * 32, speed: 420, shots: 1, spreadDegrees: 0, radius: 8,
 };
@@ -440,6 +474,16 @@ export const ENEMIES = {
                 magicHitRatio: 85, damage: 10, cooldownMs: 2200, range: 520, speed: 260, shots: 5, spreadDegrees: 50, radius: 10,
             },
         },
+    },
+    // Fase 29A: el Guard que tiene secuestrado a un NPC de la ciudad (data/rescues.ts). guard.spr, con las hojas
+    // estándar. No hay NPC.cfg del Guard en reference/: números nuestros, de minijefe (golpe y vida como el Stone Golem
+    // de Traveler Zone; cada mapa lo endurece con su RescueDef). Se queda en su puesto y lanza Lightning Bolt de lejos.
+    // Medido el 27-oct-2026 (mismo Guerrero, Power 8): con 3000 tardaba ~2 min y el Golem ~95 s; con 2500, parecido.
+    guard: {
+        movement: 'guard', name: 'Guard', sprite: 'enemy.guard', temporalCoefficient: 0.5, hasShadow: true, maxHp: 2500, xp: 300, radius: 14, bodyOffsetY: 36,
+        actionTimeMs: 1000, attackRange: 1, bravery: 100, damageDice: [7, 4], hitRatio: 150, hitSound: 'sfx.guard.hit', deathSound: 'sfx.guard.death', attackSound: 'sfx.guard.attack',
+        scale: 1.25, knockbackTaken: 0, damageScale: 0.75, healthBar: true,
+        skySpell: GUARD_LIGHTNING,
     },
     fireWyvern: {
         // sp-client: andar = hojas 8+ estándar; ataque = hoja 0 desde el frame 3, 4 frames (otros valores rompen Phaser);

@@ -32,7 +32,8 @@ export const HOW_TO_PLAY_PAGES: readonly HowToPlayPage[] = [
             'Each time your Power goes up, choose a card to grow stronger.',
             // Caben 7 líneas, cada una en una sola fila: si una se parte en dos, la última pisa el selector "Page".
             'Glowing Mana Stones give a power-up. Chests give a free card.',
-            'Defeat the Champions, big glowing monsters, for a better item.',
+            // Fase 29A: los Guards que tienen secuestrados a los NPCs de la ciudad.
+            'Champions drop better items. Beat Guards to free captives.',
             'Defeat the final boss to win, and a new map opens.',
         ],
     },
@@ -117,7 +118,7 @@ export const HOW_TO_PLAY_PAGES: readonly HowToPlayPage[] = [
         rows: [
             { control: 'Walk up to someone', action: '"Talk" shows over their name' },
             { control: 'E, pad A, click or Talk button', action: 'Talk' },
-            { control: 'Howard', action: 'Your Equipment and the Warehouse' },
+            { control: 'Howard (once rescued)', action: 'Your Equipment and the Warehouse' },
             { control: 'William', action: 'Your Achievements' },
             { control: 'Shop Keeper', action: "Zem, Abaddon's Blood, dice and wine" },
             { control: 'Tom, the blacksmith', action: 'Buys and sells weapons and armor' },

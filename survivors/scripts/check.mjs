@@ -43,6 +43,11 @@ const PRESETS = {
     // Fase 21½C: un Champion a los 3 segundos (usar --wait=6000 para verlo en la captura).
     champion: 'debug=god,champion',
     boss: 'debug=god,boss',
+    // Fase 29A: Howard secuestrado y su Guard junto al jugador en Traveler Zone (sin god: el Guard tiene que pegar).
+    rescue: 'play=warrior&map=traveler&rescued=reset&debug=rescue',
+    // Fase 29A: la ciudad sin nadie rescatado (solo William) y con todos.
+    townnobody: 'characters=demo&open=town&rescued=reset',
+    townall: 'characters=demo&open=town&rescued=all',
     // Minimapa (Fase 16A): con un jefe vivo, para ver su punto rojo junto al del jugador.
     minimap: 'debug=god,boss',
     horde: 'debug=god,horde,horde,horde',

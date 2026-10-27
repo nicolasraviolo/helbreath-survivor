@@ -107,6 +107,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Hachas: giro en torbellino (bloque B, 25-oct-2026)
 - Martillos: golpe al suelo y grieta (bloque C, 26-oct-2026)
 - Equilibrio de los martillos (26-oct-2026)
+- Rescates y Guards (Fase 29A, 27-oct-2026)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -1225,3 +1226,12 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - **Antes:** el Battle Hammer ganaba 4/4 en Elvine Garden 35 (Flamberge 2/4) y en Middleland 40 moría 3,5 veces (Flamberge 5) con la mitad de bola. El Battle Axe (Str 80) va como la Flamberge o peor.
 - **Cambio:** daño de la grieta −30% (Hammer 28→20, Battle Hammer 38→27). **Después:** Middleland 40 Battle Hammer 6 muertes, bola ~70 (más cerca de la Flamberge); Elvine Garden casi igual (allí la partida ya se gana; poco sirve para comparar). El Hammer en Elvine Garden 25 sigue ~2 min por encima de la Flamberge: la ventaja viene sobre todo del golpe en círculo, no de la grieta. Datos: `.check/balance-hammers-fair.json` y `.check/balance-hammers-nerf.json`.
 - **Segundo cambio:** golpe del Hammer 46→42. Medido con `--repeat=8` frente a la Flamberge (`.check/balance-hammers-42.json`): Elvine Garden 25, 1ª muerte 9:10 frente a 8:08; Middleland 40, 10:36 frente a 9:44 (4 muertes frente a 5,5); Elvine Garden 35, gana 8/8 frente a 7/8. Queda ~1 min por encima, con menos bola y menos monstruos muertos de un golpe (0,25–0,36 frente a 0,37–0,57): aceptado como ventaja de un arma más pesada.
+
+## Rescates y Guards (Fase 29A, 27-oct-2026)
+- Datos: `data/rescues.ts` (qué NPC en cada mapa y cuánto se endurece su Guard), Guard en `data/enemies.ts` (`guard`, `skySpell`, `healthBar`), movimiento `guard` en `data/movement.ts` (`GUARD_POST`).
+- Partida: `systems/RescueSystem.ts` (descarga el NPC y `guard.spr` si faltan, busca sitio, saca al Guard). El rayo cae con `EnemyProjectileSystem.strikeAt` (marca en el suelo + `LightningArc`; solo daña si sigues dentro, y se puede resistir).
+- Guardado: `systems/RescueStore.ts`, clave `hb-survivors.rescues` (en `TRANSFER_KEYS`). Ciudad: `TownScene` solo crea los NPCs con `rescueStore.isInTown`; William ofrece Equipment mientras falta Howard (`EQUIPMENT_STAND_IN`).
+- El Guard es inmune a `killAll` (jefe final, tecla K) y a `relocateFarAway`: hay que matarlo a mano. No sale en las partidas simuladas (`?debug=sim`).
+- `getMap` guarda el mapa en caché entre partidas: el NPC bloquea su casilla y la libera al irse (`HBMap.unblockTile`, `Npc.destroy`).
+- No hay NPC.cfg del Guard en `reference/`; los guardias originales solo pegan de cerca. El Lightning Bolt es idea nuestra (propietario).
+- Atajos: `?rescued=all|reset|howard,tom`, `?debug=rescue`; `?town=<npc>` pone a ese NPC aunque no esté rescatado. `check rescue` / `townnobody` / `townall`.

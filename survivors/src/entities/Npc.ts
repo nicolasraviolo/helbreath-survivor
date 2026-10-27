@@ -75,6 +75,22 @@ export class Npc {
         shadow.setPosition(left + frame.width / 2, top + frame.height);
     }
 
+    /** Fades it (a rescued captive leaving the run, Fase 29A). */
+    public setAlpha(alpha: number): void {
+        this.body.setAlpha(alpha);
+        this.shadow.setAlpha(BODY_SHADOW_ALPHA * alpha);
+        this.name.setAlpha(alpha);
+    }
+
+    /** Gone for good: frees its tile (the map is cached for the next runs). */
+    public destroy(map: HBMap): void {
+        map.unblockTile(this.def.tile.x, this.def.tile.y);
+        this.body.destroy();
+        this.shadow.destroy();
+        this.name.destroy();
+        this.talk.destroy();
+    }
+
     public distanceTo(x: number, y: number): number {
         return Math.hypot(x - this.x, y - this.y);
     }

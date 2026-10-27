@@ -105,6 +105,14 @@ export const TOWN_NPCS: Readonly<Record<NpcId, NpcDef>> = {
     },
 };
 
+/**
+ * Fase 29A: while Howard is still held captive (data/rescues.ts), William also opens Equipment, so a phone (with no
+ * I key) can still change gear. The warehouse stays closed until Howard is back.
+ */
+export const EQUIPMENT_STAND_IN = { keeper: 'howard', standIn: 'william', option: { label: 'Equipment', action: 'equipment' } } as const satisfies {
+    keeper: NpcId; standIn: NpcId; option: NpcOption;
+};
+
 export function isNpcId(value: string): value is NpcId {
     return Object.prototype.hasOwnProperty.call(TOWN_NPCS, value);
 }

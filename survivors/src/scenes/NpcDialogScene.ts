@@ -7,7 +7,8 @@
 import Phaser from 'phaser';
 import { MENU_TEXT_STYLE, MENU_OVERLAY, RUN_CHOICE } from '../config/menus';
 import { NPC_DIALOG_LIST } from '../config/town';
-import { TOWN_NPCS, TOWN_TALK, type NpcAction, type NpcId } from '../data/town';
+import { EQUIPMENT_STAND_IN, TOWN_NPCS, TOWN_TALK, type NpcAction, type NpcId, type NpcOption } from '../data/town';
+import { rescueStore } from '../systems/RescueStore';
 import type { MenuItem } from '../ui/MenuList';
 import type { EquipmentSceneData } from './EquipmentScene';
 import { MenuOverlayScene, type MenuOverlayData } from './MenuOverlayScene';
@@ -45,7 +46,11 @@ export class NpcDialogScene extends MenuOverlayScene {
     protected build(): void {
         const def = TOWN_NPCS[this.npc];
         this.setText(def.line);
-        const items: MenuItem[] = def.options.map((option) => ({ label: option.label, onConfirm: () => this.choose(option.action) }));
+        const options: NpcOption[] = [...def.options];
+        // Fase 29A: Howard still captive, William opens Equipment instead.
+        const { keeper, standIn, option } = EQUIPMENT_STAND_IN;
+        if (this.npc === standIn && !rescueStore.isInTown(keeper)) options.unshift(option);
+        const items: MenuItem[] = options.map((choice) => ({ label: choice.label, onConfirm: () => this.choose(choice.action) }));
         items.push({ label: 'Back', onConfirm: () => this.close() });
         this.addList(items, NPC_DIALOG_LIST.offsetY);
     }

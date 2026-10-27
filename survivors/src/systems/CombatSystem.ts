@@ -140,6 +140,8 @@ export class CombatSystem {
         const cries = new Set<SoundKey>();
         this.enemies.forEachAlive((enemy) => {
             if (area && !area.contains(enemy.x, enemy.y)) return;
+            // A rescue's Guard (Fase 29A) must be beaten by hand: no totem or final boss frees the captive.
+            if (enemy.isGuard) return;
             if (!enemy.kill()) return;
             this.killCount++;
             this.particles.death(enemy.x, enemy.y, enemy.bodyY);

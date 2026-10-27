@@ -61,6 +61,7 @@ import { GOLD, goldValue } from '../data/gold';
 import { BLUE_POTION_MANA_SHARE, CHEST_CARDS_TITLE, POTION_HEAL_SHARE, type PickupId } from '../data/pickups';
 import { getTotem, TOTEM_IDS, type TotemId } from '../data/totems';
 import { TotemSystem } from '../systems/TotemSystem';
+import { RescueSystem } from '../systems/RescueSystem';
 import { playerDefenseRatio, playerMagicResistance, RESIST_TEXT, type PlayerDefense } from '../data/defense';
 import { ARMOR_BY_SET } from '../data/armor';
 import { Equipment } from '../entities/Equipment';
@@ -231,6 +232,8 @@ export class GameScene extends Phaser.Scene {
     /** Abaddon's Blood (Fase 21E): gets up once per run after dying, if unlocked. */
     private abaddon!: AbaddonRevive;
     private totems!: TotemSystem;
+    /** The captive NPC of this map and its Guard (Fase 29A). */
+    private rescue!: RescueSystem;
     /** Free cards from chests not chosen yet (Fase 16B): they show after any level-up cards. */
     private chestCards = 0;
     /** Rerolls and Skips left in this run (Fase 21½B): one per Dice / Wine bought (UnlockStore). */
@@ -408,6 +411,16 @@ export class GameScene extends Phaser.Scene {
             const ranged = enemy.def.attackProjectile;
             if (ranged) this.enemyShots.throwAt(ranged, enemy.def.name, enemy.x, enemy.bodyY, this.player.x, this.player.y - PLAYER_BODY_OFFSET_Y, damage, false, enemy.def.hitRatio);
         });
+        // Fase 29A: the Guards' Lightning Bolt falls where the player stood when it was cast.
+        this.enemies.setSpellHandler((enemy) => {
+            const spell = enemy.def.skySpell;
+            if (spell) this.enemyShots.strikeAt(spell, enemy.def.name, enemy.spellX, enemy.spellY, enemy.spellDamage);
+        });
+        // Not in the simulated runs (?debug=sim), which measure the waves and bosses alone.
+        const simulated = DEBUG_START.actions.includes('sim');
+        this.rescue = new RescueSystem(this, map, areaPx, simulated ? undefined : this.mapId, this.enemies, this.audio,
+            (message) => this.events.emit(ANNOUNCE_EVENT, message),
+            { x: this.player.x, y: this.player.y, near: DEBUG_START.actions.includes('rescue') });
         this.music = new MusicSystem(this);
         this.music.play(MUSIC.normal);
         this.finalBossDead = false;
@@ -976,7 +989,7 @@ export class GameScene extends Phaser.Scene {
                 passiveBonuses: this.passiveBonusesNow(),
                 magicRanks: this.equipment.magics,
                 buffs: this.buffs.active.map(({ def, secondsLeft }) => ({ name: def.name, secondsLeft, color: def.color })),
-                minimap: { player: this.player, bosses: this.bosses.tracked.filter((boss) => boss.isAlive), totems: this.totems.active, loot: this.loot.active },
+                minimap: { player: this.player, bosses: this.bosses.tracked.filter((boss) => boss.isAlive), totems: this.totems.active, loot: this.loot.active, npcs: this.rescue.markers },
             }),
         };
         this.scene.launch('Hud', data);
@@ -1071,6 +1084,7 @@ export class GameScene extends Phaser.Scene {
         this.loot.update(delta, player.x, player.y, !player.isDead);
         this.totems.enabled = !player.isDead && !this.finalBossDead;
         this.totems.update(delta, player.x, player.y, !player.isDead);
+        this.rescue.update(delta);
         this.buffs.update(delta);
         this.stats.buffDamageMultiplier = this.buffs.damageMultiplier;
         this.spawner.enabled = !player.isDead && !this.finalBossDead;
@@ -1482,6 +1496,9 @@ export class GameScene extends Phaser.Scene {
             case 'nosmooth':
                 // Read by smoothSprite when each sprite is made (hb/XbrPipeline.ts, Fase 28¾B).
                 break;
+            case 'rescue':
+                // Read when the run starts (RescueSystem): the captive and its Guard close by (Fase 29A).
+                break;
             case 'champion':
                 // A champion a few seconds from now (Fase 21½C).
                 this.spawner.addChampionIn(CHAMPION.debugDelayMs);
@@ -1621,6 +1638,11 @@ export class GameScene extends Phaser.Scene {
      */
     private onEnemyKilled(enemy: Enemy): void {
         const boss = enemy.def.boss;
+        if (enemy.isGuard) {
+            // Fase 29A: its captive is free (no loot: the rescue is the prize).
+            this.rescue.onEnemyKilled(enemy);
+            return;
+        }
         if (enemy.champion) {
             // Fase 21½C: its guaranteed item (and maybe a Zem); its gems already fell (dropXp).
             this.loot.onChampionKill(enemy.x, enemy.y);

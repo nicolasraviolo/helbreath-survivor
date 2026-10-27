@@ -26,6 +26,8 @@ export class EnemySystem {
     private landedSource = '';
     /** Shoots an archer's arrow at the player (set by the game scene). */
     private onShoot: (enemy: Enemy, damage: number) => void = () => undefined;
+    /** A Guard's Lightning Bolt left (Fase 29A): it strikes at (enemy.spellX, enemy.spellY) (set by the game scene). */
+    private onSpell: (enemy: Enemy) => void = () => undefined;
     /** The player's health share (0..1), which raises or stops the elites' chance (set by the game scene). */
     private playerHealthShare: () => number = () => 1;
     /** Debug (?debug=elites): every monster that is not a boss comes out elite. */
@@ -46,6 +48,10 @@ export class EnemySystem {
 
     public setShootHandler(handler: (enemy: Enemy, damage: number) => void): void {
         this.onShoot = handler;
+    }
+
+    public setSpellHandler(handler: (enemy: Enemy) => void): void {
+        this.onSpell = handler;
     }
 
     /** Strongest blow that landed on the player this frame (monster attacks), or 0. */
@@ -95,6 +101,13 @@ export class EnemySystem {
         return enemy;
     }
 
+    /** A rescue's Guard (Fase 29A) at its post, with the map's own multipliers for it (data/rescues.ts); never elite. */
+    public spawnGuard(id: EnemyId, x: number, y: number, difficulty: MapDifficulty): Enemy {
+        const enemy = this.getPool(id).acquire();
+        enemy.spawn(x, y, false, difficulty);
+        return enemy;
+    }
+
     /** Every new monster may come out elite (data/elites.ts); bosses never. */
     public spawn(id: EnemyId, x: number, y: number): Enemy {
         const enemy = this.getPool(id).acquire();
@@ -138,6 +151,10 @@ export class EnemySystem {
                     this.onShoot(enemy, enemy.shotDamage);
                     enemy.shotDamage = 0;
                 }
+                if (enemy.spellDamage > 0) {
+                    this.onSpell(enemy);
+                    enemy.spellDamage = 0;
+                }
                 if (finished) {
                     this.finished.push(enemy);
                 } else if (enemy.isAlive) {
@@ -166,7 +183,8 @@ export class EnemySystem {
         const maxSq = maxDistance * maxDistance;
         for (const pool of this.pools.values()) {
             for (const enemy of pool.active) {
-                if (!enemy.isAlive) continue;
+                // A Guard keeps its post however far the player is (Fase 29A).
+                if (!enemy.isAlive || enemy.isGuard) continue;
                 const dx = enemy.x - x;
                 const dy = enemy.y - y;
                 if (dx * dx + dy * dy <= maxSq) continue;

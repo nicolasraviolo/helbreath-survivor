@@ -40,6 +40,7 @@ import { SETTINGS_CHANGED, settings } from '../systems/Settings';
 import { LevelUpNotice } from '../ui/LevelUpNotice';
 import { Minimap } from '../ui/Minimap';
 import { TalkButton } from '../ui/TalkButton';
+import { rescueStore } from '../systems/RescueStore';
 import { addTouchPauseButton } from '../ui/TouchPauseButton';
 import { addTouchFullscreenButton } from '../ui/fullscreen';
 import { TouchJoystick } from '../ui/TouchJoystick';
@@ -116,7 +117,9 @@ export class TownScene extends Phaser.Scene {
         this.player.setHealthBarVisible(false);
         this.dress(classId, saved?.equipment ?? START_EQUIPMENT[classId], saved?.attributes.weapon);
         this.dressedAs = this.wornKey();
-        this.npcs = (Object.keys(TOWN_NPCS) as NpcId[]).map((id) => new Npc(this, id, TOWN_NPCS[id], map));
+        // Fase 29A: only the NPCs already rescued (and William, who is always there); ?town=<npc> brings that one too.
+        const present = (Object.keys(TOWN_NPCS) as NpcId[]).filter((id) => rescueStore.isInTown(id) || id === debugSpot);
+        this.npcs = present.map((id) => new Npc(this, id, TOWN_NPCS[id], map));
         for (const npc of this.npcs) {
             npc.onClick(() => {
                 if (npc === this.near) this.talkTo(npc);

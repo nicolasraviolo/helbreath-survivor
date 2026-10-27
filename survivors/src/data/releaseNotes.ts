@@ -14,6 +14,13 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: readonly ReleaseNote[] = [
     {
+        version: 'Phase 29',
+        date: 'Oct 27, 2026',
+        changes: [
+            'Howard, Tom and the Shop Keeper are held captive by Guards. Find them on the maps and set them free to bring them back to town.',
+        ],
+    },
+    {
         version: 'Phase 28¾',
         date: 'Oct 25, 2026',
         changes: [
