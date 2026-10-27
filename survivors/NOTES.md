@@ -109,6 +109,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Equilibrio de los martillos (26-oct-2026)
 - Rescates y Guards (Fase 29A, 27-oct-2026; logros y Missions, 29B)
 - Hechizos de impacto con marca en el suelo (27-oct-2026)
+- Icebound (Fase 30A)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -1249,4 +1250,18 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - `EnemyProjectileSystem.strikeAt` coloca las marcas; **cada lanzamiento hace daño una sola vez**, aunque toquen varias marcas (`castsThatHit`). La resistencia mágica puede pararlo ("Resist").
 - Ahora: Guard = Lightning Bolt `single` (azul); Fire Wyvern = 5 bolas de fuego `scatter` (naranja); Unicorn = Energy Strike `line` de 9 marcas (violeta).
 - Probar: `check finalboss` (Wyvern) / `middlelandboss` (Unicorn) / `rescue` (Guard). Para contar marcas: `--eval="g.enemyShots.strikes.active.length"`.
+
+## Icebound (Fase 30A)
+- **Mapa:** `icebound.amd` (300×300, 0,9 MB; minimapa 241 KB). Zona de juego 150×150 en (126,126): 79% libre y 78% en una sola pieza (la mejor conectada; a 200×200 bajaba al 75%). Elegido por el propietario: 150. Después de Middleland, Level 55, ×1,9, 15 minutos, oro ×2,2.
+- **Música:** `music.default` (`default.mp3`, el tema general del original). Va en `LATER_SOUNDS`: no se baja antes del menú, la baja `MapLoadScene.sounds()` si es la música del mapa elegido.
+- **Monstruos** (NPC.cfg de centuu/HelbreathServer; sp-client `Monsters.ts` no trae animaciones especiales salvo el Beholder, ataque de 12 frames, que es su hoja entera):
+  - Rudolph `rudolph` (7d5, ATime 1000, MinBrvy 10, embiste), Ice Golem `icegolem` (8d6, ATime 1200; sonidos del Stone Golem), Beholder `beholder` (8d8, alcance 4, guarda distancia), Claw Turtle `clawturtle` (8d9, ATime 500, alcance 2, flanquea).
+  - Minijefes `frostBoss` (min 5) y `nizieBoss` (min 10); jefe final `tigerwormBoss` (min 15), copia del `tigerworm` (que no sale en ningún mapa), con Ice Golems y Claw Turtles de esbirros.
+  - El Wyvern de hielo (`wyvern.spr`, 3,6 MB) se quedó fuera (propietario).
+- **Hechizos con marca** (`data/enemies.ts`): Frost = Ice Strike en 6 marcas juntas (`fx.iceStrike.impact`, sonido `sfx.freeze`); Nizie = Chill Wind en fila de 9 (`fx.chillWind.drop`); Tigerworm = cadena de 8 Lightning Bolts: `scatter` con `stepMs` (nuevo en el 30A), caen uno tras otro. Ninguno ralentiza.
+- **Efectos del Guerrero:** el hielo está en `fx.effect4`, que antes solo bajaba la Maga. `MapDef.runSprites` añade sprites de efectos por mapa (`MapLoadScene.runSprites`).
+- **Medido (27-oct-2026):** `levelpaceicebound`: Power 34 al final (Middleland 32); Frost 83 s, Nizie 124 s, Tigerworm 251 s con 26.000 de vida → bajado a 22.000 (Unicorn: 197 s). Golpe más fuerte de jefe: 12–17% de la vida. `loadtimeicebound --mobile`: 18,3 MB / 17,8 s (Middleland 17,0 MB / 16,6 s); la carga inicial no cambia (11,4 MB).
+- **Puntitos negros en la nieve (arreglado):** el conversor de `.spr` (`tools/PakToSprConverter/Program.cs:356`) volvió transparente todo píxel del color de la esquina de cada hoja, también en las casillas; en las de nieve (`tile445-461.spr`, solo las usa Icebound) son ~22 agujeros por casilla (445) y 125–160 en 456/460, y se veía el fondo oscuro. `fillGroundHoles` en `hb/mapRenderer.ts` rellena esos píxeles con el vecino sólido al montar el tileset del suelo (los objetos no se tocan: necesitan su transparencia). Arregla de paso los pocos agujeros de los otros mapas.
+- **Select Map con más de 4 mapas:** carrusel (`MAP_SELECT.card.visible` = 4); la fila se desliza para que la tarjeta marcada se vea, y `‹ ›` (clicables) avisan de que hay más.
+- **Probar:** `check icebound`, `iceboundfrost`, `iceboundnizie`, `iceboundboss`, `levelpaceicebound`, `loadtimeicebound`; `iceboundnosmooth` (sin filtro xBR).
 

@@ -86,6 +86,7 @@ const PRESETS = {
     // Lo mismo en Elvine Garden (Fase 22D).
     levelpaceelvine: 'debug=sim&map=elvineGarden',
     levelpacemiddleland: 'debug=sim&map=middleland',
+    levelpaceicebound: 'debug=sim&map=icebound',
     // Critical Strike (Fase 19A): Guerrero con una horda alrededor y cargas infinitas. Para lanzarlo:
     // --eval="g.launchCritStrike()"; con --mobile se ve el botón de la espada roja.
     crit: 'play=warrior&debug=god,horde,crits',
@@ -202,12 +203,20 @@ const PRESETS = {
     // Middleland (Fase 22E). middlelandboss: el Unicorn (jefe final) con sus rayos y esbirros.
     middleland: 'play=warrior&map=middleland',
     middlelandboss: 'play=warrior&map=middleland&debug=god,finalboss',
+    // Icebound (Fase 30A). iceboundfrost: el Frost (Ice Strike); iceboundnizie: el Nizie (Chill Wind en fila);
+    // iceboundboss: el Tigerworm (cadena de rayos) con sus esbirros. Las marcas: --eval="g.enemyShots.strikes.active.length".
+    icebound: 'play=warrior&map=icebound',
+    iceboundnosmooth: 'play=warrior&map=icebound&debug=nosmooth',
+    iceboundfrost: 'play=warrior&map=icebound&debug=god,boss',
+    iceboundnizie: 'play=warrior&map=icebound&debug=god,boss,boss',
+    iceboundboss: 'play=warrior&map=icebound&debug=god,finalboss',
     // Tiempos de carga (Fase 22B): carga inicial y la del mapa, con la red (y en --mobile el procesador) más lentos.
     // loadtime = Guerrero en Bleeding Isle; loadtimetraveler y loadtimemage, las otras dos combinaciones.
     loadtime: 'play=warrior',
     loadtimetraveler: 'play=warrior&map=traveler',
     loadtimeelvine: 'play=warrior&map=elvineGarden',
     loadtimemiddleland: 'play=warrior&map=middleland',
+    loadtimeicebound: 'play=warrior&map=icebound',
     loadtimemage: 'play=mage',
     loadtimetown: 'characters=demo&open=town',
     // Pantalla de carga (M8), parada a medias para verla: barra, "Loading" y el logo que late.

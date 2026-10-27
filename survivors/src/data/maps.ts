@@ -3,7 +3,7 @@
 // un mapa se abre al ganar el anterior o al llegar a su Level recomendado (lo que pase antes; decidido el 20-oct-2026).
 // Sus oleadas están en data/waves.ts (TIMELINES), una línea de tiempo por mapa.
 // Zonas de juego medidas con un script sobre los .amd (20-oct-2026; NOTES.md, "Mapas").
-import type { MapKey, MinimapKey, SoundKey } from '../config/assetManifest';
+import type { MapKey, MinimapKey, SoundKey, SpriteKey } from '../config/assetManifest';
 import { MUSIC } from './audio';
 import type { EnemyId } from './enemies';
 
@@ -45,6 +45,8 @@ export interface MapDef {
     music: SoundKey;
     /** One line on the Select Map card. */
     description: string;
+    /** Effect sprites its bosses' spells need besides RUN_SPRITES (Icebound's ice: fx.effect4, otherwise only the Mage's). */
+    runSprites?: readonly SpriteKey[];
     /** Not playable yet: shown as "Coming soon" (its waves come in a later block). */
     comingSoon?: boolean;
 }
@@ -78,6 +80,16 @@ export const MAPS_DATA = {
         bosses: ['mountainGiantBoss', 'giantLizard', 'ettinBerserk', 'unicorn'],
         recommendedLevel: 40, difficulty: { hp: 1.6, damage: 1.6 }, music: MUSIC.normal,
         description: 'The battlefield between the two cities.',
+    },
+    // Bloque 30A (27-oct-2026). Campo nevado (300×300). Ventana de 150×150 con un 79% libre y un 78% en una sola pieza
+    // (la mejor conectada; a 200×200 bajaba al 75%). Después de Middleland, Level 55, ×1,9 (propietario). 15 minutos.
+    // Música: default.mp3, el tema general del original (no tenía uno propio).
+    icebound: {
+        name: 'Icebound', asset: 'map.icebound', size: { width: 300, height: 300 }, minimap: 'minimap.icebound', playArea: { x: 126, y: 126, width: 150, height: 150 },
+        localEnemies: ['rudolph', 'iceGolem', 'beholder', 'clawTurtle'],
+        bosses: ['frostBoss', 'nizieBoss', 'tigerwormBoss'],
+        recommendedLevel: 55, difficulty: { hp: 1.9, damage: 1.9 }, music: 'music.default', runSprites: ['fx.effect4'],
+        description: 'A frozen field where the cold bites.',
     },
 } as const satisfies Record<string, MapDef>;
 

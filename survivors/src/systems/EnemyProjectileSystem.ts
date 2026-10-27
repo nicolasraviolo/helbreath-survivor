@@ -185,7 +185,8 @@ export class EnemyProjectileSystem {
             for (let i = 0; i < others; i++) {
                 const angle = turn + (i / others) * Math.PI * 2;
                 const distance = pattern.minPx + Math.random() * (pattern.maxPx - pattern.minPx);
-                add(x + Math.cos(angle) * distance, y + Math.sin(angle) * distance * SKY_SPELL_MARK.yShare, spell.warnMs, i === others - 1);
+                const delayMs = (i + 1) * (pattern.stepMs ?? 0);
+                add(x + Math.cos(angle) * distance, y + Math.sin(angle) * distance * SKY_SPELL_MARK.yShare, spell.warnMs + delayMs, i === others - 1);
             }
         } else {
             // From the caster's side through the player: the player's mark is the middle one.

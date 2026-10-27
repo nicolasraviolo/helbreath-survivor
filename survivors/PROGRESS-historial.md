@@ -2,6 +2,14 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
+**Fase 30A, Icebound (2026-10-27).**
+- **Qué hace:** quinto mapa de caza, después de Middleland (Level 55, dificultad 1,9/1,9, 15 min, oro ×2,2, música `default.mp3` bajada al elegirlo). Zona de 150×150 en x 126, y 126 (79 % libre, conectada). Monstruos nuevos: Rudolph (embiste), Ice Golem, Beholder (guarda distancia) y Claw Turtle (flanquea), más Skeletons, golems y Zombies. Minijefe Frost (min 5, Ice Strike: 6 marcas alrededor), minijefe Nizie (min 10, Chill Wind: fila de 9 marcas), jefe final Tigerworm (min 15, 8 rayos en cadena, esbirros Ice Golem y Claw Turtle; vida 22000). Logros "Heart of Ice" y "Worm Breaker".
+- **Arreglos por el camino:** agujeros transparentes de las casillas de suelo rellenados al cargar (`fillGroundHoles` en `hb/mapRenderer.ts`; se veían puntitos negros en la nieve); Select Map es un carrusel de 4 tarjetas con flechas ‹ › (`config/mapSelect.ts`, `MapSelectScene.placeCards`).
+- **Decisiones (propietario, 27-oct-2026):** mapas Icebound → Dungeon L4 → Druncian City (uno por bloque); únicos solo armas y hechizos, ~1/20, Level ~100+; Icebound sin nieve que frena, y su único será un hechizo de hielo nuevo (30B); zona 150; Tigerworm jefe final, Frost y Nizie minijefes.
+- **Código:** `MapDef.runSprites` (efectos del mapa, `fx.effect4`), música del mapa en `LATER_SOUNDS` cargada en `MapLoadScene`, `scatter.stepMs` en `EnemyProjectileSystem.strikeAt`. Nota en NOTES.md, "Icebound (Fase 30A)".
+- **Comprobado:** build; `check icebound iceboundboss iceboundfrost iceboundnizie mapsall loadtimeicebound levelpaceicebound`, sin errores, 60 FPS; carga inicial igual (11,4 MB), Icebound baja ~18 MB; partida simulada gana con Power 34. Probado por el propietario.
+- **Probar:** `pnpm --dir survivors dev` → http://localhost:8090/?play=warrior&map=icebound · `&debug=god,finalboss` (Tigerworm) · http://localhost:8090/?characters=demo&open=mapselect&maps=all.
+
 **Hechizos de jefe con marca en el suelo (2026-10-27, suelto antes de la Fase 30).**
 - **Qué hace:** los hechizos de impacto de jefes y minijefes marcan la zona antes de caer, como el rayo del Guard, y solo dañan si sigues dentro (una vez por lanzamiento; la resistencia mágica puede pararlos). Tres patrones: `single` (Guard, igual que antes), `scatter` (Fire Wyvern: 5 bolas de fuego, una bajo los pies y cuatro alrededor, marcas naranjas) y `line` (Unicorn: Energy Strike en fila de 9 desde él, pasando por el jugador, que se enciende marca a marca; violeta). Mismo daño que sus proyectiles anteriores (9 y 10). Línea en What's new (Phase 30).
 - **Decisión (propietario, 27-oct-2026):** regla para todo hechizo de impacto de jefe; patrones distintos, todos esquivables moviéndose (DECISIONES.md).

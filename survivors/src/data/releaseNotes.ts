@@ -18,6 +18,9 @@ export const RELEASE_NOTES: readonly ReleaseNote[] = [
         date: 'Oct 27, 2026',
         changes: [
             'Boss spells now mark the ground before they land: step out of the marks to avoid them.',
+            'New map: Icebound, after Middleland, with Frost, Nizie and the Tigerworm as bosses.',
+            'Select Map now scrolls to show every map.',
+            'Snow tiles no longer show black specks.',
         ],
     },
     {

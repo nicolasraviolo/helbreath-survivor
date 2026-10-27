@@ -30,6 +30,8 @@ export const GOLD_MAP_MULTIPLIER: Readonly<Record<MapId, number>> = {
     bisle: 1,
     elvineGarden: 1.4,
     middleland: 1.8,
+    // Fase 30A.
+    icebound: 2.2,
 };
 
 /** Gold of a coin or a pile on that map (never less than 1). */

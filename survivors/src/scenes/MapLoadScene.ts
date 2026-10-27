@@ -10,14 +10,14 @@
 // Fase 23: también carga la ciudad (data/town.ts): su mapa, su música, el portal, el polvo de los pasos y la ropa del
 // personaje; nada de monstruos ni efectos de partida.
 import Phaser from 'phaser';
-import { ASSET_BASE_PATH, MAPS, MINIMAPS, RUN_SPRITES, SOUNDS, SPRITES, type MapKey, type MinimapKey, type SoundKey, type SpriteKey } from '../config/assetManifest';
+import { ASSET_BASE_PATH, LATER_SOUNDS, MAPS,MINIMAPS, RUN_SPRITES, SOUNDS, SPRITES, type MapKey, type MinimapKey, type SoundKey, type SpriteKey } from '../config/assetManifest';
 import { registerEffectAnimations } from '../config/effects';
 import { DEFAULT_ANIMATION_FRAME_RATE, MAP_OBJECT_MARGIN_TILES } from '../config/gameConfig';
 import { DEFAULT_LOOKS } from '../data/appearance';
 import { CHARACTERS, CHOSEN_CHARACTER_KEY, DEFAULT_CHARACTER, isCharacterId, type CharacterId } from '../data/characters';
 import { ENEMIES } from '../data/enemies';
 import { START_EQUIPMENT } from '../data/items';
-import { CHOSEN_MAP_KEY, MAPS_DATA, type MapId, type TileRect } from '../data/maps';
+import { CHOSEN_MAP_KEY, getMapDef, MAPS_DATA, type MapId, type TileRect } from '../data/maps';
 import { TOWN, TOWN_NPCS } from '../data/town';
 import { getMap, hasMap } from '../hb/HBMap';
 import { getSheetKey, HBSpriteFile, SpriteType } from '../hb/HBSprite';
@@ -151,12 +151,16 @@ export class MapLoadScene extends Phaser.Scene {
             ...firstWaveEnemies(this.mapId).map((id) => ENEMIES[id].sprite),
             ...RUN_SPRITES,
             ...CHARACTERS[classId].runSprites,
+            ...(getMapDef(this.mapId).runSprites ?? []),
         ])];
     }
 
     /** Sounds not loaded before the menu (LATER_SOUNDS) that this place plays. */
     private sounds(): SoundKey[] {
-        return this.town ? [TOWN.music] : [];
+        if (this.town) return [TOWN.music];
+        // Fase 30A: un mapa con música propia (Icebound) la baja aquí, no antes del menú.
+        const music = MAPS_DATA[this.mapId].music;
+        return (LATER_SOUNDS as readonly SoundKey[]).includes(music) ? [music] : [];
     }
 
     /** The loader's progress moves the bar from `from` over `share` of it. */

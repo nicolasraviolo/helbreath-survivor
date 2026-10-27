@@ -173,12 +173,45 @@ const MIDDLELAND_EVENTS: readonly WaveEventDef[] = [
     { atMinute: 15, kind: 'finalBoss', enemy: 'unicorn', message: 'The Unicorn charges!' },
 ];
 
+// Icebound (Fase 30A, 27-oct-2026): 15 minutos como Middleland, ×1,9. De los esenciales, los del frío (Skeleton, golems,
+// Zombie); sus propios: Rudolph (min 1), Ice Golem (min 3), Beholder (min 5) y Claw Turtle (min 8). Minijefes Frost
+// (min 5) y Nizie (min 10); jefe final Tigerworm (min 15), con Ice Golems y Claw Turtles de esbirros.
+const ICEBOUND_WAVES: readonly WaveDef[] = [
+    { fromMinute: 0, enemies: [{ enemy: 'skeleton', weight: 5 }, { enemy: 'zombie', weight: 4 }, { enemy: 'clayGolem', weight: 2 }], startInterval: 1.3, endInterval: 0.9, batchSize: 2, maxAlive: 100 },
+    { fromMinute: 1, enemies: [{ enemy: 'skeleton', weight: 4 }, { enemy: 'zombie', weight: 3 }, { enemy: 'clayGolem', weight: 2 }, { enemy: 'rudolph', weight: 2 }], startInterval: 1.1, endInterval: 0.8, batchSize: 2, maxAlive: 120 },
+    { fromMinute: 2, enemies: [{ enemy: 'skeleton', weight: 3 }, { enemy: 'clayGolem', weight: 2 }, { enemy: 'stoneGolem', weight: 2 }, { enemy: 'rudolph', weight: 3 }], startInterval: 1, endInterval: 0.7, batchSize: 2, maxAlive: 140 },
+    { fromMinute: 3, enemies: [{ enemy: 'skeleton', weight: 2 }, { enemy: 'stoneGolem', weight: 3 }, { enemy: 'rudolph', weight: 3 }, { enemy: 'iceGolem', weight: 1 }], startInterval: 0.9, endInterval: 0.65, batchSize: 2, maxAlive: 160 },
+    { fromMinute: 4, enemies: [{ enemy: 'zombie', weight: 1 }, { enemy: 'stoneGolem', weight: 2 }, { enemy: 'rudolph', weight: 3 }, { enemy: 'iceGolem', weight: 2 }], startInterval: 0.8, endInterval: 0.6, batchSize: 2, maxAlive: 170 },
+    { fromMinute: 5, enemies: [{ enemy: 'skeleton', weight: 2 }, { enemy: 'rudolph', weight: 2 }, { enemy: 'iceGolem', weight: 3 }, { enemy: 'beholder', weight: 1 }], startInterval: 0.75, endInterval: 0.55, batchSize: 2, maxAlive: 180 },
+    { fromMinute: 6, enemies: [{ enemy: 'stoneGolem', weight: 1 }, { enemy: 'rudolph', weight: 2 }, { enemy: 'iceGolem', weight: 3 }, { enemy: 'beholder', weight: 2 }], startInterval: 0.7, endInterval: 0.5, batchSize: 2, maxAlive: 200 },
+    { fromMinute: 7, enemies: [{ enemy: 'skeleton', weight: 1 }, { enemy: 'rudolph', weight: 2 }, { enemy: 'iceGolem', weight: 3 }, { enemy: 'beholder', weight: 3 }], startInterval: 0.65, endInterval: 0.5, batchSize: 2, maxAlive: 210 },
+    { fromMinute: 8, enemies: [{ enemy: 'rudolph', weight: 1 }, { enemy: 'iceGolem', weight: 2 }, { enemy: 'beholder', weight: 3 }, { enemy: 'clawTurtle', weight: 2 }], startInterval: 0.6, endInterval: 0.45, batchSize: 2, maxAlive: 220 },
+    { fromMinute: 9, enemies: [{ enemy: 'skeleton', weight: 1 }, { enemy: 'iceGolem', weight: 2 }, { enemy: 'beholder', weight: 2 }, { enemy: 'clawTurtle', weight: 3 }], startInterval: 0.55, endInterval: 0.45, batchSize: 2, maxAlive: 230 },
+    { fromMinute: 10, enemies: [{ enemy: 'rudolph', weight: 2 }, { enemy: 'iceGolem', weight: 2 }, { enemy: 'beholder', weight: 2 }, { enemy: 'clawTurtle', weight: 3 }], startInterval: 0.5, endInterval: 0.4, batchSize: 2, maxAlive: 240 },
+    { fromMinute: 11, enemies: [{ enemy: 'stoneGolem', weight: 1 }, { enemy: 'iceGolem', weight: 2 }, { enemy: 'beholder', weight: 3 }, { enemy: 'clawTurtle', weight: 3 }], startInterval: 0.5, endInterval: 0.4, batchSize: 2, maxAlive: 250 },
+    { fromMinute: 12, enemies: [{ enemy: 'rudolph', weight: 1 }, { enemy: 'iceGolem', weight: 3 }, { enemy: 'beholder', weight: 2 }, { enemy: 'clawTurtle', weight: 3 }], startInterval: 0.5, endInterval: 0.4, batchSize: 2, maxAlive: 260 },
+    { fromMinute: 13, enemies: [{ enemy: 'skeleton', weight: 1 }, { enemy: 'iceGolem', weight: 3 }, { enemy: 'beholder', weight: 3 }, { enemy: 'clawTurtle', weight: 3 }], startInterval: 0.45, endInterval: 0.4, batchSize: 2, maxAlive: 270 },
+    { fromMinute: 14, enemies: [{ enemy: 'iceGolem', weight: 3 }, { enemy: 'beholder', weight: 3 }, { enemy: 'clawTurtle', weight: 4 }], startInterval: 0.45, endInterval: 0.4, batchSize: 2, maxAlive: 280 },
+];
+const ICEBOUND_EVENTS: readonly WaveEventDef[] = [
+    { atMinute: 2.5, kind: 'stampede', enemy: 'rudolph', count: 24, message: 'The reindeer stampede!' },
+    { atMinute: 4, kind: 'surround', enemy: 'skeleton', count: 24, message: 'Frozen bones rise around you!' },
+    { atMinute: 5, kind: 'boss', enemy: 'frostBoss', message: 'Frost rises from the ice!' },
+    { atMinute: 7, kind: 'stampede', enemy: 'iceGolem', count: 16, message: 'The golems march!' },
+    { atMinute: 8.5, kind: 'surround', enemy: 'beholder', count: 18, message: 'Eyes in the snow!' },
+    { atMinute: 10, kind: 'boss', enemy: 'nizieBoss', message: 'Nizie brings the cold wind!' },
+    { atMinute: 12, kind: 'stampede', enemy: 'clawTurtle', count: 18, message: 'Claw Turtles rush in!' },
+    { atMinute: 13.5, kind: 'surround', enemy: 'iceGolem', count: 22, message: 'The ice closes in!' },
+    { atMinute: 15, kind: 'finalBoss', enemy: 'tigerwormBoss', message: 'The Tigerworm breaks the ice!' },
+];
+
 /** Every playable map's timeline. A map without one is "Coming soon" (MapDef.comingSoon). */
 export const TIMELINES: Partial<Record<MapId, MapTimeline>> = {
     traveler: { waves: TRAVELER_WAVES, events: TRAVELER_EVENTS },
     bisle: { waves: BISLE_WAVES, events: BISLE_EVENTS },
     elvineGarden: { waves: ELVINE_WAVES, events: ELVINE_EVENTS },
     middleland: { waves: MIDDLELAND_WAVES, events: MIDDLELAND_EVENTS },
+    icebound: { waves: ICEBOUND_WAVES, events: ICEBOUND_EVENTS },
 };
 
 export function getTimeline(map: MapId): MapTimeline {

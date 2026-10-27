@@ -44,6 +44,14 @@ export const SPRITES = {
     'enemy.giantLizard': { file: 'sprites/giantlizard.spr', type: SpriteType.Monster },
     'enemy.unicorn': { file: 'sprites/unicorn.spr', type: SpriteType.Monster },
     'enemy.tigerworm': { file: 'sprites/tigerworm.spr', type: SpriteType.Monster },
+    // Icebound (Fase 30A): sp-client icegolem 885 KB, beholder 547 KB, rudolph 295 KB, clawturtle 953 KB, frost 411 KB,
+    // nizie 813 KB. Se bajan solo al elegir Icebound (AssetStreamer).
+    'enemy.iceGolem': { file: 'sprites/icegolem.spr', type: SpriteType.Monster },
+    'enemy.beholder': { file: 'sprites/beholder.spr', type: SpriteType.Monster },
+    'enemy.rudolph': { file: 'sprites/rudolph.spr', type: SpriteType.Monster },
+    'enemy.clawTurtle': { file: 'sprites/clawturtle.spr', type: SpriteType.Monster },
+    'enemy.frost': { file: 'sprites/frost.spr', type: SpriteType.Monster },
+    'enemy.nizie': { file: 'sprites/nizie.spr', type: SpriteType.Monster },
     'enemy.minotaur': { file: 'sprites/minotaurs.spr', type: SpriteType.Monster },
     'enemy.ettin': { file: 'sprites/ettin.spr', type: SpriteType.Monster },
     'enemy.demon': { file: 'sprites/demon.spr', type: SpriteType.Monster },
@@ -296,6 +304,17 @@ export const SOUNDS = {
     'sfx.giantLizard.attack': { file: 'sounds/M127.mp3' },
     'sfx.unicorn.attack': { file: 'sounds/M64.mp3' },
     'sfx.tigerworm.attack': { file: 'sounds/C1.mp3' },
+    // Icebound (Fase 30A), de sp-client Monsters.ts. Los que ya teníamos con otro nombre se reutilizan en enemies.ts:
+    // Ice Golem = los del Stone Golem (M34–M36); Beholder golpe M3 (Slime), muerte C7 (Dire Boar), ataque C6 (melee.hit);
+    // Rudolph ataque M38 (Clay Golem), muerte M65 (Unicorn); Frost golpe C13 (Dark Elf), muerte C7.
+    'sfx.rudolph.hit': { file: 'sounds/M59.mp3' },
+    'sfx.clawTurtle.hit': { file: 'sounds/M112.mp3' },
+    'sfx.clawTurtle.death': { file: 'sounds/M113.mp3' },
+    'sfx.clawTurtle.attack': { file: 'sounds/M115.mp3' },
+    'sfx.frost.attack': { file: 'sounds/C4.mp3' },
+    'sfx.nizie.hit': { file: 'sounds/M132.mp3' },
+    'sfx.nizie.death': { file: 'sounds/M133.mp3' },
+    'sfx.nizie.attack': { file: 'sounds/M135.mp3' },
     'sfx.minotaur.attack': { file: 'sounds/M123.mp3' },
     'sfx.ettin.attack': { file: 'sounds/M92.mp3' },
     'sfx.demon.attack': { file: 'sounds/M61.mp3' },
@@ -324,6 +343,9 @@ export const SOUNDS = {
     // Música de la ciudad (Fase 23, elegida por el propietario). No va antes del menú: la baja la carga de la ciudad
     // (LATER_SOUNDS).
     'music.elvine': { file: 'music/elvine.mp3' },
+    // Música de Icebound (Fase 30A, propietario): el tema general del original (no tenía uno propio). La baja la carga
+    // del mapa (LATER_SOUNDS).
+    'music.default': { file: 'music/default.mp3' },
     // Armas cuerpo a cuerpo: tajo del jugador (PLAYER_MELEE_ATTACK) y golpe con filo en un monstruo (TAKE_DAMAGE_BLADE).
     'sfx.melee.swing': { file: 'sounds/C18.mp3' },
     'sfx.melee.hit': { file: 'sounds/C6.mp3' },
@@ -359,7 +381,7 @@ export const SOUNDS = {
 export type SoundKey = keyof typeof SOUNDS;
 
 /** Sounds that PreloadScene skips: MapLoadScene downloads them with the place that uses them (the town's music). */
-export const LATER_SOUNDS: readonly SoundKey[] = ['music.elvine'];
+export const LATER_SOUNDS: readonly SoundKey[] = ['music.elvine', 'music.default'];
 
 export const MAPS = {
     'map.huntzone2': { file: 'maps/huntzone2.amd' },
@@ -368,6 +390,7 @@ export const MAPS = {
     'map.traveler': { file: 'maps/default.amd' },
     'map.elvineGarden': { file: 'maps/elvuni.amd' },
     'map.middleland': { file: 'maps/middleland.amd' },
+    'map.icebound': { file: 'maps/icebound.amd' },
     // Fase 23: la ciudad, un recorte de la granja de Elvine (data/town.ts).
     'map.elvineFarm': { file: 'maps/elvfarm.amd' },
 } as const satisfies Record<string, { file: string }>;
@@ -383,6 +406,7 @@ export const MINIMAPS = {
     'minimap.traveler': { file: 'images/minimaps/default.jpg' },
     'minimap.elvineGarden': { file: 'images/minimaps/elvuni.jpg' },
     'minimap.middleland': { file: 'images/minimaps/middleland.jpg' },
+    'minimap.icebound': { file: 'images/minimaps/icebound.jpg' },
     'minimap.elvineFarm': { file: 'images/minimaps/elvfarm.jpg' },
 } as const satisfies Record<string, { file: string }>;
 

@@ -53,13 +53,14 @@ export interface EnemyRangedAttack {
 /**
  * Where the marks of a sky spell go (Fase 30, owner 27-oct-2026: "different patterns, all of them escapable"):
  * - `single`: one mark at the player's feet (the Guards).
- * - `scatter`: one at the player's feet and `count - 1` more around it, between `minPx` and `maxPx` away.
+ * - `scatter`: one at the player's feet and `count - 1` more around it, between `minPx` and `maxPx` away. With
+ *   `stepMs` (Fase 30A, the Tigerworm's chain of bolts) they strike one after another, `stepMs` apart, going round.
  * - `line`: `count` marks `spacingPx` apart in a line from the caster through the player (the player's one in the
  *   middle); they light up one after another, `stepMs` apart, from the caster's side, so you step out sideways.
  */
 export type SkySpellPattern =
     | { kind: 'single' }
-    | { kind: 'scatter'; count: number; minPx: number; maxPx: number }
+    | { kind: 'scatter'; count: number; minPx: number; maxPx: number; stepMs?: number }
     | { kind: 'line'; count: number; spacingPx: number; stepMs: number };
 
 /**
@@ -271,6 +272,31 @@ const UNICORN_ENERGY_STRIKE: EnemySkySpell = {
 };
 
 /**
+ * Icebound (Fase 30A, propietario 27-oct-2026): los dos minijefes y el jefe final lanzan magias que marcan el suelo.
+ * Daño fijo, entre el Unicorn (10) y algo más, porque es el mapa siguiente. No ralentizan (propietario: sin frenar).
+ * - Frost: Ice Strike (su hechizo en la wiki): trozos de hielo en 6 marcas juntas a tu alrededor.
+ * - Nizie: Chill Wind en fila desde él, gota a gota (en la wiki lanza Ice Strike; el Chill Wind es del propietario).
+ * - Tigerworm: cadena de Lightning Bolts (Magic 9 en el NPC.cfg): 8 marcas alrededor que caen una tras otra.
+ */
+const FROST_ICE_STRIKE: EnemySkySpell = {
+    rangePx: 480, minCooldownMs: 2600, maxCooldownMs: 3400, warnMs: 1000, radius: 34, damageShare: 0, damage: 11, magicHitRatio: 85,
+    sound: 'sfx.freeze', impact: 'fx.iceStrike.impact', markColor: 0x9fe3ff,
+    pattern: { kind: 'scatter', count: 6, minPx: 55, maxPx: 115 },
+};
+
+const NIZIE_CHILL_WIND: EnemySkySpell = {
+    rangePx: 520, minCooldownMs: 2400, maxCooldownMs: 3200, warnMs: 850, radius: 30, damageShare: 0, damage: 13, magicHitRatio: 90,
+    sound: 'sfx.chillWind', impact: 'fx.chillWind.drop', markColor: 0xc8f4ff,
+    pattern: { kind: 'line', count: 9, spacingPx: 52, stepMs: 80 },
+};
+
+const TIGERWORM_LIGHTNING: EnemySkySpell = {
+    rangePx: 560, minCooldownMs: 2600, maxCooldownMs: 3400, warnMs: 900, radius: 32, damageShare: 0, damage: 14, magicHitRatio: 95,
+    sound: 'sfx.lightning',
+    pattern: { kind: 'scatter', count: 8, minPx: 60, maxPx: 190, stepMs: 110 },
+};
+
+/**
  * The mark on the ground where a sky spell will fall: a flat ellipse (`yShare` of its width high) the spell's size,
  * filling up as the bolt comes. Blue-white, like the bolt.
  */
@@ -415,6 +441,28 @@ export const ENEMIES = {
         name: 'Tigerworm', sprite: 'enemy.tigerworm', temporalCoefficient: 1, hasShadow: false, maxHp: 1520, xp: 304, radius: 20, bodyOffsetY: 30,
         actionTimeMs: 600, attackRange: 6, bravery: 100, damageDice: [18, 17], hitRatio: 1200, hitSound: 'sfx.lich.hit', deathSound: 'sfx.lich.death', attackSound: 'sfx.tigerworm.attack',
     },
+    // Icebound (Fase 30A). NPC.cfg de centuu/HelbreathServer (ATime, alcance, MinBrvy, dados, HR); vida y XP nuestras,
+    // por su tier de la wiki (Rudolph 4; Ice Golem, Beholder y Claw Turtle 6). Sin sombra especial en sp-client.
+    // Rudolph: MinBrvy 10 (huye a menudo con poca vida); embiste (la wiki le da "Dash").
+    rudolph: {
+        movement: 'charge', name: 'Rudolph', sprite: 'enemy.rudolph', temporalCoefficient: 1, hasShadow: true, maxHp: 380, xp: 76, radius: 15, bodyOffsetY: 30,
+        actionTimeMs: 1000, attackRange: 1, bravery: 10, damageDice: [7, 5], hitRatio: 180, hitSound: 'sfx.rudolph.hit', deathSound: 'sfx.unicorn.hit', attackSound: 'sfx.clayGolem.attack',
+    },
+    // Ice Golem: lento (ATime 1200) y duro. Sus sonidos son los del Stone Golem (M33–M36).
+    iceGolem: {
+        name: 'Ice Golem', sprite: 'enemy.iceGolem', temporalCoefficient: 1, hasShadow: true, maxHp: 760, xp: 152, radius: 17, bodyOffsetY: 38,
+        actionTimeMs: 1200, attackRange: 1, bravery: 100, damageDice: [8, 6], hitRatio: 180, hitSound: 'sfx.stoneGolem.hit', deathSound: 'sfx.stoneGolem.death', attackSound: 'sfx.stoneGolem.attack',
+    },
+    // Beholder: pega desde 4 casillas (sin hechizo: Magic 0), así que guarda la distancia como el Lich.
+    beholder: {
+        movement: 'keepAway', name: 'Beholder', sprite: 'enemy.beholder', temporalCoefficient: 1, hasShadow: true, maxHp: 660, xp: 132, radius: 15, bodyOffsetY: 40,
+        actionTimeMs: 800, attackRange: 4, bravery: 100, damageDice: [8, 8], hitRatio: 450, hitSound: 'sfx.slime.hit', deathSound: 'sfx.direBoar.death', attackSound: 'sfx.melee.hit',
+    },
+    // Claw Turtle: rápida para su tamaño (ATime 500), alcance 2.
+    clawTurtle: {
+        movement: 'flank', name: 'Claw Turtle', sprite: 'enemy.clawTurtle', temporalCoefficient: 1, hasShadow: true, maxHp: 900, xp: 180, radius: 18, bodyOffsetY: 30,
+        actionTimeMs: 500, attackRange: 2, bravery: 100, damageDice: [8, 9], hitRatio: 280, hitSound: 'sfx.clawTurtle.hit', deathSound: 'sfx.clawTurtle.death', attackSound: 'sfx.clawTurtle.attack',
+    },
     minotaur: {
         movement: 'charge', name: 'Minotaur', sprite: 'enemy.minotaur', temporalCoefficient: 1, hasShadow: true, maxHp: 1400, xp: 280, radius: 18, bodyOffsetY: 44,
         actionTimeMs: 500, attackRange: 2, bravery: 100, damageDice: [13, 11], hitRatio: 500, hitSound: 'sfx.minotaur.hit', deathSound: 'sfx.minotaur.death', attackSound: 'sfx.minotaur.attack',
@@ -516,6 +564,28 @@ export const ENEMIES = {
             skySpell: UNICORN_ENERGY_STRIKE,
         },
     },
+    // Icebound (Fase 30A, propietario): minijefes Frost (min 5) y Nizie (min 10), jefe final Tigerworm (min 15).
+    // NPC.cfg Frost: ATime 700, alcance 3, 8d6, HR 230. Nizie: ATime 500, alcance 3, 10d10, HR 300.
+    frostBoss: {
+        name: 'Frost', sprite: 'enemy.frost', temporalCoefficient: 1, hasShadow: true, maxHp: 6000, xp: 700, radius: 20, bodyOffsetY: 44,
+        actionTimeMs: 700, attackRange: 3, bravery: 100, damageDice: [8, 6], hitRatio: 230, hitSound: 'sfx.darkElf.hit', deathSound: 'sfx.direBoar.death', attackSound: 'sfx.frost.attack',
+        scale: 1.4, knockbackTaken: 0, damageScale: 1,
+        boss: { title: 'Frost', dropsChest: true, final: false, skySpell: FROST_ICE_STRIKE },
+    },
+    nizieBoss: {
+        name: 'Nizie', sprite: 'enemy.nizie', temporalCoefficient: 1, hasShadow: true, maxHp: 12000, xp: 1300, radius: 24, bodyOffsetY: 50,
+        actionTimeMs: 500, attackRange: 3, bravery: 100, damageDice: [10, 10], hitRatio: 300, hitSound: 'sfx.nizie.hit', deathSound: 'sfx.nizie.death', attackSound: 'sfx.nizie.attack',
+        scale: 1.3, knockbackTaken: 0, damageScale: 0.7,
+        boss: { title: 'Nizie', dropsChest: true, final: false, skySpell: NIZIE_CHILL_WIND },
+    },
+    // Copia del Tigerworm normal (que no sale en ningún mapa) como jefe final. NPC.cfg: 18d17, el golpe más fuerte del
+    // juego: con damageScale 0,3 queda algo por encima del Unicorn.
+    tigerwormBoss: {
+        name: 'Tigerworm', sprite: 'enemy.tigerworm', temporalCoefficient: 1, hasShadow: false, maxHp: 22000, xp: 2400, radius: 28, bodyOffsetY: 40,
+        actionTimeMs: 600, attackRange: 6, bravery: 100, damageDice: [18, 17], hitRatio: 1200, hitSound: 'sfx.lich.hit', deathSound: 'sfx.lich.death', attackSound: 'sfx.tigerworm.attack',
+        scale: 1.5, knockbackTaken: 0, damageScale: 0.3,
+        boss: { title: 'Tigerworm', dropsChest: true, final: true, skySpell: TIGERWORM_LIGHTNING },
+    },
     // Fase 29A: el Guard que tiene secuestrado a un NPC de la ciudad (data/rescues.ts). guard.spr, con las hojas
     // estándar. No hay NPC.cfg del Guard en reference/: números nuestros, de minijefe (golpe y vida como el Stone Golem
     // de Traveler Zone; cada mapa lo endurece con su RescueDef). Se queda en su puesto y lanza Lightning Bolt de lejos.
@@ -578,4 +648,6 @@ export const BOSS_MINIONS: Partial<Record<EnemyId, BossMinions>> = {
     cyclopsBoss: { enemies: ['troll', 'giantTree', 'orcMage'], everyMs: 8000, count: 6, maxAlive: 24, radius: 120 },
     // Middleland: el Unicorn llama a Stalkers y Werewolf.
     unicorn: { enemies: ['stalker', 'werewolf'], everyMs: 8000, count: 6, maxAlive: 24, radius: 130 },
+    // Icebound: el Tigerworm llama a Ice Golems y Claw Turtles.
+    tigerwormBoss: { enemies: ['iceGolem', 'clawTurtle'], everyMs: 8000, count: 6, maxAlive: 24, radius: 140 },
 };

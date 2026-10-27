@@ -73,7 +73,7 @@
 //   ?open=runchoice  → Select Character con la ventana Continue / New Run del personaje marcado (21-oct-2026), tenga
 //                      partida guardada o no
 //   ?characters=reset → Gorn y Kaila nuevos a Level 1, sin partidas (demo = Gorn con puntos y Kaila a Level 25; Fase 17A)
-//   ?map=traveler    → con ?play/?debug, la partida en ese mapa (traveler, bisle, elvineGarden, middleland; Fase 22A). Sin él, Bleeding Isle
+//   ?map=traveler    → con ?play/?debug, la partida en ese mapa (traveler, bisle, elvineGarden, middleland, icebound; Fase 22A). Sin él, Bleeding Isle
 //   ?maps=all        → todos los mapas abiertos en Select Map (reset = olvida los mapas ganados; Fase 22A)
 //   ?open=mapselect  → abre Select Map con el primer personaje guardado (o sin personaje)
 //   ?open=town       → la ciudad (Fase 23) con el primer personaje guardado (o sin personaje); con &class=warrior, el
