@@ -18,6 +18,7 @@ export const RELEASE_NOTES: readonly ReleaseNote[] = [
         date: 'Oct 27, 2026',
         changes: [
             'Howard, Tom and the Shop Keeper are held captive by Guards. Find them on the maps and set them free to bring them back to town.',
+            "New achievements for every rescue, and William's Missions list shows who is still held captive.",
         ],
     },
     {

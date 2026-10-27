@@ -236,6 +236,30 @@ export const ACHIEVEMENTS_SCREEN = {
     lockedDescriptionColor: '#6f675a',
 } as const;
 
+/**
+ * Missions (scenes/MissionsScene.ts, Fase 29B): William's list of rescues, a "1 / 3 completed" line, then one row per
+ * mission (the map small on top, "Rescue Howard" under it, its state on the right) and Back. Same colours as Achievements.
+ */
+export const MISSIONS_SCREEN = {
+    /** Width of a row: the map and the task start at its left edge, the state ends at its right edge. */
+    rowWidth: byDevice(420, 480),
+    countGap: byDevice(30, 36),
+    rowHeight: byDevice(52, 64),
+    countColor: '#c8b88a',
+    mapColor: '#c8b88a',
+    doneColor: '#ffd860',
+    taskColor: '#f0e6c8',
+    pendingColor: '#8a8070',
+    lockedColor: '#6f675a',
+    done: '✔ Done',
+    pending: 'Pending',
+    locked: 'Locked',
+    /** The task of a mission on a map still closed to this character. */
+    hiddenTask: '???',
+    task: (npcName: string) => `Rescue ${npcName}`,
+    count: (done: number, total: number) => `${done} / ${total} completed`,
+} as const;
+
 /** Xbox-style gamepad icons drawn on How to play (letters in the Xbox colours). */
 export const PAD_ICON = {
     radius: byDevice(11, 14),

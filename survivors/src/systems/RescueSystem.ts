@@ -60,14 +60,15 @@ export class RescueSystem {
         return this.npc ? [this.npc] : [];
     }
 
-    /** A monster died: if it was the Guard, the captive is free. */
-    public onEnemyKilled(enemy: Enemy): void {
-        if (!this.rescue || enemy !== this.guard) return;
+    /** A monster died: if it was the Guard, the captive is free (true: just rescued). */
+    public onEnemyKilled(enemy: Enemy): boolean {
+        if (!this.rescue || enemy !== this.guard) return false;
         this.guard = undefined;
         this.freedMs = 0;
         rescueStore.rescue(this.rescue.npc);
         this.audio.play(RESCUE.rescuedSound);
         this.announce(RESCUE.rescuedMessage(TOWN_NPCS[this.rescue.npc].name));
+        return true;
     }
 
     public update(deltaMs: number): void {

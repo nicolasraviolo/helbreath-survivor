@@ -50,6 +50,7 @@ import type { CharacterInfoSceneData } from './CharacterInfoScene';
 import type { EquipmentSceneData } from './EquipmentScene';
 import type { MapSelectSceneData } from './MapSelectScene';
 import { NPC_DIALOG_SCENE_KEY, type NpcDialogSceneData } from './NpcDialogScene';
+import { MISSIONS_SCENE_KEY, type MissionsSceneData } from './MissionsScene';
 import { SHOP_SCENE_KEY, type ShopSceneData } from './ShopScene';
 import { SMITH_SCENE_KEY, type SmithSceneData } from './SmithScene';
 import type { PauseSceneData } from './PauseScene';
@@ -180,13 +181,16 @@ export class TownScene extends Phaser.Scene {
             this.refreshLevelUp();
         });
         // ?town=<npc>&talk (development only): its panel opens at once. ?town=shopKeeper&shop: the shop (Fase 24B);
-        // ?town=tom&smith=buy|sell|upgrade: the blacksmith (Fase 24C; upgrade, 24D).
+        // ?town=tom&smith=buy|sell|upgrade: the blacksmith (Fase 24C; upgrade, 24D). ?town=william&missions (Fase 29B).
         if (debugSpot === 'shopKeeper' && DEBUG_START.townShop) {
             const data: Omit<ShopSceneData, 'returnTo'> = { characterUid: this.characterUid };
             this.time.delayedCall(0, () => openOverlay(this, SHOP_SCENE_KEY, data));
         } else if (debugSpot === 'tom' && DEBUG_START.townSmith) {
             const data: SmithSceneData = { characterUid: this.characterUid, tab: DEBUG_START.townSmith };
             this.time.delayedCall(0, () => openOverlay(this, SMITH_SCENE_KEY, data));
+        } else if (debugSpot === 'william' && DEBUG_START.townMissions) {
+            const data: Omit<MissionsSceneData, 'returnTo'> = { characterUid: this.characterUid };
+            this.time.delayedCall(0, () => openOverlay(this, MISSIONS_SCENE_KEY, data));
         } else if (debugSpot !== undefined && debugSpot !== 'portal' && DEBUG_START.townTalk) {
             const npc = this.npcs.find((n) => n.id === debugSpot);
             if (npc) this.time.delayedCall(0, () => this.talkTo(npc));

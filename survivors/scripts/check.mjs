@@ -48,6 +48,10 @@ const PRESETS = {
     // Fase 29A: la ciudad sin nadie rescatado (solo William) y con todos.
     townnobody: 'characters=demo&open=town&rescued=reset',
     townall: 'characters=demo&open=town&rescued=all',
+    // Fase 29B: Missions de William sin nadie rescatado, con Howard, y con todos (Gorn de ejemplo, Level 25 o así).
+    missions: 'characters=demo&open=town&town=william&rescued=reset&maps=reset&missions',
+    missionsone: 'characters=demo&open=town&town=william&rescued=howard&missions',
+    missionsall: 'characters=demo&open=town&town=william&rescued=all&missions',
     // Minimapa (Fase 16A): con un jefe vivo, para ver su punto rojo junto al del jugador.
     minimap: 'debug=god,boss',
     horde: 'debug=god,horde,horde,horde',
@@ -312,7 +316,7 @@ async function runScenario(browser, name) {
     }
 
     // ?open= (debugStart.ts) shows a menu screen: wait for it instead of the game.
-    const openKey = { howtoplay: 'HowToPlay', settings: 'Settings', controls: 'Controls', credits: 'Credits', releasenotes: 'ReleaseNotes', achievements: 'Achievements', slots: 'CharacterSlots', mapselect: 'MapSelect', town: 'Town', charinfo: 'CharacterInfo', equipment: 'Equipment', warehouse: 'Warehouse', runchoice: 'RunChoice', transfer: 'Transfer' }[params.get('open') ?? ''];
+    const openKey = { howtoplay: 'HowToPlay', settings: 'Settings', controls: 'Controls', credits: 'Credits', releasenotes: 'ReleaseNotes', achievements: 'Achievements', missions: 'Missions', slots: 'CharacterSlots', mapselect: 'MapSelect', town: 'Town', charinfo: 'CharacterInfo', equipment: 'Equipment', warehouse: 'Warehouse', runchoice: 'RunChoice', transfer: 'Transfer' }[params.get('open') ?? ''];
     const target = params.has('loading') ? 'Preload' : params.get('town') === 'portal' ? 'MapSelect' : params.has('shop') ? 'Shop' : params.has('smith') ? 'Smith' : params.has('talk') ? 'NpcDialog' : openKey ?? (query ? 'Game' : 'MainMenu');
     await page.goto(url);
     const t0 = Date.now();

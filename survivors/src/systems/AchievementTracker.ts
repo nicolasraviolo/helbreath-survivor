@@ -5,7 +5,7 @@ import type { CharacterId } from '../data/characters';
 import { ENEMIES, type EnemyDef } from '../data/enemies';
 import type { MapId } from '../data/maps';
 import { ACHIEVEMENT_CHECK_EVERY_MS, ACHIEVEMENT_IDS, getAchievement, type AchievementDef, type AchievementGoal } from '../data/achievements';
-import { achievementStore } from './AchievementStore';
+import { achievementStore, rescueGoalMet } from './AchievementStore';
 
 /** What the goals that grow need to know about the run. */
 export interface RunProgress {
@@ -62,6 +62,11 @@ export class AchievementTracker {
     /** Died for good (no Abaddon's Blood left; Fase 22A). */
     public onDeath(): void {
         this.unlockWhere((goal) => goal.kind === 'die' && (goal.map === undefined || goal.map === this.map));
+    }
+
+    /** A captive was freed (Fase 29B): its achievement, and "rescue everyone" if it was the last one. */
+    public onRescue(): void {
+        this.unlockWhere(rescueGoalMet);
     }
 
     /** Escaped through the portal. */

@@ -107,7 +107,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Hachas: giro en torbellino (bloque B, 25-oct-2026)
 - Martillos: golpe al suelo y grieta (bloque C, 26-oct-2026)
 - Equilibrio de los martillos (26-oct-2026)
-- Rescates y Guards (Fase 29A, 27-oct-2026)
+- Rescates y Guards (Fase 29A, 27-oct-2026; logros y Missions, 29B)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -1227,7 +1227,7 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - **Cambio:** daño de la grieta −30% (Hammer 28→20, Battle Hammer 38→27). **Después:** Middleland 40 Battle Hammer 6 muertes, bola ~70 (más cerca de la Flamberge); Elvine Garden casi igual (allí la partida ya se gana; poco sirve para comparar). El Hammer en Elvine Garden 25 sigue ~2 min por encima de la Flamberge: la ventaja viene sobre todo del golpe en círculo, no de la grieta. Datos: `.check/balance-hammers-fair.json` y `.check/balance-hammers-nerf.json`.
 - **Segundo cambio:** golpe del Hammer 46→42. Medido con `--repeat=8` frente a la Flamberge (`.check/balance-hammers-42.json`): Elvine Garden 25, 1ª muerte 9:10 frente a 8:08; Middleland 40, 10:36 frente a 9:44 (4 muertes frente a 5,5); Elvine Garden 35, gana 8/8 frente a 7/8. Queda ~1 min por encima, con menos bola y menos monstruos muertos de un golpe (0,25–0,36 frente a 0,37–0,57): aceptado como ventaja de un arma más pesada.
 
-## Rescates y Guards (Fase 29A, 27-oct-2026)
+## Rescates y Guards (Fase 29A, 27-oct-2026; logros y Missions, 29B)
 - Datos: `data/rescues.ts` (qué NPC en cada mapa y cuánto se endurece su Guard), Guard en `data/enemies.ts` (`guard`, `skySpell`, `healthBar`), movimiento `guard` en `data/movement.ts` (`GUARD_POST`).
 - Partida: `systems/RescueSystem.ts` (descarga el NPC y `guard.spr` si faltan, busca sitio, saca al Guard). El rayo cae con `EnemyProjectileSystem.strikeAt` (marca en el suelo + `LightningArc`; solo daña si sigues dentro, y se puede resistir).
 - Guardado: `systems/RescueStore.ts`, clave `hb-survivors.rescues` (en `TRANSFER_KEYS`). Ciudad: `TownScene` solo crea los NPCs con `rescueStore.isInTown`; William ofrece Equipment mientras falta Howard (`EQUIPMENT_STAND_IN`).
@@ -1235,3 +1235,6 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - `getMap` guarda el mapa en caché entre partidas: el NPC bloquea su casilla y la libera al irse (`HBMap.unblockTile`, `Npc.destroy`).
 - No hay NPC.cfg del Guard en `reference/`; los guardias originales solo pegan de cerca. El Lightning Bolt es idea nuestra (propietario).
 - Atajos: `?rescued=all|reset|howard,tom`, `?debug=rescue`; `?town=<npc>` pone a ese NPC aunque no esté rescatado. `check rescue` / `townnobody` / `townall`.
+- **Logros y Missions (29B):** meta `{ kind: 'rescue', npc? }` en `data/achievements.ts` (sin `npc` = todos). Se desbloquean en `AchievementTracker.onRescue` (GameScene, cuando `RescueSystem.onEnemyKilled` devuelve true) y además, en silencio, al abrir el juego (`AchievementStore`, `rescueGoalMet`): así cuentan los rescates guardados antes de existir el logro. Ojo: `?achievements=reset` los vuelve a dar si hay rescates guardados; usar también `?rescued=reset`.
+- Missions de William: `scenes/MissionsScene.ts` (lee `RESCUES`, estado con `rescueStore` y `mapUnlockStore.isOpen` con el Level del personaje), textos y colores en `MISSIONS_SCREEN` (`config/menus.ts`). Atajos `?open=missions`, `?open=town&town=william&missions`; `check missions` / `missionsone` / `missionsall`.
+- Para matar al Guard desde `--eval` (killAll no sirve): `g.enemies.forEachAlive(e => { if (e.isGuard) g.combat.hitEnemy(e, 'physical', 1e9, e.x, e.y, 0); })`.

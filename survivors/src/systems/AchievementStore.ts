@@ -3,7 +3,9 @@
 // Lleva número de versión, como SaveStore: si un día cambia la forma de guardar, se sube y migrate() convierte lo viejo.
 // Si el navegador no deja guardar (modo privado), los logros valen solo hasta cerrar la página.
 import { DEBUG_START } from '../config/debugStart';
-import { ACHIEVEMENT_IDS, ACHIEVEMENTS, type AchievementId } from '../data/achievements';
+import { ACHIEVEMENT_IDS, ACHIEVEMENTS, getAchievement, type AchievementGoal, type AchievementId } from '../data/achievements';
+import { RESCUABLE_NPCS } from '../data/rescues';
+import { rescueStore } from './RescueStore';
 import { isKeyOf, isRecord, readNumber } from './SaveStore';
 
 const STORAGE_KEY = 'hb-survivors.achievements';
@@ -21,6 +23,8 @@ class AchievementStoreImpl {
         if (DEBUG_START.achievements === 'reset') this.unlocked = {};
         if (DEBUG_START.achievements === 'all') for (const id of ACHIEVEMENT_IDS) this.unlocked[id] ??= Date.now();
         if (DEBUG_START.achievements) this.write();
+        // Fase 29B: rescues saved before their achievement existed (or before it was unlocked) count at once, quietly.
+        for (const id of ACHIEVEMENT_IDS) if (!this.has(id) && rescueGoalMet(getAchievement(id).goal)) this.unlock(id);
     }
 
     public has(id: AchievementId): boolean {
@@ -51,6 +55,12 @@ class AchievementStoreImpl {
             // Storage blocked or full: they last until the page is closed.
         }
     }
+}
+
+/** A rescue goal (Fase 29B) already met on this device: its captive (or every captive) is back in town. */
+export function rescueGoalMet(goal: AchievementGoal): boolean {
+    if (goal.kind !== 'rescue') return false;
+    return goal.npc === undefined ? RESCUABLE_NPCS.every((npc) => rescueStore.isInTown(npc)) : rescueStore.isInTown(goal.npc);
 }
 
 function load(): Unlocked {

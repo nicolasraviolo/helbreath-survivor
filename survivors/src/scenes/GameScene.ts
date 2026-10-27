@@ -1640,7 +1640,7 @@ export class GameScene extends Phaser.Scene {
         const boss = enemy.def.boss;
         if (enemy.isGuard) {
             // Fase 29A: its captive is free (no loot: the rescue is the prize).
-            this.rescue.onEnemyKilled(enemy);
+            if (this.rescue.onEnemyKilled(enemy)) this.achievements.onRescue();
             return;
         }
         if (enemy.champion) {

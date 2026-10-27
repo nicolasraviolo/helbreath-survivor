@@ -1,7 +1,7 @@
 // Panel de hablar con un NPC de la ciudad (Fase 23B), con el diseño de los demás paneles (GameDialog del original):
 // su nombre de título, su frase y sus opciones, más "Back". Las opciones abren pantallas que ya existían:
 // - Howard: Equipment y Warehouse (antes en Select Character).
-// - William: Achievements; Missions, "Coming soon".
+// - William: Achievements y Missions (rescates, Fase 29B, MissionsScene).
 // - Shop Keeper: la tienda (Fase 24B, ShopScene). Tom: Buy y Sell (herrero, Fase 24C, SmithScene); Upgrade, "Coming soon" (24D).
 // Al abrir una pantalla, este panel se cierra y esa pantalla vuelve directa a la ciudad.
 import Phaser from 'phaser';
@@ -12,6 +12,7 @@ import { rescueStore } from '../systems/RescueStore';
 import type { MenuItem } from '../ui/MenuList';
 import type { EquipmentSceneData } from './EquipmentScene';
 import { MenuOverlayScene, type MenuOverlayData } from './MenuOverlayScene';
+import { MISSIONS_SCENE_KEY, type MissionsSceneData } from './MissionsScene';
 import { SHOP_SCENE_KEY, type ShopSceneData } from './ShopScene';
 import { SMITH_SCENE_KEY, type SmithSceneData } from './SmithScene';
 import type { WarehouseSceneData } from './WarehouseScene';
@@ -62,6 +63,9 @@ export class NpcDialogScene extends MenuOverlayScene {
                 return;
             case 'achievements':
                 this.openFromTown('Achievements', {});
+                return;
+            case 'missions':
+                this.openFromTown(MISSIONS_SCENE_KEY, { characterUid: this.characterUid } satisfies Omit<MissionsSceneData, 'returnTo'>);
                 return;
             case 'shop':
                 // Without a character it still opens: only the Zemstone needs one (it says so when you try).
