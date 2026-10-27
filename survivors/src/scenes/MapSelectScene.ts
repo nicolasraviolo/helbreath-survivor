@@ -9,7 +9,7 @@ import Phaser from 'phaser';
 import { ASSET_BASE_PATH, MINIMAPS, type MinimapKey } from '../config/assetManifest';
 import { GAME_HEIGHT, GAME_WIDTH } from '../config/gameConfig';
 import { MAP_SELECT, MAP_SELECT_STYLES } from '../config/mapSelect';
-import { MENU_BACKGROUND, MENU_BACKGROUND_SCALE, MENU_INPUT_DELAY_MS } from '../config/menus';
+import { MAP_SELECT_BACKGROUND_ROWS, MENU_BACKGROUND, MENU_BACKGROUND_SCALE, MENU_INPUT_DELAY_MS } from '../config/menus';
 import { CHOSEN_MAP_KEY, isMapId, MAP_IDS, MAPS_DATA, type MapDef, type MapId } from '../data/maps';
 import { finalBossMinute } from '../data/waves';
 import { SpriteText } from '../hb/SpriteText';
@@ -68,7 +68,9 @@ export class MapSelectScene extends Phaser.Scene {
         const uid: unknown = this.registry.get(ACTIVE_CHARACTER_KEY);
         this.characterLevel = characterStore.byUid(typeof uid === 'string' ? uid : undefined)?.level ?? 1;
 
-        this.add.image(0, 0, MENU_BACKGROUND.texture, MENU_BACKGROUND.frame).setOrigin(0).setScale(MENU_BACKGROUND_SCALE);
+        this.add.image(0, 0, MENU_BACKGROUND.texture, MENU_BACKGROUND.frame).setOrigin(0)
+            .setCrop(0, 0, MENU_BACKGROUND.width, MAP_SELECT_BACKGROUND_ROWS)
+            .setScale(MENU_BACKGROUND_SCALE, GAME_HEIGHT / MAP_SELECT_BACKGROUND_ROWS);
         this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, MAP_SELECT.veil.color, MAP_SELECT.veil.alpha).setOrigin(0);
         const { title } = MAP_SELECT;
         new SpriteText(this, GAME_WIDTH / 2, title.y, 'Select Map', title.color, 'center').container.setScale(title.scale);

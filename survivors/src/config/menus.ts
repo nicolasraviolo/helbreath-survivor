@@ -13,6 +13,12 @@ export const MENU_BACKGROUND = { texture: getSheetKey('ui.title', 1), frame: 0, 
 /** The 640x480 background is drawn at this scale to fill the 800x600 screen. */
 export const MENU_BACKGROUND_SCALE = GAME_WIDTH / MENU_BACKGROUND.width;
 
+/**
+ * Select Map shows the background without its bottom line ("... PlayHelbreath.com", owner's choice, 27-oct-2026):
+ * only the top rows are drawn, stretched a little in height to fill the screen.
+ */
+export const MAP_SELECT_BACKGROUND_ROWS = 452;
+
 export const MENU_PANEL = { texture: getSheetKey('ui.panel', 3), frame: 3, width: 338, height: 202 } as const;
 
 /** Main menu: panel on the right, over the original's drawn buttons. Bigger on phones. */

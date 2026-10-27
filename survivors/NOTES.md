@@ -1265,3 +1265,8 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - **Select Map con más de 4 mapas:** carrusel (`MAP_SELECT.card.visible` = 4); la fila se desliza para que la tarjeta marcada se vea, y `‹ ›` (clicables) avisan de que hay más.
 - **Probar:** `check icebound`, `iceboundfrost`, `iceboundnizie`, `iceboundboss`, `levelpaceicebound`, `loadtimeicebound`; `iceboundnosmooth` (sin filtro xBR).
 
+
+## Arreglos del 27-oct-2026 (sonidos, "!" y Select Map)
+- **Sonidos de ataque de los monstruos:** antes se ajustaban a la animación de golpe (8 frames a 17,5 fps ≈ 0,46 s), y como casi todos duran 0,7–1,4 s sonaban a 1,5–2× (el límite `AUDIO.maxRate`); Skeleton y Frost, más lentos y graves. Ahora `Enemy.startAttack` los toca a velocidad normal. El ajuste a la animación sigue para el jugador (golpe, hechizos).
+- **"!" de embestida:** apagado con `CHARGE_WARNING.shown` (`data/movement.ts`); el monstruo sigue parándose antes de embestir.
+- **Fondo de Select Map:** solo se pintan las primeras `MAP_SELECT_BACKGROUND_ROWS` (452) filas del fondo del título, estiradas a lo alto, para quitar la línea "... PlayHelbreath.com". El menú principal no cambia.

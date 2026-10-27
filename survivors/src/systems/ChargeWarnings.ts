@@ -37,7 +37,7 @@ export class ChargeWarnings {
 
     /** Puts a "!" over this monster (it is winding up a charge). Skipped when too many are on screen. */
     public show(enemy: Enemy): void {
-        if (enemy.hasChargeWarning || this.pool.active.length >= CHARGE_WARNING.maxShown) return;
+        if (!CHARGE_WARNING.shown || enemy.hasChargeWarning || this.pool.active.length >= CHARGE_WARNING.maxShown) return;
         const warning = this.pool.acquire();
         warning.enemy = enemy;
         enemy.hasChargeWarning = true;
