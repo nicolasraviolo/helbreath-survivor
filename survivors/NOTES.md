@@ -107,6 +107,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Hachas: giro en torbellino (bloque B, 25-oct-2026)
 - Martillos: golpe al suelo y grieta (bloque C, 26-oct-2026)
 - Equilibrio de los martillos (26-oct-2026)
+- Rescates y Guards (Fase 29A, 27-oct-2026; logros y Missions, 29B)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -704,6 +705,8 @@ Para hablar con el propietario, tres letras con nombre:
 - Los jefes se reconocen comparando su definición (`ENEMIES[id] === enemy.def`): todos los monstruos de una clase comparten el mismo objeto de `data/enemies.ts`.
 - La escena de cartas pausa la partida: el vigilante no corre mientras tanto y el aviso del HUD espera (`scene.isPaused`). Por eso el logro de nivel sale después de elegir la carta.
 - En las pruebas automáticas, la partida se queda en las cartas si no se usa `--cards` (el script responde por su cuenta llamando a `onChoose` de LevelUp; los eventos de teclado sintéticos no llegan a Phaser).
+- **Logros que se acumulan (Fase 29C):** meta `killTotal` (monstruo + cifra). `AchievementStore` guarda en la misma clave (`hb-survivors.achievements`, versión **2**; la 1 se migra con contadores a 0) cuántos se han matado de **cada** tipo, en todas las partidas y de los dos personajes juntos; se cuentan todos los tipos, no solo los que tienen logro, así uno nuevo sale ya con lo matado. `AchievementTracker.onKill` junta las bajas y `saveKills()` las escribe cada 500 ms (`ACHIEVEMENT_CHECK_EVERY_MS`), al guardar la partida (`saveRun`, también al salir o pasar a segundo plano) y al terminar. Los jefes son otro tipo (`stoneGolemBoss`…) y no cuentan; Champions y élites sí. Apagado en la partida simulada y con `?debug=dodge`. Al abrir el juego se repasan las metas ya cumplidas (como los rescates). La pantalla Achievements añade "(312 / 3,000)" a los pendientes. `?kills=slime:2999,orc:1500`, `check achievementprogress` (para ver la última página: `--eval="(s => { s.page = s.pageCount - 1; s.showPage(); return s.page })(game.scene.getScene('Achievements'))"`) y `check killcount --cards --wait=40000` (sale "Slime Squasher").
+- **Cifras de 29C:** pensadas para ~8–10 partidas del mapa donde más sale cada monstruo. Por partida completa, matando ~65 % de lo que sale: Traveler ~450 Slimes y ~680 Snakes; Elvine ~225 Orcs, ~250 Trolls, ~215 Werewolves, ~235 Giant Trees; Middleland ~195 Skeletons, ~255 Werewolves, ~255 Cyclops; Bleeding Isle un poco de todo (~155 Orcs, ~170 Skeletons). Calculado sobre el papel con las oleadas y eventos de `data/waves.ts`; comprobar con partidas reales.
 
 ## Métricas (Fase 14A)
 - **Servidor:** `metrics-server/` (Cloudflare Worker + D1 `helbreath-survivors-metrics`, cuenta del propietario). Dirección: https://helbreath-survivors-metrics.nicolasraviolo.workers.dev (la raíz es la página de gráficas; pide la clave).
@@ -1225,3 +1228,15 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - **Antes:** el Battle Hammer ganaba 4/4 en Elvine Garden 35 (Flamberge 2/4) y en Middleland 40 moría 3,5 veces (Flamberge 5) con la mitad de bola. El Battle Axe (Str 80) va como la Flamberge o peor.
 - **Cambio:** daño de la grieta −30% (Hammer 28→20, Battle Hammer 38→27). **Después:** Middleland 40 Battle Hammer 6 muertes, bola ~70 (más cerca de la Flamberge); Elvine Garden casi igual (allí la partida ya se gana; poco sirve para comparar). El Hammer en Elvine Garden 25 sigue ~2 min por encima de la Flamberge: la ventaja viene sobre todo del golpe en círculo, no de la grieta. Datos: `.check/balance-hammers-fair.json` y `.check/balance-hammers-nerf.json`.
 - **Segundo cambio:** golpe del Hammer 46→42. Medido con `--repeat=8` frente a la Flamberge (`.check/balance-hammers-42.json`): Elvine Garden 25, 1ª muerte 9:10 frente a 8:08; Middleland 40, 10:36 frente a 9:44 (4 muertes frente a 5,5); Elvine Garden 35, gana 8/8 frente a 7/8. Queda ~1 min por encima, con menos bola y menos monstruos muertos de un golpe (0,25–0,36 frente a 0,37–0,57): aceptado como ventaja de un arma más pesada.
+
+## Rescates y Guards (Fase 29A, 27-oct-2026; logros y Missions, 29B)
+- Datos: `data/rescues.ts` (qué NPC en cada mapa y cuánto se endurece su Guard), Guard en `data/enemies.ts` (`guard`, `skySpell`, `healthBar`), movimiento `guard` en `data/movement.ts` (`GUARD_POST`).
+- Partida: `systems/RescueSystem.ts` (descarga el NPC y `guard.spr` si faltan, busca sitio, saca al Guard). El rayo cae con `EnemyProjectileSystem.strikeAt` (marca en el suelo + `LightningArc`; solo daña si sigues dentro, y se puede resistir).
+- Guardado: `systems/RescueStore.ts`, clave `hb-survivors.rescues` (en `TRANSFER_KEYS`). Ciudad: `TownScene` solo crea los NPCs con `rescueStore.isInTown`; William ofrece Equipment mientras falta Howard (`EQUIPMENT_STAND_IN`).
+- El Guard es inmune a `killAll` (jefe final, tecla K) y a `relocateFarAway`: hay que matarlo a mano. No sale en las partidas simuladas (`?debug=sim`).
+- `getMap` guarda el mapa en caché entre partidas: el NPC bloquea su casilla y la libera al irse (`HBMap.unblockTile`, `Npc.destroy`).
+- No hay NPC.cfg del Guard en `reference/`; los guardias originales solo pegan de cerca. El Lightning Bolt es idea nuestra (propietario).
+- Atajos: `?rescued=all|reset|howard,tom`, `?debug=rescue`; `?town=<npc>` pone a ese NPC aunque no esté rescatado. `check rescue` / `townnobody` / `townall`.
+- **Logros y Missions (29B):** meta `{ kind: 'rescue', npc? }` en `data/achievements.ts` (sin `npc` = todos). Se desbloquean en `AchievementTracker.onRescue` (GameScene, cuando `RescueSystem.onEnemyKilled` devuelve true) y además, en silencio, al abrir el juego (`AchievementStore`, `rescueGoalMet`): así cuentan los rescates guardados antes de existir el logro. Ojo: `?achievements=reset` los vuelve a dar si hay rescates guardados; usar también `?rescued=reset`.
+- Missions de William: `scenes/MissionsScene.ts` (lee `RESCUES`, estado con `rescueStore` y `mapUnlockStore.isOpen` con el Level del personaje), textos y colores en `MISSIONS_SCREEN` (`config/menus.ts`). Atajos `?open=missions`, `?open=town&town=william&missions`; `check missions` / `missionsone` / `missionsall`.
+- Para matar al Guard desde `--eval` (killAll no sirve): `g.enemies.forEachAlive(e => { if (e.isGuard) g.combat.hitEnemy(e, 'physical', 1e9, e.x, e.y, 0); })`.

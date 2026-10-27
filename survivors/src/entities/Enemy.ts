@@ -27,7 +27,7 @@ import { POISON } from '../data/attributes';
 import { EFFECTS } from '../config/effects';
 import { FREEZE_TINT } from '../data/totems';
 import { ICE_SLOW } from '../data/activeSpells';
-import { CHARGE, FLANK, KEEP_AWAY, WANDER, type MovementStyle } from '../data/movement';
+import { CHARGE, FLANK, GUARD_POST, KEEP_AWAY, WANDER, type MovementStyle } from '../data/movement';
 import { DEPTH_DAMAGE_NUMBERS, DEPTH_EFFECT_OFFSET, TILE_SIZE } from '../config/gameConfig';
 import { HBAsset } from '../hb/HBAsset';
 import type { HBMap } from '../hb/HBMap';
@@ -162,7 +162,18 @@ export class Enemy implements Poolable {
     public champion = false;
     /** Dark oval under the monsters with no body shadow (GROUND_SHADOW), instead of `shadow`. */
     private readonly groundShadow: Phaser.GameObjects.Image | undefined;
-    /** Its health bar over the head; made the first time this (pooled) enemy is a champion. */
+    /** Guard (Fase 29A): its post (where it appeared), and how long it still chases after a hit. */
+    private postX = 0;
+    private postY = 0;
+    private provokedMs = 0;
+    /** Sky spell (the Guards' Lightning Bolt, Fase 29A): time to the next cast, and the cast under way. */
+    private spellCooldownMs = 0;
+    private casting = false;
+    /** A spell to strike at (spellX, spellY) with this damage, set on the cast's hit frame; EnemySystem takes it. */
+    public spellDamage = 0;
+    public spellX = 0;
+    public spellY = 0;
+    /** Its health bar over the head; made the first time this (pooled) enemy is a champion or a Guard. */
     private healthBar: Phaser.GameObjects.Graphics | undefined;
     /** Highest point of its frames seen so far, above the feet (px): the bar sits over it without jumping. */
     private headHeight = 0;
@@ -196,6 +207,11 @@ export class Enemy implements Poolable {
         return this.phase === EnemyPhase.Alive;
     }
 
+    /** A rescue's Guard (Fase 29A): it keeps its post, and the screen-wide kills and the relocation leave it alone. */
+    public get isGuard(): boolean {
+        return this.movement === 'guard';
+    }
+
     public spawn(x: number, y: number, elite = false, difficulty: MapDifficulty = NO_DIFFICULTY, champion = false): void {
         this.x = x;
         this.y = y;
@@ -223,6 +239,12 @@ export class Enemy implements Poolable {
         this.chargeMs = 0;
         this.windupMs = 0;
         this.nextChargeMs = Phaser.Math.FloatBetween(0, CHARGE.maxCooldownMs);
+        this.postX = x;
+        this.postY = y;
+        this.provokedMs = 0;
+        this.spellCooldownMs = this.def.skySpell?.minCooldownMs ?? 0;
+        this.casting = false;
+        this.spellDamage = 0;
         this.frozenMs = 0;
         this.slowMs = 0;
         this.slowFactor = 1;
@@ -352,6 +374,7 @@ export class Enemy implements Poolable {
         this.hp -= amount;
         this.hitsTaken++;
         this.noticed = true;
+        if (this.movement === 'guard') this.provokedMs = GUARD_POST.provokedMs;
         this.flashMs = ENEMY_HIT_FLASH_MS;
         this.sprite.setTintFill(0xffffff);
         this.push(fromX, fromY, knockback);
@@ -511,6 +534,11 @@ export class Enemy implements Poolable {
         this.knockY *= fade;
         const inReach = this.inReach(dx, dy, distance, world.targetRadius);
         this.cooldownMs = Math.max(0, this.cooldownMs - ownMs);
+        this.spellCooldownMs = Math.max(0, this.spellCooldownMs - ownMs);
+        if (this.movement === 'guard' && this.attackLeftMs <= 0 && !this.guardEngaged(world, ownMs)) {
+            this.walkHome(vx, vy, speed, seconds, world);
+            return;
+        }
         if (this.movement === 'charge') this.nextChargeMs -= ownMs;
         let facingX = dx;
         let facingY = dy;
@@ -542,6 +570,9 @@ export class Enemy implements Poolable {
             facingY = this.windupY;
             wanted = MonsterState.Idle;
             if (this.windupMs <= 0) this.startOwnCharge();
+        } else if (this.wantsToCast(inReach, distance)) {
+            this.startCast(dx, dy);
+            wanted = MonsterState.Attack;
         } else if (inReach) {
             if (this.cooldownMs <= 0) {
                 this.startAttack(dx, dy);
@@ -582,6 +613,11 @@ export class Enemy implements Poolable {
             }
         }
 
+        this.moveBy(vx, vy, speed, seconds, world);
+    }
+
+    /** Walks (vx, vy) px/s for `seconds`, against the walls; stuck, it slides sideways along them. */
+    private moveBy(vx: number, vy: number, speed: number, seconds: number, world: EnemyWorld): void {
         if (vx === 0 && vy === 0) return;
         const { map, area } = world;
         const half = ENEMY_WALL_HALF_SIZE;
@@ -653,6 +689,53 @@ export class Enemy implements Poolable {
         return { x: -uy * this.sideBias * KEEP_AWAY.strafePace, y: ux * this.sideBias * KEEP_AWAY.strafePace };
     }
 
+    /**
+     * Guard (Fase 29A): it fights while the player is near its post, or a while after a hit if the player is not too far
+     * from the post (a Mage shooting from afar).
+     */
+    private guardEngaged(world: EnemyWorld, ownMs: number): boolean {
+        this.provokedMs = Math.max(0, this.provokedMs - ownMs);
+        const fromPost = Math.hypot(world.targetX - this.postX, world.targetY - this.postY);
+        if (fromPost <= GUARD_POST.aggroPx) return true;
+        return this.provokedMs > 0 && fromPost <= GUARD_POST.leashPx;
+    }
+
+    /** Guard at rest: back to its post, then stands there looking out. (vx, vy) = the crowd's push and the knockback. */
+    private walkHome(vx: number, vy: number, speed: number, seconds: number, world: EnemyWorld): void {
+        const dx = this.postX - this.x;
+        const dy = this.postY - this.y;
+        const distance = Math.hypot(dx, dy);
+        let wanted = MonsterState.Idle;
+        let facing = GUARD_POST.restDirection as Direction;
+        if (distance > GUARD_POST.homePx) {
+            const step = Math.min(speed, distance / Math.max(seconds, 0.001));
+            vx += (dx / distance) * step;
+            vy += (dy / distance) * step;
+            wanted = MonsterState.Move;
+            facing = directionFromVector(dx, dy) ?? this.direction;
+        }
+        if (facing !== this.direction || wanted !== this.state) {
+            this.direction = facing;
+            this.play(wanted, wanted !== this.state);
+        }
+        this.moveBy(vx, vy, speed, seconds, world);
+    }
+
+    /** Sky spell (Fase 29A): ready, the player out of its blows' reach but within the spell's range. */
+    private wantsToCast(inReach: boolean, distance: number): boolean {
+        const spell = this.def.skySpell;
+        return spell !== undefined && !inReach && this.spellCooldownMs <= 0 && distance <= spell.rangePx;
+    }
+
+    /** Casts like an attack (animation and sound); the spell leaves on the hit frame (updateAttack). */
+    private startCast(dx: number, dy: number): void {
+        const spell = this.def.skySpell;
+        if (!spell) return;
+        this.startAttack(dx, dy);
+        this.casting = true;
+        this.spellCooldownMs = Phaser.Math.FloatBetween(spell.minCooldownMs, spell.maxCooldownMs);
+    }
+
     /** Charge: its pause is over and the player is at charging distance (not too close, not too far). */
     private wantsToCharge(distance: number): boolean {
         return this.movement === 'charge' && this.nextChargeMs <= 0 && distance >= CHARGE.minPx && distance <= CHARGE.maxPx;
@@ -718,13 +801,19 @@ export class Enemy implements Poolable {
         if (this.hitInMs >= 0) {
             this.hitInMs -= deltaMs;
             if (this.hitInMs < 0) {
-                if (this.def.attackProjectile) this.shotDamage = this.rollDamage();
+                const spell = this.def.skySpell;
+                if (this.casting && spell) {
+                    this.spellDamage = Math.max(1, Math.round(this.rollDamage() * spell.damageShare));
+                    this.spellX = world.targetX;
+                    this.spellY = world.targetY;
+                } else if (this.def.attackProjectile) this.shotDamage = this.rollDamage();
                 else if (inReach) this.strike(world);
             }
         }
         if (this.attackLeftMs <= 0) {
             this.attackLeftMs = 0;
-            this.afterBlow();
+            if (this.casting) this.casting = false;
+            else this.afterBlow();
             this.play(MonsterState.Move, true);
         }
     }
@@ -803,7 +892,7 @@ export class Enemy implements Poolable {
     /** Moves sprite and shadow to the logical position; the shadow copies the current frame. */
     private syncDisplay(): void {
         this.sprite.setPosition(this.x, this.y).setDepth(this.y);
-        if (this.champion) this.drawHealthBar();
+        if (this.champion || this.def.healthBar === true) this.drawHealthBar();
         this.groundShadow?.setPosition(this.x, this.y);
         const shadow = this.shadow;
         if (!shadow || this.state === MonsterState.Dead || this.state === MonsterState.TakeDamage) return;
@@ -883,7 +972,7 @@ export class Enemy implements Poolable {
         this.sprite.setActive(active).setVisible(active);
         this.shadow?.setActive(active).setVisible(active);
         this.groundShadow?.setActive(active).setVisible(active);
-        if (!active || !this.champion) this.healthBar?.setVisible(false);
+        if (!active || !(this.champion || this.def.healthBar === true)) this.healthBar?.setVisible(false);
         if (!active) this.sprite.anims.stop();
     }
 }

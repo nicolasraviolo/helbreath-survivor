@@ -43,6 +43,19 @@ const PRESETS = {
     // Fase 21½C: un Champion a los 3 segundos (usar --wait=6000 para verlo en la captura).
     champion: 'debug=god,champion',
     boss: 'debug=god,boss',
+    // Fase 29A: Howard secuestrado y su Guard junto al jugador en Traveler Zone (sin god: el Guard tiene que pegar).
+    rescue: 'play=warrior&map=traveler&rescued=reset&debug=rescue',
+    // Fase 29A: la ciudad sin nadie rescatado (solo William) y con todos.
+    townnobody: 'characters=demo&open=town&rescued=reset',
+    townall: 'characters=demo&open=town&rescued=all',
+    // Fase 29B: Missions de William sin nadie rescatado, con Howard, y con todos (Gorn de ejemplo, Level 25 o así).
+    missions: 'characters=demo&open=town&town=william&rescued=reset&maps=reset&missions',
+    missionsone: 'characters=demo&open=town&town=william&rescued=howard&missions',
+    missionsall: 'characters=demo&open=town&town=william&rescued=all&missions',
+    // Fase 29C: logros que se acumulan, con contadores a medias (sin achievements=reset, el resto se queda como esté).
+    achievementprogress: 'achievements=reset&kills=slime:312,snake:4999,orc:1999,cyclops:12&open=achievements',
+    // Fase 29C: Traveler Zone con 2,999 Slimes y 4,999 Snakes ya contados y una horda: a los pocos segundos, "Slime Squasher".
+    killcount: 'achievements=reset&kills=slime:2999,snake:4999,cat:7&play=warrior&map=traveler&debug=god,horde',
     // Minimapa (Fase 16A): con un jefe vivo, para ver su punto rojo junto al del jugador.
     minimap: 'debug=god,boss',
     horde: 'debug=god,horde,horde,horde',
@@ -307,7 +320,7 @@ async function runScenario(browser, name) {
     }
 
     // ?open= (debugStart.ts) shows a menu screen: wait for it instead of the game.
-    const openKey = { howtoplay: 'HowToPlay', settings: 'Settings', controls: 'Controls', credits: 'Credits', releasenotes: 'ReleaseNotes', achievements: 'Achievements', slots: 'CharacterSlots', mapselect: 'MapSelect', town: 'Town', charinfo: 'CharacterInfo', equipment: 'Equipment', warehouse: 'Warehouse', runchoice: 'RunChoice', transfer: 'Transfer' }[params.get('open') ?? ''];
+    const openKey = { howtoplay: 'HowToPlay', settings: 'Settings', controls: 'Controls', credits: 'Credits', releasenotes: 'ReleaseNotes', achievements: 'Achievements', missions: 'Missions', slots: 'CharacterSlots', mapselect: 'MapSelect', town: 'Town', charinfo: 'CharacterInfo', equipment: 'Equipment', warehouse: 'Warehouse', runchoice: 'RunChoice', transfer: 'Transfer' }[params.get('open') ?? ''];
     const target = params.has('loading') ? 'Preload' : params.get('town') === 'portal' ? 'MapSelect' : params.has('shop') ? 'Shop' : params.has('smith') ? 'Smith' : params.has('talk') ? 'NpcDialog' : openKey ?? (query ? 'Game' : 'MainMenu');
     await page.goto(url);
     const t0 = Date.now();

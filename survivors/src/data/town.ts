@@ -48,7 +48,7 @@ export const TOWN: TownDef = {
 export type NpcId = 'howard' | 'shopKeeper' | 'william' | 'tom';
 
 /** What an option of the panel does. `soon` = not made yet: the panel says "Coming soon". */
-export type NpcAction = 'equipment' | 'warehouse' | 'achievements' | 'shop' | 'smithBuy' | 'smithSell' | 'smithUpgrade' | 'soon';
+export type NpcAction = 'equipment' | 'warehouse' | 'achievements' | 'missions' | 'shop' | 'smithBuy' | 'smithSell' | 'smithUpgrade' | 'soon';
 
 export interface NpcOption {
     label: string;
@@ -91,7 +91,7 @@ export const TOWN_NPCS: Readonly<Record<NpcId, NpcDef>> = {
         tile: { x: 95, y: 176 },
         direction: 4,
         line: 'I keep the records of this town.\nEvery deed of yours is written here.',
-        options: [{ label: 'Achievements', action: 'achievements' }, { label: 'Missions', action: 'soon' }],
+        options: [{ label: 'Achievements', action: 'achievements' }, { label: 'Missions', action: 'missions' }],
     },
     tom: {
         name: 'Tom',
@@ -103,6 +103,14 @@ export const TOWN_NPCS: Readonly<Record<NpcId, NpcDef>> = {
         // Fase 24C: Buy and Sell (SmithScene); Upgrade, Fase 24D.
         options: [{ label: 'Buy', action: 'smithBuy' }, { label: 'Sell', action: 'smithSell' }, { label: 'Upgrade', action: 'smithUpgrade' }],
     },
+};
+
+/**
+ * Fase 29A: while Howard is still held captive (data/rescues.ts), William also opens Equipment, so a phone (with no
+ * I key) can still change gear. The warehouse stays closed until Howard is back.
+ */
+export const EQUIPMENT_STAND_IN = { keeper: 'howard', standIn: 'william', option: { label: 'Equipment', action: 'equipment' } } as const satisfies {
+    keeper: NpcId; standIn: NpcId; option: NpcOption;
 };
 
 export function isNpcId(value: string): value is NpcId {

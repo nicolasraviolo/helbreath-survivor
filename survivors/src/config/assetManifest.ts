@@ -48,6 +48,8 @@ export const SPRITES = {
     'enemy.ettin': { file: 'sprites/ettin.spr', type: SpriteType.Monster },
     'enemy.demon': { file: 'sprites/demon.spr', type: SpriteType.Monster },
     'enemy.fireWyvern': { file: 'sprites/firewyvern.spr', type: SpriteType.Monster },
+    // Fase 29A: los Guards que tienen secuestrados a los NPCs (guard.spr, 40 hojas estándar; sp-client Monsters.ts).
+    'enemy.guard': { file: 'sprites/guard.spr', type: SpriteType.Monster },
 
     // NPCs de la ciudad (Fase 23B): 8 hojas (una por dirección) de 8 frames, solo quietos. Como monstruos, nunca se
     // bajan antes del menú: los baja la carga de la ciudad (data/town.ts → TOWN_NPCS).
@@ -242,6 +244,10 @@ export const SOUNDS = {
     'sfx.darkElf.hit': { file: 'sounds/C13.mp3' },
     'sfx.darkElf.death': { file: 'sounds/M150.mp3' },
     'sfx.ettin.hit': { file: 'sounds/M93.mp3' },
+    // Guard (sp-client Monsters.ts: takeDamage C12, death C7, attack C2).
+    'sfx.guard.hit': { file: 'sounds/C12.mp3' },
+    'sfx.guard.death': { file: 'sounds/C7.mp3' },
+    'sfx.guard.attack': { file: 'sounds/C2.mp3' },
     'sfx.ettin.death': { file: 'sounds/M94.mp3' },
     'sfx.demon.hit': { file: 'sounds/M60.mp3' },
     'sfx.demon.death': { file: 'sounds/M62.mp3' },

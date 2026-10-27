@@ -53,7 +53,8 @@
 //   ?slash=2         → estilo de la estela del tajo (número en data/slash.ts; tecla Y para pasar al siguiente; M15)
 //   ?loading=hold    → la pantalla de carga se queda a medias, para verla con calma (M8)
 //   ?trees=off       → árboles grandes en ese modo solo en esta partida (on, off), sin guardarlo
-//   ?open=howtoplay  → abre esa pantalla de los menús (howtoplay, settings, controls = Settings → Controls, credits, releasenotes = novedades, achievements)
+//   ?open=howtoplay  → abre esa pantalla de los menús (howtoplay, settings, controls = Settings → Controls, credits, releasenotes = novedades, achievements,
+//                     missions = Missions de William, Fase 29B)
 //   ?open=transfer   → la ventana Transfer Save (código de traspaso, Fase 27½B) sobre el menú principal
 //   ?tab=gameplay    → con ?open=settings, abre esa pestaña de Settings (audio, gameplay; M13)
 //   ?open=slots      → abre la pantalla de los 4 personajes guardados (Fase 17A)
@@ -81,10 +82,16 @@
 //   ?town=william    → con ?open=town, aparece junto a ese NPC (howard, shopKeeper, william, tom; Fase 23B);
 //                      con &talk, además se abre su panel
 //   ?town=shopKeeper&shop → con ?open=town, se abre la tienda directamente (Fase 24B)
+//   ?town=william&missions → con ?open=town, se abren las Missions de William directamente (Fase 29B)
 //   ?town=tom&smith=buy → con ?open=town, se abre el herrero en Buy (o sell, o upgrade: Fase 24D) directamente (Fase 24C)
+//   ?rescued=howard,tom → da esos NPCs por rescatados en este dispositivo (all = todos; reset = ninguno; Fase 29A).
+//                      ?town=<npc> también pone a ese NPC en la ciudad, sin guardarlo
+//   ?debug=rescue    → en una partida, el NPC secuestrado y su Guard aparecen cerca del jugador (Fase 29A)
 //   ?unlocks=abaddon  → desbloquea Abaddon's Blood en este dispositivo (Fase 21E; reset = quita los desbloqueos)
 //                      dice3,wine2 → 3 dados (Reroll) y 2 vinos (Skip) comprados (Fase 21½B; "dice" solo = 1, "dice0" = 0)
 //   ?achievements=reset → borra los logros conseguidos al cargar (all = los da todos, para ver la pantalla llena; Fase 14B)
+//                      (reset también pone a 0 los contadores de bajas de la Fase 29C)
+//   ?kills=slime:2995,orc:1500 → pone esos contadores de bajas de todas las partidas (logros que se acumulan, Fase 29C)
 //   ?metrics=send    → enviar las métricas de esta partida al servidor de verdad (en desarrollo no se envían; Fase 14A)
 //   Se combina con ?ui=compact (interfaz de móvil).
 // En el build publicado no hace nada.
@@ -109,7 +116,7 @@ import type { SimKit } from './simProfile';
 /** ?xelima= gives at most this many stones (a typo like 5000 would fill the inventory). */
 const DEBUG_XELIMA_MAX = 30;
 
-const DEBUG_SCREENS = { howtoplay: 'HowToPlay', settings: 'Settings', controls: 'Controls', credits: 'Credits', releasenotes: 'ReleaseNotes', achievements: 'Achievements', slots: 'CharacterSlots', mapselect: 'MapSelect', town: 'Town', charinfo: 'CharacterInfo', equipment: 'Equipment', warehouse: 'Warehouse', runchoice: 'RunChoice', transfer: 'Transfer' } as const;
+const DEBUG_SCREENS = { howtoplay: 'HowToPlay', settings: 'Settings', controls: 'Controls', credits: 'Credits', releasenotes: 'ReleaseNotes', achievements: 'Achievements', missions: 'Missions', slots: 'CharacterSlots', mapselect: 'MapSelect', town: 'Town', charinfo: 'CharacterInfo', equipment: 'Equipment', warehouse: 'Warehouse', runchoice: 'RunChoice', transfer: 'Transfer' } as const;
 type DebugScreen = keyof typeof DEBUG_SCREENS;
 
 function isDebugScreen(value: string | null): value is DebugScreen {
@@ -117,7 +124,7 @@ function isDebugScreen(value: string | null): value is DebugScreen {
 }
 
 /** Actions that ?debug= can run at the start of a run (the same ones as the debug keys of GameScene). */
-export const DEBUG_ACTIONS = ['horde', 'kill', 'levelup', 'levels', 'str', 'magic', 'pickups', 'totems', 'minute', 'boss', 'finalboss', 'bosskill', 'stampede', 'dodge', 'stats', 'god', 'crits', 'aim', 'aimstick', 'resume', 'sim', 'charexp', 'stones', 'elites', 'loot', 'zem', 'onehp', 'epic', 'champion', 'xelima', 'nomana', 'spelldrag', 'bluebook', 'charge', 'movement', 'aura', 'daggers', 'angels', 'orcs', 'nosmooth'] as const;
+export const DEBUG_ACTIONS = ['horde', 'kill', 'levelup', 'levels', 'str', 'magic', 'pickups', 'totems', 'minute', 'boss', 'finalboss', 'bosskill', 'stampede', 'dodge', 'stats', 'god', 'crits', 'aim', 'aimstick', 'resume', 'sim', 'charexp', 'stones', 'elites', 'loot', 'zem', 'onehp', 'epic', 'champion', 'xelima', 'nomana', 'spelldrag', 'bluebook', 'charge', 'movement', 'aura', 'daggers', 'angels', 'orcs', 'nosmooth', 'rescue'] as const;
 export type DebugAction = (typeof DEBUG_ACTIONS)[number];
 
 function isDebugAction(value: string): value is DebugAction {
@@ -165,6 +172,10 @@ interface DebugStart {
     map: MapId | undefined;
     /** ?maps=all opens every map in Select Map; reset forgets the maps won (Fase 22A). */
     maps: 'all' | 'reset' | undefined;
+    /** ?rescued=howard,tom marks those NPCs as rescued; all / reset (Fase 29A). */
+    rescued: NpcId[] | 'all' | 'reset' | undefined;
+    /** ?kills=slime:2995,orc:1500 sets those all-runs kill counters (Fase 29C); monster ids are checked by AchievementStore. */
+    kills: Record<string, number>;
     /**
      * ?town=portal: the character appears on the town's teleport, so Select Map opens over the town (Fase 23).
      * ?town=<npc>: next to that NPC (Fase 23B); with &talk, its panel opens too.
@@ -173,6 +184,8 @@ interface DebugStart {
     townTalk: boolean;
     /** ?town=shopKeeper&shop: the shop opens at once (Fase 24B). */
     townShop: boolean;
+    /** ?town=william&missions: William's Missions open at once (Fase 29B). */
+    townMissions: boolean;
     /** ?town=tom&smith=buy|sell|upgrade: the blacksmith opens at once on that tab (Fase 24C; upgrade, 24D). */
     townSmith: SmithTab | undefined;
     /** ?weapon=lightAxe: the Warrior's weapon in hand for the run, whatever he wears (bloque B, axes). */
@@ -191,11 +204,21 @@ interface DebugStart {
     simBot: 'circle' | 'stand';
 }
 
+/** "slime:2995,orc:1500" → { slime: 2995, orc: 1500 } (Fase 29C). */
+function parseKills(text: string | null): Record<string, number> {
+    const kills: Record<string, number> = {};
+    for (const part of (text ?? '').split(',')) {
+        const [enemy, count] = part.split(':').map((p) => p.trim());
+        if (enemy && count && /^\d+$/.test(count)) kills[enemy] = Number(count);
+    }
+    return kills;
+}
+
 function readDebugStart(): DebugStart {
     const none: DebugStart = {
         play: false, character: undefined, actions: [], trees: undefined, open: undefined, achievements: undefined, characters: undefined,
         sendMetrics: false, spells: { auto: undefined, active: undefined }, openClass: undefined, openSlot: undefined, slash: undefined,
-        holdLoading: false, gear: [], settingsTab: undefined, attribute: undefined, unlocks: undefined, unlockCounts: {}, map: undefined, maps: undefined, townSpot: undefined, townTalk: false, townShop: false, townSmith: undefined,
+        holdLoading: false, gear: [], settingsTab: undefined, attribute: undefined, unlocks: undefined, unlockCounts: {}, map: undefined, maps: undefined, rescued: undefined, kills: {}, townSpot: undefined, townTalk: false, townShop: false, townMissions: false, townSmith: undefined,
         gold: undefined, weapon: undefined, upgrade: undefined, xelima: undefined, level: undefined, build: undefined, kit: 'best', simBot: 'circle',
     };
     if (!import.meta.env.DEV) return none;
@@ -214,6 +237,7 @@ function readDebugStart(): DebugStart {
     const unlocks = params.get('unlocks');
     const map = params.get('map');
     const maps = params.get('maps');
+    const rescued = params.get('rescued');
     const gold = params.get('gold');
     const upgrade = params.get('upgrade');
     const weapon = params.get('weapon');
@@ -239,9 +263,12 @@ function readDebugStart(): DebugStart {
         unlocks: unlocks === 'reset' ? 'reset' : unlocks ? unlocks.split(',').map((u) => u.trim()).filter(isUnlockId) : undefined,
         map: isMapId(map) ? map : undefined,
         maps: maps === 'all' || maps === 'reset' ? maps : undefined,
+        rescued: rescued === 'all' || rescued === 'reset' ? rescued : rescued ? rescued.split(',').map((r) => r.trim()).filter(isNpcId) : undefined,
+        kills: parseKills(params.get('kills')),
         townSpot: parseTownSpot(params.get('town')),
         townTalk: params.has('talk'),
         townShop: params.has('shop'),
+        townMissions: params.has('missions'),
         townSmith: SMITH_TABS.find((tab) => tab === params.get('smith')),
         weapon: weapon !== null && isMeleeWeaponId(weapon) ? weapon : undefined,
         upgrade: upgrade !== null && /^[1-9]$/.test(upgrade) ? Math.min(UPGRADE_MAX, Number(upgrade)) : undefined,

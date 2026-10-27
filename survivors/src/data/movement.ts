@@ -8,8 +8,10 @@
  * - `wander`: walks around at random (drifting roughly towards the player) until it sees the player or is hit.
  * - `charge`: walks straight at the player, but now and then stops, shows a "!" and rushes in a straight line (27B).
  * - `keepAway`: monsters that hit from afar walk up to their range, then back off if the player comes too close (27C).
+ * - `guard`: stays at its post (where it appeared) and only chases a player who comes near it, then goes back (the
+ *   Guards of the rescues, Fase 29A; DEF_MOVETYPE_GUARD of the original server).
  */
-export type MovementStyle = 'direct' | 'flank' | 'wander' | 'charge' | 'keepAway';
+export type MovementStyle = 'direct' | 'flank' | 'wander' | 'charge' | 'keepAway' | 'guard';
 
 /**
  * Flank: each monster picks a side (left or right) and an angle between `minAngleDeg` and `maxAngleDeg` when it
@@ -59,3 +61,10 @@ export const KEEP_AWAY = {
     maxStrafeMs: 3000,
     swapChance: 0.5,
 } as const;
+
+/**
+ * Guard (Fase 29A): it attacks when the player comes within `aggroPx` of its post, or for `provokedMs` after it takes a
+ * hit while the player is within `leashPx` of the post (a Mage shooting from afar). Otherwise it walks back and stands
+ * at its post (within `homePx`) facing `restDirection` (4 = south).
+ */
+export const GUARD_POST = { aggroPx: 230, leashPx: 420, provokedMs: 5000, homePx: 6, restDirection: 4 } as const;

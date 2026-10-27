@@ -1,5 +1,6 @@
 // Logros (Fase 14B): cuántos llevas, y la lista en dos columnas, primero los conseguidos (en dorado) y luego los
 // pendientes (en gris), cada uno con su descripción. Si no caben, se pasan páginas con ◄ ► en la fila "Page".
+// Los que se acumulan entre partidas (Fase 29C), mientras no se consiguen, llevan detrás lo que llevas: "(312 / 3,000)".
 // La lista está en data/achievements.ts; lo conseguido, en systems/AchievementStore.ts.
 import Phaser from 'phaser';
 import { ACHIEVEMENTS_SCREEN, MENU_OVERLAY, MENU_TEXT_STYLE } from '../config/menus';
@@ -71,9 +72,17 @@ export class AchievementsScene extends MenuOverlayScene {
         const name = this.add.text(x, y, def.name, {
             ...base, fontSize: px(UI_FONT_SIZE.normal), fontStyle: 'bold', color: unlocked ? screen.nameColor : screen.lockedNameColor,
         }).setOrigin(0.5, 0);
-        const description = this.add.text(x, y + name.height, def.description, {
+        const goal = def.goal;
+        const progress = !unlocked && goal.kind === 'killTotal'
+            ? ` (${formatCount(achievementStore.killCount(goal.enemy))} / ${formatCount(goal.count)})` : '';
+        const description = this.add.text(x, y + name.height, def.description + progress, {
             ...base, fontSize: px(UI_FONT_SIZE.small), color: unlocked ? screen.descriptionColor : screen.lockedDescriptionColor,
         }).setOrigin(0.5, 0);
         content.add([name, description]);
     }
+}
+
+/** 3000 → "3,000", like the descriptions. */
+function formatCount(n: number): string {
+    return n.toLocaleString('en-US');
 }

@@ -69,6 +69,11 @@ export class HBMap {
         if (this.isInside(tx, ty)) this.flags[this.index(tx, ty)] |= FLAG_BLOCKED;
     }
 
+    /** Undoes blockTile (a captive NPC that leaves, Fase 29A: the map stays cached for the next runs). */
+    public unblockTile(tx: number, ty: number): void {
+        if (this.isInside(tx, ty)) this.flags[this.index(tx, ty)] &= ~FLAG_BLOCKED;
+    }
+
     public isWalkableAtPixel(px: number, py: number): boolean {
         return this.isWalkableTile(Math.floor(px / TILE_SIZE), Math.floor(py / TILE_SIZE));
     }
