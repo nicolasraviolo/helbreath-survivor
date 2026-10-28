@@ -830,6 +830,8 @@ Los NPCs de la ciudad se desbloquean con misiones. Por ejemplo, en Traveler Zone
 
 ## Fase 30 — Más mapas y objetos únicos
 
+> **Cerrada el 28-oct-2026** con 30A (Icebound) y 30B (objetos únicos: Sword of Ice Elemental e Ice Storm). **Dungeon L4 y Druncian City quedan aplazados** para más adelante (decisión del propietario); cuando se hagan, cada uno añade sus únicos a `MAP_UNIQUES`.
+
 > 22-oct-2026: antes era la Fase 25. El "Orden de mapas propuesto" de abajo es anterior a la Fase 22; el orden actual es Traveler Zone → Bleeding Isle → Elvine Garden → Middleland. Decidir dónde entran los mapas nuevos al empezar la fase.
 
 ### Objetos únicos (decidido el 18-oct-2026)
