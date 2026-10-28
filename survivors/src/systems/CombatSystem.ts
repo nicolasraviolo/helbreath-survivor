@@ -10,6 +10,7 @@ import type { SoundKey } from '../config/assetManifest';
 import type { AudioSystem } from './AudioSystem';
 import type { DamageNumbers } from './DamageNumbers';
 import type { HitParticles } from './HitParticles';
+import { chillEnemy } from './IceShardRain';
 import type { EnemySystem } from './EnemySystem';
 
 export interface AreaHit {
@@ -49,6 +50,8 @@ export class CombatSystem {
     private killCount = 0;
     /** The weapon in hand is Poison: physical hits poison the monsters they don't kill (Fase 21B). */
     public poisonOnHit = false;
+    /** The weapon in hand slows what it hits (a unique: Sword of Ice Elemental, Fase 30B). */
+    public chillOnHit = false;
 
     constructor(
         private readonly enemies: EnemySystem,
@@ -163,6 +166,7 @@ export class CombatSystem {
         const killed = enemy.takeDamage(damage, fromX, fromY, knockback);
         this.numbers.show(enemy.x, enemy.bodyY - enemy.def.bodyOffsetY, damage, critical || bigNumber, killed);
         if (!killed && this.poisonOnHit && type === 'physical') enemy.poison(Math.max(1, Math.round(damage * POISON.levelShare)));
+        if (!killed && this.chillOnHit && type === 'physical') chillEnemy(enemy);
         if (killed) {
             this.killCount++;
             this.particles.death(enemy.x, enemy.y, enemy.bodyY);

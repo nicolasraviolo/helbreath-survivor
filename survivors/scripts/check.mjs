@@ -210,6 +210,14 @@ const PRESETS = {
     iceboundfrost: 'play=warrior&map=icebound&debug=god,boss',
     iceboundnizie: 'play=warrior&map=icebound&debug=god,boss,boss',
     iceboundboss: 'play=warrior&map=icebound&debug=god,finalboss',
+    // Objetos únicos (Fase 30B). unique: Gorn mata al Tigerworm y cae la Sword of Ice Elemental (brillo morado y cartel);
+    // con --eval="g.debugPickUpLoot()" sale su carta. uniquewarehouse: lo mismo con Kaila (la espada va al baúl).
+    // uniquesword: Gorn con la espada en una horda (ralentiza lo que golpea). icestorm: la Maga con Ice Storm y horda
+    // (--eval="g.launchCritStrike()" lo lanza).
+    unique: 'play=warrior&characters=demo&map=icebound&debug=god,finalboss,bosskill&unique=iceElementalSword',
+    uniquewarehouse: 'play=mage&characters=demo&map=icebound&debug=god,finalboss,bosskill&unique=iceElementalSword',
+    uniquesword: 'play=warrior&debug=god,horde&weapon=iceElementalSword',
+    icestorm: 'play=mage&debug=god,horde,crits&spells=iceStorm',
     // Tiempos de carga (Fase 22B): carga inicial y la del mapa, con la red (y en --mobile el procesador) más lentos.
     // loadtime = Guerrero en Bleeding Isle; loadtimetraveler y loadtimemage, las otras dos combinaciones.
     loadtime: 'play=warrior',

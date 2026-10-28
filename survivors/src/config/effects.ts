@@ -43,6 +43,8 @@ export const EFFECTS = {
     'fx.explosion1': { sprite: 'fx.effect3', sheet: 1, frameRate: 20, loop: false },
     'fx.explosion2': { sprite: 'fx.effect3', sheet: 2, frameRate: 20, loop: false },
     'fx.explosion3': { sprite: 'fx.effect3', sheet: 5, frameRate: 20, loop: false },
+    // Ice Storm (Fase 30B, único de Icebound): el remolino del original (sp-client EFFECT_WHIRLWIND, effect3 hoja 0, 15 fps).
+    'fx.iceStorm.whirlwind': { sprite: 'fx.effect3', sheet: 0, frameRate: 15, loop: false, fadeFromFrame: 8 },
     'fx.explosion4': { sprite: 'fx.effect11', sheet: 8, frameRate: 15, loop: false },
     // Buffs del cofre (sp-client Berserk / Defense Shield / Defense Shield Buff).
     'fx.berserk.cast': { sprite: 'fx.effect8', sheet: 1, frameRate: 10, loop: false, depthOffset: -1 },

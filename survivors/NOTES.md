@@ -110,6 +110,8 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Rescates y Guards (Fase 29A, 27-oct-2026; logros y Missions, 29B)
 - Hechizos de impacto con marca en el suelo (27-oct-2026)
 - Icebound (Fase 30A)
+- Arreglos del 27-oct-2026 (sonidos, "!" y Select Map)
+- Objetos únicos (Fase 30B)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -1270,3 +1272,14 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - **Sonidos de ataque de los monstruos:** antes se ajustaban a la animación de golpe (8 frames a 17,5 fps ≈ 0,46 s), y como casi todos duran 0,7–1,4 s sonaban a 1,5–2× (el límite `AUDIO.maxRate`); Skeleton y Frost, más lentos y graves. Ahora `Enemy.startAttack` los toca a velocidad normal. El ajuste a la animación sigue para el jugador (golpe, hechizos).
 - **"!" de embestida:** apagado con `CHARGE_WARNING.shown` (`data/movement.ts`); el monstruo sigue parándose antes de embestir.
 - **Fondo de Select Map:** solo se pintan las primeras `MAP_SELECT_BACKGROUND_ROWS` (452) filas del fondo del título, estiradas a lo alto, para quitar la línea "... PlayHelbreath.com". El menú principal no cambia.
+
+## Objetos únicos (Fase 30B)
+- **Dónde:** `data/uniques.ts` (`MAP_UNIQUES`, `UNIQUE_DROP`, `UNIQUE_LEVEL`, `UNIQUE_LOOK`) y `systems/UniqueStore.ts` (fallos por mapa del dispositivo, clave `hb-survivors.uniques`, en `TRANSFER_KEYS`).
+- **Tirada:** `GameScene.rollUnique`, al morir el jefe final de un mapa con únicos (antes del portal: la victoria llega al cruzarlo). 2 % + 1 % por fallo; al salir, uno de los del mapa al azar y el contador vuelve a 0. Cae a `LOOT_BOSS_SPREAD` bajo el jefe, con brillo morado (`LootDrop`), el cartel "Unique item!" y el sonido de las cartas Epic.
+- **Otra clase:** `onLootPickup` lo mete directo en el baúl (`warehouseStore.add`) con el aviso "X sent to the Warehouse"; si el baúl está lleno, va a la bolsa como cualquier botín.
+- **Fuera de todo lo demás:** `isLootDrop` (botín normal), `smithStock` (`isRareItem`), `simBestEquipment`. `isFreeItem`: un hechizo único **no** se sabe con la Int: hay que tenerlo en el inventario, como un arma. Tom los compra al precio tope (1.500).
+- **Color:** `ownedItemColor` (dibujo: atributo o `glow` del arma) y `ownedItemNameColor` (nombre: atributo o `UNIQUE_LOOK.color`) en `data/items.ts`; usados en botín, carta, Equipment, baúl y fin de partida. El arma en la mano, con `MeleeWeaponDef.glow` (`equipmentLook`, `Equipment.weaponLayer`).
+- **Sword of Ice Elemental** (`data/weapons.ts`): espada larga (eslabón tras la Flamberge en `MELEE_FAMILIES`), daño 68, Str 100 + Level 100; `chills` → `Equipment.chills` → `CombatSystem.chillOnHit` (todo golpe físico que no mata ralentiza con `chillEnemy`, crits incluidos). Dibujo: msw bloque 560 (como la Great Sword) teñido de azul; icono item-pack 0/15.
+- **Ice Storm** (`data/activeSpells.ts`, kind `'storm'`; `systems/IceStormField.ts`): 5 s en el punto, cada 0,4 s 7 de daño ×Power y ralentiza; remolinos `fx.iceStorm.whirlwind` (effect3 hoja 0, que ya carga la Maga) y trozos pequeños de Ice Strike. Int 60 + Level 100, 55 de maná. Icono: el libro azul.
+- **Probar:** `?unique=iceElementalSword|iceStorm` (el jefe final lo suelta siempre), `?debug=unique` (uno al azar), `?unique=reset`; `check unique` / `uniquewarehouse` / `uniquesword` / `icestorm`. `?weapon=iceElementalSword` y `?spells=iceStorm` saltan los requisitos.
+- **Añadir únicos de otro mapa:** el objeto en su archivo (con `equip.level: UNIQUE_LEVEL` o `level` en el hechizo) y su id en `MAP_UNIQUES`.

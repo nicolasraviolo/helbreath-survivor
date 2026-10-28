@@ -31,6 +31,8 @@ export const TRANSFER_KEYS = [
     'hb-survivors.achievements',
     // Fase 29A: NPCs rescatados (systems/RescueStore.ts).
     'hb-survivors.rescues',
+    // Fase 30B: tiradas fallidas de objetos únicos (systems/UniqueStore.ts).
+    'hb-survivors.uniques',
 ] as const;
 export type TransferKey = (typeof TRANSFER_KEYS)[number];
 

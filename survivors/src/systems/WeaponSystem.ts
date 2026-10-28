@@ -13,7 +13,7 @@ import { SWING_SOUND_MS } from '../data/audio';
 import type { EffectKey } from '../config/effects';
 import { CAST_RELEASE_MOMENT, CAST_SOUND, SPELLS, type SpellBurst, type SpellDef } from '../data/spells';
 import { critReach, type CritShape } from '../data/critStrike';
-import { METEOR_LOOK, type BarrageSpellDef, type IceShardSpellDef, type LineSpellDef, type MeteorSpellDef } from '../data/activeSpells';
+import { METEOR_LOOK, type BarrageSpellDef, type IceShardSpellDef, type LineSpellDef, type MeteorSpellDef, type StormSpellDef } from '../data/activeSpells';
 import { AXE_SPIN, HAMMER_CRACK, HAMMER_SLAM, MELEE_HIT_MOMENT, MELEE_HIT_SOUND, MELEE_SWING_SOUND, meleeAttackStyle, type MeleeWeaponDef } from '../data/weapons';
 import { Effect } from '../entities/Effect';
 import type { Enemy } from '../entities/Enemy';
@@ -27,6 +27,7 @@ import type { AudioSystem } from './AudioSystem';
 import type { CombatSystem } from './CombatSystem';
 import type { EnemySystem } from './EnemySystem';
 import { IceShardRain } from './IceShardRain';
+import { IceStormField } from './IceStormField';
 import { LineSpell } from './LineSpell';
 import type { ScreenShake } from './ScreenShake';
 import { type ManualAim, manualAimAngle, Targeting } from './Targeting';
@@ -72,6 +73,8 @@ export class WeaponSystem {
     private readonly targeting: Targeting;
     private readonly iceRain: IceShardRain;
     private readonly lineSpell: LineSpell;
+    /** Ice Storm (Fase 30B, the unique of Icebound). */
+    private readonly iceStorms: IceStormField;
     /** Hammers (bloque C): their cracks. */
     private readonly hammerCracks: LineSpell;
     /** Critical Strike under way: blows still to land (axes spin twice) and when the next one lands. */
@@ -109,6 +112,12 @@ export class WeaponSystem {
             combat,
             audio,
             screenShake,
+            () => this.onSkillHit?.('activeSpell'),
+        );
+        this.iceStorms = new IceStormField(
+            (key, x, y) => this.effects.acquire().play(key, x, y),
+            this.iceRain,
+            combat,
             () => this.onSkillHit?.('activeSpell'),
         );
         this.hammerCracks = new LineSpell(
@@ -309,6 +318,14 @@ export class WeaponSystem {
         this.lineSpell.cast(def, powerMultiplier, this.context.x, this.context.y, x, y, def.castMs * CAST_RELEASE_MOMENT);
     }
 
+    /** Ice Storm (Fase 30B): the cast animation, then the storm stays on (x, y) for its duration. */
+    public castStorm(def: StormSpellDef, powerMultiplier: number, x: number, y: number): void {
+        this.onOwnerAction('cast', Math.atan2(y - this.context.y, x - this.context.x), def.castMs);
+        this.audio.play(CAST_SOUND, def.castMs);
+        if (def.castSound) this.audio.play(def.castSound);
+        this.iceStorms.cast(def, powerMultiplier, x, y, def.castMs * CAST_RELEASE_MOMENT);
+    }
+
     public setCooldownMultiplier(value: number): void {
         this.context.cooldownMultiplier = value;
     }
@@ -363,6 +380,7 @@ export class WeaponSystem {
         this.updateBarrage(deltaMs);
         this.iceRain.update(deltaMs);
         this.lineSpell.update(deltaMs);
+        this.iceStorms.update(deltaMs);
         this.hammerCracks.update(deltaMs);
         this.slash.update(deltaMs);
         for (const pending of this.bursts.active) {

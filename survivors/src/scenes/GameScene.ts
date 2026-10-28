@@ -19,7 +19,7 @@ import { canHaveAttribute, classCanWear, isArmorPieceId, isMeleeWeaponId, isSpel
 import type { ItemAttribute } from '../data/attributes';
 import { isWandId, type WandId } from '../data/wands';
 import { upgradeOf } from '../data/upgrades';
-import { LOOT_DEBUG, LOOT_SOUNDS, MANUAL_LEARNED, type OwnedItem } from '../data/loot';
+import { LOOT_BOSS_SPREAD, LOOT_DEBUG, LOOT_SOUNDS, MANUAL_LEARNED, type OwnedItem } from '../data/loot';
 import { LootSystem } from '../systems/LootSystem';
 import { RunLoot } from '../systems/RunLoot';
 import type { LootSceneData } from './LootScene';
@@ -82,6 +82,9 @@ import { DebugSystem } from '../systems/DebugSystem';
 import { EnemySystem } from '../systems/EnemySystem';
 import { assetStreamer } from '../systems/AssetStreamer';
 import { mapUnlockStore } from '../systems/MapUnlockStore';
+import { uniqueStore } from '../systems/UniqueStore';
+import { warehouseStore } from '../systems/WarehouseStore';
+import { isUniqueItem, UNIQUE_LOOK } from '../data/uniques';
 import { Action, InputSystem } from '../systems/InputSystem';
 import { smoothSpriteCount } from '../hb/XbrPipeline';
 import { SETTINGS_CHANGED, settings } from '../systems/Settings';
@@ -532,6 +535,7 @@ export class GameScene extends Phaser.Scene {
         stats.xelimaBonus = this.equipment.passiveBonus('xelima');
         stats.attributeBonus = this.equipment.weaponDamageBonus;
         this.combat.poisonOnHit = this.equipment.poisons;
+        this.combat.chillOnHit = this.equipment.chills;
     }
 
     /** The player touched a pickup on the ground. */
@@ -1408,6 +1412,11 @@ export class GameScene extends Phaser.Scene {
      */
     private onLootPickup(item: OwnedItem): void {
         const id = item.id;
+        // Fase 30B: another class's unique goes straight to the warehouse (saved now: it can't be lost), if there is room.
+        if (isUniqueItem(id) && !classCanWear(this.characterId, id) && warehouseStore.add(item)) {
+            this.buffs.announce(UNIQUE_LOOK.warehouseText(itemInfo(id)?.name ?? id), UNIQUE_LOOK.color);
+            return;
+        }
         if (!isSpellItemId(id) || !MANUAL_SPELL_IDS.has(id)) {
             this.runLoot.pickUp(item);
             return;
@@ -1415,6 +1424,21 @@ export class GameScene extends Phaser.Scene {
         characterStore.learnSpell(this.characterUid, id);
         this.buffs.announce(MANUAL_LEARNED.text(itemInfo(id)?.name ?? id), MANUAL_LEARNED.color);
         this.audio.play(MANUAL_LEARNED.sound);
+    }
+
+    /**
+     * The final boss died at (x, y): the roll for one of the map's uniques (Fase 30B, data/uniques.ts). It falls below
+     * the boss with its purple glow, a sign and the Epic chime. ?unique=<id> / ?debug=unique force it.
+     */
+    private rollUnique(x: number, y: number): void {
+        if (this.sim || !this.loot.enabled) return;
+        const debug = DEBUG_START.unique;
+        const forced = debug !== undefined && debug !== 'reset' ? debug : DEBUG_START.actions.includes('unique');
+        const id = uniqueStore.roll(this.mapId, forced);
+        if (id === undefined) return;
+        this.loot.drop({ id }, x, y + LOOT_BOSS_SPREAD);
+        this.buffs.announce(UNIQUE_LOOK.dropText, UNIQUE_LOOK.color);
+        this.audio.play(UNIQUE_LOOK.sound);
     }
 
     /** ?debug=loot: a rolled item a little to the right of the player. */
@@ -1500,6 +1524,9 @@ export class GameScene extends Phaser.Scene {
                 break;
             case 'rescue':
                 // Read when the run starts (RescueSystem): the captive and its Guard close by (Fase 29A).
+                break;
+            case 'unique':
+                // Read when the final boss dies (rollUnique): it always drops one of the map's uniques (Fase 30B).
                 break;
             case 'champion':
                 // A champion a few seconds from now (Fase 21½C).
@@ -1664,6 +1691,7 @@ export class GameScene extends Phaser.Scene {
         }
         // Bosses drop loot (Fase 21A; Fase 24A: mini-bosses sometimes, the final one always) and piles of gold.
         this.loot.onBossKill(enemy.x, enemy.y, boss.final);
+        if (boss.final) this.rollUnique(enemy.x, enemy.y);
         this.dropGoldPiles(enemy.x, enemy.y, boss.final ? GOLD.piles.finalBoss : GOLD.piles.miniBoss);
         this.sim?.onBossDead(enemy.def.name, this.spawner.elapsed);
         this.metrics.onBossDead(enemy.def.name, this.spawner.elapsed);

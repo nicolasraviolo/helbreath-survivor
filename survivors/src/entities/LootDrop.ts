@@ -4,11 +4,11 @@
 import Phaser from 'phaser';
 import { DEPTH_GEMS } from '../config/gameConfig';
 import type { Gender } from '../data/appearance';
-import { itemPicture } from '../data/items';
+import { itemPicture, ownedItemColor } from '../data/items';
 import { LOOT_GROUND, type OwnedItem } from '../data/loot';
 import { getSheetKey } from '../hb/HBSprite';
 import { setColouredTexture } from '../hb/additiveTint';
-import { attributeColor } from '../data/attributes';
+import { isUniqueItem, UNIQUE_LOOK } from '../data/uniques';
 import type { Poolable } from '../utils/Pool';
 import { smoothSprite } from '../hb/XbrPipeline';
 
@@ -22,6 +22,8 @@ export class LootDrop implements Poolable {
     private pictureSet = false;
     private gender: Gender = 'male';
     private readonly glow: Phaser.GameObjects.Arc;
+    /** Bigger glow for a unique (Fase 30B). */
+    private glowSize = 1;
     private readonly image: Phaser.GameObjects.Image;
 
     constructor(scene: Phaser.Scene) {
@@ -39,7 +41,10 @@ export class LootDrop implements Poolable {
         this.gender = gender;
         this.ageMs = 0;
         this.pictureSet = false;
-        this.glow.setPosition(x, y).setActive(true).setVisible(true);
+        // Fase 30B: a unique glows purple and bigger.
+        const unique = isUniqueItem(item.id);
+        this.glowSize = unique ? UNIQUE_LOOK.glowScale : 1;
+        this.glow.setFillStyle(unique ? UNIQUE_LOOK.glowColor : LOOT_GROUND.glowColor).setPosition(x, y).setActive(true).setVisible(true);
         this.image.setPosition(x, y).setActive(true).setVisible(false);
         this.trySetPicture();
     }
@@ -51,7 +56,7 @@ export class LootDrop implements Poolable {
         // 0 → 1 → 0 once per pulse.
         const wave = (1 - Math.cos((this.ageMs / g.glowPulseMs) * Math.PI * 2)) / 2;
         this.glow.setAlpha(Phaser.Math.Linear(g.glowAlpha.min, g.glowAlpha.max, wave))
-            .setScale(Phaser.Math.Linear(g.glowScale.min, g.glowScale.max, wave));
+            .setScale(Phaser.Math.Linear(g.glowScale.min, g.glowScale.max, wave) * this.glowSize);
         this.image.setY(this.y - wave * g.bobPx);
     }
 
@@ -64,7 +69,7 @@ export class LootDrop implements Poolable {
         const frame = itemPicture(this.item.id, this.gender);
         if (!frame) return;
         // Fase 21B: in its attribute's colour, as the original drew weapons on the ground.
-        if (!setColouredTexture(this.image, getSheetKey('item.ground', frame.sheet), frame.frame, attributeColor(this.item.attribute))) return;
+        if (!setColouredTexture(this.image, getSheetKey('item.ground', frame.sheet), frame.frame, ownedItemColor(this.item))) return;
         this.image.setVisible(true);
         this.image.setScale(LOOT_GROUND.scale);
         this.pictureSet = true;

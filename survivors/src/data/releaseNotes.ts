@@ -21,6 +21,7 @@ export const RELEASE_NOTES: readonly ReleaseNote[] = [
             'New map: Icebound, after Middleland, with Frost, Nizie and the Tigerworm as bosses.',
             'Select Map now scrolls to show every map.',
             'Snow tiles no longer show black specks.',
+            'Unique items: the Tigerworm may drop the Sword of Ice Elemental or the Ice Storm spell. Rare, and they need a high Level.',
         ],
     },
     {
