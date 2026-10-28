@@ -1,7 +1,9 @@
 // Jefes vivos (minijefes y jefe final): los recuerda mientras viven, hace que los que tienen ataque a distancia
-// lancen sus proyectiles, que los que tienen esbirros (BOSS_MINIONS) los llamen, y dice qué jefe mostrar en la barra
+// lancen sus proyectiles o sus hechizos de impacto con marcas en el suelo (Fase 30), que los que tienen esbirros (BOSS_MINIONS) los llamen, y dice qué jefe mostrar en la barra
 // grande y qué música toca.
-import { BOSS_MINIONS, type BossMinions, type EnemyId, type EnemyRangedAttack } from '../data/enemies';
+import Phaser from 'phaser';
+import { PLAYER_BODY_OFFSET_Y } from '../config/gameConfig';
+import { BOSS_MINIONS, type BossMinions, type EnemyId, type EnemyRangedAttack, type EnemySkySpell } from '../data/enemies';
 import type { Enemy } from '../entities/Enemy';
 import type { EnemyProjectileSystem } from './EnemyProjectileSystem';
 
@@ -11,6 +13,8 @@ export class BossSystem {
     private readonly bosses: Enemy[] = [];
     /** Time until each boss may throw again. */
     private readonly cooldowns = new Map<Enemy, number>();
+    /** Time until each boss may cast its impact spell again (Fase 30). */
+    private readonly spellCooldowns = new Map<Enemy, number>();
     /** Name of each boss, for the saved run. */
     private readonly ids = new Map<Enemy, EnemyId>();
     /** Time until each boss calls its minions again, and the minions of each one still alive. */
@@ -28,6 +32,7 @@ export class BossSystem {
         this.bosses.push(enemy);
         this.ids.set(enemy, id);
         this.cooldowns.set(enemy, enemy.def.boss.ranged?.cooldownMs ?? 0);
+        this.spellCooldowns.set(enemy, enemy.def.boss.skySpell?.minCooldownMs ?? 0);
         const minions = BOSS_MINIONS[id];
         if (minions) {
             this.minionTimers.set(enemy, minions.everyMs);
@@ -78,6 +83,7 @@ export class BossSystem {
             if (!boss.isAlive) {
                 this.bosses.splice(i, 1);
                 this.cooldowns.delete(boss);
+                this.spellCooldowns.delete(boss);
                 this.ids.delete(boss);
                 this.minionTimers.delete(boss);
                 this.minions.delete(boss);
@@ -87,6 +93,8 @@ export class BossSystem {
             if (boss.isFrozen) continue;
             const ranged = boss.def.boss?.ranged;
             if (ranged && canAttack) this.updateRanged(boss, ranged, deltaMs, playerX, playerBodyY);
+            const spell = boss.def.boss?.skySpell;
+            if (spell && canAttack) this.updateSpell(boss, spell, deltaMs, playerX, playerBodyY + PLAYER_BODY_OFFSET_Y);
             this.updateMinions(boss, deltaMs);
         }
     }
@@ -124,5 +132,22 @@ export class BossSystem {
         }
         this.projectiles.throwAt(ranged, boss.def.name, boss.x, boss.bodyY, targetX, targetY, 0, true);
         this.cooldowns.set(boss, ranged.cooldownMs);
+    }
+
+    /** Impact spell (Fase 30): its marks go down around the player's feet (x, y) and strike after their warning. */
+    private updateSpell(boss: Enemy, spell: EnemySkySpell, deltaMs: number, feetX: number, feetY: number): void {
+        const left = (this.spellCooldowns.get(boss) ?? 0) - deltaMs;
+        if (left > 0) {
+            this.spellCooldowns.set(boss, left);
+            return;
+        }
+        const dx = feetX - boss.x;
+        const dy = feetY - boss.y;
+        if (dx * dx + dy * dy > spell.rangePx * spell.rangePx) {
+            this.spellCooldowns.set(boss, 0);
+            return;
+        }
+        this.projectiles.strikeAt(spell, boss.def.name, feetX, feetY, spell.damage ?? 0, boss.x, boss.y, true);
+        this.spellCooldowns.set(boss, Phaser.Math.FloatBetween(spell.minCooldownMs, spell.maxCooldownMs));
     }
 }

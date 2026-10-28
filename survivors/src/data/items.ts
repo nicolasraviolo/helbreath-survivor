@@ -11,7 +11,7 @@
 //   solo ve y solo puede ponerse las suyas (classCanWear).
 // - Equipo de salida: el Guerrero, la daga; el Mago, Energy Bolt y Energy Strike, que no piden nada (propietario,
 //   19-oct-2026). Los huecos de hechizo y el del arma nunca se quedan vacíos.
-import type { GearLayer, GearSlot } from '../hb/playerAppearance';
+import type { AddedColor, GearLayer, GearSlot } from '../hb/playerAppearance';
 import { ACTIVE_SPELL_IDS, ACTIVE_SPELLS, activeSpellManaCost, isActiveSpellId, type ActiveSpellId } from './activeSpells';
 import type { Gender } from './appearance';
 import { ARMOR_PIECES, ARMOR_SLOT_NAMES, type ArmorPieceId, type ArmorSlotId } from './armor';
@@ -24,6 +24,7 @@ import { AUTO_SPELL_IDS, isAutoSpellId, SPELLS, type AutoSpellId } from './spell
 import type { Stats } from './stats';
 import { getWand, isWandId, WAND_IDS, type WandId } from './wands';
 import { upgradeDamageBonus, upgradeOf, upgradeSuffix } from './upgrades';
+import { isUniqueItem, UNIQUE_LOOK } from './uniques';
 import { getMeleeWeapon, MELEE_FAMILIES, MELEE_WEAPONS, type MeleeWeaponId } from './weapons';
 
 export type SpellSlotId = 'spell1' | 'spell2';
@@ -88,12 +89,16 @@ export const MANUAL_SPELL_IDS: ReadonlySet<SpellItemId> = new Set<SpellItemId>([
  */
 export function isFreeItem(classId: CharacterId, id: ItemId, learned: readonly ItemId[] = []): boolean {
     if (Object.values(START_EQUIPMENT[classId]).includes(id)) return true;
-    return isSpellItemId(id) && (!MANUAL_SPELL_IDS.has(id) || learned.includes(id));
+    // Fase 30B: a unique spell (Ice Storm) is an item like a weapon: only if it is owned.
+    return isSpellItemId(id) && !isUniqueItem(id) && (!MANUAL_SPELL_IDS.has(id) || learned.includes(id));
 }
 
-/** Whether the normal loot roll may give it: never the Zem (it has its own boss roll) nor spells (Manuals have theirs). */
+/**
+ * Whether the normal loot roll may give it: never the Zem (it has its own boss roll), spells (Manuals have theirs) nor
+ * the uniques (Fase 30B: only their map's final boss, data/uniques.ts).
+ */
 export function isLootDrop(id: ItemId): boolean {
-    return !isConsumableId(id) && !isSpellItemId(id);
+    return !isConsumableId(id) && !isSpellItemId(id) && !isUniqueItem(id);
 }
 
 export function isMeleeWeaponId(id: string): id is MeleeWeaponId {
@@ -117,7 +122,9 @@ export function itemInfo(id: ItemId): ItemInfo | undefined {
     if (isSpellItemId(id)) {
         const auto = isAutoSpellId(id);
         const spell = auto ? SPELLS[id] : ACTIVE_SPELLS[id];
-        return { name: spell.name, slot: auto ? 'spell1' : 'spell2', equip: FREE_SPELLS.has(id) ? {} : { int: spell.int } };
+        const level = auto ? undefined : ACTIVE_SPELLS[id].level;
+        const equip = FREE_SPELLS.has(id) ? {} : { int: spell.int, ...(level !== undefined ? { level } : {}) };
+        return { name: spell.name, slot: auto ? 'spell1' : 'spell2', equip };
     }
     if (isMeleeWeaponId(id)) {
         const weapon = getMeleeWeapon(id);
@@ -207,7 +214,8 @@ export function itemIcon(id: ItemId, gender: Gender): ItemIconFrame | undefined 
 
 /** Picture of any item, spells included (they use the original's "Manual" until they have their own; Fase 21A). */
 export function itemPicture(id: ItemId, gender: Gender): ItemIconFrame | undefined {
-    if (isSpellItemId(id)) return MANUAL_SPELL_IDS.has(id) ? MANUAL_BOOK_ICON : SPELL_ITEM_ICON;
+    // Fase 30B: the unique spells (Ice Storm) also use the blue book.
+    if (isSpellItemId(id)) return MANUAL_SPELL_IDS.has(id) || isUniqueItem(id) ? MANUAL_BOOK_ICON : SPELL_ITEM_ICON;
     return itemIcon(id, gender);
 }
 
@@ -224,8 +232,11 @@ export function equipmentLook(equipment: Readonly<SavedEquipment>, attributes: R
         if (isWandId(id)) {
             layers.push(['weapon', { sprite: getWand(id).sprite, ...colour }]);
         } else if (isMeleeWeaponId(id)) {
-            const sprite = getMeleeWeapon(id).sprite;
-            if (sprite) layers.push(['weapon', { sprite: sprite.key, startSheet: sprite.startSheet, ...colour }]);
+            const weapon = getMeleeWeapon(id);
+            const sprite = weapon.sprite;
+            // Fase 30B: a unique's own glow when it has no attribute colour.
+            const glow = !added && weapon.glow ? { added: weapon.glow } : colour;
+            if (sprite) layers.push(['weapon', { sprite: sprite.key, startSheet: sprite.startSheet, ...glow }]);
         } else {
             layers.push(...(Object.entries(ARMOR_PIECES[id].look) as Array<[GearSlot, GearLayer]>));
         }
@@ -252,14 +263,15 @@ export function readEquipment(value: unknown, classId: CharacterId): SavedEquipm
 export function describeItem(id: ItemId): string {
     if (isActiveSpellId(id)) {
         const def = ACTIVE_SPELLS[id];
-        return `Circle ${def.circle}, skill button, ${activeSpellManaCost(def)} mana`;
+        const slows = def.kind === 'storm' ? ', slows' : '';
+        return `Circle ${def.circle}, skill button, ${activeSpellManaCost(def)} mana${slows}`;
     }
     if (isSpellItemId(id)) {
         const spell = SPELLS[id];
         const shots = spell.shots > 1 ? ` ×${spell.shots}` : '';
         return `Circle ${spell.circle}, casts itself, damage ${spell.directDamage} + ${spell.areaDamage} area${shots}`;
     }
-    if (isMeleeWeaponId(id)) return `Damage ${getMeleeWeapon(id).damage}`;
+    if (isMeleeWeaponId(id)) return `Damage ${getMeleeWeapon(id).damage}${getMeleeWeapon(id).chills ? ', slows what it hits' : ''}`;
     if (isConsumableId(id)) return CONSUMABLES[id].description;
     if (isWandId(id)) {
         const bonus = getWand(id).magicDamageBonus;
@@ -333,6 +345,17 @@ export function ownedItemPower(item: Readonly<OwnedItem>): ItemPower {
     if (isMeleeWeaponId(item.id)) return { ...power, value: Math.round(power.value * (1 + bonus)) };
     if (isWandId(item.id)) return { ...power, value: Math.round(((1 + power.value / 100) * (1 + bonus) - 1) * 100) };
     return power;
+}
+
+/** Colour added to an item's picture: its attribute's, or a unique weapon's own glow (Fase 30B). */
+export function ownedItemColor(item: Readonly<OwnedItem>): AddedColor | undefined {
+    return attributeColor(item.attribute) ?? (isMeleeWeaponId(item.id) ? getMeleeWeapon(item.id).glow : undefined);
+}
+
+/** Colour of an item's name: its attribute's, or the uniques' (Fase 30B); undefined = the normal one. */
+export function ownedItemNameColor(item: Readonly<OwnedItem>): number | undefined {
+    if (item.attribute) return ATTRIBUTES[item.attribute].color;
+    return isUniqueItem(item.id) ? UNIQUE_LOOK.color : undefined;
 }
 
 /** A wand's Mana Save (Fase 21B), shown on its loot card; since Fase 26A it makes the Spell 2 cheaper. */

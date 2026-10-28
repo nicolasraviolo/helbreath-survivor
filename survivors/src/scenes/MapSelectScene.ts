@@ -1,5 +1,6 @@
 // Pantalla "Select Map" (Fase 22A): desde la Fase 23 se abre al pisar el teleport de la ciudad, por encima de ella
-// (la ciudad queda en pausa debajo; "Back" la reanuda sin recargarla). Cuatro tarjetas en fila, en el orden de data/maps.ts: el trozo del minimapa que se juega, el nombre, lo que
+// (la ciudad queda en pausa debajo; "Back" la reanuda sin recargarla). Tarjetas en fila (se ven 4; con más, la fila se
+// desplaza, Fase 30A), en el orden de data/maps.ts: el trozo del minimapa que se juega, el nombre, lo que
 // dura, el Level recomendado (en rojo si el personaje no lo tiene, pero se puede entrar) y si está ganado o cerrado.
 // Un mapa se abre al ganar el anterior o al llegar a su Level recomendado (systems/MapUnlockStore.ts).
 // Como en Select Character: un clic marca la tarjeta y otro clic en la misma juega (con el dedo, igual).
@@ -8,7 +9,7 @@ import Phaser from 'phaser';
 import { ASSET_BASE_PATH, MINIMAPS, type MinimapKey } from '../config/assetManifest';
 import { GAME_HEIGHT, GAME_WIDTH } from '../config/gameConfig';
 import { MAP_SELECT, MAP_SELECT_STYLES } from '../config/mapSelect';
-import { MENU_BACKGROUND, MENU_BACKGROUND_SCALE, MENU_INPUT_DELAY_MS } from '../config/menus';
+import { MAP_SELECT_BACKGROUND_ROWS, MENU_BACKGROUND, MENU_BACKGROUND_SCALE, MENU_INPUT_DELAY_MS } from '../config/menus';
 import { CHOSEN_MAP_KEY, isMapId, MAP_IDS, MAPS_DATA, type MapDef, type MapId } from '../data/maps';
 import { finalBossMinute } from '../data/waves';
 import { SpriteText } from '../hb/SpriteText';
@@ -26,6 +27,8 @@ export interface MapSelectSceneData {
 interface Card {
     id: MapId;
     frame: Phaser.GameObjects.Rectangle;
+    /** Everything the card draws, slid together with the row. */
+    container: Phaser.GameObjects.Container;
 }
 
 export class MapSelectScene extends Phaser.Scene {
@@ -36,6 +39,10 @@ export class MapSelectScene extends Phaser.Scene {
     private helpText!: Phaser.GameObjects.Text;
     private openedAt = 0;
     private fromTown = false;
+    /** First card in view (the row shows MAP_SELECT.card.visible of them). */
+    private firstShown = 0;
+    private arrowLeft!: Phaser.GameObjects.Text;
+    private arrowRight!: Phaser.GameObjects.Text;
 
     constructor() {
         super('MapSelect');
@@ -56,16 +63,20 @@ export class MapSelectScene extends Phaser.Scene {
 
     create(): void {
         this.cards = [];
+        this.firstShown = 0;
         this.openedAt = this.time.now;
         const uid: unknown = this.registry.get(ACTIVE_CHARACTER_KEY);
         this.characterLevel = characterStore.byUid(typeof uid === 'string' ? uid : undefined)?.level ?? 1;
 
-        this.add.image(0, 0, MENU_BACKGROUND.texture, MENU_BACKGROUND.frame).setOrigin(0).setScale(MENU_BACKGROUND_SCALE);
+        this.add.image(0, 0, MENU_BACKGROUND.texture, MENU_BACKGROUND.frame).setOrigin(0)
+            .setCrop(0, 0, MENU_BACKGROUND.width, MAP_SELECT_BACKGROUND_ROWS)
+            .setScale(MENU_BACKGROUND_SCALE, GAME_HEIGHT / MAP_SELECT_BACKGROUND_ROWS);
         this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, MAP_SELECT.veil.color, MAP_SELECT.veil.alpha).setOrigin(0);
         const { title } = MAP_SELECT;
         new SpriteText(this, GAME_WIDTH / 2, title.y, 'Select Map', title.color, 'center').container.setScale(title.scale);
 
         MAP_IDS.forEach((id, i) => this.cards.push(this.createCard(id, i)));
+        this.createArrows();
         this.createButtons();
         this.helpText = this.add.text(GAME_WIDTH / 2, MAP_SELECT.help.y, '', {
             ...MAP_SELECT_STYLES.help, wordWrap: { width: MAP_SELECT.help.width },
@@ -79,7 +90,7 @@ export class MapSelectScene extends Phaser.Scene {
         const last: unknown = this.registry.get(CHOSEN_MAP_KEY);
         const lastOpen = [...MAP_IDS].reverse().find((id) => this.lockOf(id) === undefined) ?? MAP_IDS[0];
         const start = isMapId(last) && this.lockOf(last) === undefined ? last : lastOpen;
-        this.focus(Math.max(0, MAP_IDS.indexOf(start ?? 'traveler')));
+        this.focus(Math.max(0, MAP_IDS.indexOf(start ?? 'traveler')), false);
     }
 
     override update(): void {
@@ -104,10 +115,11 @@ export class MapSelectScene extends Phaser.Scene {
     private createCard(id: MapId, index: number): Card {
         const def: MapDef = MAPS_DATA[id];
         const { card } = MAP_SELECT;
-        const left = (GAME_WIDTH - (card.width * MAP_IDS.length + card.gap * (MAP_IDS.length - 1))) / 2;
-        const x = left + index * (card.width + card.gap);
+        // Position in the row; the card's container slides the row into view (placeCards).
+        const x = index * (card.width + card.gap);
         const cx = x + card.width / 2;
         const frame = this.add.rectangle(x, card.top, card.width, card.height, card.color, card.alpha).setOrigin(0);
+        const container = this.add.container(0, 0, [frame]);
         frame.setInteractive({ useHandCursor: true }).on(Phaser.Input.Events.POINTER_UP, () => {
             if (!this.ready()) return;
             if (this.focused === index) this.play();
@@ -115,7 +127,7 @@ export class MapSelectScene extends Phaser.Scene {
         });
         const lock = this.lockOf(id);
         const dim = lock === undefined ? 1 : card.lockedAlpha;
-        this.addThumbnail(def, cx, card.top + card.thumbnail.top).setAlpha(dim);
+        container.add(this.addThumbnail(def, cx, card.top + card.thumbnail.top).setAlpha(dim));
 
         const lines: Array<[string, Phaser.Types.GameObjects.Text.TextStyle]> = [[def.name, MAP_SELECT_STYLES.name]];
         const minute = finalBossMinute(id);
@@ -129,9 +141,10 @@ export class MapSelectScene extends Phaser.Scene {
             if (text === '') continue;
             const label = this.add.text(cx, y, text, { ...style, wordWrap: { width: card.textWidth } }).setOrigin(0.5, 0);
             if (style === MAP_SELECT_STYLES.name) label.setAlpha(dim);
+            container.add(label);
             y += label.height + 4;
         }
-        return { id, frame };
+        return { id, frame, container };
     }
 
     /** The play area cut out of the map's minimap, as a square picture. */
@@ -148,6 +161,48 @@ export class MapSelectScene extends Phaser.Scene {
         }
         const size = MAP_SELECT.card.thumbnail.size;
         return this.add.image(cx, top, key, frameName).setOrigin(0.5, 0).setDisplaySize(size, size);
+    }
+
+    /** The ‹ and › beside the row: shown only when there are maps past that side; a click moves the focus one card. */
+    private createArrows(): void {
+        const { arrows } = MAP_SELECT;
+        const [left, right] = this.rowEdges();
+        const make = (x: number, text: string, originX: number, step: number) => this.add.text(x, arrows.y, text, MAP_SELECT_STYLES.arrow)
+            .setOrigin(originX, 0.5).setInteractive({ useHandCursor: true })
+            .on(Phaser.Input.Events.POINTER_UP, () => {
+                if (this.ready()) this.focus(Phaser.Math.Clamp(this.focused + step, 0, MAP_IDS.length - 1));
+            });
+        this.arrowLeft = make(left - arrows.gapX, '‹', 1, -1);
+        this.arrowRight = make(right + arrows.gapX, '›', 0, 1);
+    }
+
+    /** Left and right edges of the cards in view, centred on the screen. */
+    private rowEdges(): [number, number] {
+        const { card } = MAP_SELECT;
+        const shown = Math.min(card.visible, MAP_IDS.length);
+        const width = card.width * shown + card.gap * (shown - 1);
+        const left = (GAME_WIDTH - width) / 2;
+        return [left, left + width];
+    }
+
+    /** Slides the row so the focused card is in view; cards out of view are hidden. */
+    private placeCards(animate: boolean): void {
+        const { card } = MAP_SELECT;
+        const shown = Math.min(card.visible, MAP_IDS.length);
+        if (this.focused < this.firstShown) this.firstShown = this.focused;
+        if (this.focused >= this.firstShown + shown) this.firstShown = this.focused - shown + 1;
+        const x = this.rowEdges()[0] - this.firstShown * (card.width + card.gap);
+        this.cards.forEach((c, i) => {
+            const inView = i >= this.firstShown && i < this.firstShown + shown;
+            this.tweens.killTweensOf(c.container);
+            // Every card shares the row's x, so they all slide together (the one coming into view too).
+            if (animate) this.tweens.add({ targets: c.container, x, duration: card.slideMs, ease: 'Sine.easeOut' });
+            else c.container.setX(x);
+            c.container.setVisible(inView);
+            if (c.frame.input) c.frame.input.enabled = inView;
+        });
+        this.arrowLeft.setVisible(this.firstShown > 0);
+        this.arrowRight.setVisible(this.firstShown + shown < MAP_IDS.length);
     }
 
     private createButtons(): void {
@@ -171,8 +226,9 @@ export class MapSelectScene extends Phaser.Scene {
         });
     }
 
-    private focus(index: number): void {
+    private focus(index: number, animate = true): void {
         this.focused = index;
+        this.placeCards(animate);
         const { card } = MAP_SELECT;
         this.cards.forEach((c, i) => c.frame.setStrokeStyle(
             i === index ? card.focusedBorderWidth : card.borderWidth,

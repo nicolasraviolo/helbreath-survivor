@@ -15,9 +15,8 @@ import type { ExpResult } from '../systems/CharacterStore';
 import { STAT_POINTS_PER_LEVEL } from '../data/characterLevel';
 import { itemPackTexture } from '../config/equipment';
 import type { Gender } from '../data/appearance';
-import { itemInfo, itemPicture } from '../data/items';
+import { itemInfo, itemPicture, ownedItemColor, ownedItemNameColor } from '../data/items';
 import { sameOwnedItem, type OwnedItem } from '../data/loot';
-import { attributeColor, ATTRIBUTES } from '../data/attributes';
 import { formatGold } from '../data/gold';
 import { setColouredTexture } from '../hb/additiveTint';
 import type { RunLootResult } from '../systems/CharacterStore';
@@ -190,11 +189,11 @@ export class GameOverScene extends Phaser.Scene {
             const first = this.children.length;
             const centre = x + g.lootIconSize / 2;
             // Fase 21B: an item with an attribute gets a frame of its colour.
-            const border = item.attribute ? ATTRIBUTES[item.attribute].color : g.lootSlotBorder;
+            const border = ownedItemNameColor(item) ?? g.lootSlotBorder;
             this.add.rectangle(centre, g.lootY, g.lootIconSize, g.lootIconSize, g.lootSlotFill).setStrokeStyle(item.attribute ? 2 : 1, border);
             const frame = itemPicture(item.id, this.params.gender);
             const image = this.add.image(centre, g.lootY, '__DEFAULT');
-            if (frame && setColouredTexture(image, itemPackTexture(frame.sheet), frame.frame, attributeColor(item.attribute))) {
+            if (frame && setColouredTexture(image, itemPackTexture(frame.sheet), frame.frame, ownedItemColor(item))) {
                 image.setScale(Math.min(1, (g.lootIconSize - 4) / Math.max(image.width, image.height)));
             } else {
                 image.destroy();

@@ -40,6 +40,14 @@ class WarehouseStoreImpl {
         return true;
     }
 
+    /** Straight into the warehouse (Fase 30B: another class's unique, picked up in a run). False if full. */
+    public add(item: Readonly<OwnedItem>): boolean {
+        if (this.isFull) return false;
+        this.items.push({ ...item });
+        this.write();
+        return true;
+    }
+
     /** From the warehouse (the item at that place) into the character's inventory. False without that character. */
     public withdraw(uid: string | undefined, index: number): boolean {
         const item = this.items[index];

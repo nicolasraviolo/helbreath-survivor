@@ -122,6 +122,7 @@ export class MapView {
             ctx.drawImage(frame.source.image as CanvasImageSource, frame.cutX, frame.cutY, frame.cutWidth, frame.cutHeight,
                 dx, dy, frame.cutWidth, frame.cutHeight);
         });
+        fillGroundHoles(ctx, frames.length);
 
         const tilesetKey = 'map-ground-tileset';
         if (scene.textures.exists(tilesetKey)) {
@@ -186,4 +187,84 @@ function clampToMap(area: TileRect, map: HBMap): TileRect {
         width: Math.min(map.width, area.x + area.width) - x,
         height: Math.min(map.height, area.y + area.height) - y,
     };
+}
+
+/**
+ * Fills the see-through pixels of the ground tiles with the colour of a solid neighbour (Fase 30A). The .spr were made
+ * by turning every pixel of the sheet's top-left colour transparent (tools/PakToSprConverter), so some snow tiles came
+ * out full of holes and the dark background showed through as black specks (Icebound, sheets 445–461). Nothing is
+ * drawn under the ground, so the tiles can be solid. Each 32×32 cell is filled on its own, a few passes of spreading
+ * from the sides, and whatever is left takes the cell's average colour.
+ */
+function fillGroundHoles(ctx: CanvasRenderingContext2D, cells: number): void {
+    if (cells === 0) return;
+    const { width, height } = ctx.canvas;
+    const image = ctx.getImageData(0, 0, width, height);
+    const px = image.data;
+    const neighbours: ReadonlyArray<readonly [number, number]> = [[-1, 0], [0, -1], [1, 0], [0, 1]];
+    for (let cell = 0; cell < cells; cell++) {
+        const x0 = (cell % TILESET_COLUMNS) * TILE_SIZE;
+        const y0 = Math.floor(cell / TILESET_COLUMNS) * TILE_SIZE;
+        let holes = 0;
+        let r = 0;
+        let g = 0;
+        let b = 0;
+        let solid = 0;
+        for (let y = y0; y < y0 + TILE_SIZE; y++) {
+            for (let x = x0; x < x0 + TILE_SIZE; x++) {
+                const i = (y * width + x) * 4;
+                if (px[i + 3] === 0) holes++;
+                else {
+                    r += px[i];
+                    g += px[i + 1];
+                    b += px[i + 2];
+                    solid++;
+                }
+            }
+        }
+        // Tiles without holes (most) are untouched; an empty cell (no solid pixel at all) too.
+        if (holes === 0 || solid === 0) continue;
+        for (let pass = 0; pass < TILE_SIZE && holes > 0; pass++) {
+            const filled: number[] = [];
+            for (let y = y0; y < y0 + TILE_SIZE; y++) {
+                for (let x = x0; x < x0 + TILE_SIZE; x++) {
+                    const i = (y * width + x) * 4;
+                    if (px[i + 3] !== 0) continue;
+                    for (const [dx, dy] of neighbours) {
+                        const nx = x + dx;
+                        const ny = y + dy;
+                        if (nx < x0 || ny < y0 || nx >= x0 + TILE_SIZE || ny >= y0 + TILE_SIZE) continue;
+                        const j = (ny * width + nx) * 4;
+                        if (px[j + 3] === 0) continue;
+                        filled.push(i, j);
+                        break;
+                    }
+                }
+            }
+            if (filled.length === 0) break;
+            // Copied after the scan, so a pass only spreads one pixel (no streaks in the scan direction).
+            for (let k = 0; k < filled.length; k += 2) {
+                const i = filled[k];
+                const j = filled[k + 1];
+                px[i] = px[j];
+                px[i + 1] = px[j + 1];
+                px[i + 2] = px[j + 2];
+                px[i + 3] = 255;
+                holes--;
+            }
+        }
+        if (holes > 0) {
+            for (let y = y0; y < y0 + TILE_SIZE; y++) {
+                for (let x = x0; x < x0 + TILE_SIZE; x++) {
+                    const i = (y * width + x) * 4;
+                    if (px[i + 3] !== 0) continue;
+                    px[i] = r / solid;
+                    px[i + 1] = g / solid;
+                    px[i + 2] = b / solid;
+                    px[i + 3] = 255;
+                }
+            }
+        }
+    }
+    ctx.putImageData(image, 0, 0);
 }

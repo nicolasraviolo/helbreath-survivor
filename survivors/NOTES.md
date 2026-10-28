@@ -108,6 +108,10 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Martillos: golpe al suelo y grieta (bloque C, 26-oct-2026)
 - Equilibrio de los martillos (26-oct-2026)
 - Rescates y Guards (Fase 29A, 27-oct-2026; logros y Missions, 29B)
+- Hechizos de impacto con marca en el suelo (27-oct-2026)
+- Icebound (Fase 30A)
+- Arreglos del 27-oct-2026 (sonidos, "!" y Select Map)
+- Objetos únicos (Fase 30B)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -1240,3 +1244,42 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - **Logros y Missions (29B):** meta `{ kind: 'rescue', npc? }` en `data/achievements.ts` (sin `npc` = todos). Se desbloquean en `AchievementTracker.onRescue` (GameScene, cuando `RescueSystem.onEnemyKilled` devuelve true) y además, en silencio, al abrir el juego (`AchievementStore`, `rescueGoalMet`): así cuentan los rescates guardados antes de existir el logro. Ojo: `?achievements=reset` los vuelve a dar si hay rescates guardados; usar también `?rescued=reset`.
 - Missions de William: `scenes/MissionsScene.ts` (lee `RESCUES`, estado con `rescueStore` y `mapUnlockStore.isOpen` con el Level del personaje), textos y colores en `MISSIONS_SCREEN` (`config/menus.ts`). Atajos `?open=missions`, `?open=town&town=william&missions`; `check missions` / `missionsone` / `missionsall`.
 - Para matar al Guard desde `--eval` (killAll no sirve): `g.enemies.forEachAlive(e => { if (e.isGuard) g.combat.hitEnemy(e, 'physical', 1e9, e.x, e.y, 0); })`.
+
+## Hechizos de impacto con marca en el suelo (27-oct-2026)
+- **Regla (propietario):** todo hechizo de jefe o minijefe que cae en un sitio **marca la zona antes** y deja escapar. Solo los proyectiles que se ven volar (flechas, bolas del Orc Mage) van sin marca.
+- Datos: `EnemySkySpell` en `data/enemies.ts`: `pattern` (`single` = bajo los pies; `scatter` = uno bajo los pies y el resto repartido alrededor, con huecos; `line` = fila desde el que lanza, pasando por el jugador, que se enciende marca a marca cada `stepMs`), `impact` (`'lightning'` o un efecto de `config/effects.ts`), `markColor`, y `damage` fijo (jefes) o `damageShare` (golpe × parte, Guards).
+- Monstruos normales: `EnemyDef.skySpell` (lo lanza `Enemy` como un ataque). Jefes: `BossInfo.skySpell` (lo lanza `BossSystem.updateSpell` con su recarga). `BossInfo.ranged` (proyectiles en abanico) sigue existiendo, pero ya ningún jefe lo usa.
+- `EnemyProjectileSystem.strikeAt` coloca las marcas; **cada lanzamiento hace daño una sola vez**, aunque toquen varias marcas (`castsThatHit`). La resistencia mágica puede pararlo ("Resist").
+- Ahora: Guard = Lightning Bolt `single` (azul); Fire Wyvern = 5 bolas de fuego `scatter` (naranja); Unicorn = Energy Strike `line` de 9 marcas (violeta).
+- Probar: `check finalboss` (Wyvern) / `middlelandboss` (Unicorn) / `rescue` (Guard). Para contar marcas: `--eval="g.enemyShots.strikes.active.length"`.
+
+## Icebound (Fase 30A)
+- **Mapa:** `icebound.amd` (300×300, 0,9 MB; minimapa 241 KB). Zona de juego 150×150 en (126,126): 79% libre y 78% en una sola pieza (la mejor conectada; a 200×200 bajaba al 75%). Elegido por el propietario: 150. Después de Middleland, Level 55, ×1,9, 15 minutos, oro ×2,2.
+- **Música:** `music.default` (`default.mp3`, el tema general del original). Va en `LATER_SOUNDS`: no se baja antes del menú, la baja `MapLoadScene.sounds()` si es la música del mapa elegido.
+- **Monstruos** (NPC.cfg de centuu/HelbreathServer; sp-client `Monsters.ts` no trae animaciones especiales salvo el Beholder, ataque de 12 frames, que es su hoja entera):
+  - Rudolph `rudolph` (7d5, ATime 1000, MinBrvy 10, embiste), Ice Golem `icegolem` (8d6, ATime 1200; sonidos del Stone Golem), Beholder `beholder` (8d8, alcance 4, guarda distancia), Claw Turtle `clawturtle` (8d9, ATime 500, alcance 2, flanquea).
+  - Minijefes `frostBoss` (min 5) y `nizieBoss` (min 10); jefe final `tigerwormBoss` (min 15), copia del `tigerworm` (que no sale en ningún mapa), con Ice Golems y Claw Turtles de esbirros.
+  - El Wyvern de hielo (`wyvern.spr`, 3,6 MB) se quedó fuera (propietario).
+- **Hechizos con marca** (`data/enemies.ts`): Frost = Ice Strike en 6 marcas juntas (`fx.iceStrike.impact`, sonido `sfx.freeze`); Nizie = Chill Wind en fila de 9 (`fx.chillWind.drop`); Tigerworm = cadena de 8 Lightning Bolts: `scatter` con `stepMs` (nuevo en el 30A), caen uno tras otro. Ninguno ralentiza.
+- **Efectos del Guerrero:** el hielo está en `fx.effect4`, que antes solo bajaba la Maga. `MapDef.runSprites` añade sprites de efectos por mapa (`MapLoadScene.runSprites`).
+- **Medido (27-oct-2026):** `levelpaceicebound`: Power 34 al final (Middleland 32); Frost 83 s, Nizie 124 s, Tigerworm 251 s con 26.000 de vida → bajado a 22.000 (Unicorn: 197 s). Golpe más fuerte de jefe: 12–17% de la vida. `loadtimeicebound --mobile`: 18,3 MB / 17,8 s (Middleland 17,0 MB / 16,6 s); la carga inicial no cambia (11,4 MB).
+- **Puntitos negros en la nieve (arreglado):** el conversor de `.spr` (`tools/PakToSprConverter/Program.cs:356`) volvió transparente todo píxel del color de la esquina de cada hoja, también en las casillas; en las de nieve (`tile445-461.spr`, solo las usa Icebound) son ~22 agujeros por casilla (445) y 125–160 en 456/460, y se veía el fondo oscuro. `fillGroundHoles` en `hb/mapRenderer.ts` rellena esos píxeles con el vecino sólido al montar el tileset del suelo (los objetos no se tocan: necesitan su transparencia). Arregla de paso los pocos agujeros de los otros mapas.
+- **Select Map con más de 4 mapas:** carrusel (`MAP_SELECT.card.visible` = 4); la fila se desliza para que la tarjeta marcada se vea, y `‹ ›` (clicables) avisan de que hay más.
+- **Probar:** `check icebound`, `iceboundfrost`, `iceboundnizie`, `iceboundboss`, `levelpaceicebound`, `loadtimeicebound`; `iceboundnosmooth` (sin filtro xBR).
+
+
+## Arreglos del 27-oct-2026 (sonidos, "!" y Select Map)
+- **Sonidos de ataque de los monstruos:** antes se ajustaban a la animación de golpe (8 frames a 17,5 fps ≈ 0,46 s), y como casi todos duran 0,7–1,4 s sonaban a 1,5–2× (el límite `AUDIO.maxRate`); Skeleton y Frost, más lentos y graves. Ahora `Enemy.startAttack` los toca a velocidad normal. El ajuste a la animación sigue para el jugador (golpe, hechizos).
+- **"!" de embestida:** apagado con `CHARGE_WARNING.shown` (`data/movement.ts`); el monstruo sigue parándose antes de embestir.
+- **Fondo de Select Map:** solo se pintan las primeras `MAP_SELECT_BACKGROUND_ROWS` (452) filas del fondo del título, estiradas a lo alto, para quitar la línea "... PlayHelbreath.com". El menú principal no cambia.
+
+## Objetos únicos (Fase 30B)
+- **Dónde:** `data/uniques.ts` (`MAP_UNIQUES`, `UNIQUE_DROP`, `UNIQUE_LEVEL`, `UNIQUE_LOOK`) y `systems/UniqueStore.ts` (fallos por mapa del dispositivo, clave `hb-survivors.uniques`, en `TRANSFER_KEYS`).
+- **Tirada:** `GameScene.rollUnique`, al morir el jefe final de un mapa con únicos (antes del portal: la victoria llega al cruzarlo). 2 % + 1 % por fallo; al salir, uno de los del mapa al azar y el contador vuelve a 0. Cae a `LOOT_BOSS_SPREAD` bajo el jefe, con brillo morado (`LootDrop`), el cartel "Unique item!" y el sonido de las cartas Epic.
+- **Otra clase:** `onLootPickup` lo mete directo en el baúl (`warehouseStore.add`) con el aviso "X sent to the Warehouse"; si el baúl está lleno, va a la bolsa como cualquier botín.
+- **Fuera de todo lo demás:** `isLootDrop` (botín normal), `smithStock` (`isRareItem`), `simBestEquipment`. `isFreeItem`: un hechizo único **no** se sabe con la Int: hay que tenerlo en el inventario, como un arma. Tom los compra al precio tope (1.500).
+- **Color:** `ownedItemColor` (dibujo: atributo o `glow` del arma) y `ownedItemNameColor` (nombre: atributo o `UNIQUE_LOOK.color`) en `data/items.ts`; usados en botín, carta, Equipment, baúl y fin de partida. El arma en la mano, con `MeleeWeaponDef.glow` (`equipmentLook`, `Equipment.weaponLayer`).
+- **Sword of Ice Elemental** (`data/weapons.ts`): espada larga (eslabón tras la Flamberge en `MELEE_FAMILIES`), daño 68, Str 100 + Level 100; `chills` → `Equipment.chills` → `CombatSystem.chillOnHit` (todo golpe físico que no mata ralentiza con `chillEnemy`, crits incluidos). Dibujo: msw bloque 560 (como la Great Sword) teñido de azul; icono item-pack 0/15.
+- **Ice Storm** (`data/activeSpells.ts`, kind `'storm'`; `systems/IceStormField.ts`): 5 s en el punto, cada 0,4 s 7 de daño ×Power y ralentiza; remolinos `fx.iceStorm.whirlwind` (effect3 hoja 0, que ya carga la Maga) y trozos pequeños de Ice Strike. Int 60 + Level 100, 55 de maná. Icono: el libro azul.
+- **Probar:** `?unique=iceElementalSword|iceStorm` (el jefe final lo suelta siempre), `?debug=unique` (uno al azar), `?unique=reset`; `check unique` / `uniquewarehouse` / `uniquesword` / `icestorm`. `?weapon=iceElementalSword` y `?spells=iceStorm` saltan los requisitos.
+- **Añadir únicos de otro mapa:** el objeto en su archivo (con `equip.level: UNIQUE_LEVEL` o `level` en el hechizo) y su id en `MAP_UNIQUES`.

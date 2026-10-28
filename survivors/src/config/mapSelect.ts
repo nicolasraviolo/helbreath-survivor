@@ -1,4 +1,5 @@
-// Medidas de la pantalla Select Map (Fase 22A): cuatro tarjetas en fila, una por mapa, sobre el fondo del menú.
+// Medidas de la pantalla Select Map (Fase 22A): tarjetas en fila, una por mapa, sobre el fondo del menú. Desde la Fase
+// 30A caben 4 a la vez: con más mapas la fila se desplaza (carrusel) y unas flechas avisan de que hay más.
 import { byDevice } from './device';
 import { px, UI_FONT_SIZE, UI_TEXT } from './ui';
 
@@ -18,7 +19,13 @@ export const MAP_SELECT = {
         showDescription: byDevice(true, false),
         /** Locked or "Coming soon": picture and name dimmed. */
         lockedAlpha: 0.4,
+        /** Cards shown at once; the row slides to keep the focused one in view (Fase 30A). */
+        visible: 4,
+        /** Time the row takes to slide (ms). */
+        slideMs: 180,
     },
+    /** "More maps this way": arrows beside the row, clickable; hidden when nothing is past that side. */
+    arrows: { gapX: 6, y: 96 + 345 / 2, color: '#ffd860' },
     /** Play and Back, centred under the cards. */
     buttons: { y: 476, width: 150, height: 34, gap: 24, color: 0x1a140c, border: 0x6a5a3a, litBorder: 0xffd860 },
     help: { y: 528, width: 720 },
@@ -36,4 +43,5 @@ export const MAP_SELECT_STYLES = {
     won: { ...BASE, fontSize: px(UI_FONT_SIZE.small), color: '#9fdf7a' },
     button: { ...BASE, fontSize: px(UI_FONT_SIZE.normal), color: '#e9e1cf' },
     help: { ...BASE, fontSize: px(UI_FONT_SIZE.normal), color: '#c8b88a' },
+    arrow: { ...BASE, fontSize: px(UI_FONT_SIZE.normal + 14), fontStyle: 'bold', color: '#ffd860' },
 } as const;

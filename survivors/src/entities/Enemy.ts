@@ -792,7 +792,8 @@ export class Enemy implements Poolable {
         this.hitInMs = durationMs * (MONSTER_ATTACK.hitFrame / this.attackFrameCount());
         const cut = Phaser.Utils.Array.GetRandom([...MONSTER_AI.attackTimeCuts]) ?? 0;
         this.cooldownMs = Math.max(MONSTER_AI.minAttackIntervalMs, this.def.actionTimeMs - cut, durationMs);
-        this.audio.play(this.def.attackSound, durationMs);
+        // At its own speed: squeezed into the ~0.46 s swing, most attack sounds played up to twice as fast (27-oct-2026).
+        this.audio.play(this.def.attackSound);
     }
 
     /** The blow lands on frame 2, if the player is still within reach and does not dodge it (archers shoot instead). */
@@ -803,7 +804,7 @@ export class Enemy implements Poolable {
             if (this.hitInMs < 0) {
                 const spell = this.def.skySpell;
                 if (this.casting && spell) {
-                    this.spellDamage = Math.max(1, Math.round(this.rollDamage() * spell.damageShare));
+                    this.spellDamage = spell.damage ?? Math.max(1, Math.round(this.rollDamage() * spell.damageShare));
                     this.spellX = world.targetX;
                     this.spellY = world.targetY;
                 } else if (this.def.attackProjectile) this.shotDamage = this.rollDamage();

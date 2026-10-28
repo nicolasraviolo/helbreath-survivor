@@ -44,8 +44,11 @@ export const CHARGE = {
     maxCooldownMs: 4500,
 } as const;
 
-/** The "!" over a charging monster: colour, size and gap above its head (px). */
-export const CHARGE_WARNING = { text: '!', color: '#ffd020', fontSizePx: 26, gapAboveHeadPx: 4, maxShown: 40 } as const;
+/**
+ * The "!" over a charging monster: colour, size and gap above its head (px). `shown: false` hides it (the owner
+ * asked to remove it on 27-oct-2026); the monster still stops for a moment before it charges.
+ */
+export const CHARGE_WARNING = { shown: false, text: '!', color: '#ffd020', fontSizePx: 26, gapAboveHeadPx: 4, maxShown: 40 } as const;
 
 /**
  * Keep away (Fase 27C), for monsters that hit from afar (Mage-Orc, Lich, Dark Elf). While waiting for its next attack:

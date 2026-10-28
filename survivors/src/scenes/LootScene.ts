@@ -11,9 +11,10 @@ import { byDevice } from '../config/device';
 import { GAME_WIDTH, LEVEL_UP_INPUT_DELAY_MS } from '../config/gameConfig';
 import { px, UI_FONT_SIZE, UI_TEXT } from '../config/ui';
 import type { Gender } from '../data/appearance';
-import { attributeColor, ATTRIBUTES } from '../data/attributes';
+import { ATTRIBUTES } from '../data/attributes';
+import { isUniqueItem, UNIQUE_LOOK } from '../data/uniques';
 import { setColouredTexture } from '../hb/additiveTint';
-import { describeItem, EQUIP_SLOT_NAMES, itemInfo, itemPicture, ownedItemName, ownedItemPower, requirementChecks, wandManaSave } from '../data/items';
+import { describeItem, EQUIP_SLOT_NAMES, itemInfo, itemPicture, ownedItemColor, ownedItemName, ownedItemNameColor, ownedItemPower, requirementChecks, wandManaSave } from '../data/items';
 import type { OwnedItem } from '../data/loot';
 import type { Stats } from '../data/stats';
 import { SpriteText } from '../hb/SpriteText';
@@ -153,7 +154,7 @@ export class LootScene extends Phaser.Scene {
             const picture = this.picture(item, top + L.pictureY);
             if (picture) objects.push(picture);
         }
-        const name = new SpriteText(this, 0, 0, item ? ownedItemName(item) : 'Nothing', attribute?.color ?? L.nameColor, 'center', 'title');
+        const name = new SpriteText(this, 0, 0, item ? ownedItemName(item) : 'Nothing', (item ? ownedItemNameColor(item) : undefined) ?? L.nameColor, 'center', 'title');
         const nameScale = Math.min(L.nameScale, textWidth / Math.max(1, name.width));
         name.container.setScale(nameScale).setY(top + L.nameY - (L.nameLetterHeight * nameScale) / 2);
         objects.push(name.container);
@@ -167,6 +168,7 @@ export class LootScene extends Phaser.Scene {
             if (slot) lines.push({ text: `${EQUIP_SLOT_NAMES[slot]}${mana}`, color: L.dimColor });
             lines.push({ text: describeItem(id), color: L.textColor });
             if (attribute) lines.push({ text: attribute.description, color: colorString(attribute.color) });
+            if (isUniqueItem(id)) lines.push({ text: 'Unique', color: colorString(UNIQUE_LOOK.color) });
             const checks = requirementChecks(id, p.stats, p.level);
             if (checks.length > 0) {
                 const unmet = checks.some((check) => !check.met);
@@ -205,7 +207,7 @@ export class LootScene extends Phaser.Scene {
         const frame = itemPicture(item.id, this.params.gender);
         if (!frame) return undefined;
         const image = this.add.image(0, y, '__DEFAULT');
-        if (!setColouredTexture(image, itemPackTexture(frame.sheet), frame.frame, attributeColor(item.attribute))) {
+        if (!setColouredTexture(image, itemPackTexture(frame.sheet), frame.frame, ownedItemColor(item))) {
             image.destroy();
             return undefined;
         }

@@ -2,6 +2,7 @@
 // ?level=25 juega como un personaje de ese Level: sus puntos repartidos según un reparto típico de la clase (o el de
 // ?build=str:2,vit:1,dex:1, en partes) y, con ?kit=best (por defecto), lo mejor que Tom le vende y que ya puede ponerse
 // en cada hueco; con ?kit=start, el equipo de salida. El "+" del arma sigue siendo ?upgrade=N.
+import { isUniqueItem } from '../data/uniques';
 import type { CharacterId } from '../data/characters';
 import { CHARACTERS } from '../data/characters';
 import { STAT_POINT_CAP, STAT_POINTS_PER_LEVEL } from '../data/characterLevel';
@@ -66,7 +67,7 @@ export function simBestEquipment(classId: CharacterId, stats: Readonly<Stats>, l
     for (const slot of EQUIP_SLOT_IDS) {
         if (slot === 'zem') continue;
         const wearable = catalog(classId, slot).filter((id) => canEquip(id, stats, level) && !(isWandId(id) && getWand(id).rare === true)
-            && !(isSpellItemId(id) && MANUAL_SPELL_IDS.has(id)) && simWeaponAllowed(id));
+            && !(isSpellItemId(id) && MANUAL_SPELL_IDS.has(id)) && !isUniqueItem(id) && simWeaponAllowed(id));
         const best = wearable.at(-1);
         if (best !== undefined) equipment[slot] = best;
     }

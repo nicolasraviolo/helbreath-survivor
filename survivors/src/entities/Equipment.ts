@@ -148,6 +148,11 @@ export class Equipment {
         return this.weaponAttribute === 'poison';
     }
 
+    /** Hits slow the monsters like the ice spells (a unique: Sword of Ice Elemental, Fase 30B). */
+    public get chills(): boolean {
+        return this.weapon !== undefined && getMeleeWeapon(this.weapon).chills === true;
+    }
+
     /**
      * What a total would be if `piece` replaced what is worn in its slot (for the card preview). Defense is not
      * capped here: use defenseWith.
@@ -165,7 +170,8 @@ export class Equipment {
     /** Layer drawn for the weapon in hand (undefined if the weapon has no sprite). */
     public weaponLayer(): GearLayer | undefined {
         // Fase 21B: in its attribute's colour (set weaponAttribute before asking for the layer).
-        const added = attributeColor(this.weaponAttribute);
+        // Fase 30B: a unique without attribute in its own glow.
+        const added = attributeColor(this.weaponAttribute) ?? (this.weapon ? getMeleeWeapon(this.weapon).glow : undefined);
         const colour = added ? { added } : {};
         if (this.wand) return { sprite: getWand(this.wand).sprite, ...colour };
         const sprite = this.weapon ? getMeleeWeapon(this.weapon).sprite : undefined;

@@ -6,6 +6,7 @@
 // solo cada segundo (CharacterStats.manaRegenPerSecond, más con la ropa de MP Recovery) y con la Blue Potion.
 // Desde el 20D es el que lleve en el hueco Spell 2: Meteor Strike (meteorito), una ráfaga (Energy / Mass Fire Strike)
 // una lluvia de hielo (Ice / Mass Ice Strike, Fase 26D) o un hechizo en línea (Blizzard, Earth / Bloody Shock Wave, 26E).
+// Fase 30B: Ice Storm, una tormenta de hielo que se queda unos segundos (systems/IceStormField.ts).
 // El meteorito y el Blizzard se descargan al empezar la partida (ON_DEMAND_SPRITES): hasta que llegan no se lanzan.
 // Fase 26B: en el móvil, arrastrar el botón le da una dirección (`cast(level, direction)`): cae a `stickShare` de su
 // alcance hacia allí, haya o no monstruos, por encima del stick de apuntar y del apuntado automático.
@@ -105,6 +106,7 @@ export class ActiveSpellSystem {
         if (this.def.kind === 'meteor') this.weapons.castMeteor(this.def, power, target.x, target.y);
         else if (this.def.kind === 'iceShards') this.weapons.castIceShards(this.def, power, target.x, target.y);
         else if (this.def.kind === 'line') this.weapons.castLine(this.def, power, target.x, target.y);
+        else if (this.def.kind === 'storm') this.weapons.castStorm(this.def, power, target.x, target.y);
         else this.weapons.castBarrage(this.def, power, target.x, target.y);
         if (!this.infinite) this.manaNow = this.mana - this.cost;
         this.castCount++;

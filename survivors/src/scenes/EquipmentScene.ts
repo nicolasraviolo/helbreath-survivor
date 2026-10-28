@@ -48,7 +48,7 @@ import {
 import { GAME_HEIGHT, GAME_WIDTH } from '../config/gameConfig';
 import { totalExpForLevel, CHARACTER_LEVEL_MAX } from '../data/characterLevel';
 import { CHARACTERS } from '../data/characters';
-import { attributeColor, ATTRIBUTES, ITEM_ATTRIBUTES, type ItemAttribute } from '../data/attributes';
+import { ATTRIBUTES, ITEM_ATTRIBUTES, type ItemAttribute } from '../data/attributes';
 import { setColouredTexture } from '../hb/additiveTint';
 import { sameOwnedItem, type OwnedItem } from '../data/loot';
 import { upgradeDescription, upgradeOf } from '../data/upgrades';
@@ -65,7 +65,9 @@ import {
     SECOND_ROW_SLOTS,
     itemIcon,
     itemInfo,
+    ownedItemColor,
     ownedItemName,
+    ownedItemNameColor,
     requirementChecks,
     type EquipSlotId,
     type ItemId,
@@ -313,7 +315,7 @@ export class EquipmentScene extends Phaser.Scene {
         const character = this.character;
         const frame = id && character ? itemIcon(id, character.look.gender) : undefined;
         // Fase 21B: a weapon with an attribute in its colour.
-        if (!frame || !this.iconsReady || !setColouredTexture(image, itemPackTexture(frame.sheet), frame.frame, attributeColor(attribute))) {
+        if (!frame || !this.iconsReady || !setColouredTexture(image, itemPackTexture(frame.sheet), frame.frame, id ? ownedItemColor({ id, ...(attribute ? { attribute } : {}) }) : undefined)) {
             image.setVisible(false);
             return;
         }
@@ -417,7 +419,8 @@ export class EquipmentScene extends Phaser.Scene {
         this.setIcon(icon, id, iconSize, attribute);
         objects.push(icon);
         const name = item ? ownedItemName(item) : 'Nothing';
-        const color = attribute ? `#${ATTRIBUTES[attribute].color.toString(16).padStart(6, '0')}` : EQUIPMENT_ROW_STYLE.color;
+        const nameColor = item ? ownedItemNameColor(item) : undefined;
+        const color = nameColor !== undefined ? `#${nameColor.toString(16).padStart(6, '0')}` : EQUIPMENT_ROW_STYLE.color;
         const nameText = this.add.text(x + l.iconSize + 12, middle, name, { ...EQUIPMENT_ROW_STYLE, color }).setOrigin(0, 0.5);
         objects.push(nameText);
         // Fase 21A: how many the character keeps in its inventory.

@@ -19,16 +19,20 @@
 //   elegido (sp-client BloodyShockWave.ts, EarthShockWave.ts, Blizzard.ts), dañando lo que pillan por el camino (cada
 //   monstruo, `pathHits` veces como mucho por lanzamiento) y, al llegar, un golpe de área en el punto. Blizzard
 //   ralentiza como el hielo (ICE_SLOW). Daños de la wiki (path / target) adaptados: BSW 27/52, ESW 33+33, Blizzard 46/46.
+// - 'storm' (Fase 30B): Ice Storm, el único de Icebound (data/uniques.ts). Una tormenta de hielo que se queda unos
+//   segundos en el punto (sp-client IceStorm.ts: el remolino de effect3 hoja 0 en bucle): cada `tickMs`, daño a todo lo
+//   que esté dentro y lo ralentiza (ICE_SLOW). Además de la Int pide Level 100 y tenerlo (no se sabe con la Int sola).
 // - 'barrage': una ráfaga de proyectiles de un hechizo de data/spells.ts que caen alrededor del punto elegido (Energy
 //   Strike, Mass Fire Strike). Su daño es el del proyectil × `damageScale` × el multiplicador de Power.
 import type { SoundKey, SpriteKey } from '../config/assetManifest';
 import type { EffectKey } from '../config/effects';
 import type { DamageType } from '../entities/CharacterStats';
 import { SPELLS, type SpellId } from './spells';
+import { UNIQUE_LEVEL } from './uniques';
 
 export type ActiveSpellId =
     | 'energyStrike' | 'iceStrike' | 'massFireStrike' | 'massIceStrike' | 'bloodyShockWave' | 'meteorStrike'
-    | 'earthShockWave' | 'blizzard';
+    | 'earthShockWave' | 'blizzard' | 'iceStorm';
 
 interface ActiveSpellBase {
     name: string;
@@ -45,6 +49,8 @@ interface ActiveSpellBase {
     castMs: number;
     /** Played when it is cast. */
     castSound?: SoundKey;
+    /** Level the character needs besides the Int (the uniques, Fase 30B: data/uniques.ts UNIQUE_LEVEL). */
+    level?: number;
     /**
      * HUD orb of the spell. For now the Warrior's red orb (owner, 18-oct-2026: the Mage will have its own icon later).
      * Kept here so that changing it touches only this file.
@@ -144,7 +150,29 @@ export interface LineSpellDef extends ActiveSpellBase, LinePathDef {
     sprite?: SpriteKey;
 }
 
-export type ActiveSpellDef = MeteorSpellDef | BarrageSpellDef | IceShardSpellDef | LineSpellDef;
+export interface StormSpellDef extends ActiveSpellBase {
+    kind: 'storm';
+    /** How long the storm stays on the point (ms). */
+    durationMs: number;
+    /** Every `tickMs`, each enemy within `radius` px takes `damage` (before the Power multiplier) and is slowed. */
+    radius: number;
+    damage: number;
+    tickMs: number;
+    knockback: number;
+    /** A whirlwind starts every `whirlEveryMs` at a random point inside `whirlShare` of the radius. */
+    whirlEveryMs: number;
+    whirlShare: number;
+    /** Small ice shards falling inside the storm, this many per tick. */
+    shardsPerTick: number;
+}
+
+export type ActiveSpellDef = MeteorSpellDef | BarrageSpellDef | IceShardSpellDef | LineSpellDef | StormSpellDef;
+
+/** Ice Storm: the whirlwind it draws (sp-client EFFECT_WHIRLWIND, effect3 sheet 0) and the sound of its ice. */
+export const ICE_STORM_LOOK = {
+    whirlwind: 'fx.iceStorm.whirlwind',
+    castSound: 'sfx.freeze',
+} as const satisfies { whirlwind: EffectKey; castSound: SoundKey };
 
 /** What each line spell draws as it travels (sp-client, see the header). */
 export const LINE_SPELL_LOOKS = {
@@ -431,12 +459,37 @@ export const ACTIVE_SPELLS: Readonly<Record<ActiveSpellId, ActiveSpellDef>> = {
         castMs: 500,
         hudIcon: 'crit',
     },
+    // Único de Icebound (Fase 30B, data/uniques.ts): solo lo suelta el Tigerworm. Int 60 (el original: 59) y Level 100.
+    // Tormenta de 5 s: cada 0,4 s, 7 de daño a todo lo que esté dentro (12 golpes, 84 en total, más que ningún otro
+    // activo) y lo ralentiza. Maná 110 → 55.
+    iceStorm: {
+        name: 'Ice Storm',
+        circle: 6,
+        int: 60,
+        level: UNIQUE_LEVEL,
+        kind: 'storm',
+        durationMs: 5000,
+        radius: 110,
+        damage: 7,
+        tickMs: 400,
+        knockback: 20,
+        whirlEveryMs: 160,
+        whirlShare: 0.75,
+        shardsPerTick: 3,
+        originalMana: 110,
+        range: 400,
+        stickShare: 0.5,
+        castMs: 500,
+        castSound: ICE_STORM_LOOK.castSound,
+        hudIcon: 'crit',
+    },
 };
 
 /** Radius of the ground the spell covers (px): the meteor's explosion, or where a barrage scatters its shots. */
 export function activeSpellAreaRadius(def: ActiveSpellDef): number {
     if (def.kind === 'meteor') return def.areaRadius;
     if (def.kind === 'line') return def.targetRadius;
+    if (def.kind === 'storm') return def.radius;
     return def.kind === 'iceShards' ? def.radius : def.scatterRadius;
 }
 
@@ -448,7 +501,7 @@ export function activeSpellSprite(def: ActiveSpellDef): SpriteKey | undefined {
 
 /** In the order of their requirement (the Equipment screen's list). */
 export const ACTIVE_SPELL_IDS: readonly ActiveSpellId[] = [
-    'energyStrike', 'iceStrike', 'massFireStrike', 'massIceStrike', 'bloodyShockWave', 'meteorStrike', 'earthShockWave', 'blizzard',
+    'energyStrike', 'iceStrike', 'massFireStrike', 'massIceStrike', 'bloodyShockWave', 'meteorStrike', 'earthShockWave', 'blizzard', 'iceStorm',
 ];
 
 export function isActiveSpellId(id: string): id is ActiveSpellId {

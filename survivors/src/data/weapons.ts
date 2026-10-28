@@ -2,7 +2,9 @@
 import type { SoundKey, SpriteKey } from '../config/assetManifest';
 import type { EffectKey } from '../config/effects';
 import type { LinePathDef } from './activeSpells';
+import type { AddedColor } from '../hb/playerAppearance';
 import type { EquipRequirement, ItemIcon } from './itemTypes';
+import { UNIQUE_LEVEL } from './uniques';
 
 // ---------------------------------------------------------------------------------------------------------
 // Armas cuerpo a cuerpo del Guerrero (Fase 6, bloque 6A; decidido con el propietario el 16-oct-2026).
@@ -40,6 +42,10 @@ export interface MeleeWeaponDef {
     icon?: ItemIcon;
     /** Hammers (bloque C): the crack in a line towards the target, `length` px long, `damage` to each monster on it. */
     crack?: { damage: number; length: number };
+    /** Unique weapons (Fase 30B): every hit slows the monster like the ice spells (ICE_SLOW). */
+    chills?: boolean;
+    /** Unique weapons: colour added to the blade in hand and on the ground, like the original's glare (when it has no attribute). */
+    glow?: AddedColor;
 }
 
 /** How a family attacks: a swing in an arc towards the target, a spin all around (axes) or a ground slam (hammers). */
@@ -168,6 +174,16 @@ export const MELEE_WEAPONS = {
         range: 100, arcDegrees: 170, knockback: 200, sprite: { key: SWORD_SPRITE, startSheet: 616 },
         equip: { str: 60 }, icon: { sheet: 0, frame: 11 },
     },
+    // Único de Icebound (Fase 30B, data/uniques.ts): solo lo suelta el Tigerworm. Requisito del original (Str 100, la
+    // columna "para equipar" de docs/REQUISITOS_HB.md) y Level 100. Daño ~25% sobre la Flamberge y cada golpe ralentiza.
+    // Dibujo: el de la Great Sword en la mano (msw.spr bloque 560, como sp-client Items.ts id 148) con su brillo azul;
+    // icono item-pack hoja 0 frame 15.
+    iceElementalSword: {
+        name: 'Sword of Ice Elemental', family: 'longSword', damage: 68, cooldownMs: 1100, swingMs: 600,
+        range: 100, arcDegrees: 170, knockback: 200, sprite: { key: SWORD_SPRITE, startSheet: 560 },
+        equip: { str: 100, level: UNIQUE_LEVEL }, icon: { sheet: 0, frame: 15 }, chills: true,
+        glow: { id: 'unique-iceElementalSword', add: [-50, -10, 70] },
+    },
     // Hammers (bloque C, 26-oct-2026): golpe al suelo (HAMMER_SLAM). La onda daña todo el círculo de `range` y la grieta
     // (`crack`) sale en línea hacia el objetivo. Lentos y pesados: más daño por golpe que espadas y hachas, menos golpes.
     // Icono: hoja 14 de item-pack.spr, como las hachas (Item.cfg Spr 15).
@@ -217,7 +233,7 @@ export type MeleeWeaponId = keyof typeof MELEE_WEAPONS;
 
 export const MELEE_FAMILIES = {
     shortSword: { name: 'Short Swords', enabled: true, attack: 'swing', links: ['dagger', 'shortSword', 'falchion'] },
-    longSword: { name: 'Long Swords', enabled: true, attack: 'swing', links: ['longSword', 'scimitar', 'broadSword', 'claymore', 'greatSword', 'flamberge'] },
+    longSword: { name: 'Long Swords', enabled: true, attack: 'swing', links: ['longSword', 'scimitar', 'broadSword', 'claymore', 'greatSword', 'flamberge', 'iceElementalSword'] },
     hammer: { name: 'Hammers', enabled: true, attack: 'slam', links: ['hammer', 'battleHammer'] },
     fencing: { name: 'Fencing', enabled: false, attack: 'swing', links: ['rapier'] },
     axe: { name: 'Axes', enabled: true, attack: 'spin', links: ['lightAxe', 'tomahawk', 'doubleAxe', 'warAxe', 'battleAxe'] },

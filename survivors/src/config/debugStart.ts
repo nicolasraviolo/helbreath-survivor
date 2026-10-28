@@ -73,7 +73,7 @@
 //   ?open=runchoice  → Select Character con la ventana Continue / New Run del personaje marcado (21-oct-2026), tenga
 //                      partida guardada o no
 //   ?characters=reset → Gorn y Kaila nuevos a Level 1, sin partidas (demo = Gorn con puntos y Kaila a Level 25; Fase 17A)
-//   ?map=traveler    → con ?play/?debug, la partida en ese mapa (traveler, bisle, elvineGarden, middleland; Fase 22A). Sin él, Bleeding Isle
+//   ?map=traveler    → con ?play/?debug, la partida en ese mapa (traveler, bisle, elvineGarden, middleland, icebound; Fase 22A). Sin él, Bleeding Isle
 //   ?maps=all        → todos los mapas abiertos en Select Map (reset = olvida los mapas ganados; Fase 22A)
 //   ?open=mapselect  → abre Select Map con el primer personaje guardado (o sin personaje)
 //   ?open=town       → la ciudad (Fase 23) con el primer personaje guardado (o sin personaje); con &class=warrior, el
@@ -91,6 +91,8 @@
 //                      dice3,wine2 → 3 dados (Reroll) y 2 vinos (Skip) comprados (Fase 21½B; "dice" solo = 1, "dice0" = 0)
 //   ?achievements=reset → borra los logros conseguidos al cargar (all = los da todos, para ver la pantalla llena; Fase 14B)
 //                      (reset también pone a 0 los contadores de bajas de la Fase 29C)
+//   ?unique=reset → olvida las tiradas fallidas de objetos únicos (Fase 30B); ?unique=iceStorm → el jefe final de un
+//   mapa con únicos suelta siempre ese (con ?debug=unique, uno de los del mapa al azar).
 //   ?kills=slime:2995,orc:1500 → pone esos contadores de bajas de todas las partidas (logros que se acumulan, Fase 29C)
 //   ?metrics=send    → enviar las métricas de esta partida al servidor de verdad (en desarrollo no se envían; Fase 14A)
 //   Se combina con ?ui=compact (interfaz de móvil).
@@ -101,7 +103,8 @@ import { isUnlockId, type UnlockId } from '../data/abaddon';
 import { isMapId, type MapId } from '../data/maps';
 import { isStackableUnlockId, type StackableUnlockId } from '../data/rerollSkip';
 import { isCharacterId, type CharacterId } from '../data/characters';
-import { EQUIP_SLOT_IDS, isMeleeWeaponId, type EquipSlotId } from '../data/items';
+import { EQUIP_SLOT_IDS, isMeleeWeaponId, type EquipSlotId, type ItemId } from '../data/items';
+import { UNIQUE_ITEM_IDS } from '../data/uniques';
 import { SMITH_TABS, type SmithTab } from '../data/smith';
 import { isAutoSpellId, type AutoSpellId } from '../data/spells';
 import { UPGRADE_MAX } from '../data/upgrades';
@@ -124,7 +127,7 @@ function isDebugScreen(value: string | null): value is DebugScreen {
 }
 
 /** Actions that ?debug= can run at the start of a run (the same ones as the debug keys of GameScene). */
-export const DEBUG_ACTIONS = ['horde', 'kill', 'levelup', 'levels', 'str', 'magic', 'pickups', 'totems', 'minute', 'boss', 'finalboss', 'bosskill', 'stampede', 'dodge', 'stats', 'god', 'crits', 'aim', 'aimstick', 'resume', 'sim', 'charexp', 'stones', 'elites', 'loot', 'zem', 'onehp', 'epic', 'champion', 'xelima', 'nomana', 'spelldrag', 'bluebook', 'charge', 'movement', 'aura', 'daggers', 'angels', 'orcs', 'nosmooth', 'rescue'] as const;
+export const DEBUG_ACTIONS = ['horde', 'kill', 'levelup', 'levels', 'str', 'magic', 'pickups', 'totems', 'minute', 'boss', 'finalboss', 'bosskill', 'stampede', 'dodge', 'stats', 'god', 'crits', 'aim', 'aimstick', 'resume', 'sim', 'charexp', 'stones', 'elites', 'loot', 'zem', 'onehp', 'epic', 'champion', 'xelima', 'nomana', 'spelldrag', 'bluebook', 'charge', 'movement', 'aura', 'daggers', 'angels', 'orcs', 'nosmooth', 'rescue', 'unique'] as const;
 export type DebugAction = (typeof DEBUG_ACTIONS)[number];
 
 function isDebugAction(value: string): value is DebugAction {
@@ -176,6 +179,8 @@ interface DebugStart {
     rescued: NpcId[] | 'all' | 'reset' | undefined;
     /** ?kills=slime:2995,orc:1500 sets those all-runs kill counters (Fase 29C); monster ids are checked by AchievementStore. */
     kills: Record<string, number>;
+    /** ?unique=reset forgets the missed unique rolls; ?unique=<item id> makes the final boss always drop that unique (Fase 30B). */
+    unique: ItemId | 'reset' | undefined;
     /**
      * ?town=portal: the character appears on the town's teleport, so Select Map opens over the town (Fase 23).
      * ?town=<npc>: next to that NPC (Fase 23B); with &talk, its panel opens too.
@@ -218,7 +223,7 @@ function readDebugStart(): DebugStart {
     const none: DebugStart = {
         play: false, character: undefined, actions: [], trees: undefined, open: undefined, achievements: undefined, characters: undefined,
         sendMetrics: false, spells: { auto: undefined, active: undefined }, openClass: undefined, openSlot: undefined, slash: undefined,
-        holdLoading: false, gear: [], settingsTab: undefined, attribute: undefined, unlocks: undefined, unlockCounts: {}, map: undefined, maps: undefined, rescued: undefined, kills: {}, townSpot: undefined, townTalk: false, townShop: false, townMissions: false, townSmith: undefined,
+        holdLoading: false, gear: [], settingsTab: undefined, attribute: undefined, unlocks: undefined, unlockCounts: {}, map: undefined, maps: undefined, rescued: undefined, kills: {}, unique: undefined, townSpot: undefined, townTalk: false, townShop: false, townMissions: false, townSmith: undefined,
         gold: undefined, weapon: undefined, upgrade: undefined, xelima: undefined, level: undefined, build: undefined, kit: 'best', simBot: 'circle',
     };
     if (!import.meta.env.DEV) return none;
@@ -265,6 +270,7 @@ function readDebugStart(): DebugStart {
         maps: maps === 'all' || maps === 'reset' ? maps : undefined,
         rescued: rescued === 'all' || rescued === 'reset' ? rescued : rescued ? rescued.split(',').map((r) => r.trim()).filter(isNpcId) : undefined,
         kills: parseKills(params.get('kills')),
+        unique: parseUnique(params.get('unique')),
         townSpot: parseTownSpot(params.get('town')),
         townTalk: params.has('talk'),
         townShop: params.has('shop'),
@@ -292,6 +298,11 @@ function readBuild(value: string | null): Partial<Stats> | undefined {
         if (stat && amount !== undefined && /^\d+$/.test(amount.trim())) build[stat] = Number(amount);
     }
     return Object.keys(build).length > 0 ? build : undefined;
+}
+
+function parseUnique(value: string | null): DebugStart['unique'] {
+    if (value === 'reset') return 'reset';
+    return [...UNIQUE_ITEM_IDS].find((id) => id === value);
 }
 
 /** "dice3,wine" → { dice: 3, wine: 1 } (Fase 21½B). */

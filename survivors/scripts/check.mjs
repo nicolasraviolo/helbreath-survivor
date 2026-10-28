@@ -86,6 +86,7 @@ const PRESETS = {
     // Lo mismo en Elvine Garden (Fase 22D).
     levelpaceelvine: 'debug=sim&map=elvineGarden',
     levelpacemiddleland: 'debug=sim&map=middleland',
+    levelpaceicebound: 'debug=sim&map=icebound',
     // Critical Strike (Fase 19A): Guerrero con una horda alrededor y cargas infinitas. Para lanzarlo:
     // --eval="g.launchCritStrike()"; con --mobile se ve el botón de la espada roja.
     crit: 'play=warrior&debug=god,horde,crits',
@@ -202,12 +203,28 @@ const PRESETS = {
     // Middleland (Fase 22E). middlelandboss: el Unicorn (jefe final) con sus rayos y esbirros.
     middleland: 'play=warrior&map=middleland',
     middlelandboss: 'play=warrior&map=middleland&debug=god,finalboss',
+    // Icebound (Fase 30A). iceboundfrost: el Frost (Ice Strike); iceboundnizie: el Nizie (Chill Wind en fila);
+    // iceboundboss: el Tigerworm (cadena de rayos) con sus esbirros. Las marcas: --eval="g.enemyShots.strikes.active.length".
+    icebound: 'play=warrior&map=icebound',
+    iceboundnosmooth: 'play=warrior&map=icebound&debug=nosmooth',
+    iceboundfrost: 'play=warrior&map=icebound&debug=god,boss',
+    iceboundnizie: 'play=warrior&map=icebound&debug=god,boss,boss',
+    iceboundboss: 'play=warrior&map=icebound&debug=god,finalboss',
+    // Objetos únicos (Fase 30B). unique: Gorn mata al Tigerworm y cae la Sword of Ice Elemental (brillo morado y cartel);
+    // con --eval="g.debugPickUpLoot()" sale su carta. uniquewarehouse: lo mismo con Kaila (la espada va al baúl).
+    // uniquesword: Gorn con la espada en una horda (ralentiza lo que golpea). icestorm: la Maga con Ice Storm y horda
+    // (--eval="g.launchCritStrike()" lo lanza).
+    unique: 'play=warrior&characters=demo&map=icebound&debug=god,finalboss,bosskill&unique=iceElementalSword',
+    uniquewarehouse: 'play=mage&characters=demo&map=icebound&debug=god,finalboss,bosskill&unique=iceElementalSword',
+    uniquesword: 'play=warrior&debug=god,horde&weapon=iceElementalSword',
+    icestorm: 'play=mage&debug=god,horde,crits&spells=iceStorm',
     // Tiempos de carga (Fase 22B): carga inicial y la del mapa, con la red (y en --mobile el procesador) más lentos.
     // loadtime = Guerrero en Bleeding Isle; loadtimetraveler y loadtimemage, las otras dos combinaciones.
     loadtime: 'play=warrior',
     loadtimetraveler: 'play=warrior&map=traveler',
     loadtimeelvine: 'play=warrior&map=elvineGarden',
     loadtimemiddleland: 'play=warrior&map=middleland',
+    loadtimeicebound: 'play=warrior&map=icebound',
     loadtimemage: 'play=mage',
     loadtimetown: 'characters=demo&open=town',
     // Pantalla de carga (M8), parada a medias para verla: barra, "Loading" y el logo que late.

@@ -14,9 +14,9 @@ import {
     WAREHOUSE_FULL_COLOR, WAREHOUSE_HEADING_STYLE, WAREHOUSE_HELP_STYLE, WAREHOUSE_HELP_Y, WAREHOUSE_LIST, WAREHOUSE_OK_Y, WAREHOUSE_OTHER_CLASS_COLOR,
     WAREHOUSE_PANELS, WAREHOUSE_SHADE_ALPHA, WAREHOUSE_TITLE_Y,
 } from '../config/warehouse';
-import { attributeColor, ATTRIBUTES } from '../data/attributes';
+import { ATTRIBUTES } from '../data/attributes';
 import { CHARACTERS, type CharacterId } from '../data/characters';
-import { classCanWear, describeItem, EQUIP_SLOT_IDS, EQUIP_SLOT_NAMES, itemInfo, itemPicture, ownedItemName } from '../data/items';
+import { classCanWear, describeItem, EQUIP_SLOT_IDS, EQUIP_SLOT_NAMES, itemInfo, itemPicture, ownedItemColor, ownedItemName, ownedItemNameColor } from '../data/items';
 import { sameOwnedItem, type OwnedItem } from '../data/loot';
 import { upgradeDescription } from '../data/upgrades';
 import { WAREHOUSE_CAPACITY } from '../data/warehouse';
@@ -200,7 +200,8 @@ export class WarehouseScene extends Phaser.Scene {
             const icon = this.add.image(x + l.iconSize / 2 + 4, middle, '__DEFAULT');
             this.setIcon(icon, kind.item);
             column.objects.push(icon);
-            const color = kind.item.attribute ? `#${ATTRIBUTES[kind.item.attribute].color.toString(16).padStart(6, '0')}` : EQUIPMENT_ROW_STYLE.color;
+            const nameColor = ownedItemNameColor(kind.item);
+            const color = nameColor !== undefined ? `#${nameColor.toString(16).padStart(6, '0')}` : EQUIPMENT_ROW_STYLE.color;
             const name = this.add.text(x + l.iconSize + 12, middle, ownedItemName(kind.item), { ...EQUIPMENT_ROW_STYLE, color }).setOrigin(0, 0.5);
             column.objects.push(name);
             if (kind.indices.length > 1) {
@@ -229,7 +230,7 @@ export class WarehouseScene extends Phaser.Scene {
 
     private setIcon(image: Phaser.GameObjects.Image, item: OwnedItem): void {
         const frame = itemPicture(item.id, this.character?.look.gender ?? 'male');
-        if (!frame || !this.iconsReady || !setColouredTexture(image, itemPackTexture(frame.sheet), frame.frame, attributeColor(item.attribute))) {
+        if (!frame || !this.iconsReady || !setColouredTexture(image, itemPackTexture(frame.sheet), frame.frame, ownedItemColor(item))) {
             image.setVisible(false);
             return;
         }

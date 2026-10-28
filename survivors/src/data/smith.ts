@@ -13,6 +13,7 @@
 import type { ItemAttribute } from './attributes';
 import { XELIMA_STONE_ID } from './consumables';
 import type { CharacterId } from './characters';
+import { isUniqueItem } from './uniques';
 import { catalog, GEAR_SLOT_IDS, isFreeItem, itemInfo, type EquipSlotId, type ItemId } from './items';
 import type { OwnedItem } from './loot';
 import { upgradeOf } from './upgrades';
@@ -118,9 +119,9 @@ export function smithBuysFromYou(id: ItemId): boolean {
     return SMITH_FIXED_SELL_PRICES[id] !== undefined || (itemInfo(id)?.slot !== undefined && itemInfo(id)?.slot !== 'zem');
 }
 
-/** Rare items (Kloness and Berserk wands) only come as loot. */
+/** Rare items (Kloness and Berserk wands) only come as loot; the uniques (Fase 30B) only from their map's final boss. */
 function isRareItem(id: ItemId): boolean {
-    return isWandId(id) && getWand(id).rare === true;
+    return (isWandId(id) && getWand(id).rare === true) || isUniqueItem(id);
 }
 
 export interface SmithSection {
