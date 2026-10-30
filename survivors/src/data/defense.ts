@@ -22,10 +22,13 @@
 // cualquier monstruo, solo con su puntería. Si se quieren jefes más difíciles de esquivar, añadir aquí un mínimo
 // de acierto propio para jefes (p. ej. minBossHitChance) y usarlo en hitChance cuando el atacante sea jefe.
 import { ENEMIES } from './enemies';
+import type { Direction } from '../hb/directions';
 
 /** What the player has against monster attacks (blows and arrows, and spells). */
 export interface PlayerDefense {
     defenseRatio: number;
+    /** Where the player faces: blows from behind meet half the defense (defenseAgainst). */
+    facing: Direction;
     magicResistance: number;
 }
 
@@ -40,6 +43,11 @@ export const DODGE = {
     /** A blow always has at least this chance to land, and never more than the maximum: nobody is untouchable. */
     minHitChance: 0.25,
     maxHitChance: 0.95,
+    /**
+     * Original: a blow from behind (the attacker faces the same way as the player) meets only this share of the
+     * defense (`iCalculateAttackEffect`, revisión de los ataques, 28-oct-2026). Running away from a pack = half defense.
+     */
+    behindDefenseShare: 0.5,
     /** Original hit ratio of a "typical" monster, for the general dodge % of the stats panel and cards (Troll/Hellhound ~200, Orc 60). */
     referenceHitRatio: 150,
 } as const;
@@ -61,6 +69,11 @@ export const MAGIC_RESIST = {
 /** The player's defense ratio: Dex plus the armor worn. */
 export function playerDefenseRatio(dex: number, armorDefenseRatio: number): number {
     return DODGE.dexFactor * dex + armorDefenseRatio;
+}
+
+/** The defense ratio a blow meets: halved when it comes from behind (attacker facing the same way as the player). */
+export function defenseAgainst(defenseRatio: number, attackerFacing: Direction, playerFacing: Direction): number {
+    return attackerFacing === playerFacing ? defenseRatio * DODGE.behindDefenseShare : defenseRatio;
 }
 
 /** Chance (0..1) that a blow of a monster with this original hit ratio lands on a player with this defense ratio. */

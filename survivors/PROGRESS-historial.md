@@ -2,6 +2,13 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
+**Ataques de los monstruos como el original (2026-10-30, fuera de fase).**
+- **Qué hace:** revisados los ataques contra `reference/Server.cpp` y el `Wmain.cpp` público (servidor cada 300 ms). Cuatro cambios: (1) ritmo de ataque en vistazos de 300 ms con la espera re-tirada en cada uno (antes íbamos un 5–25 % más rápido); (2) el golpe se decide al empezar el ataque, ya no se esquiva apartándose a mitad; (3) huir con poca vida con la regla original (2 de vida original, 1..bravery ≤ 3, en cada acción; bravery + 0..2 al aparecer); (4) defensa a la mitad por la espalda, también con flechas. Línea en What's new (Phase 30).
+- **Decisión (propietario, 30-oct-2026):** dejarlo así aunque sea más difícil (DECISIONES.md).
+- **Código:** `MONSTER_AI` en `data/enemies.ts`; `originalAttackIntervalMs`, `checkBravery`, `strike` en `entities/Enemy.ts`; `DODGE.behindDefenseShare` y `defenseAgainst` en `data/defense.ts`; `PlayerDefense.facing` / `EnemyWorld.playerFacing` desde `GameScene`; flechas en `EnemyProjectileSystem`. Nota en NOTES.md, "Ataques de los monstruos como el original (28-oct-2026)".
+- **Comprobado:** build; `check horde orcs charge traveler`, sin errores, 60 FPS. `pnpm balance` (8 casos ×3, `.check/balance-attacks-before|after|nobehind.json`): el Guerrero ya no sobrevive ninguna de 3 partidas en Traveler/Bleeding/Elvine (antes 1 de 3) y muere 3–6 veces por caso en vez de 1; la Maga, parecida. Lo que más pesa parece ser no poder escapar del tajo andando.
+- **Probar:** `pnpm --dir survivors dev` → http://localhost:8090/?play=warrior
+
 **Fase 30B, objetos únicos (2026-10-28).**
 - **Qué hace:** primeros objetos únicos, de Icebound. Al morir el jefe final (Tigerworm) hay una tirada: 2 %, +1 % por cada fallo (contador del dispositivo, vuelve a 0 al salir). Si sale, uno de los dos al azar, cae con brillo morado, cartel "Unique item!" y el sonido de las cartas Epic. **Sword of Ice Elemental:** espada larga azul, daño 68, ralentiza lo que golpea (Str 100, Level 100). **Ice Storm:** activo de la Maga, tormenta de remolinos de hielo 5 s que daña y frena (Int 60, Level 100, 55 de maná). Si no es de tu clase, va directo al baúl ("sent to the Warehouse"). Nombre en morado y línea "Unique" en la carta. Ni en el botín normal ni en la tienda; Tom los compra a 1.500. Línea en What's new (Phase 30).
 - **Decisiones (propietario, 28-oct-2026):** Sword of Ice Elemental e Ice Storm; uno de los dos al azar aunque no sea de tu clase; contador del dispositivo; caen desde siempre, ponérselos pide Level 100 (DECISIONES.md).

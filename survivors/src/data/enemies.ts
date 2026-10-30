@@ -119,7 +119,7 @@ export interface EnemyDef {
     actionTimeMs: number;
     /** Original NPC.cfg AttkRange, in tiles: 1 = melee; more = it hits from that far (the Dark Elf shoots arrows). */
     attackRange: number;
-    /** Original NPC.cfg MinBrvy: at ≤7% health it flees if a roll 1..bravery is ≤ 8 (docs/hb-wiki/monstruos.md). */
+    /** Original NPC.cfg MinBrvy: almost dead, it flees if a roll 1..bravery is ≤ 3 (MONSTER_AI). */
     bravery: number;
     /** Original NPC.cfg damage dice (ADT d ADR), compressed for our health scale with MONSTER_DAMAGE. */
     damageDice: readonly [number, number];
@@ -203,21 +203,30 @@ export function monsterBaseHp(def: EnemyDef): number {
 }
 
 /**
- * Monster AI rules of the original server (docs/hb-wiki/monstruos-comportamiento.md):
- * - attack interval = actionTimeMs minus one of `attackTimeCuts` at random, never under `minAttackIntervalMs`;
+ * Monster AI rules of the original server (reference/Server.cpp; docs/hb-wiki/monstruos-comportamiento.md):
+ * - the server looks at the monsters once every `serverTickMs` (HGServer Wmain.cpp: `_StartTimer(300)`). On each look a
+ *   monster that is attacking rolls its wait again: actionTimeMs minus one of `attackTimeCuts`, never under
+ *   `minAttackIntervalMs`, and acts if more time than that has gone by (`NpcProcess`). So attacks come on those looks
+ *   only: a big monster hits every 0.6–0.9 s, an Orc about every 1 s (revisión de los ataques, 28-oct-2026). The looks
+ *   are not exact (Windows timer): ± `serverTickJitterMs`, so "600 ms gone by" is sometimes more than 600 and sometimes not;
  * - attack strategy rolled on spawn with a 1..10 die: 2 = hit once and flee, 3 = hit twice and flee, else keep attacking;
  *   fleeing lasts `fleeActions` actions (actionTimeMs each), then it comes back;
- * - at ≤ `lowHealthShare` of its health, it flees for `lowHealthFleeActions` actions if a roll 1..bravery ≤ `braveryRoll`.
+ * - on every action, with `lowHealthHp` health or less (original health points; ours is scaled to its share) it flees
+ *   if a roll 1..bravery ≤ `braveryRoll`. Its bravery = MinBrvy + 0..`braveryExtra` − 1, rolled on spawn. The flight
+ *   lasts `lowHealthFleeActions` actions (only `fleeActions` for the hit-and-run strategies) (`NpcBehavior_Attack`).
  */
 export const MONSTER_AI = {
+    serverTickMs: 300,
+    serverTickJitterMs: 2,
     attackTimeCuts: [0, 100, 200, 300, 400, 600, 700],
     minAttackIntervalMs: 600,
     strategyDie: 10,
     hitAndRunRoll: 2,
     twoHitsAndRunRoll: 3,
     fleeActions: 2,
-    lowHealthShare: 0.07,
-    braveryRoll: 8,
+    lowHealthHp: 2,
+    braveryExtra: 3,
+    braveryRoll: 3,
     lowHealthFleeActions: 10,
 } as const;
 
