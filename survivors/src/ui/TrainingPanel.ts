@@ -43,7 +43,7 @@ export class TrainingPanel {
             layer.addFixed(button);
             return button;
         });
-        this.show({ dpsNow: 0, dpsAverage: 0, total: 0, biggest: 0, hits: 0, crits: 0, seconds: 0 });
+        this.show({ dpsNow: 0, dpsAverage: 0, total: 0, biggest: 0, hits: 0, crits: 0, misses: 0, seconds: 0 });
     }
 
     public update(deltaMs: number, meter: TrainingMeter): void {
@@ -55,6 +55,8 @@ export class TrainingPanel {
     private show(meter: TrainingMeter): void {
         const n = (value: number) => Math.round(value).toLocaleString('en-US');
         const critShare = meter.hits > 0 ? Math.round((meter.crits / meter.hits) * 100) : 0;
+        const tries = meter.hits + meter.misses;
+        const missShare = tries > 0 ? Math.round((meter.misses / tries) * 100) : 0;
         this.text.setText([
             'Training',
             `DPS (last ${TRAINING.dpsWindowMs / 1000} s): ${n(meter.dpsNow)}`,
@@ -62,6 +64,7 @@ export class TrainingPanel {
             `Total: ${n(meter.total)} in ${Math.floor(meter.seconds)} s`,
             `Biggest hit: ${n(meter.biggest)}`,
             `Hits: ${n(meter.hits)} · Crits: ${critShare}%`,
+            `Missed: ${n(meter.misses)} (${missShare}%)`,
         ]);
         // The buttons in a row under the numbers.
         let x = TRAINING_PANEL.x;

@@ -109,6 +109,7 @@ export class SpawnSystem {
         if (!this.enabled) return;
         this.elapsedMs += deltaMs;
         this.enemies.setWaveDamage(this.wave.damage ?? 1);
+        this.enemies.setRunMinute(this.elapsedMs / MS_PER_MINUTE);
         this.runDueEvents();
         this.runDebugEvent();
         this.runDueChampion(deltaMs);

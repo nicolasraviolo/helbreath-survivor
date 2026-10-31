@@ -115,6 +115,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Objetos únicos (Fase 30B)
 - Barracks: entrenamiento con muñecos (31-oct-2026)
 - Golpe normal igual para todas las armas; el crit las distingue (31-oct-2026)
+- Fallar golpes y vida que crece con los minutos (revisión del original B, 31-oct-2026)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -1320,3 +1321,11 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - `LineSpell` ya no golpea si `pathDamage` / `targetDamage` es 0: así sirve de dibujo (la onda de la espada usa la instancia `hammerCracks`).
 - **Números:** hachas con un poco más de daño por segundo que la espada larga de Str parecida (Light Axe 20/1000 ms … Battle Axe 57/1100); martillos 75 y 95 por golpe, la grieta del crit 36 y 42 (se escala con el daño del crit). Medido con `pnpm balance ... --out=balance-weapons-arc`.
 - Stone of Xelima: `LOOT_XELIMA_CHANCE` 1/5.000 por monstruo (~0,2–0,6 por partida).
+
+## Fallar golpes y vida que crece con los minutos (revisión del original B, 31-oct-2026)
+- **Fallar:** todo daño del jugador pasa por `CombatSystem` (`hitEnemy`, `hitArc`, `hitArea`); `lands()` tira `playerHitChance` (`data/accuracy.ts`) antes de nada. Al fallar no hay número, sonido, empujón ni `onHit` (ni frío ni veneno), y `hitArc` no lo cuenta (si ninguno acierta, no suena el golpe). El veneno que ya corre no tira. `bigNumbers` (Critical Strike, hechizo activo de la Maga) = acierto seguro.
+- **Fórmula:** golpe = 0,5 · (120 + Dex) / (21 · DR^0,295); hechizo = 0,5 · (120 + Mag) / (10,2 · MR^0,5); entre 50 % y 95 %. DR/MR del original en cada `EnemyDef` (`defenseRatio`, `magicResist`, de `docs/hb-wiki/monstruos.md`). Demonios, dragones, Unicorn, Tigerworm y Wyvern tienen MR 1 → los hechizos casi siempre entran (como el original). Guard (120/60) y muñecos de los Barracks (Dummy 100/60, Attack-Dummy 40/25) son números nuestros; el Dummy jefe de Traveler Zone, 1/1.
+- **Panel:** fila **Accuracy** (Guerrero = golpes contra DR 150; Maga = hechizos contra MR 84). Barracks: línea "Missed: N (x%)" (`CombatSystem.onMiss` → `TrainingGround.recordMiss`).
+- **Vida:** `MONSTER_HP.exponent` 0,85 y `MONSTER_HP_PER_MINUTE` 0,05 (`data/enemies.ts`). `SpawnSystem.update` → `EnemySystem.setRunMinute` → `MapDifficulty.hpGrowth` (solo vida; `Enemy.xp` no lo usa). El Champion se crea con `hpGrowth: 1`; jefes con `NO_DIFFICULTY`; Guards y muñecos con `spawnGuard`, sin crecimiento.
+- **Probar:** `check barracks --eval=...` con 1.000 `g.combat.hitEnemy` sobre un Dummy → ~18 % de fallos con Dex 14 (sale 16–17 %).
+- **Esquiva retocada (mismo día, propietario):** `DODGE.maxHitChance` 0,95 → 0,8, `hitScale` 8,3 → 7,1, `minHitChance` 0,25 → 0,2. Medidas (`pnpm balance`, 6 partidas por caso; antes / con B / con B + esquiva, primera muerte del bot): Guerrero Bleeding Isle 8:19 / 5:16 / 6:15, Elvine 8:05 / 5:58 / 6:15, Middleland 9:10 / 8:10 / 7:58; Maga 3:26–3:58 / 2:44–3:45 / 3:38–4:01. Informes `.check/balance-b-before.json`, `-after.json`, `-dodge.json`.

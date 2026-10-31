@@ -1,7 +1,10 @@
 // Aplica el daño de las armas a los enemigos (explosiones en círculo y tajos en arco): lo escala con los stats del jugador (Str o Mag), tira el crítico (Chr),
 // resta vida, destello y retroceso (en Enemy), número de daño, chispas o polvo (Fase 10), sonido de golpe o de muerte, y cuenta las muertes.
+// Revisión del original B (31-oct-2026): golpes y hechizos pueden fallar según la defensa del monstruo (data/accuracy.ts);
+// si fallan no pasa nada (ni número ni sonido). El Critical Strike y el hechizo activo (bigNumbers) nunca fallan.
 // Fase 21B: con un arma Poison, los golpes físicos envenenan (data/attributes.ts); updatePoison() hace correr el veneno.
 import Phaser from 'phaser';
+import { playerHitChance } from '../data/accuracy';
 import { POISON } from '../data/attributes';
 import { CRIT_DAMAGE_MULTIPLIER } from '../data/stats';
 import type { CharacterStats, DamageType } from '../entities/CharacterStats';
@@ -54,6 +57,8 @@ export class CombatSystem {
     public chillOnHit = false;
     /** Every blow that lands, poison too (the Barracks' damage panel, 31-oct-2026). */
     public onDamage: ((damage: number, critical: boolean) => void) | undefined;
+    /** Every blow or spell that missed (the Barracks' damage panel). */
+    public onMiss: (() => void) | undefined;
 
     constructor(
         private readonly enemies: EnemySystem,
@@ -88,18 +93,19 @@ export class CombatSystem {
             // No area damage (Lightning Arrow, Fase 26C): only the enemy it hit, not the ones rubbing against it.
             if (!isDirect && hit.areaDamage <= 0) return;
             directInArea ||= isDirect;
-            const critical = this.hitEnemy(enemy, hit.damageType, hit.areaDamage + (isDirect ? hit.directDamage : 0), hit.x, hit.y, hit.knockback, hit.bigNumbers);
+            if (!this.lands(enemy, hit.damageType, hit.bigNumbers)) return;
+            const critical = this.strike(enemy, hit.damageType, hit.areaDamage + (isDirect ? hit.directDamage : 0), hit.x, hit.y, hit.knockback, hit.bigNumbers);
             onHit?.(enemy);
             if (isDirect || (!direct && mainCritical === undefined)) mainCritical = critical;
         });
-        if (direct && !directInArea) {
-            mainCritical = this.hitEnemy(direct, hit.damageType, hit.directDamage, hit.x, hit.y, hit.knockback, hit.bigNumbers);
+        if (direct && !directInArea && this.lands(direct, hit.damageType, hit.bigNumbers)) {
+            mainCritical = this.strike(direct, hit.damageType, hit.directDamage, hit.x, hit.y, hit.knockback, hit.bigNumbers);
             onHit?.(direct);
         }
         return mainCritical ?? false;
     }
 
-    /** Melee swing: every enemy inside the circle sector takes the damage (`onHit` for each). Returns how many were hit. */
+    /** Melee swing: every enemy inside the circle sector takes the damage (`onHit` for each). Returns how many were hit (misses don't count). */
     public hitArc(hit: ArcHit, onHit?: (enemy: Enemy) => void): number {
         const halfArc = hit.arc / 2;
         let count = 0;
@@ -108,10 +114,10 @@ export class CombatSystem {
             const dy = enemy.bodyY - hit.y;
             const inside = dx * dx + dy * dy <= ARC_ALWAYS_HIT_PX * ARC_ALWAYS_HIT_PX
                 || Math.abs(Phaser.Math.Angle.Wrap(Math.atan2(dy, dx) - hit.angle)) <= halfArc;
-            if (!inside) return;
+            if (!inside || !this.lands(enemy, hit.damageType, hit.bigNumbers)) return;
             count++;
             onHit?.(enemy);
-            this.hitEnemy(enemy, hit.damageType, hit.damage, hit.x, hit.y, hit.knockback, hit.bigNumbers);
+            this.strike(enemy, hit.damageType, hit.damage, hit.x, hit.y, hit.knockback, hit.bigNumbers);
         });
         return count;
     }
@@ -158,10 +164,26 @@ export class CombatSystem {
     }
 
     /**
-     * One hit on one enemy, pushed away from (fromX, fromY). `baseDamage` is scaled by the attacker's stats. Returns true
-     * on a critical hit. `bigNumber` shows the number as a critical one even when the Chr roll fails.
+     * One hit on one enemy, pushed away from (fromX, fromY): it may miss (data/accuracy.ts), unless `bigNumber`.
+     * `baseDamage` is scaled by the attacker's stats. Returns true on a critical hit. `bigNumber` shows the number as a
+     * critical one even when the Chr roll fails.
      */
     public hitEnemy(enemy: Enemy, type: DamageType, baseDamage: number, fromX: number, fromY: number, knockback: number, bigNumber = false): boolean {
+        if (!enemy.isAlive || baseDamage <= 0 || !this.lands(enemy, type, bigNumber)) return false;
+        return this.strike(enemy, type, baseDamage, fromX, fromY, knockback, bigNumber);
+    }
+
+    /** Rolls whether a hit on a living enemy lands; `sure` (Critical Strike, active spell) always does. */
+    private lands(enemy: Enemy, type: DamageType, sure = false): boolean {
+        if (sure || !enemy.isAlive) return true;
+        const { defenseRatio, magicResist } = enemy.def;
+        if (Math.random() < playerHitChance(type, this.attacker.stats, defenseRatio, magicResist)) return true;
+        this.onMiss?.();
+        return false;
+    }
+
+    /** The hit landed: damage, number, sound, poison, kill. */
+    private strike(enemy: Enemy, type: DamageType, baseDamage: number, fromX: number, fromY: number, knockback: number, bigNumber = false): boolean {
         if (!enemy.isAlive || baseDamage <= 0) return false;
         const critical = Math.random() < this.attacker.critChance;
         const scaled = baseDamage * this.attacker.damageMultiplier(type) * (critical ? CRIT_DAMAGE_MULTIPLIER : 1);

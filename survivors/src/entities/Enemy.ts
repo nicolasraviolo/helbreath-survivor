@@ -332,7 +332,7 @@ export class Enemy implements Poolable {
     /** Full health (data/enemies.ts, monsterBaseHp): the elites have more, the champions much more. */
     public get maxHp(): number {
         const factor = this.champion ? CHAMPION.hpMultiplier : this.elite ? ELITE.hpMultiplier : 1;
-        return Math.max(1, Math.round(monsterBaseHp(this.def) * this.difficulty.hp * factor));
+        return Math.max(1, Math.round(monsterBaseHp(this.def) * this.difficulty.hp * (this.difficulty.hpGrowth ?? 1) * factor));
     }
 
     /** XP it drops (a champion's is split into several gems by the game scene): the elites give more. */

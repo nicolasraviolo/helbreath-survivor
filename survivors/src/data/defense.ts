@@ -5,6 +5,7 @@
 // Comprimido: la puntería original va de 30 a 1.300 y aquí la defensa no pasa de ~150, así que se usa
 // hitScale × puntería^hitExponent (como MONSTER_DAMAGE con los dados). Objetivo: guerrero con Plate Mail,
 // Tower Shield y casco → el Orc le acierta ~30%, el Werewolf ~70% y el Ettin ~80%. La Maga casi no esquiva.
+// Desde el 31-oct-2026 (revisión B) fallan más: máximo 80 %, bien equipado Orc ~21 %, Werewolf ~49 %, Ettin ~55 %.
 // Las flechas también se esquivan; los hechizos no: para ellos está la resistencia mágica.
 //
 // Resistencia mágica (Fase 18B). Como en el original (bCheckResistingMagicSuccess):
@@ -36,13 +37,18 @@ export const DODGE = {
     /** Defense ratio per point of Dex (original: 2). */
     dexFactor: 2,
     /** A monster's hit ratio, compressed: hitScale × original^hitExponent. */
-    hitScale: 8.3,
+    hitScale: 7.1,
     hitExponent: 0.53,
     /** Original formula: hit % = hitPercentPerRatio × hit ratio / defense ratio. */
     hitPercentPerRatio: 50,
     /** A blow always has at least this chance to land, and never more than the maximum: nobody is untouchable. */
-    minHitChance: 0.25,
-    maxHitChance: 0.95,
+    minHitChance: 0.2,
+    /**
+     * Revisión del original B (propietario, 31-oct-2026: "con 300 bichos alrededor, si uno falla otro te pega igual"):
+     * máximo 95 % → 80 % y puntería ×0,85 (hitScale 8,3 → 7,1, mínimo 25 % → 20 %). Al empezar, sin armadura, todos
+     * acertaban el 95 %; ahora siempre falla al menos 1 de cada 5 golpes.
+     */
+    maxHitChance: 0.8,
     /**
      * Original: a blow from behind (the attacker faces the same way as the player) meets only this share of the
      * defense (`iCalculateAttackEffect`, revisión de los ataques, 28-oct-2026). Running away from a pack = half defense.

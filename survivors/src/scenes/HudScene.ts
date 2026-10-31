@@ -30,6 +30,7 @@ import type { HudStyle } from '../config/settings';
 import { addTouchPauseButton } from '../ui/TouchPauseButton';
 import { addTouchFullscreenButton } from '../ui/fullscreen';
 import { ACHIEVEMENT_EVENT } from '../data/achievements';
+import { generalAccuracy, generalSpellAccuracy } from '../data/accuracy';
 import { dodgeChance, resistChance } from '../data/defense';
 import { PASSIVE_IDS, PASSIVES } from '../data/passives';
 import { getMagic, MAGIC_IDS, magicMaxRank, type MagicId } from '../data/passiveMagic';
@@ -461,6 +462,9 @@ function describeDerived(state: HudState): [string, string][] {
     // General chance of dodging a blow and of resisting a spell, against a typical monster (Fases 18A and 18B).
     gear.push(['Dodge', `${Math.round(dodgeChance(state.defenseRatio) * 100)}%`]);
     gear.push(['Magic resist', `${Math.round(resistChance(state.magicResistance) * 100)}%`]);
+    // General chance that the player's own hits land (revisión del original B): blows with Dex, spells with Mag.
+    const accuracy = stats.def.startWeapon.kind === 'spell' ? generalSpellAccuracy(stats.stats) : generalAccuracy(stats.stats);
+    gear.push(['Accuracy', `${Math.round(accuracy * 100)}%`]);
     // Always shown, at any rank (0 too), so the panel keeps the height it was built with.
     for (const id of PASSIVE_IDS) {
         const rank = state.passiveRanks[id];

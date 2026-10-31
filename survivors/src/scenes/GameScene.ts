@@ -553,6 +553,7 @@ export class GameScene extends Phaser.Scene {
         const ground = this.trainingGround;
         if (!ground) return;
         this.combat.onDamage = (damage, critical) => ground.record(damage, critical);
+        this.combat.onMiss = () => ground.recordMiss();
         this.trainingPanel = new TrainingPanel(this, {
             levelUp: () => this.trainingLevelUp(),
             reset: () => ground.resetMeter(),
