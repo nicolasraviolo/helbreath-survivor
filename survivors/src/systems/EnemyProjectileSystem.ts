@@ -10,7 +10,8 @@
 import type Phaser from 'phaser';
 import { effectAnimationKey, type EffectKey } from '../config/effects';
 import { DEPTH_EFFECT_OFFSET, DEPTH_GROUND_SHADOWS, PLAYER_BODY_OFFSET_Y } from '../config/gameConfig';
-import { hitChance, spellHitChance, type PlayerDefense } from '../data/defense';
+import { defenseAgainst, hitChance, spellHitChance, type PlayerDefense } from '../data/defense';
+import { directionFromVector } from '../hb/directions';
 import { SKY_SPELL_MARK, type EnemyRangedAttack, type EnemySkySpell } from '../data/enemies';
 import { LightningArc } from '../entities/LightningArc';
 import { Pool, type Poolable } from '../utils/Pool';
@@ -247,7 +248,10 @@ export class EnemyProjectileSystem {
             const touches = !projectile.dodged && dx * dx + dy * dy <= reach * reach;
             let hit = touches;
             if (hit && projectile.hitRatio !== undefined) {
-                hit = Math.random() < hitChance(projectile.hitRatio, defense.defenseRatio);
+                // Arrows too: from behind (flying the way the player faces) they meet half the defense, as in the original.
+                const flyingFacing = directionFromVector(-dx, -dy) ?? defense.facing;
+                const defenseRatio = defenseAgainst(defense.defenseRatio, flyingFacing, defense.facing);
+                hit = Math.random() < hitChance(projectile.hitRatio, defenseRatio);
                 projectile.dodged = !hit;
                 onBlow?.(projectile.source, projectile.damage, hit);
             }

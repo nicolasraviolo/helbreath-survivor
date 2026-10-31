@@ -108,7 +108,7 @@ import { formatTime } from '../utils/format';
 import { SpellWeapon } from '../weapons/SpellWeapon';
 import { PlayerState } from '../hb/playerAppearance';
 import { MeleeWeapon } from '../weapons/MeleeWeapon';
-import { angleFromDirection, directionFromVector } from '../hb/directions';
+import { angleFromDirection, Direction, directionFromVector } from '../hb/directions';
 import { buildLevelUpChoices } from '../systems/UpgradePool';
 import type { HudSceneData, HudState } from './HudScene';
 import type { LevelUpChoice, LevelUpSceneData } from './LevelUpScene';
@@ -172,7 +172,7 @@ export class GameScene extends Phaser.Scene {
     private spawner!: SpawnSystem;
     private damageNumbers!: DamageNumbers;
     /** Defense and magic resistance, refreshed once per frame and reused (no new object each frame). */
-    private readonly playerDefense: PlayerDefense = { defenseRatio: 0, magicResistance: 0 };
+    private readonly playerDefense: PlayerDefense = { defenseRatio: 0, magicResistance: 0, facing: Direction.South };
     private audio!: AudioSystem;
     private combat!: CombatSystem;
     private particles!: HitParticles;
@@ -477,7 +477,8 @@ export class GameScene extends Phaser.Scene {
         });
         this.player.setMaxHp(this.stats.maxHp, true);
         this.applyStats();
-        this.world = { map, area: areaPx, targetX: 0, targetY: 0, targetRadius: character.hitboxHalfSize, defenseRatio: 0 };
+        this.world = { map, area: areaPx, targetX: 0, targetY: 0, targetRadius: character.hitboxHalfSize, defenseRatio: 0,
+            playerFacing: Direction.South };
         if (resume) this.restore(resume);
         this.watchForSaving();
 
@@ -1062,6 +1063,8 @@ export class GameScene extends Phaser.Scene {
         this.playerDefense.defenseRatio = this.defenseRatio;
         this.playerDefense.magicResistance = this.magicResistance;
         this.world.defenseRatio = this.playerDefense.defenseRatio;
+        this.playerDefense.facing = player.direction;
+        this.world.playerFacing = player.direction;
         this.world.onBlow = this.sim ? this.onSimBlow : undefined;
         this.enemies.update(delta, this.world);
         // Manual aim (right click / right stick) wins over the automatic one; the simulated run always aims on its own.

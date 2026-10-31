@@ -1,6 +1,7 @@
 // Enemigo ligero y reciclable: un sprite animado (más su sombra) que persigue al jugador y, al tenerlo a su alcance,
-// se para y le ataca con su animación y su sonido; el golpe cae en el frame 2, como en el original, y solo hace daño
-// si el jugador sigue a su alcance y la tirada de puntería contra su defensa acierta (Fase 18A). Lo crea y lo recicla EnemySystem; aquí solo vive su comportamiento.
+// se para y le ataca con su animación y su sonido. Como en el servidor original, el golpe se decide al empezar el ataque
+// (apartarse a mitad ya no lo esquiva) y se ve en el frame 2; hace daño si la tirada de puntería contra la defensa del
+// jugador acierta (Fase 18A), con la defensa a la mitad si le pega por la espalda (revisión de los ataques, 28-oct-2026). Lo crea y lo recicla EnemySystem; aquí solo vive su comportamiento.
 import Phaser from 'phaser';
 import {
     DEFAULT_ANIMATION_FRAME_RATE,
@@ -18,7 +19,7 @@ import {
 } from '../config/gameConfig';
 import type { AudioSystem } from '../systems/AudioSystem';
 import { enemySpeed, monsterBaseHp, MONSTER_AI, MONSTER_DAMAGE, type EnemyDef } from '../data/enemies';
-import { hitChance } from '../data/defense';
+import { defenseAgainst, hitChance } from '../data/defense';
 import { ELITE } from '../data/elites';
 import { AURA_SLOW_LOOK } from '../data/passiveMagic';
 import { NO_DIFFICULTY, type MapDifficulty } from '../data/maps';
@@ -65,6 +66,8 @@ export interface EnemyWorld {
     targetRadius: number;
     /** The player's defense ratio: each blow rolls its hit ratio against it (data/defense.ts). */
     defenseRatio: number;
+    /** Where the player faces: a blow from behind meets half the defense (data/defense.ts → defenseAgainst). */
+    playerFacing: Direction;
     /** Told about every blow that reaches the player, landed or dodged (the simulated run counts them). */
     onBlow?: (source: string, damage: number, landed: boolean) => void;
 }
@@ -112,8 +115,9 @@ export class Enemy implements Poolable {
     /** Attack strategy rolled when it appears: 'normal', 'hitAndRun' (1 blow) or 'twoHitsAndRun'. */
     private strategy: 'normal' | 'hitAndRun' | 'twoHitsAndRun' = 'normal';
     private blowsSinceFlee = 0;
-    /** The low-health bravery check is done once. */
-    private braveryChecked = false;
+    /** Its bravery (NPC.cfg MinBrvy + 0..2, rolled on spawn) and the time to its next low-health check (one per action). */
+    private bravery = 1;
+    private braveryCheckMs = 0;
     /** Stampede (data/waves.ts): runs straight this way, faster, for `chargeMs`; then chases as usual. */
     private chargeMs = 0;
     private chargeX = 0;
@@ -235,7 +239,8 @@ export class Enemy implements Poolable {
         this.cooldownMs = 0;
         this.fleeMs = 0;
         this.blowsSinceFlee = 0;
-        this.braveryChecked = false;
+        this.bravery = this.def.bravery + Phaser.Math.Between(0, MONSTER_AI.braveryExtra - 1);
+        this.braveryCheckMs = 0;
         this.chargeMs = 0;
         this.windupMs = 0;
         this.nextChargeMs = Phaser.Math.FloatBetween(0, CHARGE.maxCooldownMs);
@@ -378,10 +383,7 @@ export class Enemy implements Poolable {
         this.flashMs = ENEMY_HIT_FLASH_MS;
         this.sprite.setTintFill(0xffffff);
         this.push(fromX, fromY, knockback);
-        if (this.hp > 0) {
-            this.checkBravery();
-            return false;
-        }
+        if (this.hp > 0) return false;
         this.kill();
         return true;
     }
@@ -539,6 +541,13 @@ export class Enemy implements Poolable {
             this.walkHome(vx, vy, speed, seconds, world);
             return;
         }
+        if (this.attackLeftMs <= 0 && this.fleeMs <= 0) {
+            this.braveryCheckMs -= ownMs;
+            if (this.braveryCheckMs <= 0) {
+                this.braveryCheckMs = this.def.actionTimeMs;
+                this.checkBravery();
+            }
+        }
         if (this.movement === 'charge') this.nextChargeMs -= ownMs;
         let facingX = dx;
         let facingY = dy;
@@ -546,7 +555,7 @@ export class Enemy implements Poolable {
 
         if (this.attackLeftMs > 0) {
             // Attacking: stands still (only pushes and knockback move it) until the animation ends.
-            this.updateAttack(ownMs, inReach, world);
+            this.updateAttack(ownMs, world);
             wanted = MonsterState.Attack;
         } else if (this.fleeMs > 0) {
             // Running away from the player (hit-and-run or scared at low health).
@@ -790,14 +799,16 @@ export class Enemy implements Poolable {
         const durationMs = this.play(MonsterState.Attack, true);
         this.attackLeftMs = durationMs;
         this.hitInMs = durationMs * (MONSTER_ATTACK.hitFrame / this.attackFrameCount());
-        const cut = Phaser.Utils.Array.GetRandom([...MONSTER_AI.attackTimeCuts]) ?? 0;
-        this.cooldownMs = Math.max(MONSTER_AI.minAttackIntervalMs, this.def.actionTimeMs - cut, durationMs);
+        this.cooldownMs = Math.max(originalAttackIntervalMs(this.def.actionTimeMs), durationMs);
         // At its own speed: squeezed into the ~0.46 s swing, most attack sounds played up to twice as fast (27-oct-2026).
         this.audio.play(this.def.attackSound);
     }
 
-    /** The blow lands on frame 2, if the player is still within reach and does not dodge it (archers shoot instead). */
-    private updateAttack(deltaMs: number, inReach: boolean, world: EnemyWorld): void {
+    /**
+     * The blow shows on frame 2. Like the original server it was decided when the attack started, so walking out of
+     * reach mid-swing no longer saves the player; only the dodge roll can (archers shoot instead).
+     */
+    private updateAttack(deltaMs: number, world: EnemyWorld): void {
         this.attackLeftMs -= deltaMs;
         if (this.hitInMs >= 0) {
             this.hitInMs -= deltaMs;
@@ -808,7 +819,7 @@ export class Enemy implements Poolable {
                     this.spellX = world.targetX;
                     this.spellY = world.targetY;
                 } else if (this.def.attackProjectile) this.shotDamage = this.rollDamage();
-                else if (inReach) this.strike(world);
+                else this.strike(world);
             }
         }
         if (this.attackLeftMs <= 0) {
@@ -822,7 +833,8 @@ export class Enemy implements Poolable {
     /** A melee blow reaches the player: it lands only if the hit roll beats the player's defense. */
     private strike(world: EnemyWorld): void {
         const damage = this.rollDamage();
-        const landed = Math.random() < hitChance(this.def.hitRatio, world.defenseRatio);
+        const defense = defenseAgainst(world.defenseRatio, this.direction, world.playerFacing);
+        const landed = Math.random() < hitChance(this.def.hitRatio, defense);
         world.onBlow?.(this.def.name, damage, landed);
         if (landed) this.landedDamage = Math.max(this.landedDamage, damage);
     }
@@ -837,13 +849,15 @@ export class Enemy implements Poolable {
         }
     }
 
-    /** Once, at very low health: cowardly monsters (low bravery) run away for a while. */
+    /**
+     * Once per action, almost dead (the original's 2 health points, as a share of its original health): cowardly
+     * monsters (low bravery) run away for a while; the hit-and-run ones only for their usual short flight.
+     */
     private checkBravery(): void {
-        if (this.braveryChecked || this.hp > this.maxHp * MONSTER_AI.lowHealthShare) return;
-        this.braveryChecked = true;
-        if (Phaser.Math.Between(1, this.def.bravery) <= MONSTER_AI.braveryRoll) {
-            this.fleeMs = MONSTER_AI.lowHealthFleeActions * this.def.actionTimeMs;
-        }
+        if (this.hp > this.maxHp * (MONSTER_AI.lowHealthHp / this.def.maxHp)) return;
+        if (Phaser.Math.Between(1, this.bravery) > MONSTER_AI.braveryRoll) return;
+        const actions = this.strategy === 'normal' ? MONSTER_AI.lowHealthFleeActions : MONSTER_AI.fleeActions;
+        this.fleeMs = actions * this.def.actionTimeMs;
     }
 
     /** One blow: the original dice, compressed for our health scale (data/enemies.ts → MONSTER_DAMAGE), softer for bosses. */
@@ -988,4 +1002,17 @@ function ensureGroundShadowTexture(scene: Phaser.Scene): void {
     }
     graphics.generateTexture(texture, textureWidth, textureHeight);
     graphics.destroy();
+}
+
+/**
+ * Wait after an attack, as the original server times it (data/enemies.ts → MONSTER_AI): it looks every serverTickMs
+ * (give or take its jitter) and on each look rolls the wait again; the attack comes on the first look past it.
+ */
+function originalAttackIntervalMs(actionTimeMs: number): number {
+    const { serverTickMs, serverTickJitterMs, attackTimeCuts, minAttackIntervalMs } = MONSTER_AI;
+    for (let looks = 1; ; looks++) {
+        const gone = looks * serverTickMs + Phaser.Math.FloatBetween(-serverTickJitterMs, serverTickJitterMs);
+        const cut = Phaser.Utils.Array.GetRandom([...attackTimeCuts]) ?? 0;
+        if (gone > Math.max(minAttackIntervalMs, actionTimeMs - cut)) return looks * serverTickMs;
+    }
 }

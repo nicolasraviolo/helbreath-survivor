@@ -22,6 +22,7 @@ export const RELEASE_NOTES: readonly ReleaseNote[] = [
             'Select Map now scrolls to show every map.',
             'Snow tiles no longer show black specks.',
             'Unique items: the Tigerworm may drop the Sword of Ice Elemental or the Ice Storm spell. Rare, and they need a high Level.',
+            'Monsters now attack like in the original game: harder to escape, and blows from behind hurt more.',
         ],
     },
     {

@@ -101,6 +101,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Hechizos en línea y Libro Azul (Fase 26E)
 - Pantalla completa y consolas (Fase 25)
 - Monstruos que se mueven distinto (Fase 27)
+- Ataques de los monstruos como el original (28-oct-2026)
 - Magias pasivas de la partida (Fase 28)
 - Sprites suaves: filtro xBR (Fase 28¾)
 - Zoom del mundo en el móvil (25-oct-2026)
@@ -1283,3 +1284,13 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - **Ice Storm** (`data/activeSpells.ts`, kind `'storm'`; `systems/IceStormField.ts`): 5 s en el punto, cada 0,4 s 7 de daño ×Power y ralentiza; remolinos `fx.iceStorm.whirlwind` (effect3 hoja 0, que ya carga la Maga) y trozos pequeños de Ice Strike. Int 60 + Level 100, 55 de maná. Icono: el libro azul.
 - **Probar:** `?unique=iceElementalSword|iceStorm` (el jefe final lo suelta siempre), `?debug=unique` (uno al azar), `?unique=reset`; `check unique` / `uniquewarehouse` / `uniquesword` / `icestorm`. `?weapon=iceElementalSword` y `?spells=iceStorm` saltan los requisitos.
 - **Añadir únicos de otro mapa:** el objeto en su archivo (con `equip.level: UNIQUE_LEVEL` o `level` en el hechizo) y su id en `MAP_UNIQUES`.
+
+## Ataques de los monstruos como el original (28-oct-2026)
+- **Fuente:** `reference/Server.cpp` (`NpcProcess` ~8970, `NpcBehavior_Attack` ~10580, `NpcBehavior_Flee` ~11310, `iCalculateAttackEffect` ~53930) y `Wmain.cpp` de centuu/HelbreathServer (`_StartTimer(300)`: el servidor mira a los monstruos cada 300 ms; ese archivo no está en el repo).
+- **Ritmo:** en cada vistazo el servidor vuelve a tirar la espera (ATime − 0..700, mínimo 600) y ataca si ya pasó más que eso. Por eso los ataques caen en múltiplos de 300 ms: grandes cada 0,6–0,9 s (media ~0,75), Orc ~1 s, Slime ~1,9 s; antes íbamos un 5–25 % más rápido. `originalAttackIntervalMs` en `Enemy.ts`, constantes en `MONSTER_AI`. El ±2 ms de `serverTickJitterMs` es una suposición (temporizador de Windows); sin él, los de ATime ≤ 900 pegarían siempre a 0,9 s. La velocidad al andar (`enemySpeed`) **no** se ha tocado.
+- **Golpe decidido al empezar:** el original resuelve el golpe en el mismo instante del ataque; aquí se sigue viendo en el frame 2, pero ya no se comprueba el alcance: apartarse a mitad del tajo no lo esquiva.
+- **Huir con poca vida:** con 2 de vida original o menos (como parte de su vida original: `lowHealthHp / def.maxHp`), en cada acción, si 1..bravery ≤ 3; bravery = MinBrvy + 0..2 al aparecer. Huye 10 acciones (2 si es de "pega y huye"). Los grandes (vida alta) casi nunca huyen. Sin la curación al acabar la huida ni el aviso a los compañeros.
+- **Por la espalda:** si el monstruo mira hacia donde mira el jugador, la defensa cuenta la mitad (`DODGE.behindDefenseShare`, `defenseAgainst`); también las flechas (dirección de vuelo). Huir de una manada = media defensa.
+- **Medidas** (`.check/balance-attacks-before|after|nobehind.json`, 3 partidas por caso, mucho ruido): el Guerrero pasa de sobrevivir 1 de 3 partidas en Traveler/Bleeding/Elvine a 0, con 3–6 muertes por caso en vez de 1; la Maga, parecida (Bleeding Isle peor, Elvine algo mejor). Sin la regla de la espalda sale parecido, así que lo que más pesa parece ser no poder escapar del tajo andando (el bot corre en círculos).
+- **Sin hacer (diferencias menores):** +0–299 ms al ATime de cada monstruo al aparecer, empujón con golpes de 40+, veneno y quitar Protect al pegar, "pega y huye" que en el original solo se aparta 1 paso, límites de acierto 15–99 % (nuestros 25–95 %).
+
