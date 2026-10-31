@@ -1294,3 +1294,9 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - **Medidas** (`.check/balance-attacks-before|after|nobehind.json`, 3 partidas por caso, mucho ruido): el Guerrero pasa de sobrevivir 1 de 3 partidas en Traveler/Bleeding/Elvine a 0, con 3–6 muertes por caso en vez de 1; la Maga, parecida (Bleeding Isle peor, Elvine algo mejor). Sin la regla de la espalda sale parecido, así que lo que más pesa parece ser no poder escapar del tajo andando (el bot corre en círculos).
 - **Sin hacer (diferencias menores):** +0–299 ms al ATime de cada monstruo al aparecer, empujón con golpes de 40+, veneno y quitar Protect al pegar, "pega y huye" que en el original solo se aparta 1 paso, límites de acierto 15–99 % (nuestros 25–95 %).
 
+## Regeneración por tandas y lista de mensajes (31-oct-2026)
+- En el servidor original (`reference/Server.cpp`, bucle de clientes ~l. 3865) la vida sube cada `DEF_HPUPTIME` (15 s) y el maná cada `DEF_MPUPTIME` (20 s); con hambre baja el intervalo se alarga (aquí no hay hambre). El reloj corre siempre, también con la barra llena.
+- Aquí cada tanda trae `porSegundo × intervalo` en puntos enteros y guarda los decimales para la siguiente (`systems/RegenTicker.ts`), así que la media no cambió: solo el ritmo. Las fórmulas del original (1D Vit para la vida, 1D Mag para el maná) **no** se copiaron.
+- Mensajes: el cliente original (`CGame::NotifyMsg_HP` / `NotifyMsg_MP`, `reference/Client.cpp`) escribe "HP has been increased by +N points." en la lista de abajo a la izquierda (`AddEventList`) solo si sube 10 o más, y suena `E21`. Aquí sale siempre (con Vit baja la vida sube menos de 10 por tanda) y sin sonido.
+- La lista (`HUD_EVENT_LIST`, `HudScene.addEventLine`) admite cualquier línea con `game.events.emit(EVENT_LIST_EVENT, texto)`; se sube encima del aviso de logro mientras se ve.
+- La vida simulada de `?debug=sim` (`SimRun.tick`) también va por tandas.

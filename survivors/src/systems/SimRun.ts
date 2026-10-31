@@ -3,6 +3,8 @@
 // elige cartas al azar y se apunta en qué segundo llega a cada nivel, cuánto quitan los golpes de los jefes
 // (comparado con su vida máxima) y cuántos golpes de cada monstruo le aciertan y cuántos esquiva (Fase 18A). El informe queda en window.__sim para que lo lea el script.
 import Phaser from 'phaser';
+import { HP_REGEN_INTERVAL_MS } from '../data/stats';
+import { RegenTicker } from './RegenTicker';
 
 /** Game time of each sub-step (ms): like a phone at 30 FPS. */
 const SIM_STEP_MS = 33;
@@ -108,6 +110,8 @@ export class SimRun {
     private hp = -1;
     private maxHp = 0;
     private invulnerableMs = 0;
+    /** Its self-healing comes in batches, as the real one (Player.regenerate). */
+    private readonly regenTicker = new RegenTicker(HP_REGEN_INTERVAL_MS);
 
     constructor(character: string, private readonly invulnerabilityMs: number, private readonly bot: 'circle' | 'stand' = 'circle') {
         this.report = {
@@ -159,13 +163,13 @@ export class SimRun {
         return this.move.set(dx, dy).normalize();
     }
 
-    /** Every step: regen and the hit invulnerability of the virtual health; it grows with the maximum, as the real one. */
+    /** Every step: regen (in batches) and the hit invulnerability of the virtual health; it grows with the maximum, as the real one. */
     tick(delta: number, elapsedMs: number, maxHp: number, regenPerSecond: number): void {
         if (this.hp < 0) this.hp = maxHp;
         else if (maxHp > this.maxHp) this.hp += maxHp - this.maxHp;
         this.maxHp = maxHp;
         this.invulnerableMs = Math.max(0, this.invulnerableMs - delta);
-        this.hp = Math.min(maxHp, this.hp + (regenPerSecond * delta) / 1000);
+        this.hp = Math.min(maxHp, this.hp + this.regenTicker.update(delta, regenPerSecond, maxHp - this.hp));
         perMinute(this.report.maxHpByMinute, elapsedMs, () => maxHp);
     }
 

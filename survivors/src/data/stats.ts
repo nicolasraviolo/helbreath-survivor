@@ -39,8 +39,13 @@ export const STAT_BASELINE = 10;
 /** Vida: base del personaje + Vit + nivel (en el original 2 por Vit y ~2,5 por nivel). */
 export const HP_PER_VIT = 4;
 export const HP_PER_LEVEL = 2;
-/** Vida que se recupera sola cada segundo por punto de Vit (Vit 10 → 0,2/s, unos 12 por minuto). */
+/**
+ * Vida que se recupera sola por segundo y punto de Vit (Vit 10 → 0,2/s, unos 12 por minuto). Como en el original,
+ * no entra poco a poco: llega de golpe cada HP_REGEN_INTERVAL_MS (31-oct-2026), lo acumulado en ese rato.
+ */
 export const HP_REGEN_PER_VIT = 0.02;
+/** Cada cuánto llega la vida (DEF_HPUPTIME del servidor original: 15 s; docs/hb-wiki/combate.md). */
+export const HP_REGEN_INTERVAL_MS = 15_000;
 
 /** Maná, fórmula original: 2·Mag + 2·nivel + Int/2 (docs/hb-wiki/personaje.md, Leveling). */
 export const MANA_PER_MAG = 2;
@@ -50,10 +55,12 @@ export const MANA_PER_INT = 0.5;
  * Maná que se recupera solo cada segundo (Fase 26A, propietario 22-oct-2026: "solo con Mag", como el original):
  * base + porPunto·Mag. Ajustado para que, de media, el Spell 2 salga como con la antigua recarga: Mag 14 → 2,7/s
  * (un Energy Strike cada ~12 s, como antes), Mag 40 → 4,4/s (~7 s; antes 8,4), Mag 60 → 5,7/s (~6 s, como antes).
- * La ropa con MP Recovery lo sube un 30%.
+ * La ropa con MP Recovery lo sube un 30%. Llega de golpe cada MANA_REGEN_INTERVAL_MS, como la vida (31-oct-2026).
  */
 export const MANA_REGEN_BASE = 1.8;
 export const MANA_REGEN_PER_MAG = 0.065;
+/** Cada cuánto llega el maná (DEF_MPUPTIME del servidor original: 20 s; docs/hb-wiki/combate.md). */
+export const MANA_REGEN_INTERVAL_MS = 20_000;
 
 /** Daño físico +3% por punto de Str sobre 10 (en el original, +0,2%). Igual que Mag (Fase 13C). */
 export const PHYSICAL_DAMAGE_PER_STR = 0.03;

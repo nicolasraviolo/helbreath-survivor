@@ -3,7 +3,8 @@
 // nada a su alcance no sale y no gasta nada.
 // Fase 26A (propietario, 22-oct-2026): sin recarga; cada lanzamiento **gasta maná** (el coste de cada hechizo en
 // data/activeSpells.ts, menos el Mana Save de la varita). El maná vive aquí porque solo lo usa el Spell 2: se rellena
-// solo cada segundo (CharacterStats.manaRegenPerSecond, más con la ropa de MP Recovery) y con la Blue Potion.
+// solo, de golpe cada 20 s como en el original (CharacterStats.manaRegenPerSecond × MANA_REGEN_INTERVAL_MS, más con la
+// ropa de MP Recovery; systems/RegenTicker.ts) y con la Blue Potion.
 // Desde el 20D es el que lleve en el hueco Spell 2: Meteor Strike (meteorito), una ráfaga (Energy / Mass Fire Strike)
 // una lluvia de hielo (Ice / Mass Ice Strike, Fase 26D) o un hechizo en línea (Blizzard, Earth / Bloody Shock Wave, 26E).
 // Fase 30B: Ice Storm, una tormenta de hielo que se queda unos segundos (systems/IceStormField.ts).
@@ -19,6 +20,8 @@ import {
     type ActiveSpellDef,
     type ActiveSpellId,
 } from '../data/activeSpells';
+import { MANA_REGEN_INTERVAL_MS } from '../data/stats';
+import { RegenTicker } from './RegenTicker';
 import type { WeaponSystem } from './WeaponSystem';
 
 export class ActiveSpellSystem {
@@ -34,6 +37,8 @@ export class ActiveSpellSystem {
     public loaded: boolean;
     /** Share of the cost the wand in hand saves (Equipment.manaSave). */
     public manaSave = 0;
+    /** Batches of the mana refill, every MANA_REGEN_INTERVAL_MS as in the original. */
+    private readonly regenTicker = new RegenTicker(MANA_REGEN_INTERVAL_MS);
 
     constructor(private readonly weapons: WeaponSystem, public readonly id: ActiveSpellId) {
         this.def = ACTIVE_SPELLS[id];
@@ -79,11 +84,17 @@ export class ActiveSpellSystem {
         this.manaNow = 0;
     }
 
-    /** Refills `regenPerSecond` per second, up to `maxMana`; a bigger maximum adds its gain to the mana now. */
-    public update(deltaMs: number, maxMana: number, regenPerSecond: number): void {
+    /**
+     * Refills `regenPerSecond` per second up to `maxMana`, in one batch every MANA_REGEN_INTERVAL_MS; a bigger maximum
+     * adds its gain to the mana now. Returns the mana the batch gave (0 most frames), for the "MP has been increased" message.
+     */
+    public update(deltaMs: number, maxMana: number, regenPerSecond: number): number {
         if (maxMana > this.lastMax && this.lastMax > 0 && Number.isFinite(this.manaNow)) this.manaNow += maxMana - this.lastMax;
         this.lastMax = maxMana;
-        this.manaNow = Math.min(maxMana, this.manaNow + regenPerSecond * deltaMs / 1000);
+        const before = Math.min(this.manaNow, maxMana);
+        const batch = this.regenTicker.update(deltaMs, regenPerSecond, maxMana - before);
+        this.manaNow = Math.min(maxMana, this.manaNow + batch);
+        return Math.floor(this.manaNow - before);
     }
 
     /** Where it lands cast from (x, y) towards a unit `direction` (Fase 26B, dragging the touch button). */

@@ -17,6 +17,8 @@ import type { HBMap } from '../hb/HBMap';
 import { Direction, directionFromVector } from '../hb/directions';
 import { PlayerState, type GearLayer, type GearSlot } from '../hb/playerAppearance';
 import { settings, SETTINGS_CHANGED } from '../systems/Settings';
+import { RegenTicker } from '../systems/RegenTicker';
+import { HP_REGEN_INTERVAL_MS } from '../data/stats';
 import { canStandAt, moveAxis } from '../utils/collision';
 import { CharacterSprite } from './CharacterSprite';
 import { smoothSprite } from '../hb/XbrPipeline';
@@ -218,10 +220,12 @@ export class Player {
         this.body.setGlow(color, alpha);
     }
 
-    /** Health healed by itself each second (from Vit: CharacterStats.hpRegenPerSecond). */
+    /** Health healed by itself each second (from Vit: CharacterStats.hpRegenPerSecond); it arrives in batches. */
     public regenPerSecond = 0;
-    /** Healing gathered but not yet applied (health goes up one whole point at a time). */
-    private regenCarry = 0;
+    /** Batches of the self-healing, every HP_REGEN_INTERVAL_MS as in the original. */
+    private readonly regenTicker = new RegenTicker(HP_REGEN_INTERVAL_MS);
+    /** Called with the health a batch of self-healing gave (for the "HP has been increased" message). */
+    public onRegen: ((healed: number) => void) | undefined;
 
     /** Heals up to the maximum. */
     public heal(amount: number): void {
@@ -230,17 +234,14 @@ export class Player {
         this.drawHealthBar();
     }
 
-    /** Slow healing from Vit, a whole point at a time. Nothing gathers while at full health. */
+    /** Healing from Vit, in one batch every HP_REGEN_INTERVAL_MS (RegenTicker). Nothing while dead or at full health. */
     private regenerate(deltaMs: number): void {
-        if (this.hp >= this.maxHp) {
-            this.regenCarry = 0;
-            return;
-        }
-        this.regenCarry += (this.regenPerSecond * deltaMs) / 1000;
-        const whole = Math.floor(this.regenCarry);
-        if (whole <= 0) return;
-        this.regenCarry -= whole;
-        this.heal(whole);
+        if (this.isDead) return;
+        const batch = this.regenTicker.update(deltaMs, this.regenPerSecond, this.maxHp - this.hp);
+        if (batch <= 0) return;
+        const before = this.hp;
+        this.heal(batch);
+        if (this.hp > before) this.onRegen?.(this.hp - before);
     }
 
     /** Changes the weapon or a piece of armor drawn on the player (undefined takes it off). */

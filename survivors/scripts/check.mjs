@@ -140,6 +140,8 @@ const PRESETS = {
     // Fase 26A: la Maga con horda (lanza con --eval) y con el maná a 0 para verlo rellenarse.
     mana: 'play=mage&debug=god,horde',
     nomana: 'play=mage&debug=god,nomana',
+    // Regeneración por tandas: vida a 1 y maná a 0; con --wait=21000 se ven los dos mensajes abajo a la izquierda.
+    regen: 'play=mage&debug=god,onehp,nomana',
     // Fase 26B (con --mobile): un dedo de mentira arrastra a la derecha el botón del hechizo; sale el anillo donde caerá.
     // Para soltarlo y lanzarlo hacia allí: --eval="g.debugReleaseSpellDrag()".
     spelldrag: 'play=mage&debug=god,horde,spelldrag',

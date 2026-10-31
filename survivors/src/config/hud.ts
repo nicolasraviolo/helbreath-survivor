@@ -202,6 +202,29 @@ export const HUD_ACHIEVEMENT = {
     fadeMs: 600,
 } as const;
 
+/** Emitted on the game scene with one line for the message list at the bottom left (HUD_EVENT_LIST). */
+export const EVENT_LIST_EVENT = 'event-list';
+
+/**
+ * Message list at the bottom left, like the original's (CGame::AddEventList, reference/Client.cpp): small white lines,
+ * the newest at the bottom; each stays `showMs` and fades out. Goes above the "Achievement unlocked" box while it shows.
+ * Today only the self-healing batches use it ("HP has been increased by +13 points.").
+ */
+export const HUD_EVENT_LIST = {
+    left: 12,
+    /** Bottom of the newest line, this far above the bottom of the game area. */
+    bottomGap: byDevice(14, 18),
+    /** Extra gap above the achievement box when it is on screen. */
+    achievementGap: 6,
+    lineHeight: byDevice(15, 19),
+    maxLines: 4,
+    showMs: 5000,
+    fadeMs: 800,
+    style: { ...UI_TEXT, fontSize: px(UI_FONT_SIZE.small), color: '#ffffff', stroke: '#000000', strokeThickness: 3 },
+    hpUp: (points: number) => `HP has been increased by +${points} points.`,
+    mpUp: (points: number) => `MP has been increased by +${points} points.`,
+} as const;
+
 /** End-of-run screen (scenes/GameOverScene.ts). Buttons from dialogtext.spr sheet 1: normal frame, lit = next frame. */
 export const GAME_OVER = {
     // Fase 25: without the gear lines everything moved ~40 px towards the middle.
