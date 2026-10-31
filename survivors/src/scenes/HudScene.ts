@@ -47,6 +47,7 @@ import { Minimap, type MinimapInfo, type MinimapMarkers } from '../ui/Minimap';
 import { MINIMAP } from '../data/minimap';
 import { openOverlay } from './MenuOverlayScene';
 import type { CharacterInfoSceneData } from './CharacterInfoScene';
+import type { EquipmentSceneData } from './EquipmentScene';
 import type { PauseSceneData } from './PauseScene';
 
 /** What the HUD shows, read every frame from the game. */
@@ -94,6 +95,8 @@ export interface HudSceneData {
     /** Saved character playing (its Level shows in the Character window); undefined in debug runs. */
     characterUid: string | undefined;
     classId: CharacterId;
+    /** Barracks (training): the pause offers Back to Town. */
+    training: boolean;
 }
 
 export class HudScene extends Phaser.Scene {
@@ -104,6 +107,7 @@ export class HudScene extends Phaser.Scene {
     private spellDrag: CritButtonDrag | undefined;
     private characterUid: string | undefined;
     private classId!: CharacterId;
+    private training = false;
     private critButton: CritButton | undefined;
     private minimap!: Minimap;
     private inputSystem!: InputSystem;
@@ -140,6 +144,7 @@ export class HudScene extends Phaser.Scene {
         this.spellDrag = data.spellDrag;
         this.characterUid = data.characterUid;
         this.classId = data.classId;
+        this.training = data.training;
     }
 
     create(): void {
@@ -216,6 +221,7 @@ export class HudScene extends Phaser.Scene {
         this.updateEventLines(delta);
         if (this.inputSystem.justPressed(Action.Pause)) this.openPause();
         if (this.inputSystem.justPressed(Action.ToggleStats)) this.openCharacterInfo();
+        if (this.training && this.inputSystem.justPressed(Action.OpenInventory)) this.openEquipment();
         this.bar.update(state);
         this.critButton?.update(state.skillOrb, state.skillUses);
         this.showBuffs(state.buffs);
@@ -423,11 +429,22 @@ export class HudScene extends Phaser.Scene {
         openOverlay(this, 'CharacterInfo', data);
     }
 
+    /**
+     * Barracks (31-oct-2026): the character's Equipment over the paused run, as in the town. Closing it resumes the run,
+     * which then puts on what changed (GameScene). Only with a saved character; not while cards show.
+     */
+    public openEquipment(): void {
+        if (!this.training || this.characterUid === undefined || !this.scene.isActive() || this.getState().pauseLocked) return;
+        this.scene.pause(this.gameSceneKey);
+        const data: Omit<EquipmentSceneData, 'returnTo'> = { characterUid: this.characterUid, gameSceneKey: this.gameSceneKey };
+        openOverlay(this, 'Equipment', data);
+    }
+
     /** Freezes the game and this bar and opens the pause menu on top (not while cards or the end screen show). */
     private openPause(): void {
         if (!this.scene.isActive() || this.getState().pauseLocked) return;
         this.scene.pause(this.gameSceneKey);
-        const data: Omit<PauseSceneData, 'returnTo'> = { gameSceneKey: this.gameSceneKey };
+        const data: Omit<PauseSceneData, 'returnTo'> = { gameSceneKey: this.gameSceneKey, leaveToTown: this.training };
         openOverlay(this, 'Pause', data);
     }
 }

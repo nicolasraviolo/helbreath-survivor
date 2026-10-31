@@ -178,6 +178,8 @@ const PRESETS = {
     // La ciudad (Fase 23): andar por la granja de Elvine; townportal = aparecer sobre el teleport (Select Map encima).
     town: 'characters=demo&open=town',
     townportal: 'characters=demo&open=town&town=portal',
+    // Delante de la puerta de los Barracks (31-oct-2026); pisarla entra a entrenar.
+    townbarracks: 'characters=demo&open=town&town=barracks',
     // Fase 23B: junto a William ("Talk" encima); towntalk, con su panel abierto.
     townnpc: 'characters=demo&open=town&town=william',
     towntalk: 'characters=demo&open=town&town=william&talk',
@@ -208,6 +210,9 @@ const PRESETS = {
     // Icebound (Fase 30A). iceboundfrost: el Frost (Ice Strike); iceboundnizie: el Nizie (Chill Wind en fila);
     // iceboundboss: el Tigerworm (cadena de rayos) con sus esbirros. Las marcas: --eval="g.enemyShots.strikes.active.length".
     icebound: 'play=warrior&map=icebound',
+    // Barracks (31-oct-2026): entrenamiento con muñecos (data/training.ts). barracksmage: con la Maga.
+    barracks: 'play=warrior&map=barracks',
+    barracksmage: 'play=mage&map=barracks',
     iceboundnosmooth: 'play=warrior&map=icebound&debug=nosmooth',
     iceboundfrost: 'play=warrior&map=icebound&debug=god,boss',
     iceboundnizie: 'play=warrior&map=icebound&debug=god,boss,boss',

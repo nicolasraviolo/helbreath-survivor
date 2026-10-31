@@ -10,7 +10,7 @@ import { ASSET_BASE_PATH, MINIMAPS, type MinimapKey } from '../config/assetManif
 import { GAME_HEIGHT, GAME_WIDTH } from '../config/gameConfig';
 import { MAP_SELECT, MAP_SELECT_STYLES } from '../config/mapSelect';
 import { MAP_SELECT_BACKGROUND_ROWS, MENU_BACKGROUND, MENU_BACKGROUND_SCALE, MENU_INPUT_DELAY_MS } from '../config/menus';
-import { CHOSEN_MAP_KEY, isMapId, MAP_IDS, MAPS_DATA, type MapDef, type MapId } from '../data/maps';
+import { CHOSEN_MAP_KEY, HUNT_MAP_IDS, isMapId, MAPS_DATA, type MapDef, type MapId } from '../data/maps';
 import { finalBossMinute } from '../data/waves';
 import { SpriteText } from '../hb/SpriteText';
 import { ACTIVE_CHARACTER_KEY, characterStore } from '../systems/CharacterStore';
@@ -55,7 +55,7 @@ export class MapSelectScene extends Phaser.Scene {
     preload(): void {
         // The cards' pictures: the minimaps, loaded here the first time (they are not part of the first load).
         this.load.setPath(ASSET_BASE_PATH);
-        for (const id of MAP_IDS) {
+        for (const id of HUNT_MAP_IDS) {
             const key = MAPS_DATA[id].minimap;
             if (!this.textures.exists(key)) this.load.image(key, MINIMAPS[key].file);
         }
@@ -75,7 +75,7 @@ export class MapSelectScene extends Phaser.Scene {
         const { title } = MAP_SELECT;
         new SpriteText(this, GAME_WIDTH / 2, title.y, 'Select Map', title.color, 'center').container.setScale(title.scale);
 
-        MAP_IDS.forEach((id, i) => this.cards.push(this.createCard(id, i)));
+        HUNT_MAP_IDS.forEach((id, i) => this.cards.push(this.createCard(id, i)));
         this.createArrows();
         this.createButtons();
         this.helpText = this.add.text(GAME_WIDTH / 2, MAP_SELECT.help.y, '', {
@@ -88,17 +88,17 @@ export class MapSelectScene extends Phaser.Scene {
 
         // Start on the last map played, or else on the last open one (the newest challenge).
         const last: unknown = this.registry.get(CHOSEN_MAP_KEY);
-        const lastOpen = [...MAP_IDS].reverse().find((id) => this.lockOf(id) === undefined) ?? MAP_IDS[0];
-        const start = isMapId(last) && this.lockOf(last) === undefined ? last : lastOpen;
-        this.focus(Math.max(0, MAP_IDS.indexOf(start ?? 'traveler')), false);
+        const lastOpen = [...HUNT_MAP_IDS].reverse().find((id) => this.lockOf(id) === undefined) ?? HUNT_MAP_IDS[0];
+        const start = isMapId(last) && HUNT_MAP_IDS.includes(last) && this.lockOf(last) === undefined ? last : lastOpen;
+        this.focus(Math.max(0, HUNT_MAP_IDS.indexOf(start ?? 'traveler')), false);
     }
 
     override update(): void {
         const input = this.inputSystem;
         input.update();
         if (!this.ready()) return;
-        if (input.justPressed(Action.MenuLeft)) this.focus((this.focused + MAP_IDS.length - 1) % MAP_IDS.length);
-        if (input.justPressed(Action.MenuRight)) this.focus((this.focused + 1) % MAP_IDS.length);
+        if (input.justPressed(Action.MenuLeft)) this.focus((this.focused + HUNT_MAP_IDS.length - 1) % HUNT_MAP_IDS.length);
+        if (input.justPressed(Action.MenuRight)) this.focus((this.focused + 1) % HUNT_MAP_IDS.length);
         if (input.justPressed(Action.Confirm)) this.play();
         if (input.justPressed(Action.Back)) this.back();
     }
@@ -170,7 +170,7 @@ export class MapSelectScene extends Phaser.Scene {
         const make = (x: number, text: string, originX: number, step: number) => this.add.text(x, arrows.y, text, MAP_SELECT_STYLES.arrow)
             .setOrigin(originX, 0.5).setInteractive({ useHandCursor: true })
             .on(Phaser.Input.Events.POINTER_UP, () => {
-                if (this.ready()) this.focus(Phaser.Math.Clamp(this.focused + step, 0, MAP_IDS.length - 1));
+                if (this.ready()) this.focus(Phaser.Math.Clamp(this.focused + step, 0, HUNT_MAP_IDS.length - 1));
             });
         this.arrowLeft = make(left - arrows.gapX, '‹', 1, -1);
         this.arrowRight = make(right + arrows.gapX, '›', 0, 1);
@@ -179,7 +179,7 @@ export class MapSelectScene extends Phaser.Scene {
     /** Left and right edges of the cards in view, centred on the screen. */
     private rowEdges(): [number, number] {
         const { card } = MAP_SELECT;
-        const shown = Math.min(card.visible, MAP_IDS.length);
+        const shown = Math.min(card.visible, HUNT_MAP_IDS.length);
         const width = card.width * shown + card.gap * (shown - 1);
         const left = (GAME_WIDTH - width) / 2;
         return [left, left + width];
@@ -188,7 +188,7 @@ export class MapSelectScene extends Phaser.Scene {
     /** Slides the row so the focused card is in view; cards out of view are hidden. */
     private placeCards(animate: boolean): void {
         const { card } = MAP_SELECT;
-        const shown = Math.min(card.visible, MAP_IDS.length);
+        const shown = Math.min(card.visible, HUNT_MAP_IDS.length);
         if (this.focused < this.firstShown) this.firstShown = this.focused;
         if (this.focused >= this.firstShown + shown) this.firstShown = this.focused - shown + 1;
         const x = this.rowEdges()[0] - this.firstShown * (card.width + card.gap);
@@ -202,7 +202,7 @@ export class MapSelectScene extends Phaser.Scene {
             if (c.frame.input) c.frame.input.enabled = inView;
         });
         this.arrowLeft.setVisible(this.firstShown > 0);
-        this.arrowRight.setVisible(this.firstShown + shown < MAP_IDS.length);
+        this.arrowRight.setVisible(this.firstShown + shown < HUNT_MAP_IDS.length);
     }
 
     private createButtons(): void {
@@ -234,7 +234,7 @@ export class MapSelectScene extends Phaser.Scene {
             i === index ? card.focusedBorderWidth : card.borderWidth,
             i === index ? card.focusedBorder : card.border,
         ));
-        const id = MAP_IDS[index];
+        const id = HUNT_MAP_IDS[index];
         if (!id) return;
         const lock = this.lockOf(id);
         const def = MAPS_DATA[id];
@@ -245,7 +245,7 @@ export class MapSelectScene extends Phaser.Scene {
     }
 
     private play(): void {
-        const id = MAP_IDS[this.focused];
+        const id = HUNT_MAP_IDS[this.focused];
         if (!id || this.lockOf(id) !== undefined) return;
         this.registry.set(CHOSEN_MAP_KEY, id);
         if (this.fromTown) this.scene.stop(TOWN_SCENE_KEY);

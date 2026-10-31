@@ -49,6 +49,8 @@ export interface MapDef {
     runSprites?: readonly SpriteKey[];
     /** Not playable yet: shown as "Coming soon" (its waves come in a later block). */
     comingSoon?: boolean;
+    /** Training map (the Barracks, data/training.ts): always open, no waves, no rewards, no saving, no dying. */
+    training?: boolean;
 }
 
 export const MAPS_DATA = {
@@ -91,6 +93,15 @@ export const MAPS_DATA = {
         recommendedLevel: 55, difficulty: { hp: 1.9, damage: 1.9 }, music: 'music.default', runSprites: ['fx.effect4'],
         description: 'A frozen field where the cold bites.',
     },
+    // Barracks (31-oct-2026, propietario): entrenamiento con muñecos (data/training.ts). Los Barracks de Elvine
+    // (elvbrk11.amd, 150×150, 225 KB): la zona de juego es la arena entera (un rombo de ~105×90, 5.739 casillas libres).
+    // No sale en Select Map (HUNT_MAP_IDS): se entra por su puerta en la ciudad (TOWN.barracksDoor). Siempre abierto
+    // en MapUnlockStore; va el último para no contar en el orden de desbloqueo.
+    barracks: {
+        name: 'Barracks', asset: 'map.barracks', size: { width: 150, height: 150 }, minimap: 'minimap.barracks', playArea: { x: 18, y: 29, width: 110, height: 94 },
+        localEnemies: ['trainingDummy', 'attackDummy'], bosses: [], recommendedLevel: 1, difficulty: { hp: 1, damage: 1 }, music: MUSIC.normal,
+        description: 'Hit the Dummies to test your damage.', training: true,
+    },
 } as const satisfies Record<string, MapDef>;
 
 export type MapId = keyof typeof MAPS_DATA;
@@ -110,6 +121,15 @@ export const CHOSEN_MAP_KEY = 'chosenMap';
 export function getMapDef(id: MapId): MapDef {
     return MAPS_DATA[id];
 }
+
+/** The Barracks (training): no waves, no rewards, no saving, no dying. */
+export function isTrainingMap(id: MapId): boolean {
+    const def: MapDef = MAPS_DATA[id];
+    return def.training === true;
+}
+
+/** The hunting maps, in Select Map order (the Barracks is entered through its door in the town). */
+export const HUNT_MAP_IDS: readonly MapId[] = MAP_IDS.filter((id) => !isTrainingMap(id));
 
 export function isMapId(value: unknown): value is MapId {
     return typeof value === 'string' && Object.prototype.hasOwnProperty.call(MAPS_DATA, value);

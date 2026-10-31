@@ -212,6 +212,9 @@ export const TIMELINES: Partial<Record<MapId, MapTimeline>> = {
     elvineGarden: { waves: ELVINE_WAVES, events: ELVINE_EVENTS },
     middleland: { waves: MIDDLELAND_WAVES, events: MIDDLELAND_EVENTS },
     icebound: { waves: ICEBOUND_WAVES, events: ICEBOUND_EVENTS },
+    // Barracks (data/training.ts): no waves (GameScene keeps the spawner off). This one only says which monster its
+    // loading screen downloads (firstWaveEnemies).
+    barracks: { waves: [{ fromMinute: 0, enemies: [{ enemy: 'trainingDummy', weight: 1 }, { enemy: 'attackDummy', weight: 1 }], startInterval: 1, endInterval: 1, batchSize: 0, maxAlive: 0 }], events: [] },
 };
 
 export function getTimeline(map: MapId): MapTimeline {
@@ -287,5 +290,5 @@ for (const id of MAP_IDS) {
         const ok = event.kind === 'boss' || event.kind === 'finalBoss' ? map.bosses.includes(event.enemy) : allowed.has(event.enemy);
         if (!ok) throw new Error(`data/waves.ts: event ${event.message} uses ${event.enemy}, not a ${map.name} monster`);
     }
-    if (finalBossMinute(id) === undefined) throw new Error(`data/waves.ts: ${map.name} has no final boss`);
+    if (!map.training && finalBossMinute(id) === undefined) throw new Error(`data/waves.ts: ${map.name} has no final boss`);
 }

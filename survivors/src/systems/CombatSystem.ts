@@ -52,6 +52,8 @@ export class CombatSystem {
     public poisonOnHit = false;
     /** The weapon in hand slows what it hits (a unique: Sword of Ice Elemental, Fase 30B). */
     public chillOnHit = false;
+    /** Every blow that lands, poison too (the Barracks' damage panel, 31-oct-2026). */
+    public onDamage: ((damage: number, critical: boolean) => void) | undefined;
 
     constructor(
         private readonly enemies: EnemySystem,
@@ -120,6 +122,7 @@ export class CombatSystem {
             const damage = enemy.tickPoison(deltaMs);
             if (damage <= 0) return;
             const killed = enemy.hp <= 0;
+            this.onDamage?.(damage, false);
             this.numbers.showPoison(enemy.x, enemy.bodyY - enemy.def.bodyOffsetY, damage, killed);
             if (killed) this.slay(enemy);
         });
@@ -164,6 +167,7 @@ export class CombatSystem {
         const scaled = baseDamage * this.attacker.damageMultiplier(type) * (critical ? CRIT_DAMAGE_MULTIPLIER : 1);
         const damage = Math.max(1, Math.round(scaled));
         const killed = enemy.takeDamage(damage, fromX, fromY, knockback);
+        this.onDamage?.(damage, critical);
         this.numbers.show(enemy.x, enemy.bodyY - enemy.def.bodyOffsetY, damage, critical || bigNumber, killed);
         if (!killed && this.poisonOnHit && type === 'physical') enemy.poison(Math.max(1, Math.round(damage * POISON.levelShare)));
         if (!killed && this.chillOnHit && type === 'physical') chillEnemy(enemy);

@@ -82,6 +82,8 @@ import type { MenuOverlayData } from './MenuOverlayScene';
 
 export interface EquipmentSceneData {
     characterUid: string;
+    /** Opened in the Barracks (31-oct-2026): the run paused underneath, resumed on closing (it then puts the new gear on). */
+    gameSceneKey?: string;
 }
 
 /** A row of the list: an item, or undefined for "Nothing" (empty the slot). */
@@ -105,6 +107,7 @@ type Focus = { kind: 'slot' } | { kind: 'row'; index: number } | { kind: 'ok' };
 export class EquipmentScene extends Phaser.Scene {
     private uid = '';
     private returnTo = '';
+    private gameSceneKey: string | undefined;
     private inputSystem!: InputSystem;
     private openedAt = 0;
     private slot: EquipSlotId = 'weapon';
@@ -132,6 +135,7 @@ export class EquipmentScene extends Phaser.Scene {
     init(data: EquipmentSceneData & MenuOverlayData): void {
         this.uid = data.characterUid;
         this.returnTo = data.returnTo;
+        this.gameSceneKey = data.gameSceneKey;
         this.slotBoxes = new Map();
         this.rows = [];
         this.views = [];
@@ -565,6 +569,7 @@ export class EquipmentScene extends Phaser.Scene {
     private close(): void {
         this.scene.stop();
         this.scene.resume(this.returnTo);
+        if (this.gameSceneKey) this.scene.resume(this.gameSceneKey);
     }
 
     private ready(): boolean {

@@ -99,3 +99,6 @@ Todas las decisiones tomadas, ordenadas por fecha (las del mismo día, en el ord
 
 ## 2026-10-30
 - 2026-10-30 · Ataques de los monstruos (propietario): se corrigen para que funcionen **como el servidor original**: ritmo de ataque (el servidor mira cada 300 ms), golpe decidido al empezar el ataque (apartarse a mitad ya no lo esquiva), regla original de huir con poca vida y **defensa a la mitad si te pegan por la espalda** (también flechas). El juego queda más difícil y se **deja así**, sin compensar. Las diferencias menores (veneno al pegar, empujón con golpes fuertes, +0–299 ms por monstruo…) siguen sin hacer.
+
+## 2026-10-31
+- 2026-10-31 · Barracks (propietario): zona de **entrenamiento** para probar daño y builds. Mapa **Barracks** del original (`elvbrk11`) con **5 Dummies quietos que no mueren** y **3 Attack-Dummies** que andan y pegan; sin recompensas, sin guardado y sin morir. Se entra por **la puerta real del edificio de los Barracks en la ciudad** (se amplía la ciudad hacia arriba, +3,6 MB de carga, aceptado) y Back to Town deja delante de la puerta; no sale en Select Map. Panel de DPS, **L** sube de nivel con cartas, **R** reinicia el panel. El "Arsenal" es la pantalla **Equipment con solo lo que tiene el personaje** (no todo el catálogo).

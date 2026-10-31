@@ -10,8 +10,9 @@
  * - `keepAway`: monsters that hit from afar walk up to their range, then back off if the player comes too close (27C).
  * - `guard`: stays at its post (where it appeared) and only chases a player who comes near it, then goes back (the
  *   Guards of the rescues, Fase 29A; DEF_MOVETYPE_GUARD of the original server).
+ * - `still`: never moves nor attacks; if pushed, it walks back to its spot (the training Dummies of the Barracks).
  */
-export type MovementStyle = 'direct' | 'flank' | 'wander' | 'charge' | 'keepAway' | 'guard';
+export type MovementStyle = 'direct' | 'flank' | 'wander' | 'charge' | 'keepAway' | 'guard' | 'still';
 
 /**
  * Flank: each monster picks a side (left or right) and an angle between `minAngleDeg` and `maxAngleDeg` when it
