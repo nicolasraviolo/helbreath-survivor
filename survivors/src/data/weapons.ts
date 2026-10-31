@@ -40,7 +40,7 @@ export interface MeleeWeaponDef {
     equip?: EquipRequirement;
     /** Picture in item-pack.spr (Equipment screen). */
     icon?: ItemIcon;
-    /** Hammers (bloque C): the crack in a line towards the target, `length` px long, `damage` to each monster on it. */
+    /** Hammers (bloque C): the Critical Strike's crack towards the target, `length` px long (× HAMMER_SLAM.critCrackLength), `damage` to each monster on it (scaled like the strike). */
     crack?: { damage: number; length: number };
     /** Unique weapons (Fase 30B): every hit slows the monster like the ice spells (ICE_SLOW). */
     chills?: boolean;
@@ -48,13 +48,19 @@ export interface MeleeWeaponDef {
     glow?: AddedColor;
 }
 
-/** How a family attacks: a swing in an arc towards the target, a spin all around (axes) or a ground slam (hammers). */
+/**
+ * How a family's Critical Strike looks: a long swing towards the target (swords), a spin all around (axes) or a ground
+ * slam (hammers). The normal blow is the same swing in an arc for every family (owner, 31-oct-2026).
+ */
 export type MeleeAttackStyle = 'swing' | 'spin' | 'slam';
 
 export interface MeleeFamilyDef {
     name: string;
     enabled: boolean;
-    attack: MeleeAttackStyle;
+    /** Shape of this family's Critical Strike (data/critStrike.ts); the normal blow is always a swing. */
+    critStyle: MeleeAttackStyle;
+    /** Played when a normal blow hits something (the hammers' dull blow); the sword's hit when left out. */
+    hitSound?: SoundKey;
     /** Links from weakest to strongest. */
     links: readonly MeleeWeaponId[];
 }
@@ -76,30 +82,24 @@ const SWORD_SPRITE: SpriteKey = 'gear.swords.m';
 const AXE_ICON_SHEET = 14;
 
 /**
- * Spin of the axes (bloque B, 25-oct-2026): the character turns through the 8 directions in `swingMs`, with a round
- * trail, and every enemy inside the circle is hit once. Stands still for the whole spin (as in the original attack).
+ * Round trail of the axes' Critical Strike (bloque B, 25-oct-2026; 31-oct-2026): the character swings towards the
+ * target (turning round looked odd) while the trail sweeps the whole circle that is hit.
  */
 export const AXE_SPIN = {
-    /** Damage lands at this point of the spin (half a turn). */
-    hitMoment: 0.5,
-    /** Frame of the attack animation (0–7) held in each direction: the blade low and forward, mid-sweep (frame 3 = raised). */
-    poseFrame: 5,
-    /** Turns clockwise on screen. */
+    /** The trail turns clockwise on screen. */
     clockwise: true,
 } as const;
 
 /**
- * Ground slam of the hammers (bloque C, owner 25-oct-2026): the normal swing towards the target, and when the hammer hits
- * the ground a wave hurts every monster in the circle around the player and a crack runs in a line towards the target.
+ * Ground slam of the hammers' Critical Strike (bloque C, owner 25-oct-2026; only the crit since 31-oct-2026): when the
+ * hammer hits the ground a wave hurts every monster in the circle around the player and a crack runs towards the target.
  */
 export const HAMMER_SLAM = {
     /** The hammer hits the ground at this point of the swing (later than a sword's: it is heavy). */
     hitMoment: 0.4,
     /** Stands still until just after the blow. */
     rootMoment: 0.5,
-    /** Slams when a monster is within this share of the crack's length (the crack reaches it), not only the circle. */
-    triggerShare: 0.75,
-    /** Played when the hammer hits the ground (a dull blow, C5), instead of the sword's swing and hit. */
+    /** Played when the hammer hits the ground (a dull blow, C5); also on the hammers' normal hits. */
     impactSound: 'sfx.melee.blunt',
     /** Light camera shake on every slam. */
     shakePx: 2,
@@ -109,7 +109,7 @@ export const HAMMER_SLAM = {
     /** Dust puffs around the player when the hammer hits the ground, at `dustShare` of the wave's radius (no ring: owner, 26-oct-2026). */
     wave: { dust: 'fx.earthShock.dust', dustCount: 6, dustShare: 0.7 },
 } as const satisfies {
-    hitMoment: number; rootMoment: number; triggerShare: number; impactSound: SoundKey; shakePx: number; shakeMs: number; critCrackLength: number;
+    hitMoment: number; rootMoment: number; impactSound: SoundKey; shakePx: number; shakeMs: number; critCrackLength: number;
     wave: { dust: EffectKey; dustCount: number; dustShare: number };
 };
 
@@ -184,47 +184,49 @@ export const MELEE_WEAPONS = {
         equip: { str: 100, level: UNIQUE_LEVEL }, icon: { sheet: 0, frame: 15 }, chills: true,
         glow: { id: 'unique-iceElementalSword', add: [-50, -10, 70] },
     },
-    // Hammers (bloque C, 26-oct-2026): golpe al suelo (HAMMER_SLAM). La onda daña todo el círculo de `range` y la grieta
-    // (`crack`) sale en línea hacia el objetivo. Lentos y pesados: más daño por golpe que espadas y hachas, menos golpes.
+    // Hammers (bloque C, 26-oct-2026; 31-oct-2026): el golpe normal es un tajo en abanico como el de las espadas; el golpe
+    // al suelo (HAMMER_SLAM: onda en círculo y grieta `crack`) queda para el Critical Strike. Lentos y pesados: más daño
+    // por golpe y algo más por segundo que la espada de Str parecida, a cambio de su requisito alto.
     // Icono: hoja 14 de item-pack.spr, como las hachas (Item.cfg Spr 15).
     hammer: {
-        name: 'Hammer', family: 'hammer', damage: 42, cooldownMs: 1500, swingMs: 650,
-        range: 80, arcDegrees: 360, knockback: 240, sprite: { key: 'gear.hammers.hammer', startSheet: 0 },
-        equip: { str: 70 }, icon: { sheet: AXE_ICON_SHEET, frame: 7 }, crack: { damage: 20, length: 200 },
+        name: 'Hammer', family: 'hammer', damage: 88, cooldownMs: 1500, swingMs: 650,
+        range: 88, arcDegrees: 160, knockback: 240, sprite: { key: 'gear.hammers.hammer', startSheet: 0 },
+        equip: { str: 70 }, icon: { sheet: AXE_ICON_SHEET, frame: 7 }, crack: { damage: 42, length: 200 },
     },
     battleHammer: {
-        name: 'Battle Hammer', family: 'hammer', damage: 62, cooldownMs: 1550, swingMs: 650,
-        range: 90, arcDegrees: 360, knockback: 270, sprite: { key: 'gear.hammers.battle', startSheet: 0 },
-        equip: { str: 95 }, icon: { sheet: AXE_ICON_SHEET, frame: 8 }, crack: { damage: 27, length: 240 },
+        name: 'Battle Hammer', family: 'hammer', damage: 95, cooldownMs: 1550, swingMs: 650,
+        range: 95, arcDegrees: 160, knockback: 270, sprite: { key: 'gear.hammers.battle', startSheet: 0 },
+        equip: { str: 95 }, icon: { sheet: AXE_ICON_SHEET, frame: 8 }, crack: { damage: 42, length: 240 },
     },
     // Desactivada (solo datos, sin ataque propio ni sprite cargado todavía). Números provisionales.
     rapier: { name: 'Rapier', family: 'fencing', damage: 10, cooldownMs: 400, swingMs: 320, range: 90, arcDegrees: 25, knockback: 40 },
-    // Axes (bloque B, 25-oct-2026): giran sobre sí mismos y golpean todo el círculo (AXE_SPIN). Hacen menos daño por golpe
-    // que la espada larga de Str parecida porque dan a todo lo que rodea al jugador. Requisitos aprobados por el propietario.
+    // Axes (bloque B, 25-oct-2026; 31-oct-2026): el golpe normal es un tajo en abanico como el de las espadas, con un poco
+    // más de daño por segundo que la espada larga de Str parecida (algo menos de alcance); el golpe en círculo (AXE_SPIN)
+    // queda para el Critical Strike, que es el de área más amplia. Requisitos aprobados por el propietario.
     // Dibujo en la mano: waxe*.spr también para el hombre (maxe* está roto en IdleCombat; ver NOTES.md). Icono: hoja 14.
     lightAxe: {
-        name: 'Light Axe', family: 'axe', damage: 15, cooldownMs: 1100, swingMs: 360,
-        range: 72, arcDegrees: 360, knockback: 110, sprite: { key: 'gear.axes.light', startSheet: 0 },
+        name: 'Light Axe', family: 'axe', damage: 20, cooldownMs: 1000, swingMs: 560,
+        range: 76, arcDegrees: 150, knockback: 110, sprite: { key: 'gear.axes.light', startSheet: 0 },
         equip: { str: 12 }, icon: { sheet: AXE_ICON_SHEET, frame: 2 },
     },
     tomahawk: {
-        name: 'Tomahawk', family: 'axe', damage: 19, cooldownMs: 1100, swingMs: 360,
-        range: 75, arcDegrees: 360, knockback: 120, sprite: { key: 'gear.axes.tomahawk', startSheet: 0 },
+        name: 'Tomahawk', family: 'axe', damage: 25, cooldownMs: 1000, swingMs: 560,
+        range: 78, arcDegrees: 150, knockback: 120, sprite: { key: 'gear.axes.tomahawk', startSheet: 0 },
         equip: { str: 20 }, icon: { sheet: AXE_ICON_SHEET, frame: 3 },
     },
     doubleAxe: {
-        name: 'Double Axe', family: 'axe', damage: 24, cooldownMs: 1150, swingMs: 380,
-        range: 78, arcDegrees: 360, knockback: 130, sprite: { key: 'gear.axes.double', startSheet: 0 },
+        name: 'Double Axe', family: 'axe', damage: 33, cooldownMs: 1050, swingMs: 580,
+        range: 82, arcDegrees: 150, knockback: 130, sprite: { key: 'gear.axes.double', startSheet: 0 },
         equip: { str: 33 }, icon: { sheet: AXE_ICON_SHEET, frame: 0 },
     },
     warAxe: {
-        name: 'War Axe', family: 'axe', damage: 29, cooldownMs: 1150, swingMs: 380,
-        range: 82, arcDegrees: 360, knockback: 145, sprite: { key: 'gear.axes.war', startSheet: 0 },
+        name: 'War Axe', family: 'axe', damage: 39, cooldownMs: 1050, swingMs: 580,
+        range: 86, arcDegrees: 155, knockback: 145, sprite: { key: 'gear.axes.war', startSheet: 0 },
         equip: { str: 46 }, icon: { sheet: AXE_ICON_SHEET, frame: 1 },
     },
     battleAxe: {
-        name: 'Battle Axe', family: 'axe', damage: 42, cooldownMs: 1200, swingMs: 400,
-        range: 88, arcDegrees: 360, knockback: 170, sprite: { key: 'gear.axes.battle', startSheet: 0 },
+        name: 'Battle Axe', family: 'axe', damage: 57, cooldownMs: 1100, swingMs: 600,
+        range: 92, arcDegrees: 160, knockback: 170, sprite: { key: 'gear.axes.battle', startSheet: 0 },
         equip: { str: 80 }, icon: { sheet: AXE_ICON_SHEET, frame: 6 },
     },
 } as const satisfies Record<string, MeleeWeaponDef>;
@@ -232,17 +234,24 @@ export const MELEE_WEAPONS = {
 export type MeleeWeaponId = keyof typeof MELEE_WEAPONS;
 
 export const MELEE_FAMILIES = {
-    shortSword: { name: 'Short Swords', enabled: true, attack: 'swing', links: ['dagger', 'shortSword', 'falchion'] },
-    longSword: { name: 'Long Swords', enabled: true, attack: 'swing', links: ['longSword', 'scimitar', 'broadSword', 'claymore', 'greatSword', 'flamberge', 'iceElementalSword'] },
-    hammer: { name: 'Hammers', enabled: true, attack: 'slam', links: ['hammer', 'battleHammer'] },
-    fencing: { name: 'Fencing', enabled: false, attack: 'swing', links: ['rapier'] },
-    axe: { name: 'Axes', enabled: true, attack: 'spin', links: ['lightAxe', 'tomahawk', 'doubleAxe', 'warAxe', 'battleAxe'] },
+    shortSword: { name: 'Short Swords', enabled: true, critStyle: 'swing', links: ['dagger', 'shortSword', 'falchion'] },
+    longSword: { name: 'Long Swords', enabled: true, critStyle: 'swing', links: ['longSword', 'scimitar', 'broadSword', 'claymore', 'greatSword', 'flamberge', 'iceElementalSword'] },
+    hammer: { name: 'Hammers', enabled: true, critStyle: 'slam', hitSound: HAMMER_SLAM.impactSound, links: ['hammer', 'battleHammer'] },
+    fencing: { name: 'Fencing', enabled: false, critStyle: 'swing', links: ['rapier'] },
+    axe: { name: 'Axes', enabled: true, critStyle: 'spin', links: ['lightAxe', 'tomahawk', 'doubleAxe', 'warAxe', 'battleAxe'] },
 } as const satisfies Record<MeleeFamilyId, MeleeFamilyDef>;
 
 export function getMeleeWeapon(id: MeleeWeaponId): MeleeWeaponDef {
     return MELEE_WEAPONS[id];
 }
 
-export function meleeAttackStyle(def: MeleeWeaponDef): MeleeAttackStyle {
-    return MELEE_FAMILIES[def.family].attack;
+/** How this weapon's Critical Strike looks (its normal blow is always a swing). */
+export function meleeCritStyle(def: MeleeWeaponDef): MeleeAttackStyle {
+    return MELEE_FAMILIES[def.family].critStyle;
+}
+
+/** Sound of a normal blow that hits something. */
+export function meleeHitSound(def: MeleeWeaponDef): SoundKey {
+    const family: MeleeFamilyDef = MELEE_FAMILIES[def.family];
+    return family.hitSound ?? MELEE_HIT_SOUND;
 }

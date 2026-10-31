@@ -81,7 +81,7 @@ export class LineSpell {
         cast.def = def;
         cast.power = power;
         cast.fromX = fromX;
-        cast.fromY = fromY + (def.look === 'bloodyShock' ? LINE_SPELL_LOOKS.bloodyShock.startDy : 0);
+        cast.fromY = fromY + (def.look === 'bloodyShock' ? LINE_SPELL_LOOKS.bloodyShock.startDy : def.look === 'sparks' ? LINE_SPELL_LOOKS.sparks.startDy : 0);
         cast.toX = toX;
         cast.toY = toY;
         cast.elapsedMs = -releaseMs;
@@ -141,6 +141,13 @@ export class LineSpell {
                 this.audio.play(look.sound);
                 break;
             }
+            case 'sparks': {
+                const look = LINE_SPELL_LOOKS.sparks;
+                for (let i = 0; i < look.count; i++) {
+                    this.playEffect(look.spark, x + Phaser.Math.Between(-look.jitter, look.jitter), y + Phaser.Math.Between(-look.jitter, look.jitter));
+                }
+                break;
+            }
             case 'earthShock': {
                 const look = LINE_SPELL_LOOKS.earthShock;
                 this.playEffect(look.torrent, x, y);
@@ -170,6 +177,8 @@ export class LineSpell {
     /** The monsters near step `index` that this cast has not hit `pathHits` times yet take the path damage. */
     private hitPath(cast: LineCast, index: number): void {
         const { def } = cast;
+        // A picture only (the swords' Critical Strike wave): nothing to hit.
+        if (def.pathDamage <= 0) return;
         const { x, y } = this.point(cast, index);
         this.enemies.forEachInRadius(x, y, def.pathRadius, (enemy) => {
             const count = cast.hitCount.get(enemy) ?? 0;
@@ -187,6 +196,7 @@ export class LineSpell {
     /** One area hit on the point. */
     private hitTarget(cast: LineCast): void {
         const { def } = cast;
+        if (def.targetDamage <= 0) return;
         this.combat.hitArea({
             damageType: def.damageType ?? 'magic', x: cast.toX, y: cast.toY, radius: def.targetRadius, areaDamage: def.targetDamage * cast.power,
             direct: undefined, directDamage: 0, knockback: def.knockback, bigNumbers: def.bigNumbers ?? true,

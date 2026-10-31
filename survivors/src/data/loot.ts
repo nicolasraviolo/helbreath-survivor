@@ -54,9 +54,10 @@ export const LOOT_ZEM_BOSS_CHANCE = 0.1;
 
 /**
  * Chance that any monster drops a Stone of Xelima when it dies, apart from the normal roll (owner, 22-oct-2026: "any
- * monster, very rare"). A 15-minute run (~3.000 kills) gives ~1–2. ?debug=xelima raises it to `debug`.
+ * monster, very rare"; 31-oct-2026: "one every 2 runs"): 1 in 5.000, so a run of ~1.000–3.000 kills gives ~0,2–0,6.
+ * ?debug=xelima raises it to `debug`.
  */
-export const LOOT_XELIMA_CHANCE = { normal: 0.0005, debug: 0.05 } as const;
+export const LOOT_XELIMA_CHANCE = { normal: 0.0002, debug: 0.05 } as const;
 
 /**
  * Manual spells (Fase 26E, MANUAL_SPELL_IDS): chance that any monster drops the book of one the character hasn't

@@ -6,15 +6,17 @@
 // los pide systems/ActiveSpellSystem.ts. La lluvia de hielo (Ice Strike, Fase 26D) vive en systems/IceShardRain.ts y
 // los hechizos en línea (Blizzard, Earth / Bloody Shock Wave, Fase 26E) en systems/LineSpell.ts.
 // Bloque C: el golpe al suelo de los martillos (groundSlam): onda en círculo (polvo alrededor) y grieta en línea
-// (HAMMER_CRACK, con su propio LineSpell para que no cuente como hechizo activo).
+// (HAMMER_CRACK, con su propio LineSpell para que no cuente como hechizo activo). Desde el 31-oct-2026 solo en el
+// Critical Strike: el golpe normal de todas las armas es el mismo tajo en abanico. El Critical Strike de las espadas
+// lleva una onda de chispas (CRIT_SWORD_WAVE) y el de las hachas polvo y chispas en círculo (CRIT_AXE_WHIRL).
 import Phaser from 'phaser';
 import { MELEE_ORIGIN_OFFSET_Y } from '../config/gameConfig';
 import { SWING_SOUND_MS } from '../data/audio';
 import type { EffectKey } from '../config/effects';
 import { CAST_RELEASE_MOMENT, CAST_SOUND, SPELLS, type SpellBurst, type SpellDef } from '../data/spells';
-import { critReach, type CritShape } from '../data/critStrike';
+import { CRIT_AXE_WHIRL, CRIT_SWORD_WAVE, critReach, type CritShape } from '../data/critStrike';
 import { METEOR_LOOK, type BarrageSpellDef, type IceShardSpellDef, type LineSpellDef, type MeteorSpellDef, type StormSpellDef } from '../data/activeSpells';
-import { AXE_SPIN, HAMMER_CRACK, HAMMER_SLAM, MELEE_HIT_MOMENT, MELEE_HIT_SOUND, MELEE_SWING_SOUND, meleeAttackStyle, type MeleeWeaponDef } from '../data/weapons';
+import { AXE_SPIN, HAMMER_CRACK, HAMMER_SLAM, MELEE_HIT_MOMENT, MELEE_HIT_SOUND, MELEE_SWING_SOUND, meleeCritStyle, meleeHitSound, type MeleeWeaponDef } from '../data/weapons';
 import { Effect } from '../entities/Effect';
 import type { Enemy } from '../entities/Enemy';
 import { LightningArc } from '../entities/LightningArc';
@@ -33,7 +35,7 @@ import type { ScreenShake } from './ScreenShake';
 import { type ManualAim, manualAimAngle, Targeting } from './Targeting';
 
 /** Owner animation asked by a weapon: a melee swing or a cast. */
-export type OwnerAction = 'melee' | 'cast' | 'spin' | 'slam';
+export type OwnerAction = 'melee' | 'cast' | 'slam';
 
 /** An explosion waiting to be drawn (Fire Strike: 4 explosions 0–140 ms apart). */
 class PendingBurst implements Poolable {
@@ -75,7 +77,7 @@ export class WeaponSystem {
     private readonly lineSpell: LineSpell;
     /** Ice Storm (Fase 30B, the unique of Icebound). */
     private readonly iceStorms: IceStormField;
-    /** Hammers (bloque C): their cracks. */
+    /** Hammers' cracks (bloque C) and the swords' Critical Strike wave. */
     private readonly hammerCracks: LineSpell;
     /** Critical Strike under way: blows still to land (axes spin twice) and when the next one lands. */
     /** Fase 19C: the Critical Strike or the Mage's active spell hit at least one monster (once per launch; the gamepad vibrates). */
@@ -154,16 +156,7 @@ export class WeaponSystem {
                 this.onOwnerAction('melee', angle, durationMs);
                 this.slash.show(this.context.x, this.context.y - MELEE_ORIGIN_OFFSET_Y, def.range, angle, Phaser.Math.DegToRad(def.arcDegrees));
             },
-            spinMelee: (def, angle, durationMs) => {
-                this.onOwnerAction('spin', angle, durationMs);
-                this.slash.showSpin(this.context.x, this.context.y - MELEE_ORIGIN_OFFSET_Y, def.range, angle, durationMs, AXE_SPIN.clockwise);
-            },
-            slamMelee: (_def, angle, durationMs) => this.onOwnerAction('slam', angle, durationMs),
             hitMelee: (def, angle) => {
-                if (meleeAttackStyle(def) === 'slam') {
-                    this.groundSlam(def.range, angle, def.damage, def.knockback, false, def.crack?.damage ?? 0, def.crack?.length ?? 0);
-                    return;
-                }
                 // As in the original: the swing sound plays when the blow lands (frame 2), squeezed to the attack length.
                 audio.play(MELEE_SWING_SOUND, SWING_SOUND_MS);
                 const hits = combat.hitArc({
@@ -176,7 +169,7 @@ export class WeaponSystem {
                     damage: def.damage,
                     knockback: def.knockback,
                 }, (enemy) => this.spawnEffect('fx.hit', enemy.x, enemy.bodyY));
-                if (hits > 0) audio.play(MELEE_HIT_SOUND);
+                if (hits > 0) audio.play(meleeHitSound(def));
             },
         };
     }
@@ -231,13 +224,13 @@ export class WeaponSystem {
         strike.hitsLeft = shape.hits;
         strike.landed = false;
         // Axes spin (bloque B): each blow is a whole turn with its round trail, instead of a swing.
-        const style = meleeAttackStyle(def);
+        const style = meleeCritStyle(def);
         strike.spin = style === 'spin';
         // Hammers (bloque C): a ground slam with a wider wave and a longer crack, its damage scaled like the blow's.
         strike.slam = style === 'slam';
         strike.crackDamage = def.crack ? def.crack.damage * damage / def.damage : 0;
         strike.crackLength = def.crack ? def.crack.length * HAMMER_SLAM.critCrackLength : 0;
-        strike.waitMs = swingMs * (strike.spin ? AXE_SPIN.hitMoment : strike.slam ? HAMMER_SLAM.hitMoment : MELEE_HIT_MOMENT);
+        strike.waitMs = swingMs * (strike.slam ? HAMMER_SLAM.hitMoment : MELEE_HIT_MOMENT);
         strike.angle = angle;
         strike.radius = radius;
         strike.arc = Phaser.Math.DegToRad(shape.arcDegrees);
@@ -259,8 +252,23 @@ export class WeaponSystem {
             this.onOwnerAction('melee', strike.angle, strike.swingMs);
             return;
         }
-        this.onOwnerAction('spin', strike.angle, strike.swingMs);
+        // The character swings towards the target (owner, 31-oct-2026: turning round looked odd); the round trail,
+        // the dust and the sparks show the circle.
+        this.onOwnerAction('melee', strike.angle, strike.swingMs);
         this.slash.showSpin(this.context.x, this.context.y - MELEE_ORIGIN_OFFSET_Y, strike.radius, strike.angle, strike.swingMs, AXE_SPIN.clockwise);
+        // The axes' strike (31-oct-2026): dust around the edge of the circle and sparks halfway.
+        const { x, y } = this.context;
+        const whirl = CRIT_AXE_WHIRL;
+        this.effectRing(whirl.dust, x, y, strike.radius * whirl.dustShare, whirl.dustCount, strike.angle);
+        this.effectRing(whirl.spark, x, y - MELEE_ORIGIN_OFFSET_Y, strike.radius * whirl.sparkShare, whirl.sparkCount, strike.angle);
+    }
+
+    /** `count` copies of an effect evenly around a circle of `radius` px centred on (x, y), the first one towards `angle`. */
+    private effectRing(key: EffectKey, x: number, y: number, radius: number, count: number, angle: number): void {
+        for (let i = 0; i < count; i++) {
+            const around = angle + (i / count) * Math.PI * 2;
+            this.spawnEffect(key, x + Math.cos(around) * radius, y + Math.sin(around) * radius);
+        }
     }
 
     /**
@@ -441,7 +449,12 @@ export class WeaponSystem {
     private strikeArc(x: number, y: number): number {
         const strike = this.strike;
         this.audio.play(MELEE_SWING_SOUND, SWING_SOUND_MS);
-        if (!strike.spin) this.slash.show(x, y, strike.radius, strike.angle, strike.arc);
+        if (!strike.spin) {
+            this.slash.show(x, y, strike.radius, strike.angle, strike.arc);
+            // The swords' wave (31-oct-2026): a picture running to the end of the blow's reach.
+            const { x: feetX, y: feetY } = this.context;
+            this.hammerCracks.cast(CRIT_SWORD_WAVE, 0, feetX, feetY, feetX + Math.cos(strike.angle) * strike.radius, feetY + Math.sin(strike.angle) * strike.radius, 0);
+        }
         const hits = this.combat.hitArc({
             damageType: 'physical',
             x,

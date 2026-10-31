@@ -114,6 +114,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Arreglos del 27-oct-2026 (sonidos, "!" y Select Map)
 - Objetos únicos (Fase 30B)
 - Barracks: entrenamiento con muñecos (31-oct-2026)
+- Golpe normal igual para todas las armas; el crit las distingue (31-oct-2026)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -1312,3 +1313,10 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - **Arsenal = Equipment del personaje (propietario: solo lo suyo):** I (o el botón) abre `EquipmentScene` desde el HUD (`HudScene.openEquipment`, con `gameSceneKey` para reanudar la partida al cerrar). Al reanudarse, si cambió el equipo o los stats permanentes (`wornGearKey`), `GameScene` se reinicia con `scene.restart({ trainingResume })`: el `snapshot()` de la partida con `armor: {}`, que `restore()` aplica como un Continue (nivel, puntos y cartas vuelven; arma, hechizos y armadura salen del personaje guardado). El medidor y los muñecos empiezan de cero.
 - **Entrada por la puerta real (bloque B1):** el edificio de los Barracks está en el mismo `elvfarm.amd` (x 75–101, y 132–151), encima de la ciudad. `TOWN.playArea` ampliada de (62,161) 62×52 a (62,144) 62×69. Carga de la ciudad medida: **15,0 → 18,6 MB** (2,9 → 3,5 s en PC); lo nuevo es `maptiles2` (los campos de arriba a la derecha) y `tile403-405`. La puerta es el arco del edificio: `TOWN.barracksDoor` (96,148; la fila 147 es muro), pisarla (`TRAINING.doorRadiusPx`) arranca `MapLoad` con `barracks` (también `CHOSEN_MAP_KEY`). Pausa → Back to Town pone `BARRACKS_EXIT_KEY` y la ciudad aparece en `TOWN.barracksExit` (96,151). Barracks ya no sale en Select Map (`HUNT_MAP_IDS`).
 - `check barracks` / `barracksmage` / `townbarracks` (delante de la puerta; `?town=barracks`). Ojo con `--eval` en estas pruebas: `import()` del módulo desde la página crea otra instancia del `characterStore` (no es el del juego).
+
+## Golpe normal igual para todas las armas; el crit las distingue (31-oct-2026)
+- Decisión del propietario (DECISIONES.md, 31-oct-2026; investigación en `docs/REVISION-ORIGINAL.md`). **Golpe normal:** espadas, hachas y martillos dan el mismo tajo en abanico (`MeleeWeapon.fire` → `swingMelee`). Ya no hay giro ni golpe al suelo en el golpe normal; el martillo suena con el golpe sordo (`MeleeFamilyDef.hitSound`).
+- **Critical Strike:** `MeleeFamilyDef.critStyle` (antes `attack`) decide la forma: `swing` (espadas, `CRIT_SHAPES.longSword` +4 casillas, 120°, con la onda de chispas `CRIT_SWORD_WAVE`, look `sparks` de LineSpell, solo dibujo), `spin` (hachas, +3 casillas, dos tajos con estela redonda (el personaje ya no gira: al propietario le parecía raro; `Player.spin` borrado), polvo y chispas en círculo `CRIT_AXE_WHIRL`; el remolino de effect3.spr se descartó: +0,8 MB para el Guerrero), `slam` (martillos, como antes: onda y grieta). Todo en `data/critStrike.ts` y `WeaponSystem.startStrikeAnimation` / `strikeArc`.
+- `LineSpell` ya no golpea si `pathDamage` / `targetDamage` es 0: así sirve de dibujo (la onda de la espada usa la instancia `hammerCracks`).
+- **Números:** hachas con un poco más de daño por segundo que la espada larga de Str parecida (Light Axe 20/1000 ms … Battle Axe 57/1100); martillos 75 y 95 por golpe, la grieta del crit 36 y 42 (se escala con el daño del crit). Medido con `pnpm balance ... --out=balance-weapons-arc`.
+- Stone of Xelima: `LOOT_XELIMA_CHANCE` 1/5.000 por monstruo (~0,2–0,6 por partida).
