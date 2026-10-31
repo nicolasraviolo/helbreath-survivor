@@ -32,6 +32,8 @@ export const GOLD_MAP_MULTIPLIER: Readonly<Record<MapId, number>> = {
     middleland: 1.8,
     // Fase 30A.
     icebound: 2.2,
+    // Barracks: entrenamiento, no da oro.
+    barracks: 0,
 };
 
 /** Gold of a coin or a pile on that map (never less than 1). */

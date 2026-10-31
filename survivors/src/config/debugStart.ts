@@ -73,12 +73,13 @@
 //   ?open=runchoice  → Select Character con la ventana Continue / New Run del personaje marcado (21-oct-2026), tenga
 //                      partida guardada o no
 //   ?characters=reset → Gorn y Kaila nuevos a Level 1, sin partidas (demo = Gorn con puntos y Kaila a Level 25; Fase 17A)
-//   ?map=traveler    → con ?play/?debug, la partida en ese mapa (traveler, bisle, elvineGarden, middleland, icebound; Fase 22A). Sin él, Bleeding Isle
+//   ?map=traveler    → con ?play/?debug, la partida en ese mapa (traveler, bisle, elvineGarden, middleland, icebound, barracks; Fase 22A). Sin él, Bleeding Isle
 //   ?maps=all        → todos los mapas abiertos en Select Map (reset = olvida los mapas ganados; Fase 22A)
 //   ?open=mapselect  → abre Select Map con el primer personaje guardado (o sin personaje)
 //   ?open=town       → la ciudad (Fase 23) con el primer personaje guardado (o sin personaje); con &class=warrior, el
 //                      primero de esa clase (Fase 24D)
 //   ?town=portal     → con ?open=town, el personaje aparece sobre el teleport: se abre Select Map encima de la ciudad
+//   ?town=barracks   → con ?open=town, aparece delante de la puerta de los Barracks (31-oct-2026)
 //   ?town=william    → con ?open=town, aparece junto a ese NPC (howard, shopKeeper, william, tom; Fase 23B);
 //                      con &talk, además se abre su panel
 //   ?town=shopKeeper&shop → con ?open=town, se abre la tienda directamente (Fase 24B)
@@ -185,7 +186,7 @@ interface DebugStart {
      * ?town=portal: the character appears on the town's teleport, so Select Map opens over the town (Fase 23).
      * ?town=<npc>: next to that NPC (Fase 23B); with &talk, its panel opens too.
      */
-    townSpot: 'portal' | NpcId | undefined;
+    townSpot: 'portal' | 'barracks' | NpcId | undefined;
     townTalk: boolean;
     /** ?town=shopKeeper&shop: the shop opens at once (Fase 24B). */
     townShop: boolean;
@@ -307,7 +308,7 @@ function parseUnique(value: string | null): DebugStart['unique'] {
 
 /** "dice3,wine" → { dice: 3, wine: 1 } (Fase 21½B). */
 function parseTownSpot(value: string | null): DebugStart['townSpot'] {
-    if (value === 'portal') return 'portal';
+    if (value === 'portal' || value === 'barracks') return value;
     return value !== null && isNpcId(value) ? value : undefined;
 }
 

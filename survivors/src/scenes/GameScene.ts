@@ -36,7 +36,8 @@ import type { GameOverSceneData } from './GameOverScene';
 import { startTown } from './MapLoadScene';
 import { DEFAULT_LOOKS, GENDER_SOUNDS } from '../data/appearance';
 import { CHARACTERS, CHOSEN_CHARACTER_KEY, DEFAULT_CHARACTER, isCharacterId, type CharacterId } from '../data/characters';
-import { CHOSEN_MAP_KEY, DEFAULT_MAP, isMapId, MAPS_DATA, type MapId } from '../data/maps';
+import { CHOSEN_MAP_KEY, DEFAULT_MAP, isMapId, isTrainingMap, MAPS_DATA, type MapId } from '../data/maps';
+import { TRAINING } from '../data/training';
 import { getTimeline } from '../data/waves';
 import { AUTOSAVE_EVERY_MS, RESUME_CALM_MS } from '../data/saves';
 import { STAT_IDS, type Stats } from '../data/stats';
@@ -61,6 +62,8 @@ import { GOLD, goldValue } from '../data/gold';
 import { BLUE_POTION_MANA_SHARE, CHEST_CARDS_TITLE, POTION_HEAL_SHARE, type PickupId } from '../data/pickups';
 import { getTotem, TOTEM_IDS, type TotemId } from '../data/totems';
 import { TotemSystem } from '../systems/TotemSystem';
+import { TrainingGround } from '../systems/TrainingGround';
+import { TrainingPanel } from '../ui/TrainingPanel';
 import { RescueSystem } from '../systems/RescueSystem';
 import { playerDefenseRatio, playerMagicResistance, RESIST_TEXT, type PlayerDefense } from '../data/defense';
 import { ARMOR_BY_SET } from '../data/armor';
@@ -110,7 +113,7 @@ import { PlayerState } from '../hb/playerAppearance';
 import { MeleeWeapon } from '../weapons/MeleeWeapon';
 import { angleFromDirection, Direction, directionFromVector } from '../hb/directions';
 import { buildLevelUpChoices } from '../systems/UpgradePool';
-import type { HudSceneData, HudState } from './HudScene';
+import type { HudScene, HudSceneData, HudState } from './HudScene';
 import type { LevelUpChoice, LevelUpSceneData } from './LevelUpScene';
 import { DEBUG_START, type DebugAction } from '../config/debugStart';
 import { simProfile } from '../config/simProfile';
@@ -161,6 +164,11 @@ const DEBUG_START_DELAY_MS = 500;
  * Mover: WASD/flechas, stick/cruceta o mantener clic. Esc / Start: pausa. F1 / View: depuración · T: prueba del Orc.
  * Solo en desarrollo: N 100 enemigos · K matar los visibles · G invencible · X subir un nivel · V +10 Str · B +10 Int y Mag · P poción, imán y cofre · J +1 minuto · M siguiente jefe · L +5 niveles.
  */
+/** Barracks (31-oct-2026): after a change in Equipment the run starts again from this, with the new gear on. */
+export interface GameSceneData {
+    trainingResume?: RunSnapshot;
+}
+
 export class GameScene extends Phaser.Scene {
     private inputSystem!: InputSystem;
     /** Only on touch screens. */
@@ -261,6 +269,12 @@ export class GameScene extends Phaser.Scene {
     /** Pixels run since the last puff of footstep dust, and where the player was last frame. */
     private dustDistance = 0;
     private mapId: MapId = DEFAULT_MAP;
+    /** Barracks (data/training.ts): no waves, rewards, saving or dying; its Dummies instead. */
+    private training = false;
+    private trainingGround: TrainingGround | undefined;
+    private trainingPanel: TrainingPanel | undefined;
+    /** What the character wore (and its permanent stats) when the Barracks run started: a change rebuilds the run. */
+    private trainingGear = '';
     private characterId: CharacterId = DEFAULT_CHARACTER;
     /** Saved character playing this run (Fase 17A), to keep its best level; undefined in old saves and debug runs. */
     private characterUid: string | undefined;
@@ -278,11 +292,12 @@ export class GameScene extends Phaser.Scene {
         super('Game');
     }
 
-    create(): void {
+    create(data?: GameSceneData): void {
         // Continue: the slot chosen in CharacterSlotsScene. Read once, so Restart (game over) starts a new run.
         const resumeSlot: unknown = this.registry.get(RESUME_SLOT_KEY);
         this.registry.remove(RESUME_SLOT_KEY);
-        const resume = typeof resumeSlot === 'number' ? saveStore.get(resumeSlot) : undefined;
+        // Barracks: the same run again with the new gear (its level and cards come back as on Continue).
+        const resume = data?.trainingResume ?? (typeof resumeSlot === 'number' ? saveStore.get(resumeSlot) : undefined);
         const activeUid: unknown = this.registry.get(ACTIVE_CHARACTER_KEY);
         this.characterUid = resume ? resume.characterUid : typeof activeUid === 'string' ? activeUid : undefined;
         // One run per character, in its slot (Fase 17A). Without a character the run isn't saved (-1).
@@ -293,6 +308,7 @@ export class GameScene extends Phaser.Scene {
         const chosenMap: unknown = this.registry.get(CHOSEN_MAP_KEY);
         this.mapId = resume?.map ?? (isMapId(chosenMap) ? chosenMap : DEFAULT_MAP);
         const mapDef = MAPS_DATA[this.mapId];
+        this.training = isTrainingMap(this.mapId);
         const map = getMap(this, mapDef.asset);
         const area = mapDef.playArea;
         const margin = MAP_OBJECT_MARGIN_TILES;
@@ -304,7 +320,9 @@ export class GameScene extends Phaser.Scene {
         });
 
         const areaPx = new Phaser.Geom.Rectangle(area.x * TILE_SIZE, area.y * TILE_SIZE, area.width * TILE_SIZE, area.height * TILE_SIZE);
-        const spawn = findSpawnTile(map, area.x + Math.floor(area.width / 2), area.y + Math.floor(area.height / 2));
+        const spawn = this.training
+            ? findSpawnTile(map, TRAINING.spawn.x, TRAINING.spawn.y)
+            : findSpawnTile(map, area.x + Math.floor(area.width / 2), area.y + Math.floor(area.height / 2));
         // Class chosen on the selection screen (the debug sprite test returns here without choosing).
         const chosen: unknown = this.registry.get(CHOSEN_CHARACTER_KEY);
         this.characterId = resume?.character ?? (isCharacterId(chosen) ? chosen : DEFAULT_CHARACTER);
@@ -340,7 +358,7 @@ export class GameScene extends Phaser.Scene {
         this.metrics = new RunMetrics(this.game, resume?.metrics, resume !== undefined);
         // Quit to menu: the run stays saved, but the stats count it as left (if it is continued, it sends again).
         const onQuit = () => {
-            if (!this.runOver && !this.player.isDead) this.sendMetrics('quit');
+            if (!this.training && !this.runOver && !this.player.isDead) this.sendMetrics('quit');
         };
         this.events.on(QUIT_RUN_EVENT, onQuit);
         this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.events.off(QUIT_RUN_EVENT, onQuit));
@@ -364,7 +382,8 @@ export class GameScene extends Phaser.Scene {
             (id) => assetStreamer.isReady(id), (id) => assetStreamer.hurry(id), (champion) => this.onChampion(champion),
         );
         this.champion = undefined;
-        this.spawner.setChampions(this.rollChampions(), 0);
+        this.spawner.setChampions(this.training ? [] : this.rollChampions(), 0);
+        this.trainingGround = this.training ? new TrainingGround(this.enemies) : undefined;
         // Normally already started by the map's loading screen (Fase 22B); this covers starting a run any other way.
         assetStreamer.start(this, this.mapId);
         this.damageNumbers = new DamageNumbers(this);
@@ -382,6 +401,8 @@ export class GameScene extends Phaser.Scene {
         this.particles = new HitParticles(this);
         this.screenShake = new ScreenShake(camera);
         this.combat = new CombatSystem(this.enemies, this.damageNumbers, this.audio, this.particles, this.stats, (enemy) => {
+            // Barracks: a Dummy knocked down drops nothing (TrainingGround stands it up again).
+            if (this.training) return;
             this.dropXp(enemy);
             this.pickups.onKill(enemy.x, enemy.y);
             this.onEnemyKilled(enemy);
@@ -524,6 +545,42 @@ export class GameScene extends Phaser.Scene {
         new ScreenLayer(this, DEPTH_DEBUG).addFixed(this.godModeLabel, this.slashLabel);
         if (DEBUG_START.slash !== undefined) this.setSlashStyle(DEBUG_START.slash);
         this.launchHud();
+        this.trainingPanel = undefined;
+        if (this.training) this.startTraining();
+    }
+
+    /** Barracks (31-oct-2026): the damage panel, and watching the Equipment for changes. */
+    private startTraining(): void {
+        const ground = this.trainingGround;
+        if (!ground) return;
+        this.combat.onDamage = (damage, critical) => ground.record(damage, critical);
+        this.trainingPanel = new TrainingPanel(this, {
+            levelUp: () => this.trainingLevelUp(),
+            reset: () => ground.resetMeter(),
+            equipment: this.characterUid === undefined ? undefined : () => (this.scene.get('Hud') as HudScene).openEquipment(),
+        });
+        this.trainingGear = this.wornGearKey();
+        const onResume = () => {
+            if (this.wornGearKey() === this.trainingGear) return;
+            // Changed in Equipment: the run starts again with it on, keeping its level, points and cards.
+            const data: GameSceneData = { trainingResume: { ...this.snapshot(), armor: {} } };
+            this.scene.restart(data);
+        };
+        this.events.on(Phaser.Scenes.Events.RESUME, onResume);
+        this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.events.off(Phaser.Scenes.Events.RESUME, onResume));
+    }
+
+    /** What the saved character wears and its permanent stats, as text to compare (Barracks). */
+    private wornGearKey(): string {
+        const saved = characterStore.byUid(this.characterUid);
+        if (!saved) return '';
+        return JSON.stringify([saved.equipment, saved.attributes, saved.upgrades, permanentStats(saved)]);
+    }
+
+    /** L or the panel's button: one level more, with its cards (Barracks). */
+    private trainingLevelUp(): void {
+        if (this.levelUpOpen || this.player.isDead) return;
+        this.gainXp(Math.max(1, this.stats.xpToNext - this.stats.xp));
     }
 
     /** Applies the values that come from the stats to the player and the weapons (after a level up or a card). */
@@ -929,6 +986,8 @@ export class GameScene extends Phaser.Scene {
 
     /** Saves the run, unless it is already decided (dead, or over). With the portal open, its countdown is kept. */
     private saveRun(): void {
+        // Barracks: nothing to keep (and the character's saved run in its slot must stay as it was).
+        if (this.training) return;
         // Fase 29C: the kills not yet added to the device's counters (also when the run is over).
         this.achievements.saveKills();
         if (this.runOver || this.player.isDead || this.saveSlot < 0) return;
@@ -970,6 +1029,7 @@ export class GameScene extends Phaser.Scene {
             } : undefined,
             characterUid: this.characterUid,
             classId: this.characterId,
+            training: this.training,
             getState: () => ({
                 hp: this.player.hp,
                 maxHp: this.player.maxHp,
@@ -1093,21 +1153,27 @@ export class GameScene extends Phaser.Scene {
         }
         this.pickups.update(delta, player.x, player.y, !player.isDead);
         this.loot.update(delta, player.x, player.y, !player.isDead);
-        this.totems.enabled = !player.isDead && !this.finalBossDead;
+        this.totems.enabled = !this.training && !player.isDead && !this.finalBossDead;
         this.totems.update(delta, player.x, player.y, !player.isDead);
         this.rescue.update(delta);
         this.buffs.update(delta);
         this.stats.buffDamageMultiplier = this.buffs.damageMultiplier;
-        this.spawner.enabled = !player.isDead && !this.finalBossDead;
+        this.spawner.enabled = !this.training && !player.isDead && !this.finalBossDead;
         this.spawner.update(delta);
+        this.trainingGround?.update(delta);
+        if (this.trainingGround && this.trainingPanel) {
+            if (input.justPressed(Action.TrainingLevelUp)) this.trainingLevelUp();
+            if (input.justPressed(Action.TrainingReset)) this.trainingGround.resetMeter();
+            this.trainingPanel.update(delta, this.trainingGround.meter);
+        }
         this.sim?.onAlive(this.enemies.alive, this.spawner.elapsed);
         this.sim?.tick(delta, this.spawner.elapsed, player.maxHp, player.regenPerSecond);
         const bodyY = player.y - PLAYER_BODY_OFFSET_Y;
         this.bosses.update(delta, player.x, bodyY, !player.isDead);
         const shotDamage = this.enemyShots.update(delta, player.x, bodyY, PLAYER_BODY_RADIUS, this.playerDefense, this.world.onBlow);
         this.updateMusic();
-        if (!player.isDead) this.achievements.update(delta);
-        if (!player.isDead && !this.sim) this.metrics.update(delta, this.spawner.elapsed, this.stats.level);
+        if (!player.isDead && !this.training) this.achievements.update(delta);
+        if (!player.isDead && !this.sim && !this.training) this.metrics.update(delta, this.spawner.elapsed, this.stats.level);
 
         const bossBlow = this.enemies.landedBossDamage + (this.enemyShots.hitFromBoss ? shotDamage : 0);
         if (this.sim && bossBlow > 0) {
@@ -1326,7 +1392,9 @@ export class GameScene extends Phaser.Scene {
             if (this.sim.onHurt(taken, this.spawner.elapsed, this.stats.level)) this.critStrike.onHurt(this.stats.level);
             return;
         }
-        if (!player.takeDamage(taken)) return;
+        // Barracks: nobody dies training; a blow that would kill fills the health first (and never takes all of it).
+        if (this.training && taken >= player.hp) player.heal(player.maxHp);
+        if (!player.takeDamage(this.training ? Math.min(taken, player.maxHp - 1) : taken)) return;
         this.metrics.onHurt(source, taken, player.hp, player.maxHp);
         this.screenShake.hurt(byBoss);
         if (!this.sim) {
@@ -1398,6 +1466,8 @@ export class GameScene extends Phaser.Scene {
             this.combat.slay(finalBoss);
         }
         for (const [action, debugAction] of keys) {
+            // Barracks: L is the real level up there (Action.TrainingLevelUp), not the debug one.
+            if (this.training && action === Action.DebugGiveLevels) continue;
             if (input.justPressed(action)) this.runDebugAction(debugAction);
         }
         if (this.lootDebugInMs >= 0 && (this.lootDebugInMs -= delta) < 0) {
@@ -1749,7 +1819,7 @@ export class GameScene extends Phaser.Scene {
 
     /** Anonymous summary of the run for the metrics server (Fase 14A), if the player allows it. */
     private sendMetrics(result: RunResult): void {
-        if (!metricsAllowed(this.sim !== undefined)) return;
+        if (this.training || !metricsAllowed(this.sim !== undefined)) return;
         const { equipment } = this;
         const armor = Object.values(equipment.armor).map((id) => getArmorPiece(id).name);
         const passives = PASSIVE_IDS.filter((id) => equipment.passives[id] > 0)

@@ -22,6 +22,8 @@ import type { ItemAttribute } from '../data/attributes';
 import { isArmorPieceId, isMeleeWeaponId, START_EQUIPMENT, type SavedEquipment } from '../data/items';
 import { MINIMAP } from '../data/minimap';
 import { TOWN, TOWN_NPCS, TOWN_TALK, type NpcId, type TilePoint } from '../data/town';
+import { CHOSEN_MAP_KEY } from '../data/maps';
+import { BARRACKS_EXIT_KEY, BARRACKS_MAP, TRAINING } from '../data/training';
 import { isWandId } from '../data/wands';
 import { Effect } from '../entities/Effect';
 import { Equipment } from '../entities/Equipment';
@@ -49,6 +51,7 @@ import { openOverlay } from './MenuOverlayScene';
 import type { CharacterInfoSceneData } from './CharacterInfoScene';
 import type { EquipmentSceneData } from './EquipmentScene';
 import type { MapSelectSceneData } from './MapSelectScene';
+import type { MapLoadSceneData } from './MapLoadScene';
 import { NPC_DIALOG_SCENE_KEY, type NpcDialogSceneData } from './NpcDialogScene';
 import { MISSIONS_SCENE_KEY, type MissionsSceneData } from './MissionsScene';
 import { SHOP_SCENE_KEY, type ShopSceneData } from './ShopScene';
@@ -110,7 +113,11 @@ export class TownScene extends Phaser.Scene {
         const character = CHARACTERS[classId];
         const debugSpot = debugSpotUsed ? undefined : DEBUG_START.townSpot;
         debugSpotUsed = true;
+        // Back from the Barracks: in front of its door (BARRACKS_EXIT_KEY, set by the pause's Back to Town).
+        const fromBarracks = this.registry.get(BARRACKS_EXIT_KEY) === true;
+        this.registry.remove(BARRACKS_EXIT_KEY);
         const spawn: TilePoint = debugSpot === 'portal' ? TOWN.portal
+            : debugSpot === 'barracks' || fromBarracks ? TOWN.barracksExit
             : debugSpot !== undefined ? { x: TOWN_NPCS[debugSpot].tile.x, y: TOWN_NPCS[debugSpot].tile.y + 1 } : TOWN.spawn;
         this.characterUid = saved?.uid;
         this.classId = classId;
@@ -224,6 +231,18 @@ export class TownScene extends Phaser.Scene {
             return;
         }
         this.updatePortal();
+        this.updateBarracksDoor();
+    }
+
+    /** The door of the Barracks building (31-oct-2026): stepping on it enters the Barracks to train. */
+    private updateBarracksDoor(): void {
+        if (!this.scene.isActive()) return;
+        const door = TOWN.barracksDoor;
+        const dx = this.player.x - (door.x + 0.5) * TILE_SIZE;
+        const dy = this.player.y - (door.y + 0.5) * TILE_SIZE;
+        if (Math.hypot(dx, dy) > TRAINING.doorRadiusPx) return;
+        this.registry.set(CHOSEN_MAP_KEY, BARRACKS_MAP);
+        this.scene.start('MapLoad', { map: BARRACKS_MAP } satisfies MapLoadSceneData);
     }
 
     /** The closest NPC in reach shows "Talk" (and the touch button); E / pad A talks to it. */

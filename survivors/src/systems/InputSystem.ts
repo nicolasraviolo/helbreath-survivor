@@ -66,6 +66,10 @@ export enum Action {
     DebugSlashStyle = 'debugSlashStyle',
     /** Left with 1 health, to test dying (Abaddon's Blood). */
     DebugOneHp = 'debugOneHp',
+    /** Barracks (training): one level up, with its cards (L). Not a debug key: it works in the published game. */
+    TrainingLevelUp = 'trainingLevelUp',
+    /** Barracks: the damage panel back to zero (R). */
+    TrainingReset = 'trainingReset',
 }
 
 export type InputDevice = 'keyboard' | 'mouse' | 'gamepad' | 'touch' | 'none';
@@ -108,6 +112,8 @@ const KEYBOARD_ACTIONS: Record<Action, number[]> = {
     [Action.DebugInfiniteCrits]: [KEY.H],
     [Action.DebugSlashStyle]: [KEY.Y],
     [Action.DebugOneHp]: [KEY.U],
+    [Action.TrainingLevelUp]: [KEY.L],
+    [Action.TrainingReset]: [KEY.R],
 };
 
 const GAMEPAD_AXIS = { LeftX: 0, LeftY: 1, RightX: 2, RightY: 3 } as const;

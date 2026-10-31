@@ -537,7 +537,8 @@ export class Enemy implements Poolable {
         const inReach = this.inReach(dx, dy, distance, world.targetRadius);
         this.cooldownMs = Math.max(0, this.cooldownMs - ownMs);
         this.spellCooldownMs = Math.max(0, this.spellCooldownMs - ownMs);
-        if (this.movement === 'guard' && this.attackLeftMs <= 0 && !this.guardEngaged(world, ownMs)) {
+        // A training Dummy never attacks: it stays at its spot like a Guard at rest.
+        if (this.movement === 'still' || (this.movement === 'guard' && this.attackLeftMs <= 0 && !this.guardEngaged(world, ownMs))) {
             this.walkHome(vx, vy, speed, seconds, world);
             return;
         }

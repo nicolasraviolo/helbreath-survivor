@@ -27,6 +27,10 @@ export interface TownDef {
     spawn: TilePoint;
     /** The teleport: stepping on it opens Select Map. */
     portal: TilePoint;
+    /** The door of the original Barracks building: stepping on it enters the Barracks (training, data/training.ts). */
+    barracksDoor: TilePoint;
+    /** Where the character appears when it comes back from the Barracks: just in front of its door. */
+    barracksExit: TilePoint;
 }
 
 export const TOWN: TownDef = {
@@ -34,10 +38,15 @@ export const TOWN: TownDef = {
     asset: 'map.elvineFarm',
     size: { width: 250, height: 250 },
     minimap: 'minimap.elvineFarm',
-    playArea: { x: 62, y: 161, width: 62, height: 52 },
+    // 31-oct-2026: ampliada hacia arriba (antes y 161, alto 52; ahora desde la 144) para que se vea el edificio de los Barracks y su puerta
+    // (el edificio ocupa x 75–101, y 132–151). Baja ~3 MB más: los campos de arriba a la derecha (maptiles2) y el edificio.
+    playArea: { x: 62, y: 144, width: 62, height: 69 },
     music: 'music.elvine',
     spawn: { x: 93, y: 186 },
     portal: { x: 96, y: 202 },
+    // El arco de la puerta (medido sobre una captura el 31-oct-2026; las casillas 96,147 y la fila 147 son muro).
+    barracksDoor: { x: 96, y: 148 },
+    barracksExit: { x: 96, y: 151 },
 };
 
 // ── NPCs (Fase 23B) ──────────────────────────────────────────────────────────────────────────────────────────────

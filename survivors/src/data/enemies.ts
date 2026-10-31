@@ -199,6 +199,8 @@ export const MONSTER_HP_BONUS = 1.2;
 export function monsterBaseHp(def: EnemyDef): number {
     // The Guards (Fase 29A) are mini-bosses without the rest of a boss: their health is counted like the bosses'.
     if (def.boss || def.movement === 'guard') return def.maxHp * BOSS_HP_MULTIPLIER * MONSTER_HP_BONUS;
+    // Training Dummies (Barracks): exactly their maxHp, so the numbers are easy to read.
+    if (def.movement === 'still') return def.maxHp;
     return MONSTER_HP.reference * (def.maxHp / MONSTER_HP.reference) ** MONSTER_HP.exponent * MONSTER_HP_BONUS;
 }
 
@@ -507,6 +509,21 @@ export const ENEMIES = {
         actionTimeMs: 2600, attackRange: 1, bravery: 100, damageDice: [7, 4], hitRatio: 100, hitSound: 'sfx.clayGolem.hit', deathSound: 'sfx.clayGolem.death', attackSound: 'sfx.clayGolem.attack',
         scale: 1.6, knockbackTaken: 0, damageScale: 1.3,
         boss: { title: 'Dummy', dropsChest: true, final: true },
+    },
+    // Muñeco de los Barracks (31-oct-2026, data/training.ts): el Dummy del original tal cual, quieto y sin atacar,
+    // para probar el daño. Su vida no se comprime (monsterBaseHp) y se rellena sola antes de morir.
+    trainingDummy: {
+        name: 'Dummy', sprite: 'enemy.dummy', temporalCoefficient: 0.5, hasShadow: true, maxHp: 20000, xp: 0, radius: 16, bodyOffsetY: 40,
+        actionTimeMs: 2600, attackRange: 1, bravery: 100, damageDice: [1, 1], hitRatio: 0, hitSound: 'sfx.clayGolem.hit', deathSound: 'sfx.clayGolem.death', attackSound: 'sfx.clayGolem.attack',
+        movement: 'still', healthBar: true, knockbackTaken: 0,
+    },
+    // Attack-Dummy de los Barracks (31-oct-2026; tipo 35 del servidor original, mismo sprite que el Dummy): guarda su
+    // sitio como un Guard, persigue al jugador que se acerca y pega flojo, para probar la defensa y la esquiva. Sus
+    // números son nuestros: golpe y puntería de un Orc, algo más lento; vida para aguantar unos segundos.
+    attackDummy: {
+        name: 'Attack-Dummy', sprite: 'enemy.dummy', temporalCoefficient: 0.5, hasShadow: true, maxHp: 1500, xp: 0, radius: 16, bodyOffsetY: 40,
+        actionTimeMs: 1500, attackRange: 1, bravery: 100, damageDice: [3, 3], hitRatio: 60, hitSound: 'sfx.clayGolem.hit', deathSound: 'sfx.clayGolem.death', attackSound: 'sfx.clayGolem.attack',
+        movement: 'guard', healthBar: true, knockbackTaken: 0.3, glows: true,
     },
     // Jefes de Elvine Garden (Fase 22D, decididos por el propietario el 21-oct-2026): Hellhound y Stalker de minijefes y
     // Cyclops de jefe final. Mismo sprite y comportamiento que el normal (que no sale en este mapa), más grandes y con

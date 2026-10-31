@@ -393,6 +393,8 @@ export const MAPS = {
     'map.icebound': { file: 'maps/icebound.amd' },
     // Fase 23: la ciudad, un recorte de la granja de Elvine (data/town.ts).
     'map.elvineFarm': { file: 'maps/elvfarm.amd' },
+    // Barracks de Elvine (31-oct-2026): mapa de entrenamiento con muñecos (data/training.ts).
+    'map.barracks': { file: 'maps/elvbrk11.amd' },
 } as const satisfies Record<string, { file: string }>;
 
 export type MapKey = keyof typeof MAPS;
@@ -408,6 +410,8 @@ export const MINIMAPS = {
     'minimap.middleland': { file: 'images/minimaps/middleland.jpg' },
     'minimap.icebound': { file: 'images/minimaps/icebound.jpg' },
     'minimap.elvineFarm': { file: 'images/minimaps/elvfarm.jpg' },
+    // El original no trae minimapa de los Barracks: dibujado por nosotros con las casillas que se pisan (custom-assets/).
+    'minimap.barracks': { file: 'images/minimaps/elvbrk11.png' },
 } as const satisfies Record<string, { file: string }>;
 
 export type MinimapKey = keyof typeof MINIMAPS;

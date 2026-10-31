@@ -3,7 +3,7 @@
 // decidido el 20-oct-2026). El primero (Traveler Zone) siempre está abierto; los "Coming soon" nunca.
 // Lleva número de versión como los demás guardados. Si el navegador no deja guardar, dura hasta cerrar la página.
 import { DEBUG_START } from '../config/debugStart';
-import { FIRST_MAP, isMapId, MAP_IDS, MAPS_DATA, previousMap, type MapId } from '../data/maps';
+import { FIRST_MAP, isMapId, isTrainingMap, MAP_IDS, MAPS_DATA, previousMap, type MapId } from '../data/maps';
 import { isRecord } from './SaveStore';
 
 const STORAGE_KEY = 'hb-survivors.maps';
@@ -41,6 +41,8 @@ class MapUnlockStoreImpl {
     public lockOf(id: MapId, characterLevel: number): MapLock | undefined {
         const def = MAPS_DATA[id];
         if ('comingSoon' in def && def.comingSoon) return { kind: 'comingSoon' };
+        // The Barracks (training) is always open.
+        if (isTrainingMap(id)) return undefined;
         const previous = previousMap(id);
         if (id === FIRST_MAP || previous === undefined || this.allOpen) return undefined;
         if (this.won.has(previous) || characterLevel >= def.recommendedLevel) return undefined;
