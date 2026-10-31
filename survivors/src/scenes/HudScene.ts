@@ -1,6 +1,7 @@
 // Interfaz de la partida: la barra (clásica abajo, o compacta arriba en el móvil: ui/ClassicHud.ts, ui/CompactHud.ts),
 // la barra del jefe, los avisos, la cuenta atrás del portal (Fase 13), las mejoras activas de los cofres
-// el aviso de logro conseguido (Fase 14B, abajo a la izquierda) y el minimapa (Fase 16A, arriba a la derecha).
+// el aviso de logro conseguido (Fase 14B, abajo a la izquierda), la lista de mensajes del original (abajo a la izquierda,
+// encima del aviso de logro: "HP has been increased by +13 points.") y el minimapa (Fase 16A, arriba a la derecha).
 // Corre como escena aparte por encima de la partida, así que no se mueve con la cámara.
 // El casco (o C / Y del mando) pausa y abre la ventana Character del original (Fase 20A, CharacterInfoScene), y el disquete o Esc / Start abren la pausa (PauseScene).
 // Si se desconecta el mando en plena partida, la pausa se abre sola.
@@ -14,6 +15,7 @@ import { COMPACT_UI } from '../config/device';
 import { GAME_WIDTH } from '../config/gameConfig';
 import {
     ANNOUNCE_EVENT,
+    EVENT_LIST_EVENT,
     HUD_ACHIEVEMENT,
     HUD_ANNOUNCE,
     HUD_BOSS,
@@ -21,6 +23,7 @@ import {
     HUD_COMPACT,
     HUD_COMPACT_LAYOUT,
     HUD_DEPTH_TEXT,
+    HUD_EVENT_LIST,
     HUD_PORTAL,
 } from '../config/hud';
 import type { HudStyle } from '../config/settings';
@@ -119,6 +122,9 @@ export class HudScene extends Phaser.Scene {
     private achievementNotice: Phaser.GameObjects.Container | undefined;
     private achievementShownMs = 0;
     private achievementWidth = 0;
+    private achievementHeight = 0;
+    /** Lines of the message list on screen, the oldest first, with their time on screen. */
+    private readonly eventLines: { text: Phaser.GameObjects.Text; shownMs: number }[] = [];
     /** One line per active buff, created when first needed. */
     private readonly buffTexts: SpriteText[] = [];
 
@@ -150,9 +156,13 @@ export class HudScene extends Phaser.Scene {
         game.events.on(ACHIEVEMENT_EVENT, onAchievement);
         this.achievementQueue.length = 0;
         this.achievementNotice = undefined;
+        const onEventLine = (line: string) => this.addEventLine(line);
+        game.events.on(EVENT_LIST_EVENT, onEventLine);
+        this.eventLines.length = 0;
         this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
             game.events.off(ANNOUNCE_EVENT, onAnnounce);
             game.events.off(ACHIEVEMENT_EVENT, onAchievement);
+            game.events.off(EVENT_LIST_EVENT, onEventLine);
         });
         this.inputSystem = new InputSystem(this);
         // Gamepad unplugged (or out of battery) mid-run: pause so the player doesn't die without controls.
@@ -203,6 +213,7 @@ export class HudScene extends Phaser.Scene {
         this.showPortal(state.portalSecondsLeft);
         this.updateAnnouncement(delta);
         this.updateAchievementNotice(delta);
+        this.updateEventLines(delta);
         if (this.inputSystem.justPressed(Action.Pause)) this.openPause();
         if (this.inputSystem.justPressed(Action.ToggleStats)) this.openCharacterInfo();
         this.bar.update(state);
@@ -330,9 +341,41 @@ export class HudScene extends Phaser.Scene {
             .fillStyle(HUD_ACHIEVEMENT.backColor, HUD_ACHIEVEMENT.backAlpha).fillRect(0, 0, width, height)
             .lineStyle(2, HUD_ACHIEVEMENT.borderColor, 1).strokeRect(0, 0, width, height);
         this.achievementWidth = width;
+        this.achievementHeight = height;
         const notice = this.add.container(-width, 0, [box, header, title]).setDepth(HUD_DEPTH_TEXT);
         for (const part of [box, header, title]) part.y -= height;
         return notice;
+    }
+
+    /** A new line at the bottom of the message list; the oldest goes when there are too many. */
+    private addEventLine(line: string): void {
+        if (this.eventLines.length >= HUD_EVENT_LIST.maxLines) this.eventLines.shift()?.text.destroy();
+        const text = this.add.text(HUD_EVENT_LIST.left, 0, line, HUD_EVENT_LIST.style).setOrigin(0, 1).setDepth(HUD_DEPTH_TEXT);
+        this.eventLines.push({ text, shownMs: 0 });
+        this.placeEventLines();
+    }
+
+    /** Ages the lines (not while the game is paused) and fades out the old ones. */
+    private updateEventLines(deltaMs: number): void {
+        if (this.eventLines.length === 0) return;
+        const paused = this.scene.isPaused(this.gameSceneKey);
+        const { showMs, fadeMs } = HUD_EVENT_LIST;
+        for (const line of this.eventLines) {
+            if (!paused) line.shownMs += deltaMs;
+            line.text.setAlpha(Phaser.Math.Clamp((showMs - line.shownMs) / fadeMs, 0, 1));
+        }
+        while (this.eventLines.length > 0 && this.eventLines[0].shownMs >= showMs) this.eventLines.shift()?.text.destroy();
+        this.placeEventLines();
+    }
+
+    /** The newest line at the bottom; all of them above the achievement box while it shows. */
+    private placeEventLines(): void {
+        let bottom = overlayBottom() - HUD_EVENT_LIST.bottomGap;
+        if (this.achievementNotice) bottom -= this.achievementHeight + HUD_EVENT_LIST.achievementGap;
+        const last = this.eventLines.length - 1;
+        this.eventLines.forEach((line, i) => {
+            line.text.y = bottom - (last - i) * HUD_EVENT_LIST.lineHeight;
+        });
     }
 
     /** Line `index` of the buffs, from the bottom of the game area up. */

@@ -13,7 +13,7 @@ import {
     TILE_SIZE,
 } from '../config/gameConfig';
 import { onTouchFullscreenButton, TOUCH_AIM_STICK, TOUCH_AIM_ZONE_START, TOUCH_JOYSTICK, TOUCH_RESERVED_CORNER } from '../config/touch';
-import { ANNOUNCE_EVENT, QUIT_RUN_EVENT } from '../config/hud';
+import { ANNOUNCE_EVENT, EVENT_LIST_EVENT, HUD_EVENT_LIST, QUIT_RUN_EVENT } from '../config/hud';
 import { getArmorPiece } from '../data/armor';
 import { canHaveAttribute, classCanWear, isArmorPieceId, isMeleeWeaponId, isSpellItemId, itemInfo, MANUAL_SPELL_IDS, START_EQUIPMENT, type EquipSlotId, type SavedEquipment } from '../data/items';
 import type { ItemAttribute } from '../data/attributes';
@@ -327,6 +327,8 @@ export class GameScene extends Phaser.Scene {
         const wornAttributes = (profile ? undefined : savedCharacter?.attributes) ?? {};
         void lookLoader.ensure(this, [...runSprites(character, look, startEquipment), 'item.pack']);
         this.player = new Player(this, (spawn.x + 0.5) * TILE_SIZE, (spawn.y + 0.5) * TILE_SIZE, character, look, map, areaPx);
+        // Each batch of self-healing (every 15 s) is told at the bottom left, as in the original.
+        this.player.onRegen = (healed) => this.events.emit(EVENT_LIST_EVENT, HUD_EVENT_LIST.hpUp(healed));
         // Permanent stats (Fase 20A); debug runs without a character start with the class's.
         this.permanentAtStart = profile ? { ...profile.stats } : savedCharacter ? permanentStats(savedCharacter) : { ...character.startStats };
         this.simProfileLabel = profile?.label ?? '';
@@ -1257,7 +1259,8 @@ export class GameScene extends Phaser.Scene {
         const spell = this.activeSpell;
         if (!spell || this.player.isDead) return;
         spell.manaSave = this.equipment.manaSave;
-        spell.update(delta, this.stats.maxMana, this.stats.manaRegenPerSecond * (1 + this.equipment.mpRecovery));
+        const regained = spell.update(delta, this.stats.maxMana, this.stats.manaRegenPerSecond * (1 + this.equipment.mpRecovery));
+        if (regained > 0) this.events.emit(EVENT_LIST_EVENT, HUD_EVENT_LIST.mpUp(regained));
         if (this.sim ? spell.ready : this.inputSystem.justPressed(Action.CritStrike)) this.castActiveSpell();
     }
 
