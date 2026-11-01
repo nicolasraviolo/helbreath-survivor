@@ -68,7 +68,8 @@ import { TotemSystem } from '../systems/TotemSystem';
 import { TrainingGround } from '../systems/TrainingGround';
 import { TrainingPanel } from '../ui/TrainingPanel';
 import { RescueSystem } from '../systems/RescueSystem';
-import { playerDefenseRatio, playerMagicResistance, RESIST_TEXT, type PlayerDefense } from '../data/defense';
+import { dodgeChance, playerDefenseRatio, playerMagicResistance, resistChance, RESIST_TEXT, type PlayerDefense } from '../data/defense';
+import { generalAccuracy, generalSpellAccuracy } from '../data/accuracy';
 import { ARMOR_BY_SET } from '../data/armor';
 import { Equipment } from '../entities/Equipment';
 import type { EnemyWorld } from '../entities/Enemy';
@@ -125,7 +126,7 @@ import { ACHIEVEMENT_EVENT, ACHIEVEMENT_SOUND } from '../data/achievements';
 import { AchievementTracker } from '../systems/AchievementTracker';
 import { GAME_VERSION } from '../config/version';
 import { COMPACT_UI } from '../config/device';
-import { emptyPassiveRecord, FILLER_CARDS, PASSIVE_IDS, getPassive, type PassiveId } from '../data/passives';
+import { emptyPassiveRecord, FILLER_CARDS, PASSIVE_IDS, getPassive, passiveBonus, type PassiveId } from '../data/passives';
 import { ANGEL_DEBUG_RANK, AURA_DEBUG_RANK, DAGGER_DEBUG_RANK, MAGIC_IDS, MAX_MAGICS_PER_RUN, getMagic, magicDamageType, magicMaxRank, type MagicId } from '../data/passiveMagic';
 import { goldStore } from '../systems/GoldStore';
 import { RunMetrics, metricsAllowed, sendRunReport } from '../systems/RunMetrics';
@@ -674,7 +675,26 @@ export class GameScene extends Phaser.Scene {
             chest: fromChest,
             onlyPassives: DEBUG_START.actions.includes('stones'),
             allEpic: DEBUG_START.actions.includes('epic'),
+            wouldHelp: (passive) => this.cardWouldHelp(passive),
         });
+    }
+
+    /**
+     * False when one more Common card of `passive` would not move its % on the card (1-nov-2026): dodge or magic
+     * resistance stuck at their minimum (no armor yet) or already at their top, accuracy already at 95%.
+     */
+    private cardWouldHelp(passive: PassiveId): boolean {
+        const now = this.stats.cardBonus[passive];
+        const next = passiveBonus(passive, this.equipment.passiveValues[passive] + CARD_RARITY.common.value);
+        const moves = (chance: (bonus: number) => number) => Math.round(chance(next) * 100) > Math.round(chance(now) * 100);
+        const stats = this.stats.stats;
+        switch (passive) {
+            case 'serpentGrace': return moves((bonus) => dodgeChance((this.defenseRatio / (1 + now)) * (1 + bonus)));
+            case 'unicornWard': return moves((bonus) => resistChance((this.magicResistance / (1 + now)) * (1 + bonus)));
+            case 'cyclopsEye': return moves((bonus) => generalAccuracy(stats, (1 + this.stats.hitBonus) * (1 + bonus) - 1));
+            case 'demonEye': return moves((bonus) => generalSpellAccuracy(stats, (1 + this.stats.hitBonus) * (1 + bonus) - 1));
+            default: return true;
+        }
     }
 
     /** Pauses the game and shows the cards (of a level up, or of a chest). Picking one applies it and resumes. */
@@ -694,6 +714,9 @@ export class GameScene extends Phaser.Scene {
         const data: LevelUpSceneData = {
             stats,
             equipment: this.equipment,
+            defenseRatio: this.defenseRatio,
+            magicResistance: this.magicResistance,
+            fillerGold: (value) => this.fillerGold(value),
             choices,
             title: fromChest ? CHEST_CARDS_TITLE : undefined,
             actionsLeft: this.cardActionsLeft,
@@ -715,6 +738,11 @@ export class GameScene extends Phaser.Scene {
         };
         this.scene.pause();
         this.scene.launch('LevelUp', data);
+    }
+
+    /** Gold of a Pouch of Gold card worth `value` (Rare 1.5, Epic 2): gold piles of this map (1-nov-2026). */
+    private fillerGold(value: number): number {
+        return Math.round(goldValue(GOLD.pileValue, this.mapId) * FILLER_CARDS.gold.piles * value);
     }
 
     /** Uses one Reroll or Skip (Fase 21½B): sound, counter and metrics. */
@@ -856,7 +884,7 @@ export class GameScene extends Phaser.Scene {
             case 'filler':
                 // Nothing left to take (1-nov-2026): gold or health, × the card's rarity value.
                 if (choice.filler === 'gold') {
-                    const gold = Math.round(goldValue(GOLD.pileValue, this.mapId) * FILLER_CARDS.gold.piles * choice.value);
+                    const gold = this.fillerGold(choice.value);
                     this.runGold += gold;
                     this.sim?.onGold(gold, this.spawner.elapsed);
                 } else {
@@ -1085,6 +1113,8 @@ export class GameScene extends Phaser.Scene {
                 defense: 1 - (1 - this.equipment.defense) * (1 - this.equipment.passiveBonus('merien')),
                 defenseRatio: this.defenseRatio,
                 magicResistance: this.magicResistance,
+                hpRecovery: this.equipment.hpRecovery,
+                mpRecovery: this.equipment.mpRecovery,
                 passiveRanks: this.equipment.passives,
                 passiveBonuses: this.passiveBonusesNow(),
                 magicRanks: this.equipment.magics,

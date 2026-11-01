@@ -32,6 +32,9 @@ import { addTouchFullscreenButton } from '../ui/fullscreen';
 import { ACHIEVEMENT_EVENT } from '../data/achievements';
 import { generalAccuracy, generalSpellAccuracy } from '../data/accuracy';
 import { dodgeChance, resistChance } from '../data/defense';
+import {
+    critDamage, HP_REGEN_SECONDS, hpPerBatch, MANA_REGEN_SECONDS, manaPerBatch, percent, speedFromCooldown, totalBonus,
+} from '../ui/statText';
 import { PASSIVE_IDS, PASSIVES } from '../data/passives';
 import { getMagic, MAGIC_IDS, magicMaxRank, type MagicId } from '../data/passiveMagic';
 import type { CharacterId } from '../data/characters';
@@ -67,6 +70,9 @@ export interface HudState extends HudBarState {
     defenseRatio: number;
     /** Magic resistance against spells: Magic plus armor (data/defense.ts). */
     magicResistance: number;
+    /** HP and MP Recovery of the armor worn (0.3 = +30%), for the regen rows. */
+    hpRecovery: number;
+    mpRecovery: number;
     /** Rank of each passive. */
     passiveRanks: Readonly<Record<keyof typeof PASSIVES, number>>;
     /** Total bonus of each passive (0.7 = +70%; Fase 28½A: Rare and Epic cards are worth more than their rank). */
@@ -453,7 +459,6 @@ export class HudScene extends Phaser.Scene {
 /** Label / value rows of the details panel beside the Character window. */
 function describeDerived(state: HudState): [string, string][] {
     const stats = state.stats;
-    const bonus = (multiplier: number) => `${multiplier >= 1 ? '+' : ''}${Math.round((multiplier - 1) * 100)}%`;
     const gear: [string, string][] = [];
     if (state.weaponName) gear.push([stats.def.startWeapon.kind === 'spell' ? 'Spell' : 'Weapon', state.weaponName]);
     if (state.skillRow) gear.push(state.skillRow);
@@ -479,13 +484,18 @@ function describeDerived(state: HudState): [string, string][] {
     }
     return [
         ...gear,
+        // Same texts as the power cards (ui/statText.ts), so a card's "before → after" can be checked here.
         ['Health', String(stats.maxHp)],
+        ['Health regen', `${hpPerBatch(stats, state.hpRecovery)} / ${HP_REGEN_SECONDS}s`],
         ['Mana', String(stats.maxMana)],
-        ['Magic damage', bonus(stats.damageMultiplier('magic'))],
-        ['Physical damage', bonus(stats.damageMultiplier('physical'))],
-        ['Critical', `${Math.round(stats.critChance * 100)}%`],
-        ['Speed', bonus(stats.moveSpeedMultiplier)],
-        ['Cooldown', `${Math.round(stats.cooldownMultiplier * 100)}%`],
+        ['Mana regen', `${manaPerBatch(stats, state.mpRecovery)} / ${MANA_REGEN_SECONDS}s`],
+        ['Magic damage', totalBonus(stats.damageMultiplier('magic'))],
+        ['Physical damage', totalBonus(stats.damageMultiplier('physical'))],
+        ['Critical', percent(stats.critChance)],
+        ['Critical damage', critDamage(stats.critDamageMultiplier)],
+        ['Speed', totalBonus(stats.moveSpeedMultiplier)],
+        ['Attack speed', speedFromCooldown(stats.cooldownMultiplier)],
+        ['Cast speed', speedFromCooldown(stats.castMultiplier)],
     ];
 }
 

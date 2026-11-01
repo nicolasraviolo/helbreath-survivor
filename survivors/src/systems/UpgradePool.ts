@@ -8,6 +8,8 @@
 //   suben siempre 1 rango y la rareza decide cuánto vale la carta (`value`).
 // - Las 3 cartas salen sin repetir, por peso (CARD_DRAW_WEIGHT): magia 4, piedra 2, blessing 1. Si ya no queda nada que
 //   subir, se completan con oro o vida (FILLER_CARDS), una de cada como mucho.
+// - Bloque 2 de las cartas de poder (propietario, 1-nov-2026): una carta que ahora no cambiaría nada (esquiva en su
+//   mínimo sin armadura, puntería ya en el 95 %) no sale; lo decide GameScene con `wouldHelp`.
 import { CARD_DRAW_WEIGHT, FILLER_IDS, getPassive, PASSIVE_IDS, type FillerId, type PassiveId } from '../data/passives';
 import { getMagic, MAGIC_IDS, magicMaxRank, MAX_MAGICS_PER_RUN, type MagicId } from '../data/passiveMagic';
 import { CARD_RARITIES, CARD_RARITY, rarityWeights, type CardRarity } from '../data/cardRarity';
@@ -19,6 +21,8 @@ export interface LevelUpOptions {
     chest?: boolean;
     onlyPassives?: boolean;
     allEpic?: boolean;
+    /** False for a passive whose next card would change nothing right now; it is left out of the draw. */
+    wouldHelp?: (passive: PassiveId) => boolean;
 }
 
 export type LevelUpChoice =
@@ -40,7 +44,9 @@ type RankedCard =
  */
 export function buildLevelUpChoices(equipment: Equipment, chr: number, luck: number, options: LevelUpOptions = {}): LevelUpChoice[] {
     const roll = (): CardRarity => (options.allEpic ? 'epic' : rollRarity(rarityWeights(chr, luck, options.chest ?? false)));
-    const pool = rankedCards(equipment).filter((card) => !options.onlyPassives || card.kind === 'passive');
+    const pool = rankedCards(equipment).filter((card) => card.kind === 'passive'
+        ? options.wouldHelp?.(card.passive) ?? true
+        : !options.onlyPassives);
     const choices: LevelUpChoice[] = [];
     while (choices.length < LEVEL_UP_CHOICES && pool.length > 0) {
         const card = pool.splice(pickWeighted(pool.map(drawWeight)), 1)[0];

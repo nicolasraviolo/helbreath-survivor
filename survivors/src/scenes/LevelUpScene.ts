@@ -14,11 +14,17 @@ import { GAME_WIDTH, LEVEL_UP_INPUT_DELAY_MS } from '../config/gameConfig';
 import { HUD_TOP } from '../config/hud';
 import { px, UI_TEXT, UI_FONT_SIZE } from '../config/ui';
 import { itemPackTexture } from '../config/equipment';
-import { FILLER_CARDS, getPassive, type PassiveIcon } from '../data/passives';
+import { FILLER_CARDS, getPassive, passiveBonus, type PassiveIcon, type PassiveId } from '../data/passives';
+import { generalAccuracy, generalSpellAccuracy } from '../data/accuracy';
+import { dodgeChance, resistChance } from '../data/defense';
+import { formatGold } from '../data/gold';
 import { getMagic, magicDamageType, magicExtraMultiplier, magicMaxRank, magicRank, type MagicRank } from '../data/passiveMagic';
 import { CARD_RARITY, EPIC_CARD_GLOW, type CardRarity } from '../data/cardRarity';
 import { CARD_ACTION, CARD_ACTIONS, DICE_FACE, WINE_ICON, type CardAction } from '../data/rerollSkip';
 import type { CharacterStats } from '../entities/CharacterStats';
+import {
+    critDamage, HP_REGEN_SECONDS, hpPerBatch, MANA_REGEN_SECONDS, manaPerBatch, percent, speedFromCooldown, totalBonus,
+} from '../ui/statText';
 import type { Equipment } from '../entities/Equipment';
 import { Action, InputSystem } from '../systems/InputSystem';
 import { unlockStore } from '../systems/UnlockStore';
@@ -31,6 +37,11 @@ export type { LevelUpChoice } from '../systems/UpgradePool';
 export interface LevelUpSceneData {
     stats: CharacterStats;
     equipment: Equipment;
+    /** Defense ratio and magic resistance now (cards included), to preview Serpent's Grace and Unicorn's Ward. */
+    defenseRatio: number;
+    magicResistance: number;
+    /** Gold of a Pouch of Gold card worth `value`. */
+    fillerGold: (value: number) => number;
     choices: LevelUpChoice[];
     /** A card picked, or undefined for a Skip. */
     onChoose: (choice: LevelUpChoice | undefined) => void;
@@ -294,7 +305,7 @@ export class LevelUpScene extends Phaser.Scene {
     }
 
     private createCard(choice: LevelUpChoice, x: number, y: number, index: number): Card {
-        const text = describeCard(this.params.stats, this.params.equipment, choice);
+        const text = describeCard(this.params, choice);
         const frame = this.add.rectangle(0, 0, CARD_WIDTH, CARD_HEIGHT, CARD_FILL, 0.95).setStrokeStyle(2, CARD_BORDER);
         const top = -CARD_HEIGHT / 2;
         const textWidth = CARD_WIDTH - CARD_TEXT_MARGIN * 2;
@@ -393,13 +404,14 @@ export class LevelUpScene extends Phaser.Scene {
     }
 }
 
-function describeCard(stats: CharacterStats, equipment: Equipment, choice: LevelUpChoice): CardText {
+function describeCard(params: LevelUpSceneData, choice: LevelUpChoice): CardText {
+    const { stats, equipment } = params;
     switch (choice.kind) {
         case 'filler': {
             // Nothing left to take (1-nov-2026): gold piles or health now, × the rarity's value.
             const filler = FILLER_CARDS[choice.filler];
             const changes = choice.filler === 'gold'
-                ? [`Gold piles +${FILLER_CARDS.gold.piles * choice.value}`]
+                ? [`Gold +${formatGold(params.fillerGold(choice.value))}`]
                 : [`Health +${Math.round(stats.maxHp * FILLER_CARDS.heal.healShare * choice.value)}`];
             return { badge: FILLER_BADGE.text, badgeColor: FILLER_BADGE.color, icon: filler.icon, title: filler.name, effect: filler.effect, changes };
         }
@@ -410,7 +422,10 @@ function describeCard(stats: CharacterStats, equipment: Equipment, choice: Level
             return {
                 badge: PASSIVE_BADGE.text, badgeColor: PASSIVE_BADGE.color, icon: passive.icon, title: `${passive.name} ${choice.rank}/${passive.maxRank}`,
                 effect: passive.effect,
-                changes: [`${passive.statLabel} ${pct(equipment.passiveValues[choice.passive])} → ${pct(choice.value)}`],
+                changes: [
+                    describeCardStat(params, choice.passive, choice.value)
+                        ?? `${passive.statLabel} ${pct(equipment.passiveValues[choice.passive])} → ${pct(choice.value)}`,
+                ],
             };
         }
         case 'magic': {
@@ -443,3 +458,36 @@ function describeCard(stats: CharacterStats, equipment: Equipment, choice: Level
         }
     }
 }
+
+/**
+ * "Before → after" of a power card in the real value it raises, as the C panel shows it (bloque 2, 1-nov-2026):
+ * "Health 137 → 148", "Mana 54 → 60 every 20s", "Dodge 18% → 21%". `value`: what its cards will be worth.
+ * Undefined for the cards with no clearer number (the stones, Golden Carp): they keep their "+0% → +10%".
+ */
+function describeCardStat(params: LevelUpSceneData, id: PassiveId, value: number): string | undefined {
+    const { stats: before, equipment } = params;
+    const after = before.previewWithCard(id, passiveBonus(id, value));
+    const line = (label: string, show: (stats: CharacterStats) => string) => `${label} ${show(before)} → ${show(after)}`;
+    // Dodge and magic resistance come from the game (armor and Dex or Mag): the card's share is swapped in.
+    const ratio = (now: number, card: 'serpentGrace' | 'unicornWard', stats: CharacterStats) =>
+        (now / (1 + before.cardBonus[card])) * (1 + stats.cardBonus[card]);
+    switch (id) {
+        case 'giantsDraught': return line('Health', (s) => String(s.maxHp));
+        case 'ginsengRoot': return `${line('Health', (s) => hpPerBatch(s, equipment.hpRecovery))} every ${HP_REGEN_SECONDS}s`;
+        case 'archmageSapphire': return line('Mana', (s) => String(s.maxMana));
+        case 'wizardElixir': return `${line('Mana', (s) => manaPerBatch(s, equipment.mpRecovery))} every ${MANA_REGEN_SECONDS}s`;
+        case 'ogreHeart': return line('Physical damage', (s) => totalBonus(s.damageMultiplier('physical')));
+        case 'arcaneDiamond': return line('Magic damage', (s) => totalBonus(s.damageMultiplier('magic')));
+        case 'werewolfStride': return line('Speed', (s) => totalBonus(s.moveSpeedMultiplier));
+        case 'hellhoundFrenzy': return line('Attack speed', (s) => speedFromCooldown(s.cooldownMultiplier));
+        case 'orbOfQuickening': return line('Cast speed', (s) => speedFromCooldown(s.castMultiplier));
+        case 'cyclopsEye': return line('Accuracy', (s) => percent(generalAccuracy(s.stats, s.hitBonusFor('physical'))));
+        case 'demonEye': return line('Spell accuracy', (s) => percent(generalSpellAccuracy(s.stats, s.hitBonusFor('magic'))));
+        case 'scorpionSting': return line('Critical', (s) => percent(s.critChance));
+        case 'rubyOfWrath': return line('Critical damage', (s) => critDamage(s.critDamageMultiplier));
+        case 'serpentGrace': return line('Dodge', (s) => percent(dodgeChance(ratio(params.defenseRatio, 'serpentGrace', s))));
+        case 'unicornWard': return line('Magic resist', (s) => percent(resistChance(ratio(params.magicResistance, 'unicornWard', s))));
+        default: return undefined;
+    }
+}
+
