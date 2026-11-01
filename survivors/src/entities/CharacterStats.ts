@@ -44,6 +44,8 @@ export class CharacterStats {
     public xelimaBonus = 0;
     /** Extra damage of every kind from the weapon's attribute: Sharp, Ancient (Fase 21B; the Mage's wand, her spells). */
     public attributeBonus = 0;
+    /** Hitting Probability of the weapon or wand (0.21 = hit ratio ×1.21; revisión del original C, data/accuracy.ts). */
+    public hitBonus = 0;
     /** Multiplies every kind of damage while a buff like Berserk lasts (1 = no buff). */
     public buffDamageMultiplier = 1;
 
@@ -139,6 +141,7 @@ export class CharacterStats {
         copy.gearMagicBonus = this.gearMagicBonus;
         copy.xelimaBonus = this.xelimaBonus;
         copy.attributeBonus = this.attributeBonus;
+        copy.hitBonus = this.hitBonus;
         copy.buffDamageMultiplier = this.buffDamageMultiplier;
         for (const id of STAT_IDS) copy.stats[id] = this.stats[id];
         copy.stats[stat] += points;

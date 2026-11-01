@@ -15,7 +15,9 @@ import type { AddedColor, GearLayer, GearSlot } from '../hb/playerAppearance';
 import { ACTIVE_SPELL_IDS, ACTIVE_SPELLS, activeSpellManaCost, isActiveSpellId, type ActiveSpellId } from './activeSpells';
 import type { Gender } from './appearance';
 import { ARMOR_PIECES, ARMOR_SLOT_NAMES, type ArmorPieceId, type ArmorSlotId } from './armor';
-import { attributeColor, ATTRIBUTES, attributeDamageBonus, type ItemAttribute } from './attributes';
+import {
+    ATTRIBUTE_VALUE_MAX, attributeColor, ATTRIBUTES, attributeDamageBonus, SECONDARY_ATTRIBUTES, type ItemAttribute, type ItemRolls, type SecondaryAttribute,
+} from './attributes';
 import type { CharacterId } from './characters';
 import { CONSUMABLES, isConsumableId, ZEM_ID, type ConsumableId } from './consumables';
 import type { EquipRequirement, ItemIcon, ItemIconFrame } from './itemTypes';
@@ -317,6 +319,37 @@ export function canHaveAttribute(id: ItemId, attribute: ItemAttribute): boolean 
     if (def.kind === 'armor') return isArmorPieceId(id) && (def.onlySet === undefined || ARMOR_PIECES[id].set === def.onlySet);
     if (isWandId(id)) return def.onWands;
     return isMeleeWeaponId(id);
+}
+
+/**
+ * Second attributes (Revisión del original C): weapon ones on weapons and wands, armor ones on armor pieces (MP Recovery
+ * only on the Mage's clothes), and never the same effect as the first (no HP Recovery twice).
+ */
+export function canHaveSecondary(id: ItemId, secondary: SecondaryAttribute, first?: ItemAttribute): boolean {
+    const def = SECONDARY_ATTRIBUTES[secondary];
+    if (first && ATTRIBUTES[first].effect === def.effect) return false;
+    if (def.kind === 'armor') return isArmorPieceId(id) && (def.onlySet === undefined || ARMOR_PIECES[id].set === def.onlySet);
+    return isWandId(id) || isMeleeWeaponId(id);
+}
+
+/** A saved value 1–13, raised to the attribute's minimum; undefined if missing or not a whole number in range. */
+export function readAttributeValue(value: unknown, minValue = 1): number | undefined {
+    if (typeof value !== 'number' || !Number.isInteger(value) || value < 1 || value > ATTRIBUTE_VALUE_MAX) return undefined;
+    return Math.max(minValue, value);
+}
+
+/** Only the attribute fields of an item (to copy them onto another object). */
+export function rollsOf(item: Readonly<ItemRolls>): ItemRolls {
+    return {
+        ...(item.attribute ? { attribute: item.attribute } : {}),
+        ...(item.attribute && item.attributeValue ? { attributeValue: item.attributeValue } : {}),
+        ...(item.secondary && item.secondaryValue ? { secondary: item.secondary, secondaryValue: item.secondaryValue } : {}),
+    };
+}
+
+/** The item has an attribute of any kind (it is a found item, not plain shop gear). */
+export function hasRolls(item: Readonly<ItemRolls>): boolean {
+    return item.attribute !== undefined || item.secondary !== undefined;
 }
 
 /**

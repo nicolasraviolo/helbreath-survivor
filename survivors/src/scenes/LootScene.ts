@@ -11,7 +11,7 @@ import { byDevice } from '../config/device';
 import { GAME_WIDTH, LEVEL_UP_INPUT_DELAY_MS } from '../config/gameConfig';
 import { px, UI_FONT_SIZE, UI_TEXT } from '../config/ui';
 import type { Gender } from '../data/appearance';
-import { ATTRIBUTES } from '../data/attributes';
+import { attributeLine, secondaryLine } from '../data/attributes';
 import { isUniqueItem, UNIQUE_LOOK } from '../data/uniques';
 import { setColouredTexture } from '../hb/additiveTint';
 import { describeItem, EQUIP_SLOT_NAMES, itemInfo, itemPicture, ownedItemColor, ownedItemName, ownedItemNameColor, ownedItemPower, requirementChecks, wandManaSave } from '../data/items';
@@ -141,7 +141,6 @@ export class LootScene extends Phaser.Scene {
     private createCard(x: number, y: number, label: string, item: OwnedItem | undefined, found: boolean): void {
         const p = this.params;
         const id = item?.id;
-        const attribute = item?.attribute ? ATTRIBUTES[item.attribute] : undefined;
         const top = -L.cardHeight / 2;
         const textWidth = L.cardWidth - L.textMargin * 2;
         const objects: Phaser.GameObjects.GameObject[] = [
@@ -167,7 +166,10 @@ export class LootScene extends Phaser.Scene {
             const mana = manaSave ? ` · Mana save ${Math.round(manaSave * 100)}%` : '';
             if (slot) lines.push({ text: `${EQUIP_SLOT_NAMES[slot]}${mana}`, color: L.dimColor });
             lines.push({ text: describeItem(id), color: L.textColor });
-            if (attribute) lines.push({ text: attribute.description, color: colorString(attribute.color) });
+            // The attribute with its value and the second attribute (revisión del original C), each in its colour.
+            for (const line of item ? [attributeLine(item), secondaryLine(item)] : []) {
+                if (line) lines.push({ text: line.text, color: colorString(line.color) });
+            }
             if (isUniqueItem(id)) lines.push({ text: 'Unique', color: colorString(UNIQUE_LOOK.color) });
             const checks = requirementChecks(id, p.stats, p.level);
             if (checks.length > 0) {

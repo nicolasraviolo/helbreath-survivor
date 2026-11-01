@@ -18,17 +18,17 @@ import { CHARACTER_NAME_ALLOWED, CHARACTER_NAME_MAX_LENGTH, CHARACTER_SLOT_COUNT
 import { BODY_SPRITES, DEFAULT_LOOKS, GENDERS, HAIR_COLORS, HAIR_STYLE_COUNT, UNDERWEAR_COUNT, type CharacterLook } from '../data/appearance';
 import { CHARACTER_LEVEL_MAX, expToNextCharacterLevel, STAT_POINT_CAP, STAT_POINTS_PER_LEVEL, totalExpForLevel } from '../data/characterLevel';
 import { CHARACTERS, isCharacterId, type CharacterId } from '../data/characters';
-import { isItemAttribute, type ItemAttribute } from '../data/attributes';
+import { isItemAttribute, type ItemAttribute, type ItemRolls } from '../data/attributes';
 import {
-    canChangeSlot, canHaveAttribute, canEmptySlot, canEquip, classCanWear, EQUIP_SLOT_IDS, isFreeItem, isItemId, isSpellItemId, itemInfo,
-    MANUAL_SPELL_IDS, readEquipment, START_EQUIPMENT, type EquipSlotId, type SavedEquipment, type SpellItemId,
+    canChangeSlot, canHaveAttribute, canEmptySlot, canEquip, classCanWear, EQUIP_SLOT_IDS, hasRolls, isFreeItem, isItemId, isSpellItemId, itemInfo,
+    MANUAL_SPELL_IDS, readEquipment, rollsOf, START_EQUIPMENT, type EquipSlotId, type SavedEquipment, type SpellItemId,
 } from '../data/items';
 import { STAT_IDS, type StatId, type Stats } from '../data/stats';
 import { XELIMA_STONE_ID } from '../data/consumables';
 import { sameOwnedItem, type OwnedItem } from '../data/loot';
 import { canUpgrade, readUpgrade, UPGRADE_MAX, UPGRADE_STONES_PER_LEVEL, upgradeOf } from '../data/upgrades';
 import type { RunLootState } from './RunLoot';
-import { isRecord, readAttribute, readNumber, readOwnedItems, saveStore, type RunSnapshot } from './SaveStore';
+import { isRecord, readAttribute, readNumber, readOwnedItems, readRolls, saveStore, type RunSnapshot } from './SaveStore';
 
 const STORAGE_KEY = 'hb-survivors.characters';
 /** Raise it (and teach migrate() the old shape) whenever SavedCharacter changes in a way old data can't be read as. */
@@ -69,6 +69,11 @@ export interface SavedCharacter {
     attributes: Partial<Record<EquipSlotId, ItemAttribute>>;
     /** "+" of the item worn in each slot, if it has one (Fase 24D; only weapons and wands). */
     upgrades: Partial<Record<EquipSlotId, number>>;
+    /**
+     * Value of the first attribute and the second attribute of the item worn in each slot (Revisión del original C).
+     * Missing on characters saved before: their gear counts as the attributes' legacyValue, without a second one.
+     */
+    rolls: Partial<Record<EquipSlotId, WornRolls>>;
     /** Items kept from the runs (Fase 21A): the bag, and the gear that found items replaced. */
     inventory: OwnedItem[];
     /** Manual spells learned for ever by picking up their book (Fase 26E, MANUAL_SPELL_IDS). */
@@ -197,6 +202,12 @@ class CharacterStoreImpl {
                     // "up3:longSword": into the inventory at +3 (Fase 24D).
                     else if (upgrade !== undefined && canUpgrade(owned)) character.inventory.push({ id: owned, upgrade: Math.min(UPGRADE_MAX, Number(upgrade)) });
                     else if (isItemAttribute(attribute) && canHaveAttribute(owned, attribute)) character.inventory.push({ id: owned, attribute });
+                    // "hpRecovery.13.physicalAbsorption.5:plateMail": with values and a second attribute (revisión del original C).
+                    else if (attribute?.includes('.')) {
+                        const [first, firstValue, second, secondValue] = attribute.split('.');
+                        const rolls = readRolls(owned, { attribute: first, attributeValue: Number(firstValue), secondary: second, secondaryValue: Number(secondValue) });
+                        if (hasRolls(rolls)) character.inventory.push({ id: owned, ...rolls });
+                    }
                     continue;
                 }
                 const id = entry;
@@ -365,6 +376,7 @@ class CharacterStoreImpl {
         if (worn && !isPlainFreeItem(character, worn)) character.inventory.push(worn);
         delete character.attributes[slot];
         delete character.upgrades[slot];
+        delete character.rolls[slot];
     }
 
     /** Wears that item in the slot, with its attribute and "+" (the slot must be empty: takeOff first). */
@@ -372,6 +384,8 @@ class CharacterStoreImpl {
         character.equipment[slot] = item.id;
         if (item.attribute) character.attributes[slot] = item.attribute;
         if (item.upgrade) character.upgrades[slot] = item.upgrade;
+        const { attributeValue, secondary, secondaryValue } = rollsOf(item);
+        if (attributeValue || secondary) character.rolls[slot] = { ...(attributeValue ? { attributeValue } : {}), ...(secondary ? { secondary, secondaryValue } : {}) };
     }
 
     /**
@@ -506,6 +520,7 @@ function newCharacter(name: string, classId: CharacterId, look: CharacterLook): 
         equipment: { ...START_EQUIPMENT[classId] },
         attributes: {},
         upgrades: {},
+        rolls: {},
         inventory: [],
         learnedSpells: [],
         createdAt: now,
@@ -552,6 +567,7 @@ function migrate(data: unknown): unknown[] {
 function readCharacter(entry: unknown): SavedCharacter | undefined {
     if (!isRecord(entry) || typeof entry.uid !== 'string' || typeof entry.name !== 'string' || !isCharacterId(entry.classId)) return undefined;
     const equipment = readEquipment(entry.equipment, entry.classId);
+    const attributes = readWornAttributes(entry.attributes, equipment);
     return {
         uid: entry.uid,
         name: cleanName(entry.name) || CHARACTERS[entry.classId].name,
@@ -563,8 +579,9 @@ function readCharacter(entry: unknown): SavedCharacter | undefined {
         unspentPoints: Math.max(0, Math.floor(readNumber(entry.unspentPoints) ?? 0)),
         statPoints: readStatPoints(entry.statPoints),
         equipment,
-        attributes: readWornAttributes(entry.attributes, equipment),
+        attributes,
         upgrades: readWornUpgrades(entry.upgrades, equipment),
+        rolls: readWornRolls(entry.rolls, equipment, attributes),
         inventory: readOwnedItems(entry.inventory),
         learnedSpells: readLearnedSpells(entry.learnedSpells),
         createdAt: readNumber(entry.createdAt) ?? 0,
@@ -616,7 +633,7 @@ export function wornItem(character: Readonly<SavedCharacter>, slot: EquipSlotId)
     if (id === undefined) return undefined;
     const attribute = character.attributes[slot];
     const upgrade = character.upgrades[slot];
-    return { id, ...(attribute ? { attribute } : {}), ...(upgrade ? { upgrade } : {}) };
+    return { id, ...rollsOf({ attribute, ...character.rolls[slot] }), ...(upgrade ? { upgrade } : {}) };
 }
 
 /**
@@ -624,7 +641,7 @@ export function wornItem(character: Readonly<SavedCharacter>, slot: EquipSlotId)
  * never goes to the inventory.
  */
 function isPlainFreeItem(character: Readonly<SavedCharacter>, item: Readonly<OwnedItem>): boolean {
-    return !item.attribute && !item.upgrade && isFreeItem(character.classId, item.id, character.learnedSpells);
+    return !hasRolls(item) && !item.upgrade && isFreeItem(character.classId, item.id, character.learnedSpells);
 }
 
 /** Manual spells learned (Fase 26E): only known ids of MANUAL_SPELL_IDS, each once. */
@@ -647,6 +664,25 @@ function readWornUpgrades(value: unknown, equipment: Readonly<SavedEquipment>): 
         if (upgrade) upgrades[slot] = upgrade;
     }
     return upgrades;
+}
+
+/** What the gear worn has besides its attribute (Revisión del original C): the attribute's value and a second one. */
+type WornRolls = Omit<ItemRolls, 'attribute'>;
+
+/** Values and second attributes of the gear worn, only where that item can have them. */
+function readWornRolls(
+    value: unknown, equipment: Readonly<SavedEquipment>, attributes: Readonly<Partial<Record<EquipSlotId, ItemAttribute>>>,
+): Partial<Record<EquipSlotId, WornRolls>> {
+    const rolls: Partial<Record<EquipSlotId, WornRolls>> = {};
+    if (!isRecord(value)) return rolls;
+    for (const slot of EQUIP_SLOT_IDS) {
+        const id = equipment[slot];
+        const saved = value[slot];
+        if (id === undefined || !isRecord(saved)) continue;
+        const { attributeValue, secondary, secondaryValue } = readRolls(id, { ...saved, attribute: attributes[slot] });
+        if (attributeValue || secondary) rolls[slot] = { ...(attributeValue ? { attributeValue } : {}), ...(secondary ? { secondary, secondaryValue } : {}) };
+    }
+    return rolls;
 }
 
 /** Attributes of the gear worn, only where that item can have them. */

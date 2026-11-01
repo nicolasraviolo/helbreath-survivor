@@ -463,7 +463,7 @@ function describeDerived(state: HudState): [string, string][] {
     gear.push(['Dodge', `${Math.round(dodgeChance(state.defenseRatio) * 100)}%`]);
     gear.push(['Magic resist', `${Math.round(resistChance(state.magicResistance) * 100)}%`]);
     // General chance that the player's own hits land (revisión del original B): blows with Dex, spells with Mag.
-    const accuracy = stats.def.startWeapon.kind === 'spell' ? generalSpellAccuracy(stats.stats) : generalAccuracy(stats.stats);
+    const accuracy = stats.def.startWeapon.kind === 'spell' ? generalSpellAccuracy(stats.stats, stats.hitBonus) : generalAccuracy(stats.stats, stats.hitBonus);
     gear.push(['Accuracy', `${Math.round(accuracy * 100)}%`]);
     // Always shown, at any rank (0 too), so the panel keeps the height it was built with.
     for (const id of PASSIVE_IDS) {

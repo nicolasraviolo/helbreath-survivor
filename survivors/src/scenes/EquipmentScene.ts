@@ -48,7 +48,7 @@ import {
 import { GAME_HEIGHT, GAME_WIDTH } from '../config/gameConfig';
 import { totalExpForLevel, CHARACTER_LEVEL_MAX } from '../data/characterLevel';
 import { CHARACTERS } from '../data/characters';
-import { ATTRIBUTES, ITEM_ATTRIBUTES, type ItemAttribute } from '../data/attributes';
+import { attributesSentence, attributeValueOf, ITEM_ATTRIBUTES, SECONDARY_ATTRIBUTE_IDS, type ItemAttribute } from '../data/attributes';
 import { setColouredTexture } from '../hb/additiveTint';
 import { sameOwnedItem, type OwnedItem } from '../data/loot';
 import { upgradeDescription, upgradeOf } from '../data/upgrades';
@@ -69,6 +69,7 @@ import {
     ownedItemName,
     ownedItemNameColor,
     requirementChecks,
+    hasRolls,
     type EquipSlotId,
     type ItemId,
 } from '../data/items';
@@ -358,8 +359,17 @@ export class EquipmentScene extends Phaser.Scene {
         const worn = characterStore.worn(this.uid, slot);
         if (worn && !has(worn)) items.push(worn);
         for (const { item } of characterStore.ownedFor(this.uid, slot)) if (!has(item)) items.push(item);
-        const order = (item: OwnedItem) => (ladder.indexOf(item.id) * 10 + (item.attribute ? ITEM_ATTRIBUTES.indexOf(item.attribute) + 1 : 0)) * 10 + upgradeOf(item);
-        items.sort((a, b) => order(a) - order(b));
+        // By item, then attribute, its value, second attribute, its value and "+" (revisión del original C: values).
+        const order = (item: OwnedItem): number[] => [
+            ladder.indexOf(item.id), item.attribute ? ITEM_ATTRIBUTES.indexOf(item.attribute) + 1 : 0, attributeValueOf(item) ?? 0,
+            item.secondary ? SECONDARY_ATTRIBUTE_IDS.indexOf(item.secondary) + 1 : 0, item.secondaryValue ?? 0, upgradeOf(item),
+        ];
+        items.sort((a, b) => {
+            const oa = order(a);
+            const ob = order(b);
+            const i = oa.findIndex((value, index) => value !== ob[index]);
+            return i < 0 ? 0 : (oa[i] ?? 0) - (ob[i] ?? 0);
+        });
         const rows: Row[] = items.map((item) => ({ item }));
         if (rows.length > 0 && canEmptySlot(slot)) rows.unshift({ item: undefined });
         return rows;
@@ -502,8 +512,8 @@ export class EquipmentScene extends Phaser.Scene {
         const unmet = requirementChecks(id, permanentStats(character), character.level).filter((check) => !check.met);
         const needs = unmet.length > 0 ? ` Needs ${unmet.map((check) => check.label).join(', ')}.` : '';
         const owned = characterStore.ownedCount(this.uid, item);
-        const kept = owned > 0 ? ` You keep ${owned} in your inventory.` : isFreeItem(character.classId, id, character.learnedSpells) && !item.attribute && !item.upgrade ? '' : ' The one you wear.';
-        const attribute = item.attribute ? ` ${ATTRIBUTES[item.attribute].description}.` : '';
+        const kept = owned > 0 ? ` You keep ${owned} in your inventory.` : isFreeItem(character.classId, id, character.learnedSpells) && !hasRolls(item) && !item.upgrade ? '' : ' The one you wear.';
+        const attribute = attributesSentence(item);
         const upgrade = item.upgrade ? ` ${upgradeDescription(item.upgrade)}.` : '';
         return `${ownedItemName(item)}: ${describeItem(id)}.${attribute}${upgrade}${needs}${kept}`;
     }

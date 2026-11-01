@@ -116,6 +116,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Barracks: entrenamiento con muñecos (31-oct-2026)
 - Golpe normal igual para todas las armas; el crit las distingue (31-oct-2026)
 - Fallar golpes y vida que crece con los minutos (revisión del original B, 31-oct-2026)
+- Botín con valores y segundo atributo (revisión del original C, 1-nov-2026)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -1329,3 +1330,10 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - **Vida:** `MONSTER_HP.exponent` 0,85 y `MONSTER_HP_PER_MINUTE` 0,05 (`data/enemies.ts`). `SpawnSystem.update` → `EnemySystem.setRunMinute` → `MapDifficulty.hpGrowth` (solo vida; `Enemy.xp` no lo usa). El Champion se crea con `hpGrowth: 1`; jefes con `NO_DIFFICULTY`; Guards y muñecos con `spawnGuard`, sin crecimiento.
 - **Probar:** `check barracks --eval=...` con 1.000 `g.combat.hitEnemy` sobre un Dummy → ~18 % de fallos con Dex 14 (sale 16–17 %).
 - **Esquiva retocada (mismo día, propietario):** `DODGE.maxHitChance` 0,95 → 0,8, `hitScale` 8,3 → 7,1, `minHitChance` 0,25 → 0,2. Medidas (`pnpm balance`, 6 partidas por caso; antes / con B / con B + esquiva, primera muerte del bot): Guerrero Bleeding Isle 8:19 / 5:16 / 6:15, Elvine 8:05 / 5:58 / 6:15, Middleland 9:10 / 8:10 / 7:58; Maga 3:26–3:58 / 2:44–3:45 / 3:38–4:01. Informes `.check/balance-b-before.json`, `-after.json`, `-dodge.json`.
+
+## Botín con valores y segundo atributo (revisión del original C, 1-nov-2026)
+- **Datos:** todo en `data/attributes.ts`. Cada atributo (primero o segundo) suma a un `AttributeEffect` (`damage`, `poison`, `hpRecovery`, `defenseRatio`, `hitting`, `gold`, `physicalAbsorption`…) con `perValue` × valor (o `fixed` en Sharp/Ancient, que no tienen valor). `Equipment.recomputeEffects` suma arma + armaduras; se lee con `equipment.effect(...)`.
+- **Dónde actúa:** Defense Ratio y Magic Resistance multiplican el total del jugador (`GameScene.defenseRatio` / `magicResistance`); Hitting Probability multiplica la puntería (`CharacterStats.hitBonus` → `playerHitChance`, golpes y hechizos); Gold/Experience en `collectPickup` y las gemas con `withBonus` (redondeo al azar para cantidades pequeñas); absorciones en `GameScene` antes de `hurtPlayer` (mágico = `EnemyProjectileSystem.magicDamage`, hechizos y rayos; el resto, físico), tope `MAX_ABSORPTION` 60 %; Poison = parte del golpe 0,2 + 0,05·valor (`CombatSystem.poisonShare`).
+- **Guardado:** `OwnedItem` extiende `ItemRolls` (`attribute`, `attributeValue`, `secondary`, `secondaryValue`, campos planos, sin subir versión). Lo puesto: `SavedCharacter.rolls[slot]` (valor y segundo; el primero sigue en `attributes`); `wornItem()` lo junta. Objetos viejos sin valor = `legacyValue` (`attributeValueOf`). Siempre leer con `readRolls` y copiar con `rollsOf`.
+- **Tirada:** `rollItemRolls(id, strong)` en `LootRoller`; `strong` = élite, jefe, Champion o `?debug=loot` (hasta 13), normal hasta 7. El secundario nunca repite el efecto del primero (`canHaveSecondary`).
+- **Pruebas:** `?attr=hpRecovery:13&attr2=physicalAbsorption:5`, `?gear=hpRecovery.13.gold.5:robe`; `check lootvalues` / `lootweapon` / `valuesinv` (la carta sale con `--eval="(g.debugPickUpLoot(), new Promise(r=>setTimeout(r,800)))"`). El herrero usa nombres cortos (`short`) y encoge el texto si no cabe.

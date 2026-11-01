@@ -47,28 +47,31 @@ export interface PlayerAccuracy {
     mag: number;
 }
 
-/** Chance (0..1) that one of the player's hits of this type lands on a monster with these defenses. */
-export function playerHitChance(type: DamageType, player: PlayerAccuracy, defenseRatio: number, magicResist: number): number {
+/**
+ * Chance (0..1) that one of the player's hits of this type lands on a monster with these defenses. `hitBonus`: the
+ * Hitting Probability of the weapon or wand (0.21 = hit ratio ×1.21; revisión del original C), for blows and spells.
+ */
+export function playerHitChance(type: DamageType, player: PlayerAccuracy, defenseRatio: number, magicResist: number, hitBonus = 0): number {
     if (type === 'magic') {
         const s = SPELL_ACCURACY;
-        const ratio = s.base + s.perMag * player.mag;
+        const ratio = (s.base + s.perMag * player.mag) * (1 + hitBonus);
         const resist = s.resistScale * Math.max(1, magicResist) ** s.resistExponent;
         return clamp((s.hitPercentPerRatio * ratio) / resist / 100, s.minHitChance, s.maxHitChance);
     }
     const a = ACCURACY;
-    const ratio = a.base + a.perDex * player.dex;
+    const ratio = (a.base + a.perDex * player.dex) * (1 + hitBonus);
     const defense = a.defenseScale * Math.max(1, defenseRatio) ** a.defenseExponent;
     return clamp((a.hitPercentPerRatio * ratio) / defense / 100, a.minHitChance, a.maxHitChance);
 }
 
 /** General chance (0..1) that a blow lands, against a typical monster (stats panel). */
-export function generalAccuracy(player: PlayerAccuracy): number {
-    return playerHitChance('physical', player, ACCURACY.referenceDefenseRatio, 1);
+export function generalAccuracy(player: PlayerAccuracy, hitBonus = 0): number {
+    return playerHitChance('physical', player, ACCURACY.referenceDefenseRatio, 1, hitBonus);
 }
 
 /** General chance (0..1) that a spell lands, against a typical monster (stats panel). */
-export function generalSpellAccuracy(player: PlayerAccuracy): number {
-    return playerHitChance('magic', player, 1, SPELL_ACCURACY.referenceMagicResist);
+export function generalSpellAccuracy(player: PlayerAccuracy, hitBonus = 0): number {
+    return playerHitChance('magic', player, 1, SPELL_ACCURACY.referenceMagicResist, hitBonus);
 }
 
 function clamp(value: number, min: number, max: number): number {

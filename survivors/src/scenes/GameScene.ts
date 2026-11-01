@@ -15,8 +15,10 @@ import {
 import { onTouchFullscreenButton, TOUCH_AIM_STICK, TOUCH_AIM_ZONE_START, TOUCH_JOYSTICK, TOUCH_RESERVED_CORNER } from '../config/touch';
 import { ANNOUNCE_EVENT, EVENT_LIST_EVENT, HUD_EVENT_LIST, QUIT_RUN_EVENT } from '../config/hud';
 import { getArmorPiece } from '../data/armor';
-import { canHaveAttribute, classCanWear, isArmorPieceId, isMeleeWeaponId, isSpellItemId, itemInfo, MANUAL_SPELL_IDS, START_EQUIPMENT, type EquipSlotId, type SavedEquipment } from '../data/items';
-import type { ItemAttribute } from '../data/attributes';
+import {
+    classCanWear, isArmorPieceId, isMeleeWeaponId, isSpellItemId, itemInfo, MANUAL_SPELL_IDS, rollsOf, START_EQUIPMENT, type EquipSlotId, type ItemId, type SavedEquipment,
+} from '../data/items';
+import type { ItemRolls } from '../data/attributes';
 import { isWandId, type WandId } from '../data/wands';
 import { upgradeOf } from '../data/upgrades';
 import { LOOT_BOSS_SPREAD, LOOT_DEBUG, LOOT_SOUNDS, MANUAL_LEARNED, type OwnedItem } from '../data/loot';
@@ -44,7 +46,8 @@ import { STAT_IDS, type Stats } from '../data/stats';
 import type { MeleeWeaponId } from '../data/weapons';
 import { isAutoSpellId, type AutoSpellId } from '../data/spells';
 import { RESUME_SLOT_KEY, saveStore, type RunSnapshot } from '../systems/SaveStore';
-import { ACTIVE_CHARACTER_KEY, characterStore, permanentStats } from '../systems/CharacterStore';
+import { ACTIVE_CHARACTER_KEY, characterStore, permanentStats, wornItem } from '../systems/CharacterStore';
+import { debugRolls } from '../systems/LootRoller';
 import { lookLoader, runSprites } from '../systems/LookLoader';
 import { MIN_DAMAGE_TAKEN } from '../data/armor';
 import { HAMMER_SLAM, MELEE_ROOT_MOMENT } from '../data/weapons';
@@ -337,12 +340,14 @@ export class GameScene extends Phaser.Scene {
         const wornEquipment = profile?.equipment ?? savedCharacter?.equipment ?? START_EQUIPMENT[this.characterId];
         // ?weapon=lightAxe (bloque B): that weapon in the Warrior's hand for this run, whatever he wears.
         const startEquipment = DEBUG_START.weapon && character.startWeapon.kind === 'melee' ? { ...wornEquipment, weapon: DEBUG_START.weapon } : wornEquipment;
-        // Fase 21B: the attribute of the weapon or wand worn (?attr= gives one to any starting weapon that can have it).
-        const startAttribute = (profile ? undefined : savedCharacter?.attributes.weapon) ?? DEBUG_START.attribute;
+        // Fase 21B: the attributes of the weapon or wand worn (?attr= / ?attr2= give them to a starting weapon without any).
+        const savedWorn = (slot: EquipSlotId): ItemRolls => (profile || !savedCharacter ? {} : wornItem(savedCharacter, slot) ?? {});
+        const startRolls = (id: ItemId): ItemRolls => {
+            const saved = savedWorn('weapon');
+            return saved.attribute || saved.secondary ? rollsOf(saved) : debugRolls(id);
+        };
         // Fase 24D: its "+" from the blacksmith (?upgrade= gives one in runs without a character, or with ?level=).
         const startUpgrade = savedCharacter && !profile ? savedCharacter.upgrades.weapon ?? 0 : DEBUG_START.upgrade ?? 0;
-        // Fase 24A: the attributes of the armor it wears (HP Recovery, Defense Ratio...).
-        const wornAttributes = (profile ? undefined : savedCharacter?.attributes) ?? {};
         void lookLoader.ensure(this, [...runSprites(character, look, startEquipment), 'item.pack']);
         this.player = new Player(this, (spawn.x + 0.5) * TILE_SIZE, (spawn.y + 0.5) * TILE_SIZE, character, look, map, areaPx);
         // Each batch of self-healing (every 15 s) is told at the bottom left, as in the original.
@@ -474,21 +479,22 @@ export class GameScene extends Phaser.Scene {
             const weaponId = startEquipment.weapon !== undefined && isMeleeWeaponId(startEquipment.weapon) ? startEquipment.weapon : character.startWeapon.id;
             this.meleeWeapon = new MeleeWeapon(weaponId);
             this.equipment.weapon = weaponId;
-            this.equipment.weaponAttribute = startAttribute && canHaveAttribute(weaponId, startAttribute) ? startAttribute : undefined;
+            this.equipment.weaponRolls = startRolls(weaponId);
             this.equipment.weaponUpgrade = startUpgrade;
             this.weapons.add(this.meleeWeapon);
             this.player.setGear('weapon', this.equipment.weaponLayer());
         } else {
             // Fase 21B: the Mage's wand (the starting one in debug runs).
             const wand = startEquipment.weapon !== undefined && isWandId(startEquipment.weapon) ? startEquipment.weapon : START_EQUIPMENT.mage.weapon;
-            if (wand !== undefined && isWandId(wand)) this.equipWand(wand, startAttribute && canHaveAttribute(wand, startAttribute) ? startAttribute : undefined, startUpgrade);
+            if (wand !== undefined && isWandId(wand)) this.equipWand(wand, startRolls(wand), startUpgrade);
             // Fase 20D: the spell of the Spell 1 slot (debug ?spells= may change it).
             this.spellWeapon = new SpellWeapon(startSpells(startEquipment).auto ?? character.startWeapon.id);
             this.equipment.spell = this.spellWeapon.id;
             this.weapons.add(this.spellWeapon);
         }
         for (const id of Object.values(startEquipment)) {
-            if (isArmorPieceId(id)) for (const [slot, layer] of this.equipment.wear(id, wornAttributes[getArmorPiece(id).slot])) this.player.setGear(slot, layer);
+            // Fase 24A: the attributes of the armor it wears (HP Recovery, Defense Ratio...).
+            if (isArmorPieceId(id)) for (const [slot, layer] of this.equipment.wear(id, rollsOf(savedWorn(getArmorPiece(id).slot)))) this.player.setGear(slot, layer);
         }
         this.weapons.setOwnerActionHandler((action, angle, durationMs) => {
             // Stands still until the blow lands or the spell leaves (as in the original), then can run again.
@@ -594,7 +600,8 @@ export class GameScene extends Phaser.Scene {
         stats.gearMagicBonus = this.equipment.magicDamageBonus;
         stats.xelimaBonus = this.equipment.passiveBonus('xelima');
         stats.attributeBonus = this.equipment.weaponDamageBonus;
-        this.combat.poisonOnHit = this.equipment.poisons;
+        this.combat.poisonShare = this.equipment.poisonShare;
+        stats.hitBonus = this.equipment.effect('hitting');
         this.combat.chillOnHit = this.equipment.chills;
     }
 
@@ -623,13 +630,13 @@ export class GameScene extends Phaser.Scene {
                 this.openPortalBeside(this.player.x, this.player.y);
                 break;
             case 'coin':
-                this.runGold += goldValue(GOLD.coinValue, this.mapId);
-                this.sim?.onGold(goldValue(GOLD.coinValue, this.mapId), this.spawner.elapsed);
+            case 'goldPile': {
+                // Revisión del original C: the weapon's Gold attribute (+10% per point).
+                const gold = withBonus(goldValue(id === 'coin' ? GOLD.coinValue : GOLD.pileValue, this.mapId), this.equipment.effect('gold'));
+                this.runGold += gold;
+                this.sim?.onGold(gold, this.spawner.elapsed);
                 break;
-            case 'goldPile':
-                this.runGold += goldValue(GOLD.pileValue, this.mapId);
-                this.sim?.onGold(goldValue(GOLD.pileValue, this.mapId), this.spawner.elapsed);
-                break;
+            }
         }
     }
 
@@ -734,11 +741,11 @@ export class GameScene extends Phaser.Scene {
         })();
         if (id === undefined) return undefined;
         // Bug 26-oct-2026: armor kept its attribute in the run but the card showed it without one.
-        const attribute = slot === 'weapon'
-            ? this.equipment.weaponAttribute
-            : slot === 'spell1' || slot === 'spell2' || slot === 'zem' ? undefined : this.equipment.armorAttribute(slot);
+        const rolls = slot === 'weapon'
+            ? this.equipment.weaponRolls
+            : slot === 'spell1' || slot === 'spell2' || slot === 'zem' ? {} : this.equipment.armorRolls(slot);
         const upgrade = slot === 'weapon' ? this.equipment.weaponUpgrade : 0;
-        return { id, ...(attribute ? { attribute } : {}), ...(upgrade > 0 ? { upgrade } : {}) };
+        return { id, ...rollsOf(rolls), ...(upgrade > 0 ? { upgrade } : {}) };
     }
 
     /** Pauses the game and shows the card of the next item picked up (Fase 21A): Equip or Keep in bag. */
@@ -788,12 +795,12 @@ export class GameScene extends Phaser.Scene {
         const id = item.id;
         if (isMeleeWeaponId(id)) {
             if (this.meleeWeapon) {
-                this.equipment.weaponAttribute = item.attribute;
+                this.equipment.weaponRolls = rollsOf(item);
                 this.equipment.weaponUpgrade = upgradeOf(item);
                 this.equipMelee(id);
             }
         } else if (isWandId(id)) {
-            if (this.spellWeapon) this.equipWand(id, item.attribute, upgradeOf(item));
+            if (this.spellWeapon) this.equipWand(id, rollsOf(item), upgradeOf(item));
         } else if (isAutoSpellId(id)) {
             if (this.spellWeapon) this.equipSpell(id);
         } else if (isActiveSpellId(id)) {
@@ -804,7 +811,7 @@ export class GameScene extends Phaser.Scene {
             if (spell) spell.infinite = old.infinite;
             this.activeSpell = spell;
         } else if (isArmorPieceId(id)) {
-            for (const [slot, layer] of this.equipment.wear(id, item.attribute)) this.player.setGear(slot, layer);
+            for (const [slot, layer] of this.equipment.wear(id, rollsOf(item))) this.player.setGear(slot, layer);
         }
         this.applyStats();
     }
@@ -854,9 +861,9 @@ export class GameScene extends Phaser.Scene {
     }
 
     /** The Mage's wand (Fase 21B): its look, its extra magic damage (Berserk, Kloness), its attribute and "+" (24D). */
-    private equipWand(id: WandId, attribute: ItemAttribute | undefined, upgrade: number): void {
+    private equipWand(id: WandId, rolls: Readonly<ItemRolls>, upgrade: number): void {
         this.equipment.wand = id;
-        this.equipment.weaponAttribute = attribute;
+        this.equipment.weaponRolls = rolls;
         this.equipment.weaponUpgrade = upgrade;
         this.player.setGear('weapon', this.equipment.weaponLayer());
     }
@@ -891,8 +898,8 @@ export class GameScene extends Phaser.Scene {
         const owner = this.characterUid ? characterStore.byUid(this.characterUid) : undefined;
         for (const piece of Object.values(run.armor)) {
             const slot = getArmorPiece(piece).slot;
-            const attribute = owner?.equipment[slot] === piece ? owner.attributes[slot] : undefined;
-            for (const [gearSlot, layer] of this.equipment.wear(piece, attribute)) this.player.setGear(gearSlot, layer);
+            const rolls = owner?.equipment[slot] === piece ? rollsOf(wornItem(owner, slot) ?? { id: piece }) : {};
+            for (const [gearSlot, layer] of this.equipment.wear(piece, rolls)) this.player.setGear(gearSlot, layer);
         }
         this.equipment.restoreCards(run.passives, run.passiveValues, run.magics, run.magicValues);
         this.player.setMaxHp(stats.maxHp, true);
@@ -1149,7 +1156,8 @@ export class GameScene extends Phaser.Scene {
         this.abaddon.update(delta);
         this.screenShake.update(delta);
         if (!player.isDead) {
-            this.gainXp(this.xp.update(delta, player.x, player.y));
+            // Revisión del original C: the weapon's Experience attribute (+10% per point).
+            this.gainXp(withBonus(this.xp.update(delta, player.x, player.y), this.equipment.effect('experience')));
         }
         this.pickups.update(delta, player.x, player.y, !player.isDead);
         this.loot.update(delta, player.x, player.y, !player.isDead);
@@ -1181,7 +1189,11 @@ export class GameScene extends Phaser.Scene {
         }
         if (!player.isDead) {
             const by = this.enemies.landedDamage >= shotDamage ? this.enemies.landedBy : this.enemyShots.hitBy;
-            this.hurtPlayer(this.enemies.landedDamage + shotDamage, this.enemies.landedFromBoss || this.enemyShots.hitFromBoss, by);
+            // Revisión del original C: the armor's Physical / Magic Absorption take their share off blows and arrows / spells.
+            const magic = this.enemyShots.magicDamage;
+            const physical = this.enemies.landedDamage + shotDamage - magic;
+            const absorbed = physical * (1 - this.equipment.absorption('physical')) + magic * (1 - this.equipment.absorption('magic'));
+            this.hurtPlayer(absorbed, this.enemies.landedFromBoss || this.enemyShots.hitFromBoss, by);
         } else if (this.abaddon.tryRevive(player)) {
             // Abaddon's Blood: lies on the ground for a moment, then gets up (Fase 21E).
             if (!player.isDead) this.achievements.onRevive();
@@ -1413,12 +1425,13 @@ export class GameScene extends Phaser.Scene {
 
     /** Defense against monster blows: Dex plus the armor worn (data/defense.ts). */
     private get defenseRatio(): number {
-        return playerDefenseRatio(this.stats.stats.dex, this.equipment.defenseRatio);
+        // Revisión del original C: the Defense Ratio attributes raise the total (+7% per point).
+        return playerDefenseRatio(this.stats.stats.dex, this.equipment.defenseRatio) * (1 + this.equipment.effect('defenseRatio'));
     }
 
     /** Resistance against spells: Magic plus the armor worn (data/defense.ts). */
     private get magicResistance(): number {
-        return playerMagicResistance(this.stats.stats.mag, this.equipment.magicResistance);
+        return playerMagicResistance(this.stats.stats.mag, this.equipment.magicResistance) * (1 + this.equipment.effect('magicResistance'));
     }
 
     /** The simulated run counts every blow, landed or dodged (it is told only while ?debug=sim runs). */
@@ -1519,7 +1532,7 @@ export class GameScene extends Phaser.Scene {
 
     /** ?debug=loot: a rolled item a little to the right of the player. */
     private dropDebugLoot(): void {
-        if (!this.player.isDead) this.loot.dropRolled(this.player.x + LOOT_DEBUG.distance, this.player.y);
+        if (!this.player.isDead) this.loot.dropRolled(this.player.x + LOOT_DEBUG.distance, this.player.y, undefined, true);
     }
 
     /** Development (M15): changes the melee slash style and says which one it is. */
@@ -1926,4 +1939,10 @@ function startSpells(equipment: Readonly<SavedEquipment>): { auto: AutoSpellId |
     const auto = equipment.spell1 !== undefined && isAutoSpellId(equipment.spell1) ? equipment.spell1 : undefined;
     const active = equipment.spell2 !== undefined && isActiveSpellId(equipment.spell2) ? equipment.spell2 : undefined;
     return { auto: DEBUG_START.spells.auto ?? auto, active: DEBUG_START.spells.active ?? active };
+}
+
+/** `amount` raised by `bonus` (0.3 = +30%), rounded up or down at random so small amounts get it on average. */
+function withBonus(amount: number, bonus: number): number {
+    if (bonus <= 0 || amount <= 0) return amount;
+    return Math.floor(amount * (1 + bonus) + Math.random());
 }

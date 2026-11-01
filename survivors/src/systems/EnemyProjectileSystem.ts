@@ -152,6 +152,8 @@ export class EnemyProjectileSystem {
     private readonly finishedLightnings: LightningArc[] = [];
     private readonly finished: EnemyProjectile[] = [];
     private bossHit = false;
+    /** Part of the last update's damage that came from spells (magic), for the armor's Magic Absorption. */
+    private magicHit = 0;
     private hitSource = '';
 
     constructor(
@@ -210,6 +212,11 @@ export class EnemyProjectileSystem {
         return this.bossHit;
     }
 
+    /** Damage of the spells (not arrows) that hit the player during the last update; the rest of update()'s is physical. */
+    public get magicDamage(): number {
+        return this.magicHit;
+    }
+
     /** Who threw the strongest projectile that hit the player during the last update ('' if none). */
     public get hitBy(): string {
         return this.hitSource;
@@ -239,6 +246,7 @@ export class EnemyProjectileSystem {
         let damage = 0;
         let strongest = 0;
         this.bossHit = false;
+        this.magicHit = 0;
         this.hitSource = '';
         for (const projectile of this.projectiles.active) {
             const flying = projectile.update(deltaMs);
@@ -265,6 +273,7 @@ export class EnemyProjectileSystem {
             }
             if (hit) {
                 damage += projectile.damage;
+                if (magicHitRatio !== undefined) this.magicHit += projectile.damage;
                 this.bossHit ||= projectile.fromBoss;
                 if (projectile.damage > strongest) {
                     strongest = projectile.damage;
@@ -303,6 +312,7 @@ export class EnemyProjectileSystem {
                 if (!hit) this.onResist(bodyX, bodyY);
                 else {
                     damage += strike.damage;
+                    this.magicHit += strike.damage;
                     this.bossHit ||= strike.fromBoss;
                     if (strike.damage > strongest) {
                         strongest = strike.damage;

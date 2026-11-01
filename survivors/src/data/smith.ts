@@ -10,7 +10,7 @@
 //   (decidido por Claude, ajustable). Siempre sale bien. Al vender, Tom devuelve también ¼ del oro de las mejoras.
 // Precios "challenging" (~1.000 de oro por hora, data/gold.ts): según lo que pide el objeto, de 200 a 6.000.
 // Ventana: scenes/SmithScene.ts (medidas en config/smith.ts).
-import type { ItemAttribute } from './attributes';
+import { attributeValueOf, type ItemAttribute } from './attributes';
 import { XELIMA_STONE_ID } from './consumables';
 import type { CharacterId } from './characters';
 import { isUniqueItem } from './uniques';
@@ -92,11 +92,24 @@ export function smithBuyPrice(id: ItemId): number {
     return Math.min(p.max, Math.max(p.min, Math.round(raw / p.roundTo) * p.roundTo));
 }
 
-/** What Tom pays for an item of the inventory: with an attribute, more; with a "+", also ¼ of the upgrades' gold. */
+/**
+ * Revisión del original C (Claude, 1-nov-2026): the selling price also grows with the attribute's value (+10% per point
+ * above 1) and with a second attribute (+30%, and +10% per point of its value).
+ */
+export const SMITH_VALUE_SELL_BONUS = {
+    perValue: 0.1,
+    secondary: 0.3,
+    perSecondaryValue: 0.1,
+} as const;
+
+/** What Tom pays for an item of the inventory: with attributes, more; with a "+", also ¼ of the upgrades' gold. */
 export function smithSellPrice(item: Readonly<OwnedItem>): number {
     const fixed = SMITH_FIXED_SELL_PRICES[item.id];
     if (fixed !== undefined) return fixed;
-    const factor = item.attribute ? SMITH_ATTRIBUTE_SELL_FACTOR[item.attribute] : 1;
+    const b = SMITH_VALUE_SELL_BONUS;
+    const valued = 1 + b.perValue * ((attributeValueOf(item) ?? 1) - 1);
+    const second = item.secondary && item.secondaryValue ? 1 + b.secondary + b.perSecondaryValue * item.secondaryValue : 1;
+    const factor = (item.attribute ? SMITH_ATTRIBUTE_SELL_FACTOR[item.attribute] : 1) * valued * second;
     const value = smithBuyPrice(item.id) * factor + smithUpgradeGoldSpent(item.id, upgradeOf(item));
     return Math.round((value * SMITH_SELL_SHARE) / 10) * 10;
 }
