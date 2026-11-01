@@ -30,6 +30,7 @@ export const RELEASE_NOTES: readonly ReleaseNote[] = [
             'Monsters grow tougher as the run goes on, but miss you more often.',
             'Found items now roll stronger or weaker attributes, and some bring a second one.',
             'Stat Blessings replaced by 16 new power cards, each with its own effect and picture.',
+            'Cards and the Character panel now show the real numbers you gain.',
         ],
     },
     {

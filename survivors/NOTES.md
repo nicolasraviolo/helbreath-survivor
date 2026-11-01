@@ -1345,3 +1345,6 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - Velocidad de golpes y de hechizos van separadas: `WeaponContext.cooldownMultiplier` (golpes) y `castMultiplier` (hechizos; `SpellWeapon.speedMultiplier`).
 - Iconos de item-pack.spr que no son anillos ni collares (quedan para equipo futuro). Los corazones de monstruo se ven todos iguales: solo se usa el del Ogre. Visor: http://localhost:8090/sprites.html#items.
 - Rareza: Chr y Golden Carp se multiplican y juntos no pasan de ×3 (`rarityWeights`).
+
+- **Bloque 2 (1-nov-2026):** las cartas dicen el valor real ("Health 137 → 148", "Mana 54 → 60 every 20s"): `describeCardStat` en LevelUpScene con `CharacterStats.previewWithCard`, y los mismos formatos que el panel C en `ui/statText.ts`. La esquiva y la resistencia mágica viven en GameScene (armadura incluida): la carta recibe el valor actual y le cambia solo su parte (`actual / (1 + bonusAhora) × (1 + bonusNuevo)`).
+- **Cartas que no harían nada no salen:** la esquiva es `hit = 50·puntería/defensa` con tope 80 % de acierto; sin armadura (defensa ~28) hace falta pasar de ~63 para que se note, así que Serpent's Grace no movía nada. Igual Unicorn's Ward con poca Mag y las de puntería al llegar al 95 %. `GameScene.cardWouldHelp` mira si una carta Common más movería el % redondeado.

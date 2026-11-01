@@ -25,7 +25,6 @@ import {
     MOVE_SPEED_PER_DEX,
     PHYSICAL_DAMAGE_PER_STR,
     STAT_BASELINE,
-    STAT_IDS,
     type StatId,
     type Stats,
 } from '../data/stats';
@@ -165,17 +164,16 @@ export class CharacterStats {
         return Math.min(CRIT_MAX_CHANCE, Math.max(0, chance));
     }
 
-    /** A copy of the stats with `points` more in `stat`, to preview a card. */
-    public previewWith(stat: StatId, points: number): CharacterStats {
+    /** A copy with the bonus of card `id` set to `bonus` (data/passives.ts → passiveBonus), to preview a card. */
+    public previewWithCard(id: PassiveId, bonus: number): CharacterStats {
         const copy = new CharacterStats(this.def, this.stats, this.characterLevel);
         copy.level = this.level;
         copy.gearMagicBonus = this.gearMagicBonus;
         Object.assign(copy.cardBonus, this.cardBonus);
+        copy.cardBonus[id] = bonus;
         copy.attributeBonus = this.attributeBonus;
         copy.hitBonus = this.hitBonus;
         copy.buffDamageMultiplier = this.buffDamageMultiplier;
-        for (const id of STAT_IDS) copy.stats[id] = this.stats[id];
-        copy.stats[stat] += points;
         return copy;
     }
 }
