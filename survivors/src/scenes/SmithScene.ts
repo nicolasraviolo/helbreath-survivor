@@ -13,7 +13,7 @@ import { GAME_HEIGHT, GAME_WIDTH } from '../config/gameConfig';
 import { MENU_INPUT_DELAY_MS } from '../config/menus';
 import { SHOP_COLORS, SHOP_DETAIL_STYLE, SHOP_GOLD_STYLE, SHOP_HEADER_STYLE, SHOP_ROW_STYLE, SHOP_SECTION_STYLE } from '../config/shop';
 import { SMITH_BANNERS, SMITH_BUTTONS, SMITH_LAYOUT, SMITH_COLORS, SMITH_PANEL, SMITH_UPGRADE_SOUND } from '../config/smith';
-import { ATTRIBUTES } from '../data/attributes';
+import { attributesSentence, attributesShort } from '../data/attributes';
 import { XELIMA_STONE_ID } from '../data/consumables';
 import { formatGold } from '../data/gold';
 import { canEquip, describeItem, EQUIP_SLOT_NAMES, itemDamageBonus, itemInfo, itemPicture, ownedItemName, requirementChecks, type EquipSlotId, type ItemId } from '../data/items';
@@ -60,6 +60,9 @@ interface RowSlot {
 }
 
 type Focus = { kind: 'row' } | { kind: 'action' } | { kind: 'cancel' };
+
+/** Screen pixels kept between a row's name and its price. */
+const SMITH_NAME_PRICE_GAP = 8;
 
 export class SmithScene extends Phaser.Scene {
     private uid: string | undefined;
@@ -377,6 +380,10 @@ export class SmithScene extends Phaser.Scene {
         const maxed = line.kind === 'upgrade' && upgradeOf(line.item) >= UPGRADE_MAX;
         slot.price.setText(maxed ? SMITH_TEXT.max : formatGold(state.price))
             .setColor(line.kind !== 'sell' && !state.affordable && !maxed ? SHOP_COLORS.tooExpensive : SHOP_COLORS.text);
+        // A long name (attributes beside it) shrinks to stay clear of the price.
+        slot.name.setScale(1);
+        const room = slot.price.x - slot.price.displayWidth * slot.price.originX - slot.name.x - SMITH_NAME_PRICE_GAP;
+        if (slot.name.width > room) slot.name.setScale(room / slot.name.width);
         const gender = this.character?.look.gender ?? 'male';
         const picture = itemPicture(item.id, gender);
         if (!picture || !this.iconsReady) return;
@@ -391,8 +398,9 @@ export class SmithScene extends Phaser.Scene {
      */
     private label(line: ItemLine): string {
         const item = lineItem(line);
-        const attribute = item.attribute ? ATTRIBUTES[item.attribute] : undefined;
-        const named = attribute?.kind === 'armor' ? `${ownedItemName(item)} (${attribute.name})` : ownedItemName(item);
+        // Armor attributes and second attributes don't change the name: shown beside it, short ("Plate Mail (HP Rec +21%)").
+        const extras = attributesShort(item);
+        const named = extras ? `${ownedItemName(item)} (${extras})` : ownedItemName(item);
         return line.kind !== 'buy' && line.count > 1 ? `${named} ×${line.count}` : named;
     }
 
@@ -450,7 +458,7 @@ export class SmithScene extends Phaser.Scene {
         }
         const item = lineItem(line);
         const slot = itemInfo(item.id)?.slot;
-        const attribute = item.attribute ? ` ${ATTRIBUTES[item.attribute].description}.` : '';
+        const attribute = attributesSentence(item);
         const what = slot ? `${EQUIP_SLOT_NAMES[slot]}: ${describeItem(item.id)}.` : `${describeItem(item.id)}.`;
         if (line.kind === 'upgrade') return this.drawUpgradeDetail(line);
         this.detail.setText(`${what}${attribute}`);

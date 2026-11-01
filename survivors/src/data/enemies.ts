@@ -135,6 +135,13 @@ export interface EnemyDef {
      * blows land despite the player's defense (data/defense.ts). Hellhound is not in the wiki: about a Troll's.
      */
     hitRatio: number;
+    /**
+     * Original Defense Ratio (docs/hb-wiki/monstruos.md): the higher, the more of the player's blows miss it
+     * (data/accuracy.ts, revisión del original B). Ours where the wiki has none (Guard; Barracks Dummies: a mid monster).
+     */
+    defenseRatio: number;
+    /** Original Magic Resistance (same table): the higher, the more of the player's spells it shrugs off. Demons and dragons: 1. */
+    magicResist: number;
     /** How it walks towards the player (data/movement.ts, Fase 27); default 'direct'. Bosses always go direct. */
     movement?: MovementStyle;
     /** Fires this projectile instead of hitting directly (Dark Elf arrows). */
@@ -187,7 +194,15 @@ export const BOSS_HP_MULTIPLIER = 2;
  * monstruos se acumulaban en una "bola". Vida = reference × (maxHp / reference)^exponent: el Orc se queda en 60, los
  * flojos casi igual y los grandes bajan (Ogre 1.040 → ~510). Su XP no cambia. Los jefes no entran (BOSS_HP_MULTIPLIER).
  */
-export const MONSTER_HP = { reference: 60, exponent: 0.75 } as const;
+export const MONSTER_HP = { reference: 60, exponent: 0.85 } as const;
+
+/**
+ * Revisión del original B (propietario, 31-oct-2026): la vida aplastada de los grandes (exponente 0,75 → 0,85: Ogre
+ * ~610 → ~810, Werewolf ~375 → ~465; el Orc sigue en 72) y que crezca con los minutos de la partida: cada monstruo
+ * normal (élites incluidos) que aparece en el minuto m tiene × (1 + MONSTER_HP_PER_MINUTE · m) de vida. Su XP no
+ * cambia. Jefes, minijefes, Guards, Champion y muñecos, no: tienen sus propios números.
+ */
+export const MONSTER_HP_PER_MINUTE = 0.05;
 
 /**
  * Health of every monster, bosses included, × this (Fase 28½B, propietario 25-oct-2026: ganó Traveler Zone y Bleeding
@@ -321,174 +336,174 @@ export const ENEMIES = {
     // Minutos 0–2 (tier 1)
     slime: {
         movement: 'wander', name: 'Slime', sprite: 'enemy.slime', temporalCoefficient: 1, hasShadow: false, maxHp: 20, xp: 4, radius: 10, bodyOffsetY: 10,
-        actionTimeMs: 2100, attackRange: 1, bravery: 1, damageDice: [1, 4], hitRatio: 30, hitSound: 'sfx.slime.hit', deathSound: 'sfx.slime.death', attackSound: 'sfx.slime.attack',
+        actionTimeMs: 2100, attackRange: 1, bravery: 1, damageDice: [1, 4], hitRatio: 30, defenseRatio: 10, magicResist: 5, hitSound: 'sfx.slime.hit', deathSound: 'sfx.slime.death', attackSound: 'sfx.slime.attack',
     },
     bunny: {
         movement: 'charge', name: 'Bunny', sprite: 'enemy.bunny', temporalCoefficient: 1, hasShadow: true, maxHp: 16, xp: 4, radius: 8, bodyOffsetY: 10,
-        actionTimeMs: 1500, attackRange: 1, bravery: 2, damageDice: [1, 5], hitRatio: 35, hitSound: 'sfx.bunny.hit', deathSound: 'sfx.bunny.death', attackSound: 'sfx.bunny.attack',
+        actionTimeMs: 1500, attackRange: 1, bravery: 2, damageDice: [1, 5], hitRatio: 35, defenseRatio: 10, magicResist: 5, hitSound: 'sfx.bunny.hit', deathSound: 'sfx.bunny.death', attackSound: 'sfx.bunny.attack',
     },
     // Fase 22C, solo en Traveler Zone. NPC.cfg Cat: ATime 1500, AttkRange 1, MinBrvy 3, 2d4, HR 45 (tier 1, algo más
     // duro que el Bunny).
     cat: {
         movement: 'flank', name: 'Cat', sprite: 'enemy.cat', temporalCoefficient: 1, hasShadow: false, maxHp: 20, xp: 4, radius: 9, bodyOffsetY: 10,
-        actionTimeMs: 1500, attackRange: 1, bravery: 3, damageDice: [2, 4], hitRatio: 45, hitSound: 'sfx.cat.hit', deathSound: 'sfx.cat.death', attackSound: 'sfx.cat.attack',
+        actionTimeMs: 1500, attackRange: 1, bravery: 3, damageDice: [2, 4], hitRatio: 45, defenseRatio: 20, magicResist: 20, hitSound: 'sfx.cat.hit', deathSound: 'sfx.cat.death', attackSound: 'sfx.cat.attack',
     },
     ant: {
         movement: 'charge', name: 'Ant', sprite: 'enemy.ant', temporalCoefficient: 1, hasShadow: false, maxHp: 28, xp: 6, radius: 10, bodyOffsetY: 12,
-        actionTimeMs: 1200, attackRange: 1, bravery: 2, damageDice: [2, 3], hitRatio: 40, hitSound: 'sfx.ant.hit', deathSound: 'sfx.ant.death', attackSound: 'sfx.ant.attack',
+        actionTimeMs: 1200, attackRange: 1, bravery: 2, damageDice: [2, 3], hitRatio: 40, defenseRatio: 15, magicResist: 10, hitSound: 'sfx.ant.hit', deathSound: 'sfx.ant.death', attackSound: 'sfx.ant.attack',
     },
     // Minutos 2–4 (tiers 1–4)
     orc: {
         movement: 'flank', name: 'Orc', sprite: 'enemy.orc', temporalCoefficient: 1, hasShadow: true, maxHp: 60, xp: 12, radius: 12, bodyOffsetY: 28,
-        actionTimeMs: 1200, attackRange: 1, bravery: 2, damageDice: [3, 3], hitRatio: 60, hitSound: 'sfx.orc.hit', deathSound: 'sfx.orc.death', attackSound: 'sfx.orc.attack',
+        actionTimeMs: 1200, attackRange: 1, bravery: 2, damageDice: [3, 3], hitRatio: 60, defenseRatio: 40, magicResist: 25, hitSound: 'sfx.orc.hit', deathSound: 'sfx.orc.death', attackSound: 'sfx.orc.attack',
     },
     orcMage: {
         // "Orc (spellcaster)" de la wiki: mismo sprite y sonidos que el Orc, pero lanza bolas de fuego (su hechizo
         // Fire-Ball, magia 3). NPC.cfg Orc-Mage: ATime 1500, MinBrvy 3, 4d3; su AttkRange es 1 (el hechizo va aparte):
         // usamos 5 casillas para que lance desde lejos. Bola lenta para poder esquivarla.
         movement: 'keepAway', name: 'Mage-Orc', sprite: 'enemy.orc', temporalCoefficient: 1, hasShadow: true, maxHp: 80, xp: 16, radius: 12, bodyOffsetY: 28,
-        actionTimeMs: 1500, attackRange: 5, bravery: 3, damageDice: [4, 3], hitRatio: 100, hitSound: 'sfx.orc.hit', deathSound: 'sfx.orc.death', attackSound: 'sfx.orc.attack',
+        actionTimeMs: 1500, attackRange: 5, bravery: 3, damageDice: [4, 3], hitRatio: 100, defenseRatio: 45, magicResist: 45, hitSound: 'sfx.orc.hit', deathSound: 'sfx.orc.death', attackSound: 'sfx.orc.attack',
         attackProjectile: ORC_FIREBALL,
     },
     snake: {
         movement: 'flank', name: 'Snake', sprite: 'enemy.snake', temporalCoefficient: 0.5, hasShadow: false, maxHp: 40, xp: 8, radius: 9, bodyOffsetY: 8,
-        actionTimeMs: 1000, attackRange: 1, bravery: 1, damageDice: [2, 4], hitRatio: 50, hitSound: 'sfx.snake.hit', deathSound: 'sfx.snake.death', attackSound: 'sfx.snake.attack',
+        actionTimeMs: 1000, attackRange: 1, bravery: 1, damageDice: [2, 4], hitRatio: 50, defenseRatio: 30, magicResist: 20, hitSound: 'sfx.snake.hit', deathSound: 'sfx.snake.death', attackSound: 'sfx.snake.attack',
     },
     scorpion: {
         name: 'Scorpion', sprite: 'enemy.scorpion', temporalCoefficient: 0.5, hasShadow: false, maxHp: 150, xp: 30, radius: 12, bodyOffsetY: 12,
-        actionTimeMs: 1200, attackRange: 1, bravery: 3, damageDice: [5, 3], hitRatio: 70, hitSound: 'sfx.scorpion.hit', deathSound: 'sfx.scorpion.death', attackSound: 'sfx.scorpion.attack',
+        actionTimeMs: 1200, attackRange: 1, bravery: 3, damageDice: [5, 3], hitRatio: 70, defenseRatio: 45, magicResist: 30, hitSound: 'sfx.scorpion.hit', deathSound: 'sfx.scorpion.death', attackSound: 'sfx.scorpion.attack',
     },
     frog: {
         // sp-client: la animación de andar son los frames 3–7 de la hoja.
         name: 'Giant Frog', sprite: 'enemy.frog', temporalCoefficient: 1, hasShadow: true, maxHp: 360, xp: 72, radius: 14, bodyOffsetY: 16,
-        actionTimeMs: 900, attackRange: 2, bravery: 4, damageDice: [7, 5], hitRatio: 145, hitSound: 'sfx.frog.hit', deathSound: 'sfx.frog.death', attackSound: 'sfx.frog.attack',
+        actionTimeMs: 900, attackRange: 2, bravery: 4, damageDice: [7, 5], hitRatio: 145, defenseRatio: 85, magicResist: 60, hitSound: 'sfx.frog.hit', deathSound: 'sfx.frog.death', attackSound: 'sfx.frog.attack',
         animations: { move: { sheet: 8, firstFrame: 3, frameCount: 5 } },
     },
     // Minutos 4–6 (tiers 2–6)
     skeleton: {
         name: 'Skeleton', sprite: 'enemy.skeleton', temporalCoefficient: 0.5, hasShadow: true, maxHp: 180, xp: 36, radius: 11, bodyOffsetY: 30,
-        actionTimeMs: 800, attackRange: 2, bravery: 100, damageDice: [5, 4], hitRatio: 90, hitSound: 'sfx.skeleton.hit', deathSound: 'sfx.skeleton.death', attackSound: 'sfx.skeleton.attack',
+        actionTimeMs: 800, attackRange: 2, bravery: 100, damageDice: [5, 4], hitRatio: 90, defenseRatio: 65, magicResist: 40, hitSound: 'sfx.skeleton.hit', deathSound: 'sfx.skeleton.death', attackSound: 'sfx.skeleton.attack',
     },
     zombie: {
         movement: 'wander', name: 'Zombie', sprite: 'enemy.zombie', temporalCoefficient: 0.5, hasShadow: true, maxHp: 120, xp: 24, radius: 11, bodyOffsetY: 30,
-        actionTimeMs: 1500, attackRange: 1, bravery: 100, damageDice: [4, 4], hitRatio: 85, hitSound: 'sfx.zombie.hit', deathSound: 'sfx.zombie.death', attackSound: 'sfx.zombie.attack',
+        actionTimeMs: 1500, attackRange: 1, bravery: 100, damageDice: [4, 4], hitRatio: 85, defenseRatio: 65, magicResist: 30, hitSound: 'sfx.zombie.hit', deathSound: 'sfx.zombie.death', attackSound: 'sfx.zombie.attack',
     },
     // Golems (tier 3). NPC.cfg Clay-Golem y Stone-Golem: ATime 1200, alcance 1, MinBrvy 100, 7d4. sp-client: 0,5.
     clayGolem: {
         movement: 'wander', name: 'Clay Golem', sprite: 'enemy.clayGolem', temporalCoefficient: 0.5, hasShadow: true, maxHp: 240, xp: 48, radius: 15, bodyOffsetY: 34,
-        actionTimeMs: 1200, attackRange: 1, bravery: 100, damageDice: [7, 4], hitRatio: 135, hitSound: 'sfx.clayGolem.hit', deathSound: 'sfx.clayGolem.death', attackSound: 'sfx.clayGolem.attack',
+        actionTimeMs: 1200, attackRange: 1, bravery: 100, damageDice: [7, 4], hitRatio: 135, defenseRatio: 100, magicResist: 50, hitSound: 'sfx.clayGolem.hit', deathSound: 'sfx.clayGolem.death', attackSound: 'sfx.clayGolem.attack',
     },
     stoneGolem: {
         movement: 'wander', name: 'Stone Golem', sprite: 'enemy.stoneGolem', temporalCoefficient: 0.5, hasShadow: true, maxHp: 300, xp: 60, radius: 15, bodyOffsetY: 34,
-        actionTimeMs: 1200, attackRange: 1, bravery: 100, damageDice: [7, 4], hitRatio: 135, hitSound: 'sfx.stoneGolem.hit', deathSound: 'sfx.stoneGolem.death', attackSound: 'sfx.stoneGolem.attack',
+        actionTimeMs: 1200, attackRange: 1, bravery: 100, damageDice: [7, 4], hitRatio: 135, defenseRatio: 110, magicResist: 50, hitSound: 'sfx.stoneGolem.hit', deathSound: 'sfx.stoneGolem.death', attackSound: 'sfx.stoneGolem.attack',
     },
     direBoar: {
         movement: 'charge', name: 'Dire Boar', sprite: 'enemy.direBoar', temporalCoefficient: 1, hasShadow: false, maxHp: 280, xp: 56, radius: 16, bodyOffsetY: 18,
-        actionTimeMs: 800, attackRange: 1, bravery: 100, damageDice: [8, 8], hitRatio: 230, hitSound: 'sfx.direBoar.hit', deathSound: 'sfx.direBoar.death', attackSound: 'sfx.direBoar.attack',
+        actionTimeMs: 800, attackRange: 1, bravery: 100, damageDice: [8, 8], hitRatio: 230, defenseRatio: 80, magicResist: 72, hitSound: 'sfx.direBoar.hit', deathSound: 'sfx.direBoar.death', attackSound: 'sfx.direBoar.attack',
     },
     // Minutos 6–8 (tiers 5–7)
     troll: {
         name: 'Troll', sprite: 'enemy.troll', temporalCoefficient: 1, hasShadow: true, maxHp: 460, xp: 92, radius: 16, bodyOffsetY: 34,
-        actionTimeMs: 700, attackRange: 1, bravery: 100, damageDice: [8, 5], hitRatio: 200, hitSound: 'sfx.troll.hit', deathSound: 'sfx.troll.death', attackSound: 'sfx.troll.attack',
+        actionTimeMs: 700, attackRange: 1, bravery: 100, damageDice: [8, 5], hitRatio: 200, defenseRatio: 100, magicResist: 72, hitSound: 'sfx.troll.hit', deathSound: 'sfx.troll.death', attackSound: 'sfx.troll.attack',
     },
     ogre: {
         name: 'Ogre', sprite: 'enemy.ogre', temporalCoefficient: 1, hasShadow: true, maxHp: 1040, xp: 208, radius: 18, bodyOffsetY: 40,
-        actionTimeMs: 700, attackRange: 3, bravery: 100, damageDice: [8, 7], hitRatio: 230, hitSound: 'sfx.ogre.hit', deathSound: 'sfx.ogre.death', attackSound: 'sfx.ogre.attack',
+        actionTimeMs: 700, attackRange: 3, bravery: 100, damageDice: [8, 7], hitRatio: 230, defenseRatio: 150, magicResist: 84, hitSound: 'sfx.ogre.hit', deathSound: 'sfx.ogre.death', attackSound: 'sfx.ogre.attack',
     },
     stalker: {
         movement: 'flank', name: 'Stalker', sprite: 'enemy.stalker', temporalCoefficient: 1, hasShadow: true, maxHp: 420, xp: 84, radius: 13, bodyOffsetY: 32,
-        actionTimeMs: 600, attackRange: 4, bravery: 100, damageDice: [8, 9], hitRatio: 300, hitSound: 'sfx.orc.hit', deathSound: 'sfx.orc.death', attackSound: 'sfx.orc.attack',
+        actionTimeMs: 600, attackRange: 4, bravery: 100, damageDice: [8, 9], hitRatio: 300, defenseRatio: 200, magicResist: 96, hitSound: 'sfx.orc.hit', deathSound: 'sfx.orc.death', attackSound: 'sfx.orc.attack',
     },
     werewolf: {
         movement: 'flank', name: 'Werewolf', sprite: 'enemy.werewolf', temporalCoefficient: 1, hasShadow: true, maxHp: 540, xp: 108, radius: 14, bodyOffsetY: 32,
-        actionTimeMs: 700, attackRange: 1, bravery: 100, damageDice: [8, 8], hitRatio: 300, hitSound: 'sfx.werewolf.hit', deathSound: 'sfx.werewolf.death', attackSound: 'sfx.werewolf.attack',
+        actionTimeMs: 700, attackRange: 1, bravery: 100, damageDice: [8, 8], hitRatio: 300, defenseRatio: 200, magicResist: 96, hitSound: 'sfx.werewolf.hit', deathSound: 'sfx.werewolf.death', attackSound: 'sfx.werewolf.attack',
     },
     // Minutos 8–10 (tiers 4–7)
     cyclops: {
         name: 'Cyclops', sprite: 'enemy.cyclops', temporalCoefficient: 0.5, hasShadow: true, maxHp: 800, xp: 160, radius: 18, bodyOffsetY: 44,
-        actionTimeMs: 1200, attackRange: 3, bravery: 805, damageDice: [8, 6], hitRatio: 180, hitSound: 'sfx.cyclops.hit', deathSound: 'sfx.cyclops.death', attackSound: 'sfx.cyclops.attack',
+        actionTimeMs: 1200, attackRange: 3, bravery: 805, damageDice: [8, 6], hitRatio: 180, defenseRatio: 110, magicResist: 78, hitSound: 'sfx.cyclops.hit', deathSound: 'sfx.cyclops.death', attackSound: 'sfx.cyclops.attack',
     },
     // Propios de Bleeding Isle (tiers 5–7). NPC.cfg Cannibal-Plant: ATime 800, alcance 2, 8d8.
     // NPC.cfg Mountain-Giant: ATime 700, alcance 2, 8d7.
     cannibalPlant: {
         name: 'Cannibal Plant', sprite: 'enemy.cannibalPlant', temporalCoefficient: 1, hasShadow: true, maxHp: 900, xp: 180, radius: 16, bodyOffsetY: 36,
-        actionTimeMs: 800, attackRange: 2, bravery: 100, damageDice: [8, 8], hitRatio: 230, hitSound: 'sfx.cannibalPlant.hit', deathSound: 'sfx.cannibalPlant.death', attackSound: 'sfx.cannibalPlant.attack',
+        actionTimeMs: 800, attackRange: 2, bravery: 100, damageDice: [8, 8], hitRatio: 230, defenseRatio: 110, magicResist: 84, hitSound: 'sfx.cannibalPlant.hit', deathSound: 'sfx.cannibalPlant.death', attackSound: 'sfx.cannibalPlant.attack',
     },
     // Elvine Garden (Fase 22D). sp-client: Giant Tree = giantplant.spr, sonidos M120–M123, sin animación especial.
     // NPC.cfg (centuu/HelbreathServer) lo llama Giant-Plant: ATime 700, alcance 2, MinBrvy 100, 8d6, HR 200. Tier 6.
     giantTree: {
         name: 'Giant Tree', sprite: 'enemy.giantTree', temporalCoefficient: 1, hasShadow: true, maxHp: 760, xp: 152, radius: 16, bodyOffsetY: 40,
-        actionTimeMs: 700, attackRange: 2, bravery: 100, damageDice: [8, 6], hitRatio: 200, hitSound: 'sfx.giantTree.hit', deathSound: 'sfx.giantTree.death', attackSound: 'sfx.giantTree.attack',
+        actionTimeMs: 700, attackRange: 2, bravery: 100, damageDice: [8, 6], hitRatio: 200, defenseRatio: 160, magicResist: 84, hitSound: 'sfx.giantTree.hit', deathSound: 'sfx.giantTree.death', attackSound: 'sfx.giantTree.attack',
     },
     mountainGiant: {
         name: 'Mountain Giant', sprite: 'enemy.mountainGiant', temporalCoefficient: 1, hasShadow: true, maxHp: 1300, xp: 260, radius: 20, bodyOffsetY: 50,
-        actionTimeMs: 700, attackRange: 2, bravery: 100, damageDice: [8, 7], hitRatio: 230, hitSound: 'sfx.mountainGiant.hit', deathSound: 'sfx.mountainGiant.death', attackSound: 'sfx.mountainGiant.attack',
+        actionTimeMs: 700, attackRange: 2, bravery: 100, damageDice: [8, 7], hitRatio: 230, defenseRatio: 250, magicResist: 90, hitSound: 'sfx.mountainGiant.hit', deathSound: 'sfx.mountainGiant.death', attackSound: 'sfx.mountainGiant.attack',
     },
     lich: {
         movement: 'keepAway', name: 'Lich', sprite: 'enemy.lich', temporalCoefficient: 1, hasShadow: true, maxHp: 680, xp: 136, radius: 14, bodyOffsetY: 36,
-        actionTimeMs: 700, attackRange: 5, bravery: 100, damageDice: [8, 6], hitRatio: 230, hitSound: 'sfx.lich.hit', deathSound: 'sfx.lich.death', attackSound: 'sfx.lich.attack',
+        actionTimeMs: 700, attackRange: 5, bravery: 100, damageDice: [8, 6], hitRatio: 230, defenseRatio: 275, magicResist: 90, hitSound: 'sfx.lich.hit', deathSound: 'sfx.lich.death', attackSound: 'sfx.lich.attack',
     },
     hellhound: {
         movement: 'flank', name: 'Hellhound', sprite: 'enemy.hellhound', temporalCoefficient: 0.5, hasShadow: true, maxHp: 540, xp: 108, radius: 13, bodyOffsetY: 18,
-        actionTimeMs: 900, attackRange: 1, bravery: 4, damageDice: [7, 5], hitRatio: 200, hitSound: 'sfx.hellhound.hit', deathSound: 'sfx.hellhound.death', attackSound: 'sfx.hellhound.attack',
+        actionTimeMs: 900, attackRange: 1, bravery: 4, damageDice: [7, 5], hitRatio: 200, defenseRatio: 90, magicResist: 60, hitSound: 'sfx.hellhound.hit', deathSound: 'sfx.hellhound.death', attackSound: 'sfx.hellhound.attack',
     },
     // Desactivado (Fase 13): no sale en ninguna oleada ni como esbirro. Se deja para volver a usarlo más adelante.
     darkElf: {
         // Dispara flechas (NPC.cfg: alcance 8; servidor: "Dark Elf: 활 공격", ataque de arco).
         movement: 'keepAway', name: 'Dark Elf', sprite: 'enemy.darkElf', temporalCoefficient: 1, hasShadow: true, maxHp: 640, xp: 128, radius: 11, bodyOffsetY: 32,
-        actionTimeMs: 700, attackRange: 8, bravery: 100, damageDice: [8, 4], hitRatio: 450, attackProjectile: ARROW,
+        actionTimeMs: 700, attackRange: 8, bravery: 100, damageDice: [8, 4], hitRatio: 450, defenseRatio: 200, magicResist: 72, attackProjectile: ARROW,
         hitSound: 'sfx.darkElf.hit', deathSound: 'sfx.darkElf.death', attackSound: 'sfx.darkElf.attack',
     },
     // Minutos 10–12 (tiers 8–10)
     gargoyle: {
         name: 'Gargoyle', sprite: 'enemy.gargoyle', temporalCoefficient: 1, hasShadow: true, maxHp: 1120, xp: 224, radius: 18, bodyOffsetY: 44,
-        actionTimeMs: 700, attackRange: 5, bravery: 100, damageDice: [13, 10], hitRatio: 500, hitSound: 'sfx.cyclops.hit', deathSound: 'sfx.direBoar.death', attackSound: 'sfx.gargoyle.attack',
+        actionTimeMs: 700, attackRange: 5, bravery: 100, damageDice: [13, 10], hitRatio: 500, defenseRatio: 350, magicResist: 1, hitSound: 'sfx.cyclops.hit', deathSound: 'sfx.direBoar.death', attackSound: 'sfx.gargoyle.attack',
     },
     hellclaw: {
         name: 'Hellclaw', sprite: 'enemy.hellclaw', temporalCoefficient: 1, hasShadow: true, maxHp: 1300, xp: 260, radius: 20, bodyOffsetY: 44,
-        actionTimeMs: 600, attackRange: 5, bravery: 100, damageDice: [15, 14], hitRatio: 1000, hitSound: 'sfx.cyclops.hit', deathSound: 'sfx.cyclops.death', attackSound: 'sfx.cyclops.attack',
+        actionTimeMs: 600, attackRange: 5, bravery: 100, damageDice: [15, 14], hitRatio: 1000, defenseRatio: 350, magicResist: 1, hitSound: 'sfx.cyclops.hit', deathSound: 'sfx.cyclops.death', attackSound: 'sfx.cyclops.attack',
     },
     tigerworm: {
         name: 'Tigerworm', sprite: 'enemy.tigerworm', temporalCoefficient: 1, hasShadow: false, maxHp: 1520, xp: 304, radius: 20, bodyOffsetY: 30,
-        actionTimeMs: 600, attackRange: 6, bravery: 100, damageDice: [18, 17], hitRatio: 1200, hitSound: 'sfx.lich.hit', deathSound: 'sfx.lich.death', attackSound: 'sfx.tigerworm.attack',
+        actionTimeMs: 600, attackRange: 6, bravery: 100, damageDice: [18, 17], hitRatio: 1200, defenseRatio: 350, magicResist: 1, hitSound: 'sfx.lich.hit', deathSound: 'sfx.lich.death', attackSound: 'sfx.tigerworm.attack',
     },
     // Icebound (Fase 30A). NPC.cfg de centuu/HelbreathServer (ATime, alcance, MinBrvy, dados, HR); vida y XP nuestras,
     // por su tier de la wiki (Rudolph 4; Ice Golem, Beholder y Claw Turtle 6). Sin sombra especial en sp-client.
     // Rudolph: MinBrvy 10 (huye a menudo con poca vida); embiste (la wiki le da "Dash").
     rudolph: {
         movement: 'charge', name: 'Rudolph', sprite: 'enemy.rudolph', temporalCoefficient: 1, hasShadow: true, maxHp: 380, xp: 76, radius: 15, bodyOffsetY: 30,
-        actionTimeMs: 1000, attackRange: 1, bravery: 10, damageDice: [7, 5], hitRatio: 180, hitSound: 'sfx.rudolph.hit', deathSound: 'sfx.unicorn.hit', attackSound: 'sfx.clayGolem.attack',
+        actionTimeMs: 1000, attackRange: 1, bravery: 10, damageDice: [7, 5], hitRatio: 180, defenseRatio: 100, magicResist: 60, hitSound: 'sfx.rudolph.hit', deathSound: 'sfx.unicorn.hit', attackSound: 'sfx.clayGolem.attack',
     },
     // Ice Golem: lento (ATime 1200) y duro. Sus sonidos son los del Stone Golem (M33–M36).
     iceGolem: {
         name: 'Ice Golem', sprite: 'enemy.iceGolem', temporalCoefficient: 1, hasShadow: true, maxHp: 760, xp: 152, radius: 17, bodyOffsetY: 38,
-        actionTimeMs: 1200, attackRange: 1, bravery: 100, damageDice: [8, 6], hitRatio: 180, hitSound: 'sfx.stoneGolem.hit', deathSound: 'sfx.stoneGolem.death', attackSound: 'sfx.stoneGolem.attack',
+        actionTimeMs: 1200, attackRange: 1, bravery: 100, damageDice: [8, 6], hitRatio: 180, defenseRatio: 80, magicResist: 78, hitSound: 'sfx.stoneGolem.hit', deathSound: 'sfx.stoneGolem.death', attackSound: 'sfx.stoneGolem.attack',
     },
     // Beholder: pega desde 4 casillas (sin hechizo: Magic 0), así que guarda la distancia como el Lich.
     beholder: {
         movement: 'keepAway', name: 'Beholder', sprite: 'enemy.beholder', temporalCoefficient: 1, hasShadow: true, maxHp: 660, xp: 132, radius: 15, bodyOffsetY: 40,
-        actionTimeMs: 800, attackRange: 4, bravery: 100, damageDice: [8, 8], hitRatio: 450, hitSound: 'sfx.slime.hit', deathSound: 'sfx.direBoar.death', attackSound: 'sfx.melee.hit',
+        actionTimeMs: 800, attackRange: 4, bravery: 100, damageDice: [8, 8], hitRatio: 450, defenseRatio: 100, magicResist: 84, hitSound: 'sfx.slime.hit', deathSound: 'sfx.direBoar.death', attackSound: 'sfx.melee.hit',
     },
     // Claw Turtle: rápida para su tamaño (ATime 500), alcance 2.
     clawTurtle: {
         movement: 'flank', name: 'Claw Turtle', sprite: 'enemy.clawTurtle', temporalCoefficient: 1, hasShadow: true, maxHp: 900, xp: 180, radius: 18, bodyOffsetY: 30,
-        actionTimeMs: 500, attackRange: 2, bravery: 100, damageDice: [8, 9], hitRatio: 280, hitSound: 'sfx.clawTurtle.hit', deathSound: 'sfx.clawTurtle.death', attackSound: 'sfx.clawTurtle.attack',
+        actionTimeMs: 500, attackRange: 2, bravery: 100, damageDice: [8, 9], hitRatio: 280, defenseRatio: 200, magicResist: 96, hitSound: 'sfx.clawTurtle.hit', deathSound: 'sfx.clawTurtle.death', attackSound: 'sfx.clawTurtle.attack',
     },
     minotaur: {
         movement: 'charge', name: 'Minotaur', sprite: 'enemy.minotaur', temporalCoefficient: 1, hasShadow: true, maxHp: 1400, xp: 280, radius: 18, bodyOffsetY: 44,
-        actionTimeMs: 500, attackRange: 2, bravery: 100, damageDice: [13, 11], hitRatio: 500, hitSound: 'sfx.minotaur.hit', deathSound: 'sfx.minotaur.death', attackSound: 'sfx.minotaur.attack',
+        actionTimeMs: 500, attackRange: 2, bravery: 100, damageDice: [13, 11], hitRatio: 500, defenseRatio: 375, magicResist: 1, hitSound: 'sfx.minotaur.hit', deathSound: 'sfx.minotaur.death', attackSound: 'sfx.minotaur.attack',
     },
     // Jefes
     ettin: {
         name: 'Ettin', sprite: 'enemy.ettin', temporalCoefficient: 1, hasShadow: true, maxHp: 1600, xp: 250, radius: 22, bodyOffsetY: 50,
-        actionTimeMs: 700, attackRange: 3, bravery: 100, damageDice: [8, 9], hitRatio: 375, hitSound: 'sfx.ettin.hit', deathSound: 'sfx.ettin.death', attackSound: 'sfx.ettin.attack',
+        actionTimeMs: 700, attackRange: 3, bravery: 100, damageDice: [8, 9], hitRatio: 375, defenseRatio: 325, magicResist: 108, hitSound: 'sfx.ettin.hit', deathSound: 'sfx.ettin.death', attackSound: 'sfx.ettin.attack',
         // Animación de ataque un 40% más lenta (pedido por el propietario el 17-oct-2026).
         attackSpeed: 0.6, scale: 1.3, knockbackTaken: 0, damageScale: 0.5,
         boss: { title: 'Ettin', dropsChest: true, final: false },
     },
     demon: {
         name: 'Demon', sprite: 'enemy.demon', temporalCoefficient: 1, hasShadow: true, maxHp: 4000, xp: 500, radius: 24, bodyOffsetY: 56,
-        actionTimeMs: 700, attackRange: 4, bravery: 100, damageDice: [10, 10], hitRatio: 500, hitSound: 'sfx.demon.hit', deathSound: 'sfx.demon.death', attackSound: 'sfx.demon.attack',
+        actionTimeMs: 700, attackRange: 4, bravery: 100, damageDice: [10, 10], hitRatio: 500, defenseRatio: 350, magicResist: 1, hitSound: 'sfx.demon.hit', deathSound: 'sfx.demon.death', attackSound: 'sfx.demon.attack',
         scale: 1.3, knockbackTaken: 0, damageScale: 0.54,
         boss: { title: 'Demon', dropsChest: true, final: false },
     },
@@ -496,7 +511,7 @@ export const ENEMIES = {
     // vida. 28½B (25-oct-2026, propietario: "jefes de verdad"): pegaba 7 y moría en ~27 s; ahora pega ~15 y aguanta más.
     stoneGolemBoss: {
         name: 'Stone Golem', sprite: 'enemy.stoneGolem', temporalCoefficient: 0.5, hasShadow: true, maxHp: 3500, xp: 120, radius: 20, bodyOffsetY: 44,
-        actionTimeMs: 1200, attackRange: 1, bravery: 100, damageDice: [7, 4], hitRatio: 135, hitSound: 'sfx.stoneGolem.hit', deathSound: 'sfx.stoneGolem.death', attackSound: 'sfx.stoneGolem.attack',
+        actionTimeMs: 1200, attackRange: 1, bravery: 100, damageDice: [7, 4], hitRatio: 135, defenseRatio: 110, magicResist: 50, hitSound: 'sfx.stoneGolem.hit', deathSound: 'sfx.stoneGolem.death', attackSound: 'sfx.stoneGolem.attack',
         scale: 1.4, knockbackTaken: 0, damageScale: 0.75,
         boss: { title: 'Stone Golem', dropsChest: true, final: false },
     },
@@ -506,7 +521,7 @@ export const ENEMIES = {
     // Sin sonidos propios en sp-client: los del Clay Golem. ATime nuestro (2600 ms ≈ más lento que un Slime).
     dummy: {
         name: 'Dummy', sprite: 'enemy.dummy', temporalCoefficient: 0.5, hasShadow: true, maxHp: 6500, xp: 600, radius: 16, bodyOffsetY: 40,
-        actionTimeMs: 2600, attackRange: 1, bravery: 100, damageDice: [7, 4], hitRatio: 100, hitSound: 'sfx.clayGolem.hit', deathSound: 'sfx.clayGolem.death', attackSound: 'sfx.clayGolem.attack',
+        actionTimeMs: 2600, attackRange: 1, bravery: 100, damageDice: [7, 4], hitRatio: 100, defenseRatio: 1, magicResist: 1, hitSound: 'sfx.clayGolem.hit', deathSound: 'sfx.clayGolem.death', attackSound: 'sfx.clayGolem.attack',
         scale: 1.6, knockbackTaken: 0, damageScale: 1.3,
         boss: { title: 'Dummy', dropsChest: true, final: true },
     },
@@ -514,7 +529,7 @@ export const ENEMIES = {
     // para probar el daño. Su vida no se comprime (monsterBaseHp) y se rellena sola antes de morir.
     trainingDummy: {
         name: 'Dummy', sprite: 'enemy.dummy', temporalCoefficient: 0.5, hasShadow: true, maxHp: 20000, xp: 0, radius: 16, bodyOffsetY: 40,
-        actionTimeMs: 2600, attackRange: 1, bravery: 100, damageDice: [1, 1], hitRatio: 0, hitSound: 'sfx.clayGolem.hit', deathSound: 'sfx.clayGolem.death', attackSound: 'sfx.clayGolem.attack',
+        actionTimeMs: 2600, attackRange: 1, bravery: 100, damageDice: [1, 1], hitRatio: 0, defenseRatio: 100, magicResist: 60, hitSound: 'sfx.clayGolem.hit', deathSound: 'sfx.clayGolem.death', attackSound: 'sfx.clayGolem.attack',
         movement: 'still', healthBar: true, knockbackTaken: 0,
     },
     // Attack-Dummy de los Barracks (31-oct-2026; tipo 35 del servidor original, mismo sprite que el Dummy): guarda su
@@ -522,7 +537,7 @@ export const ENEMIES = {
     // números son nuestros: golpe y puntería de un Orc, algo más lento; vida para aguantar unos segundos.
     attackDummy: {
         name: 'Attack-Dummy', sprite: 'enemy.dummy', temporalCoefficient: 0.5, hasShadow: true, maxHp: 1500, xp: 0, radius: 16, bodyOffsetY: 40,
-        actionTimeMs: 1500, attackRange: 1, bravery: 100, damageDice: [3, 3], hitRatio: 60, hitSound: 'sfx.clayGolem.hit', deathSound: 'sfx.clayGolem.death', attackSound: 'sfx.clayGolem.attack',
+        actionTimeMs: 1500, attackRange: 1, bravery: 100, damageDice: [3, 3], hitRatio: 60, defenseRatio: 40, magicResist: 25, hitSound: 'sfx.clayGolem.hit', deathSound: 'sfx.clayGolem.death', attackSound: 'sfx.clayGolem.attack',
         movement: 'guard', healthBar: true, knockbackTaken: 0.3, glows: true,
     },
     // Jefes de Elvine Garden (Fase 22D, decididos por el propietario el 21-oct-2026): Hellhound y Stalker de minijefes y
@@ -531,19 +546,19 @@ export const ENEMIES = {
     // 21 / 25 / 61 s). damageScale subido para que cada golpe quite un 13–17% de la vida (con 0,5–0,6 era un 5–8%).
     hellhoundBoss: {
         name: 'Hellhound', sprite: 'enemy.hellhound', temporalCoefficient: 0.5, hasShadow: true, maxHp: 2600, xp: 300, radius: 18, bodyOffsetY: 26,
-        actionTimeMs: 900, attackRange: 1, bravery: 100, damageDice: [7, 5], hitRatio: 200, hitSound: 'sfx.hellhound.hit', deathSound: 'sfx.hellhound.death', attackSound: 'sfx.hellhound.attack',
+        actionTimeMs: 900, attackRange: 1, bravery: 100, damageDice: [7, 5], hitRatio: 200, defenseRatio: 90, magicResist: 60, hitSound: 'sfx.hellhound.hit', deathSound: 'sfx.hellhound.death', attackSound: 'sfx.hellhound.attack',
         scale: 1.5, knockbackTaken: 0, damageScale: 1.1,
         boss: { title: 'Hellhound', dropsChest: true, final: false },
     },
     stalkerBoss: {
         name: 'Stalker', sprite: 'enemy.stalker', temporalCoefficient: 1, hasShadow: true, maxHp: 5500, xp: 600, radius: 18, bodyOffsetY: 44,
-        actionTimeMs: 600, attackRange: 4, bravery: 100, damageDice: [8, 9], hitRatio: 300, hitSound: 'sfx.orc.hit', deathSound: 'sfx.orc.death', attackSound: 'sfx.orc.attack',
+        actionTimeMs: 600, attackRange: 4, bravery: 100, damageDice: [8, 9], hitRatio: 300, defenseRatio: 200, magicResist: 96, hitSound: 'sfx.orc.hit', deathSound: 'sfx.orc.death', attackSound: 'sfx.orc.attack',
         scale: 1.4, knockbackTaken: 0, damageScale: 0.9,
         boss: { title: 'Stalker', dropsChest: true, final: false },
     },
     cyclopsBoss: {
         name: 'Cyclops', sprite: 'enemy.cyclops', temporalCoefficient: 0.5, hasShadow: true, maxHp: 12000, xp: 1400, radius: 28, bodyOffsetY: 70,
-        actionTimeMs: 1200, attackRange: 3, bravery: 100, damageDice: [8, 6], hitRatio: 180, hitSound: 'sfx.cyclops.hit', deathSound: 'sfx.cyclops.death', attackSound: 'sfx.cyclops.attack',
+        actionTimeMs: 1200, attackRange: 3, bravery: 100, damageDice: [8, 6], hitRatio: 180, defenseRatio: 110, magicResist: 78, hitSound: 'sfx.cyclops.hit', deathSound: 'sfx.cyclops.death', attackSound: 'sfx.cyclops.attack',
         scale: 1.6, knockbackTaken: 0, damageScale: 1.2,
         boss: { title: 'Cyclops', dropsChest: true, final: true },
     },
@@ -551,14 +566,14 @@ export const ENEMIES = {
     // porque `ettin` es el jefe de Bleeding Isle. NPC.cfg Ettin: ATime 700, alcance 3, 8d9, HR 350. Tier 8.
     ettinRegular: {
         name: 'Ettin', sprite: 'enemy.ettin', temporalCoefficient: 1, hasShadow: true, maxHp: 1600, xp: 320, radius: 20, bodyOffsetY: 46,
-        actionTimeMs: 700, attackRange: 3, bravery: 100, damageDice: [8, 9], hitRatio: 350, hitSound: 'sfx.ettin.hit', deathSound: 'sfx.ettin.death', attackSound: 'sfx.ettin.attack',
+        actionTimeMs: 700, attackRange: 3, bravery: 100, damageDice: [8, 9], hitRatio: 350, defenseRatio: 325, magicResist: 108, hitSound: 'sfx.ettin.hit', deathSound: 'sfx.ettin.death', attackSound: 'sfx.ettin.attack',
         attackSpeed: 0.6,
     },
     // Jefes de Middleland: Mountain Giant (min 4), Giant Lizard (min 8), Ettin Berserk (min 12) y Unicorn (final, min 15).
     // NPC.cfg Mountain-Giant: ATime 700, alcance 2, 8d7, HR 230.
     mountainGiantBoss: {
         name: 'Mountain Giant', sprite: 'enemy.mountainGiant', temporalCoefficient: 1, hasShadow: true, maxHp: 3500, xp: 400, radius: 24, bodyOffsetY: 66,
-        actionTimeMs: 700, attackRange: 2, bravery: 100, damageDice: [8, 7], hitRatio: 230, hitSound: 'sfx.mountainGiant.hit', deathSound: 'sfx.mountainGiant.death', attackSound: 'sfx.mountainGiant.attack',
+        actionTimeMs: 700, attackRange: 2, bravery: 100, damageDice: [8, 7], hitRatio: 230, defenseRatio: 250, magicResist: 90, hitSound: 'sfx.mountainGiant.hit', deathSound: 'sfx.mountainGiant.death', attackSound: 'sfx.mountainGiant.attack',
         scale: 1.4, knockbackTaken: 0, damageScale: 1,
         boss: { title: 'Mountain Giant', dropsChest: true, final: false },
     },
@@ -566,7 +581,7 @@ export const ENEMIES = {
     // 10d10, HR 400 (la wiki le da además una embestida, que aquí no se copia).
     giantLizard: {
         name: 'Giant Lizard', sprite: 'enemy.giantLizard', temporalCoefficient: 1, hasShadow: true, maxHp: 7000, xp: 800, radius: 24, bodyOffsetY: 40,
-        actionTimeMs: 600, attackRange: 2, bravery: 100, damageDice: [10, 10], hitRatio: 400, hitSound: 'sfx.giantLizard.hit', deathSound: 'sfx.giantLizard.death', attackSound: 'sfx.giantLizard.attack',
+        actionTimeMs: 600, attackRange: 2, bravery: 100, damageDice: [10, 10], hitRatio: 400, defenseRatio: 325, magicResist: 1, hitSound: 'sfx.giantLizard.hit', deathSound: 'sfx.giantLizard.death', attackSound: 'sfx.giantLizard.attack',
         scale: 1.4, knockbackTaken: 0, damageScale: 0.6,
         boss: { title: 'Giant Lizard', dropsChest: true, final: false },
     },
@@ -574,7 +589,7 @@ export const ENEMIES = {
     // lento) y pega más.
     ettinBerserk: {
         name: 'Berserk Ettin', sprite: 'enemy.ettin', temporalCoefficient: 1, hasShadow: true, maxHp: 11000, xp: 1200, radius: 24, bodyOffsetY: 56,
-        actionTimeMs: 700, attackRange: 3, bravery: 100, damageDice: [8, 9], hitRatio: 350, hitSound: 'sfx.ettin.hit', deathSound: 'sfx.ettin.death', attackSound: 'sfx.ettin.attack',
+        actionTimeMs: 700, attackRange: 3, bravery: 100, damageDice: [8, 9], hitRatio: 350, defenseRatio: 325, magicResist: 108, hitSound: 'sfx.ettin.hit', deathSound: 'sfx.ettin.death', attackSound: 'sfx.ettin.attack',
         scale: 1.5, knockbackTaken: 0, damageScale: 0.9, glows: true,
         boss: { title: 'Berserk Ettin', dropsChest: true, final: false },
     },
@@ -582,7 +597,7 @@ export const ENEMIES = {
     // 10d10, HR 500, magia nivel 8 (la wiki: Energy Strike y parálisis). Aquí lanza rayos de Energy Strike (nuestros).
     unicorn: {
         name: 'Unicorn', sprite: 'enemy.unicorn', temporalCoefficient: 1, hasShadow: false, maxHp: 20000, xp: 2000, radius: 26, bodyOffsetY: 56,
-        actionTimeMs: 700, attackRange: 4, bravery: 100, damageDice: [10, 10], hitRatio: 500, hitSound: 'sfx.unicorn.hit', deathSound: 'sfx.unicorn.death', attackSound: 'sfx.unicorn.attack',
+        actionTimeMs: 700, attackRange: 4, bravery: 100, damageDice: [10, 10], hitRatio: 500, defenseRatio: 350, magicResist: 1, hitSound: 'sfx.unicorn.hit', deathSound: 'sfx.unicorn.death', attackSound: 'sfx.unicorn.attack',
         scale: 1.6, knockbackTaken: 0, damageScale: 0.5,
         animations: { idle: { sheet: 0, firstFrame: 0, frameCount: 4 } },
         boss: {
@@ -594,13 +609,13 @@ export const ENEMIES = {
     // NPC.cfg Frost: ATime 700, alcance 3, 8d6, HR 230. Nizie: ATime 500, alcance 3, 10d10, HR 300.
     frostBoss: {
         name: 'Frost', sprite: 'enemy.frost', temporalCoefficient: 1, hasShadow: true, maxHp: 6000, xp: 700, radius: 20, bodyOffsetY: 44,
-        actionTimeMs: 700, attackRange: 3, bravery: 100, damageDice: [8, 6], hitRatio: 230, hitSound: 'sfx.darkElf.hit', deathSound: 'sfx.direBoar.death', attackSound: 'sfx.frost.attack',
+        actionTimeMs: 700, attackRange: 3, bravery: 100, damageDice: [8, 6], hitRatio: 230, defenseRatio: 275, magicResist: 100, hitSound: 'sfx.darkElf.hit', deathSound: 'sfx.direBoar.death', attackSound: 'sfx.frost.attack',
         scale: 1.4, knockbackTaken: 0, damageScale: 1,
         boss: { title: 'Frost', dropsChest: true, final: false, skySpell: FROST_ICE_STRIKE },
     },
     nizieBoss: {
         name: 'Nizie', sprite: 'enemy.nizie', temporalCoefficient: 1, hasShadow: true, maxHp: 12000, xp: 1300, radius: 24, bodyOffsetY: 50,
-        actionTimeMs: 500, attackRange: 3, bravery: 100, damageDice: [10, 10], hitRatio: 300, hitSound: 'sfx.nizie.hit', deathSound: 'sfx.nizie.death', attackSound: 'sfx.nizie.attack',
+        actionTimeMs: 500, attackRange: 3, bravery: 100, damageDice: [10, 10], hitRatio: 300, defenseRatio: 300, magicResist: 1, hitSound: 'sfx.nizie.hit', deathSound: 'sfx.nizie.death', attackSound: 'sfx.nizie.attack',
         scale: 1.3, knockbackTaken: 0, damageScale: 0.7,
         boss: { title: 'Nizie', dropsChest: true, final: false, skySpell: NIZIE_CHILL_WIND },
     },
@@ -608,7 +623,7 @@ export const ENEMIES = {
     // juego: con damageScale 0,3 queda algo por encima del Unicorn.
     tigerwormBoss: {
         name: 'Tigerworm', sprite: 'enemy.tigerworm', temporalCoefficient: 1, hasShadow: false, maxHp: 22000, xp: 2400, radius: 28, bodyOffsetY: 40,
-        actionTimeMs: 600, attackRange: 6, bravery: 100, damageDice: [18, 17], hitRatio: 1200, hitSound: 'sfx.lich.hit', deathSound: 'sfx.lich.death', attackSound: 'sfx.tigerworm.attack',
+        actionTimeMs: 600, attackRange: 6, bravery: 100, damageDice: [18, 17], hitRatio: 1200, defenseRatio: 350, magicResist: 1, hitSound: 'sfx.lich.hit', deathSound: 'sfx.lich.death', attackSound: 'sfx.tigerworm.attack',
         scale: 1.5, knockbackTaken: 0, damageScale: 0.3,
         boss: { title: 'Tigerworm', dropsChest: true, final: true, skySpell: TIGERWORM_LIGHTNING },
     },
@@ -618,7 +633,7 @@ export const ENEMIES = {
     // Medido el 27-oct-2026 (mismo Guerrero, Power 8): con 3000 tardaba ~2 min y el Golem ~95 s; con 2500, parecido.
     guard: {
         movement: 'guard', name: 'Guard', sprite: 'enemy.guard', temporalCoefficient: 0.5, hasShadow: true, maxHp: 2500, xp: 300, radius: 14, bodyOffsetY: 36,
-        actionTimeMs: 1000, attackRange: 1, bravery: 100, damageDice: [7, 4], hitRatio: 150, hitSound: 'sfx.guard.hit', deathSound: 'sfx.guard.death', attackSound: 'sfx.guard.attack',
+        actionTimeMs: 1000, attackRange: 1, bravery: 100, damageDice: [7, 4], hitRatio: 150, defenseRatio: 120, magicResist: 60, hitSound: 'sfx.guard.hit', deathSound: 'sfx.guard.death', attackSound: 'sfx.guard.attack',
         scale: 1.25, knockbackTaken: 0, damageScale: 0.75, healthBar: true,
         skySpell: GUARD_LIGHTNING,
     },
@@ -627,7 +642,7 @@ export const ENEMIES = {
         // morir = hojas 16+ (no 32); opacidad 0,7. No tiene sonido de golpe: usamos el de la Liche.
         // NPC.cfg: se usa la fila del Wyvern (la del Fire-Wyvern viene desalineada). Además lanza bolas de fuego (nuestras).
         name: 'Fire Wyvern', sprite: 'enemy.fireWyvern', temporalCoefficient: 1, hasShadow: true, maxHp: 10000, xp: 1200, radius: 30, bodyOffsetY: 70,
-        actionTimeMs: 600, attackRange: 7, bravery: 100, damageDice: [20, 18], hitRatio: 1300, hitSound: 'sfx.lich.hit', deathSound: 'sfx.wyvern.death', attackSound: 'sfx.wyvern.attack',
+        actionTimeMs: 600, attackRange: 7, bravery: 100, damageDice: [20, 18], hitRatio: 1300, defenseRatio: 375, magicResist: 1, hitSound: 'sfx.lich.hit', deathSound: 'sfx.wyvern.death', attackSound: 'sfx.wyvern.attack',
         scale: 1.15, alpha: 0.85, knockbackTaken: 0, damageScale: 0.25,
         animations: { idle: { sheet: 0, firstFrame: 0, frameCount: 4 }, attack: { sheet: 0, firstFrame: 3, frameCount: 4 }, dead: { sheet: 16 } },
         boss: {

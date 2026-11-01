@@ -190,7 +190,7 @@ export class GameOverScene extends Phaser.Scene {
             const centre = x + g.lootIconSize / 2;
             // Fase 21B: an item with an attribute gets a frame of its colour.
             const border = ownedItemNameColor(item) ?? g.lootSlotBorder;
-            this.add.rectangle(centre, g.lootY, g.lootIconSize, g.lootIconSize, g.lootSlotFill).setStrokeStyle(item.attribute ? 2 : 1, border);
+            this.add.rectangle(centre, g.lootY, g.lootIconSize, g.lootIconSize, g.lootSlotFill).setStrokeStyle(item.attribute || item.secondary ? 2 : 1, border);
             const frame = itemPicture(item.id, this.params.gender);
             const image = this.add.image(centre, g.lootY, '__DEFAULT');
             if (frame && setColouredTexture(image, itemPackTexture(frame.sheet), frame.frame, ownedItemColor(item))) {

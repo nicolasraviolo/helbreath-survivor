@@ -24,6 +24,12 @@ export const RELEASE_NOTES: readonly ReleaseNote[] = [
             'Unique items: the Tigerworm may drop the Sword of Ice Elemental or the Ice Storm spell. Rare, and they need a high Level.',
             'Monsters now attack like in the original game: harder to escape, and blows from behind hurt more.',
             'Train in the Barracks: enter through its door in town, hit the Dummies and watch your damage per second.',
+            'Swords, axes and hammers now strike alike; each shows its own Critical Strike.',
+            'Axes and hammers rebalanced, and the Stone of Xelima is rarer.',
+            'Your blows and spells can now miss: Dexterity and Magic help them land.',
+            'Monsters grow tougher as the run goes on, but miss you more often.',
+            'Found items now roll stronger or weaker attributes, and some bring a second one.',
+            'Stat Blessings replaced by 16 new power cards, each with its own effect and picture.',
         ],
     },
     {

@@ -37,6 +37,9 @@ const PRESETS = {
     levelup: 'debug=levelup',
     // Fase 21½A: todas las cartas Epic (marco morado, cinta, brillo y sonido).
     epic: 'debug=epic,levelup',
+    // Cartas de poder (1-nov-2026): todo al máximo (Epic) → solo cartas de oro y vida; y la Maga con todo al máximo y horda (FPS).
+    maxcards: 'play=warrior&debug=maxcards,levelup',
+    maxcardsmage: 'play=mage&debug=maxcards,horde', // con --cards --wait=10000: la horda sin pausas
     epicstones: 'play=warrior&debug=epic,stones,levelup', // Fase 28½A: Epic Stone cards that go up 1/5 and say +0% → +20%
     // Fase 21½B: 3 Reroll y 3 Skip comprados, con las cartas abiertas.
     rerollskip: 'unlocks=dice3,wine3&debug=levelup',
@@ -163,6 +166,11 @@ const PRESETS = {
     // Fase 24A: oro (moneda y montón junto al jugador, recogidos por el imán) y armaduras con atributo.
     gold: 'play=warrior&characters=demo&debug=god,pickups&gold=0',
     lootarmor: 'play=warrior&characters=demo&debug=god,loot&attr=hpRecovery',
+    // Revisión del original C: botín con valor y segundo atributo. lootvalues = armadura HP Recovery 7 + Physical
+    // Absorption 5 (la carta con dos líneas); lootweapon = Poison 7 + Gold 6; valuesinv = inventario y herrero con valores.
+    lootvalues: 'play=warrior&characters=demo&debug=god,loot&attr=hpRecovery:7&attr2=physicalAbsorption:5',
+    lootweapon: 'play=warrior&characters=demo&debug=god,loot&attr=poison:7&attr2=gold:6',
+    valuesinv: 'characters=demo&open=town&town=tom&smith=sell&gold=100&gear=hpRecovery.7.physicalAbsorption.5:plateMail,defenseRatio.3:helmet,sharp.0.hittingProbability.4:longSword,inv:plateMail',
     // Abaddon's Blood (Fase 21E): Guerrero desbloqueado con una horda. Para morir y ver si revive (y el icono apagado):
     // --eval="new Promise((r) => { g.hurtPlayer(99999, true, 'test'); setTimeout(() => r({ hp: g.player.hp, dead: g.player.isDead }), 1500); })"
     revive: 'play=warrior&unlocks=abaddon&debug=horde',

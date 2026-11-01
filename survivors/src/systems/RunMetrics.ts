@@ -127,8 +127,8 @@ export function sendRunReport(report: RunReport): void {
 
 function cardKey(choice: LevelUpChoice): string {
     switch (choice.kind) {
-        case 'stat':
-            return `stat:${choice.stat}`;
+        case 'filler':
+            return `filler:${choice.filler}`;
         case 'passive':
             return `passive:${choice.passive}`;
         case 'magic':

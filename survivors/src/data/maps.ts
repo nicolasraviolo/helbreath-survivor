@@ -20,6 +20,8 @@ export interface MapDifficulty {
     hp: number;
     /** Damage of their blows and projectiles. */
     damage: number;
+    /** Health only, not XP: grows with the run's minutes (MONSTER_HP_PER_MINUTE, set by EnemySystem). Default 1. */
+    hpGrowth?: number;
 }
 
 /** Monsters exactly as in enemies.ts. */

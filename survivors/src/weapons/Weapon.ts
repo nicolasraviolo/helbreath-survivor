@@ -27,15 +27,13 @@ export interface WeaponContext {
     castSpell(angle: number, durationMs: number): void;
     /** Melee: plays the owner's swing animation, the slash and the swing sound towards `angle` (radians). */
     swingMelee(def: MeleeWeaponDef, angle: number, durationMs: number): void;
-    /** Axes: the owner spins all around starting towards `angle` (radians), with a round trail and the swing sound. */
-    spinMelee(def: MeleeWeaponDef, angle: number, durationMs: number): void;
-    /** Hammers (bloque C): the owner's swing towards `angle` (radians); the wave and crack come with hitMelee. */
-    slamMelee(def: MeleeWeaponDef, angle: number, durationMs: number): void;
     /** Melee: applies the damage of a swing towards `angle`. */
     hitMelee(def: MeleeWeaponDef, angle: number): void;
     readonly audio: AudioSystem;
-    /** Multiplies every cooldown (class bonus and Dex). */
+    /** Multiplies the cooldowns of blows (class bonus, Dex, Hellhound's Frenzy). */
     readonly cooldownMultiplier: number;
+    /** Multiplies the cooldowns of spells (class bonus, Dex, Orb of Quickening). */
+    readonly castMultiplier: number;
 }
 
 export abstract class Weapon {
@@ -47,11 +45,16 @@ export abstract class Weapon {
         this.cooldownLeftMs -= deltaMs;
         if (this.cooldownLeftMs > 0) return;
         if (this.fire(context)) {
-            this.cooldownLeftMs = this.cooldownMs * context.cooldownMultiplier;
+            this.cooldownLeftMs = this.cooldownMs * this.speedMultiplier(context);
         } else {
             // Nothing to shoot at: stay ready and try again next frame.
             this.cooldownLeftMs = 0;
         }
+    }
+
+    /** What multiplies this weapon's cooldown: the blows' one; spells use the casting one. */
+    protected speedMultiplier(context: WeaponContext): number {
+        return context.cooldownMultiplier;
     }
 
     /** Fires if it can. Returns true when it fired (the cooldown starts). */

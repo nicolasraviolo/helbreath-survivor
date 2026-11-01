@@ -106,7 +106,7 @@ export interface IceShardSpellDef extends ActiveSpellBase {
 }
 
 /** How a line spell looks as it travels (LINE_SPELL_LOOKS). */
-export type LineSpellLook = 'blizzard' | 'earthShock' | 'bloodyShock';
+export type LineSpellLook = 'blizzard' | 'earthShock' | 'bloodyShock' | 'sparks';
 
 /**
  * What travels in a line (systems/LineSpell.ts): the line spells and, since bloque C, the hammers' crack
@@ -192,6 +192,9 @@ export const LINE_SPELL_LOOKS = {
     earthShock: { torrent: 'fx.earthShock.torrent', dust: 'fx.earthShock.dust', sound: 'sfx.shockWave' },
     // Bloody Shock Wave: a red node on every step, up to `jitter` px off the line, starting `startDy` px over the feet; E1.
     bloodyShock: { node: 'fx.bloodyShock.node', sound: 'sfx.shockWave', jitter: 30, startDy: -40 },
+    // Swords' Critical Strike wave (31-oct-2026): `count` golden sparks (the Lightning Arrow's, already loaded in every run)
+    // on every step, up to `jitter` px off the line, `startDy` px over the feet. No sound: the swing has its own.
+    sparks: { spark: 'fx.lightningArrow.spark', count: 2, jitter: 14, startDy: -30 },
 } as const satisfies {
     blizzard: {
         shards: readonly EffectKey[]; impact: EffectKey; impactSound: SoundKey; maxShards: number; minSpread: number; maxSpread: number;
@@ -199,6 +202,7 @@ export const LINE_SPELL_LOOKS = {
     };
     earthShock: { torrent: EffectKey; dust: EffectKey; sound: SoundKey };
     bloodyShock: { node: EffectKey; sound: SoundKey; jitter: number; startDy: number };
+    sparks: { spark: EffectKey; count: number; jitter: number; startDy: number };
 };
 
 /** Ice Strike: how its shards fall (sp-client CastManager: the same for both spells). */

@@ -28,6 +28,7 @@
 //                      daggers = lo mismo con las Spinning Daggers (Fase 28B)
 //                      angels = lo mismo con los Tutelary Angels (Fase 28C)
 //                      stones = las cartas ofrecen siempre las pasivas (Xelima, Merien, Magnet) y magias (Fase 28) que no estén al máximo (Fase 20C)
+//                      maxcards = todas las pasivas al máximo con cartas Epic, y las magias que quepan (cartas de poder, 1-nov-2026); antes de levelup, las cartas son de oro y vida
 //                      elites = todos los monstruos (menos los jefes) salen élite, con el brillo rojo (M2)
 //                      loot = cae un objeto de botín junto al jugador ahora y cada pocos segundos (Fase 21A)
 //                      zem = cada jefe suelta también un Zem (Fase 21D)
@@ -42,6 +43,9 @@
 //                      orden; los ids de data/spells.ts y data/activeSpells.ts), sin mirar requisitos (Fase 20D)
 //   ?attr=sharp      → el arma de salida y todo el botín (que siempre es un arma) con ese atributo: sharp, poison o
 //                      ancient (Fase 21B; las varitas nunca son poison)
+//   ?attr=hpRecovery:7 → con valor (1–7; revisión del original C). ?attr2=gold:5 → además ese segundo atributo
+//                      (hittingProbability, gold, experience, defenseRatio2, magicResistance2, hpRecovery2, mpRecovery2,
+//                      physicalAbsorption, magicAbsorption) en todo el botín y en el arma de salida si puede llevarlo
 //   ?weapon=lightAxe → el Guerrero empieza la partida con esa arma en la mano (id de data/weapons.ts), sin mirar
 //                      requisitos ni lo que lleve puesto (bloque B, hachas: lightAxe, tomahawk, doubleAxe, warAxe, battleAxe;
 //                      bloque C, martillos: hammer, battleHammer)
@@ -62,6 +66,7 @@
 //   ?open=equipment  → Select Character con la pantalla Equipment abierta (Fase 20B), del Guerrero (o el primero;
 //                      con &class=mage, de la Maga); con &slot=spell1, con ese hueco elegido (Fase 26C)
 //                      sin repartir (o del primero); con ?characters=demo, Gorn tiene puntos
+//   ?gear=hpRecovery.7.gold.5:robe → al inventario con valores y segundo atributo (revisión del original C)
 //   ?gear=plateMail,helmet → con ?characters=demo, los dos de ejemplo llevan esos objetos (los que su clase pueda
 //                      ponerse, sin mirar requisitos; ids de data/weapons.ts y data/armor.ts). Para ver el equipo
 //                      dibujado en la ventana Character (M17). "sharp:longSword" lo mete en el inventario con ese
@@ -99,7 +104,7 @@
 //   Se combina con ?ui=compact (interfaz de móvil).
 // En el build publicado no hace nada.
 import { isActiveSpellId, type ActiveSpellId } from '../data/activeSpells';
-import { isItemAttribute, type ItemAttribute } from '../data/attributes';
+import { ATTRIBUTE_VALUE_MAX, isItemAttribute, isSecondaryAttribute, type ItemAttribute, type SecondaryAttribute } from '../data/attributes';
 import { isUnlockId, type UnlockId } from '../data/abaddon';
 import { isMapId, type MapId } from '../data/maps';
 import { isStackableUnlockId, type StackableUnlockId } from '../data/rerollSkip';
@@ -128,7 +133,7 @@ function isDebugScreen(value: string | null): value is DebugScreen {
 }
 
 /** Actions that ?debug= can run at the start of a run (the same ones as the debug keys of GameScene). */
-export const DEBUG_ACTIONS = ['horde', 'kill', 'levelup', 'levels', 'str', 'magic', 'pickups', 'totems', 'minute', 'boss', 'finalboss', 'bosskill', 'stampede', 'dodge', 'stats', 'god', 'crits', 'aim', 'aimstick', 'resume', 'sim', 'charexp', 'stones', 'elites', 'loot', 'zem', 'onehp', 'epic', 'champion', 'xelima', 'nomana', 'spelldrag', 'bluebook', 'charge', 'movement', 'aura', 'daggers', 'angels', 'orcs', 'nosmooth', 'rescue', 'unique'] as const;
+export const DEBUG_ACTIONS = ['horde', 'kill', 'levelup', 'levels', 'str', 'magic', 'pickups', 'totems', 'minute', 'boss', 'finalboss', 'bosskill', 'stampede', 'dodge', 'stats', 'god', 'crits', 'aim', 'aimstick', 'resume', 'sim', 'charexp', 'stones', 'elites', 'loot', 'zem', 'onehp', 'epic', 'champion', 'xelima', 'nomana', 'spelldrag', 'bluebook', 'charge', 'movement', 'aura', 'daggers', 'angels', 'orcs', 'nosmooth', 'rescue', 'unique', 'maxcards'] as const;
 export type DebugAction = (typeof DEBUG_ACTIONS)[number];
 
 function isDebugAction(value: string): value is DebugAction {
@@ -172,6 +177,11 @@ interface DebugStart {
     unlockCounts: Partial<Record<StackableUnlockId, number>>;
     /** ?attr=: the starting weapon and every drop (always a weapon) get that attribute (Fase 21B). */
     attribute: ItemAttribute | undefined;
+    /** ?attr=hpRecovery:13: that value for the attribute (Revisión del original C). */
+    attributeValue: number | undefined;
+    /** ?attr2=gold:5: every drop (and the starting weapon, if it can) gets that second attribute and value. */
+    secondary: SecondaryAttribute | undefined;
+    secondaryValue: number | undefined;
     /** ?map=: the map of a debug run (Fase 22A). */
     map: MapId | undefined;
     /** ?maps=all opens every map in Select Map; reset forgets the maps won (Fase 22A). */
@@ -224,7 +234,7 @@ function readDebugStart(): DebugStart {
     const none: DebugStart = {
         play: false, character: undefined, actions: [], trees: undefined, open: undefined, achievements: undefined, characters: undefined,
         sendMetrics: false, spells: { auto: undefined, active: undefined }, openClass: undefined, openSlot: undefined, slash: undefined,
-        holdLoading: false, gear: [], settingsTab: undefined, attribute: undefined, unlocks: undefined, unlockCounts: {}, map: undefined, maps: undefined, rescued: undefined, kills: {}, unique: undefined, townSpot: undefined, townTalk: false, townShop: false, townMissions: false, townSmith: undefined,
+        holdLoading: false, gear: [], settingsTab: undefined, attribute: undefined, attributeValue: undefined, secondary: undefined, secondaryValue: undefined, unlocks: undefined, unlockCounts: {}, map: undefined, maps: undefined, rescued: undefined, kills: {}, unique: undefined, townSpot: undefined, townTalk: false, townShop: false, townMissions: false, townSmith: undefined,
         gold: undefined, weapon: undefined, upgrade: undefined, xelima: undefined, level: undefined, build: undefined, kit: 'best', simBot: 'circle',
     };
     if (!import.meta.env.DEV) return none;
@@ -239,7 +249,8 @@ function readDebugStart(): DebugStart {
     const openClass = params.get('class');
     const openSlot = params.get('slot');
     const slash = params.get('slash');
-    const attribute = params.get('attr');
+    const [attribute, attributeValue] = (params.get('attr') ?? '').split(':');
+    const [secondary, secondaryValue] = (params.get('attr2') ?? '').split(':');
     const unlocks = params.get('unlocks');
     const map = params.get('map');
     const maps = params.get('maps');
@@ -266,6 +277,9 @@ function readDebugStart(): DebugStart {
         gear: (params.get('gear') ?? '').split(',').map((g) => g.trim()).filter((g) => g.length > 0),
         settingsTab: params.get('tab')?.toLowerCase() ?? undefined,
         attribute: isItemAttribute(attribute) ? attribute : undefined,
+        attributeValue: debugAttributeValue(attributeValue),
+        secondary: isSecondaryAttribute(secondary) ? secondary : undefined,
+        secondaryValue: isSecondaryAttribute(secondary) ? debugAttributeValue(secondaryValue) ?? 1 : undefined,
         unlocks: unlocks === 'reset' ? 'reset' : unlocks ? unlocks.split(',').map((u) => u.trim()).filter(isUnlockId) : undefined,
         map: isMapId(map) ? map : undefined,
         maps: maps === 'all' || maps === 'reset' ? maps : undefined,
@@ -322,3 +336,9 @@ function readUnlockCounts(unlocks: string | null): Partial<Record<StackableUnloc
 }
 
 export const DEBUG_START = readDebugStart();
+
+/** "7" → 7 (1..ATTRIBUTE_VALUE_MAX); anything else → undefined. */
+function debugAttributeValue(text: string | undefined): number | undefined {
+    const value = Number(text);
+    return Number.isInteger(value) && value >= 1 && value <= ATTRIBUTE_VALUE_MAX ? value : undefined;
+}

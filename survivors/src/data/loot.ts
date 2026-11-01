@@ -13,22 +13,25 @@
 //   (data/attributes.ts). Fase 24A: todo lo que cae lleva atributo (armas o armaduras) y cae mucho menos (3–4 por
 //   partida); lo normal se compra al herrero. Las varitas de la Maga caen menos que sus hechizos, y Berserk y Kloness muchísimo menos.
 import type { SoundKey } from '../config/assetManifest';
-import type { ItemAttribute } from './attributes';
+import { attributeValueOf, type ItemRolls } from './attributes';
 import type { CharacterId } from './characters';
 import type { ItemIconFrame } from './itemTypes';
 import type { EquipSlotId, ItemId } from './items';
 
-/** One item the character owns or found, with its attribute if it has one (Fase 21B). */
-export interface OwnedItem {
+/**
+ * One item the character owns or found, with its attribute if it has one (Fase 21B), the attribute's value and maybe a
+ * second attribute (ItemRolls, Revisión del original C).
+ */
+export interface OwnedItem extends ItemRolls {
     id: ItemId;
-    attribute?: ItemAttribute;
     /** +1, +2 or +3 from the blacksmith (Fase 24D, data/upgrades.ts); missing = +0. */
     upgrade?: number;
 }
 
-/** The same kind of item: same id, attribute and "+" (two identical Long Swords are the same kind). */
+/** The same kind of item: same id, attributes with their values, and "+" (two identical Long Swords are the same kind). */
 export function sameOwnedItem(a: Readonly<OwnedItem>, b: Readonly<OwnedItem>): boolean {
-    return a.id === b.id && a.attribute === b.attribute && (a.upgrade ?? 0) === (b.upgrade ?? 0);
+    return a.id === b.id && a.attribute === b.attribute && attributeValueOf(a) === attributeValueOf(b)
+        && a.secondary === b.secondary && (a.secondaryValue ?? 0) === (b.secondaryValue ?? 0) && (a.upgrade ?? 0) === (b.upgrade ?? 0);
 }
 
 /**
@@ -54,9 +57,10 @@ export const LOOT_ZEM_BOSS_CHANCE = 0.1;
 
 /**
  * Chance that any monster drops a Stone of Xelima when it dies, apart from the normal roll (owner, 22-oct-2026: "any
- * monster, very rare"). A 15-minute run (~3.000 kills) gives ~1–2. ?debug=xelima raises it to `debug`.
+ * monster, very rare"; 31-oct-2026: "one every 2 runs"): 1 in 5.000, so a run of ~1.000–3.000 kills gives ~0,2–0,6.
+ * ?debug=xelima raises it to `debug`.
  */
-export const LOOT_XELIMA_CHANCE = { normal: 0.0005, debug: 0.05 } as const;
+export const LOOT_XELIMA_CHANCE = { normal: 0.0002, debug: 0.05 } as const;
 
 /**
  * Manual spells (Fase 26E, MANUAL_SPELL_IDS): chance that any monster drops the book of one the character hasn't

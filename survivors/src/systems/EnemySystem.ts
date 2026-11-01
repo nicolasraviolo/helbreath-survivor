@@ -2,7 +2,7 @@
 // y los golpes que dan al jugador.
 import Phaser from 'phaser';
 import { ENEMY_SEPARATION_MAX, ENEMY_SEPARATION_PER_PX, ENEMY_SEPARATION_SPACING, SPATIAL_CELL_SIZE } from '../config/gameConfig';
-import { ENEMIES, type EnemyDef, type EnemyId } from '../data/enemies';
+import { ENEMIES, MONSTER_HP_PER_MINUTE, type EnemyDef, type EnemyId } from '../data/enemies';
 import { eliteChance } from '../data/elites';
 import { NO_DIFFICULTY, type MapDifficulty } from '../data/maps';
 import { Enemy, type EnemyWorld } from '../entities/Enemy';
@@ -36,6 +36,8 @@ export class EnemySystem {
     private mapDifficulty: MapDifficulty = NO_DIFFICULTY;
     /** The current wave's damage multiplier (WaveDef.damage, Fase 28½B), on top of the map's. */
     private waveDamage = 1;
+    /** Health of new normal monsters for the run's minute (MONSTER_HP_PER_MINUTE), on top of the map's. */
+    private hpGrowth = 1;
     /** Map × wave: what new normal monsters get. Rebuilt only when one of them changes. */
     private spawnDifficulty: MapDifficulty = NO_DIFFICULTY;
 
@@ -80,7 +82,15 @@ export class EnemySystem {
 
     public set difficulty(difficulty: MapDifficulty) {
         this.mapDifficulty = difficulty;
-        this.spawnDifficulty = { hp: difficulty.hp, damage: difficulty.damage * this.waveDamage };
+        this.spawnDifficulty = { hp: difficulty.hp, damage: difficulty.damage * this.waveDamage, hpGrowth: this.hpGrowth };
+    }
+
+    /** The run's clock (set by the spawn system): new normal monsters get more health as the minutes go by. */
+    public setRunMinute(minutes: number): void {
+        const growth = Math.round((1 + MONSTER_HP_PER_MINUTE * Math.max(0, minutes)) * 100) / 100;
+        if (growth === this.hpGrowth) return;
+        this.hpGrowth = growth;
+        this.difficulty = this.mapDifficulty;
     }
 
     /** Damage multiplier of the wave now running (set by the spawn system); already-spawned monsters keep theirs. */
@@ -97,7 +107,8 @@ export class EnemySystem {
     /** Champion (Fase 21½C, data/champion.ts): a much tougher monster of this kind, never elite on top. */
     public spawnChampion(id: EnemyId, x: number, y: number): Enemy {
         const enemy = this.getPool(id).acquire();
-        enemy.spawn(x, y, false, this.spawnDifficulty, true);
+        // Its health is CHAMPION.hpMultiplier × the monster's, without the minutes' growth.
+        enemy.spawn(x, y, false, { ...this.spawnDifficulty, hpGrowth: 1 }, true);
         return enemy;
     }
 

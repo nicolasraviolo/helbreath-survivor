@@ -5,6 +5,7 @@
 // - Dex: velocidad de movimiento y de ataque, y desde la Fase 18A esquiva (2 de defensa por punto, data/defense.ts).
 // - Int: requisito de hechizos y de equipo de mago (varitas, túnicas). Da un poco de maná (fórmula original).
 // - Mag: daño mágico y maná, y desde la Fase 18B resistencia mágica (1 por punto, data/defense.ts).
+//   Revisión del original B (31-oct-2026): Dex da puntería a los golpes y Mag a los hechizos (data/accuracy.ts).
 // - Chr: probabilidad de crítico.
 // Los efectos están simplificados y exagerados respecto al original (docs/hb-wiki/personaje.md):
 // allí +1 punto apenas se nota, y aquí una carta de +3 tiene que notarse en la partida.
@@ -27,9 +28,9 @@ export interface StatInfo {
 export const STAT_INFO: Record<StatId, StatInfo> = {
     str: { short: 'Str', name: 'Strength', effect: 'Physical damage. Required by weapons and armor', color: 0xc03828 },
     vit: { short: 'Vit', name: 'Vitality', effect: 'Maximum health and slow healing', color: 0x38a040 },
-    dex: { short: 'Dex', name: 'Dexterity', effect: 'Movement and attack speed, dodge', color: 0xd09020 },
+    dex: { short: 'Dex', name: 'Dexterity', effect: 'Movement and attack speed, dodge, accuracy', color: 0xd09020 },
     int: { short: 'Int', name: 'Intelligence', effect: 'Required by spells', color: 0x3070d0 },
-    mag: { short: 'Mag', name: 'Magic', effect: 'Magic damage and mana, magic resist', color: 0x8040c0 },
+    mag: { short: 'Mag', name: 'Magic', effect: 'Magic damage and mana, magic resist, spell accuracy', color: 0x8040c0 },
     chr: { short: 'Chr', name: 'Charisma', effect: 'Critical hits and better cards', color: 0xe0c040 },
 };
 
@@ -84,7 +85,5 @@ export const CRIT_CHANCE_PER_CHR = 0.01;
 export const CRIT_MAX_CHANCE = 0.75;
 export const CRIT_DAMAGE_MULTIPLIER = 2;
 
-/** Cartas al subir de nivel: cuántas se muestran (los puntos de cada carta, según su rareza: data/cardRarity.ts). */
+/** Cartas al subir de nivel: cuántas se muestran (qué sale y con qué peso: systems/UpgradePool.ts). */
 export const LEVEL_UP_CHOICES = 3;
-/** Most passive cards (Xelima, Merien, Magnet Amulet) among the choices: the rest are always stat cards (Fase 20C). */
-export const MAX_ITEM_CARDS = 2;

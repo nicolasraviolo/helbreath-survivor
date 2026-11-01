@@ -5,9 +5,16 @@
 // armas y varitas tiran su atributo (data/attributes.ts).
 // Fase 21D: la escalera solo lleva lo que puede caer (isLootDrop: ni el Zem ni los hechizos que se saben con la Int).
 // Fase 24A: todo lo que cae lleva atributo (de arma o de armadura); lo normal se compra al herrero.
+// Revisión del original C (1-nov-2026): el atributo trae un valor del 1 al 7 con la tabla del original (lo que pase
+// de 7 se queda en 7) y el 40 % trae además un segundo atributo (data/attributes.ts).
 import { DEBUG_START } from '../config/debugStart';
-import { ATTRIBUTES, ITEM_ATTRIBUTES, type ItemAttribute } from '../data/attributes';
-import { catalog, canChangeSlot, canEquip, canHaveAttribute, EQUIP_SLOT_IDS, isLootDrop, type EquipSlotId, type ItemId } from '../data/items';
+import {
+    ATTRIBUTE_VALUE_MAX, ATTRIBUTE_VALUE_WEIGHTS, ATTRIBUTES, ITEM_ATTRIBUTES, SECONDARY_ATTRIBUTE_CHANCE,
+    SECONDARY_ATTRIBUTE_IDS, SECONDARY_ATTRIBUTES, type ItemAttribute, type ItemRolls, type SecondaryAttribute,
+} from '../data/attributes';
+import {
+    catalog, canChangeSlot, canEquip, canHaveAttribute, canHaveSecondary, EQUIP_SLOT_IDS, isLootDrop, rollsOf, type EquipSlotId, type ItemId,
+} from '../data/items';
 import type { CharacterId } from '../data/characters';
 import {
     LOOT_JUMP_STEPS, LOOT_RARE_KEEP_CHANCE, LOOT_SLOT_WEIGHTS, LOOT_SLOT_WEIGHTS_BY_CLASS, LOOT_TIER_WEIGHTS, type LootTier, type OwnedItem,
@@ -71,6 +78,54 @@ export function rollAttribute(id: ItemId): ItemAttribute | undefined {
 }
 
 /**
+ * A value 1..13 with the original's table (Revisión del original C), at most `cap` (a higher roll becomes the cap, as in
+ * the original) and at least `min`.
+ */
+export function rollAttributeValue(cap: number, min = 1): number {
+    let roll = Math.random() * ATTRIBUTE_VALUE_WEIGHTS.reduce((sum, weight) => sum + weight, 0);
+    let value = ATTRIBUTE_VALUE_WEIGHTS.length;
+    for (let i = 0; i < ATTRIBUTE_VALUE_WEIGHTS.length; i++) {
+        roll -= ATTRIBUTE_VALUE_WEIGHTS[i] ?? 0;
+        if (roll < 0) {
+            value = i + 1;
+            break;
+        }
+    }
+    return Math.max(min, Math.min(cap, value));
+}
+
+/** All the attributes of a dropped item: the first with its value (1–7), and a second one 40% of the time. */
+export function rollItemRolls(id: ItemId): ItemRolls {
+    const cap = ATTRIBUTE_VALUE_MAX;
+    const attribute = rollAttribute(id);
+    const def = attribute ? ATTRIBUTES[attribute] : undefined;
+    const attributeValue = def?.perValue === undefined ? undefined : DEBUG_START.attributeValue ?? rollAttributeValue(cap, def.minValue);
+    let secondary: SecondaryAttribute | undefined;
+    if (DEBUG_START.secondary) secondary = canHaveSecondary(id, DEBUG_START.secondary, attribute) ? DEBUG_START.secondary : undefined;
+    else if (Math.random() < SECONDARY_ATTRIBUTE_CHANCE) {
+        secondary = pickWeighted(SECONDARY_ATTRIBUTE_IDS.filter((s) => canHaveSecondary(id, s, attribute))
+            .map((s): [SecondaryAttribute, number] => [s, SECONDARY_ATTRIBUTES[s].weight]));
+    }
+    const secondaryValue = secondary
+        ? (DEBUG_START.secondary ? DEBUG_START.secondaryValue : undefined) ?? rollAttributeValue(cap, SECONDARY_ATTRIBUTES[secondary].minValue)
+        : undefined;
+    return rollsOf({ attribute, attributeValue, secondary, secondaryValue });
+}
+
+/** ?attr= / ?attr2= (debug): those attributes on a starting weapon or wand, if it can have them; none without them. */
+export function debugRolls(id: ItemId): ItemRolls {
+    const { attribute, attributeValue, secondary, secondaryValue } = DEBUG_START;
+    const first = attribute && canHaveAttribute(id, attribute) ? attribute : undefined;
+    const second = secondary && canHaveSecondary(id, secondary, first) ? secondary : undefined;
+    return rollsOf({
+        attribute: first,
+        attributeValue: first && ATTRIBUTES[first].perValue !== undefined ? Math.max(attributeValue ?? 1, ATTRIBUTES[first].minValue ?? 1) : undefined,
+        secondary: second,
+        secondaryValue: second ? Math.max(secondaryValue ?? 1, SECONDARY_ATTRIBUTES[second].minValue ?? 1) : undefined,
+    });
+}
+
+/**
  * An item for that character, or undefined if its class has nothing to drop. `tierWeights` changes the kinds of roll
  * (the Champion's guaranteed item, Fase 21½C: only its next step or a big jump).
  */
@@ -96,6 +151,5 @@ export function rollLoot(
     const tier = pickWeighted(Object.entries(tierWeights) as Array<[LootTier, number]>) ?? 'same';
     const id = ladder[rareCheck(ladder, tierIndex(tier, own, ladder.length))];
     if (!id) return undefined;
-    const attribute = rollAttribute(id);
-    return attribute ? { id, attribute } : { id };
+    return { id, ...rollItemRolls(id) };
 }

@@ -15,8 +15,10 @@ import {
 import { onTouchFullscreenButton, TOUCH_AIM_STICK, TOUCH_AIM_ZONE_START, TOUCH_JOYSTICK, TOUCH_RESERVED_CORNER } from '../config/touch';
 import { ANNOUNCE_EVENT, EVENT_LIST_EVENT, HUD_EVENT_LIST, QUIT_RUN_EVENT } from '../config/hud';
 import { getArmorPiece } from '../data/armor';
-import { canHaveAttribute, classCanWear, isArmorPieceId, isMeleeWeaponId, isSpellItemId, itemInfo, MANUAL_SPELL_IDS, START_EQUIPMENT, type EquipSlotId, type SavedEquipment } from '../data/items';
-import type { ItemAttribute } from '../data/attributes';
+import {
+    classCanWear, isArmorPieceId, isMeleeWeaponId, isSpellItemId, itemInfo, MANUAL_SPELL_IDS, rollsOf, START_EQUIPMENT, type EquipSlotId, type ItemId, type SavedEquipment,
+} from '../data/items';
+import type { ItemRolls } from '../data/attributes';
 import { isWandId, type WandId } from '../data/wands';
 import { upgradeOf } from '../data/upgrades';
 import { LOOT_BOSS_SPREAD, LOOT_DEBUG, LOOT_SOUNDS, MANUAL_LEARNED, type OwnedItem } from '../data/loot';
@@ -44,10 +46,11 @@ import { STAT_IDS, type Stats } from '../data/stats';
 import type { MeleeWeaponId } from '../data/weapons';
 import { isAutoSpellId, type AutoSpellId } from '../data/spells';
 import { RESUME_SLOT_KEY, saveStore, type RunSnapshot } from '../systems/SaveStore';
-import { ACTIVE_CHARACTER_KEY, characterStore, permanentStats } from '../systems/CharacterStore';
+import { ACTIVE_CHARACTER_KEY, characterStore, permanentStats, wornItem } from '../systems/CharacterStore';
+import { debugRolls } from '../systems/LootRoller';
 import { lookLoader, runSprites } from '../systems/LookLoader';
 import { MIN_DAMAGE_TAKEN } from '../data/armor';
-import { AXE_SPIN, HAMMER_SLAM, MELEE_ROOT_MOMENT } from '../data/weapons';
+import { HAMMER_SLAM, MELEE_ROOT_MOMENT } from '../data/weapons';
 import { CAST_RELEASE_MOMENT } from '../data/spells';
 import { FOOTSTEP_DUST_EVERY_PX, FOOTSTEPS_PER_RUN_CYCLE } from '../data/audio';
 import { PLAYER_FRAMES_PER_DIRECTION } from '../hb/playerAppearance';
@@ -55,7 +58,7 @@ import { CharacterStats } from '../entities/CharacterStats';
 import { BuffSystem } from '../systems/BuffSystem';
 import { PassiveMagicSystem } from '../systems/PassiveMagicSystem';
 import { PickupSystem } from '../systems/PickupSystem';
-import { EPIC_CARD_SOUND } from '../data/cardRarity';
+import { CARD_RARITY, EPIC_CARD_SOUND } from '../data/cardRarity';
 import { CARD_ACTION, SKIP_HEAL_SHARE, type CardAction } from '../data/rerollSkip';
 import { unlockStore } from '../systems/UnlockStore';
 import { GOLD, goldValue } from '../data/gold';
@@ -122,8 +125,8 @@ import { ACHIEVEMENT_EVENT, ACHIEVEMENT_SOUND } from '../data/achievements';
 import { AchievementTracker } from '../systems/AchievementTracker';
 import { GAME_VERSION } from '../config/version';
 import { COMPACT_UI } from '../config/device';
-import { PASSIVE_IDS, getPassive, type PassiveId } from '../data/passives';
-import { ANGEL_DEBUG_RANK, AURA_DEBUG_RANK, DAGGER_DEBUG_RANK, MAGIC_IDS, getMagic, magicDamageType, magicMaxRank, type MagicId } from '../data/passiveMagic';
+import { emptyPassiveRecord, FILLER_CARDS, PASSIVE_IDS, getPassive, type PassiveId } from '../data/passives';
+import { ANGEL_DEBUG_RANK, AURA_DEBUG_RANK, DAGGER_DEBUG_RANK, MAGIC_IDS, MAX_MAGICS_PER_RUN, getMagic, magicDamageType, magicMaxRank, type MagicId } from '../data/passiveMagic';
 import { goldStore } from '../systems/GoldStore';
 import { RunMetrics, metricsAllowed, sendRunReport } from '../systems/RunMetrics';
 import type { RunResult } from '../config/metrics';
@@ -258,7 +261,7 @@ export class GameScene extends Phaser.Scene {
     private levelUpOpen = false;
     /** Simulated run to measure the balance (?debug=sim, development only). */
     private sim: SimRun | undefined;
-    private readonly passiveBonuses: Record<PassiveId, number> = { xelima: 0, merien: 0, magnetAmulet: 0 };
+    private readonly passiveBonuses: Record<PassiveId, number> = emptyPassiveRecord();
     /** The ?level= profile of this debug run, for the simulated run's report ('' without one). */
     private simProfileLabel = '';
     /** Anonymous stats of this run (Fase 14A), sent when it ends. */
@@ -337,12 +340,14 @@ export class GameScene extends Phaser.Scene {
         const wornEquipment = profile?.equipment ?? savedCharacter?.equipment ?? START_EQUIPMENT[this.characterId];
         // ?weapon=lightAxe (bloque B): that weapon in the Warrior's hand for this run, whatever he wears.
         const startEquipment = DEBUG_START.weapon && character.startWeapon.kind === 'melee' ? { ...wornEquipment, weapon: DEBUG_START.weapon } : wornEquipment;
-        // Fase 21B: the attribute of the weapon or wand worn (?attr= gives one to any starting weapon that can have it).
-        const startAttribute = (profile ? undefined : savedCharacter?.attributes.weapon) ?? DEBUG_START.attribute;
+        // Fase 21B: the attributes of the weapon or wand worn (?attr= / ?attr2= give them to a starting weapon without any).
+        const savedWorn = (slot: EquipSlotId): ItemRolls => (profile || !savedCharacter ? {} : wornItem(savedCharacter, slot) ?? {});
+        const startRolls = (id: ItemId): ItemRolls => {
+            const saved = savedWorn('weapon');
+            return saved.attribute || saved.secondary ? rollsOf(saved) : debugRolls(id);
+        };
         // Fase 24D: its "+" from the blacksmith (?upgrade= gives one in runs without a character, or with ?level=).
         const startUpgrade = savedCharacter && !profile ? savedCharacter.upgrades.weapon ?? 0 : DEBUG_START.upgrade ?? 0;
-        // Fase 24A: the attributes of the armor it wears (HP Recovery, Defense Ratio...).
-        const wornAttributes = (profile ? undefined : savedCharacter?.attributes) ?? {};
         void lookLoader.ensure(this, [...runSprites(character, look, startEquipment), 'item.pack']);
         this.player = new Player(this, (spawn.x + 0.5) * TILE_SIZE, (spawn.y + 0.5) * TILE_SIZE, character, look, map, areaPx);
         // Each batch of self-healing (every 15 s) is told at the bottom left, as in the original.
@@ -474,27 +479,27 @@ export class GameScene extends Phaser.Scene {
             const weaponId = startEquipment.weapon !== undefined && isMeleeWeaponId(startEquipment.weapon) ? startEquipment.weapon : character.startWeapon.id;
             this.meleeWeapon = new MeleeWeapon(weaponId);
             this.equipment.weapon = weaponId;
-            this.equipment.weaponAttribute = startAttribute && canHaveAttribute(weaponId, startAttribute) ? startAttribute : undefined;
+            this.equipment.weaponRolls = startRolls(weaponId);
             this.equipment.weaponUpgrade = startUpgrade;
             this.weapons.add(this.meleeWeapon);
             this.player.setGear('weapon', this.equipment.weaponLayer());
         } else {
             // Fase 21B: the Mage's wand (the starting one in debug runs).
             const wand = startEquipment.weapon !== undefined && isWandId(startEquipment.weapon) ? startEquipment.weapon : START_EQUIPMENT.mage.weapon;
-            if (wand !== undefined && isWandId(wand)) this.equipWand(wand, startAttribute && canHaveAttribute(wand, startAttribute) ? startAttribute : undefined, startUpgrade);
+            if (wand !== undefined && isWandId(wand)) this.equipWand(wand, startRolls(wand), startUpgrade);
             // Fase 20D: the spell of the Spell 1 slot (debug ?spells= may change it).
             this.spellWeapon = new SpellWeapon(startSpells(startEquipment).auto ?? character.startWeapon.id);
             this.equipment.spell = this.spellWeapon.id;
             this.weapons.add(this.spellWeapon);
         }
         for (const id of Object.values(startEquipment)) {
-            if (isArmorPieceId(id)) for (const [slot, layer] of this.equipment.wear(id, wornAttributes[getArmorPiece(id).slot])) this.player.setGear(slot, layer);
+            // Fase 24A: the attributes of the armor it wears (HP Recovery, Defense Ratio...).
+            if (isArmorPieceId(id)) for (const [slot, layer] of this.equipment.wear(id, rollsOf(savedWorn(getArmorPiece(id).slot)))) this.player.setGear(slot, layer);
         }
         this.weapons.setOwnerActionHandler((action, angle, durationMs) => {
             // Stands still until the blow lands or the spell leaves (as in the original), then can run again.
             const direction = directionFromVector(Math.cos(angle), Math.sin(angle)) ?? this.player.direction;
             if (action === 'melee') this.player.act(PlayerState.Melee, direction, durationMs, durationMs * MELEE_ROOT_MOMENT);
-            else if (action === 'spin') this.player.spin(angle, durationMs, AXE_SPIN.clockwise, AXE_SPIN.poseFrame);
             else if (action === 'slam') this.player.act(PlayerState.Melee, direction, durationMs, durationMs * HAMMER_SLAM.rootMoment);
             else this.player.act(PlayerState.Cast, direction, durationMs, durationMs * CAST_RELEASE_MOMENT);
         });
@@ -554,6 +559,7 @@ export class GameScene extends Phaser.Scene {
         const ground = this.trainingGround;
         if (!ground) return;
         this.combat.onDamage = (damage, critical) => ground.record(damage, critical);
+        this.combat.onMiss = () => ground.recordMiss();
         this.trainingPanel = new TrainingPanel(this, {
             levelUp: () => this.trainingLevelUp(),
             reset: () => ground.resetMeter(),
@@ -586,15 +592,17 @@ export class GameScene extends Phaser.Scene {
     /** Applies the values that come from the stats to the player and the weapons (after a level up or a card). */
     private applyStats(): void {
         const stats = this.stats;
+        // First the card bonuses (1-nov-2026: they now carry what the stat Blessings gave), then what depends on them.
+        Object.assign(stats.cardBonus, this.passiveBonusesNow());
         this.player.setMaxHp(stats.maxHp);
         this.player.regenPerSecond = stats.hpRegenPerSecond * (1 + this.equipment.hpRecovery);
         this.player.speedMultiplier = stats.moveSpeedMultiplier;
         this.xp.magnetMultiplier = 1 + this.equipment.passiveBonus('magnetAmulet');
-        this.weapons.setCooldownMultiplier(stats.cooldownMultiplier);
+        this.weapons.setCooldownMultiplier(stats.cooldownMultiplier, stats.castMultiplier);
         stats.gearMagicBonus = this.equipment.magicDamageBonus;
-        stats.xelimaBonus = this.equipment.passiveBonus('xelima');
         stats.attributeBonus = this.equipment.weaponDamageBonus;
-        this.combat.poisonOnHit = this.equipment.poisons;
+        this.combat.poisonShare = this.equipment.poisonShare;
+        stats.hitBonus = this.equipment.effect('hitting');
         this.combat.chillOnHit = this.equipment.chills;
     }
 
@@ -623,13 +631,13 @@ export class GameScene extends Phaser.Scene {
                 this.openPortalBeside(this.player.x, this.player.y);
                 break;
             case 'coin':
-                this.runGold += goldValue(GOLD.coinValue, this.mapId);
-                this.sim?.onGold(goldValue(GOLD.coinValue, this.mapId), this.spawner.elapsed);
+            case 'goldPile': {
+                // Revisión del original C: the weapon's Gold attribute (+10% per point).
+                const gold = withBonus(goldValue(id === 'coin' ? GOLD.coinValue : GOLD.pileValue, this.mapId), this.equipment.effect('gold'));
+                this.runGold += gold;
+                this.sim?.onGold(gold, this.spawner.elapsed);
                 break;
-            case 'goldPile':
-                this.runGold += goldValue(GOLD.pileValue, this.mapId);
-                this.sim?.onGold(goldValue(GOLD.pileValue, this.mapId), this.spawner.elapsed);
-                break;
+            }
         }
     }
 
@@ -662,7 +670,7 @@ export class GameScene extends Phaser.Scene {
 
     /** Three cards for a level up or a chest, with their rarity drawn with the run's Chr (Fase 21½A). */
     private levelUpChoices(fromChest: boolean): LevelUpChoice[] {
-        return buildLevelUpChoices(this.equipment, this.stats.stats.chr, {
+        return buildLevelUpChoices(this.equipment, this.stats.stats.chr, this.stats.cardLuckMultiplier, {
             chest: fromChest,
             onlyPassives: DEBUG_START.actions.includes('stones'),
             allEpic: DEBUG_START.actions.includes('epic'),
@@ -734,11 +742,11 @@ export class GameScene extends Phaser.Scene {
         })();
         if (id === undefined) return undefined;
         // Bug 26-oct-2026: armor kept its attribute in the run but the card showed it without one.
-        const attribute = slot === 'weapon'
-            ? this.equipment.weaponAttribute
-            : slot === 'spell1' || slot === 'spell2' || slot === 'zem' ? undefined : this.equipment.armorAttribute(slot);
+        const rolls = slot === 'weapon'
+            ? this.equipment.weaponRolls
+            : slot === 'spell1' || slot === 'spell2' || slot === 'zem' ? {} : this.equipment.armorRolls(slot);
         const upgrade = slot === 'weapon' ? this.equipment.weaponUpgrade : 0;
-        return { id, ...(attribute ? { attribute } : {}), ...(upgrade > 0 ? { upgrade } : {}) };
+        return { id, ...rollsOf(rolls), ...(upgrade > 0 ? { upgrade } : {}) };
     }
 
     /** Pauses the game and shows the card of the next item picked up (Fase 21A): Equip or Keep in bag. */
@@ -788,12 +796,12 @@ export class GameScene extends Phaser.Scene {
         const id = item.id;
         if (isMeleeWeaponId(id)) {
             if (this.meleeWeapon) {
-                this.equipment.weaponAttribute = item.attribute;
+                this.equipment.weaponRolls = rollsOf(item);
                 this.equipment.weaponUpgrade = upgradeOf(item);
                 this.equipMelee(id);
             }
         } else if (isWandId(id)) {
-            if (this.spellWeapon) this.equipWand(id, item.attribute, upgradeOf(item));
+            if (this.spellWeapon) this.equipWand(id, rollsOf(item), upgradeOf(item));
         } else if (isAutoSpellId(id)) {
             if (this.spellWeapon) this.equipSpell(id);
         } else if (isActiveSpellId(id)) {
@@ -804,7 +812,7 @@ export class GameScene extends Phaser.Scene {
             if (spell) spell.infinite = old.infinite;
             this.activeSpell = spell;
         } else if (isArmorPieceId(id)) {
-            for (const [slot, layer] of this.equipment.wear(id, item.attribute)) this.player.setGear(slot, layer);
+            for (const [slot, layer] of this.equipment.wear(id, rollsOf(item))) this.player.setGear(slot, layer);
         }
         this.applyStats();
     }
@@ -813,6 +821,22 @@ export class GameScene extends Phaser.Scene {
     private levelUpWithoutCards(): void {
         this.audio.play(GENDER_SOUNDS[this.player.look.gender].levelUp);
         while (this.stats.pendingLevelUps > 0) this.chooseCard(undefined);
+    }
+
+    /** ?debug=maxcards: every passive at its maximum with Epic cards, and the magics that fit; then only gold and health cards. */
+    private debugMaxCards(): void {
+        const epic = CARD_RARITY.epic.value;
+        for (const id of PASSIVE_IDS) {
+            const max = getPassive(id).maxRank;
+            this.equipment.passives[id] = max;
+            this.equipment.passiveValues[id] = max * epic;
+        }
+        for (const id of MAGIC_IDS) {
+            if (!getMagic(id).ready || this.equipment.magicCount >= MAX_MAGICS_PER_RUN) continue;
+            this.equipment.magics[id] = magicMaxRank(id);
+            this.equipment.magicValues[id] = magicMaxRank(id) * epic;
+        }
+        this.applyStats();
     }
 
     /** A card was picked (by the player, or at random in the simulated run). */
@@ -829,8 +853,15 @@ export class GameScene extends Phaser.Scene {
 
     private applyChoice(choice: LevelUpChoice): void {
         switch (choice.kind) {
-            case 'stat':
-                this.stats.addStat(choice.stat, choice.points);
+            case 'filler':
+                // Nothing left to take (1-nov-2026): gold or health, × the card's rarity value.
+                if (choice.filler === 'gold') {
+                    const gold = Math.round(goldValue(GOLD.pileValue, this.mapId) * FILLER_CARDS.gold.piles * choice.value);
+                    this.runGold += gold;
+                    this.sim?.onGold(gold, this.spawner.elapsed);
+                } else {
+                    this.player.heal(Math.round(this.player.maxHp * FILLER_CARDS.heal.healShare * choice.value));
+                }
                 break;
             case 'passive':
                 this.equipment.passives[choice.passive] = choice.rank;
@@ -854,9 +885,9 @@ export class GameScene extends Phaser.Scene {
     }
 
     /** The Mage's wand (Fase 21B): its look, its extra magic damage (Berserk, Kloness), its attribute and "+" (24D). */
-    private equipWand(id: WandId, attribute: ItemAttribute | undefined, upgrade: number): void {
+    private equipWand(id: WandId, rolls: Readonly<ItemRolls>, upgrade: number): void {
         this.equipment.wand = id;
-        this.equipment.weaponAttribute = attribute;
+        this.equipment.weaponRolls = rolls;
         this.equipment.weaponUpgrade = upgrade;
         this.player.setGear('weapon', this.equipment.weaponLayer());
     }
@@ -891,8 +922,8 @@ export class GameScene extends Phaser.Scene {
         const owner = this.characterUid ? characterStore.byUid(this.characterUid) : undefined;
         for (const piece of Object.values(run.armor)) {
             const slot = getArmorPiece(piece).slot;
-            const attribute = owner?.equipment[slot] === piece ? owner.attributes[slot] : undefined;
-            for (const [gearSlot, layer] of this.equipment.wear(piece, attribute)) this.player.setGear(gearSlot, layer);
+            const rolls = owner?.equipment[slot] === piece ? rollsOf(wornItem(owner, slot) ?? { id: piece }) : {};
+            for (const [gearSlot, layer] of this.equipment.wear(piece, rolls)) this.player.setGear(gearSlot, layer);
         }
         this.equipment.restoreCards(run.passives, run.passiveValues, run.magics, run.magicValues);
         this.player.setMaxHp(stats.maxHp, true);
@@ -1149,7 +1180,8 @@ export class GameScene extends Phaser.Scene {
         this.abaddon.update(delta);
         this.screenShake.update(delta);
         if (!player.isDead) {
-            this.gainXp(this.xp.update(delta, player.x, player.y));
+            // Revisión del original C: the weapon's Experience attribute (+10% per point).
+            this.gainXp(withBonus(this.xp.update(delta, player.x, player.y), this.equipment.effect('experience')));
         }
         this.pickups.update(delta, player.x, player.y, !player.isDead);
         this.loot.update(delta, player.x, player.y, !player.isDead);
@@ -1181,7 +1213,11 @@ export class GameScene extends Phaser.Scene {
         }
         if (!player.isDead) {
             const by = this.enemies.landedDamage >= shotDamage ? this.enemies.landedBy : this.enemyShots.hitBy;
-            this.hurtPlayer(this.enemies.landedDamage + shotDamage, this.enemies.landedFromBoss || this.enemyShots.hitFromBoss, by);
+            // Revisión del original C: the armor's Physical / Magic Absorption take their share off blows and arrows / spells.
+            const magic = this.enemyShots.magicDamage;
+            const physical = this.enemies.landedDamage + shotDamage - magic;
+            const absorbed = physical * (1 - this.equipment.absorption('physical')) + magic * (1 - this.equipment.absorption('magic'));
+            this.hurtPlayer(absorbed, this.enemies.landedFromBoss || this.enemyShots.hitFromBoss, by);
         } else if (this.abaddon.tryRevive(player)) {
             // Abaddon's Blood: lies on the ground for a moment, then gets up (Fase 21E).
             if (!player.isDead) this.achievements.onRevive();
@@ -1413,12 +1449,15 @@ export class GameScene extends Phaser.Scene {
 
     /** Defense against monster blows: Dex plus the armor worn (data/defense.ts). */
     private get defenseRatio(): number {
-        return playerDefenseRatio(this.stats.stats.dex, this.equipment.defenseRatio);
+        // Revisión del original C: the Defense Ratio attributes raise the total (+7% per point).
+        return playerDefenseRatio(this.stats.stats.dex, this.equipment.defenseRatio) * (1 + this.equipment.effect('defenseRatio'))
+            * (1 + this.stats.cardBonus.serpentGrace);
     }
 
     /** Resistance against spells: Magic plus the armor worn (data/defense.ts). */
     private get magicResistance(): number {
-        return playerMagicResistance(this.stats.stats.mag, this.equipment.magicResistance);
+        return playerMagicResistance(this.stats.stats.mag, this.equipment.magicResistance) * (1 + this.equipment.effect('magicResistance'))
+            * (1 + this.stats.cardBonus.unicornWard);
     }
 
     /** The simulated run counts every blow, landed or dodged (it is told only while ?debug=sim runs). */
@@ -1646,6 +1685,9 @@ export class GameScene extends Phaser.Scene {
                 break;
             case 'stones':
                 // Read when the cards are built (openLevelUp).
+                break;
+            case 'maxcards':
+                this.debugMaxCards();
                 break;
             case 'aura':
                 // Fase 28A: the Eye of the Storm at rank AURA_DEBUG_RANK (pressed again: one rank more).
@@ -1926,4 +1968,10 @@ function startSpells(equipment: Readonly<SavedEquipment>): { auto: AutoSpellId |
     const auto = equipment.spell1 !== undefined && isAutoSpellId(equipment.spell1) ? equipment.spell1 : undefined;
     const active = equipment.spell2 !== undefined && isActiveSpellId(equipment.spell2) ? equipment.spell2 : undefined;
     return { auto: DEBUG_START.spells.auto ?? auto, active: DEBUG_START.spells.active ?? active };
+}
+
+/** `amount` raised by `bonus` (0.3 = +30%), rounded up or down at random so small amounts get it on average. */
+function withBonus(amount: number, bonus: number): number {
+    if (bonus <= 0 || amount <= 0) return amount;
+    return Math.floor(amount * (1 + bonus) + Math.random());
 }

@@ -14,8 +14,7 @@ import { GAME_WIDTH, LEVEL_UP_INPUT_DELAY_MS } from '../config/gameConfig';
 import { HUD_TOP } from '../config/hud';
 import { px, UI_TEXT, UI_FONT_SIZE } from '../config/ui';
 import { itemPackTexture } from '../config/equipment';
-import { STAT_INFO, type StatId } from '../data/stats';
-import { getPassive, type PassiveIcon } from '../data/passives';
+import { FILLER_CARDS, getPassive, type PassiveIcon } from '../data/passives';
 import { getMagic, magicDamageType, magicExtraMultiplier, magicMaxRank, magicRank, type MagicRank } from '../data/passiveMagic';
 import { CARD_RARITY, EPIC_CARD_GLOW, type CardRarity } from '../data/cardRarity';
 import { CARD_ACTION, CARD_ACTIONS, DICE_FACE, WINE_ICON, type CardAction } from '../data/rerollSkip';
@@ -78,6 +77,8 @@ const TEXT_COLOR = '#e8d9a8';
 const PASSIVE_BADGE = { text: 'Pas', color: 0x508050 } as const;
 /** The same for a magic card (Fase 28). */
 const MAGIC_BADGE = { text: 'Mag', color: 0x7050b0 } as const;
+/** Gold or health when nothing is left to take. */
+const FILLER_BADGE = { text: 'Item', color: 0xa08030 } as const;
 /** Rare and Epic cards: inner frame (inset from the edge) and the ribbon with the rarity's name on the top edge. */
 const RARITY_FRAME_INSET = 6;
 const RARITY_FRAME_WIDTH = 3;
@@ -394,13 +395,13 @@ export class LevelUpScene extends Phaser.Scene {
 
 function describeCard(stats: CharacterStats, equipment: Equipment, choice: LevelUpChoice): CardText {
     switch (choice.kind) {
-        case 'stat': {
-            const info = STAT_INFO[choice.stat];
-            return {
-                badge: info.short, badgeColor: info.color, // "Blessing of Str": tells them apart from the permanent stat points of the Level (bug list of 19-oct-2026, M16).
-                title: `Blessing of ${info.short}`, effect: info.effect,
-                changes: describeStatChanges(stats, choice.stat, choice.points),
-            };
+        case 'filler': {
+            // Nothing left to take (1-nov-2026): gold piles or health now, × the rarity's value.
+            const filler = FILLER_CARDS[choice.filler];
+            const changes = choice.filler === 'gold'
+                ? [`Gold piles +${FILLER_CARDS.gold.piles * choice.value}`]
+                : [`Health +${Math.round(stats.maxHp * FILLER_CARDS.heal.healShare * choice.value)}`];
+            return { badge: FILLER_BADGE.text, badgeColor: FILLER_BADGE.color, icon: filler.icon, title: filler.name, effect: filler.effect, changes };
         }
         case 'passive': {
             const passive = getPassive(choice.passive);
@@ -441,35 +442,4 @@ function describeCard(stats: CharacterStats, equipment: Equipment, choice: Level
             };
         }
     }
-}
-
-/** "Before → after" lines for the stat and what it changes in play. */
-function describeStatChanges(stats: CharacterStats, s: StatId, points: number): string[] {
-    const after = stats.previewWith(s, points);
-    const lines = [`${STAT_INFO[s].short} ${stats.stats[s]} → ${after.stats[s]} (+${points})`];
-    const pct = (value: number) => `${Math.round(value * 100)}%`;
-    const bonus = (multiplier: number) => `${multiplier >= 1 ? '+' : ''}${Math.round((multiplier - 1) * 100)}%`;
-    switch (s) {
-        case 'str':
-            lines.push(`Physical damage ${bonus(stats.damageMultiplier('physical'))} → ${bonus(after.damageMultiplier('physical'))}`);
-            break;
-        case 'vit':
-            lines.push(`Health ${stats.maxHp} → ${after.maxHp}`);
-            break;
-        case 'dex':
-            lines.push(`Speed ${bonus(stats.moveSpeedMultiplier)} → ${bonus(after.moveSpeedMultiplier)}`);
-            lines.push(`Cooldown ${pct(stats.cooldownMultiplier)} → ${pct(after.cooldownMultiplier)}`);
-            break;
-        case 'int':
-            lines.push(`Mana ${stats.maxMana} → ${after.maxMana}`);
-            break;
-        case 'mag':
-            lines.push(`Magic damage ${bonus(stats.damageMultiplier('magic'))} → ${bonus(after.damageMultiplier('magic'))}`);
-            lines.push(`Mana ${stats.maxMana} → ${after.maxMana}`);
-            break;
-        case 'chr':
-            lines.push(`Critical ${pct(stats.critChance)} → ${pct(after.critChance)}`);
-            break;
-    }
-    return lines;
 }

@@ -14,7 +14,7 @@ import {
     WAREHOUSE_FULL_COLOR, WAREHOUSE_HEADING_STYLE, WAREHOUSE_HELP_STYLE, WAREHOUSE_HELP_Y, WAREHOUSE_LIST, WAREHOUSE_OK_Y, WAREHOUSE_OTHER_CLASS_COLOR,
     WAREHOUSE_PANELS, WAREHOUSE_SHADE_ALPHA, WAREHOUSE_TITLE_Y,
 } from '../config/warehouse';
-import { ATTRIBUTES } from '../data/attributes';
+import { attributesSentence } from '../data/attributes';
 import { CHARACTERS, type CharacterId } from '../data/characters';
 import { classCanWear, describeItem, EQUIP_SLOT_IDS, EQUIP_SLOT_NAMES, itemInfo, itemPicture, ownedItemColor, ownedItemName, ownedItemNameColor } from '../data/items';
 import { sameOwnedItem, type OwnedItem } from '../data/loot';
@@ -290,7 +290,7 @@ export class WarehouseScene extends Phaser.Scene {
         if (focus.kind === 'ok') return 'Everything is saved as you move it. The warehouse is shared by all your characters.';
         const kind = this.columns[focus.side].kinds[focus.index];
         if (!kind) return focus.side === 'inventory' ? 'Your inventory is empty.' : 'The warehouse is empty.';
-        const attribute = kind.item.attribute ? ` ${ATTRIBUTES[kind.item.attribute].description}.` : '';
+        const attribute = attributesSentence(kind.item);
         const upgrade = kind.item.upgrade ? ` ${upgradeDescription(kind.item.upgrade)}.` : '';
         const where = focus.side === 'inventory' ? 'to the warehouse' : 'to your inventory';
         return `${ownedItemName(kind.item)}: ${describeItem(kind.item.id)}.${attribute}${upgrade} Click or press Enter to move one ${where}.`;

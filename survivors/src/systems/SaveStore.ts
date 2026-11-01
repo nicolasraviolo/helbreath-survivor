@@ -19,8 +19,10 @@ import { isAutoSpellId, type AutoSpellId } from '../data/spells';
 import { isActiveSpellId, type ActiveSpellId } from '../data/activeSpells';
 import { STAT_IDS, type Stats } from '../data/stats';
 import { MELEE_WEAPONS, type MeleeWeaponId } from '../data/weapons';
-import { isItemAttribute, type ItemAttribute } from '../data/attributes';
-import { canHaveAttribute, EQUIP_SLOT_IDS, isItemId, itemInfo, type EquipSlotId, type ItemId } from '../data/items';
+import { ATTRIBUTES, isItemAttribute, isSecondaryAttribute, SECONDARY_ATTRIBUTES, type ItemAttribute, type ItemRolls } from '../data/attributes';
+import {
+    canHaveAttribute, canHaveSecondary, EQUIP_SLOT_IDS, isItemId, itemInfo, readAttributeValue, rollsOf, type EquipSlotId, type ItemId,
+} from '../data/items';
 import type { OwnedItem } from '../data/loot';
 import { readUpgrade } from '../data/upgrades';
 import type { RunLootState } from './RunLoot';
@@ -281,9 +283,21 @@ function readSnapshot(entry: unknown): RunSnapshot | undefined {
 /** One saved item; an attribute that item can't have (Poison on a wand, any on armor) is dropped (Fase 21B). */
 export function readOwnedItem(value: unknown): OwnedItem | undefined {
     if (!isRecord(value) || typeof value.id !== 'string' || !isItemId(value.id)) return undefined;
-    const attribute = readAttribute(value.id, value.attribute);
     const upgrade = readUpgrade(value.id, value.upgrade);
-    return { id: value.id, ...(attribute ? { attribute } : {}), ...(upgrade ? { upgrade } : {}) };
+    return { id: value.id, ...readRolls(value.id, value), ...(upgrade ? { upgrade } : {}) };
+}
+
+/**
+ * The attributes of a saved item (Revisión del original C): the first with its value and the second with its value,
+ * each only if that item can have it. Items saved before values existed keep no value (they count as legacyValue).
+ */
+export function readRolls(id: ItemId, value: Record<string, unknown>): ItemRolls {
+    const attribute = readAttribute(id, value.attribute);
+    const attributeValue = attribute && ATTRIBUTES[attribute].perValue !== undefined
+        ? readAttributeValue(value.attributeValue, ATTRIBUTES[attribute].minValue) : undefined;
+    const secondary = isSecondaryAttribute(value.secondary) && canHaveSecondary(id, value.secondary, attribute) ? value.secondary : undefined;
+    const secondaryValue = secondary ? readAttributeValue(value.secondaryValue, SECONDARY_ATTRIBUTES[secondary].minValue) : undefined;
+    return rollsOf({ attribute, attributeValue, secondary, secondaryValue });
 }
 
 /** An attribute read back, if that item can have it. */

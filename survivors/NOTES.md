@@ -114,6 +114,9 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Arreglos del 27-oct-2026 (sonidos, "!" y Select Map)
 - Objetos únicos (Fase 30B)
 - Barracks: entrenamiento con muñecos (31-oct-2026)
+- Golpe normal igual para todas las armas; el crit las distingue (31-oct-2026)
+- Fallar golpes y vida que crece con los minutos (revisión del original B, 31-oct-2026)
+- Botín con valores y segundo atributo (revisión del original C, 1-nov-2026)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -1312,3 +1315,33 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - **Arsenal = Equipment del personaje (propietario: solo lo suyo):** I (o el botón) abre `EquipmentScene` desde el HUD (`HudScene.openEquipment`, con `gameSceneKey` para reanudar la partida al cerrar). Al reanudarse, si cambió el equipo o los stats permanentes (`wornGearKey`), `GameScene` se reinicia con `scene.restart({ trainingResume })`: el `snapshot()` de la partida con `armor: {}`, que `restore()` aplica como un Continue (nivel, puntos y cartas vuelven; arma, hechizos y armadura salen del personaje guardado). El medidor y los muñecos empiezan de cero.
 - **Entrada por la puerta real (bloque B1):** el edificio de los Barracks está en el mismo `elvfarm.amd` (x 75–101, y 132–151), encima de la ciudad. `TOWN.playArea` ampliada de (62,161) 62×52 a (62,144) 62×69. Carga de la ciudad medida: **15,0 → 18,6 MB** (2,9 → 3,5 s en PC); lo nuevo es `maptiles2` (los campos de arriba a la derecha) y `tile403-405`. La puerta es el arco del edificio: `TOWN.barracksDoor` (96,148; la fila 147 es muro), pisarla (`TRAINING.doorRadiusPx`) arranca `MapLoad` con `barracks` (también `CHOSEN_MAP_KEY`). Pausa → Back to Town pone `BARRACKS_EXIT_KEY` y la ciudad aparece en `TOWN.barracksExit` (96,151). Barracks ya no sale en Select Map (`HUNT_MAP_IDS`).
 - `check barracks` / `barracksmage` / `townbarracks` (delante de la puerta; `?town=barracks`). Ojo con `--eval` en estas pruebas: `import()` del módulo desde la página crea otra instancia del `characterStore` (no es el del juego).
+
+## Golpe normal igual para todas las armas; el crit las distingue (31-oct-2026)
+- Decisión del propietario (DECISIONES.md, 31-oct-2026; investigación en `docs/REVISION-ORIGINAL.md`). **Golpe normal:** espadas, hachas y martillos dan el mismo tajo en abanico (`MeleeWeapon.fire` → `swingMelee`). Ya no hay giro ni golpe al suelo en el golpe normal; el martillo suena con el golpe sordo (`MeleeFamilyDef.hitSound`).
+- **Critical Strike:** `MeleeFamilyDef.critStyle` (antes `attack`) decide la forma: `swing` (espadas, `CRIT_SHAPES.longSword` +4 casillas, 120°, con la onda de chispas `CRIT_SWORD_WAVE`, look `sparks` de LineSpell, solo dibujo), `spin` (hachas, +3 casillas, dos tajos con estela redonda (el personaje ya no gira: al propietario le parecía raro; `Player.spin` borrado), polvo y chispas en círculo `CRIT_AXE_WHIRL`; el remolino de effect3.spr se descartó: +0,8 MB para el Guerrero), `slam` (martillos, como antes: onda y grieta). Todo en `data/critStrike.ts` y `WeaponSystem.startStrikeAnimation` / `strikeArc`.
+- `LineSpell` ya no golpea si `pathDamage` / `targetDamage` es 0: así sirve de dibujo (la onda de la espada usa la instancia `hammerCracks`).
+- **Números:** hachas con un poco más de daño por segundo que la espada larga de Str parecida (Light Axe 20/1000 ms … Battle Axe 57/1100); martillos 75 y 95 por golpe, la grieta del crit 36 y 42 (se escala con el daño del crit). Medido con `pnpm balance ... --out=balance-weapons-arc`.
+- Stone of Xelima: `LOOT_XELIMA_CHANCE` 1/5.000 por monstruo (~0,2–0,6 por partida).
+
+## Fallar golpes y vida que crece con los minutos (revisión del original B, 31-oct-2026)
+- **Fallar:** todo daño del jugador pasa por `CombatSystem` (`hitEnemy`, `hitArc`, `hitArea`); `lands()` tira `playerHitChance` (`data/accuracy.ts`) antes de nada. Al fallar no hay número, sonido, empujón ni `onHit` (ni frío ni veneno), y `hitArc` no lo cuenta (si ninguno acierta, no suena el golpe). El veneno que ya corre no tira. `bigNumbers` (Critical Strike, hechizo activo de la Maga) = acierto seguro.
+- **Fórmula:** golpe = 0,5 · (120 + Dex) / (21 · DR^0,295); hechizo = 0,5 · (120 + Mag) / (10,2 · MR^0,5); entre 50 % y 95 %. DR/MR del original en cada `EnemyDef` (`defenseRatio`, `magicResist`, de `docs/hb-wiki/monstruos.md`). Demonios, dragones, Unicorn, Tigerworm y Wyvern tienen MR 1 → los hechizos casi siempre entran (como el original). Guard (120/60) y muñecos de los Barracks (Dummy 100/60, Attack-Dummy 40/25) son números nuestros; el Dummy jefe de Traveler Zone, 1/1.
+- **Panel:** fila **Accuracy** (Guerrero = golpes contra DR 150; Maga = hechizos contra MR 84). Barracks: línea "Missed: N (x%)" (`CombatSystem.onMiss` → `TrainingGround.recordMiss`).
+- **Vida:** `MONSTER_HP.exponent` 0,85 y `MONSTER_HP_PER_MINUTE` 0,05 (`data/enemies.ts`). `SpawnSystem.update` → `EnemySystem.setRunMinute` → `MapDifficulty.hpGrowth` (solo vida; `Enemy.xp` no lo usa). El Champion se crea con `hpGrowth: 1`; jefes con `NO_DIFFICULTY`; Guards y muñecos con `spawnGuard`, sin crecimiento.
+- **Probar:** `check barracks --eval=...` con 1.000 `g.combat.hitEnemy` sobre un Dummy → ~18 % de fallos con Dex 14 (sale 16–17 %).
+- **Esquiva retocada (mismo día, propietario):** `DODGE.maxHitChance` 0,95 → 0,8, `hitScale` 8,3 → 7,1, `minHitChance` 0,25 → 0,2. Medidas (`pnpm balance`, 6 partidas por caso; antes / con B / con B + esquiva, primera muerte del bot): Guerrero Bleeding Isle 8:19 / 5:16 / 6:15, Elvine 8:05 / 5:58 / 6:15, Middleland 9:10 / 8:10 / 7:58; Maga 3:26–3:58 / 2:44–3:45 / 3:38–4:01. Informes `.check/balance-b-before.json`, `-after.json`, `-dodge.json`.
+
+## Botín con valores y segundo atributo (revisión del original C, 1-nov-2026)
+- **Datos:** todo en `data/attributes.ts`. Cada atributo (primero o segundo) suma a un `AttributeEffect` (`damage`, `poison`, `hpRecovery`, `defenseRatio`, `hitting`, `gold`, `physicalAbsorption`…) con `perValue` × valor (o `fixed` en Sharp/Ancient, que no tienen valor). `Equipment.recomputeEffects` suma arma + armaduras; se lee con `equipment.effect(...)`.
+- **Dónde actúa:** Defense Ratio y Magic Resistance multiplican el total del jugador (`GameScene.defenseRatio` / `magicResistance`); Hitting Probability multiplica la puntería (`CharacterStats.hitBonus` → `playerHitChance`, golpes y hechizos); Gold/Experience en `collectPickup` y las gemas con `withBonus` (redondeo al azar para cantidades pequeñas); absorciones en `GameScene` antes de `hurtPlayer` (mágico = `EnemyProjectileSystem.magicDamage`, hechizos y rayos; el resto, físico), tope `MAX_ABSORPTION` 60 %; Poison = parte del golpe 0,2 + 0,05·valor (`CombatSystem.poisonShare`).
+- **Guardado:** `OwnedItem` extiende `ItemRolls` (`attribute`, `attributeValue`, `secondary`, `secondaryValue`, campos planos, sin subir versión). Lo puesto: `SavedCharacter.rolls[slot]` (valor y segundo; el primero sigue en `attributes`); `wornItem()` lo junta. Objetos viejos sin valor = `legacyValue` (`attributeValueOf`). Siempre leer con `readRolls` y copiar con `rollsOf`.
+- **Tirada:** `rollItemRolls(id)` en `LootRoller`, tabla del original (1–13) con **tope 7 para todo** (`ATTRIBUTE_VALUE_MAX`; el propietario: el +91 % del original era un milagro que nunca vio; aquí caen 3–4 objetos por partida). Los mínimos del original (Defense Ratio ≥3…) acumulan valores en el 3. El secundario nunca repite el efecto del primero (`canHaveSecondary`).
+- **Pruebas:** `?attr=hpRecovery:7&attr2=physicalAbsorption:5`, `?gear=hpRecovery.7.gold.5:robe`; `check lootvalues` / `lootweapon` / `valuesinv` (la carta sale con `--eval="(g.debugPickUpLoot(), new Promise(r=>setTimeout(r,800)))"`). El herrero usa nombres cortos (`short`) y encoge el texto si no cabe.
+
+
+## Cartas de poder en vez de Blessings (1-nov-2026)
+- Las cartas de stat ya no existen: `LevelUpChoice` es `passive | magic | filler`. Las stats de la partida solo vienen del personaje (clase + puntos de Level).
+- Cada carta "blessing" es una pasiva más (`PASSIVES`, `group: 'blessing'`); su bonus llega a `CharacterStats.cardBonus` en `GameScene.applyStats()` (lo primero, antes de vida y velocidad). Esquiva y resistencia mágica se aplican en `GameScene.defenseRatio` / `magicResistance`.
+- Velocidad de golpes y de hechizos van separadas: `WeaponContext.cooldownMultiplier` (golpes) y `castMultiplier` (hechizos; `SpellWeapon.speedMultiplier`).
+- Iconos de item-pack.spr que no son anillos ni collares (quedan para equipo futuro). Los corazones de monstruo se ven todos iguales: solo se usa el del Ogre. Visor: http://localhost:8090/sprites.html#items.
+- Rareza: Chr y Golden Carp se multiplican y juntos no pasan de ×3 (`rarityWeights`).

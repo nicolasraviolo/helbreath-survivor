@@ -33,6 +33,8 @@ export interface TrainingMeter {
     biggest: number;
     hits: number;
     crits: number;
+    /** Blows and spells that missed (revisión del original B). */
+    misses: number;
     /** Seconds since the first blow (0 before it). */
     seconds: number;
 }
@@ -45,6 +47,7 @@ export class TrainingGround {
     private biggest = 0;
     private hits = 0;
     private crits = 0;
+    private misses = 0;
     private firstAt = -1;
     private nowMs = 0;
 
@@ -86,6 +89,11 @@ export class TrainingGround {
         this.biggest = Math.max(this.biggest, damage);
     }
 
+    /** One blow or spell of the player missed. */
+    public recordMiss(): void {
+        this.misses++;
+    }
+
     /** R: the panel back to zero. */
     public resetMeter(): void {
         this.recent.length = 0;
@@ -93,6 +101,7 @@ export class TrainingGround {
         this.biggest = 0;
         this.hits = 0;
         this.crits = 0;
+        this.misses = 0;
         this.firstAt = -1;
     }
 
@@ -107,6 +116,7 @@ export class TrainingGround {
             biggest: this.biggest,
             hits: this.hits,
             crits: this.crits,
+            misses: this.misses,
             seconds,
         };
     }
