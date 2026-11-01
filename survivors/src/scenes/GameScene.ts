@@ -342,7 +342,7 @@ export class GameScene extends Phaser.Scene {
         // ?weapon=lightAxe (bloque B): that weapon in the Warrior's hand for this run, whatever he wears.
         const startEquipment = DEBUG_START.weapon && character.startWeapon.kind === 'melee' ? { ...wornEquipment, weapon: DEBUG_START.weapon } : wornEquipment;
         // Fase 21B: the attributes of the weapon or wand worn (?attr= / ?attr2= give them to a starting weapon without any).
-        const savedWorn = (slot: EquipSlotId): ItemRolls => (profile || !savedCharacter ? {} : wornItem(savedCharacter, slot) ?? {});
+        const savedWorn = (slot: EquipSlotId): ItemRolls & { color?: number } => (profile || !savedCharacter ? {} : wornItem(savedCharacter, slot) ?? {});
         const startRolls = (id: ItemId): ItemRolls => {
             const saved = savedWorn('weapon');
             return saved.attribute || saved.secondary ? rollsOf(saved) : debugRolls(id);
@@ -495,7 +495,10 @@ export class GameScene extends Phaser.Scene {
         }
         for (const id of Object.values(startEquipment)) {
             // Fase 24A: the attributes of the armor it wears (HP Recovery, Defense Ratio...).
-            if (isArmorPieceId(id)) for (const [slot, layer] of this.equipment.wear(id, rollsOf(savedWorn(getArmorPiece(id).slot)))) this.player.setGear(slot, layer);
+            if (isArmorPieceId(id)) {
+                const worn = savedWorn(getArmorPiece(id).slot);
+                for (const [slot, layer] of this.equipment.wear(id, rollsOf(worn), worn.color)) this.player.setGear(slot, layer);
+            }
         }
         this.weapons.setOwnerActionHandler((action, angle, durationMs) => {
             // Stands still until the blow lands or the spell leaves (as in the original), then can run again.
@@ -581,7 +584,7 @@ export class GameScene extends Phaser.Scene {
     private wornGearKey(): string {
         const saved = characterStore.byUid(this.characterUid);
         if (!saved) return '';
-        return JSON.stringify([saved.equipment, saved.attributes, saved.upgrades, permanentStats(saved)]);
+        return JSON.stringify([saved.equipment, saved.attributes, saved.upgrades, saved.colors, permanentStats(saved)]);
     }
 
     /** L or the panel's button: one level more, with its cards (Barracks). */
@@ -840,7 +843,7 @@ export class GameScene extends Phaser.Scene {
             if (spell) spell.infinite = old.infinite;
             this.activeSpell = spell;
         } else if (isArmorPieceId(id)) {
-            for (const [slot, layer] of this.equipment.wear(id, rollsOf(item))) this.player.setGear(slot, layer);
+            for (const [slot, layer] of this.equipment.wear(id, rollsOf(item), item.color)) this.player.setGear(slot, layer);
         }
         this.applyStats();
     }
@@ -950,8 +953,8 @@ export class GameScene extends Phaser.Scene {
         const owner = this.characterUid ? characterStore.byUid(this.characterUid) : undefined;
         for (const piece of Object.values(run.armor)) {
             const slot = getArmorPiece(piece).slot;
-            const rolls = owner?.equipment[slot] === piece ? rollsOf(wornItem(owner, slot) ?? { id: piece }) : {};
-            for (const [gearSlot, layer] of this.equipment.wear(piece, rolls)) this.player.setGear(gearSlot, layer);
+            const worn = owner?.equipment[slot] === piece ? wornItem(owner, slot) : undefined;
+            for (const [gearSlot, layer] of this.equipment.wear(piece, worn ? rollsOf(worn) : {}, worn?.color)) this.player.setGear(gearSlot, layer);
         }
         this.equipment.restoreCards(run.passives, run.passiveValues, run.magics, run.magicValues);
         this.player.setMaxHp(stats.maxHp, true);

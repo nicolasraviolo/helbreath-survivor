@@ -195,6 +195,13 @@ const PRESETS = {
     // comprados ("Sold out", más claros) y poco oro (precios en rojo).
     shop: 'characters=demo&open=town&town=shopKeeper&shop&gold=50000&unlocks=reset',
     shopsold: 'characters=demo&open=town&town=shopKeeper&shop&gold=3000&unlocks=abaddon,dice3,wine1',
+    // Revisión del original D: los tintes. dye = Gorn con capa teñida (Indigo) y botas, oro de sobra; dyemage = Kaila con
+    // túnica roja; dyenone = sin ropa que teñir; dyetown = la ciudad con Gorn teñido; dyecharinfo = su ventana Character.
+    dye: 'characters=demo&gear=dye1:cape,longBoots&open=town&town=shopKeeper&dye&gold=50000',
+    dyemage: 'characters=demo&gear=dye14:robe&open=town&class=mage&town=shopKeeper&dye&gold=50000',
+    dyenone: 'characters=demo&open=town&town=shopKeeper&dye&gold=50000',
+    dyetown: 'characters=demo&gear=dye14:cape,dye10:longBoots&open=town&town=shopKeeper',
+    dyecharinfo: 'characters=demo&gear=dye14:cape,dye10:longBoots&open=charinfo',
     // Fase 24C: el herrero Tom. smith = Buy con 5.000 de oro (Gorn: lo que no puede llevar, en rojo); smithsell = Sell
     // con objetos en el inventario (con atributo, sin él y dos Stone of Xelima).
     smith: 'characters=demo&open=town&town=tom&smith=buy&gold=5000',

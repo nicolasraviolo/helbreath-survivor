@@ -5,6 +5,7 @@ import Phaser from 'phaser';
 import { HAIR_COLOR_SCALE, HAIR_COLORS, type CharacterLook } from '../data/appearance';
 import type { CharacterDef } from '../data/characters';
 import type { ItemAttribute } from '../data/attributes';
+import type { WornColors } from '../data/dyes';
 import type { EquipSlotId, SavedEquipment } from '../data/items';
 import { PAPER_DOLL_SPRITES, paperDollPieces, type PaperDollPiece } from '../data/paperDoll';
 import { colouredTexture, ensureAdditiveTexture, tintedKey } from '../hb/additiveTint';
@@ -37,17 +38,19 @@ export class PaperDoll {
         place: PaperDollPlacement,
         /** Attributes of the gear worn (Fase 21B): the weapon in its colour. */
         attributes: Readonly<Partial<Record<EquipSlotId, ItemAttribute>>> = {},
+        /** Dye colours of the clothes worn (Revisión del original D). */
+        colors: Readonly<WornColors> = {},
     ) {
         this.container = scene.add.container(place.x, place.y).setScale(place.scale);
         const key = PAPER_DOLL_SPRITES[look.gender];
-        const pieces = paperDollPieces(def, look, equipment, attributes);
+        const pieces = paperDollPieces(def, look, equipment, attributes, colors);
         if (lookLoader.isReady(scene, key)) {
             this.draw(key, pieces);
             return;
         }
         this.standIn = new CharacterSprite(scene, def, look, place.standInX, place.standInY);
         this.standIn.container.setScale(place.scale);
-        this.standIn.wearEquipment(equipment, attributes);
+        this.standIn.wearEquipment(equipment, attributes, colors);
         this.standIn.setPose(PlayerState.IdleCombat, Direction.South);
         void lookLoader.ensure(scene, [key]).then(() => {
             if (!this.container.active || !lookLoader.isReady(scene, key)) return;

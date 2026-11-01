@@ -26,12 +26,15 @@ export interface OwnedItem extends ItemRolls {
     id: ItemId;
     /** +1, +2 or +3 from the blacksmith (Fase 24D, data/upgrades.ts); missing = +0. */
     upgrade?: number;
+    /** Dye colour, 1..15 (Revisión del original D, data/dyes.ts); missing = the item's own colour. */
+    color?: number;
 }
 
 /** The same kind of item: same id, attributes with their values, and "+" (two identical Long Swords are the same kind). */
 export function sameOwnedItem(a: Readonly<OwnedItem>, b: Readonly<OwnedItem>): boolean {
     return a.id === b.id && a.attribute === b.attribute && attributeValueOf(a) === attributeValueOf(b)
-        && a.secondary === b.secondary && (a.secondaryValue ?? 0) === (b.secondaryValue ?? 0) && (a.upgrade ?? 0) === (b.upgrade ?? 0);
+        && a.secondary === b.secondary && (a.secondaryValue ?? 0) === (b.secondaryValue ?? 0) && (a.upgrade ?? 0) === (b.upgrade ?? 0)
+        && a.color === b.color;
 }
 
 /**

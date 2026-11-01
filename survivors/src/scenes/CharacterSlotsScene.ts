@@ -191,7 +191,7 @@ export class CharacterSlotsScene extends Phaser.Scene {
         const def = CHARACTERS[saved.classId];
         const sprite = new CharacterSprite(this, def, saved.look, s(c.x + dx), s(c.y));
         sprite.container.setScale(SLOTS_CHARACTER_SCALE * SLOTS_SCALE);
-        sprite.wearEquipment(saved.equipment, saved.attributes);
+        sprite.wearEquipment(saved.equipment, saved.attributes, saved.colors);
         sprite.setPose(PlayerState.Walk, Direction.South);
         const lines: Array<[string, Phaser.Types.GameObjects.Text.TextStyle]> = [
             [saved.name, SLOTS_NAME_STYLE],

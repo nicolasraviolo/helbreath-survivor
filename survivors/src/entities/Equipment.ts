@@ -13,6 +13,7 @@ import { MAGIC_IDS, magicExtraMultiplier, type MagicId } from '../data/passiveMa
 import { emptyPassiveRecord, PASSIVE_IDS, passiveBonus, type PassiveId } from '../data/passives';
 import type { AutoSpellId } from '../data/spells';
 import { upgradeDamageBonus } from '../data/upgrades';
+import { dyedLayer, type DyeColorId } from '../data/dyes';
 import { getWand, type WandId } from '../data/wands';
 import { getMeleeWeapon, type MeleeWeaponId } from '../data/weapons';
 import type { GearLayer, GearSlot } from '../hb/playerAppearance';
@@ -213,7 +214,7 @@ export class Equipment {
      * Wears a piece and returns the layers to redraw: the new piece's layers, plus the slots the old piece
      * covered going back to the starting look (e.g. Plate Mail sleeves → shirt again).
      */
-    public wear(piece: ArmorPieceId, rolls: Readonly<ItemRolls> = {}): Array<[GearSlot, GearLayer | undefined]> {
+    public wear(piece: ArmorPieceId, rolls: Readonly<ItemRolls> = {}, color?: DyeColorId): Array<[GearSlot, GearLayer | undefined]> {
         const slot = ARMOR_PIECES[piece].slot;
         const changes = this.uncover(slot);
         this.worn[slot] = piece;
@@ -221,7 +222,7 @@ export class Equipment {
         this.wornRolls[slot] = { ...armorRolls };
         this.recompute();
         for (const [gearSlot, layer] of Object.entries(ARMOR_PIECES[piece].look) as [GearSlot, GearLayer][]) {
-            changes.set(gearSlot, layer);
+            changes.set(gearSlot, dyedLayer(layer, color));
         }
         return [...changes];
     }

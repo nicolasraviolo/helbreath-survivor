@@ -19,6 +19,8 @@ import { FOOTSTEP_DUST_EVERY_PX, FOOTSTEPS_PER_RUN_CYCLE } from '../data/audio';
 import type { Appearance } from '../hb/playerAppearance';
 import { CHARACTERS, CHOSEN_CHARACTER_KEY, DEFAULT_CHARACTER, isCharacterId, type CharacterId } from '../data/characters';
 import type { ItemAttribute } from '../data/attributes';
+import { ARMOR_PIECES } from '../data/armor';
+import type { WornColors } from '../data/dyes';
 import { isArmorPieceId, isMeleeWeaponId, START_EQUIPMENT, type SavedEquipment } from '../data/items';
 import { MINIMAP } from '../data/minimap';
 import { TOWN, TOWN_NPCS, TOWN_TALK, type NpcId, type TilePoint } from '../data/town';
@@ -55,6 +57,7 @@ import type { MapLoadSceneData } from './MapLoadScene';
 import { NPC_DIALOG_SCENE_KEY, type NpcDialogSceneData } from './NpcDialogScene';
 import { MISSIONS_SCENE_KEY, type MissionsSceneData } from './MissionsScene';
 import { SHOP_SCENE_KEY, type ShopSceneData } from './ShopScene';
+import { DYE_SCENE_KEY, type DyeSceneData } from './DyeScene';
 import { SMITH_SCENE_KEY, type SmithSceneData } from './SmithScene';
 import type { PauseSceneData } from './PauseScene';
 
@@ -123,7 +126,7 @@ export class TownScene extends Phaser.Scene {
         this.classId = classId;
         this.player = new Player(this, (spawn.x + 0.5) * TILE_SIZE, (spawn.y + 0.5) * TILE_SIZE, character, saved?.look ?? DEFAULT_LOOKS[classId], map, areaPx);
         this.player.setHealthBarVisible(false);
-        this.dress(classId, saved?.equipment ?? START_EQUIPMENT[classId], saved?.attributes.weapon);
+        this.dress(classId, saved?.equipment ?? START_EQUIPMENT[classId], saved?.attributes.weapon, saved?.colors);
         this.dressedAs = this.wornKey();
         // Fase 29A: only the NPCs already rescued (and William, who is always there); ?town=<npc> brings that one too.
         const present = (Object.keys(TOWN_NPCS) as NpcId[]).filter((id) => rescueStore.isInTown(id) || id === debugSpot);
@@ -189,7 +192,11 @@ export class TownScene extends Phaser.Scene {
         });
         // ?town=<npc>&talk (development only): its panel opens at once. ?town=shopKeeper&shop: the shop (Fase 24B);
         // ?town=tom&smith=buy|sell|upgrade: the blacksmith (Fase 24C; upgrade, 24D). ?town=william&missions (Fase 29B).
-        if (debugSpot === 'shopKeeper' && DEBUG_START.townShop) {
+        if (debugSpot === 'shopKeeper' && DEBUG_START.townDye) {
+            // ?town=shopKeeper&dye: the dyes (Revisión del original D).
+            const data: DyeSceneData = { characterUid: this.characterUid };
+            this.time.delayedCall(0, () => openOverlay(this, DYE_SCENE_KEY, data));
+        } else if (debugSpot === 'shopKeeper' && DEBUG_START.townShop) {
             const data: Omit<ShopSceneData, 'returnTo'> = { characterUid: this.characterUid };
             this.time.delayedCall(0, () => openOverlay(this, SHOP_SCENE_KEY, data));
         } else if (debugSpot === 'tom' && DEBUG_START.townSmith) {
@@ -313,14 +320,14 @@ export class TownScene extends Phaser.Scene {
             // them), and what is equipped goes on top. Emptying the slots instead left the character in underwear.
             const start: Appearance = CHARACTERS[classId].appearance;
             for (const slot of DRESSED_SLOTS) this.player.setGear(slot, start[slot]);
-            this.dress(classId, saved.equipment, saved.attributes.weapon);
+            this.dress(classId, saved.equipment, saved.attributes.weapon, saved.colors);
         });
     }
 
     /** What the saved character wears now, as text (to tell whether it changed). */
     private wornKey(): string {
         const saved = characterStore.byUid(this.characterUid);
-        return saved ? JSON.stringify([saved.equipment, saved.attributes]) : '';
+        return saved ? JSON.stringify([saved.equipment, saved.attributes, saved.colors]) : '';
     }
 
     private openPause(): void {
@@ -334,7 +341,7 @@ export class TownScene extends Phaser.Scene {
     }
 
     /** What the character wears, as in the run (GameScene): armour, and the weapon or wand in hand. */
-    private dress(classId: CharacterId, equipment: Readonly<SavedEquipment>, attribute: ItemAttribute | undefined): void {
+    private dress(classId: CharacterId, equipment: Readonly<SavedEquipment>, attribute: ItemAttribute | undefined, colors: Readonly<WornColors> = {}): void {
         const character = CHARACTERS[classId];
         const worn = new Equipment(character);
         const weapon = equipment.weapon;
@@ -343,7 +350,7 @@ export class TownScene extends Phaser.Scene {
         worn.weaponAttribute = attribute;
         this.player.setGear('weapon', worn.weaponLayer());
         for (const id of Object.values(equipment)) {
-            if (id !== undefined && isArmorPieceId(id)) for (const [slot, layer] of worn.wear(id)) this.player.setGear(slot, layer);
+            if (id !== undefined && isArmorPieceId(id)) for (const [slot, layer] of worn.wear(id, {}, colors[ARMOR_PIECES[id].slot])) this.player.setGear(slot, layer);
         }
     }
 

@@ -2,6 +2,12 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
+**Revisión del original, bloque D: tintes (2026-11-01, fuera de fase).**
+- **Qué hace:** la Shop Keeper tiene una opción nueva, **Dyes**: se elige la ropa puesta que se puede teñir (capa, Shoes/Long Boots, Robe/Wizard Robe) y uno de los 15 colores del original (se suman a cada píxel, como en el original). 500 de oro; volver al color propio, gratis. El dibujo de la prenda en la lista hace de vista previa. El color va en el objeto: se ve en la ciudad, la partida, Character, Equipment, Select Character y en los iconos del inventario y el baúl; quitarse la prenda la deja teñida en el inventario.
+- **Comprobado:** build; `check dye dyemage dyenone dyetown dyecharinfo shop game` y `dye --mobile` sin errores; comprar Red para unas botas cobra 500 y lo guarda, y volver la capa a su color no cuesta nada.
+- **Cómo probar:** `?characters=demo&gear=dye1:cape,longBoots&open=town&town=shopKeeper&dye&gold=50000` (Maga: `gear=dye14:robe&class=mage`).
+- **Código:** `data/dyes.ts`, `scenes/DyeScene.ts`, `SavedCharacter.colors`, `OwnedItem.color`; NOTES.md, "Tintes de la ropa".
+
 **Cartas de poder, bloque 2: valores reales y cartas que no harían nada (2026-11-01, fuera de fase).**
 - **Qué hace:** las cartas de poder dicen el valor real que cambian ("Health 154 → 166", "Mana 54 → 60 every 20s", "Dodge 57% → 60%", "Critical damage ×2 → ×2.15"; el oro, "Gold +160"). Panel de la C: filas nuevas Health regen, Mana regen, Critical damage y Cast speed; "Cooldown" pasa a "Attack speed". Textos comunes en `ui/statText.ts`. Serpent's Grace, Unicorn's Ward, Cyclops Eye y Eye of the Demon solo salen si moverían su % (`GameScene.cardWouldHelp`).
 - **Balance:** tabla con 5 Epic (Guerrero: vida 130 → 233, daño físico +23 % → +122 %, velocidad +35 %, ataque +46 %, crítico 25 % ×3,5; esquiva con armadura completa 57 % → 79 %). Sin cambios de %.
