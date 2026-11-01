@@ -1337,3 +1337,11 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - **Guardado:** `OwnedItem` extiende `ItemRolls` (`attribute`, `attributeValue`, `secondary`, `secondaryValue`, campos planos, sin subir versión). Lo puesto: `SavedCharacter.rolls[slot]` (valor y segundo; el primero sigue en `attributes`); `wornItem()` lo junta. Objetos viejos sin valor = `legacyValue` (`attributeValueOf`). Siempre leer con `readRolls` y copiar con `rollsOf`.
 - **Tirada:** `rollItemRolls(id)` en `LootRoller`, tabla del original (1–13) con **tope 7 para todo** (`ATTRIBUTE_VALUE_MAX`; el propietario: el +91 % del original era un milagro que nunca vio; aquí caen 3–4 objetos por partida). Los mínimos del original (Defense Ratio ≥3…) acumulan valores en el 3. El secundario nunca repite el efecto del primero (`canHaveSecondary`).
 - **Pruebas:** `?attr=hpRecovery:7&attr2=physicalAbsorption:5`, `?gear=hpRecovery.7.gold.5:robe`; `check lootvalues` / `lootweapon` / `valuesinv` (la carta sale con `--eval="(g.debugPickUpLoot(), new Promise(r=>setTimeout(r,800)))"`). El herrero usa nombres cortos (`short`) y encoge el texto si no cabe.
+
+
+## Cartas de poder en vez de Blessings (1-nov-2026)
+- Las cartas de stat ya no existen: `LevelUpChoice` es `passive | magic | filler`. Las stats de la partida solo vienen del personaje (clase + puntos de Level).
+- Cada carta "blessing" es una pasiva más (`PASSIVES`, `group: 'blessing'`); su bonus llega a `CharacterStats.cardBonus` en `GameScene.applyStats()` (lo primero, antes de vida y velocidad). Esquiva y resistencia mágica se aplican en `GameScene.defenseRatio` / `magicResistance`.
+- Velocidad de golpes y de hechizos van separadas: `WeaponContext.cooldownMultiplier` (golpes) y `castMultiplier` (hechizos; `SpellWeapon.speedMultiplier`).
+- Iconos de item-pack.spr que no son anillos ni collares (quedan para equipo futuro). Los corazones de monstruo se ven todos iguales: solo se usa el del Ogre. Visor: http://localhost:8090/sprites.html#items.
+- Rareza: Chr y Golden Carp se multiplican y juntos no pasan de ×3 (`rarityWeights`).

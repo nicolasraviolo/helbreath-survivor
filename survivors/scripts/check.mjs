@@ -37,6 +37,9 @@ const PRESETS = {
     levelup: 'debug=levelup',
     // Fase 21½A: todas las cartas Epic (marco morado, cinta, brillo y sonido).
     epic: 'debug=epic,levelup',
+    // Cartas de poder (1-nov-2026): todo al máximo (Epic) → solo cartas de oro y vida; y la Maga con todo al máximo y horda (FPS).
+    maxcards: 'play=warrior&debug=maxcards,levelup',
+    maxcardsmage: 'play=mage&debug=maxcards,horde', // con --cards --wait=10000: la horda sin pausas
     epicstones: 'play=warrior&debug=epic,stones,levelup', // Fase 28½A: Epic Stone cards that go up 1/5 and say +0% → +20%
     // Fase 21½B: 3 Reroll y 3 Skip comprados, con las cartas abiertas.
     rerollskip: 'unlocks=dice3,wine3&debug=levelup',

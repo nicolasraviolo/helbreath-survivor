@@ -50,6 +50,11 @@ export class SpellWeapon extends Weapon {
         super.update(deltaMs, context);
     }
 
+    /** Spells go by the casting speed (Orb of Quickening), not the blows' one. */
+    protected override speedMultiplier(context: WeaponContext): number {
+        return context.castMultiplier;
+    }
+
     protected fire(context: WeaponContext): boolean {
         let angle: number;
         if (context.manualAim) {
@@ -60,7 +65,7 @@ export class SpellWeapon extends Weapon {
             if (!target) return false;
             angle = Math.atan2(target.bodyY - context.y, target.x - context.x);
         }
-        const durationMs = CAST_ANIMATION_MS * context.cooldownMultiplier;
+        const durationMs = CAST_ANIMATION_MS * context.castMultiplier;
         context.castSpell(angle, durationMs);
         this.releaseInMs = durationMs * CAST_RELEASE_MOMENT;
         return true;

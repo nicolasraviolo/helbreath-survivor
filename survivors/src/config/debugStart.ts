@@ -28,6 +28,7 @@
 //                      daggers = lo mismo con las Spinning Daggers (Fase 28B)
 //                      angels = lo mismo con los Tutelary Angels (Fase 28C)
 //                      stones = las cartas ofrecen siempre las pasivas (Xelima, Merien, Magnet) y magias (Fase 28) que no estén al máximo (Fase 20C)
+//                      maxcards = todas las pasivas al máximo con cartas Epic, y las magias que quepan (cartas de poder, 1-nov-2026); antes de levelup, las cartas son de oro y vida
 //                      elites = todos los monstruos (menos los jefes) salen élite, con el brillo rojo (M2)
 //                      loot = cae un objeto de botín junto al jugador ahora y cada pocos segundos (Fase 21A)
 //                      zem = cada jefe suelta también un Zem (Fase 21D)
@@ -132,7 +133,7 @@ function isDebugScreen(value: string | null): value is DebugScreen {
 }
 
 /** Actions that ?debug= can run at the start of a run (the same ones as the debug keys of GameScene). */
-export const DEBUG_ACTIONS = ['horde', 'kill', 'levelup', 'levels', 'str', 'magic', 'pickups', 'totems', 'minute', 'boss', 'finalboss', 'bosskill', 'stampede', 'dodge', 'stats', 'god', 'crits', 'aim', 'aimstick', 'resume', 'sim', 'charexp', 'stones', 'elites', 'loot', 'zem', 'onehp', 'epic', 'champion', 'xelima', 'nomana', 'spelldrag', 'bluebook', 'charge', 'movement', 'aura', 'daggers', 'angels', 'orcs', 'nosmooth', 'rescue', 'unique'] as const;
+export const DEBUG_ACTIONS = ['horde', 'kill', 'levelup', 'levels', 'str', 'magic', 'pickups', 'totems', 'minute', 'boss', 'finalboss', 'bosskill', 'stampede', 'dodge', 'stats', 'god', 'crits', 'aim', 'aimstick', 'resume', 'sim', 'charexp', 'stones', 'elites', 'loot', 'zem', 'onehp', 'epic', 'champion', 'xelima', 'nomana', 'spelldrag', 'bluebook', 'charge', 'movement', 'aura', 'daggers', 'angels', 'orcs', 'nosmooth', 'rescue', 'unique', 'maxcards'] as const;
 export type DebugAction = (typeof DEBUG_ACTIONS)[number];
 
 function isDebugAction(value: string): value is DebugAction {

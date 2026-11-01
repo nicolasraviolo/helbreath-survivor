@@ -10,7 +10,7 @@ import {
 import { ARMOR_BY_SET, ARMOR_PIECES, ARMOR_SLOT_IDS, getArmorPiece, MAX_DEFENSE, type ArmorPieceId, type ArmorSlotId } from '../data/armor';
 import type { CharacterDef } from '../data/characters';
 import { MAGIC_IDS, magicExtraMultiplier, type MagicId } from '../data/passiveMagic';
-import { PASSIVE_IDS, passiveBonus, type PassiveId } from '../data/passives';
+import { emptyPassiveRecord, PASSIVE_IDS, passiveBonus, type PassiveId } from '../data/passives';
 import type { AutoSpellId } from '../data/spells';
 import { upgradeDamageBonus } from '../data/upgrades';
 import { getWand, type WandId } from '../data/wands';
@@ -40,9 +40,9 @@ export class Equipment {
     /** What all the attributes of the weapon and the armor add, effect by effect; recomputed when any of them changes. */
     private effects: AttributeEffects = {};
     /** Rank of each passive (0 = not taken): how many cards of it. */
-    public readonly passives: Record<PassiveId, number> = { xelima: 0, merien: 0, magnetAmulet: 0 };
+    public readonly passives: Record<PassiveId, number> = emptyPassiveRecord();
     /** What the cards of each passive are worth added up (Fase 28½A: Common 1, Rare 1.5, Epic 2). */
-    public readonly passiveValues: Record<PassiveId, number> = { xelima: 0, merien: 0, magnetAmulet: 0 };
+    public readonly passiveValues: Record<PassiveId, number> = emptyPassiveRecord();
     /** Rank of each magic of the run (Fase 28; 0 = not taken). */
     public readonly magics: Record<MagicId, number> = { aura: 0, daggers: 0, angels: 0 };
     /** What the cards of each magic are worth added up (Fase 28½A). */

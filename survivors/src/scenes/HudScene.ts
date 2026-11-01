@@ -463,10 +463,12 @@ function describeDerived(state: HudState): [string, string][] {
     gear.push(['Dodge', `${Math.round(dodgeChance(state.defenseRatio) * 100)}%`]);
     gear.push(['Magic resist', `${Math.round(resistChance(state.magicResistance) * 100)}%`]);
     // General chance that the player's own hits land (revisión del original B): blows with Dex, spells with Mag.
-    const accuracy = stats.def.startWeapon.kind === 'spell' ? generalSpellAccuracy(stats.stats, stats.hitBonus) : generalAccuracy(stats.stats, stats.hitBonus);
+    const accuracy = stats.def.startWeapon.kind === 'spell' ? generalSpellAccuracy(stats.stats, stats.hitBonusFor('magic')) : generalAccuracy(stats.stats, stats.hitBonusFor('physical'));
     gear.push(['Accuracy', `${Math.round(accuracy * 100)}%`]);
-    // Always shown, at any rank (0 too), so the panel keeps the height it was built with.
+    // Always shown, at any rank (0 too), so the panel keeps the height it was built with. Only the stones: the blessing
+    // cards (1-nov-2026) show in the rows of what they raise (Health, Mana, Speed...).
     for (const id of PASSIVE_IDS) {
+        if (PASSIVES[id].group !== 'stone') continue;
         const rank = state.passiveRanks[id];
         const value = rank > 0 ? ` ${PASSIVES[id].sign}${Math.round(state.passiveBonuses[id] * 100)}%` : '';
         gear.push([PASSIVES[id].name, `${rank}/${PASSIVES[id].maxRank}${value}`]);

@@ -5,7 +5,6 @@
 // Fase 21B: con un arma Poison, los golpes físicos envenenan (data/attributes.ts); updatePoison() hace correr el veneno.
 import Phaser from 'phaser';
 import { playerHitChance } from '../data/accuracy';
-import { CRIT_DAMAGE_MULTIPLIER } from '../data/stats';
 import type { CharacterStats, DamageType } from '../entities/CharacterStats';
 import type { Enemy } from '../entities/Enemy';
 import type { SoundKey } from '../config/assetManifest';
@@ -179,7 +178,7 @@ export class CombatSystem {
     private lands(enemy: Enemy, type: DamageType, sure = false): boolean {
         if (sure || !enemy.isAlive) return true;
         const { defenseRatio, magicResist } = enemy.def;
-        if (Math.random() < playerHitChance(type, this.attacker.stats, defenseRatio, magicResist, this.attacker.hitBonus)) return true;
+        if (Math.random() < playerHitChance(type, this.attacker.stats, defenseRatio, magicResist, this.attacker.hitBonusFor(type))) return true;
         this.onMiss?.();
         return false;
     }
@@ -188,7 +187,7 @@ export class CombatSystem {
     private strike(enemy: Enemy, type: DamageType, baseDamage: number, fromX: number, fromY: number, knockback: number, bigNumber = false): boolean {
         if (!enemy.isAlive || baseDamage <= 0) return false;
         const critical = Math.random() < this.attacker.critChance;
-        const scaled = baseDamage * this.attacker.damageMultiplier(type) * (critical ? CRIT_DAMAGE_MULTIPLIER : 1);
+        const scaled = baseDamage * this.attacker.damageMultiplier(type) * (critical ? this.attacker.critDamageMultiplier : 1);
         const damage = Math.max(1, Math.round(scaled));
         const killed = enemy.takeDamage(damage, fromX, fromY, knockback);
         this.onDamage?.(damage, critical);

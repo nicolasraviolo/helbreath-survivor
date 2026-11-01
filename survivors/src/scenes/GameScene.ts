@@ -58,7 +58,7 @@ import { CharacterStats } from '../entities/CharacterStats';
 import { BuffSystem } from '../systems/BuffSystem';
 import { PassiveMagicSystem } from '../systems/PassiveMagicSystem';
 import { PickupSystem } from '../systems/PickupSystem';
-import { EPIC_CARD_SOUND } from '../data/cardRarity';
+import { CARD_RARITY, EPIC_CARD_SOUND } from '../data/cardRarity';
 import { CARD_ACTION, SKIP_HEAL_SHARE, type CardAction } from '../data/rerollSkip';
 import { unlockStore } from '../systems/UnlockStore';
 import { GOLD, goldValue } from '../data/gold';
@@ -125,8 +125,8 @@ import { ACHIEVEMENT_EVENT, ACHIEVEMENT_SOUND } from '../data/achievements';
 import { AchievementTracker } from '../systems/AchievementTracker';
 import { GAME_VERSION } from '../config/version';
 import { COMPACT_UI } from '../config/device';
-import { PASSIVE_IDS, getPassive, type PassiveId } from '../data/passives';
-import { ANGEL_DEBUG_RANK, AURA_DEBUG_RANK, DAGGER_DEBUG_RANK, MAGIC_IDS, getMagic, magicDamageType, magicMaxRank, type MagicId } from '../data/passiveMagic';
+import { emptyPassiveRecord, FILLER_CARDS, PASSIVE_IDS, getPassive, type PassiveId } from '../data/passives';
+import { ANGEL_DEBUG_RANK, AURA_DEBUG_RANK, DAGGER_DEBUG_RANK, MAGIC_IDS, MAX_MAGICS_PER_RUN, getMagic, magicDamageType, magicMaxRank, type MagicId } from '../data/passiveMagic';
 import { goldStore } from '../systems/GoldStore';
 import { RunMetrics, metricsAllowed, sendRunReport } from '../systems/RunMetrics';
 import type { RunResult } from '../config/metrics';
@@ -261,7 +261,7 @@ export class GameScene extends Phaser.Scene {
     private levelUpOpen = false;
     /** Simulated run to measure the balance (?debug=sim, development only). */
     private sim: SimRun | undefined;
-    private readonly passiveBonuses: Record<PassiveId, number> = { xelima: 0, merien: 0, magnetAmulet: 0 };
+    private readonly passiveBonuses: Record<PassiveId, number> = emptyPassiveRecord();
     /** The ?level= profile of this debug run, for the simulated run's report ('' without one). */
     private simProfileLabel = '';
     /** Anonymous stats of this run (Fase 14A), sent when it ends. */
@@ -592,13 +592,14 @@ export class GameScene extends Phaser.Scene {
     /** Applies the values that come from the stats to the player and the weapons (after a level up or a card). */
     private applyStats(): void {
         const stats = this.stats;
+        // First the card bonuses (1-nov-2026: they now carry what the stat Blessings gave), then what depends on them.
+        Object.assign(stats.cardBonus, this.passiveBonusesNow());
         this.player.setMaxHp(stats.maxHp);
         this.player.regenPerSecond = stats.hpRegenPerSecond * (1 + this.equipment.hpRecovery);
         this.player.speedMultiplier = stats.moveSpeedMultiplier;
         this.xp.magnetMultiplier = 1 + this.equipment.passiveBonus('magnetAmulet');
-        this.weapons.setCooldownMultiplier(stats.cooldownMultiplier);
+        this.weapons.setCooldownMultiplier(stats.cooldownMultiplier, stats.castMultiplier);
         stats.gearMagicBonus = this.equipment.magicDamageBonus;
-        stats.xelimaBonus = this.equipment.passiveBonus('xelima');
         stats.attributeBonus = this.equipment.weaponDamageBonus;
         this.combat.poisonShare = this.equipment.poisonShare;
         stats.hitBonus = this.equipment.effect('hitting');
@@ -669,7 +670,7 @@ export class GameScene extends Phaser.Scene {
 
     /** Three cards for a level up or a chest, with their rarity drawn with the run's Chr (Fase 21½A). */
     private levelUpChoices(fromChest: boolean): LevelUpChoice[] {
-        return buildLevelUpChoices(this.equipment, this.stats.stats.chr, {
+        return buildLevelUpChoices(this.equipment, this.stats.stats.chr, this.stats.cardLuckMultiplier, {
             chest: fromChest,
             onlyPassives: DEBUG_START.actions.includes('stones'),
             allEpic: DEBUG_START.actions.includes('epic'),
@@ -822,6 +823,22 @@ export class GameScene extends Phaser.Scene {
         while (this.stats.pendingLevelUps > 0) this.chooseCard(undefined);
     }
 
+    /** ?debug=maxcards: every passive at its maximum with Epic cards, and the magics that fit; then only gold and health cards. */
+    private debugMaxCards(): void {
+        const epic = CARD_RARITY.epic.value;
+        for (const id of PASSIVE_IDS) {
+            const max = getPassive(id).maxRank;
+            this.equipment.passives[id] = max;
+            this.equipment.passiveValues[id] = max * epic;
+        }
+        for (const id of MAGIC_IDS) {
+            if (!getMagic(id).ready || this.equipment.magicCount >= MAX_MAGICS_PER_RUN) continue;
+            this.equipment.magics[id] = magicMaxRank(id);
+            this.equipment.magicValues[id] = magicMaxRank(id) * epic;
+        }
+        this.applyStats();
+    }
+
     /** A card was picked (by the player, or at random in the simulated run). */
     private chooseCard(choice: LevelUpChoice | undefined, fromChest = false): void {
         if (choice) {
@@ -836,8 +853,15 @@ export class GameScene extends Phaser.Scene {
 
     private applyChoice(choice: LevelUpChoice): void {
         switch (choice.kind) {
-            case 'stat':
-                this.stats.addStat(choice.stat, choice.points);
+            case 'filler':
+                // Nothing left to take (1-nov-2026): gold or health, × the card's rarity value.
+                if (choice.filler === 'gold') {
+                    const gold = Math.round(goldValue(GOLD.pileValue, this.mapId) * FILLER_CARDS.gold.piles * choice.value);
+                    this.runGold += gold;
+                    this.sim?.onGold(gold, this.spawner.elapsed);
+                } else {
+                    this.player.heal(Math.round(this.player.maxHp * FILLER_CARDS.heal.healShare * choice.value));
+                }
                 break;
             case 'passive':
                 this.equipment.passives[choice.passive] = choice.rank;
@@ -1426,12 +1450,14 @@ export class GameScene extends Phaser.Scene {
     /** Defense against monster blows: Dex plus the armor worn (data/defense.ts). */
     private get defenseRatio(): number {
         // Revisión del original C: the Defense Ratio attributes raise the total (+7% per point).
-        return playerDefenseRatio(this.stats.stats.dex, this.equipment.defenseRatio) * (1 + this.equipment.effect('defenseRatio'));
+        return playerDefenseRatio(this.stats.stats.dex, this.equipment.defenseRatio) * (1 + this.equipment.effect('defenseRatio'))
+            * (1 + this.stats.cardBonus.serpentGrace);
     }
 
     /** Resistance against spells: Magic plus the armor worn (data/defense.ts). */
     private get magicResistance(): number {
-        return playerMagicResistance(this.stats.stats.mag, this.equipment.magicResistance) * (1 + this.equipment.effect('magicResistance'));
+        return playerMagicResistance(this.stats.stats.mag, this.equipment.magicResistance) * (1 + this.equipment.effect('magicResistance'))
+            * (1 + this.stats.cardBonus.unicornWard);
     }
 
     /** The simulated run counts every blow, landed or dodged (it is told only while ?debug=sim runs). */
@@ -1659,6 +1685,9 @@ export class GameScene extends Phaser.Scene {
                 break;
             case 'stones':
                 // Read when the cards are built (openLevelUp).
+                break;
+            case 'maxcards':
+                this.debugMaxCards();
                 break;
             case 'aura':
                 // Fase 28A: the Eye of the Storm at rank AURA_DEBUG_RANK (pressed again: one rank more).

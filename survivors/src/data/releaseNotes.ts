@@ -29,6 +29,7 @@ export const RELEASE_NOTES: readonly ReleaseNote[] = [
             'Your blows and spells can now miss: Dexterity and Magic help them land.',
             'Monsters grow tougher as the run goes on, but miss you more often.',
             'Found items now roll stronger or weaker attributes, and some bring a second one.',
+            'Stat Blessings replaced by 16 new power cards, each with its own effect and picture.',
         ],
     },
     {

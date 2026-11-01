@@ -64,7 +64,7 @@ export class WeaponSystem {
     private readonly meteors: Pool<Meteor>;
     private readonly finishedMeteors: Meteor[] = [];
     private readonly finishedEffects: Effect[] = [];
-    private readonly context: WeaponContext & { x: number; y: number; cooldownMultiplier: number };
+    private readonly context: WeaponContext & { x: number; y: number; cooldownMultiplier: number; castMultiplier: number };
     private readonly slash: Slash;
     private readonly bursts = new Pool(() => new PendingBurst());
     private readonly finishedBursts: PendingBurst[] = [];
@@ -137,6 +137,7 @@ export class WeaponSystem {
             x: 0,
             y: 0,
             cooldownMultiplier: 1,
+            castMultiplier: 1,
             audio,
             findTarget: (maxDistance) => this.targeting.findTarget(this.context.x, this.context.y, maxDistance),
             findTargets: (maxDistance, count) => this.targeting.findTargets(this.context.x, this.context.y, maxDistance, count),
@@ -334,8 +335,10 @@ export class WeaponSystem {
         this.iceStorms.cast(def, powerMultiplier, x, y, def.castMs * CAST_RELEASE_MOMENT);
     }
 
-    public setCooldownMultiplier(value: number): void {
-        this.context.cooldownMultiplier = value;
+    /** `attack`: blows' cooldowns (class, Dex, Hellhound's Frenzy). `cast`: spells' (class, Dex, Orb of Quickening). */
+    public setCooldownMultiplier(attack: number, cast: number): void {
+        this.context.cooldownMultiplier = attack;
+        this.context.castMultiplier = cast;
     }
 
     /** Fires the weapons from the owner's feet at (x, y), unless `firing` is false (the owner is dead). */
