@@ -25,6 +25,7 @@ import {
 } from '../data/items';
 import type { OwnedItem } from '../data/loot';
 import { readUpgrade } from '../data/upgrades';
+import { readDyeColor } from '../data/dyes';
 import type { RunLootState } from './RunLoot';
 
 const STORAGE_KEY = 'hb-survivors.runs';
@@ -284,7 +285,8 @@ function readSnapshot(entry: unknown): RunSnapshot | undefined {
 export function readOwnedItem(value: unknown): OwnedItem | undefined {
     if (!isRecord(value) || typeof value.id !== 'string' || !isItemId(value.id)) return undefined;
     const upgrade = readUpgrade(value.id, value.upgrade);
-    return { id: value.id, ...readRolls(value.id, value), ...(upgrade ? { upgrade } : {}) };
+    const color = readDyeColor(value.id, value.color);
+    return { id: value.id, ...readRolls(value.id, value), ...(upgrade ? { upgrade } : {}), ...(color ? { color } : {}) };
 }
 
 /**

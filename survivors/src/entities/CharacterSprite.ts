@@ -6,6 +6,7 @@
 // tiñe sumando color como en el original y se oculta con casco (como el original).
 import Phaser from 'phaser';
 import type { ItemAttribute } from '../data/attributes';
+import type { WornColors } from '../data/dyes';
 import { equipmentLook, type EquipSlotId, type SavedEquipment } from '../data/items';
 import { gearForGender, HAIR_COLOR_SCALE, HAIR_COLORS, lookLayers, type CharacterLook } from '../data/appearance';
 import type { CharacterDef } from '../data/characters';
@@ -98,9 +99,14 @@ export class CharacterSprite {
         }
     }
 
-    /** Draws a saved character's equipment over the class's clothes (Fase 20B), the weapon in its attribute's colour (21B). */
-    public wearEquipment(equipment: Readonly<SavedEquipment>, attributes: Readonly<Partial<Record<EquipSlotId, ItemAttribute>>> = {}): void {
-        for (const [slot, layer] of equipmentLook(equipment, attributes)) this.setLayer(slot, layer, false);
+    /**
+     * Draws a saved character's equipment over the class's clothes (Fase 20B), the weapon in its attribute's colour (21B),
+     * the dyed clothes in theirs (Revisión del original D).
+     */
+    public wearEquipment(
+        equipment: Readonly<SavedEquipment>, attributes: Readonly<Partial<Record<EquipSlotId, ItemAttribute>>> = {}, colors: Readonly<WornColors> = {},
+    ): void {
+        for (const [slot, layer] of equipmentLook(equipment, attributes, colors)) this.setLayer(slot, layer, false);
         this.orderKey = '';
         this.refresh(true);
     }

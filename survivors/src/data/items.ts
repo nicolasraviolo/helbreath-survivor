@@ -26,6 +26,7 @@ import { AUTO_SPELL_IDS, isAutoSpellId, SPELLS, type AutoSpellId } from './spell
 import type { Stats } from './stats';
 import { getWand, isWandId, WAND_IDS, type WandId } from './wands';
 import { upgradeDamageBonus, upgradeOf, upgradeSuffix } from './upgrades';
+import { dyeAdded, dyedLayer, type WornColors } from './dyes';
 import { isUniqueItem, UNIQUE_LOOK } from './uniques';
 import { getMeleeWeapon, MELEE_FAMILIES, MELEE_WEAPONS, type MeleeWeaponId } from './weapons';
 
@@ -223,9 +224,11 @@ export function itemPicture(id: ItemId, gender: Gender): ItemIconFrame | undefin
 
 /**
  * Layers the equipment draws on the body (men's sprites: CharacterSprite turns them into women's ones). The weapon gets
- * its attribute's colour (Fase 21B).
+ * its attribute's colour (Fase 21B), dyed clothes theirs (Revisión del original D).
  */
-export function equipmentLook(equipment: Readonly<SavedEquipment>, attributes: Readonly<Partial<Record<EquipSlotId, ItemAttribute>>> = {}): Array<[GearSlot, GearLayer]> {
+export function equipmentLook(
+    equipment: Readonly<SavedEquipment>, attributes: Readonly<Partial<Record<EquipSlotId, ItemAttribute>>> = {}, colors: Readonly<WornColors> = {},
+): Array<[GearSlot, GearLayer]> {
     const layers: Array<[GearSlot, GearLayer]> = [];
     const added = attributeColor(attributes.weapon);
     const colour = added ? { added } : {};
@@ -240,7 +243,9 @@ export function equipmentLook(equipment: Readonly<SavedEquipment>, attributes: R
             const glow = !added && weapon.glow ? { added: weapon.glow } : colour;
             if (sprite) layers.push(['weapon', { sprite: sprite.key, startSheet: sprite.startSheet, ...glow }]);
         } else {
-            layers.push(...(Object.entries(ARMOR_PIECES[id].look) as Array<[GearSlot, GearLayer]>));
+            // Revisión del original D: a dyed piece in its colour.
+            const color = colors[ARMOR_PIECES[id].slot];
+            for (const [slot, layer] of Object.entries(ARMOR_PIECES[id].look) as Array<[GearSlot, GearLayer]>) layers.push([slot, dyedLayer(layer, color)]);
         }
     }
     return layers;
@@ -380,9 +385,9 @@ export function ownedItemPower(item: Readonly<OwnedItem>): ItemPower {
     return power;
 }
 
-/** Colour added to an item's picture: its attribute's, or a unique weapon's own glow (Fase 30B). */
+/** Colour added to an item's picture: its attribute's, its dye (Revisión del original D) or a unique weapon's own glow (Fase 30B). */
 export function ownedItemColor(item: Readonly<OwnedItem>): AddedColor | undefined {
-    return attributeColor(item.attribute) ?? (isMeleeWeaponId(item.id) ? getMeleeWeapon(item.id).glow : undefined);
+    return attributeColor(item.attribute) ?? dyeAdded(item.color) ?? (isMeleeWeaponId(item.id) ? getMeleeWeapon(item.id).glow : undefined);
 }
 
 /** Colour of an item's name: its attribute's, or the uniques' (Fase 30B); undefined = the normal one. */

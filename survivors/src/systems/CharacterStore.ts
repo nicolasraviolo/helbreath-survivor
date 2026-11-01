@@ -11,6 +11,7 @@
 // salida y los hechizos que se saben con la Int (isFreeItem). Al terminar una partida, finishRun aplica las reglas al
 // morir (sin Zem se pierde lo encontrado). El baúl compartido (WarehouseStore) mueve objetos del inventario y al revés.
 // Fase 24D: el "+" (+1/+2/+3) del arma o varita puesta, en `upgrades`; los del inventario lo llevan en el objeto.
+// Revisión del original D: el tinte de la ropa puesta, en `colors` (igual que `upgrades`); dye() lo cambia.
 // Personajes fijos (22-oct-2026): los huecos llevan siempre los de FIXED_CHARACTERS (Gorn y Kaila) y los demás quedan
 // vacíos (bloqueados). Ya no se crean ni se borran personajes. Lo guardado antes de la versión 9 se tira (empezar de cero).
 import { DEBUG_START } from '../config/debugStart';
@@ -26,6 +27,7 @@ import {
 import { STAT_IDS, type StatId, type Stats } from '../data/stats';
 import { XELIMA_STONE_ID } from '../data/consumables';
 import { sameOwnedItem, type OwnedItem } from '../data/loot';
+import { canDye, readDyeColor, type DyeColorId, type WornColors } from '../data/dyes';
 import { canUpgrade, readUpgrade, UPGRADE_MAX, UPGRADE_STONES_PER_LEVEL, upgradeOf } from '../data/upgrades';
 import type { RunLootState } from './RunLoot';
 import { isRecord, readAttribute, readNumber, readOwnedItems, readRolls, saveStore, type RunSnapshot } from './SaveStore';
@@ -74,6 +76,8 @@ export interface SavedCharacter {
      * Missing on characters saved before: their gear counts as the attributes' legacyValue, without a second one.
      */
     rolls: Partial<Record<EquipSlotId, WornRolls>>;
+    /** Dye colour of the clothes worn in each slot (Revisión del original D). Missing = their own colour. */
+    colors: WornColors;
     /** Items kept from the runs (Fase 21A): the bag, and the gear that found items replaced. */
     inventory: OwnedItem[];
     /** Manual spells learned for ever by picking up their book (Fase 26E, MANUAL_SPELL_IDS). */
@@ -195,6 +199,16 @@ class CharacterStoreImpl {
                     // Items with no slot (the Xelima stone, Fase 24C) go in whatever the class.
                     if (!isItemId(owned) || (itemInfo(owned)?.slot !== undefined && !classCanWear(character.classId, owned))) continue;
                     const upgrade = /^up([1-9])$/.exec(attribute ?? '')?.[1];
+                    // "dye3:cape": worn, dyed in colour 3 (Revisión del original D).
+                    const dye = readDyeColor(owned, Number(/^dye(\d+)$/.exec(attribute ?? '')?.[1]));
+                    if (dye !== undefined) {
+                        const slot = itemInfo(owned)?.slot;
+                        if (slot) {
+                            character.equipment[slot] = owned;
+                            character.colors[slot] = dye;
+                        }
+                        continue;
+                    }
                     // "learn:bloodyShockWave": that Manual spell learned (Fase 26E).
                     if (attribute === 'learn') {
                         if (isSpellItemId(owned) && MANUAL_SPELL_IDS.has(owned) && !character.learnedSpells.includes(owned)) character.learnedSpells.push(owned);
@@ -377,6 +391,7 @@ class CharacterStoreImpl {
         delete character.attributes[slot];
         delete character.upgrades[slot];
         delete character.rolls[slot];
+        delete character.colors[slot];
     }
 
     /** Wears that item in the slot, with its attribute and "+" (the slot must be empty: takeOff first). */
@@ -384,6 +399,7 @@ class CharacterStoreImpl {
         character.equipment[slot] = item.id;
         if (item.attribute) character.attributes[slot] = item.attribute;
         if (item.upgrade) character.upgrades[slot] = item.upgrade;
+        if (item.color) character.colors[slot] = item.color;
         const { attributeValue, secondary, secondaryValue } = rollsOf(item);
         if (attributeValue || secondary) character.rolls[slot] = { ...(attributeValue ? { attributeValue } : {}), ...(secondary ? { secondary, secondaryValue } : {}) };
     }
@@ -476,6 +492,20 @@ class CharacterStoreImpl {
         return true;
     }
 
+    /**
+     * Dyes the clothes worn in that slot (Revisión del original D): a colour 1..15, or undefined for their own colour.
+     * The gold is the caller's (DyeScene). False (nothing changes) if nothing dyeable is worn there.
+     */
+    public dye(uid: string | undefined, slot: EquipSlotId, color: DyeColorId | undefined): boolean {
+        const character = this.slots.find((c) => c !== undefined && c.uid === uid);
+        const id = character?.equipment[slot];
+        if (!character || id === undefined || !canDye(id)) return false;
+        if (color === undefined) delete character.colors[slot];
+        else character.colors[slot] = color;
+        this.write();
+        return true;
+    }
+
     /** ?xelima=N (debugStart.ts, development only): every character keeps exactly N Stones of Xelima (Fase 24D). */
     private setDebugStones(count: number): void {
         for (const character of this.slots) {
@@ -521,6 +551,7 @@ function newCharacter(name: string, classId: CharacterId, look: CharacterLook): 
         attributes: {},
         upgrades: {},
         rolls: {},
+        colors: {},
         inventory: [],
         learnedSpells: [],
         createdAt: now,
@@ -552,7 +583,7 @@ function load(): { slots: Slots; dropped: boolean; newer: boolean } {
  * Old shapes → today's list of slots. readCharacter() fills what old versions lack: the class's look (version 1),
  * Level 1 without points, bestLevel read as bestPower (versions 1 and 2), the starting equipment (versions 1–3), an
  * empty inventory (versions 1–4), gear without attributes (versions 1–5), no Zem (versions 1–6), gear at +0
- * (versions 1–7) and no Manual spells learned (versions 1–9).
+ * (versions 1–7) and no Manual spells learned (versions 1–9). Clothes without `colors` wear their own colour.
  */
 /** First version with fixed characters: anything older is dropped (owner, 22-oct-2026: everyone starts again). */
 const FIXED_CHARACTERS_VERSION = 9;
@@ -582,6 +613,7 @@ function readCharacter(entry: unknown): SavedCharacter | undefined {
         attributes,
         upgrades: readWornUpgrades(entry.upgrades, equipment),
         rolls: readWornRolls(entry.rolls, equipment, attributes),
+        colors: readWornColors(entry.colors, equipment),
         inventory: readOwnedItems(entry.inventory),
         learnedSpells: readLearnedSpells(entry.learnedSpells),
         createdAt: readNumber(entry.createdAt) ?? 0,
@@ -633,7 +665,8 @@ export function wornItem(character: Readonly<SavedCharacter>, slot: EquipSlotId)
     if (id === undefined) return undefined;
     const attribute = character.attributes[slot];
     const upgrade = character.upgrades[slot];
-    return { id, ...rollsOf({ attribute, ...character.rolls[slot] }), ...(upgrade ? { upgrade } : {}) };
+    const color = character.colors[slot];
+    return { id, ...rollsOf({ attribute, ...character.rolls[slot] }), ...(upgrade ? { upgrade } : {}), ...(color ? { color } : {}) };
 }
 
 /**
@@ -641,7 +674,7 @@ export function wornItem(character: Readonly<SavedCharacter>, slot: EquipSlotId)
  * never goes to the inventory.
  */
 function isPlainFreeItem(character: Readonly<SavedCharacter>, item: Readonly<OwnedItem>): boolean {
-    return !hasRolls(item) && !item.upgrade && isFreeItem(character.classId, item.id, character.learnedSpells);
+    return !hasRolls(item) && !item.upgrade && !item.color && isFreeItem(character.classId, item.id, character.learnedSpells);
 }
 
 /** Manual spells learned (Fase 26E): only known ids of MANUAL_SPELL_IDS, each once. */
@@ -652,6 +685,18 @@ function readLearnedSpells(value: unknown): SpellItemId[] {
         if (typeof id === 'string' && isSpellItemId(id) && MANUAL_SPELL_IDS.has(id) && !learned.includes(id)) learned.push(id);
     }
     return learned;
+}
+
+/** Dye colours of the clothes worn, only where that item can be dyed (Revisión del original D). */
+function readWornColors(value: unknown, equipment: Readonly<SavedEquipment>): WornColors {
+    const colors: WornColors = {};
+    if (!isRecord(value)) return colors;
+    for (const slot of EQUIP_SLOT_IDS) {
+        const id = equipment[slot];
+        const color = id === undefined ? undefined : readDyeColor(id, value[slot]);
+        if (color) colors[slot] = color;
+    }
+    return colors;
 }
 
 /** "+" of the gear worn, only where that item can have it (Fase 24D). */

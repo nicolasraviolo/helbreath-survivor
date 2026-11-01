@@ -117,6 +117,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Golpe normal igual para todas las armas; el crit las distingue (31-oct-2026)
 - Fallar golpes y vida que crece con los minutos (revisión del original B, 31-oct-2026)
 - Botín con valores y segundo atributo (revisión del original C, 1-nov-2026)
+- Tintes de la ropa (revisión del original D, 1-nov-2026)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -1348,3 +1349,12 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 
 - **Bloque 2 (1-nov-2026):** las cartas dicen el valor real ("Health 137 → 148", "Mana 54 → 60 every 20s"): `describeCardStat` en LevelUpScene con `CharacterStats.previewWithCard`, y los mismos formatos que el panel C en `ui/statText.ts`. La esquiva y la resistencia mágica viven en GameScene (armadura incluida): la carta recibe el valor actual y le cambia solo su parte (`actual / (1 + bonusAhora) × (1 + bonusNuevo)`).
 - **Cartas que no harían nada no salen:** la esquiva es `hit = 50·puntería/defensa` con tope 80 % de acierto; sin armadura (defensa ~28) hace falta pasar de ~63 para que se note, así que Serpent's Grace no movía nada. Igual Unicorn's Ward con poca Mag y las de puntería al llegar al 95 %. `GameScene.cardWouldHelp` mira si una carta Common más movería el % redondeado.
+
+## Tintes de la ropa (revisión del original D, 1-nov-2026)
+- **Colores del original:** `m_wR/G/B[1..15]` en `reference/Client.cpp:713-729`; el tinte se SUMA a cada píxel (`PutSpriteRGB`): color − RGB(100,100,100), en escala 0..255 (mismo criterio que `pictureAdd` de las armas). Tabla en `data/dyes.ts` (`DYE_COLORS`, índice = color − 1).
+- **Nombres:** en `Item2.cfg` el número de los Dye(X) no cuadra con los comentarios del cliente (Dye(Crimson-Red) = color 2, que pinta un gris oliva). Los ArmorDye de `Item3.cfg` sí cuadran. Usamos el color que se ve: el 2 se llama **Olive**.
+- **Qué se tiñe:** `canDye` (cape, shoes, longBoots, robe, wizardRobe). La ropa de salida de las clases no es un objeto: no se tiñe. Teñir la Wizard Robe quita su `tint` (multiplicado) y pone el tinte (`dyedLayer`).
+- **Dónde se guarda:** `OwnedItem.color` en inventario/baúl (cuenta en `sameOwnedItem`) y `SavedCharacter.colors` en lo puesto, igual que `upgrades` (`takeOff`/`putOn`/`wornItem`). Sin subir versión: si falta, color propio.
+- **Dónde se pinta:** `equipmentLook(equipment, attributes, colors)` (CharacterSprite, PaperDoll, Character, Equipment, Select Character) y `Equipment.wear(piece, rolls, color)` (partida y ciudad). Iconos: `ownedItemColor` → `dyeAdded`.
+- **Tienda:** `scenes/DyeScene.ts` (opción "Dyes" de la Shop Keeper, `NpcAction 'dye'`), medidas `DYE_LAYOUT` en `config/shop.ts`. `characterStore.dye(uid, slot, color)`; el oro lo cobra la escena.
+- **Atajos:** `?gear=dye3:cape` (puesta y teñida, con `characters=demo`), `?town=shopKeeper&dye`; `check dye` / `dyemage` / `dyenone` / `dyetown` / `dyecharinfo`.

@@ -57,7 +57,7 @@ export const TOWN: TownDef = {
 export type NpcId = 'howard' | 'shopKeeper' | 'william' | 'tom';
 
 /** What an option of the panel does. `soon` = not made yet: the panel says "Coming soon". */
-export type NpcAction = 'equipment' | 'warehouse' | 'achievements' | 'missions' | 'shop' | 'smithBuy' | 'smithSell' | 'smithUpgrade' | 'soon';
+export type NpcAction = 'equipment' | 'warehouse' | 'achievements' | 'missions' | 'shop' | 'dye' | 'smithBuy' | 'smithSell' | 'smithUpgrade' | 'soon';
 
 export interface NpcOption {
     label: string;
@@ -92,7 +92,7 @@ export const TOWN_NPCS: Readonly<Record<NpcId, NpcDef>> = {
         tile: { x: 90, y: 178 },
         direction: 4,
         line: 'Welcome! Rare goods for brave travelers.\nPay in gold, no refunds.',
-        options: [{ label: 'Shop', action: 'shop' }],
+        options: [{ label: 'Shop', action: 'shop' }, { label: 'Dyes', action: 'dye' }],
     },
     william: {
         name: 'William',

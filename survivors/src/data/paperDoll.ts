@@ -9,6 +9,7 @@
 //   que la ropa de salida (camisa, pantalón, corpiño, falda, botas, varita) también sale.
 import type { SpriteKey } from '../config/assetManifest';
 import type { ItemAttribute } from './attributes';
+import type { WornColors } from './dyes';
 import type { AddedColor, GearLayer, GearSlot } from '../hb/playerAppearance';
 import { gearForGender, type CharacterLook, type Gender } from './appearance';
 import type { CharacterDef } from './characters';
@@ -110,11 +111,12 @@ function picture(slot: GearSlot, layer: GearLayer, equipment: Readonly<SavedEqui
 /** Every picture of the character's window, from the bottom one to the top one. */
 export function paperDollPieces(
     def: CharacterDef, look: CharacterLook, equipment: Readonly<SavedEquipment>, attributes: Readonly<Partial<Record<EquipSlotId, ItemAttribute>>> = {},
+    colors: Readonly<WornColors> = {},
 ): PaperDollPiece[] {
     const { gender } = look;
     const places = PLACES[gender];
     const layers: Partial<Record<GearSlot, GearLayer>> = { ...def.appearance };
-    for (const [slot, layer] of equipmentLook(equipment, attributes)) layers[slot] = layer;
+    for (const [slot, layer] of equipmentLook(equipment, attributes, colors)) layers[slot] = layer;
     const body = places.body;
     const pieces: PaperDollPiece[] = [{ sheet: BODY_SHEET, frame: BODY_FRAME_BY_SKIN[look.skin] ?? 1, ...body }];
     if (!layers.helm) pieces.push({ sheet: HAIR_SHEET, frame: look.hairStyle, ...body, hairColor: look.hairColor });

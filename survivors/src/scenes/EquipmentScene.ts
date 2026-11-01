@@ -247,7 +247,7 @@ export class EquipmentScene extends Phaser.Scene {
         this.doll = new PaperDoll(this, CHARACTERS[character.classId], character.look, character.equipment, {
             x: this.sx(0), y: this.sy(0), scale: CHARACTER_INFO_SCALE,
             standInX: this.sx(CHARACTER_INFO_DOLL.x), standInY: this.sy(CHARACTER_INFO_DOLL.y),
-        }, character.attributes);
+        }, character.attributes, character.colors);
     }
 
     // ---- Slots (top of the panel) ----

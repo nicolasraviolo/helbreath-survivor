@@ -80,3 +80,28 @@ export const SHOP_SECTION_STYLE = { ...UI_TEXT, fontSize: px(ROW_SIZE), fontStyl
 export const SHOP_ROW_STYLE = { ...UI_TEXT, fontSize: px(ROW_SIZE), color: SHOP_COLORS.text } as const;
 export const SHOP_DETAIL_STYLE = { ...UI_TEXT, fontSize: px(byDevice(UI_FONT_SIZE.normal - 1, UI_FONT_SIZE.small)), color: SHOP_COLORS.detail } as const;
 export const SHOP_GOLD_STYLE = { ...UI_TEXT, fontSize: px(ROW_SIZE), fontStyle: 'bold', color: SHOP_COLORS.gold } as const;
+
+/**
+ * Ventana de los tintes (revisión del original D, scenes/DyeScene.ts): el mismo pergamino. Arriba, la ropa puesta que se
+ * puede teñir; debajo, 16 muestras (el color propio y los 15 tintes) en 2 filas de 8. Píxeles del panel original.
+ */
+export const DYE_LAYOUT = {
+    /** "ITEM" and "COLOR". */
+    headerY: 46,
+    listTop: 58,
+    rowHeight: 24,
+    /** "Choose a color", over the swatches. */
+    paletteTitleY: 140,
+    paletteTop: 150,
+    paletteColumns: 8,
+    swatchSize: 20,
+    swatchStep: 26,
+    /** What the choice costs and does, under the swatches. */
+    detailY: 212,
+    /** Border of a swatch and of the chosen one. */
+    swatchBorder: 0x5a3c10,
+    selectedBorder: 0x141428,
+    /** "Own color": the parchment with a red stroke across. */
+    ownFill: 0xe8d8b0,
+    ownStroke: 0xa01c1c,
+} as const;

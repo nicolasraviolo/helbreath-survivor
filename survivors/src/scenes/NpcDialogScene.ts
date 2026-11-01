@@ -2,7 +2,7 @@
 // su nombre de título, su frase y sus opciones, más "Back". Las opciones abren pantallas que ya existían:
 // - Howard: Equipment y Warehouse (antes en Select Character).
 // - William: Achievements y Missions (rescates, Fase 29B, MissionsScene).
-// - Shop Keeper: la tienda (Fase 24B, ShopScene). Tom: Buy y Sell (herrero, Fase 24C, SmithScene); Upgrade, "Coming soon" (24D).
+// - Shop Keeper: la tienda (Fase 24B, ShopScene) y los tintes (revisión del original D, DyeScene). Tom: Buy y Sell (herrero, Fase 24C, SmithScene); Upgrade, "Coming soon" (24D).
 // Al abrir una pantalla, este panel se cierra y esa pantalla vuelve directa a la ciudad.
 import Phaser from 'phaser';
 import { MENU_TEXT_STYLE, MENU_OVERLAY, RUN_CHOICE } from '../config/menus';
@@ -14,6 +14,7 @@ import type { EquipmentSceneData } from './EquipmentScene';
 import { MenuOverlayScene, type MenuOverlayData } from './MenuOverlayScene';
 import { MISSIONS_SCENE_KEY, type MissionsSceneData } from './MissionsScene';
 import { SHOP_SCENE_KEY, type ShopSceneData } from './ShopScene';
+import { DYE_SCENE_KEY, type DyeSceneData } from './DyeScene';
 import { SMITH_SCENE_KEY, type SmithSceneData } from './SmithScene';
 import type { WarehouseSceneData } from './WarehouseScene';
 
@@ -70,6 +71,10 @@ export class NpcDialogScene extends MenuOverlayScene {
             case 'shop':
                 // Without a character it still opens: only the Zemstone needs one (it says so when you try).
                 this.openFromTown(SHOP_SCENE_KEY, { characterUid: this.characterUid } satisfies ShopSceneData);
+                return;
+            case 'dye':
+                // Revisión del original D: it opens without a character too, and says to choose one.
+                this.openFromTown(DYE_SCENE_KEY, { characterUid: this.characterUid } satisfies DyeSceneData);
                 return;
             case 'smithBuy':
             case 'smithSell':

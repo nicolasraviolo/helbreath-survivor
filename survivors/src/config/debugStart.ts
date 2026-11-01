@@ -73,6 +73,7 @@
 //                      atributo (Fase 21B), para verlo en Equipment; "inv:plateMail", sin atributo (Fase 21D).
 //                      "zemstone" les pone un Zem (Fase 21D). "up2:longSword" la mete en el inventario a +2 (Fase 24D).
 //                      "learn:bloodyShockWave": Kaila ya ha aprendido ese hechizo de libro (Fase 26E).
+//                      "dye3:cape": la llevan puesta, teñida del color 3 (1–15, data/dyes.ts; revisión del original D).
 //   ?xelima=5        → cada personaje guardado tiene justo 5 Stone of Xelima en el inventario (Fase 24D)
 //   ?open=warehouse  → Select Character con el baúl compartido abierto (Fase 21D), del personaje marcado
 //   ?open=runchoice  → Select Character con la ventana Continue / New Run del personaje marcado (21-oct-2026), tenga
@@ -88,6 +89,7 @@
 //   ?town=william    → con ?open=town, aparece junto a ese NPC (howard, shopKeeper, william, tom; Fase 23B);
 //                      con &talk, además se abre su panel
 //   ?town=shopKeeper&shop → con ?open=town, se abre la tienda directamente (Fase 24B)
+//   ?town=shopKeeper&dye → con ?open=town, se abren los tintes directamente (revisión del original D)
 //   ?town=william&missions → con ?open=town, se abren las Missions de William directamente (Fase 29B)
 //   ?town=tom&smith=buy → con ?open=town, se abre el herrero en Buy (o sell, o upgrade: Fase 24D) directamente (Fase 24C)
 //   ?rescued=howard,tom → da esos NPCs por rescatados en este dispositivo (all = todos; reset = ninguno; Fase 29A).
@@ -200,6 +202,8 @@ interface DebugStart {
     townTalk: boolean;
     /** ?town=shopKeeper&shop: the shop opens at once (Fase 24B). */
     townShop: boolean;
+    /** ?town=shopKeeper&dye: the dyes open at once (Revisión del original D). */
+    townDye: boolean;
     /** ?town=william&missions: William's Missions open at once (Fase 29B). */
     townMissions: boolean;
     /** ?town=tom&smith=buy|sell|upgrade: the blacksmith opens at once on that tab (Fase 24C; upgrade, 24D). */
@@ -234,7 +238,7 @@ function readDebugStart(): DebugStart {
     const none: DebugStart = {
         play: false, character: undefined, actions: [], trees: undefined, open: undefined, achievements: undefined, characters: undefined,
         sendMetrics: false, spells: { auto: undefined, active: undefined }, openClass: undefined, openSlot: undefined, slash: undefined,
-        holdLoading: false, gear: [], settingsTab: undefined, attribute: undefined, attributeValue: undefined, secondary: undefined, secondaryValue: undefined, unlocks: undefined, unlockCounts: {}, map: undefined, maps: undefined, rescued: undefined, kills: {}, unique: undefined, townSpot: undefined, townTalk: false, townShop: false, townMissions: false, townSmith: undefined,
+        holdLoading: false, gear: [], settingsTab: undefined, attribute: undefined, attributeValue: undefined, secondary: undefined, secondaryValue: undefined, unlocks: undefined, unlockCounts: {}, map: undefined, maps: undefined, rescued: undefined, kills: {}, unique: undefined, townSpot: undefined, townTalk: false, townShop: false, townDye: false, townMissions: false, townSmith: undefined,
         gold: undefined, weapon: undefined, upgrade: undefined, xelima: undefined, level: undefined, build: undefined, kit: 'best', simBot: 'circle',
     };
     if (!import.meta.env.DEV) return none;
@@ -289,6 +293,7 @@ function readDebugStart(): DebugStart {
         townSpot: parseTownSpot(params.get('town')),
         townTalk: params.has('talk'),
         townShop: params.has('shop'),
+        townDye: params.has('dye'),
         townMissions: params.has('missions'),
         townSmith: SMITH_TABS.find((tab) => tab === params.get('smith')),
         weapon: weapon !== null && isMeleeWeaponId(weapon) ? weapon : undefined,
