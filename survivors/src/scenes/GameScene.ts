@@ -1532,7 +1532,7 @@ export class GameScene extends Phaser.Scene {
 
     /** ?debug=loot: a rolled item a little to the right of the player. */
     private dropDebugLoot(): void {
-        if (!this.player.isDead) this.loot.dropRolled(this.player.x + LOOT_DEBUG.distance, this.player.y, undefined, true);
+        if (!this.player.isDead) this.loot.dropRolled(this.player.x + LOOT_DEBUG.distance, this.player.y);
     }
 
     /** Development (M15): changes the melee slash style and says which one it is. */

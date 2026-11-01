@@ -53,7 +53,7 @@ export class LootSystem {
      * the book of a Manual spell (26E).
      */
     public onKill(x: number, y: number, elite: boolean): void {
-        if (Math.random() < (elite ? LOOT_DROP_CHANCE.elite : LOOT_DROP_CHANCE.normal)) this.dropRolled(x, y, undefined, elite);
+        if (Math.random() < (elite ? LOOT_DROP_CHANCE.elite : LOOT_DROP_CHANCE.normal)) this.dropRolled(x, y);
         const xelima = DEBUG_START.actions.includes('xelima') ? LOOT_XELIMA_CHANCE.debug : LOOT_XELIMA_CHANCE.normal;
         if (this.enabled && Math.random() < xelima) this.drop({ id: XELIMA_STONE_ID }, x, y);
         if (this.owner.manuals.length > 0 && Math.random() < LOOT_MANUAL_CHANCE) this.dropManual(x, y);
@@ -75,7 +75,7 @@ export class LootSystem {
         const total = count + (zem ? 1 : 0);
         const spread = total > 1 ? LOOT_BOSS_SPREAD : 0;
         const at = (i: number): [number, number] => [x + Math.cos((i / total) * Math.PI * 2) * spread, y + Math.sin((i / total) * Math.PI * 2) * spread];
-        for (let i = 0; i < count; i++) this.dropRolled(...at(i), undefined, true);
+        for (let i = 0; i < count; i++) this.dropRolled(...at(i));
         if (zem) this.drop({ id: ZEM_ID }, ...at(count));
     }
 
@@ -84,18 +84,15 @@ export class LootSystem {
         if (!this.enabled) return;
         const zem = DEBUG_START.actions.includes('zem') || Math.random() < CHAMPION.zemChance;
         const spread = zem ? LOOT_BOSS_SPREAD / 2 : 0;
-        this.dropRolled(x - spread, y, CHAMPION.lootTiers, true);
+        this.dropRolled(x - spread, y, CHAMPION.lootTiers);
         if (zem) this.drop({ id: ZEM_ID }, x + spread, y);
     }
 
-    /**
-     * A rolled item at (x, y); `tierWeights` as in rollLoot. `strong` (elites, bosses, the Champion): its attributes can
-     * reach value 13 (ordinary monsters, 7).
-     */
-    public dropRolled(x: number, y: number, tierWeights?: Parameters<typeof rollLoot>[3], strong = false): void {
+    /** A rolled item at (x, y); `tierWeights` as in rollLoot. */
+    public dropRolled(x: number, y: number, tierWeights?: Parameters<typeof rollLoot>[3]): void {
         if (!this.enabled) return;
         const { classId, stats, level } = this.owner;
-        const item = rollLoot(classId, stats, level, tierWeights, strong);
+        const item = rollLoot(classId, stats, level, tierWeights);
         if (item) this.drop(item, x, y);
     }
 

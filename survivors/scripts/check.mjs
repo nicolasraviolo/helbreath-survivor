@@ -163,11 +163,11 @@ const PRESETS = {
     // Fase 24A: oro (moneda y montón junto al jugador, recogidos por el imán) y armaduras con atributo.
     gold: 'play=warrior&characters=demo&debug=god,pickups&gold=0',
     lootarmor: 'play=warrior&characters=demo&debug=god,loot&attr=hpRecovery',
-    // Revisión del original C: botín con valor y segundo atributo. lootvalues = armadura HP Recovery 13 + Physical
-    // Absorption 5 (la carta con dos líneas); lootweapon = Poison 9 + Gold 6; valuesinv = inventario y herrero con valores.
-    lootvalues: 'play=warrior&characters=demo&debug=god,loot&attr=hpRecovery:13&attr2=physicalAbsorption:5',
-    lootweapon: 'play=warrior&characters=demo&debug=god,loot&attr=poison:9&attr2=gold:6',
-    valuesinv: 'characters=demo&open=town&town=tom&smith=sell&gold=100&gear=hpRecovery.13.physicalAbsorption.5:plateMail,defenseRatio.3:helmet,sharp.0.hittingProbability.4:longSword,inv:plateMail',
+    // Revisión del original C: botín con valor y segundo atributo. lootvalues = armadura HP Recovery 7 + Physical
+    // Absorption 5 (la carta con dos líneas); lootweapon = Poison 7 + Gold 6; valuesinv = inventario y herrero con valores.
+    lootvalues: 'play=warrior&characters=demo&debug=god,loot&attr=hpRecovery:7&attr2=physicalAbsorption:5',
+    lootweapon: 'play=warrior&characters=demo&debug=god,loot&attr=poison:7&attr2=gold:6',
+    valuesinv: 'characters=demo&open=town&town=tom&smith=sell&gold=100&gear=hpRecovery.7.physicalAbsorption.5:plateMail,defenseRatio.3:helmet,sharp.0.hittingProbability.4:longSword,inv:plateMail',
     // Abaddon's Blood (Fase 21E): Guerrero desbloqueado con una horda. Para morir y ver si revive (y el icono apagado):
     // --eval="new Promise((r) => { g.hurtPlayer(99999, true, 'test'); setTimeout(() => r({ hp: g.player.hp, dead: g.player.isDead }), 1500); })"
     revive: 'play=warrior&unlocks=abaddon&debug=horde',

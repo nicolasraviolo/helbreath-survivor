@@ -15,8 +15,8 @@
 // los "stats" de las armaduras del original con sus nombres (docs/hb-wiki/armaduras.md, "Armor Attributes"):
 // HP Recovery, MP Recovery, Defense Ratio y Magic Resistance. Valores fijos nuestros. MP Recovery solo en la ropa de la
 // Maga; desde la Fase 26A rellena el maná un 30% más deprisa.
-// Revisión del original C (1-nov-2026, docs/REVISION-ORIGINAL.md): cada atributo con valor del 1 al 13 (tabla del
-// original; tope 7 en monstruos normales) y el 40 % del botín con un segundo atributo (SECONDARY_ATTRIBUTES). Cada punto
+// Revisión del original C (1-nov-2026, docs/REVISION-ORIGINAL.md): cada atributo con valor del 1 al 7 (tabla del
+// original, 1–13, con tope 7 para todo: decisión del propietario) y el 40 % del botín con un segundo atributo (SECONDARY_ATTRIBUTES). Cada punto
 // vale +7 % (absorciones +3 %, Gold y Experience +10 %); Sharp y Ancient siguen fijos. Los objetos guardados antes no
 // tienen valor y cuentan como `legacyValue` (lo más parecido a lo que daban, nunca menos).
 import type { ArmorSetId } from './armor';
@@ -54,7 +54,7 @@ interface AttributeBase {
     weight: number;
     effect: AttributeEffect;
     /**
-     * Effect per point of value (1–13, ATTRIBUTE_VALUE_WEIGHTS): 0.07 = +7% per point (original: secondaries ×7%,
+     * Effect per point of value (1–7, ATTRIBUTE_VALUE_MAX): 0.07 = +7% per point (original: secondaries ×7%,
      * absorptions ×3%, Gold and Experience ×10%). Missing = the attribute has no value and gives `fixed` (Sharp, Ancient).
      */
     perValue?: number;
@@ -146,10 +146,12 @@ export const SECONDARY_ATTRIBUTE_IDS = Object.keys(SECONDARY_ATTRIBUTES) as Seco
  * 7 = 1.7% · 8 = 1.3% · 9 = 1% · 10 = 0.67% · 11 = 0.33% · 12 = 0.23% · 13 = 0.1%.
  */
 export const ATTRIBUTE_VALUE_WEIGHTS: readonly number[] = [10000, 7400, 5000, 3000, 2000, 1000, 500, 400, 300, 200, 100, 70, 30];
-export const ATTRIBUTE_VALUE_MAX = ATTRIBUTE_VALUE_WEIGHTS.length;
-
-/** Highest value an item from an ordinary monster can have (original: weak monsters, iGenLevel ≤ 2, top out at 7). Elites, bosses and the Champion reach 13. */
-export const ATTRIBUTE_VALUE_CAP_NORMAL = 7;
+/**
+ * Highest value any item can have (owner, 1-nov-2026: "en 15 años nunca me cayó algo tan alto"): 7, the original's cap
+ * for weak monsters (iGenLevel ≤ 2), for every drop. Rolls of 8–13 become 7, as the original did. Max +49% (+21% the
+ * absorptions, +70% Gold and Experience).
+ */
+export const ATTRIBUTE_VALUE_MAX = 7;
 
 /** Share of the dropped items with a second attribute (original: 40%). */
 export const SECONDARY_ATTRIBUTE_CHANCE = 0.4;
@@ -160,7 +162,7 @@ export const MAX_ABSORPTION = 0.6;
 /** The attributes of one item: the first (with its value, when it has one) and maybe a second. */
 export interface ItemRolls {
     attribute?: ItemAttribute;
-    /** 1–13; missing on items saved before values existed (they count as `legacyValue`). */
+    /** 1–7; missing on items saved before values existed (they count as `legacyValue`). */
     attributeValue?: number;
     secondary?: SecondaryAttribute;
     secondaryValue?: number;

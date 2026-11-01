@@ -332,10 +332,10 @@ export function canHaveSecondary(id: ItemId, secondary: SecondaryAttribute, firs
     return isWandId(id) || isMeleeWeaponId(id);
 }
 
-/** A saved value 1–13, raised to the attribute's minimum; undefined if missing or not a whole number in range. */
+/** A saved value, between the attribute's minimum and ATTRIBUTE_VALUE_MAX (7); undefined if missing or not a whole number. */
 export function readAttributeValue(value: unknown, minValue = 1): number | undefined {
-    if (typeof value !== 'number' || !Number.isInteger(value) || value < 1 || value > ATTRIBUTE_VALUE_MAX) return undefined;
-    return Math.max(minValue, value);
+    if (typeof value !== 'number' || !Number.isInteger(value) || value < 1) return undefined;
+    return Math.max(minValue, Math.min(ATTRIBUTE_VALUE_MAX, value));
 }
 
 /** Only the attribute fields of an item (to copy them onto another object). */

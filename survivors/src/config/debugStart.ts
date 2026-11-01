@@ -42,7 +42,7 @@
 //                      orden; los ids de data/spells.ts y data/activeSpells.ts), sin mirar requisitos (Fase 20D)
 //   ?attr=sharp      → el arma de salida y todo el botín (que siempre es un arma) con ese atributo: sharp, poison o
 //                      ancient (Fase 21B; las varitas nunca son poison)
-//   ?attr=hpRecovery:13 → con valor (1–13; revisión del original C). ?attr2=gold:5 → además ese segundo atributo
+//   ?attr=hpRecovery:7 → con valor (1–7; revisión del original C). ?attr2=gold:5 → además ese segundo atributo
 //                      (hittingProbability, gold, experience, defenseRatio2, magicResistance2, hpRecovery2, mpRecovery2,
 //                      physicalAbsorption, magicAbsorption) en todo el botín y en el arma de salida si puede llevarlo
 //   ?weapon=lightAxe → el Guerrero empieza la partida con esa arma en la mano (id de data/weapons.ts), sin mirar
@@ -65,7 +65,7 @@
 //   ?open=equipment  → Select Character con la pantalla Equipment abierta (Fase 20B), del Guerrero (o el primero;
 //                      con &class=mage, de la Maga); con &slot=spell1, con ese hueco elegido (Fase 26C)
 //                      sin repartir (o del primero); con ?characters=demo, Gorn tiene puntos
-//   ?gear=hpRecovery.13.gold.5:robe → al inventario con valores y segundo atributo (revisión del original C)
+//   ?gear=hpRecovery.7.gold.5:robe → al inventario con valores y segundo atributo (revisión del original C)
 //   ?gear=plateMail,helmet → con ?characters=demo, los dos de ejemplo llevan esos objetos (los que su clase pueda
 //                      ponerse, sin mirar requisitos; ids de data/weapons.ts y data/armor.ts). Para ver el equipo
 //                      dibujado en la ventana Character (M17). "sharp:longSword" lo mete en el inventario con ese
@@ -336,7 +336,7 @@ function readUnlockCounts(unlocks: string | null): Partial<Record<StackableUnloc
 
 export const DEBUG_START = readDebugStart();
 
-/** "13" → 13 (1..ATTRIBUTE_VALUE_MAX); anything else → undefined. */
+/** "7" → 7 (1..ATTRIBUTE_VALUE_MAX); anything else → undefined. */
 function debugAttributeValue(text: string | undefined): number | undefined {
     const value = Number(text);
     return Number.isInteger(value) && value >= 1 && value <= ATTRIBUTE_VALUE_MAX ? value : undefined;

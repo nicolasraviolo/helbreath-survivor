@@ -5,11 +5,11 @@
 // armas y varitas tiran su atributo (data/attributes.ts).
 // Fase 21D: la escalera solo lleva lo que puede caer (isLootDrop: ni el Zem ni los hechizos que se saben con la Int).
 // Fase 24A: todo lo que cae lleva atributo (de arma o de armadura); lo normal se compra al herrero.
-// Revisión del original C (1-nov-2026): el atributo trae un valor del 1 al 13 con la tabla del original (tope 7 en
-// los monstruos normales) y el 40 % trae además un segundo atributo (data/attributes.ts).
+// Revisión del original C (1-nov-2026): el atributo trae un valor del 1 al 7 con la tabla del original (lo que pase
+// de 7 se queda en 7) y el 40 % trae además un segundo atributo (data/attributes.ts).
 import { DEBUG_START } from '../config/debugStart';
 import {
-    ATTRIBUTE_VALUE_CAP_NORMAL, ATTRIBUTE_VALUE_MAX, ATTRIBUTE_VALUE_WEIGHTS, ATTRIBUTES, ITEM_ATTRIBUTES, SECONDARY_ATTRIBUTE_CHANCE,
+    ATTRIBUTE_VALUE_MAX, ATTRIBUTE_VALUE_WEIGHTS, ATTRIBUTES, ITEM_ATTRIBUTES, SECONDARY_ATTRIBUTE_CHANCE,
     SECONDARY_ATTRIBUTE_IDS, SECONDARY_ATTRIBUTES, type ItemAttribute, type ItemRolls, type SecondaryAttribute,
 } from '../data/attributes';
 import {
@@ -83,7 +83,7 @@ export function rollAttribute(id: ItemId): ItemAttribute | undefined {
  */
 export function rollAttributeValue(cap: number, min = 1): number {
     let roll = Math.random() * ATTRIBUTE_VALUE_WEIGHTS.reduce((sum, weight) => sum + weight, 0);
-    let value = ATTRIBUTE_VALUE_MAX;
+    let value = ATTRIBUTE_VALUE_WEIGHTS.length;
     for (let i = 0; i < ATTRIBUTE_VALUE_WEIGHTS.length; i++) {
         roll -= ATTRIBUTE_VALUE_WEIGHTS[i] ?? 0;
         if (roll < 0) {
@@ -94,12 +94,9 @@ export function rollAttributeValue(cap: number, min = 1): number {
     return Math.max(min, Math.min(cap, value));
 }
 
-/**
- * All the attributes of a dropped item: the first with its value, and a second one 40% of the time. `strong` (elites,
- * bosses, the Champion) can reach 13; ordinary monsters stop at 7.
- */
-export function rollItemRolls(id: ItemId, strong: boolean): ItemRolls {
-    const cap = strong ? ATTRIBUTE_VALUE_MAX : ATTRIBUTE_VALUE_CAP_NORMAL;
+/** All the attributes of a dropped item: the first with its value (1–7), and a second one 40% of the time. */
+export function rollItemRolls(id: ItemId): ItemRolls {
+    const cap = ATTRIBUTE_VALUE_MAX;
     const attribute = rollAttribute(id);
     const def = attribute ? ATTRIBUTES[attribute] : undefined;
     const attributeValue = def?.perValue === undefined ? undefined : DEBUG_START.attributeValue ?? rollAttributeValue(cap, def.minValue);
@@ -134,7 +131,7 @@ export function debugRolls(id: ItemId): ItemRolls {
  */
 export function rollLoot(
     classId: CharacterId, stats: Readonly<Stats>, level: number,
-    tierWeights: Readonly<Partial<Record<LootTier, number>>> = LOOT_TIER_WEIGHTS, strong = false,
+    tierWeights: Readonly<Partial<Record<LootTier, number>>> = LOOT_TIER_WEIGHTS,
 ): OwnedItem | undefined {
     const weights = { ...LOOT_SLOT_WEIGHTS, ...LOOT_SLOT_WEIGHTS_BY_CLASS[classId] };
     // ?attr= (debug): only items that can have it drop (weapons for Sharp, armor for HP Recovery...), to see it every time.
@@ -154,5 +151,5 @@ export function rollLoot(
     const tier = pickWeighted(Object.entries(tierWeights) as Array<[LootTier, number]>) ?? 'same';
     const id = ladder[rareCheck(ladder, tierIndex(tier, own, ladder.length))];
     if (!id) return undefined;
-    return { id, ...rollItemRolls(id, strong) };
+    return { id, ...rollItemRolls(id) };
 }
