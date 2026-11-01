@@ -140,6 +140,8 @@ const DEBUG_CHARGE = { enemies: ['bunny', 'ant', 'direBoar', 'minotaur'], count:
 /** ?debug=movement (Fase 27C): a ring mixing every way of moving (wander, flank, charge, keep away). */
 /** ?debug=orcs: Orcs close around the player, to look at sprites up close (Fase 28¾). */
 const DEBUG_ORCS = { enemies: ['orc'], count: 6, radiusPx: 90, checkEveryMs: 250, maxWaitMs: 10000 } as const;
+/** ?debug=casters (1-nov-2026): the regular monsters that cast spells, far enough to cast instead of hitting. */
+const DEBUG_CASTERS = { enemies: ['hellhound', 'cyclops', 'cannibalPlant', 'lich', 'gargoyle', 'hellclaw', 'tigerworm'], count: 7, radiusPx: 320, checkEveryMs: 250, maxWaitMs: 15000 } as const;
 const DEBUG_MOVEMENT = { enemies: ['slime', 'cat', 'bunny', 'orcMage'], count: 16, radiusPx: 300, checkEveryMs: 250, maxWaitMs: 10000 } as const;
 /** Points added by the debug keys V (Str) and B (Int and Mag), to see links and armor show up quickly. */
 const DEBUG_STR_POINTS = 10;
@@ -1329,7 +1331,7 @@ export class GameScene extends Phaser.Scene {
 
     /** ?debug=movement: asks for the monsters not downloaded yet and spawns the ring once they all are (or after maxWaitMs). */
     /** A ring of debug monsters around the player, downloading the ones missing first. */
-    private spawnDebugRing(ring: typeof DEBUG_MOVEMENT | typeof DEBUG_ORCS, waitedMs = 0): void {
+    private spawnDebugRing(ring: typeof DEBUG_MOVEMENT | typeof DEBUG_ORCS | typeof DEBUG_CASTERS, waitedMs = 0): void {
         const { enemies, count, radiusPx, checkEveryMs, maxWaitMs } = ring;
         const missing = enemies.filter((id) => !assetStreamer.isReady(id));
         if (missing.length > 0 && waitedMs < maxWaitMs) {
@@ -1662,6 +1664,10 @@ export class GameScene extends Phaser.Scene {
             case 'movement':
                 // Every way of moving at once (Fase 27C): downloads the ones missing first (the Mage-Orc comes later in Traveler Zone).
                 this.spawnDebugRing(DEBUG_MOVEMENT);
+                break;
+            case 'casters':
+                // Monsters with a sky spell (1-nov-2026), downloaded first if this map has not got them.
+                this.spawnDebugRing(DEBUG_CASTERS);
                 break;
             case 'orcs':
                 // Fase 28¾: Orcs close by (downloaded first if this map has not got them yet).

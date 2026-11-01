@@ -118,6 +118,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Fallar golpes y vida que crece con los minutos (revisión del original B, 31-oct-2026)
 - Botín con valores y segundo atributo (revisión del original C, 1-nov-2026)
 - Tintes de la ropa (revisión del original D, 1-nov-2026)
+- Magias de los monstruos del original (1-nov-2026)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -1358,3 +1359,10 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - **Dónde se pinta:** `equipmentLook(equipment, attributes, colors)` (CharacterSprite, PaperDoll, Character, Equipment, Select Character) y `Equipment.wear(piece, rolls, color)` (partida y ciudad). Iconos: `ownedItemColor` → `dyeAdded`.
 - **Tienda:** `scenes/DyeScene.ts` (opción "Dyes" de la Shop Keeper, `NpcAction 'dye'`), medidas `DYE_LAYOUT` en `config/shop.ts`. `characterStore.dye(uid, slot, color)`; el oro lo cobra la escena.
 - **Atajos:** `?gear=dye3:cape` (puesta y teñida, con `characters=demo`), `?town=shopKeeper&dye`; `check dye` / `dyemage` / `dyenone` / `dyetown` / `dyecharinfo`.
+
+## Magias de los monstruos del original (1-nov-2026)
+- **Regla del servidor** (`reference/Server.cpp`, `NpcBehavior_Attack`): si el jugador no está pegado al monstruo y su Magic del NPC.cfg es > 0, la mitad de las veces lanza el primer hechizo de su nivel que le permita el maná y espera 2 s. Nivel 3 Orc-Mage (Fire-Ball); 5 Hellhound, Cyclops, Cannibal Plant y Rudolph según un comentario (Lightning › Fire-Strike › Lightning-Arrow); 6 Lich (Lightning-Bolt); 7 Gargoyle, Hellclaw, Demon y Wyvern (Mass-Fire-Strike, a veces Bloody-Shock-Wave); 8 Unicorn (Paralyze/Energy-Strike); 9 Tigerworm (Lightning-Strike); 10–11 Frost, Nizie e Ice Golem: nada por nivel (Frost y Nizie tienen su Ice-Strike aparte); 12 Wyvern (Blizzard/Mass-Chill-Wind).
+- **Lo que hemos puesto** (`data/enemies.ts`, todos con marca en el suelo): normales con daño = golpe × `damageShare` y espera de 4,5–8,5 s: Hellhound y Cannibal Plant `MOB_LIGHTNING`, Cyclops `CYCLOPS_FIRE_STRIKE`, Lich `LICH_LIGHTNING_BOLT` (fila de 5), Gargoyle y Hellclaw `MOB_MASS_FIRE_STRIKE` (4 marcas), Tigerworm `MOB_LIGHTNING_STRIKE`. Jefes con daño fijo: Demon (7 marcas, `fx.explosion4`), jefe Hellhound, jefe final Cyclops, Giant Lizard (Energy-Strike en línea).
+- **Lanzar a distancia de golpe:** `Enemy.wantsToCast` ya no exige estar fuera del alcance de su golpe, solo no estar pegado al jugador (como el original). Sin esto, el Lich, el Gargoyle y el Hellclaw (alcance 5) nunca lanzaban.
+- **Sin hacer (dudosos):** Mage-Orc sigue con su bola que vuela; Beholder (congelar 5 s, sin daño), Rudolph (el servidor le da nivel 5, la wiki nada), Ice Golem (remolino de hielo, solo en la wiki), la Bloody-Shock-Wave ocasional del Demon.
+- **Probar:** `check casters` (corro de los normales a 320 px), `demonspell` (Bleeding Isle), `hellhoundspell` y `cyclopsspell` (Elvine Garden), `lizardspell` (Middleland). Para contar marcas: `--eval` sobre `g.enemyShots.strikes.active` (campo `source`).

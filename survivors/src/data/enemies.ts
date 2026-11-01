@@ -323,6 +323,72 @@ const TIGERWORM_LIGHTNING: EnemySkySpell = {
 };
 
 /**
+ * Monstruos que lanzaban magia en el original (1-nov-2026, propietario: "se marca el suelo y luego impacta").
+ * reference/Server.cpp, NpcBehavior_Attack: con el jugador lejos y la magia del NPC.cfg > 0, la mitad de las veces
+ * lanza el primer hechizo de su nivel que le dé el maná y espera 2 s. Nivel 5 (Hellhound, Cyclops, Cannibal Plant):
+ * Lightning / Fire-Strike; 6 (Lich): Lightning-Bolt; 7 (Gargoyle, Hellclaw, Demon): Mass-Fire-Strike; 9 (Tigerworm):
+ * Lightning-Strike. Giant Lizard: Energy-Strike (wiki).
+ * Los normales: daño = su golpe × `damageShare` y más espera que los jefes, para que una oleada no llene el suelo de marcas.
+ * Los jefes: daño fijo, en la escala de los demás jefes (Wyvern 9, Unicorn 10).
+ */
+/** Lightning: una marca bajo los pies (nivel 5). */
+const MOB_LIGHTNING: EnemySkySpell = {
+    rangePx: 7 * 32, minCooldownMs: 5000, maxCooldownMs: 8000, warnMs: 800, radius: 28, damageShare: 1, magicHitRatio: 60, sound: 'sfx.lightning',
+};
+
+/** Fire-Strike del Cyclops (wiki): una marca y estalla fuego. */
+const CYCLOPS_FIRE_STRIKE: EnemySkySpell = {
+    rangePx: 7 * 32, minCooldownMs: 5000, maxCooldownMs: 8000, warnMs: 850, radius: 32, damageShare: 1, magicHitRatio: 65,
+    sound: 'sfx.explosion', impact: 'fx.fireBall.explode', markColor: 0xff8a3d,
+};
+
+/** Lightning-Bolt del Lich: una fila corta desde él que pasa por ti. */
+const LICH_LIGHTNING_BOLT: EnemySkySpell = {
+    rangePx: 8 * 32, minCooldownMs: 4500, maxCooldownMs: 7000, warnMs: 800, radius: 26, damageShare: 1, magicHitRatio: 75, sound: 'sfx.lightning',
+    pattern: { kind: 'line', count: 5, spacingPx: 44, stepMs: 60 },
+};
+
+/** Mass-Fire-Strike (Gargoyle, Hellclaw): 4 marcas de fuego, una en tus pies y tres alrededor. */
+const MOB_MASS_FIRE_STRIKE: EnemySkySpell = {
+    rangePx: 8 * 32, minCooldownMs: 5500, maxCooldownMs: 8500, warnMs: 900, radius: 32, damageShare: 0.9, magicHitRatio: 85,
+    sound: 'sfx.explosion', impact: 'fx.fireBall.explode', markColor: 0xff8a3d,
+    pattern: { kind: 'scatter', count: 4, minPx: 60, maxPx: 120 },
+};
+
+/** Lightning-Strike del Tigerworm normal: la cadena del jefe, más corta. */
+const MOB_LIGHTNING_STRIKE: EnemySkySpell = {
+    rangePx: 8 * 32, minCooldownMs: 5500, maxCooldownMs: 8500, warnMs: 900, radius: 30, damageShare: 0.8, magicHitRatio: 90, sound: 'sfx.lightning',
+    pattern: { kind: 'scatter', count: 4, minPx: 60, maxPx: 150, stepMs: 110 },
+};
+
+/** Jefe Hellhound (Elvine Garden, min 4): tres rayos juntos. */
+const HELLHOUND_BOSS_LIGHTNING: EnemySkySpell = {
+    rangePx: 480, minCooldownMs: 3000, maxCooldownMs: 4000, warnMs: 850, radius: 30, damageShare: 0, damage: 8, magicHitRatio: 75, sound: 'sfx.lightning',
+    pattern: { kind: 'scatter', count: 3, minPx: 60, maxPx: 110 },
+};
+
+/** Jefe final Cyclops (Elvine Garden): Fire-Strike en 5 marcas. */
+const CYCLOPS_BOSS_FIRE_STRIKE: EnemySkySpell = {
+    rangePx: 520, minCooldownMs: 2800, maxCooldownMs: 3600, warnMs: 900, radius: 34, damageShare: 0, damage: 9, magicHitRatio: 80,
+    sound: 'sfx.explosion', impact: 'fx.fireBall.explode', markColor: 0xff8a3d,
+    pattern: { kind: 'scatter', count: 5, minPx: 70, maxPx: 150 },
+};
+
+/** Demon (Traveler Zone, min 8): Mass-Fire-Strike en 7 marcas, con la explosión grande. */
+const DEMON_MASS_FIRE_STRIKE: EnemySkySpell = {
+    rangePx: 520, minCooldownMs: 3200, maxCooldownMs: 4200, warnMs: 1000, radius: 34, damageShare: 0, damage: 8, magicHitRatio: 80,
+    sound: 'sfx.explosion', impact: 'fx.explosion4', markColor: 0xff6a2a,
+    pattern: { kind: 'scatter', count: 7, minPx: 70, maxPx: 170, stepMs: 60 },
+};
+
+/** Giant Lizard (Middleland, min 8): Energy-Strike en línea, como el Unicorn pero más corta. */
+const LIZARD_ENERGY_STRIKE: EnemySkySpell = {
+    rangePx: 480, minCooldownMs: 2800, maxCooldownMs: 3600, warnMs: 800, radius: 28, damageShare: 0, damage: 10, magicHitRatio: 85,
+    sound: 'sfx.energyBolt.impact', impact: 'fx.energyBolt.explode', markColor: 0xd9b8ff,
+    pattern: { kind: 'line', count: 7, spacingPx: 50, stepMs: 70 },
+};
+
+/**
  * The mark on the ground where a sky spell will fall: a flat ellipse (`yShare` of its width high) the spell's size,
  * filling up as the bolt comes. Blue-white, like the bolt.
  */
@@ -422,12 +488,14 @@ export const ENEMIES = {
     cyclops: {
         name: 'Cyclops', sprite: 'enemy.cyclops', temporalCoefficient: 0.5, hasShadow: true, maxHp: 800, xp: 160, radius: 18, bodyOffsetY: 44,
         actionTimeMs: 1200, attackRange: 3, bravery: 805, damageDice: [8, 6], hitRatio: 180, defenseRatio: 110, magicResist: 78, hitSound: 'sfx.cyclops.hit', deathSound: 'sfx.cyclops.death', attackSound: 'sfx.cyclops.attack',
+        skySpell: CYCLOPS_FIRE_STRIKE,
     },
     // Propios de Bleeding Isle (tiers 5–7). NPC.cfg Cannibal-Plant: ATime 800, alcance 2, 8d8.
     // NPC.cfg Mountain-Giant: ATime 700, alcance 2, 8d7.
     cannibalPlant: {
         name: 'Cannibal Plant', sprite: 'enemy.cannibalPlant', temporalCoefficient: 1, hasShadow: true, maxHp: 900, xp: 180, radius: 16, bodyOffsetY: 36,
         actionTimeMs: 800, attackRange: 2, bravery: 100, damageDice: [8, 8], hitRatio: 230, defenseRatio: 110, magicResist: 84, hitSound: 'sfx.cannibalPlant.hit', deathSound: 'sfx.cannibalPlant.death', attackSound: 'sfx.cannibalPlant.attack',
+        skySpell: MOB_LIGHTNING,
     },
     // Elvine Garden (Fase 22D). sp-client: Giant Tree = giantplant.spr, sonidos M120–M123, sin animación especial.
     // NPC.cfg (centuu/HelbreathServer) lo llama Giant-Plant: ATime 700, alcance 2, MinBrvy 100, 8d6, HR 200. Tier 6.
@@ -442,10 +510,12 @@ export const ENEMIES = {
     lich: {
         movement: 'keepAway', name: 'Lich', sprite: 'enemy.lich', temporalCoefficient: 1, hasShadow: true, maxHp: 680, xp: 136, radius: 14, bodyOffsetY: 36,
         actionTimeMs: 700, attackRange: 5, bravery: 100, damageDice: [8, 6], hitRatio: 230, defenseRatio: 275, magicResist: 90, hitSound: 'sfx.lich.hit', deathSound: 'sfx.lich.death', attackSound: 'sfx.lich.attack',
+        skySpell: LICH_LIGHTNING_BOLT,
     },
     hellhound: {
         movement: 'flank', name: 'Hellhound', sprite: 'enemy.hellhound', temporalCoefficient: 0.5, hasShadow: true, maxHp: 540, xp: 108, radius: 13, bodyOffsetY: 18,
         actionTimeMs: 900, attackRange: 1, bravery: 4, damageDice: [7, 5], hitRatio: 200, defenseRatio: 90, magicResist: 60, hitSound: 'sfx.hellhound.hit', deathSound: 'sfx.hellhound.death', attackSound: 'sfx.hellhound.attack',
+        skySpell: MOB_LIGHTNING,
     },
     // Desactivado (Fase 13): no sale en ninguna oleada ni como esbirro. Se deja para volver a usarlo más adelante.
     darkElf: {
@@ -458,14 +528,17 @@ export const ENEMIES = {
     gargoyle: {
         name: 'Gargoyle', sprite: 'enemy.gargoyle', temporalCoefficient: 1, hasShadow: true, maxHp: 1120, xp: 224, radius: 18, bodyOffsetY: 44,
         actionTimeMs: 700, attackRange: 5, bravery: 100, damageDice: [13, 10], hitRatio: 500, defenseRatio: 350, magicResist: 1, hitSound: 'sfx.cyclops.hit', deathSound: 'sfx.direBoar.death', attackSound: 'sfx.gargoyle.attack',
+        skySpell: MOB_MASS_FIRE_STRIKE,
     },
     hellclaw: {
         name: 'Hellclaw', sprite: 'enemy.hellclaw', temporalCoefficient: 1, hasShadow: true, maxHp: 1300, xp: 260, radius: 20, bodyOffsetY: 44,
         actionTimeMs: 600, attackRange: 5, bravery: 100, damageDice: [15, 14], hitRatio: 1000, defenseRatio: 350, magicResist: 1, hitSound: 'sfx.cyclops.hit', deathSound: 'sfx.cyclops.death', attackSound: 'sfx.cyclops.attack',
+        skySpell: MOB_MASS_FIRE_STRIKE,
     },
     tigerworm: {
         name: 'Tigerworm', sprite: 'enemy.tigerworm', temporalCoefficient: 1, hasShadow: false, maxHp: 1520, xp: 304, radius: 20, bodyOffsetY: 30,
         actionTimeMs: 600, attackRange: 6, bravery: 100, damageDice: [18, 17], hitRatio: 1200, defenseRatio: 350, magicResist: 1, hitSound: 'sfx.lich.hit', deathSound: 'sfx.lich.death', attackSound: 'sfx.tigerworm.attack',
+        skySpell: MOB_LIGHTNING_STRIKE,
     },
     // Icebound (Fase 30A). NPC.cfg de centuu/HelbreathServer (ATime, alcance, MinBrvy, dados, HR); vida y XP nuestras,
     // por su tier de la wiki (Rudolph 4; Ice Golem, Beholder y Claw Turtle 6). Sin sombra especial en sp-client.
@@ -505,7 +578,7 @@ export const ENEMIES = {
         name: 'Demon', sprite: 'enemy.demon', temporalCoefficient: 1, hasShadow: true, maxHp: 4000, xp: 500, radius: 24, bodyOffsetY: 56,
         actionTimeMs: 700, attackRange: 4, bravery: 100, damageDice: [10, 10], hitRatio: 500, defenseRatio: 350, magicResist: 1, hitSound: 'sfx.demon.hit', deathSound: 'sfx.demon.death', attackSound: 'sfx.demon.attack',
         scale: 1.3, knockbackTaken: 0, damageScale: 0.54,
-        boss: { title: 'Demon', dropsChest: true, final: false },
+        boss: { title: 'Demon', dropsChest: true, final: false, skySpell: DEMON_MASS_FIRE_STRIKE },
     },
     // Jefes de Traveler Zone (Fase 22A, mapa de introducción). El Stone Golem jefe es el de siempre, más grande y con más
     // vida. 28½B (25-oct-2026, propietario: "jefes de verdad"): pegaba 7 y moría en ~27 s; ahora pega ~15 y aguanta más.
@@ -548,7 +621,7 @@ export const ENEMIES = {
         name: 'Hellhound', sprite: 'enemy.hellhound', temporalCoefficient: 0.5, hasShadow: true, maxHp: 2600, xp: 300, radius: 18, bodyOffsetY: 26,
         actionTimeMs: 900, attackRange: 1, bravery: 100, damageDice: [7, 5], hitRatio: 200, defenseRatio: 90, magicResist: 60, hitSound: 'sfx.hellhound.hit', deathSound: 'sfx.hellhound.death', attackSound: 'sfx.hellhound.attack',
         scale: 1.5, knockbackTaken: 0, damageScale: 1.1,
-        boss: { title: 'Hellhound', dropsChest: true, final: false },
+        boss: { title: 'Hellhound', dropsChest: true, final: false, skySpell: HELLHOUND_BOSS_LIGHTNING },
     },
     stalkerBoss: {
         name: 'Stalker', sprite: 'enemy.stalker', temporalCoefficient: 1, hasShadow: true, maxHp: 5500, xp: 600, radius: 18, bodyOffsetY: 44,
@@ -560,7 +633,7 @@ export const ENEMIES = {
         name: 'Cyclops', sprite: 'enemy.cyclops', temporalCoefficient: 0.5, hasShadow: true, maxHp: 12000, xp: 1400, radius: 28, bodyOffsetY: 70,
         actionTimeMs: 1200, attackRange: 3, bravery: 100, damageDice: [8, 6], hitRatio: 180, defenseRatio: 110, magicResist: 78, hitSound: 'sfx.cyclops.hit', deathSound: 'sfx.cyclops.death', attackSound: 'sfx.cyclops.attack',
         scale: 1.6, knockbackTaken: 0, damageScale: 1.2,
-        boss: { title: 'Cyclops', dropsChest: true, final: true },
+        boss: { title: 'Cyclops', dropsChest: true, final: true, skySpell: CYCLOPS_BOSS_FIRE_STRIKE },
     },
     // Middleland (Fase 22E, monstruos y jefes elegidos por el propietario el 21-oct-2026). El Ettin normal es otro id
     // porque `ettin` es el jefe de Bleeding Isle. NPC.cfg Ettin: ATime 700, alcance 3, 8d9, HR 350. Tier 8.
@@ -583,7 +656,7 @@ export const ENEMIES = {
         name: 'Giant Lizard', sprite: 'enemy.giantLizard', temporalCoefficient: 1, hasShadow: true, maxHp: 7000, xp: 800, radius: 24, bodyOffsetY: 40,
         actionTimeMs: 600, attackRange: 2, bravery: 100, damageDice: [10, 10], hitRatio: 400, defenseRatio: 325, magicResist: 1, hitSound: 'sfx.giantLizard.hit', deathSound: 'sfx.giantLizard.death', attackSound: 'sfx.giantLizard.attack',
         scale: 1.4, knockbackTaken: 0, damageScale: 0.6,
-        boss: { title: 'Giant Lizard', dropsChest: true, final: false },
+        boss: { title: 'Giant Lizard', dropsChest: true, final: false, skySpell: LIZARD_ENERGY_STRIKE },
     },
     // El Ettin de siempre en "Berserk": rojo como los élites, ataca a ritmo normal (el de Bleeding Isle va un 40% más
     // lento) y pega más.

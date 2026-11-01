@@ -580,7 +580,7 @@ export class Enemy implements Poolable {
             facingY = this.windupY;
             wanted = MonsterState.Idle;
             if (this.windupMs <= 0) this.startOwnCharge();
-        } else if (this.wantsToCast(inReach, distance)) {
+        } else if (this.wantsToCast(distance <= world.targetRadius + this.radius + MONSTER_ATTACK.reach, distance)) {
             this.startCast(dx, dy);
             wanted = MonsterState.Attack;
         } else if (inReach) {
@@ -731,10 +731,13 @@ export class Enemy implements Poolable {
         this.moveBy(vx, vy, speed, seconds, world);
     }
 
-    /** Sky spell (Fase 29A): ready, the player out of its blows' reach but within the spell's range. */
-    private wantsToCast(inReach: boolean, distance: number): boolean {
+    /**
+     * Sky spell (Fase 29A): ready, the player not touching it but within the spell's range. Like the original server
+     * (NpcBehavior_Attack), monsters that hit from afar also cast at that distance instead of only hitting (1-nov-2026).
+     */
+    private wantsToCast(touching: boolean, distance: number): boolean {
         const spell = this.def.skySpell;
-        return spell !== undefined && !inReach && this.spellCooldownMs <= 0 && distance <= spell.rangePx;
+        return spell !== undefined && !touching && this.spellCooldownMs <= 0 && distance <= spell.rangePx;
     }
 
     /** Casts like an attack (animation and sound); the spell leaves on the hit frame (updateAttack). */

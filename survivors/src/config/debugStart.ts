@@ -12,6 +12,8 @@
 //                      movement = un corro con todas las formas de moverse: deambular, rodear, embestir y guardar
 //                                 distancia (Slime, Cat, Bunny, Mage-Orc; los ya descargados en ese mapa, Fase 27C)
 //                      orcs = un corro de Orcs cerca del jugador (para mirar sprites de cerca, Fase 28¾)
+//                      casters = un corro de los monstruos normales que lanzan magia (Hellhound, Cyclops, Cannibal Plant,
+//                                Lich, Gargoyle, Hellclaw, Tigerworm), a distancia para que lancen (1-nov-2026)
 //                      nosmooth = sin el filtro xBR de los sprites que se mueven (Fase 28¾B; para comparar con y sin)
 //                      stampede =lanzar ya una estampida (la primera de data/waves.ts, Fase 13B)
 //                      resume = guardar y volver a cargar la partida, como con Continue (Fase 12)
@@ -135,7 +137,7 @@ function isDebugScreen(value: string | null): value is DebugScreen {
 }
 
 /** Actions that ?debug= can run at the start of a run (the same ones as the debug keys of GameScene). */
-export const DEBUG_ACTIONS = ['horde', 'kill', 'levelup', 'levels', 'str', 'magic', 'pickups', 'totems', 'minute', 'boss', 'finalboss', 'bosskill', 'stampede', 'dodge', 'stats', 'god', 'crits', 'aim', 'aimstick', 'resume', 'sim', 'charexp', 'stones', 'elites', 'loot', 'zem', 'onehp', 'epic', 'champion', 'xelima', 'nomana', 'spelldrag', 'bluebook', 'charge', 'movement', 'aura', 'daggers', 'angels', 'orcs', 'nosmooth', 'rescue', 'unique', 'maxcards'] as const;
+export const DEBUG_ACTIONS = ['horde', 'kill', 'levelup', 'levels', 'str', 'magic', 'pickups', 'totems', 'minute', 'boss', 'finalboss', 'bosskill', 'stampede', 'dodge', 'stats', 'god', 'crits', 'aim', 'aimstick', 'resume', 'sim', 'charexp', 'stones', 'elites', 'loot', 'zem', 'onehp', 'epic', 'champion', 'xelima', 'nomana', 'spelldrag', 'bluebook', 'charge', 'movement', 'aura', 'daggers', 'angels', 'orcs', 'casters', 'nosmooth', 'rescue', 'unique', 'maxcards'] as const;
 export type DebugAction = (typeof DEBUG_ACTIONS)[number];
 
 function isDebugAction(value: string): value is DebugAction {
