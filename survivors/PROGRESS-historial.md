@@ -2,6 +2,13 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
+**Magias de los monstruos del original (2026-11-01, fuera de fase).**
+- **Qué hace:** Hellhound, Cyclops, Cannibal Plant, Lich, Gargoyle, Hellclaw y Tigerworm normales, y los jefes Demon, Hellhound, Cyclops (final de Elvine Garden) y Giant Lizard lanzan el hechizo de su nivel de magia del original (`reference/Server.cpp`), siempre con marca en el suelo antes del impacto. Los que pegan de lejos también lanzan si no estás pegado (como el original). Normales: daño = su golpe, cada 4,5–8,5 s; jefes: daño fijo en la escala de los demás.
+- **Fuera (dudosos):** Mage-Orc (sigue con su bola que vuela), Beholder (congelar), Rudolph, Ice Golem, la Bloody-Shock-Wave ocasional del Demon. Lich, Gargoyle, Hellclaw, Tigerworm normal y Hellhound normal no salen aún en ninguna oleada.
+- **Comprobado:** build; `check casters demonspell hellhoundspell cyclopsspell lizardspell rescue` sin errores, 60 FPS; contando marcas con `--eval` lanzan todos los jefes y casi todos los normales del corro. Probado por el propietario.
+- **Cómo probar:** `?map=traveler&debug=god,casters` · `?map=bisle&debug=god,boss,boss` (Demon) · `?map=elvineGarden&debug=god,boss` / `finalboss` · `?map=middleland&debug=god,boss,boss` (Giant Lizard).
+- **Código:** `data/enemies.ts` (`MOB_LIGHTNING`, `CYCLOPS_FIRE_STRIKE`, `LICH_LIGHTNING_BOLT`, `MOB_MASS_FIRE_STRIKE`, `MOB_LIGHTNING_STRIKE` y los de jefe), `Enemy.wantsToCast`, `DEBUG_CASTERS` (GameScene); NOTES.md, "Magias de los monstruos del original".
+
 **Revisión del original, bloque D: tintes (2026-11-01, fuera de fase).**
 - **Qué hace:** la Shop Keeper tiene una opción nueva, **Dyes**: se elige la ropa puesta que se puede teñir (capa, Shoes/Long Boots, Robe/Wizard Robe) y uno de los 15 colores del original (se suman a cada píxel, como en el original). 500 de oro; volver al color propio, gratis. El dibujo de la prenda en la lista hace de vista previa. El color va en el objeto: se ve en la ciudad, la partida, Character, Equipment, Select Character y en los iconos del inventario y el baúl; quitarse la prenda la deja teñida en el inventario.
 - **Comprobado:** build; `check dye dyemage dyenone dyetown dyecharinfo shop game` y `dye --mobile` sin errores; comprar Red para unas botas cobra 500 y lo guarda, y volver la capa a su color no cuesta nada.

@@ -76,6 +76,12 @@ const PRESETS = {
     movement: 'map=traveler&debug=god,movement',
     // Fase 28¾: Orcs de cerca con y sin el filtro xBR (comparar las dos capturas y los FPS).
     orcs: 'map=traveler&debug=god,orcs,orcs,orcs,orcs,orcs',
+    casters: 'map=traveler&debug=god,casters',
+    // Magias de monstruos (1-nov-2026): casters = corro de normales que lanzan; los jefes con su hechizo nuevo.
+    demonspell: 'map=bisle&debug=god,boss,boss',
+    hellhoundspell: 'map=elvineGarden&debug=god,boss',
+    cyclopsspell: 'map=elvineGarden&debug=god,finalboss',
+    lizardspell: 'map=middleland&debug=god,boss,boss',
     orcsnosmooth: 'map=traveler&debug=god,orcs,orcs,orcs,orcs,orcs,nosmooth',
     // Fase 28¾B: partida con horda, élites, dagas y angelitos con y sin el filtro xBR en todo lo que se mueve.
     smooth: 'play=warrior&debug=god,horde,horde,elites,daggers,angels,pickups',
