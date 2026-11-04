@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sound Viewer · Helbreath Survivors</title>
+    <link rel="icon" href="favicon.ico" sizes="48x48" />
+    <!-- Herramienta de desarrollo: escuchar todos los sonidos y músicas, los que usa el juego y los que no. Solo existe con `pnpm dev` (no se publica). -->
+    <style>
+      :root { --bg: #15130f; --panel: #211d17; --line: #3a332a; --text: #e8dfc8; --dim: #9a8f78; --accent: #e0b050; --unused: #7d9a6a; }
+      * { box-sizing: border-box; }
+      [hidden] { display: none !important; }
+      html, body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.4 system-ui, sans-serif; }
+      button, input { font: inherit; color: var(--text); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 4px 10px; }
+      button { cursor: pointer; }
+      button:hover { border-color: var(--accent); }
+      button.on { background: var(--accent); color: #1a1408; border-color: var(--accent); }
+      header { position: sticky; top: 0; z-index: 2; background: var(--bg); border-bottom: 1px solid var(--line); padding: 10px 16px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+      header h1 { font-size: 16px; margin: 0 12px 0 0; color: var(--accent); }
+      header label { color: var(--dim); margin-left: auto; display: flex; align-items: center; gap: 6px; }
+      header input[type=search] { min-width: 200px; }
+      main { padding: 16px; max-width: 1100px; }
+      .hint { color: var(--dim); margin: 0 0 12px; }
+      h3 { margin: 20px 0 6px; font-size: 15px; color: var(--dim); }
+      .row { display: grid; grid-template-columns: 36px minmax(150px, 1.2fr) minmax(110px, 0.8fr) 2fr; gap: 10px; align-items: center; padding: 5px 8px; border: 1px solid transparent; border-radius: 6px; cursor: pointer; }
+      .row:hover { background: var(--panel); }
+      .row.selected { border-color: var(--accent); background: var(--panel); }
+      .row .play { width: 32px; padding: 2px 0; }
+      .row.playing .play { background: var(--accent); color: #1a1408; }
+      .key { font-family: ui-monospace, Consolas, monospace; font-size: 13px; word-break: break-all; }
+      .file { font-family: ui-monospace, Consolas, monospace; font-size: 13px; color: var(--accent); }
+      .file .len { color: var(--dim); font-family: system-ui, sans-serif; font-size: 12px; margin-left: 4px; }
+      .info { font-size: 12px; color: var(--dim); }
+      .info b { color: var(--text); font-weight: 500; }
+      .tag { display: inline-block; font-size: 11px; padding: 0 6px; border-radius: 4px; border: 1px solid var(--line); margin-right: 4px; }
+      .tag.unused { color: var(--unused); border-color: var(--unused); }
+      .tag.custom { color: var(--accent); border-color: var(--accent); }
+      @media (max-width: 700px) {
+        .row { grid-template-columns: 36px 1fr; }
+        .row > :nth-child(n+3) { grid-column: 2; }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Sound Viewer</h1>
+      <span id="tabs"></span>
+      <label>Volume <input id="volume" type="range" min="0" max="1" step="0.05" value="0.6" /></label>
+      <input id="search" type="search" placeholder="Search… (orc, fire, M11)" />
+    </header>
+    <main id="main"></main>
+    <script type="module" src="/src/tools/soundViewer.ts"></script>
+  </body>
+</html>

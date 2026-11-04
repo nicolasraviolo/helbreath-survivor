@@ -359,7 +359,7 @@ export const SOUNDS = {
     'sfx.itemDrop': { file: 'sounds/E12.mp3' },
     'sfx.buff': { file: 'sounds/E5.mp3' },
     // Tótems (Fase 16B): al aparecer, el "chin" de fabricar un objeto con éxito (E23); Freeze, fragmentos de hielo (E46).
-    'sfx.totemAppear': { file: 'sounds/E23.mp3' },
+    'sfx.totemAppear': { file: 'sounds/E50.mp3' },
     'sfx.freeze': { file: 'sounds/E46.mp3' },
     // Hechizos de la Fase 26C: el trueno de Lightning Bolt (sp-client LIGHTNING_SOUND) y las gotas de Chill Wind.
     'sfx.lightning': { file: 'sounds/E40.mp3' },

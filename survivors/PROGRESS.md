@@ -120,6 +120,7 @@
 - Teclas en partida: F1 panel · G invencible · N enemigos · L niveles · J +1 minuto · U quedarse con 1 de vida, entre otras (`systems/InputSystem.ts`).
 - App instalable: solo en el build (`survivors/pwa/`). `pnpm build` y `pnpm preview` → http://localhost:4173.
 - Visor de sprites (desarrollo): http://localhost:8090/sprites.html → todos los `.spr` por categorías, animados, con armas y armaduras sobre el cuerpo. Enlaces: `#weapons`, `#item/Long%20Sword`, `#file/orc/4`.
+- Visor de sonidos (desarrollo, 04-nov-2026): http://localhost:8090/sounds.html → pestaña "In the game" (cada clave de `SOUNDS`, su archivo, qué monstruos y archivos de código la usan) y "All files" (todos los .mp3, con su nombre en el original y si están sin usar). Buscador, ↑/↓ y espacio para escuchar. `src/tools/soundViewer.ts`, catálogo en `scripts/soundCatalog.ts` (`/sound-catalog.json`).
 - Datos de Helbreath: `docs/hb-wiki/` (índice en `README.md`). Historial de bloques: `survivors/PROGRESS-historial.md` (grep, no leer entero).
 
 ## Problemas conocidos

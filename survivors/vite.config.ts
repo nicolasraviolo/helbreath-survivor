@@ -2,6 +2,7 @@ import { createReadStream, existsSync, readdirSync, readFileSync, statSync } fro
 import { extname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defineConfig, type Plugin } from 'vite';
+import { buildSoundCatalog } from './scripts/soundCatalog';
 import { buildSpriteCatalog } from './scripts/spriteCatalog';
 
 // En desarrollo servimos los assets directamente desde sp-client/public para no duplicar ~290 MB.
@@ -77,6 +78,24 @@ function spriteCatalog(): Plugin {
     };
 }
 
+/**
+ * Dev server only: /sound-catalog.json, every .mp3 with its original names, for the sound viewer (sounds.html).
+ * Built on each request (it is fast), so new files in custom-assets show up without restarting.
+ */
+function soundCatalog(): Plugin {
+    const spClient = fileURLToPath(new URL('../sp-client', import.meta.url));
+    return {
+        name: 'sound-catalog',
+        apply: 'serve',
+        configureServer(server) {
+            server.middlewares.use('/sound-catalog.json', (_req, res) => {
+                res.setHeader('Content-Type', 'application/json');
+                res.end(JSON.stringify(buildSoundCatalog(spClient, CUSTOM_ASSETS_DIR, fileURLToPath(new URL('./src', import.meta.url)))));
+            });
+        },
+    };
+}
+
 /** Build only: copies pwa/* next to index.html and links the manifest from it. */
 function installableApp(): Plugin {
     return {
@@ -97,7 +116,7 @@ function installableApp(): Plugin {
 export default defineConfig(({ command }) => ({
     base: './',
     publicDir: command === 'build' ? 'public' : '../sp-client/public',
-    plugins: [customAssets(), devIcons(), spriteCatalog(), installableApp()],
+    plugins: [customAssets(), devIcons(), spriteCatalog(), soundCatalog(), installableApp()],
     // host: true → también se puede abrir desde el móvil en la misma wifi (http://IP-del-PC:8090).
     server: { port: 8090, strictPort: true, host: true },
     build: {
