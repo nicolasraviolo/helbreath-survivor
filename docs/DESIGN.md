@@ -44,7 +44,18 @@ Fuera de alcance **de la demo inicial**: multijugador, cuentas, tienda, inventar
 |---|---|---|---|
 | Guerrero | Fuerza (STR) | Espada (tajo en arco hacia donde mira) | +20% vida, +10% daño físico |
 | Mago | Inteligencia/Magia (INT/MAG) | Energy Bolt | +15% daño mágico, −10% cooldowns |
-| Arquero | Destreza (DEX) | Arco (flecha al enemigo más cercano) | +10% velocidad, +1 proyectil a nivel 5 |
+| Arquero | Destreza (DEX) | Arco (abanico de 3 flechas que atraviesan) | +10% velocidad, menos vida que el Guerrero |
+
+### Arquero (diseñado el 4-nov-2026; plan en `docs/PLAN-2.md`, "Fase 34")
+- **Idea:** pega de lejos y en **líneas largas** (el Guerrero pega cerca y alrededor). Controla masas **por ser Arquero, no por el arco**: desde el Short Bow su ataque ya golpea a muchos.
+- **Ataque básico:** **abanico de 3 flechas** hacia donde apunta (como el abanico del golpe normal del Guerrero). **Cada flecha atraviesa**: cada monstruo de la línea tiene un **75 %** de recibir el golpe (talento Archery de Olympia). Si no toca a nadie por el camino, **50 %** de golpear dos veces al objetivo. Las flechas **empujan un poco** y a veces **aturden**. Dispara mientras corre. **Sin flechas que se gastan.**
+- **Habilidad (mismo botón, con cargas como el Critical Strike):** **Critical Shot** = flecha enorme que atraviesa toda la pantalla y **empuja hacia atrás** a todos. Es su botón de "sácame de aquí".
+- **Stats:** **Dex** principal (velocidad de disparo, crits, esquiva; en Olympia la defensa es 2 × Dex). **Str** solo para los requisitos de los arcos (Olympia: +⌊Str/30⌋ de daño con arco).
+- **Ropa:** armadura **ligera de cuero** (ni túnica ni placas).
+- **Arcos** (Level de Olympia, `docs/hb-wiki/armas.md`): Short Bow (0) → Long Bow (35) → Composite Bow (45) → **Direction Bow** (60, flecha en línea larga que siempre atraviesa; en el original golpeaba las casillas 2–9) → **Fire Bow** (70, deja **fuego en el suelo** 4–10 s y quema, con la quemadura de `data/elements.ts`). Los arcos solo suben el daño y añaden su efecto; el control de masas es de la clase.
+- **Especiales:** **Dark Elf Bow** (Level 120, daño 10, el más fuerte; sin efecto en el original) como **único** de algún jefe. Posible segundo especial: **Bow of Blight** (Olympia: alarga hielo, veneno o quemadura que el monstruo ya tenga). El "Elemental Bow" no aparece en ninguna fuente.
+- **Cartas:** +1 flecha en el abanico, atravesar más, más empuje, más alcance, más velocidad de disparo.
+- **Comprobar que no queda flojo:** DPS en los Barracks con muñecos en grupo frente al Guerrero y la Maga, y `pnpm balance` con el bot. Si se queda corto, se ajustan flechas, atravesar, empuje o vida (números en `data/`).
 
 Apariencia compuesta por capas (cuerpo, pelo, armadura, arma) a partir de `sp-client/src/utils/PlayerAppearanceManager.ts`, con equipo acorde a cada clase.
 

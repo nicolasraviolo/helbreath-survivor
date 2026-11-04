@@ -979,6 +979,26 @@ Un grupo de jugadores del bando enemigo entrando en tu ciudad, granja o dungeon 
 
 ---
 
+## Fase 34 — El Arquero *(diseñado el 4-nov-2026)*
+Diseño completo en `docs/DESIGN.md`, "Arquero". Era la idea aplazada desde la Fase 8. Va **en su turno**, después de las Fases 31–33 (propietario, 4-nov-2026).
+
+### Bloques
+- **34A — Personaje:** clase nueva en `data/characters.ts` y el resto de `Record<CharacterId, …>`, ropa de cuero, sprites de arco (`SpriteType` Bows) y flecha (`effect.spr` hoja 7, la del Dark Elf). Ocupa el **hueco 3** de Select Character.
+- **34B — Ataque básico:** abanico de 3 flechas que atraviesan (75 % por monstruo), doble golpe si no toca a nadie, empuje y aturdimiento; apuntado de `systems/Targeting.ts`; pooling de flechas.
+- **34C — Critical Shot y arcos:** habilidad con cargas; escalera Short → Long → Composite → Direction → Fire Bow en la tienda de Tom con requisitos y mejoras; fuego en el suelo del Fire Bow.
+- **34D — Cartas, únicos y equilibrio:** cartas del Arquero, Dark Elf Bow como único, medir en los Barracks y con `pnpm balance` frente al Guerrero y la Maga.
+
+### Aceptación
+- Con el Short Bow limpia oleadas de Traveler Zone a un ritmo parecido al del Guerrero.
+- `pnpm balance`: llega tan lejos como los otros dos en Traveler Zone y Bleeding Isle.
+- 60 FPS con la pantalla llena y 3+ flechas por disparo.
+
+### Pendiente de decidir
+- Cómo se desbloquea el hueco 3 (Level, ganar un mapa u oro).
+- Si sale el Bow of Blight como segundo especial, y de qué jefe caen los especiales.
+
+---
+
 ## Mejoras de engagement para más adelante (21-oct-2026)
 Del análisis `docs/ENGAGEMENT.md`, comentado con el propietario el 21-oct-2026. Lo que cabe ya está en la Fase 21½.
 - **Pasivas con efecto** (le gusta al propietario): cartas que cambian cómo juegas, no solo números. Ejemplos: **aura de daño en zona** alrededor del jugador, rebote del proyectil, explosión al matar, robo de vida, tajo más ancho, una bola de fuego extra cada pocos segundos. Necesita efectos visuales y equilibrio propio: **Fase 28** (decidido el 22-oct-2026).
@@ -996,7 +1016,7 @@ Del análisis `docs/ENGAGEMENT.md`, comentado con el propietario el 21-oct-2026.
   - Pantalla "Records" en el menú principal y tu mejor marca en Select Map. En la pantalla final: "New record!" (sonido E23).
   - Tu nombre se escribe una vez. En el móvil y con el mando hace falta un teclado en pantalla, o usar el nombre del personaje ("NkII"/"NMs").
   - No hay arte de "ranking" en el original: se reutilizan los paneles de GameDialog (hoja 2, frames 1–2) y la fuente dibujada.
-- **El Arquero** (aplazado desde la Fase 8). Encaja con las Raids (Raider Archer) y con los crits a distancia del original.
+- **El Summoner** (idea del propietario, 4-nov-2026; **aparcado para repensarlo**): invocador con Summon Creature. Primera propuesta: Mag decide qué criaturas tienes (escalera del original: Slime, Giant-Ant, Snake, Orc, Skeleton, Clay-Golem, Stone-Golem, Orc-Mage, Hellhound, Cyclops), el Level cuántas a la vez (hasta 5, como el original), eliges hasta 5 antes de la partida y revivirlas cuesta maná. Original: `reference/Server.cpp` 19201-19280, `docs/hb-wiki/hechizos.md` 79-96.
 - **Misiones:** William da encargos ("mata 500 orcos en la granja") con recompensa.
 - **Bolsa ligera de consumibles:** 3–4 casillas de pociones y pergaminos con tecla propia (era la Fase 19 del borrador anterior).
 - **Bandos, opción C — "Defend your city" / Crusade:** proteger la Mana Stone de tu ciudad con torres y guardias aliados (sprites `guard`, `gt-arrow`, `gt-cannon`, `manastone`). Muy grande, y los mapas de ciudad pesan 22 MB.
