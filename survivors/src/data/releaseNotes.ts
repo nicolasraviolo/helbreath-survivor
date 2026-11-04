@@ -33,6 +33,7 @@ export const RELEASE_NOTES: readonly ReleaseNote[] = [
             'Stat Blessings replaced by 16 new power cards, each with its own effect and picture.',
             'Cards and the Character panel now show the real numbers you gain.',
             'More monsters cast their spells from the original game, marking the ground first.',
+            'Spells now have elements: each monster is weak to one, and fire spells set monsters on fire.',
         ],
     },
     {

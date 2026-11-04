@@ -85,6 +85,7 @@ export class IceStormField {
         let touched = false;
         this.combat.hitArea({
             damageType: 'magic',
+            element: def.element,
             x: storm.x,
             y: storm.y,
             radius: def.radius,

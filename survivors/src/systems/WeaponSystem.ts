@@ -16,6 +16,7 @@ import type { EffectKey } from '../config/effects';
 import { CAST_RELEASE_MOMENT, CAST_SOUND, SPELLS, type SpellBurst, type SpellDef } from '../data/spells';
 import { CRIT_AXE_WHIRL, CRIT_SWORD_WAVE, critReach, type CritShape } from '../data/critStrike';
 import { METEOR_LOOK, type BarrageSpellDef, type IceShardSpellDef, type LineSpellDef, type MeteorSpellDef, type StormSpellDef } from '../data/activeSpells';
+import { SPELL_FAMILY_ELEMENT } from '../data/elements';
 import { AXE_SPIN, HAMMER_CRACK, HAMMER_SLAM, MELEE_HIT_MOMENT, MELEE_HIT_SOUND, MELEE_SWING_SOUND, meleeCritStyle, meleeHitSound, type MeleeWeaponDef } from '../data/weapons';
 import { Effect } from '../entities/Effect';
 import type { Enemy } from '../entities/Enemy';
@@ -541,6 +542,7 @@ export class WeaponSystem {
         if (this.touchesAny(x, y, def.areaRadius)) this.onSkillHit?.('activeSpell');
         this.combat.hitArea({
             damageType: 'magic',
+            element: def.element,
             x,
             y,
             radius: def.areaRadius,
@@ -606,6 +608,7 @@ export class WeaponSystem {
         if (direct?.isAlive) this.spawnEffect('fx.hit', direct.x, direct.bodyY);
         const critical = this.combat.hitArea({
             damageType: 'magic',
+            element: SPELL_FAMILY_ELEMENT[def.family],
             x,
             y,
             radius: def.areaRadius,

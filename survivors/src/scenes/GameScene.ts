@@ -1202,6 +1202,7 @@ export class GameScene extends Phaser.Scene {
         this.updateActiveSpell(delta);
         this.weapons.update(delta, player.x, player.y, !player.isDead);
         this.combat.updatePoison(delta);
+        this.combat.updateBurn(delta);
         this.magics.update(delta);
         // Fase 26B: dragging the Mage's touch button shows the same arrow as aiming by hand (Spell 1), that way.
         const spellDrag = this.spellDrag;

@@ -23,6 +23,7 @@ const WORD_SCALE = 0.85;
 const WORD_STACK_MS = 400;
 const WORD_STACK_PX = 14;
 import { POISON } from '../data/attributes';
+import { ELEMENT_MODIFIER, type ElementMatch } from '../data/elements';
 import { Pool, type Poolable } from '../utils/Pool';
 
 class DamageNumber implements Poolable {
@@ -56,27 +57,30 @@ export class DamageNumbers {
         return this.pool.active.length;
     }
 
-    /** Shows "-amount" at (x, y), with "!" if the blow killed. Skipped when too many are on screen. */
-    public show(x: number, y: number, amount: number, critical = false, lethal = false): void {
-        if (this.pool.active.length >= DAMAGE_NUMBER_MAX) return;
-        const number = this.pool.acquire();
-        number.ageMs = 0;
-        number.isWord = false;
-        const spread = (Math.random() - 0.5) * DAMAGE_NUMBER_SPREAD_PX;
-        number.text.setText(lethal ? `-${amount}!` : `-${amount}`)
-            .setColor(critical ? CRITICAL_COLOR : NORMAL_COLOR)
-            .setScale(critical ? CRITICAL_SCALE : 1)
-            .setPosition(x + spread, y).setAlpha(1).setActive(true).setVisible(true);
+    /**
+     * Shows "-amount" at (x, y), with "!" if the blow killed. Skipped when too many are on screen. A spell against a
+     * monster's weak element shows pink, against its own element grey (data/elements.ts); a critical one stays big.
+     */
+    public show(x: number, y: number, amount: number, critical = false, lethal = false, element: ElementMatch = 'neutral'): void {
+        const color = element === 'bonus' ? ELEMENT_MODIFIER.bonusColor
+            : element === 'penalty' ? ELEMENT_MODIFIER.penaltyColor
+            : critical ? CRITICAL_COLOR : NORMAL_COLOR;
+        this.showColored(x, y, amount, color, critical, lethal);
     }
 
     /** Poison damage (Fase 21B): green, with "!" if it killed. */
     public showPoison(x: number, y: number, amount: number, lethal = false): void {
+        this.showColored(x, y, amount, POISON.numberColor, false, lethal);
+    }
+
+    /** "-amount" in `color` (poison green, burn orange…), big as a critical hit if `big`. */
+    public showColored(x: number, y: number, amount: number, color: string, big = false, lethal = false): void {
         if (this.pool.active.length >= DAMAGE_NUMBER_MAX) return;
         const number = this.pool.acquire();
         number.ageMs = 0;
         number.isWord = false;
         const spread = (Math.random() - 0.5) * DAMAGE_NUMBER_SPREAD_PX;
-        number.text.setText(lethal ? `-${amount}!` : `-${amount}`).setColor(POISON.numberColor).setScale(1)
+        number.text.setText(lethal ? `-${amount}!` : `-${amount}`).setColor(color).setScale(big ? CRITICAL_SCALE : 1)
             .setPosition(x + spread, y).setAlpha(1).setActive(true).setVisible(true);
     }
 
