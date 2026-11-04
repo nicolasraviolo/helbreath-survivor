@@ -28,6 +28,7 @@ import type { SoundKey, SpriteKey } from '../config/assetManifest';
 import type { EffectKey } from '../config/effects';
 import type { DamageType } from '../entities/CharacterStats';
 import { SPELLS, type SpellId } from './spells';
+import type { SpellElement } from './elements';
 import { UNIQUE_LEVEL } from './uniques';
 
 export type ActiveSpellId =
@@ -60,6 +61,8 @@ interface ActiveSpellBase {
 
 export interface MeteorSpellDef extends ActiveSpellBase {
     kind: 'meteor';
+    /** Its element in Olympia (data/elements.ts): +20% against the monsters it beats, −20% against its own. */
+    element: SpellElement;
     /** Sprite downloaded when a run with this spell starts (not before: it is big). */
     sprite: SpriteKey;
     /** Damage to the enemy it falls on, and to every enemy in the explosion, before the Power multiplier. */
@@ -91,6 +94,8 @@ export interface BarrageSpellDef extends ActiveSpellBase {
 
 export interface IceShardSpellDef extends ActiveSpellBase {
     kind: 'iceShards';
+    /** Its element in Olympia (data/elements.ts): +20% against the monsters it beats, −20% against its own. */
+    element: SpellElement;
     /** Shards that fall: big ones (one always on the centre) and small ones, at random points up to `spreadRadius` px. */
     largeShards: number;
     smallShards: number;
@@ -116,6 +121,8 @@ export interface LinePathDef {
     look: LineSpellLook;
     /** 'magic' when left out (the spells). */
     damageType?: DamageType;
+    /** The spells' element (data/elements.ts); none for the physical ones (the hammers' crack, the sword wave). */
+    element?: SpellElement;
     /** Every number shown as a big one (the spells); false = big only on a critical hit (the hammers' crack). */
     bigNumbers?: boolean;
     /** Time to go from the Mage to the chosen point (ms); with `speed` (px/s) it depends on the distance instead. */
@@ -152,6 +159,8 @@ export interface LineSpellDef extends ActiveSpellBase, LinePathDef {
 
 export interface StormSpellDef extends ActiveSpellBase {
     kind: 'storm';
+    /** Its element in Olympia (data/elements.ts): +20% against the monsters it beats, −20% against its own. */
+    element: SpellElement;
     /** How long the storm stays on the point (ms). */
     durationMs: number;
     /** Every `tickMs`, each enemy within `radius` px takes `damage` (before the Power multiplier) and is slowed. */
@@ -299,6 +308,7 @@ export const ACTIVE_SPELLS: Readonly<Record<ActiveSpellId, ActiveSpellDef>> = {
         circle: 6,
         int: 50,
         kind: 'iceShards',
+        element: 'ice',
         largeShards: 15,
         smallShards: 6,
         spreadRadius: 60,
@@ -335,6 +345,7 @@ export const ACTIVE_SPELLS: Readonly<Record<ActiveSpellId, ActiveSpellDef>> = {
         circle: 8,
         int: 88,
         kind: 'iceShards',
+        element: 'ice',
         largeShards: 24,
         smallShards: 8,
         spreadRadius: 75,
@@ -356,6 +367,7 @@ export const ACTIVE_SPELLS: Readonly<Record<ActiveSpellId, ActiveSpellDef>> = {
         // Fase 26C: 169 (el original) → 140, en la escalera de Int.
         int: 125,
         kind: 'meteor',
+        element: 'fire',
         sprite: 'fx.crueffect1',
         directDamage: 30,
         // Owner, 19-oct-2026 (closing phase 19): 40 → 20; the meteor did ~50–60% of the Mage's damage from minute 5.
@@ -380,6 +392,7 @@ export const ACTIVE_SPELLS: Readonly<Record<ActiveSpellId, ActiveSpellDef>> = {
         circle: 8,
         int: 105,
         kind: 'line',
+        element: 'lightning',
         look: 'bloodyShock',
         travelMs: 400,
         stepEveryMs: 20,
@@ -409,6 +422,7 @@ export const ACTIVE_SPELLS: Readonly<Record<ActiveSpellId, ActiveSpellDef>> = {
         circle: 10,
         int: 150,
         kind: 'line',
+        element: 'earth',
         look: 'earthShock',
         travelMs: 0,
         speed: 1500,
@@ -439,6 +453,7 @@ export const ACTIVE_SPELLS: Readonly<Record<ActiveSpellId, ActiveSpellDef>> = {
         circle: 10,
         int: 175,
         kind: 'line',
+        element: 'ice',
         look: 'blizzard',
         sprite: 'fx.effect7',
         travelMs: 300,
@@ -472,6 +487,7 @@ export const ACTIVE_SPELLS: Readonly<Record<ActiveSpellId, ActiveSpellDef>> = {
         int: 60,
         level: UNIQUE_LEVEL,
         kind: 'storm',
+        element: 'ice',
         durationMs: 5000,
         radius: 110,
         damage: 7,

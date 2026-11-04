@@ -94,6 +94,9 @@ export const EFFECTS = {
     // como los del aura de la hoja 14, apuntan lejos del ancla: se devuelve al cuerpo (Enemy.syncPoisonCloud; medido en
     // partida, +115 como el sX+115 del original).
     'fx.poison.cloud': { sprite: 'fx.effect9', sheet: 15, frameRate: 10, loop: true, offsetX: 115, offsetY: 149 },
+    // Quemadura (4-nov-2026, data/elements.ts BURN): el fuego del suelo del Fire Wall / Fire Field del original
+    // (sp-client "Positional Fire 1", effect.spr hoja 9), a los pies del monstruo mientras arde.
+    'fx.burn.flame': { sprite: 'fx.effect', sheet: 9, frameRate: 10, loop: true, offsetX: 0, offsetY: 0 },
     // Fase 26C. Lightning Arrow (no está en sp-client; reference/Client.cpp, efecto 137): effect2.spr hoja 0, 4 frames
     // por dirección, con chispas detrás (efecto 8: effect2 hoja 1, frames 0–4), las dos con brillo. Explota como el
     // Energy Bolt (efecto 10).

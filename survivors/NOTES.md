@@ -119,6 +119,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Botín con valores y segundo atributo (revisión del original C, 1-nov-2026)
 - Tintes de la ropa (revisión del original D, 1-nov-2026)
 - Magias de los monstruos del original (1-nov-2026)
+- Elementos y quemadura (4-nov-2026)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -1366,3 +1367,9 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - **Lanzar a distancia de golpe:** `Enemy.wantsToCast` ya no exige estar fuera del alcance de su golpe, solo no estar pegado al jugador (como el original). Sin esto, el Lich, el Gargoyle y el Hellclaw (alcance 5) nunca lanzaban.
 - **Sin hacer (dudosos):** Mage-Orc sigue con su bola que vuela; Beholder (congelar 5 s, sin daño), Rudolph (el servidor le da nivel 5, la wiki nada), Ice Golem (remolino de hielo, solo en la wiki), la Bloody-Shock-Wave ocasional del Demon.
 - **Probar:** `check casters` (corro de los normales a 320 px), `demonspell` (Bleeding Isle), `hellhoundspell` y `cyclopsspell` (Elvine Garden), `lizardspell` (Middleland). Para contar marcas: `--eval` sobre `g.enemyShots.strikes.active` (campo `source`).
+
+## Elementos y quemadura (4-nov-2026)
+- `data/elements.ts`: elemento de cada hechizo (Olympia: todos los Energy son Lightning) y `element` de cada monstruo en `data/enemies.ts` (wiki de Olympia). +20% contra el elemento que vence, −20% contra el propio; números rosas / grises (`DamageNumbers.show`). Los golpes con arma y las magias pasivas no tienen elemento.
+- Quemadura: solo hechizos de fuego (`CombatSystem.strike` → `Enemy.burn`, `updateBurn`). Hasta 3 capas, 3 s, tic de 1 s; cada tic puede aturdir 0,3 s con `Enemy.freeze(ms, false)` (sin tinte azul). Números de Olympia no publicados: los de `BURN` son nuestros.
+- Llamita: effect.spr hoja 9 ("Positional Fire 1" de sp-client). Su pivote ya cae en los pies: offset 0. Ojo: un sprite nuevo de Phaser nace visible; si se arranca la animación con `if (!visible)`, crearlo con `setVisible(false)`.
+- `check meteor` (Fire Ball + Meteor Strike con horda; `--eval="g.launchCritStrike()"`). En Elvine se ve mejor: `check "play=mage&map=elvineGarden&debug=god,horde,crits&spells=fireBall,meteorStrike"`.

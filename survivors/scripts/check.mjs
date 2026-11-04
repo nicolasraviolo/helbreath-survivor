@@ -137,6 +137,9 @@ const PRESETS = {
     activespell: 'play=mage&debug=god,horde,crits',
     // Fase 26D: Ice Strike / Mass Ice Strike con horda (--eval="g.launchCritStrike()" lo lanza; ralentiza y tiñe de azul).
     icestrike: 'play=mage&debug=god,horde,crits&spells=iceStrike',
+    // Elementos y quemadura (4-nov-2026): Fire Ball + Meteor Strike con horda; --eval="g.launchCritStrike()" lanza el
+    // meteoro (números rosas/grises según el elemento, naranjas y llamita en los que arden).
+    meteor: 'play=mage&debug=god,horde,crits&spells=fireBall,meteorStrike',
     massicestrike: 'play=mage&debug=god,horde,crits&spells=massIceStrike',
     // Fase 26E: hechizos en línea (con --eval="g.launchCritStrike()" se lanzan).
     bloodyshock: 'play=mage&debug=god,horde,crits&spells=bloodyShockWave',

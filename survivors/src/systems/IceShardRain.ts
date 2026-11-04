@@ -136,6 +136,7 @@ export class IceShardRain {
         let touched = false;
         this.combat.hitArea({
             damageType: 'magic',
+            element: def.element,
             x,
             y,
             radius: def.radius,

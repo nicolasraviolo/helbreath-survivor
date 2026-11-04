@@ -12,10 +12,13 @@ import type { AudioSystem } from './AudioSystem';
 import type { DamageNumbers } from './DamageNumbers';
 import type { HitParticles } from './HitParticles';
 import { chillEnemy } from './IceShardRain';
+import { BURN, elementMatch, elementMultiplier, type SpellElement } from '../data/elements';
 import type { EnemySystem } from './EnemySystem';
 
 export interface AreaHit {
     damageType: DamageType;
+    /** The spell's element (data/elements.ts): stronger or weaker against each monster's element; fire burns. */
+    element?: SpellElement;
     x: number;
     y: number;
     radius: number;
@@ -95,12 +98,12 @@ export class CombatSystem {
             if (!isDirect && hit.areaDamage <= 0) return;
             directInArea ||= isDirect;
             if (!this.lands(enemy, hit.damageType, hit.bigNumbers)) return;
-            const critical = this.strike(enemy, hit.damageType, hit.areaDamage + (isDirect ? hit.directDamage : 0), hit.x, hit.y, hit.knockback, hit.bigNumbers);
+            const critical = this.strike(enemy, hit.damageType, hit.areaDamage + (isDirect ? hit.directDamage : 0), hit.x, hit.y, hit.knockback, hit.bigNumbers, hit.element);
             onHit?.(enemy);
             if (isDirect || (!direct && mainCritical === undefined)) mainCritical = critical;
         });
         if (direct && !directInArea && this.lands(direct, hit.damageType, hit.bigNumbers)) {
-            mainCritical = this.strike(direct, hit.damageType, hit.directDamage, hit.x, hit.y, hit.knockback, hit.bigNumbers);
+            mainCritical = this.strike(direct, hit.damageType, hit.directDamage, hit.x, hit.y, hit.knockback, hit.bigNumbers, hit.element);
             onHit?.(direct);
         }
         return mainCritical ?? false;
@@ -132,6 +135,19 @@ export class CombatSystem {
             this.onDamage?.(damage, false);
             this.numbers.showPoison(enemy.x, enemy.bodyY - enemy.def.bodyOffsetY, damage, killed);
             if (killed) this.slay(enemy);
+        });
+    }
+
+    /** The fire of every burning monster takes its health, with orange numbers; it may stun or kill (counted as a kill). */
+    public updateBurn(deltaMs: number): void {
+        this.enemies.forEachAlive((enemy) => {
+            const damage = enemy.tickBurn(deltaMs);
+            if (damage <= 0) return;
+            const killed = enemy.hp <= 0;
+            this.onDamage?.(damage, false);
+            this.numbers.showColored(enemy.x, enemy.bodyY - enemy.def.bodyOffsetY, damage, BURN.numberColor, false, killed);
+            if (killed) this.slay(enemy);
+            else if (Math.random() < BURN.stunChance) enemy.freeze(BURN.stunMs, false);
         });
     }
 
@@ -184,14 +200,20 @@ export class CombatSystem {
     }
 
     /** The hit landed: damage, number, sound, poison, kill. */
-    private strike(enemy: Enemy, type: DamageType, baseDamage: number, fromX: number, fromY: number, knockback: number, bigNumber = false): boolean {
+    private strike(
+        enemy: Enemy, type: DamageType, baseDamage: number, fromX: number, fromY: number, knockback: number, bigNumber = false,
+        element?: SpellElement,
+    ): boolean {
         if (!enemy.isAlive || baseDamage <= 0) return false;
         const critical = Math.random() < this.attacker.critChance;
-        const scaled = baseDamage * this.attacker.damageMultiplier(type) * (critical ? this.attacker.critDamageMultiplier : 1);
+        const match = elementMatch(element, enemy.def.element);
+        const scaled = baseDamage * this.attacker.damageMultiplier(type) * (critical ? this.attacker.critDamageMultiplier : 1)
+            * elementMultiplier(match);
         const damage = Math.max(1, Math.round(scaled));
         const killed = enemy.takeDamage(damage, fromX, fromY, knockback);
         this.onDamage?.(damage, critical);
-        this.numbers.show(enemy.x, enemy.bodyY - enemy.def.bodyOffsetY, damage, critical || bigNumber, killed);
+        this.numbers.show(enemy.x, enemy.bodyY - enemy.def.bodyOffsetY, damage, critical || bigNumber, killed, match);
+        if (!killed && element === 'fire') enemy.burn(damage * BURN.shareOfHit);
         if (!killed && this.poisonShare > 0 && type === 'physical') enemy.poison(Math.max(1, Math.round(damage * this.poisonShare)));
         if (!killed && this.chillOnHit && type === 'physical') chillEnemy(enemy);
         if (killed) {

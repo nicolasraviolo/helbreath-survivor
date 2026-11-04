@@ -186,7 +186,7 @@ export class LineSpell {
             cast.hitCount.set(enemy, count + 1);
             // Radius 0 and no area damage: only this enemy takes it.
             this.combat.hitArea({
-                damageType: def.damageType ?? 'magic', x, y, radius: 0, areaDamage: 0, direct: enemy, directDamage: def.pathDamage * cast.power,
+                damageType: def.damageType ?? 'magic', element: def.element, x, y, radius: 0, areaDamage: 0, direct: enemy, directDamage: def.pathDamage * cast.power,
                 knockback: def.knockback, bigNumbers: def.bigNumbers ?? true,
             });
             this.touch(cast, enemy);
@@ -198,7 +198,7 @@ export class LineSpell {
         const { def } = cast;
         if (def.targetDamage <= 0) return;
         this.combat.hitArea({
-            damageType: def.damageType ?? 'magic', x: cast.toX, y: cast.toY, radius: def.targetRadius, areaDamage: def.targetDamage * cast.power,
+            damageType: def.damageType ?? 'magic', element: def.element, x: cast.toX, y: cast.toY, radius: def.targetRadius, areaDamage: def.targetDamage * cast.power,
             direct: undefined, directDamage: 0, knockback: def.knockback, bigNumbers: def.bigNumbers ?? true,
         }, (enemy) => this.touch(cast, enemy));
     }

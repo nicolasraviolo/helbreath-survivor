@@ -25,6 +25,7 @@ import { AURA_SLOW_LOOK } from '../data/passiveMagic';
 import { NO_DIFFICULTY, type MapDifficulty } from '../data/maps';
 import { CHAMPION } from '../data/champion';
 import { POISON } from '../data/attributes';
+import { BURN } from '../data/elements';
 import { EFFECTS } from '../config/effects';
 import { FREEZE_TINT } from '../data/totems';
 import { ICE_SLOW } from '../data/activeSpells';
@@ -44,6 +45,8 @@ import { smoothSprite } from '../hb/XbrPipeline';
 /** Texture key suffix of a sheet's red copy for the elites (hb/additiveTint.ts → tintedKey). */
 /** The poison cloud's animation (config/effects.ts). */
 const POISON_CLOUD_EFFECT = 'fx.poison.cloud';
+/** The little fire at its feet while it burns (config/effects.ts). */
+const BURN_FLAME_EFFECT = 'fx.burn.flame';
 const ELITE_GLOW_SUFFIX = tintedKey('', 'elite');
 /** The same for the whitish copy of the monsters the Eye of the Storm slows (Fase 28). */
 const WIND_GLOW_SUFFIX = tintedKey('', 'wind');
@@ -162,6 +165,14 @@ export class Enemy implements Poolable {
     private poisonTickMs = 0;
     /** The original's green cloud over it while poisoned; made the first time this (pooled) enemy is poisoned. */
     private poisonCloud: Phaser.GameObjects.Sprite | undefined;
+    /** Burn (data/elements.ts BURN): health each layer takes per tick (up to BURN.maxStacks), time left and to the next tick. */
+    private readonly burnLayers: number[] = [];
+    private burnMs = 0;
+    private burnTickMs = 0;
+    /** The fire at its feet while it burns; made the first time this (pooled) enemy burns. */
+    private burnFlame: Phaser.GameObjects.Sprite | undefined;
+    /** The freeze tints it blue (totems); a burn's stun does not. */
+    private frozenTinted = true;
     /** Champion (Fase 21½C, data/champion.ts): bigger, much tougher, glows like the elites and shows its health bar. */
     public champion = false;
     /** Dark oval under the monsters with no body shadow (GROUND_SHADOW), instead of `shadow`. */
@@ -255,6 +266,7 @@ export class Enemy implements Poolable {
         this.slowFactor = 1;
         this.sprite.anims.timeScale = 1;
         this.cure();
+        this.extinguish();
         this.sprite.anims.resume();
         const roll = Phaser.Math.Between(1, MONSTER_AI.strategyDie);
         this.strategy = roll === MONSTER_AI.hitAndRunRoll ? 'hitAndRun' : roll === MONSTER_AI.twoHitsAndRunRoll ? 'twoHitsAndRun' : 'normal';
@@ -283,8 +295,10 @@ export class Enemy implements Poolable {
     }
 
     /** Freeze totem: stands still (no walking, no attacks, a blow on its way is cancelled) for `ms`. */
-    public freeze(ms: number): void {
+    public freeze(ms: number, tint = true): void {
         if (!this.isAlive) return;
+        // A short stun on top of a freeze keeps it blue.
+        this.frozenTinted = tint || (this.isFrozen && this.frozenTinted);
         this.frozenMs = Math.max(this.frozenMs, ms);
         this.attackLeftMs = 0;
         this.hitInMs = -1;
@@ -293,7 +307,7 @@ export class Enemy implements Poolable {
         this.knockX = 0;
         this.knockY = 0;
         this.sprite.anims.pause();
-        if (this.flashMs <= 0) this.sprite.setTint(FREEZE_TINT);
+        if (this.flashMs <= 0) this.applyStatusTint();
     }
 
     /**
@@ -317,7 +331,7 @@ export class Enemy implements Poolable {
     /** Freeze blue, Ice Strike blue or none (not while it flashes white from a hit). */
     private applyStatusTint(): void {
         if (this.flashMs > 0) return;
-        if (this.isFrozen) this.sprite.setTint(FREEZE_TINT);
+        if (this.isFrozen && this.frozenTinted) this.sprite.setTint(FREEZE_TINT);
         else if (this.isSlowed) this.sprite.setTint(this.slowLook === 'wind' ? AURA_SLOW_LOOK.tint : ICE_SLOW.tint);
         else this.sprite.clearTint();
     }
@@ -442,6 +456,68 @@ export class Enemy implements Poolable {
         this.poisonCloud?.stop().setActive(false).setVisible(false);
     }
 
+    public get isBurning(): boolean {
+        return this.burnLayers.length > 0;
+    }
+
+    /**
+     * Hit by a fire spell: one more layer of fire taking `perTick` each tick (Olympia: up to 3 layers), and the fire lasts
+     * BURN.durationMs again. With every layer lit, a stronger fire replaces the weakest.
+     */
+    public burn(perTick: number): void {
+        if (!this.isAlive || perTick <= 0) return;
+        if (this.burnLayers.length < BURN.maxStacks) {
+            this.burnLayers.push(perTick);
+        } else {
+            const weakest = this.burnLayers.indexOf(Math.min(...this.burnLayers));
+            if (perTick > (this.burnLayers[weakest] ?? 0)) this.burnLayers[weakest] = perTick;
+        }
+        if (this.burnMs <= 0) this.burnTickMs = BURN.tickMs;
+        this.burnMs = BURN.durationMs;
+        if (!this.burnFlame) {
+            this.burnFlame = smoothSprite(this.sprite.scene.add.sprite(0, 0, '__DEFAULT'))
+                .setAlpha(BURN.flameAlpha).setScale(BURN.flameScale).setVisible(false);
+        }
+        if (!this.burnFlame.visible && this.sprite.scene.anims.exists(BURN_FLAME_EFFECT)) {
+            this.burnFlame.setActive(true).setVisible(true).play(BURN_FLAME_EFFECT);
+        }
+        this.syncBurnFlame();
+    }
+
+    /** Runs the fire: the health it took this frame (0 most frames). It may kill: the caller checks hp. */
+    public tickBurn(deltaMs: number): number {
+        if (!this.isBurning) return 0;
+        if (!this.isAlive) {
+            this.extinguish();
+            return 0;
+        }
+        this.syncBurnFlame();
+        this.burnMs -= deltaMs;
+        this.burnTickMs -= deltaMs;
+        let damage = 0;
+        if (this.burnTickMs <= 0) {
+            this.burnTickMs += BURN.tickMs;
+            let total = 0;
+            for (const layer of this.burnLayers) total += layer;
+            damage = Math.max(1, Math.round(total));
+            this.hp -= damage;
+        }
+        if (this.burnMs <= 0) this.extinguish();
+        return damage;
+    }
+
+    private extinguish(): void {
+        this.burnLayers.length = 0;
+        this.burnMs = 0;
+        this.burnFlame?.stop().setActive(false).setVisible(false);
+    }
+
+    private syncBurnFlame(): void {
+        const def = EFFECTS[BURN_FLAME_EFFECT];
+        this.burnFlame?.setPosition(this.x + def.offsetX * BURN.flameScale, this.y + def.offsetY * BURN.flameScale)
+            .setDepth(this.y + DEPTH_EFFECT_OFFSET);
+    }
+
     private syncPoisonCloud(): void {
         const def = EFFECTS[POISON_CLOUD_EFFECT];
         this.poisonCloud?.setPosition(this.x + def.offsetX, this.bodyY + def.offsetY).setDepth(this.y + DEPTH_EFFECT_OFFSET);
@@ -452,6 +528,7 @@ export class Enemy implements Poolable {
         if (!this.isAlive) return false;
         this.phase = EnemyPhase.Dying;
         this.cure();
+        this.extinguish();
         if (this.isFrozen) this.thaw();
         if (this.isSlowed) this.endSlow();
         this.shadow?.setVisible(false);

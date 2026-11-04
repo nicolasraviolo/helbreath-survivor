@@ -2,6 +2,12 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
+**Elementos y quemadura (2026-11-04, fuera de fase).**
+- **Qué hace:** como en Olympia (wiki: hechizos.md "Elements", monstruos.md), cada monstruo tiene elemento (Earth, Fire, Lightning, Ice o Neutral) y cada hechizo el suyo (los Energy son Lightning). Fuego > Tierra > Rayo > Hielo > Fuego: +20 % contra el que vence (número rosa), −20 % contra el propio (gris). Los hechizos de fuego dejan arder 3 s (hasta 3 capas, 10 % del golpe por capa y segundo, 10 % de aturdir 0,3 s): llamita del Fire Field a los pies y números naranjas. Las armas y las magias pasivas no tienen elemento.
+- **Comprobado:** build; `check meteor activespell icestrike earthshock poison barracksmage` sin errores; con `--eval` arden los que sobreviven al meteoro y en Elvine los Orcs (Fire) salen en gris con llamas.
+- **Cómo probar:** `?play=mage&map=elvineGarden&debug=god,horde,crits&spells=fireBall,meteorStrike` y lanzar el meteoro (H o la esfera).
+- **Código:** `data/elements.ts`, `element` en `data/enemies.ts` y `data/activeSpells.ts`, `CombatSystem.strike` / `updateBurn`, `Enemy.burn` / `tickBurn`, `DamageNumbers.showColored`; NOTES.md, "Elementos y quemadura".
+
 **Magias de los monstruos del original (2026-11-01, fuera de fase).**
 - **Qué hace:** Hellhound, Cyclops, Cannibal Plant, Lich, Gargoyle, Hellclaw y Tigerworm normales, y los jefes Demon, Hellhound, Cyclops (final de Elvine Garden) y Giant Lizard lanzan el hechizo de su nivel de magia del original (`reference/Server.cpp`), siempre con marca en el suelo antes del impacto. Los que pegan de lejos también lanzan si no estás pegado (como el original). Normales: daño = su golpe, cada 4,5–8,5 s; jefes: daño fijo en la escala de los demás.
 - **Fuera (dudosos):** Mage-Orc (sigue con su bola que vuela), Beholder (congelar), Rudolph, Ice Golem, la Bloody-Shock-Wave ocasional del Demon. Lich, Gargoyle, Hellclaw, Tigerworm normal y Hellhound normal no salen aún en ninguna oleada.
