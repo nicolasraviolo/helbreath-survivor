@@ -22,10 +22,18 @@ export const ELEMENT_MODIFIER = {
     bonus: 1.2,
     /** Spell against its own element. */
     penalty: 0.8,
-    /** Number colours: "super effective" pink, "not very effective" grey (crits are already yellow). */
-    bonusColor: '#ff70e0',
-    penaltyColor: '#a8a8a8',
 } as const;
+
+/**
+ * Colour of a spell's damage numbers by its element (propietario, 4-nov-2026: base white, fire red, critical orange).
+ * Weapon hits have no element and stay white; the burn ticks use the fire colour.
+ */
+export const ELEMENT_NUMBER_COLOR: Readonly<Record<SpellElement, string>> = {
+    fire: '#ff3030',
+    ice: '#70c8ff',
+    lightning: '#ffe040',
+    earth: '#c89050',
+};
 
 /** The automatic spells' element by family. In Olympia every Energy spell is Lightning. */
 export const SPELL_FAMILY_ELEMENT: Readonly<Record<SpellFamilyId, SpellElement>> = {
@@ -60,8 +68,6 @@ export const BURN = {
     shareOfHit: 0.1,
     stunChance: 0.1,
     stunMs: 300,
-    /** Orange numbers of each tick (poison is green). */
-    numberColor: '#ff9020',
     /** Little fire at its feet while it burns: the original's Positional Fire 1 (config/effects.ts), smaller. */
     flameScale: 0.6,
     flameAlpha: 0.9,

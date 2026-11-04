@@ -32,10 +32,23 @@ export const MELEE_ORIGIN_OFFSET_Y = 24;
 /** Damage numbers float above every character and effect. */
 export const DEPTH_DAMAGE_NUMBERS = 500000;
 
-/** Damage numbers: rise and fade the second half of their life (sp-client lives 2 s; shorter here, there are many more hits). */
-export const DAMAGE_NUMBER_LIFE_MS = 1000;
-export const DAMAGE_NUMBER_RISE_PX_PER_S = 40;
-export const DAMAGE_NUMBER_FONT_SIZE = 16;
+// Números de daño con el movimiento del vídeo de Capy of Gods (decidido por el propietario el 4-nov-2026):
+// salen de golpe muy grandes, se encogen enseguida a su tamaño, suben un poco frenando y al final se apagan encogiéndose.
+/** Whole life of a damage number. */
+export const DAMAGE_NUMBER_LIFE_MS = 800;
+/** Total pixels a number rises during its life (fast at first, then slowing down). */
+export const DAMAGE_NUMBER_RISE_PX = 22;
+/** The "pop": a number is born this many times its size and shrinks to it in POP_MS. */
+export const DAMAGE_NUMBER_POP_SCALE = 1.9;
+/** Big numbers (critical hits) pop even bigger. */
+export const DAMAGE_NUMBER_BIG_POP_SCALE = 2.6;
+export const DAMAGE_NUMBER_POP_MS = 130;
+/** Fraction of its life after which a number starts fading out. */
+export const DAMAGE_NUMBER_FADE_FROM = 0.6;
+/** Size (relative) a number has shrunk to when it disappears. */
+export const DAMAGE_NUMBER_END_SCALE = 0.75;
+/** Micro 5 draws small for its size: 20 px looks like the old 16 px numbers. */
+export const DAMAGE_NUMBER_FONT_SIZE = 20;
 /** Random sideways offset so numbers on the same enemy don't stack exactly. */
 export const DAMAGE_NUMBER_SPREAD_PX = 12;
 /** Most numbers on screen at once; more are skipped. */
