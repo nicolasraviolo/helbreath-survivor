@@ -361,7 +361,8 @@ export class LevelUpScene extends Phaser.Scene {
     private itemIcon(sheet: number, frame: number, x: number, size: number): Phaser.GameObjects.Image | undefined {
         const texture = itemPackTexture(sheet);
         if (!this.textures.exists(texture) || !this.textures.get(texture).has(String(frame))) return undefined;
-        const image = this.add.image(x, 0, texture, frame);
+        // Centred by hand: the frame's pivot (from the original) would move it off centre.
+        const image = this.add.image(x, 0, texture, frame).setOrigin(0.5);
         return image.setScale(Math.min(ICON_MAX_SCALE, size / Math.max(image.width, image.height)));
     }
 
@@ -370,7 +371,8 @@ export class LevelUpScene extends Phaser.Scene {
         const texture = icon.kind === 'item' ? itemPackTexture(icon.sheet) : icon.key;
         const frame = icon.kind === 'item' ? icon.frame : undefined;
         if (!this.textures.exists(texture) || (frame !== undefined && !this.textures.get(texture).has(String(frame)))) return undefined;
-        const image = this.add.image(0, y, texture, frame);
+        // Centred by hand: the frame's pivot (from the original) would move it off centre (the Angelic Pendant did).
+        const image = this.add.image(0, y, texture, frame).setOrigin(0.5);
         const size = ICON_SIZE * (icon.kind === 'image' ? icon.size ?? 1 : 1);
         return image.setScale(Math.min(ICON_MAX_SCALE, size / Math.max(image.width, image.height)));
     }
