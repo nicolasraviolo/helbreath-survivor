@@ -2,6 +2,8 @@ import Phaser from 'phaser';
 // Fuente de la interfaz (Comic Neue, licencia OFL): va incluida en el juego, así se ve igual en todos los dispositivos.
 import '@fontsource/comic-neue/latin-400.css';
 import '@fontsource/comic-neue/latin-700.css';
+// Letra pixel art de los números de daño (Micro 5, licencia OFL; elegida por el propietario el 4-nov-2026).
+import '@fontsource/micro-5/latin-400.css';
 import { BACKGROUND_COLOR } from './config/gameConfig';
 import { TOUCH_POINTERS } from './config/touch';
 import { loadUiFont } from './config/ui';

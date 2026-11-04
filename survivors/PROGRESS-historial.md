@@ -2,6 +2,13 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
+**Números de daño nuevos (2026-11-04, fuera de fase).**
+- **Qué hace:** estilo del vídeo de Capy of Gods que pasó el propietario. Letra pixel art **Micro 5** (elegida entre 8; Pixelify Sans descartada por el 8), solo el número sin "-" (el "!" del golpe que mata se queda). Movimiento: nacen ~2 veces más grandes (los críticos ~2,6) y se encogen en 0,13 s, suben 22 px frenando y en el último 40 % de sus 0,8 s se apagan encogiéndose. Colores: blanco el daño base, color del elemento en hechizos y quemadura (fuego rojo, hielo azul claro, rayo amarillo, tierra marrón), naranja los críticos (más grandes, sin recuadro), veneno verde. Fuera el rosa/gris de elemento fuerte/débil (el ±20 % sigue).
+- **Comprobado:** build; `check crit poison "play=mage&map=elvineGarden&debug=god,horde,crits&spells=fireBall,meteorStrike" --wait=7000` sin errores; capturas con números blancos y críticos naranjas.
+- **Cómo probar:** `?play=warrior&debug=god,horde,crits` y `?play=mage&map=elvineGarden&debug=god,horde,crits&spells=fireBall,meteorStrike`.
+- **Código:** `systems/DamageNumbers.ts`, `DAMAGE_NUMBER_*` en `config/gameConfig.ts`, `DAMAGE_FONT` en `config/ui.ts` (se espera a la letra al arrancar), `ELEMENT_NUMBER_COLOR` en `data/elements.ts`, `@fontsource/micro-5` en `main.ts`.
+- **Idea aparcada:** que fuego, veneno y sangrado hagan cosas distintas (contagiar, debilitar, explotar), del mismo vídeo; DECISIONES.md, 4-nov-2026.
+
 **Elementos y quemadura (2026-11-04, fuera de fase).**
 - **Qué hace:** como en Olympia (wiki: hechizos.md "Elements", monstruos.md), cada monstruo tiene elemento (Earth, Fire, Lightning, Ice o Neutral) y cada hechizo el suyo (los Energy son Lightning). Fuego > Tierra > Rayo > Hielo > Fuego: +20 % contra el que vence (número rosa), −20 % contra el propio (gris). Los hechizos de fuego dejan arder 3 s (hasta 3 capas, 10 % del golpe por capa y segundo, 10 % de aturdir 0,3 s): llamita del Fire Field a los pies y números naranjas. Las armas y las magias pasivas no tienen elemento.
 - **Comprobado:** build; `check meteor activespell icestrike earthshock poison barracksmage` sin errores; con `--eval` arden los que sobreviven al meteoro y en Elvine los Orcs (Fire) salen en gris con llamas.

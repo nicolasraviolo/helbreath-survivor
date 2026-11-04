@@ -169,6 +169,9 @@ importers:
       '@fontsource/comic-neue':
         specifier: ^5.3.0
         version: 5.3.0
+      '@fontsource/micro-5':
+        specifier: ^5.3.0
+        version: 5.3.0
       phaser:
         specifier: ^3.90.0
         version: 3.90.0
@@ -555,6 +558,9 @@ packages:
 
   '@fontsource/comic-neue@5.3.0':
     resolution: {integrity: sha512-uZsyUTExw8tCySNhL65dN6rEUhASMPGintSS5Kw/ZkrQTK1vcAgramzOLT/mZKtZ+EXr03MHj0s5osVVJITCow==}
+
+  '@fontsource/micro-5@5.3.0':
+    resolution: {integrity: sha512-8uMD/HJIsRXhCOdLo4swcXVLSMn8rUZhnJmausW6Lk8AO2vEdlFkB/dmkSSNkQQ82akzxeCMBhcino7WFtb+jQ==}
 
   '@img/colour@1.1.0':
     resolution: {integrity: sha512-Td76q7j57o/tLVdgS746cYARfSyxk8iEfRxewL9h4OMzYhbW4TAcppl0mT4eyqXddh6L/jwoM75mo7ixa/pCeQ==}
@@ -1287,6 +1293,8 @@ snapshots:
     optional: true
 
   '@fontsource/comic-neue@5.3.0': {}
+
+  '@fontsource/micro-5@5.3.0': {}
 
   '@img/colour@1.1.0': {}
 

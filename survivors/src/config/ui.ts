@@ -26,9 +26,14 @@ export function px(size: number): string {
     return `${size}px`;
 }
 
-/** Resolves once the UI font is ready (or after a timeout, so the game always starts). */
+/** Pixel-art font of the damage numbers (Micro 5, OFL; it has a single weight, imported in main.ts). */
+export const DAMAGE_FONT_NAME = 'Micro 5';
+export const DAMAGE_FONT = `"${DAMAGE_FONT_NAME}", monospace`;
+
+/** Resolves once the UI and damage fonts are ready (or after a timeout, so the game always starts). */
 export function loadUiFont(): Promise<void> {
     const loads = UI_FONT_WEIGHTS.map((weight) => document.fonts.load(`${weight} ${px(UI_FONT_SIZE.normal)} "${UI_FONT_NAME}"`));
+    loads.push(document.fonts.load(`400 16px "${DAMAGE_FONT_NAME}"`));
     const timeout = new Promise<void>((resolve) => setTimeout(resolve, UI_FONT_TIMEOUT_MS));
     return Promise.race([Promise.all(loads).then(() => undefined), timeout]);
 }

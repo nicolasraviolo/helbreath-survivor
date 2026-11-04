@@ -120,6 +120,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Tintes de la ropa (revisión del original D, 1-nov-2026)
 - Magias de los monstruos del original (1-nov-2026)
 - Elementos y quemadura (4-nov-2026)
+- Números de daño: letra y movimiento (4-nov-2026)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -1373,3 +1374,9 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - Quemadura: solo hechizos de fuego (`CombatSystem.strike` → `Enemy.burn`, `updateBurn`). Hasta 3 capas, 3 s, tic de 1 s; cada tic puede aturdir 0,3 s con `Enemy.freeze(ms, false)` (sin tinte azul). Números de Olympia no publicados: los de `BURN` son nuestros.
 - Llamita: effect.spr hoja 9 ("Positional Fire 1" de sp-client). Su pivote ya cae en los pies: offset 0. Ojo: un sprite nuevo de Phaser nace visible; si se arranca la animación con `if (!visible)`, crearlo con `setVisible(false)`.
 - `check meteor` (Fire Ball + Meteor Strike con horda; `--eval="g.launchCritStrike()"`). En Elvine se ve mejor: `check "play=mage&map=elvineGarden&debug=god,horde,crits&spells=fireBall,meteorStrike"`.
+
+## Números de daño: letra y movimiento (4-nov-2026)
+- Letra **Micro 5** (`@fontsource/micro-5`, un solo grosor): no usar `fontStyle: 'bold'`, el navegador la engorda falsa y se emborrona. Dibuja pequeña para su tamaño: 20 px ≈ los 16 px de antes con Georgia.
+- `loadUiFont` (config/ui.ts) también espera a esta letra: si Phaser pinta un texto antes de que cargue, se queda con la letra de reserva hasta el siguiente `setText`.
+- Cada cambio de estilo de un `Text` (color, fondo, relleno) vuelve a dibujar su textura: con cientos de golpes, tocar solo lo que cambia. El "pop" usa `setScale`, que no redibuja.
+- Colores en `ELEMENT_NUMBER_COLOR` (data/elements.ts) y en `DamageNumbers.ts` (blanco base, naranja crítico); veneno en `POISON.numberColor`.

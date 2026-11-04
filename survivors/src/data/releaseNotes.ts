@@ -34,6 +34,7 @@ export const RELEASE_NOTES: readonly ReleaseNote[] = [
             'Cards and the Character panel now show the real numbers you gain.',
             'More monsters cast their spells from the original game, marking the ground first.',
             'Spells now have elements: each monster is weak to one, and fire spells set monsters on fire.',
+            'New damage numbers: pixel font, a punchier pop and colors by element.',
         ],
     },
     {
