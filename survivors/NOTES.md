@@ -124,6 +124,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Helbreath Off oculto y teclas en Playwright (Fase Off-0)
 - Andar casilla a casilla en Helbreath Off (Fase Off-1)
 - Pits y combate en Helbreath Off (Fase Off-2A)
+- Experiencia y niveles en Helbreath Off (Fase Off-2B)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -1408,3 +1409,9 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - **Controles:** `Action.OffAttack` (Espacio / A; `InputSystem.isHeld` para seguir pegando), `OffNextTarget` / `OffPrevTarget` (RB / LB, sin tecla: Tab lo captura Phaser en toda la página). El clic en un monstruo mira el rectángulo de su dibujo (`HBAsset.getBounds`), no su casilla.
 - **Check:** `offpits` (cuántos hay), `offfight` / `offrabbit` (pelea 25 s; `o.debugFight(id)` pega como con el botón mantenido). Morir: `--eval="(o.battle.hp = 1, o.debugFight('slime'), …)"`.
 
+## Experiencia y niveles en Helbreath Off (Fase Off-2B)
+- **Curva y reglas:** `off/data/offLevel.ts` (tabla del original: nivel 10 = 2.700, 60 = 502.032, 140 = 33.396.014; `offKillExp`, `offDeathExpLoss`, textos en `OFF_LEVEL_TEXT`). Con ×2, **un Slime en el nivel 1 sube al 10** y unos 6 Slimes llevan al 22: lo que da el original ×3 por debajo del 80.
+- **Experiencia entera al matar** (propietario), en `OffBattle.gainExp`; subir llena la vida (`maxHp` sale del nivel) y suma 3 puntos. Morir quita 1d(5 × nivel) ÷ 3 sin bajar de nivel (en el nivel 10, 0–16).
+- **Guardado:** `off/systems/OffSaveStore.ts`, clave `hb-off.character` (`exp`, `points`), en `TRANSFER_KEYS`. `?offreset`, `?offlevel=N` (debugStart.ts).
+- **HUD:** `off/scenes/OffHudScene.ts` reutiliza `ClassicHud` / `CompactHud` con `HudBarState.infoLine` (si está, sustituye "Power, tiempo, bajas, oro"). La lista de mensajes de abajo a la izquierda salió de HudScene a `ui/EventLineList.ts` y la usan los dos. Los avisos llegan con `ANNOUNCE_EVENT` / `EVENT_LIST_EVENT` emitidos en la escena OffWorld. El mundo se recorta hasta la barra (`fitPlayArea`) y los clics sobre la barra no mueven al personaje.
+- **Check:** `offlevel` (de cero, mata Slimes 20 s), `offdeath` (nivel 10 + 200, muere: la experiencia antes y después). Cada `check` abre un navegador limpio: el guardado se ve con `--eval="localStorage.getItem('hb-off.character')"` en la misma visita.

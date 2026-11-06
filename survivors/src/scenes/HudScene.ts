@@ -49,6 +49,7 @@ import { CompactHud } from '../ui/CompactHud';
 import { activeHudStyle, overlayBottom, type HudBar, type HudBarState } from '../ui/hudLayout';
 import { Minimap, type MinimapInfo, type MinimapMarkers } from '../ui/Minimap';
 import { MINIMAP } from '../data/minimap';
+import { EventLineList } from '../ui/EventLineList';
 import { openOverlay } from './MenuOverlayScene';
 import type { CharacterInfoSceneData } from './CharacterInfoScene';
 import type { EquipmentSceneData } from './EquipmentScene';
@@ -135,7 +136,7 @@ export class HudScene extends Phaser.Scene {
     private achievementWidth = 0;
     private achievementHeight = 0;
     /** Lines of the message list on screen, the oldest first, with their time on screen. */
-    private readonly eventLines: { text: Phaser.GameObjects.Text; shownMs: number }[] = [];
+    private eventLines!: EventLineList;
     /** One line per active buff, created when first needed. */
     private readonly buffTexts: SpriteText[] = [];
 
@@ -168,9 +169,9 @@ export class HudScene extends Phaser.Scene {
         game.events.on(ACHIEVEMENT_EVENT, onAchievement);
         this.achievementQueue.length = 0;
         this.achievementNotice = undefined;
-        const onEventLine = (line: string) => this.addEventLine(line);
+        this.eventLines = new EventLineList(this);
+        const onEventLine = (line: string) => this.eventLines.add(line);
         game.events.on(EVENT_LIST_EVENT, onEventLine);
-        this.eventLines.length = 0;
         this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
             game.events.off(ANNOUNCE_EVENT, onAnnounce);
             game.events.off(ACHIEVEMENT_EVENT, onAchievement);
@@ -225,7 +226,7 @@ export class HudScene extends Phaser.Scene {
         this.showPortal(state.portalSecondsLeft);
         this.updateAnnouncement(delta);
         this.updateAchievementNotice(delta);
-        this.updateEventLines(delta);
+        this.eventLines.update(delta, this.scene.isPaused(this.gameSceneKey), this.eventLinesBottom());
         if (this.inputSystem.justPressed(Action.Pause)) this.openPause();
         if (this.inputSystem.justPressed(Action.ToggleStats)) this.openCharacterInfo();
         if (this.training && this.inputSystem.justPressed(Action.OpenInventory)) this.openEquipment();
@@ -360,35 +361,11 @@ export class HudScene extends Phaser.Scene {
         return notice;
     }
 
-    /** A new line at the bottom of the message list; the oldest goes when there are too many. */
-    private addEventLine(line: string): void {
-        if (this.eventLines.length >= HUD_EVENT_LIST.maxLines) this.eventLines.shift()?.text.destroy();
-        const text = this.add.text(HUD_EVENT_LIST.left, 0, line, HUD_EVENT_LIST.style).setOrigin(0, 1).setDepth(HUD_DEPTH_TEXT);
-        this.eventLines.push({ text, shownMs: 0 });
-        this.placeEventLines();
-    }
-
-    /** Ages the lines (not while the game is paused) and fades out the old ones. */
-    private updateEventLines(deltaMs: number): void {
-        if (this.eventLines.length === 0) return;
-        const paused = this.scene.isPaused(this.gameSceneKey);
-        const { showMs, fadeMs } = HUD_EVENT_LIST;
-        for (const line of this.eventLines) {
-            if (!paused) line.shownMs += deltaMs;
-            line.text.setAlpha(Phaser.Math.Clamp((showMs - line.shownMs) / fadeMs, 0, 1));
-        }
-        while (this.eventLines.length > 0 && this.eventLines[0].shownMs >= showMs) this.eventLines.shift()?.text.destroy();
-        this.placeEventLines();
-    }
-
-    /** The newest line at the bottom; all of them above the achievement box while it shows. */
-    private placeEventLines(): void {
+    /** Bottom of the newest message line: above the achievement box while it shows. */
+    private eventLinesBottom(): number {
         let bottom = overlayBottom() - HUD_EVENT_LIST.bottomGap;
         if (this.achievementNotice) bottom -= this.achievementHeight + HUD_EVENT_LIST.achievementGap;
-        const last = this.eventLines.length - 1;
-        this.eventLines.forEach((line, i) => {
-            line.text.y = bottom - (last - i) * HUD_EVENT_LIST.lineHeight;
-        });
+        return bottom;
     }
 
     /** Line `index` of the buffs, from the bottom of the game area up. */

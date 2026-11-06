@@ -45,6 +45,10 @@ const PRESETS = {
     offpits: 'off=world',
     offfight: 'off=world',
     offrabbit: 'off=world',
+    // Fase Off-2B: experiencia y niveles. offlevel empieza de cero y mata Slimes 20 s (nivel, experiencia y puntos en
+    // eval); offdeath empieza en el nivel 10, muere y en eval sale cuánta experiencia perdió (sin bajar de nivel).
+    offlevel: 'off=world&offreset',
+    offdeath: 'off=world&offlevel=10',
     game: 'play',
     levelup: 'debug=levelup',
     // Fase 21½A: todas las cartas Epic (marco morado, cinta, brillo y sonido).
@@ -305,6 +309,10 @@ const PRESET_EVAL = {
     offpits: 'o.debugState()',
     // Fase Off-2: fights the nearest Slime (a new one each time the last dies) for 25 s; the states on the way.
     offfight: "new Promise((r) => { const log = []; const t = setInterval(() => { if (!o.debugState().target) o.debugFight('slime'); log.push(o.debugState()); }, 1000); setTimeout(() => { clearInterval(t); r({ start: log[0], mid: log[12], end: log[log.length - 1] }); }, 25000); })",
+    // Fase Off-2B: kills Slimes for 20 s from level 1; level, experience and points before and after.
+    offlevel: "new Promise((r) => { const start = o.debugState(); const t = setInterval(() => { if (!o.debugState().target) o.debugFight('slime'); }, 1000); setTimeout(() => { clearInterval(t); r({ start, end: o.debugState() }); }, 20000); })",
+    // Fase Off-2B: 200 experience into level 10, dies (as a monster's last blow would); the experience before and after coming back.
+    offdeath: "new Promise((r) => { o.battle.exp += 200; const start = o.debugState(); o.battle.hp = 0; o.battle.die(); setTimeout(() => r({ start, end: o.debugState() }), 4000); })",
     offrabbit: "new Promise((r) => { const log = []; const t = setInterval(() => { if (!o.debugState().target) o.debugFight('rabbit'); log.push(o.debugState()); }, 1000); setTimeout(() => { clearInterval(t); r({ start: log[0], mid: log[12], end: log[log.length - 1] }); }, 25000); })",
 };
 const scenarios = args.filter((a) => !a.startsWith('--'));

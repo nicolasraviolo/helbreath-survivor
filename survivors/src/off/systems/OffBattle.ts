@@ -3,9 +3,13 @@
 // - Atacar: ir hasta el monstruo marcado (a su alcance) y pegarle. Un clic o una pulsación = un golpe; con el botón
 //   mantenido sigue pegando. Moverse deja de atacar.
 // - Acertar y daño con las fórmulas del original (OffCombatRules). El golpe se decide al empezar y cae a mitad.
-// - Morir (Off-2A): cae, y a los 3 s vuelve al inicio con la vida llena. La Off-2B le quita algo de experiencia.
+// - Morir (Off-2A): cae, y a los 3 s vuelve al inicio con la vida llena. Pierde algo de experiencia sin bajar de nivel.
+// - Experiencia (Off-2B, off/data/offLevel.ts): entera al matar al monstruo. Subir de nivel llena la vida, suena la voz
+//   del original, sale "Level Up!" y guarda 3 puntos. Todo se guarda al momento (OffSaveStore).
+// Los mensajes ("Level Up!" y la lista de abajo a la izquierda) van a OffHudScene por los eventos de la escena.
 import Phaser from 'phaser';
 import { PLAYER_BODY_OFFSET_Y } from '../../config/gameConfig';
+import { ANNOUNCE_EVENT, EVENT_LIST_EVENT } from '../../config/hud';
 import { GENDER_SOUNDS } from '../../data/appearance';
 import { Effect } from '../../entities/Effect';
 import type { TileRect } from '../../data/maps';
@@ -16,12 +20,14 @@ import { HitParticles } from '../../systems/HitParticles';
 import { Pool } from '../../utils/Pool';
 import { OFF_MONSTER_LOOK } from '../config/offMonsterLook';
 import { OFF_COMBAT, OFF_DAGGER, OFF_NOVICE_STATS, offMaxHp } from '../data/offCombat';
+import { OFF_LEVEL, OFF_LEVEL_TEXT, offDeathExpLoss, offKillExp, offLevelForExp } from '../data/offLevel';
 import { OFF_NOVICE_LOOK } from '../data/offWorld';
 import type { OffCharacter } from '../entities/OffCharacter';
 import type { OffMonster } from '../entities/OffMonster';
 import { isFromBehind, offHitChance, rollMonsterDamage, rollWeaponDamage, tileDistance } from './OffCombatRules';
 import { provokeMonster, updateMonster, type OffMonsterWorld } from './OffMonsterAI';
 import { OffPits } from './OffPits';
+import { offSaveStore } from './OffSaveStore';
 import { directionTowards, type TileMover, type TilePoint } from './TileMover';
 
 /** The player's blow on the way: it lands on `monster` after `leftMs`. */
@@ -33,7 +39,13 @@ interface PendingBlow {
 
 export class OffBattle implements OffMonsterWorld {
     public hp: number;
-    public readonly maxHp: number;
+    /** Total experience; the level comes from it. */
+    public exp: number;
+    public level: number;
+    /** Stat points not spent yet (Off-3 spends them). */
+    public points: number;
+    /** Monsters killed since the world opened. */
+    public kills = 0;
     /** Monster chosen to attack (click, A, LB / RB). */
     public target: OffMonster | undefined;
     /** Monster under the mouse (its name shows). */
@@ -53,20 +65,28 @@ export class OffBattle implements OffMonsterWorld {
     private readonly playerAt: TilePoint = { x: 0, y: 0 };
 
     constructor(
-        scene: Phaser.Scene,
+        private readonly scene: Phaser.Scene,
         private readonly mover: TileMover,
         private readonly character: OffCharacter,
         private readonly audio: AudioSystem,
         private readonly isWalkable: (x: number, y: number) => boolean,
         private readonly respawnTile: () => TilePoint,
     ) {
-        this.maxHp = offMaxHp(OFF_NOVICE_STATS);
+        const saved = offSaveStore.character;
+        this.exp = saved.exp;
+        this.points = saved.points;
+        this.level = offLevelForExp(this.exp);
         this.hp = this.maxHp;
         this.numbers = new DamageNumbers(scene);
         this.particles = new HitParticles(scene);
         this.effects = new Pool(() => new Effect(scene));
         this.pits = new OffPits(scene, (x, y) => this.isFree(x, y));
         this.pits.fillAll();
+    }
+
+    /** Original max health, which grows with the level. */
+    public get maxHp(): number {
+        return offMaxHp({ ...OFF_NOVICE_STATS, level: this.level });
     }
 
     /** The player may start a step (not while swinging, not dead). */
@@ -256,10 +276,36 @@ export class OffBattle implements OffMonsterWorld {
             monster.kill();
             this.particles.death(monster.x, monster.y, bodyY);
             this.audio.play(monster.def.base.deathSound);
+            this.kills++;
+            this.gainExp(offKillExp(monster.exp, this.level), monster.x, bodyY);
         } else {
             this.particles.hit(monster.x, bodyY, this.character.x, this.character.y);
             this.audio.play(monster.def.base.hitSound);
         }
+    }
+
+    // ---- Experience ----
+
+    /** A kill's experience: shown over the monster; one level or more may come with it. */
+    private gainExp(amount: number, x: number, y: number): void {
+        if (amount <= 0) return;
+        this.exp += amount;
+        this.numbers.showWord(x, y - OFF_MONSTER_LOOK.expWordRise, OFF_LEVEL_TEXT.expGained(amount));
+        this.scene.events.emit(EVENT_LIST_EVENT, OFF_LEVEL_TEXT.expLine(amount));
+        const level = offLevelForExp(this.exp);
+        if (level > this.level) {
+            this.points += (level - this.level) * OFF_LEVEL.pointsPerLevel;
+            this.level = level;
+            this.hp = this.maxHp;
+            this.audio.play(GENDER_SOUNDS[OFF_NOVICE_LOOK.gender].levelUp);
+            this.scene.events.emit(ANNOUNCE_EVENT, OFF_LEVEL_TEXT.levelUp);
+            this.scene.events.emit(EVENT_LIST_EVENT, OFF_LEVEL_TEXT.levelLine(level));
+        }
+        this.save();
+    }
+
+    private save(): void {
+        offSaveStore.save({ exp: this.exp, points: this.points });
     }
 
     // ---- Dying and coming back ----
@@ -272,6 +318,12 @@ export class OffBattle implements OffMonsterWorld {
         this.character.die(this.mover.facing);
         this.audio.play(GENDER_SOUNDS[OFF_NOVICE_LOOK.gender].death);
         this.respawnLeftMs = OFF_COMBAT.playerRespawnMs;
+        const loss = offDeathExpLoss(this.exp, this.level);
+        if (loss > 0) {
+            this.exp -= loss;
+            this.save();
+            this.scene.events.emit(EVENT_LIST_EVENT, OFF_LEVEL_TEXT.expLost(loss));
+        }
     }
 
     private updateDead(deltaMs: number): void {

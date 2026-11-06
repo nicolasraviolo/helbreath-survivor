@@ -104,6 +104,8 @@
 //   ?unique=reset → olvida las tiradas fallidas de objetos únicos (Fase 30B); ?unique=iceStorm → el jefe final de un
 //   mapa con únicos suelta siempre ese (con ?debug=unique, uno de los del mapa al azar).
 //   ?kills=slime:2995,orc:1500 → pone esos contadores de bajas de todas las partidas (logros que se acumulan, Fase 29C)
+//   ?offlevel=12 → Helbreath Off: el personaje empieza al principio de ese nivel, con sus puntos (Fase Off-2B)
+//   ?offreset    → Helbreath Off: el personaje vuelve a nivel 1 sin experiencia (Fase Off-2B)
 //   ?metrics=send    → enviar las métricas de esta partida al servidor de verdad (en desarrollo no se envían; Fase 14A)
 //   Se combina con ?ui=compact (interfaz de móvil).
 // En el build publicado no hace nada.
@@ -198,6 +200,10 @@ interface DebugStart {
     kills: Record<string, number>;
     /** ?unique=reset forgets the missed unique rolls; ?unique=<item id> makes the final boss always drop that unique (Fase 30B). */
     unique: ItemId | 'reset' | undefined;
+    /** ?offlevel=N: Helbreath Off's character starts at the beginning of level N (Fase Off-2B). */
+    offLevel: number | undefined;
+    /** ?offreset: Helbreath Off's character back to level 1 (Fase Off-2B). */
+    offReset: boolean;
     /**
      * ?town=portal: the character appears on the town's teleport, so Select Map opens over the town (Fase 23).
      * ?town=<npc>: next to that NPC (Fase 23B); with &talk, its panel opens too.
@@ -242,7 +248,7 @@ function readDebugStart(): DebugStart {
     const none: DebugStart = {
         play: false, character: undefined, actions: [], trees: undefined, open: undefined, achievements: undefined, characters: undefined,
         sendMetrics: false, spells: { auto: undefined, active: undefined }, openClass: undefined, openSlot: undefined, slash: undefined,
-        holdLoading: false, gear: [], settingsTab: undefined, attribute: undefined, attributeValue: undefined, secondary: undefined, secondaryValue: undefined, unlocks: undefined, unlockCounts: {}, map: undefined, maps: undefined, rescued: undefined, kills: {}, unique: undefined, townSpot: undefined, townTalk: false, townShop: false, townDye: false, townMissions: false, townSmith: undefined,
+        holdLoading: false, gear: [], settingsTab: undefined, attribute: undefined, attributeValue: undefined, secondary: undefined, secondaryValue: undefined, unlocks: undefined, unlockCounts: {}, map: undefined, maps: undefined, rescued: undefined, kills: {}, unique: undefined, offLevel: undefined, offReset: false, townSpot: undefined, townTalk: false, townShop: false, townDye: false, townMissions: false, townSmith: undefined,
         gold: undefined, weapon: undefined, upgrade: undefined, xelima: undefined, level: undefined, build: undefined, kit: 'best', simBot: 'circle',
     };
     if (!import.meta.env.DEV) return none;
@@ -294,6 +300,8 @@ function readDebugStart(): DebugStart {
         rescued: rescued === 'all' || rescued === 'reset' ? rescued : rescued ? rescued.split(',').map((r) => r.trim()).filter(isNpcId) : undefined,
         kills: parseKills(params.get('kills')),
         unique: parseUnique(params.get('unique')),
+        offLevel: parseOffLevel(params.get('offlevel')),
+        offReset: params.has('offreset'),
         townSpot: parseTownSpot(params.get('town')),
         townTalk: params.has('talk'),
         townShop: params.has('shop'),
@@ -322,6 +330,12 @@ function readBuild(value: string | null): Partial<Stats> | undefined {
         if (stat && amount !== undefined && /^\d+$/.test(amount.trim())) build[stat] = Number(amount);
     }
     return Object.keys(build).length > 0 ? build : undefined;
+}
+
+/** ?offlevel=N → N, between 1 and Off's top level (140, the same as Survivors' Level). */
+function parseOffLevel(value: string | null): number | undefined {
+    const level = Number(value);
+    return value !== null && Number.isInteger(level) ? Math.max(1, Math.min(CHARACTER_LEVEL_MAX, level)) : undefined;
 }
 
 function parseUnique(value: string | null): DebugStart['unique'] {

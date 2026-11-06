@@ -7,9 +7,10 @@
 // - Teclado, cruceta y stick: va hacia donde se apunta.
 // - Correr o andar: interruptor con R o R3 del mando (6-nov-2026, propietario: como el original, no mantener Shift).
 // - Esc / B vuelve a la pantalla de Off.
+// Fase Off-2B: encima va el HUD (OffHudScene) con vida, experiencia y nivel; el mundo llega hasta la barra.
 // Mapa, árboles que se transparentan, cámara, pasos y minimapa, como la ciudad de Survivors (scenes/TownScene.ts).
 import Phaser from 'phaser';
-import { CAMERA_LERP, DEPTH_DEBUG, TILE_SIZE } from '../../config/gameConfig';
+import { CAMERA_LERP, DEPTH_DEBUG, GAME_WIDTH, TILE_SIZE } from '../../config/gameConfig';
 import { DEBUG_START } from '../../config/debugStart';
 import { FOOTSTEPS_PER_RUN_CYCLE } from '../../data/audio';
 import { Effect } from '../../entities/Effect';
@@ -22,12 +23,15 @@ import { runSprites } from '../../systems/LookLoader';
 import { MusicSystem } from '../../systems/MusicSystem';
 import { SETTINGS_CHANGED, settings } from '../../systems/Settings';
 import { Minimap } from '../../ui/Minimap';
-import { zoomWorldCamera } from '../../ui/renderScale';
+import { playAreaBottom } from '../../ui/hudLayout';
+import { setGameViewport, toGame, zoomWorldCamera } from '../../ui/renderScale';
 import { Pool } from '../../utils/Pool';
 import type { MapLoadSceneData } from '../../scenes/MapLoadScene';
 import { OFF_MOVEMENT, OFF_NOVICE, OFF_NOVICE_LOOK, OFF_STEP_MS, OFF_WORLD, TILES_PER_ANIMATION_CYCLE } from '../data/offWorld';
 import { OffCharacter } from '../entities/OffCharacter';
+import { offLevelProgress } from '../data/offLevel';
 import { OffBattle } from '../systems/OffBattle';
+import { OFF_HUD_SCENE_KEY, type OffHudSceneData, type OffHudState } from './OffHudScene';
 import { directionOffset, findFreeTile, TileMover, type TilePoint } from '../systems/TileMover';
 
 export const OFF_WORLD_SCENE_KEY = 'OffWorld';
@@ -106,12 +110,14 @@ export class OffWorldScene extends Phaser.Scene {
         this.minimap.setVisible(settings.current.showMinimap);
 
         this.inputSystem = new InputSystem(this);
+        this.fitPlayArea();
         this.input.mouse?.disableContextMenu();
         this.input.on(Phaser.Input.Events.POINTER_DOWN, this.onPointerDown, this);
         this.input.on(Phaser.Input.Events.POINTER_UP, this.onPointerUp, this);
 
         this.mapView.setTreeMode(DEBUG_START.trees ?? settings.current.largeTrees);
         const onSettings = () => {
+            this.fitPlayArea();
             this.mapView.setTreeMode(settings.current.largeTrees);
             this.minimap.setVisible(settings.current.showMinimap);
         };
@@ -121,7 +127,29 @@ export class OffWorldScene extends Phaser.Scene {
             this.input.off(Phaser.Input.Events.POINTER_DOWN, this.onPointerDown, this);
             this.input.off(Phaser.Input.Events.POINTER_UP, this.onPointerUp, this);
             this.audio.stopLoop('sfx.footsteps');
+            this.scene.stop(OFF_HUD_SCENE_KEY);
         });
+        const hud: OffHudSceneData = { worldSceneKey: OFF_WORLD_SCENE_KEY, getState: () => this.hudState() };
+        this.scene.launch(OFF_HUD_SCENE_KEY, hud);
+    }
+
+    /** World down to the HUD bar, or the whole screen with the compact HUD (as GameScene.fitPlayArea). */
+    private fitPlayArea(): void {
+        const bottom = playAreaBottom();
+        setGameViewport(this.cameras.main, 0, 0, GAME_WIDTH, bottom);
+        this.inputSystem.setPointerMaxY(bottom);
+    }
+
+    /** What the HUD shows. */
+    private hudState(): OffHudState {
+        const battle = this.battle;
+        return {
+            hp: battle.hp,
+            maxHp: battle.maxHp,
+            level: battle.level,
+            xpRatio: offLevelProgress(battle.exp, battle.level),
+            kills: battle.kills,
+        };
     }
 
     override update(_time: number, delta: number): void {
@@ -136,7 +164,7 @@ export class OffWorldScene extends Phaser.Scene {
         if (!this.battle.dead) this.steer();
         if (this.battle.canMove) this.mover.update(delta, runMode ? OFF_STEP_MS.run : OFF_STEP_MS.walk);
         const stepRunning = this.mover.currentStepMs === OFF_STEP_MS.run;
-        this.character.update(this.mover, stepRunning, delta, this.battle.hp / this.battle.maxHp);
+        this.character.update(this.mover, stepRunning, delta);
         this.battle.update(delta);
         this.updateFootsteps(stepRunning);
         this.mapView.updateFading(this.character.y, this.character.getVisualBounds());
@@ -155,7 +183,7 @@ export class OffWorldScene extends Phaser.Scene {
     /** Development: where the character is, its health and the monsters, for `check`. */
     public debugState(): {
         tile: TilePoint; moving: boolean; running: boolean; spawn: TilePoint; hp: number; maxHp: number; dead: boolean;
-        monsters: Record<string, number>; target: string | undefined;
+        level: number; exp: number; points: number; kills: number; monsters: Record<string, number>; target: string | undefined;
     } {
         const monsters: Record<string, number> = {};
         for (const monster of this.battle.pits.monsters) {
@@ -170,6 +198,10 @@ export class OffWorldScene extends Phaser.Scene {
             hp: this.battle.hp,
             maxHp: this.battle.maxHp,
             dead: this.battle.dead,
+            level: this.battle.level,
+            exp: this.battle.exp,
+            points: this.battle.points,
+            kills: this.battle.kills,
             monsters,
             target: target ? `${target.id} ${target.hp}/${target.maxHp} at ${target.mover.tileX},${target.mover.tileY}` : undefined,
         };
@@ -233,6 +265,8 @@ export class OffWorldScene extends Phaser.Scene {
     }
 
     private onPointerDown(pointer: Phaser.Input.Pointer): void {
+        // On the HUD bar: not the world.
+        if (toGame(pointer.downY) >= playAreaBottom()) return;
         this.debugHold = false;
         if (pointer.rightButtonDown()) {
             this.leftHeld = false;

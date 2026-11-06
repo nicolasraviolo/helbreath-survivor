@@ -78,7 +78,7 @@ export class ClassicHud implements HudBar {
             this.mpText.setText(`${Math.ceil(state.mana)} / ${state.maxMana}`);
         }
         setGauge(this.xp, state.xpRatio);
-        this.infoText.setText(`Power ${state.level}  ${formatTime(state.elapsedMs)}  ${state.kills} kills  ${formatGold(state.gold)} gold`);
+        this.infoText.setText(state.infoLine ?? `Power ${state.level}  ${formatTime(state.elapsedMs)}  ${state.kills} kills  ${formatGold(state.gold)} gold`);
         this.showCrit(state.skillOrb);
         this.revive.update(state.revive);
         if (state.skillOrb) this.critIcon.setFrame(this.critState.frame(state.skillUses, this.scene.time.now, HUD_CRIT), false, false);

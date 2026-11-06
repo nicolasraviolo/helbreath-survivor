@@ -1,17 +1,15 @@
 // Helbreath Off (Fase Off-1): el personaje que anda por el mundo. Lo mueve TileMover casilla a casilla; aquí solo se
 // dibuja: las capas de cuerpo y ropa de Survivors (CharacterSprite), quieto / andando / corriendo, y la sombra sacada
 // del cuerpo desnudo como el jugador de Survivors (entities/Player.ts, syncShadow).
-// Fase Off-2: golpear, encogerse al recibir un golpe, caer al morir y una barra de vida sobre la cabeza (hasta que
-// haya HUD en la Off-2B).
+// Fase Off-2: golpear, encogerse al recibir un golpe y caer al morir. La vida se ve en el HUD (OffHudScene, Off-2B).
 import Phaser from 'phaser';
-import { BODY_SHADOW_ALPHA, BODY_SHADOW_ROTATION, BODY_SHADOW_SCALE_Y, DEPTH_DAMAGE_NUMBERS, DEPTH_GROUND_SHADOWS, TILE_SIZE } from '../../config/gameConfig';
+import { BODY_SHADOW_ALPHA, BODY_SHADOW_ROTATION, BODY_SHADOW_SCALE_Y, DEPTH_GROUND_SHADOWS, TILE_SIZE } from '../../config/gameConfig';
 import type { CharacterLook } from '../../data/appearance';
 import type { CharacterDef } from '../../data/characters';
 import { CharacterSprite } from '../../entities/CharacterSprite';
 import type { Direction } from '../../hb/directions';
 import { PlayerState } from '../../hb/playerAppearance';
 import { smoothSprite } from '../../hb/XbrPipeline';
-import { OFF_MONSTER_LOOK } from '../config/offMonsterLook';
 import type { TileMover, TilePoint } from '../systems/TileMover';
 
 /** Approximate size of the drawn character, used to fade map objects that cover it (as Player). */
@@ -26,15 +24,12 @@ export class OffCharacter {
     private readonly shadow: Phaser.GameObjects.Sprite;
     private readonly bounds = new Phaser.Geom.Rectangle();
     private readonly tile: TilePoint = { x: 0, y: 0 };
-    private readonly bar: Phaser.GameObjects.Graphics;
     /** An attack or a flinch is showing for this long, ms. */
     private actionLeftMs = 0;
     private dead = false;
-    private headHeight = 0;
 
     constructor(scene: Phaser.Scene, def: CharacterDef, look: CharacterLook) {
         this.body = new CharacterSprite(scene, def, look);
-        this.bar = scene.add.graphics().setDepth(DEPTH_DAMAGE_NUMBERS - 1);
         this.container = scene.add.container(0, 0, [this.body.container]);
         this.shadow = smoothSprite(scene.add.sprite(0, 0, '__DEFAULT'))
             .setTint(0x000000)
@@ -74,7 +69,7 @@ export class OffCharacter {
     }
 
     /** Places the feet where the mover is and picks the pose: standing, walking or running (`running`), or acting. */
-    public update(mover: TileMover, running: boolean, deltaMs: number, hpRatio = 1): void {
+    public update(mover: TileMover, running: boolean, deltaMs: number): void {
         mover.position(this.tile);
         this.x = this.tile.x * TILE_SIZE;
         this.y = this.tile.y * TILE_SIZE;
@@ -86,23 +81,6 @@ export class OffCharacter {
         this.body.update(deltaMs);
         this.container.setPosition(this.x, this.y).setDepth(this.y);
         this.syncShadow();
-        this.drawBar(hpRatio);
-    }
-
-    /** Health bar over the head (hidden when dead). */
-    private drawBar(ratio: number): void {
-        this.bar.setVisible(!this.dead);
-        if (this.dead) return;
-        const bar = OFF_MONSTER_LOOK.playerBar;
-        const frame = this.body.bodyFrame();
-        if (frame) this.headHeight = Math.max(this.headHeight, frame.pivotY * frame.height);
-        const top = this.y - this.headHeight - bar.gapAboveHead - bar.height;
-        const left = this.x - bar.width / 2;
-        this.bar.clear()
-            .fillStyle(bar.backColor, bar.backAlpha)
-            .fillRect(left - 1, top - 1, bar.width + 2, bar.height + 2)
-            .fillStyle(bar.fillColor, 1)
-            .fillRect(left, top, bar.width * Phaser.Math.Clamp(ratio, 0, 1), bar.height);
     }
 
     /** Box around the drawn character (for fading the trees in front of it). */
