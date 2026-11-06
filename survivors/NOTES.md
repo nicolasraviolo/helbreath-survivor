@@ -123,6 +123,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Números de daño: letra y movimiento (4-nov-2026)
 - Helbreath Off oculto y teclas en Playwright (Fase Off-0)
 - Andar casilla a casilla en Helbreath Off (Fase Off-1)
+- Pits y combate en Helbreath Off (Fase Off-2A)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -1397,4 +1398,13 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - Traveler Zone se carga **entero** (170×170) en Off y tarda ~1,4 s en local. Alrededor del inicio (90,88) casi todo es libre; los "edificios" del mapa de casillas son desniveles del terreno. `check offwalk` corre a (112,100) y luego a (137,100), al otro lado de uno.
 - Mando de mentira en Playwright: `addInitScript` que sustituye `navigator.getGamepads` por un objeto con `buttons` y `axes` que se cambian desde `page.evaluate` (así se probó R3 y el stick).
 - Para `--eval` en Off: `o` = escena `OffWorld` (`o.debugWalkTo(x, y, run)`, `o.debugState()`); `PRESET_EVAL` en `scripts/check.mjs` da a una situación su expresión por defecto.
+
+## Pits y combate en Helbreath Off (Fase Off-2A)
+- **Pits de Slime reales:** https://helbreathnemesis.com/portal/index.php?action=map&id=1 ("Beginners Zone") es nuestro Traveler Zone (`default.amd`, 170×170; mismo minimapa). Las zonas de la imagen (`<area>` del mapa, 500 px de ancho) pasan a casillas con `px / 0,919 / 3,2`. Hay 6 pits de Slime y 2 de Guards (las plazas de piedra). Otras ids de esa página tendrán los demás mapas (útil para las Farm de la Off-5).
+- **Rabbits:** no hay en ese mapa; dos pits nuestros en praderas sin rocas. Sin búsqueda de caminos el novato se atasca contra los "anillos" de roca del sur (las hondonadas en 84–96, 108–116 se ven cerradas aunque todas sus casillas son alcanzables). Para buscar sitio: recorrido del mapa en `--eval` con `o.map.isWalkableTile` (ver la sesión del 6-nov-2026).
+- **Números del original:** Dagger = Item.cfg 1 → columnas 6–8 = dados contra pequeños (1d5), 9–11 contra grandes (1d4) (orden de columnas en `reference/Server.cpp` ~8207). Vida de monstruo = HitDice d4 + HitDice (HD ≤ 5). El jugador suma +50 a su puntería; los monstruos no. Los monstruos reutilizan `ENEMIES` de Survivors para sprite, sonidos, ATime, dados, puntería, defensa y valentía (`OFF_MONSTERS.base`).
+- **Experiencia del original (para la Off-2B):** un Slime da 400–499 y por debajo del nivel 80 se multiplica por `1,025 + (80 − nivel) × 0,025` (×3 en el nivel 1). El nivel 20 pide ~11.800: en el original bastan ~10 Slimes. Con un multiplicador encima, los primeros niveles vuelan.
+- **Piezas:** `off/systems/OffBattle.ts` (vida, objetivo, golpes, morir), `OffMonsterAI.ts` (una acción cada vez: pasear, atacar, huir), `OffPits.ts` (llenar y reponer, pools por tipo), `OffCombatRules.ts` (fórmulas), `off/entities/OffMonster.ts` (dibujo copiado de `Enemy.play` / `syncDisplay`). `TileMover` ganó `approach` (parar a N casillas), `stepToward` / `stepAwayFrom` (un paso, para los monstruos), `place` y `nextTileX/Y` (nadie entra en la casilla a la que otro está pasando).
+- **Controles:** `Action.OffAttack` (Espacio / A; `InputSystem.isHeld` para seguir pegando), `OffNextTarget` / `OffPrevTarget` (RB / LB, sin tecla: Tab lo captura Phaser en toda la página). El clic en un monstruo mira el rectángulo de su dibujo (`HBAsset.getBounds`), no su casilla.
+- **Check:** `offpits` (cuántos hay), `offfight` / `offrabbit` (pelea 25 s; `o.debugFight(id)` pega como con el botón mantenido). Morir: `--eval="(o.battle.hp = 1, o.debugFight('slime'), …)"`.
 

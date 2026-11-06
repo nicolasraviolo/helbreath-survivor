@@ -40,6 +40,11 @@ const PRESETS = {
     // eval sale dónde acaba (PRESET_EVAL; o = escena OffWorld). Otro destino: --eval="o.debugWalkTo(x, y, run)".
     offworld: 'off=world',
     offwalk: 'off=world',
+    // Fase Off-2: pits y combate. offpits da los monstruos vivos al entrar; offfight ataca al Slime más cercano (y a
+    // los siguientes) y en eval sale la vida del jugador y los monstruos tras 25 s. offrabbit, lo mismo con Rabbits.
+    offpits: 'off=world',
+    offfight: 'off=world',
+    offrabbit: 'off=world',
     game: 'play',
     levelup: 'debug=levelup',
     // Fase 21½A: todas las cartas Epic (marco morado, cinta, brillo y sonido).
@@ -296,6 +301,11 @@ const evalArg = args.find((a) => a.startsWith('--eval='))?.slice('--eval='.lengt
 const PRESET_EVAL = {
     // Fase Off-1: runs to (112,100), then to (137,100), on the far side of a building (x 122–134): it must go round.
     offwalk: 'o.debugWalkTo(112, 100, true), new Promise((r) => setTimeout(() => { o.debugWalkTo(137, 100, true); setTimeout(() => r(o.debugState()), 9000); }, 5000))',
+    // Fase Off-2: the monsters of the pits when the world opens.
+    offpits: 'o.debugState()',
+    // Fase Off-2: fights the nearest Slime (a new one each time the last dies) for 25 s; the states on the way.
+    offfight: "new Promise((r) => { const log = []; const t = setInterval(() => { if (!o.debugState().target) o.debugFight('slime'); log.push(o.debugState()); }, 1000); setTimeout(() => { clearInterval(t); r({ start: log[0], mid: log[12], end: log[log.length - 1] }); }, 25000); })",
+    offrabbit: "new Promise((r) => { const log = []; const t = setInterval(() => { if (!o.debugState().target) o.debugFight('rabbit'); log.push(o.debugState()); }, 1000); setTimeout(() => { clearInterval(t); r({ start: log[0], mid: log[12], end: log[log.length - 1] }); }, 25000); })",
 };
 const scenarios = args.filter((a) => !a.startsWith('--'));
 if (scenarios.length === 0) scenarios.push('menu');
