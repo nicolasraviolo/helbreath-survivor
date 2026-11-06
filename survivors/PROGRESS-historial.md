@@ -2,6 +2,12 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
+**Helbreath Off · Fase Off-0, elegir juego (2026-11-06).**
+- **Qué hace:** con `?off` en la dirección (también en la web publicada), tras la carga sale una pantalla con "Helbreath Survivors" y "Helbreath Off" (fondo y panel del menú principal). Survivors abre el menú de siempre, que entonces lleva al final "Change Game" (y Esc/B) para volver. Off abre una escena vacía con "Helbreath Off", "Coming soon" y Back (Esc/B). **Sin `?off` nada cambia** (decisión del 6-nov-2026: Off oculto). `?play`, `?debug=`, `?open=` siguen entrando directos a Survivors.
+- **Comprobado:** build; `check menu gameselect off game "off&open=settings"` y `gameselect off menu --mobile` sin errores; recorridos con teclado (↑/↓, Enter, Esc) y clics de ratón entre las tres pantallas (script de Playwright aparte).
+- **Cómo probar:** http://localhost:8090/?off · `?off=game` · sin nada → menú de Survivors como siempre.
+- **Código:** `off/offAccess.ts` (`OFF_ACCESS`, `offVisible`), `scenes/GameSelectScene.ts`, `off/scenes/OffHomeScene.ts`, `off/config/offHome.ts`, `GAME_SELECT` en `config/menus.ts`, ruta en `PreloadScene.create`, "Change Game" en `MainMenuScene`, presets `gameselect` / `off` en `scripts/check.mjs`.
+
 **Números de daño nuevos (2026-11-04, fuera de fase).**
 - **Qué hace:** estilo del vídeo de Capy of Gods que pasó el propietario. Letra pixel art **Micro 5** (elegida entre 8; Pixelify Sans descartada por el 8), solo el número sin "-" (el "!" del golpe que mata se queda). Movimiento: nacen ~2 veces más grandes (los críticos ~2,6) y se encogen en 0,13 s, suben 22 px frenando y en el último 40 % de sus 0,8 s se apagan encogiéndose. Colores: blanco el daño base, color del elemento en hechizos y quemadura (fuego rojo, hielo azul claro, rayo amarillo, tierra marrón), naranja los críticos (más grandes, sin recuadro), veneno verde. Fuera el rosa/gris de elemento fuerte/débil (el ±20 % sigue).
 - **Comprobado:** build; `check crit poison "play=mage&map=elvineGarden&debug=god,horde,crits&spells=fireBall,meteorStrike" --wait=7000` sin errores; capturas con números blancos y críticos naranjas.

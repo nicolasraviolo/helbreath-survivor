@@ -107,6 +107,8 @@
 //   ?metrics=send    → enviar las métricas de esta partida al servidor de verdad (en desarrollo no se envían; Fase 14A)
 //   Se combina con ?ui=compact (interfaz de móvil).
 // En el build publicado no hace nada.
+// Aparte (también en el build publicado; off/offAccess.ts, Fase Off-0): ?off → pantalla de elegir juego (Survivors u
+// Off); ?off=game → directo a la escena de Helbreath Off. Sin ?off, Off no se ve.
 import { isActiveSpellId, type ActiveSpellId } from '../data/activeSpells';
 import { ATTRIBUTE_VALUE_MAX, isItemAttribute, isSecondaryAttribute, type ItemAttribute, type SecondaryAttribute } from '../data/attributes';
 import { isUnlockId, type UnlockId } from '../data/abaddon';

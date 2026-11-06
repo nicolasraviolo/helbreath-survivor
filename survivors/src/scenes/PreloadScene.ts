@@ -6,6 +6,7 @@ import { DEFAULT_ANIMATION_FRAME_RATE } from '../config/gameConfig';
 import { CHARACTERS, CHOSEN_CHARACTER_KEY, DEFAULT_CHARACTER } from '../data/characters';
 import { CHOSEN_MAP_KEY, DEFAULT_MAP } from '../data/maps';
 import { HBSpriteFile, SpriteType } from '../hb/HBSprite';
+import { OFF_ACCESS } from '../off/offAccess';
 import { ACTIVE_CHARACTER_KEY, characterStore } from '../systems/CharacterStore';
 import { loadTimer } from '../systems/LoadTimer';
 import { LoadingScreen } from '../ui/LoadingScreen';
@@ -84,6 +85,15 @@ export class PreloadScene extends Phaser.Scene {
             const map = DEBUG_START.map ?? DEFAULT_MAP;
             this.registry.set(CHOSEN_MAP_KEY, map);
             this.scene.start('MapLoad', { map } satisfies MapLoadSceneData);
+            return;
+        }
+        // Fase Off-0: Helbreath Off está oculto; solo ?off lleva a elegir juego (y ?off=game, directo a Off).
+        if (OFF_ACCESS === 'game') {
+            this.scene.start('OffHome');
+            return;
+        }
+        if (OFF_ACCESS === 'select' && DEBUG_START.open === undefined) {
+            this.scene.start('GameSelect');
             return;
         }
         const open = DEBUG_START.open === 'CharacterInfo' || DEBUG_START.open === 'Equipment' || DEBUG_START.open === 'Warehouse' || DEBUG_START.open === 'RunChoice' ? 'CharacterSlots' : DEBUG_START.open;

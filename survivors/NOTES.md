@@ -121,6 +121,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Magias de los monstruos del original (1-nov-2026)
 - Elementos y quemadura (4-nov-2026)
 - Números de daño: letra y movimiento (4-nov-2026)
+- Helbreath Off oculto y teclas en Playwright (Fase Off-0)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -1380,3 +1381,7 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - `loadUiFont` (config/ui.ts) también espera a esta letra: si Phaser pinta un texto antes de que cargue, se queda con la letra de reserva hasta el siguiente `setText`.
 - Cada cambio de estilo de un `Text` (color, fondo, relleno) vuelve a dibujar su textura: con cientos de golpes, tocar solo lo que cambia. El "pop" usa `setScale`, que no redibuja.
 - Colores en `ELEMENT_NUMBER_COLOR` (data/elements.ts) y en `DamageNumbers.ts` (blanco base, naranja crítico); veneno en `POISON.numberColor`.
+
+## Helbreath Off oculto y teclas en Playwright (Fase Off-0)
+- Off solo se ve con `?off` en la dirección, **también en el build publicado**: por eso se lee en `off/offAccess.ts` y no en `DEBUG_START` (que en el build devuelve todo apagado). `?off=game` va directo a `OffHome`. `?play` y `?open=` mandan antes que `?off`.
+- Al automatizar teclas con Playwright, `page.keyboard.press()` es demasiado rápido: `InputSystem` mira las teclas una vez por frame y no lo ve. Usar `keyboard.down()`, esperar ~120 ms y `keyboard.up()`. Tras cambiar de escena, esperar más de `MENU_INPUT_DELAY_MS` (200 ms) antes de la siguiente tecla.
