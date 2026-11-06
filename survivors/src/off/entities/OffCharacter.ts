@@ -1,11 +1,13 @@
 // Helbreath Off (Fase Off-1): el personaje que anda por el mundo. Lo mueve TileMover casilla a casilla; aquí solo se
 // dibuja: las capas de cuerpo y ropa de Survivors (CharacterSprite), quieto / andando / corriendo, y la sombra sacada
 // del cuerpo desnudo como el jugador de Survivors (entities/Player.ts, syncShadow).
+// Fase Off-2: golpear, encogerse al recibir un golpe y caer al morir. La vida se ve en el HUD (OffHudScene, Off-2B).
 import Phaser from 'phaser';
 import { BODY_SHADOW_ALPHA, BODY_SHADOW_ROTATION, BODY_SHADOW_SCALE_Y, DEPTH_GROUND_SHADOWS, TILE_SIZE } from '../../config/gameConfig';
 import type { CharacterLook } from '../../data/appearance';
 import type { CharacterDef } from '../../data/characters';
 import { CharacterSprite } from '../../entities/CharacterSprite';
+import type { Direction } from '../../hb/directions';
 import { PlayerState } from '../../hb/playerAppearance';
 import { smoothSprite } from '../../hb/XbrPipeline';
 import type { TileMover, TilePoint } from '../systems/TileMover';
@@ -22,6 +24,9 @@ export class OffCharacter {
     private readonly shadow: Phaser.GameObjects.Sprite;
     private readonly bounds = new Phaser.Geom.Rectangle();
     private readonly tile: TilePoint = { x: 0, y: 0 };
+    /** An attack or a flinch is showing for this long, ms. */
+    private actionLeftMs = 0;
+    private dead = false;
 
     constructor(scene: Phaser.Scene, def: CharacterDef, look: CharacterLook) {
         this.body = new CharacterSprite(scene, def, look);
@@ -35,13 +40,44 @@ export class OffCharacter {
             .setVisible(false);
     }
 
-    /** Places the feet where the mover is and picks the pose: standing, walking or running (`running`). */
+    /** True while an attack or a flinch is showing. */
+    public get isActing(): boolean {
+        return this.actionLeftMs > 0;
+    }
+
+    /** Swings at, or flinches, looking one way, for `durationMs` (as Survivors' Player.act). */
+    public act(action: PlayerState.Melee | PlayerState.Hurt, direction: Direction, durationMs: number): void {
+        if (this.dead) return;
+        this.actionLeftMs = durationMs;
+        this.body.actionDurationMs = durationMs;
+        // Restart the animation even if the previous one was still showing.
+        this.body.setPose(PlayerState.IdleCombat, direction);
+        this.body.setPose(action, direction);
+    }
+
+    /** Falls and stays down (the shadow goes, as Survivors' Player.die). */
+    public die(direction: Direction): void {
+        this.dead = true;
+        this.actionLeftMs = 0;
+        this.body.setPose(PlayerState.Die, direction);
+    }
+
+    /** Stands up again (coming back after dying). */
+    public revive(): void {
+        this.dead = false;
+        this.body.setPose(PlayerState.IdleCombat, this.body.direction);
+    }
+
+    /** Places the feet where the mover is and picks the pose: standing, walking or running (`running`), or acting. */
     public update(mover: TileMover, running: boolean, deltaMs: number): void {
         mover.position(this.tile);
         this.x = this.tile.x * TILE_SIZE;
         this.y = this.tile.y * TILE_SIZE;
-        const state = !mover.isMoving ? PlayerState.IdleCombat : running ? PlayerState.Run : PlayerState.Walk;
-        this.body.setPose(state, mover.facing);
+        this.actionLeftMs = Math.max(0, this.actionLeftMs - deltaMs);
+        if (!this.dead && this.actionLeftMs <= 0) {
+            const state = !mover.isMoving ? PlayerState.IdleCombat : running ? PlayerState.Run : PlayerState.Walk;
+            this.body.setPose(state, mover.facing);
+        }
         this.body.update(deltaMs);
         this.container.setPosition(this.x, this.y).setDepth(this.y);
         this.syncShadow();
@@ -55,7 +91,7 @@ export class OffCharacter {
     /** Copies the body's frame onto the shadow and pins it to the frame's bottom centre (sp-client ShadowManager). */
     private syncShadow(): void {
         const frame = this.body.bodyFrame();
-        this.shadow.setVisible(frame !== undefined);
+        this.shadow.setVisible(frame !== undefined && !this.dead);
         if (!frame) return;
         if (this.shadow.frame !== frame) {
             this.shadow.setTexture(frame.texture.key, frame.name);

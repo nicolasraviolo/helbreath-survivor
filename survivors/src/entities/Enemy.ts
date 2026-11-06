@@ -1074,7 +1074,7 @@ export class Enemy implements Poolable {
 }
 
 /** Draws the ground oval texture once (it stays for the whole game): black, darker towards the middle. */
-function ensureGroundShadowTexture(scene: Phaser.Scene): void {
+export function ensureGroundShadowTexture(scene: Phaser.Scene): void {
     const { texture, textureWidth, textureHeight, rings } = GROUND_SHADOW;
     if (scene.textures.exists(texture)) return;
     const graphics = scene.make.graphics({}, false);
@@ -1089,7 +1089,7 @@ function ensureGroundShadowTexture(scene: Phaser.Scene): void {
  * Wait after an attack, as the original server times it (data/enemies.ts → MONSTER_AI): it looks every serverTickMs
  * (give or take its jitter) and on each look rolls the wait again; the attack comes on the first look past it.
  */
-function originalAttackIntervalMs(actionTimeMs: number): number {
+export function originalAttackIntervalMs(actionTimeMs: number): number {
     const { serverTickMs, serverTickJitterMs, attackTimeCuts, minAttackIntervalMs } = MONSTER_AI;
     for (let looks = 1; ; looks++) {
         const gone = looks * serverTickMs + Phaser.Math.FloatBetween(-serverTickJitterMs, serverTickJitterMs);

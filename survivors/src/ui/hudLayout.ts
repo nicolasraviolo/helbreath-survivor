@@ -54,6 +54,8 @@ export interface HudBarState {
     skillUses: number;
     /** Abaddon's Blood (Fase 21E): lit while it can still bring you back, dark once used, hidden if not unlocked. */
     revive: ReviveHudState;
+    /** Info line in place of Power, time, kills and gold (Helbreath Off, Off-2B: "Level 3   12 kills"). */
+    infoLine?: string;
 }
 
 /** What the skill orb shows: a number over it, and dimmed when it cannot be used. */

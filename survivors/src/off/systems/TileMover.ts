@@ -62,6 +62,8 @@ export class TileMover {
     private elapsedMs = 0;
     private stepMs = 1;
     private destination: TilePoint | undefined;
+    /** Stop this many tiles from the destination (0 = on it): to walk up to a monster and hit it (Fase Off-2). */
+    private stopRange = 0;
     /** Direct mode: the next step goes this way if it can (held click, stick). */
     private directDirection: Direction | undefined;
     /** Which side to try first when blocked: 0 = clockwise, 1 = anticlockwise; it swaps on every full stop. */
@@ -106,10 +108,54 @@ export class TileMover {
         return out;
     }
 
+    /** Tile it stands on, or the one it is stepping onto (nobody else may enter either). */
+    public get nextTileX(): number {
+        return this.moving ? this.toX : this.tileX;
+    }
+
+    public get nextTileY(): number {
+        return this.moving ? this.toY : this.tileY;
+    }
+
     /** A click: go there, stepping round what is in the way. */
     public goTo(x: number, y: number): void {
         this.destination = { x, y };
         this.directDirection = undefined;
+        this.stopRange = 0;
+    }
+
+    /** Walks until it is `range` tiles from a tile or nearer (counting diagonals as one), then stops (Fase Off-2). */
+    public approach(x: number, y: number, range: number): void {
+        this.goTo(x, y);
+        this.stopRange = range;
+    }
+
+    /** One step towards a tile, stepping round what is in the way like a click; false if it can't move (Fase Off-2). */
+    public stepToward(x: number, y: number, stepMs: number): boolean {
+        if (this.moving) return false;
+        this.goTo(x, y);
+        this.startNextStep(stepMs);
+        this.cancel();
+        return this.moving;
+    }
+
+    /** One step away from a tile (fleeing); false if it can't move (Fase Off-2). */
+    public stepAwayFrom(x: number, y: number, stepMs: number): boolean {
+        return this.stepToward(2 * this.tileX - x, 2 * this.tileY - y, stepMs);
+    }
+
+    /** Turns to look one way (standing still). */
+    public face(direction: Direction): void {
+        if (!this.moving) this.facing = direction;
+    }
+
+    /** Puts it on a tile at once, standing (appearing, coming back after dying). */
+    public place(x: number, y: number): void {
+        this.cancel();
+        this.moving = false;
+        this.tileX = x;
+        this.tileY = y;
+        this.blockedFrom = undefined;
     }
 
     /** Held click or stick: step `direction` while it is free, else head for `target` as a click would. */
@@ -122,6 +168,7 @@ export class TileMover {
     public cancel(): void {
         this.destination = undefined;
         this.directDirection = undefined;
+        this.stopRange = 0;
     }
 
     /** Advances the step under way; at each tile, picks the next one. `stepMs` is the time a new step takes. */
@@ -145,7 +192,9 @@ export class TileMover {
     private startNextStep(stepMs: number): void {
         const destination = this.destination;
         if (!destination) return;
-        if (this.tileX === destination.x && this.tileY === destination.y) {
+        const away = Math.max(Math.abs(this.tileX - destination.x), Math.abs(this.tileY - destination.y));
+        if (away <= this.stopRange) {
+            if (away > 0) this.facing = directionTowards(this.tileX, this.tileY, destination.x, destination.y) ?? this.facing;
             this.cancel();
             return;
         }

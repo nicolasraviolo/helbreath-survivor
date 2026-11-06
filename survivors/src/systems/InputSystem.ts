@@ -72,6 +72,11 @@ export enum Action {
     TrainingReset = 'trainingReset',
     /** Helbreath Off (Fase Off-1): run / walk switch, R or gamepad R3 (the original had a run-mode switch). */
     ToggleRun = 'toggleRun',
+    /** Helbreath Off (Fase Off-2): attack the marked monster, or the nearest (Space or gamepad A; held, keeps on). */
+    OffAttack = 'offAttack',
+    /** Helbreath Off: mark the next / previous monster near you (RB / LB; with the mouse, a click marks one). */
+    OffNextTarget = 'offNextTarget',
+    OffPrevTarget = 'offPrevTarget',
 }
 
 export type InputDevice = 'keyboard' | 'mouse' | 'gamepad' | 'touch' | 'none';
@@ -117,6 +122,10 @@ const KEYBOARD_ACTIONS: Record<Action, number[]> = {
     [Action.TrainingLevelUp]: [KEY.L],
     [Action.TrainingReset]: [KEY.R],
     [Action.ToggleRun]: [KEY.R],
+    [Action.OffAttack]: [KEY.SPACE],
+    // With the mouse a click marks a monster: these two are gamepad only.
+    [Action.OffNextTarget]: [],
+    [Action.OffPrevTarget]: [],
 };
 
 const GAMEPAD_AXIS = { LeftX: 0, LeftY: 1, RightX: 2, RightY: 3 } as const;
@@ -141,6 +150,9 @@ const GAMEPAD_ACTIONS: Partial<Record<Action, number[]>> = {
     [Action.ToggleStats]: [DEFAULT_CONTROLS.gamepad.toggleStats],
     [Action.ToggleDebug]: [GAMEPAD_BUTTON.View],
     [Action.ToggleRun]: [GAMEPAD_BUTTON.R3],
+    [Action.OffAttack]: [GAMEPAD_BUTTON.A],
+    [Action.OffNextTarget]: [GAMEPAD_BUTTON.R1],
+    [Action.OffPrevTarget]: [GAMEPAD_BUTTON.L1],
 };
 
 /** Actions also triggered by a mouse click. */
@@ -295,6 +307,12 @@ export class InputSystem {
             return true;
         }
         return false;
+    }
+
+    /** True while a key or gamepad button of the action is held down (Helbreath Off: hold to keep attacking). */
+    public isHeld(action: Action): boolean {
+        if (this.keyboardEnabled && this.keysFor(action).some((key) => key.isDown)) return true;
+        return this.buttonsFor(action).some((button) => this.padButtonsDown.has(button));
     }
 
     /** Settings → Controls (Fase 19C): the first real gamepad button pressed this frame, or undefined. */
