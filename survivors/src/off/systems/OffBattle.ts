@@ -6,6 +6,7 @@
 // - Morir (Off-2A): cae, y a los 3 s vuelve al inicio con la vida llena. Pierde algo de experiencia sin bajar de nivel.
 // - Experiencia (Off-2B, off/data/offLevel.ts): entera al matar al monstruo. Subir de nivel llena la vida, suena la voz
 //   del original, sale "Level Up!" y guarda 3 puntos. Todo se guarda al momento (OffSaveStore).
+// - Maná, estamina y las tandas de recuperación (Off-3B): OffVitals. Subir de nivel y volver a la vida los llenan.
 // Los mensajes ("Level Up!" y la lista de abajo a la izquierda) van a OffHudScene por los eventos de la escena.
 import Phaser from 'phaser';
 import { PLAYER_BODY_OFFSET_Y } from '../../config/gameConfig';
@@ -19,8 +20,8 @@ import { DamageNumbers } from '../../systems/DamageNumbers';
 import { HitParticles } from '../../systems/HitParticles';
 import { Pool } from '../../utils/Pool';
 import { OFF_MONSTER_LOOK } from '../config/offMonsterLook';
-import { offMaxHp } from '../data/offCharacter';
-import { OFF_COMBAT, OFF_DAGGER } from '../data/offCombat';
+import { OFF_STAT_IDS, offMaxHp, type OffStats } from '../data/offCharacter';
+import { OFF_COMBAT, OFF_DAGGER, offAttackMs } from '../data/offCombat';
 import { OFF_LEVEL, OFF_LEVEL_TEXT, offDeathExpLoss, offKillExp, offLevelForExp } from '../data/offLevel';
 import type { OffCharacter } from '../entities/OffCharacter';
 import type { OffMonster } from '../entities/OffMonster';
@@ -28,6 +29,7 @@ import { isFromBehind, offHitChance, rollMonsterDamage, rollWeaponDamage, tileDi
 import { provokeMonster, updateMonster, type OffMonsterWorld } from './OffMonsterAI';
 import { OffPits } from './OffPits';
 import { offSaveStore } from './OffSaveStore';
+import { OffVitals } from './OffVitals';
 import { directionTowards, type TileMover, type TilePoint } from './TileMover';
 
 /** The player's blow on the way: it lands on `monster` after `leftMs`. */
@@ -38,6 +40,8 @@ interface PendingBlow {
 }
 
 export class OffBattle implements OffMonsterWorld {
+    /** Mana, stamina and the self-healing batches (Off-3B). */
+    public readonly vitals: OffVitals;
     public hp: number;
     /** Total experience; the level comes from it. */
     public exp: number;
@@ -77,6 +81,7 @@ export class OffBattle implements OffMonsterWorld {
         this.points = saved.points;
         this.level = offLevelForExp(this.exp);
         this.hp = this.maxHp;
+        this.vitals = new OffVitals(this, (line) => this.scene.events.emit(EVENT_LIST_EVENT, line));
         this.numbers = new DamageNumbers(scene);
         this.particles = new HitParticles(scene);
         this.effects = new Pool(() => new Effect(scene));
@@ -86,7 +91,20 @@ export class OffBattle implements OffMonsterWorld {
 
     /** Original max health, which grows with the level. */
     public get maxHp(): number {
-        return offMaxHp({ ...offSaveStore.character.stats, level: this.level });
+        return offMaxHp({ ...this.stats, level: this.level });
+    }
+
+    /** The character's stats (they grow in the Character window). */
+    public get stats(): Readonly<OffStats> {
+        return offSaveStore.character.stats;
+    }
+
+    /** Character window, Ok: the points go into the stats for good. Health, mana and stamina keep their value. */
+    public assignPoints(added: Readonly<OffStats>): void {
+        const spent = OFF_STAT_IDS.reduce((sum, id) => sum + added[id], 0);
+        if (spent <= 0 || spent > this.points) return;
+        this.points -= spent;
+        offSaveStore.assignPoints(added, this.points);
     }
 
     /** The player may start a step (not while swinging, not dead). */
@@ -155,6 +173,8 @@ export class OffBattle implements OffMonsterWorld {
     public update(deltaMs: number): void {
         if (this.dead) this.updateDead(deltaMs);
         else this.updateAttack(deltaMs);
+        this.vitals.update(deltaMs);
+        this.hp = Math.min(this.hp, this.maxHp);
         for (const monster of this.pits.monsters) {
             updateMonster(monster, deltaMs, this);
             monster.marked = monster.isAlive && (monster === this.target || monster === this.hovered);
@@ -192,7 +212,7 @@ export class OffBattle implements OffMonsterWorld {
 
     public rollHitOnPlayer(monster: OffMonster): boolean {
         this.audio.play(monster.def.base.attackSound);
-        const defense = offSaveStore.character.stats.dex * 2;
+        const defense = this.stats.dex * 2;
         return Math.random() < offHitChance(monster.def.base.hitRatio, defense, isFromBehind(monster.mover.facing, this.mover.facing));
     }
 
@@ -204,7 +224,7 @@ export class OffBattle implements OffMonsterWorld {
             this.numbers.showWord(x, y, 'Miss');
             return;
         }
-        const damage = rollMonsterDamage(monster.def.base.damageDice, offSaveStore.character.stats.vit);
+        const damage = rollMonsterDamage(monster.def.base.damageDice, this.stats.vit);
         if (damage <= 0) return;
         this.hp = Math.max(0, this.hp - damage);
         this.numbers.showColored(x, y, damage, OFF_MONSTER_LOOK.playerDamageColor, false, this.hp === 0);
@@ -251,9 +271,10 @@ export class OffBattle implements OffMonsterWorld {
         const hitRatio = OFF_COMBAT.noviceSkill + OFF_COMBAT.playerHitBonus;
         const behind = isFromBehind(direction, target.mover.facing);
         const lands = Math.random() < offHitChance(hitRatio, target.def.base.defenseRatio, behind);
-        this.character.act(PlayerState.Melee, direction, OFF_DAGGER.attackMs);
-        this.cooldownMs = OFF_DAGGER.attackMs;
-        this.blow = { monster: target, lands, leftMs: OFF_DAGGER.attackMs * OFF_COMBAT.hitShare };
+        const attackMs = offAttackMs(OFF_DAGGER, this.stats.str);
+        this.character.act(PlayerState.Melee, direction, attackMs);
+        this.cooldownMs = attackMs;
+        this.blow = { monster: target, lands, leftMs: attackMs * OFF_COMBAT.hitShare };
         this.attackQueued = false;
         this.audio.play('sfx.melee.swing');
     }
@@ -266,7 +287,7 @@ export class OffBattle implements OffMonsterWorld {
             this.numbers.showWord(monster.x, bodyY, 'Miss');
             return;
         }
-        const damage = rollWeaponDamage(OFF_DAGGER, monster.def.size, offSaveStore.character.stats.str);
+        const damage = rollWeaponDamage(OFF_DAGGER, monster.def.size, this.stats.str);
         monster.hurt(damage);
         provokeMonster(monster);
         const killed = monster.hp <= 0;
@@ -297,6 +318,7 @@ export class OffBattle implements OffMonsterWorld {
             this.points += (level - this.level) * OFF_LEVEL.pointsPerLevel;
             this.level = level;
             this.hp = this.maxHp;
+            this.vitals.fill();
             this.audio.play(GENDER_SOUNDS[offSaveStore.character.look.gender].levelUp);
             this.scene.events.emit(ANNOUNCE_EVENT, OFF_LEVEL_TEXT.levelUp);
             this.scene.events.emit(EVENT_LIST_EVENT, OFF_LEVEL_TEXT.levelLine(level));
@@ -332,6 +354,7 @@ export class OffBattle implements OffMonsterWorld {
         const tile = this.respawnTile();
         this.mover.place(tile.x, tile.y);
         this.hp = this.maxHp;
+        this.vitals.fill();
         this.dead = false;
         this.cooldownMs = 0;
         this.character.revive();

@@ -126,6 +126,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Pits y combate en Helbreath Off (Fase Off-2A)
 - Experiencia y niveles en Helbreath Off (Fase Off-2B)
 - Crear personaje en Helbreath Off (Fase Off-3A)
+- Ventana Character, maná, estamina y velocidad del arma en Helbreath Off (Fase Off-3B)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -1424,3 +1425,11 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - La ropa del otro sexo y las pieles no se bajan al empezar: `CharacterSprite` las pide sola y la capa aparece un momento después (`systems/LookLoader.ts`).
 - **Guardado** `hb-off.character` versión 2 (`created`, `name`, `look`, `stats`, `exp`, `points`); la versión 1 cuenta como creada con 12 en cada stat. `?offreset` deja un personaje sin crear (el mundo funciona igual con el novato de 12); `?offlevel=N` lo marca como creado.
 - **Check:** `offcreate` (captura de la pantalla) y `offcreated` (+1 Str, Create bloqueado, Warrior, Create; en eval lo guardado y si llegó a `OffWorld`).
+
+## Ventana Character, maná, estamina y velocidad del arma en Helbreath Off (Fase Off-3B)
+- **Ventana:** la de Survivors (`scenes/CharacterInfoScene.ts`) con el dato `off` (`CharacterInfoOff`), que arma `off/scenes/offCharacterInfo.ts`. Sin `off`, Survivors no cambia. La fila de Charisma se tapa con dos tiras de pergamino liso de la misma imagen, sacadas de justo debajo de la raya de los stats (`CHARACTER_INFO_CHR_COVER`). Un trozo de la misma fila no sirve: copia el "Mag." de al lado. Abre con C, Y, Start o el casco de la barra (`OFF_OPEN_CHARACTER_EVENT`). El mundo se pausa y el HUD se duerme (`scene.sleep`): si no, el texto de ayuda queda encima de la barra.
+- **Reglas del original** (Server.cpp, investigadas el 7-nov-2026): vida cada 15 s, el mayor de 1d(VIT) y VIT/2. Maná cada 20 s, 1d(MAG). Estamina cada 12 s, 1d(VIT/3) más 15 / 10 / 5 hasta los niveles 20 / 40 / 60. Correr gasta 1 por casilla y sin estamina se anda. Subir de nivel llena las tres. Tope de 200 por stat. El hambre se dejó fuera. Todo en `off/data/offCharacter.ts`; el reloj de las tandas, en `off/systems/OffVitals.ts`.
+- **Velocidad del arma:** en Item.cfg el campo 17 es el peso (STR para equipar = peso / 100) y el 19 la velocidad. El servidor resta STR / 13 a la velocidad, sin bajar de 0. Tiempo de un golpe = 8 × (56 + lentitud × 11) ms, de la wiki (el cliente original no está en el repo). Con Item.cfg la Dagger tiene velocidad 0, así que va siempre a tope (448 ms). Antes iba a 712 ms porque se seguía la tabla de la wiki, que es de otra versión. Tabla de armas (STR / velocidad): Short Sword 8/2, Long Sword 14/6, Esterk 12/4, Rapier 11/3, Broad Sword 28/6, Claymore 40/7, Great Sword 52/8, Flameberge 60/10, Light Axe 14/3, War Axe 44/8, Battle Axe 90/13, Hammer 90/12, Battle Hammer 120/14.
+- **HUD:** en el original, la barra verde es la **estamina** (propietario, 7-nov-2026), no la experiencia. Con `HudBarState.stamina`, la barra verde (clásica y compacta) enseña la estamina. La experiencia va en una barra fina dorada justo debajo (en la compacta, encima; `ui/ThinGauge.ts`, `HUD_XP_STRIP`) y en % en la línea de texto: "Level 5   Exp 42%   0 kills" (`OFF_HUD_TEXT`). Survivors sigue con la experiencia en verde.
+- `TileMover.onStep` avisa al empezar cada paso; solo lo usa el jugador.
+- **Check:** `offchar`, `offassign` (+3 Str, +2 Vit y Ok; muestra lo guardado), `offstamina` (5 de estamina: 5 pasos de 250 ms y luego de 400), `offregen` (25 s).

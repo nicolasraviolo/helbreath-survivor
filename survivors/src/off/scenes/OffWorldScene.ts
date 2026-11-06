@@ -9,6 +9,8 @@
 // - Esc / B vuelve a la pantalla de Off.
 // Fase Off-3A: el personaje lleva el aspecto que se eligió al crearlo (OffSaveStore).
 // Fase Off-2B: encima va el HUD (OffHudScene) con vida, experiencia y nivel; el mundo llega hasta la barra.
+// Fase Off-3B: correr gasta estamina (sin ella se anda) y C, Y o Start del mando (o el casco de la barra) abren la
+// ventana Character de Survivors en su modo de Off (openCharacter), con el mundo en pausa y el HUD escondido.
 // Mapa, árboles que se transparentan, cámara, pasos y minimapa, como la ciudad de Survivors (scenes/TownScene.ts).
 import Phaser from 'phaser';
 import { CAMERA_LERP, DEPTH_DEBUG, GAME_WIDTH, TILE_SIZE } from '../../config/gameConfig';
@@ -33,7 +35,8 @@ import { OffCharacter } from '../entities/OffCharacter';
 import { offLevelProgress } from '../data/offLevel';
 import { OffBattle } from '../systems/OffBattle';
 import { offSaveStore } from '../systems/OffSaveStore';
-import { OFF_HUD_SCENE_KEY, type OffHudSceneData, type OffHudState } from './OffHudScene';
+import { OFF_HUD_SCENE_KEY, OFF_OPEN_CHARACTER_EVENT, type OffHudSceneData, type OffHudState } from './OffHudScene';
+import { offCharacterInfo } from './offCharacterInfo';
 import { directionOffset, findFreeTile, TileMover, type TilePoint } from '../systems/TileMover';
 
 export const OFF_WORLD_SCENE_KEY = 'OffWorld';
@@ -95,6 +98,10 @@ export class OffWorldScene extends Phaser.Scene {
         this.audio = new AudioSystem(this);
         const respawnTile = () => findFreeTile((x, y) => this.battle.isFreeForPlayer(x, y), spawn.x, spawn.y, OFF_MOVEMENT.clickSearchRadius) ?? spawn;
         this.battle = new OffBattle(this, this.mover, this.character, this.audio, isWalkable, respawnTile);
+        // Each running step costs stamina (the step is chosen as a run only while there is some).
+        this.mover.onStep = (stepMs) => {
+            if (stepMs === OFF_STEP_MS.run) this.battle.vitals.spendRunStep();
+        };
         this.leftHeld = false;
         this.mouseAttack = false;
         this.steering = false;
@@ -124,8 +131,10 @@ export class OffWorldScene extends Phaser.Scene {
             this.minimap.setVisible(settings.current.showMinimap);
         };
         settings.on(SETTINGS_CHANGED, onSettings);
+        this.events.on(OFF_OPEN_CHARACTER_EVENT, this.openCharacter, this);
         this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
             settings.off(SETTINGS_CHANGED, onSettings);
+            this.events.off(OFF_OPEN_CHARACTER_EVENT, this.openCharacter, this);
             this.input.off(Phaser.Input.Events.POINTER_DOWN, this.onPointerDown, this);
             this.input.off(Phaser.Input.Events.POINTER_UP, this.onPointerUp, this);
             this.audio.stopLoop('sfx.footsteps');
@@ -148,6 +157,10 @@ export class OffWorldScene extends Phaser.Scene {
         return {
             hp: battle.hp,
             maxHp: battle.maxHp,
+            mana: battle.vitals.mana,
+            maxMana: battle.vitals.maxMana,
+            stamina: battle.vitals.stamina,
+            maxStamina: battle.vitals.maxStamina,
             level: battle.level,
             xpRatio: offLevelProgress(battle.exp, battle.level),
             kills: battle.kills,
@@ -161,10 +174,16 @@ export class OffWorldScene extends Phaser.Scene {
             this.scene.start('OffHome');
             return;
         }
+        // Esc is Back (above); Start (the gamepad's Pause), Y and C open the Character window.
+        if (input.justPressed(Action.ToggleStats) || input.justPressed(Action.Pause)) {
+            this.openCharacter();
+            return;
+        }
         if (input.justPressed(Action.ToggleRun)) runMode = !runMode;
         this.updateCombatInput();
         if (!this.battle.dead) this.steer();
-        if (this.battle.canMove) this.mover.update(delta, runMode ? OFF_STEP_MS.run : OFF_STEP_MS.walk);
+        const running = runMode && this.battle.vitals.canRun;
+        if (this.battle.canMove) this.mover.update(delta, running ? OFF_STEP_MS.run : OFF_STEP_MS.walk);
         const stepRunning = this.mover.currentStepMs === OFF_STEP_MS.run;
         this.character.update(this.mover, stepRunning, delta);
         this.battle.update(delta);
@@ -176,6 +195,21 @@ export class OffWorldScene extends Phaser.Scene {
         }
     }
 
+    /** The Character window over the paused world (and HUD); both go on when it closes. */
+    public openCharacter(): void {
+        if (!this.scene.isActive()) return;
+        this.leftHeld = false;
+        this.mouseAttack = false;
+        this.battle.stopAttacking();
+        this.audio.stopLoop('sfx.footsteps');
+        this.footstepsMs = 0;
+        this.scene.pause();
+        // The HUD hides (the window shows health, mana and stamina, and its help line goes where the bar is).
+        this.scene.sleep(OFF_HUD_SCENE_KEY);
+        // CharacterInfo resumes the world (returnTo); the HUD wakes here. Spent points are read at once by both.
+        this.scene.launch('CharacterInfo', offCharacterInfo(this.battle, OFF_WORLD_SCENE_KEY, () => this.scene.wake(OFF_HUD_SCENE_KEY)));
+    }
+
     /** Development (`check offwalk`): walks (or runs, `run`) to a tile as a click there would. */
     public debugWalkTo(x: number, y: number, run = runMode): void {
         runMode = run;
@@ -184,7 +218,8 @@ export class OffWorldScene extends Phaser.Scene {
 
     /** Development: where the character is, its health and the monsters, for `check`. */
     public debugState(): {
-        tile: TilePoint; moving: boolean; running: boolean; spawn: TilePoint; hp: number; maxHp: number; dead: boolean;
+        tile: TilePoint; moving: boolean; running: boolean; stepMs: number; spawn: TilePoint; hp: number; maxHp: number; dead: boolean;
+        mana: number; maxMana: number; stamina: number; maxStamina: number; stats: Readonly<Record<string, number>>;
         level: number; exp: number; points: number; kills: number; monsters: Record<string, number>; target: string | undefined;
     } {
         const monsters: Record<string, number> = {};
@@ -196,10 +231,16 @@ export class OffWorldScene extends Phaser.Scene {
             tile: { x: this.mover.tileX, y: this.mover.tileY },
             moving: this.mover.isTravelling,
             running: runMode,
+            stepMs: this.mover.currentStepMs,
             spawn: { ...OFF_WORLD.spawn },
             hp: this.battle.hp,
             maxHp: this.battle.maxHp,
             dead: this.battle.dead,
+            mana: this.battle.vitals.mana,
+            maxMana: this.battle.vitals.maxMana,
+            stamina: this.battle.vitals.stamina,
+            maxStamina: this.battle.vitals.maxStamina,
+            stats: this.battle.stats,
             level: this.battle.level,
             exp: this.battle.exp,
             points: this.battle.points,

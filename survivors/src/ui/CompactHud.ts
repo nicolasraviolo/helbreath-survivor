@@ -5,8 +5,9 @@
 // Cada barra es el marco vacío con el relleno de color encima, recortado según lo que queda.
 import Phaser from 'phaser';
 import { GAME_HEIGHT } from '../config/gameConfig';
-import { HUD_COMPACT, HUD_COMPACT_LAYOUT, HUD_DEPTH_TEXT, HUD_INFO_STYLE, HUD_REVIVE, HUD_TEXT_STYLE } from '../config/hud';
+import { HUD_COMPACT, HUD_COMPACT_LAYOUT, HUD_DEPTH_TEXT, HUD_INFO_STYLE, HUD_REVIVE, HUD_TEXT_STYLE, HUD_XP_STRIP } from '../config/hud';
 import { ReviveIcon } from './ReviveIcon';
+import { ThinGauge } from './ThinGauge';
 import { formatGold } from '../data/gold';
 import { formatTime } from '../utils/format';
 import type { HudBar, HudBarActions, HudBarState } from './hudLayout';
@@ -33,6 +34,8 @@ export class CompactHud implements HudBar {
     private readonly mpText: Phaser.GameObjects.Text;
     private readonly infoText: Phaser.GameObjects.Text;
     private readonly revive: ReviveIcon;
+    /** Helbreath Off only: the experience, just above the green gauge while it shows the stamina. */
+    private readonly xpStrip: ThinGauge;
 
     constructor(private readonly scene: Phaser.Scene, actions: HudBarActions) {
         const c = HUD_COMPACT;
@@ -42,6 +45,9 @@ export class CompactHud implements HudBar {
         this.hp = this.createGauge(at(0), layout.scale, c.hpFillFrame);
         this.mp = this.createGauge(at(1), layout.scale, c.mpFillFrame);
         this.xp = this.createGauge(at(2), layout.scale, c.xpFillFrame);
+        const strip = HUD_XP_STRIP;
+        this.xpStrip = new ThinGauge(scene, at(2).x, at(2).y - strip.compactGap - strip.compactHeight, frame.width * layout.scale,
+            strip.compactHeight, undefined, HUD_DEPTH_TEXT);
         const centre = (i: number) => ({ x: at(i).x + (frame.width * layout.scale) / 2, y: at(i).y + (frame.height * layout.scale) / 2 });
         this.hpText = this.addText(centre(0).x, centre(0).y, HUD_TEXT_STYLE).setOrigin(0.5);
         this.mpText = this.addText(centre(1).x, centre(1).y, HUD_TEXT_STYLE).setOrigin(0.5);
@@ -75,13 +81,16 @@ export class CompactHud implements HudBar {
             setGauge(this.mp, state.mana / state.maxMana);
             this.mpText.setText(`${Math.ceil(state.mana)} / ${state.maxMana}`);
         }
-        setGauge(this.xp, state.xpRatio);
+        // Helbreath Off: the green gauge is the stamina, as in the original (the XP goes to its info line).
+        setGauge(this.xp, state.stamina ? state.stamina.value / Math.max(1, state.stamina.max) : state.xpRatio);
+        this.xpStrip.update(state.stamina ? state.xpRatio : undefined);
         this.infoText.setText(state.infoLine ?? `Power ${state.level}   ${formatTime(state.elapsedMs)}   ${state.kills} kills   ${formatGold(state.gold)} gold`);
         this.revive.update(state.revive);
     }
 
     public destroy(): void {
         for (const object of this.objects) object.destroy();
+        this.xpStrip.destroy();
         this.revive.destroy();
     }
 

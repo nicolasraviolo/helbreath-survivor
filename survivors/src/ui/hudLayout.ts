@@ -56,6 +56,8 @@ export interface HudBarState {
     revive: ReviveHudState;
     /** Info line in place of Power, time, kills and gold (Helbreath Off, Off-2B: "Level 3   12 kills"). */
     infoLine?: string;
+    /** Helbreath Off (Off-3B): stamina. When set, the green gauge shows it instead of the XP (as the original) and the XP gets a thin strip. */
+    stamina?: { value: number; max: number };
 }
 
 /** What the skill orb shows: a number over it, and dimmed when it cannot be used. */

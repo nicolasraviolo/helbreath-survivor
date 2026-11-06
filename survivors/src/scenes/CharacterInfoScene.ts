@@ -4,12 +4,16 @@
 //   aparece un − para deshacerlo. Ok confirma para siempre (los puntos no se pueden reasignar); Cancel o Esc no gasta nada.
 // - En partida (tecla C o el botón de la barra): la partida queda en pausa y la ventana enseña los stats de esta
 //   partida, con un panel al lado con lo que dan (daño, esquiva, pasivas...). Solo se mira: sin + ni −.
+// - Helbreath Off (Fase Off-3B, `off`): el personaje de Off, con el mundo en pausa debajo. Sin Charisma (su fila se
+//   tapa). Si tiene puntos de nivel, se reparten igual que arriba (Ok los guarda para siempre). Vida, maná y estamina
+//   (lo que tiene / su máximo) cambian al momento con los stats. Todo lo de Off llega en CharacterInfoOff.
 // Teclado y mando: flechas / cruceta eligen stat o botón, Enter / A pulsa (+ en un stat), − o X del mando resta.
 import Phaser from 'phaser';
 import {
     CHARACTER_INFO_BIG_STEPPER,
     CHARACTER_INFO_BOXES,
     CHARACTER_INFO_BUTTONS,
+    CHARACTER_INFO_CHR_COVER,
     CHARACTER_INFO_DETAILS,
     CHARACTER_INFO_DOLL,
     CHARACTER_INFO_FOCUS,
@@ -37,9 +41,9 @@ import { COMPACT_UI } from '../config/device';
 import { GAME_HEIGHT, GAME_WIDTH } from '../config/gameConfig';
 import { UI_TEXT } from '../config/ui';
 import { STAT_POINT_CAP, totalExpForLevel, CHARACTER_LEVEL_MAX } from '../data/characterLevel';
-import { CHARACTERS, type CharacterId } from '../data/characters';
-import { DEFAULT_LOOKS } from '../data/appearance';
-import { START_EQUIPMENT } from '../data/items';
+import { CHARACTERS, type CharacterDef, type CharacterId } from '../data/characters';
+import { DEFAULT_LOOKS, type CharacterLook } from '../data/appearance';
+import { START_EQUIPMENT, type SavedEquipment } from '../data/items';
 import { STAT_IDS, STAT_INFO, type StatId, type Stats } from '../data/stats';
 import { PaperDoll } from '../entities/PaperDoll';
 import { CharacterStats } from '../entities/CharacterStats';
@@ -61,12 +65,42 @@ export interface CharacterInfoRun {
     details: ReadonlyArray<readonly [string, string]>;
 }
 
+/** Helbreath Off (Off-3B): its character, from the world (off/scenes/offCharacterInfo.ts). */
+export interface CharacterInfoOff {
+    name: string;
+    /** Second line of the name box. */
+    subtitle: string;
+    def: CharacterDef;
+    look: CharacterLook;
+    equipment: Readonly<SavedEquipment>;
+    level: number;
+    /** Total experience, and what the next level needs (undefined at the top). */
+    exp: number;
+    nextExp: number | undefined;
+    /** Stats shown (Charisma left out) and their values (the others at 0). */
+    statIds: readonly StatId[];
+    stats: Readonly<Stats>;
+    /** Level points to spend, and the top of a stat. */
+    points: number;
+    statMax: number;
+    /** Health, mana and stamina boxes ("now/max") with these stats. */
+    values: (stats: Readonly<Stats>) => { health: string; mana: string; stamina: string };
+    /** What each shown stat does, under the window. */
+    statHelp: Readonly<Partial<Record<StatId, string>>>;
+    /** Ok with points added (only the added ones, the rest at 0). */
+    assign: (added: Readonly<Stats>) => void;
+    /** After the window closes (the world itself is `returnTo`). */
+    onClose: () => void;
+}
+
 export interface CharacterInfoSceneData {
     /** Saved character (Level, EXP, points). Debug runs without one show the class alone. */
     characterUid: string | undefined;
     classId: CharacterId;
     /** Set in a run: view only. */
     run?: CharacterInfoRun;
+    /** Set in Helbreath Off. */
+    off?: CharacterInfoOff;
 }
 
 interface StatRow {
@@ -110,7 +144,7 @@ export class CharacterInfoScene extends Phaser.Scene {
     private helpText!: Phaser.GameObjects.Text;
     private doll: PaperDoll | undefined;
     /** Menu: health and mana a new run would start with (they change with Vit, Int and Mag). */
-    private startTexts: { health: Phaser.GameObjects.Text; mana: Phaser.GameObjects.Text } | undefined;
+    private startTexts: { health: Phaser.GameObjects.Text; mana: Phaser.GameObjects.Text; stamina?: Phaser.GameObjects.Text } | undefined;
     private openedAt = 0;
     private stepper: BigStepper | undefined;
 
@@ -142,7 +176,8 @@ export class CharacterInfoScene extends Phaser.Scene {
 
         this.addDoll();
         this.fillBoxes();
-        for (const id of STAT_IDS) this.rows.set(id, this.createStatRow(id));
+        for (const id of this.statIds) this.rows.set(id, this.createStatRow(id));
+        if (this.params.off) this.hideCharisma();
         this.focusFrame = this.add.rectangle(0, 0, 1, 1).setOrigin(0).setStrokeStyle(CHARACTER_INFO_FOCUS.width, CHARACTER_INFO_FOCUS.color);
         if (this.canAssign) {
             this.pointsText = this.add.text(this.sx(CHARACTER_INFO_SIZE.width / 2), this.sy(CHARACTER_INFO_POINTS_Y), '', CHARACTER_INFO_POINTS_STYLE)
@@ -190,18 +225,32 @@ export class CharacterInfoScene extends Phaser.Scene {
 
     /** Points can be assigned only from the menu, to a saved character that has some. */
     private get canAssign(): boolean {
-        return !this.params.run && (this.saved?.unspentPoints ?? 0) > 0;
+        return !this.params.run && this.unspentPoints > 0;
+    }
+
+    private get unspentPoints(): number {
+        return this.params.off ? this.params.off.points : this.saved?.unspentPoints ?? 0;
     }
 
     private get pointsLeft(): number {
-        return (this.saved?.unspentPoints ?? 0) - STAT_IDS.reduce((sum, id) => sum + this.pending[id], 0);
+        return this.unspentPoints - STAT_IDS.reduce((sum, id) => sum + this.pending[id], 0);
+    }
+
+    /** Stats in the window: all six, or Off's five. */
+    private get statIds(): readonly StatId[] {
+        return this.params.off?.statIds ?? STAT_IDS;
+    }
+
+    private get statCap(): number {
+        return this.params.off?.statMax ?? STAT_POINT_CAP;
     }
 
     /** Stats shown: the run's, or the permanent ones plus what was added here. */
     private get shownStats(): Stats {
         if (this.params.run) return { ...this.params.run.stats };
         const saved = this.saved;
-        const base = saved ? permanentStats(saved) : { ...CHARACTERS[this.params.classId].startStats };
+        const off = this.params.off;
+        const base = off ? { ...off.stats } : saved ? permanentStats(saved) : { ...CHARACTERS[this.params.classId].startStats };
         for (const id of STAT_IDS) base[id] += this.pending[id];
         return base;
     }
@@ -216,6 +265,14 @@ export class CharacterInfoScene extends Phaser.Scene {
     }
 
     private addDoll(): void {
+        const off = this.params.off;
+        if (off) {
+            this.doll = new PaperDoll(this, off.def, off.look, off.equipment, {
+                x: this.originX, y: this.originY, scale: CHARACTER_INFO_SCALE,
+                standInX: this.sx(CHARACTER_INFO_DOLL.x), standInY: this.sy(CHARACTER_INFO_DOLL.y),
+            });
+            return;
+        }
         const classId = this.params.classId;
         const look = this.saved?.look ?? DEFAULT_LOOKS[classId];
         // Fase 20B: dressed in its equipment (in a run too: it is what the run started with). M17: drawn as the original.
@@ -228,6 +285,10 @@ export class CharacterInfoScene extends Phaser.Scene {
 
     /** Name, Level, EXP and the other boxes on the right. They don't change while the window is open. */
     private fillBoxes(): void {
+        if (this.params.off) {
+            this.fillOffBoxes(this.params.off);
+            return;
+        }
         const { run } = this.params;
         const saved = this.saved;
         const def = CHARACTERS[this.params.classId];
@@ -250,6 +311,27 @@ export class CharacterInfoScene extends Phaser.Scene {
         } else {
             // What a new run starts with at Power 1 (filled in refresh()).
             this.startTexts = { health: this.boxText(b.health, ''), mana: this.boxText(b.mana, '') };
+        }
+    }
+
+    /** Helbreath Off: name, level, experience, and health / mana / stamina (filled in refresh()). */
+    private fillOffBoxes(off: CharacterInfoOff): void {
+        const b = CHARACTER_INFO_BOXES;
+        const centerX = this.sx(b.name.x + b.name.width / 2);
+        this.add.text(centerX, this.sy(b.name.y + b.name.height / 4), off.name, CHARACTER_INFO_NAME_STYLE).setOrigin(0.5);
+        this.add.text(centerX, this.sy(b.name.y + (b.name.height * 3) / 4), off.subtitle, CHARACTER_INFO_VALUE_STYLE).setOrigin(0.5);
+        this.boxText(b.level, String(off.level));
+        this.boxText(b.exp, off.exp.toLocaleString('en-US'));
+        this.boxText(b.nextExp, off.nextExp === undefined ? '—' : off.nextExp.toLocaleString('en-US'));
+        this.startTexts = { health: this.boxText(b.health, ''), mana: this.boxText(b.mana, ''), stamina: this.boxText(b.stamina, '') };
+    }
+
+    /** Helbreath Off has no Charisma: its label and box are covered with plain parchment from the same image. */
+    private hideCharisma(): void {
+        for (const c of CHARACTER_INFO_CHR_COVER) {
+            // The whole image, shifted so its piece at (sourceX, sourceY) lands at (x, y), and cropped to that piece.
+            this.add.image(this.sx(c.x - c.sourceX), this.sy(c.y - c.sourceY), CHARACTER_INFO_TEXTURE, CHARACTER_INFO_FRAME).setOrigin(0)
+                .setScale(CHARACTER_INFO_SCALE).setCrop(c.sourceX, c.sourceY, c.width, c.height);
         }
     }
 
@@ -351,8 +433,8 @@ export class CharacterInfoScene extends Phaser.Scene {
 
     /** Adds (+1) or takes back (−1) a point not confirmed yet. */
     private change(id: StatId, amount: 1 | -1): void {
-        if (!this.canAssign) return;
-        if (amount > 0 && (this.pointsLeft <= 0 || this.shownStats[id] >= STAT_POINT_CAP)) return;
+        if (!this.canAssign || !this.statIds.includes(id)) return;
+        if (amount > 0 && (this.pointsLeft <= 0 || this.shownStats[id] >= this.statCap)) return;
         if (amount < 0 && this.pending[id] <= 0) return;
         this.pending[id] += amount;
         this.refresh();
@@ -362,7 +444,7 @@ export class CharacterInfoScene extends Phaser.Scene {
         const stats = this.shownStats;
         const canAssign = this.canAssign;
         const pointsLeft = this.pointsLeft;
-        for (const id of STAT_IDS) {
+        for (const id of this.statIds) {
             const row = this.rows.get(id);
             if (!row) continue;
             const changed = this.pending[id] > 0;
@@ -371,10 +453,15 @@ export class CharacterInfoScene extends Phaser.Scene {
             const valueX = canAssign ? box.x + (box.width - CHARACTER_INFO_PLUS_MINUS.size) / 2 : box.x + box.width / 2;
             row.value.setText(String(stats[id])).setColor(changed ? CHARACTER_INFO_PENDING_COLOR : CHARACTER_INFO_VALUE_STYLE.color);
             row.value.x = this.sx(valueX);
-            row.plus.setVisible(canAssign && pointsLeft > 0 && stats[id] < STAT_POINT_CAP);
+            row.plus.setVisible(canAssign && pointsLeft > 0 && stats[id] < this.statCap);
             row.minus.setVisible(canAssign && changed);
         }
-        if (this.startTexts) {
+        if (this.startTexts && this.params.off) {
+            const values = this.params.off.values(stats);
+            this.startTexts.health.setText(values.health);
+            this.startTexts.mana.setText(values.mana);
+            this.startTexts.stamina?.setText(values.stamina);
+        } else if (this.startTexts) {
             const start = new CharacterStats(CHARACTERS[this.params.classId], stats, this.saved?.level ?? 1);
             this.startTexts.health.setText(String(start.maxHp));
             this.startTexts.mana.setText(String(start.maxMana));
@@ -384,7 +471,7 @@ export class CharacterInfoScene extends Phaser.Scene {
             const b = CHARACTER_INFO_BIG_STEPPER;
             this.stepper.name.setText(STAT_INFO[id].name);
             this.stepper.value.setText(String(stats[id])).setColor(this.pending[id] > 0 ? CHARACTER_INFO_PENDING_COLOR : CHARACTER_INFO_VALUE_STYLE.color);
-            this.stepper.plus.setAlpha(pointsLeft > 0 && stats[id] < STAT_POINT_CAP ? 1 : b.disabledAlpha);
+            this.stepper.plus.setAlpha(pointsLeft > 0 && stats[id] < this.statCap ? 1 : b.disabledAlpha);
             this.stepper.minus.setAlpha(this.pending[id] > 0 ? 1 : b.disabledAlpha);
         }
         this.pointsText?.setText(`Points left: ${pointsLeft}`).setColor(pointsLeft > 0 ? CHARACTER_INFO_POINTS_COLOR : CHARACTER_INFO_POINTS_STYLE.color);
@@ -401,7 +488,8 @@ export class CharacterInfoScene extends Phaser.Scene {
             const s = CHARACTER_INFO_SCALE;
             this.focusFrame.setPosition(this.sx(box.x) - 1, this.sy(box.y) - 1).setSize(box.width * s + 2, box.height * s + 2).setVisible(true);
             const info = STAT_INFO[focus.id];
-            this.helpText.setText(`${info.name}: ${info.effect}.`);
+            const offHelp = this.params.off?.statHelp[focus.id];
+            this.helpText.setText(offHelp ? `${offHelp}.` : `${info.name}: ${info.effect}.`);
             if (this.stepper && this.stepper.stat !== focus.id) {
                 this.stepper.stat = focus.id;
                 this.refresh();
@@ -414,7 +502,8 @@ export class CharacterInfoScene extends Phaser.Scene {
 
     /** Arrows: move around the 3x2 grid of stats; down from the bottom row goes to the buttons. */
     private moveFocus(dx: number, dy: number): void {
-        const grid = CHARACTER_INFO_STAT_GRID;
+        const shown = this.statIds;
+        const grid = CHARACTER_INFO_STAT_GRID.map((r) => r.filter((id) => shown.includes(id)));
         const buttonCount = this.buttons.length;
         if (this.focus.kind === 'button') {
             if (dx !== 0) this.setFocus({ kind: 'button', index: (this.focus.index + dx + buttonCount) % buttonCount });
@@ -438,7 +527,8 @@ export class CharacterInfoScene extends Phaser.Scene {
     /** Ok: assigns the points for good (if any were added) and closes. */
     private confirm(): void {
         const added = STAT_IDS.some((id) => this.pending[id] > 0);
-        if (added) characterStore.assignPoints(this.params.characterUid, this.pending);
+        if (added && this.params.off) this.params.off.assign(this.pending);
+        else if (added) characterStore.assignPoints(this.params.characterUid, this.pending);
         this.close();
     }
 
@@ -447,6 +537,7 @@ export class CharacterInfoScene extends Phaser.Scene {
         this.scene.stop();
         this.scene.resume(this.returnTo);
         if (this.params.run) this.scene.resume(this.params.run.gameSceneKey);
+        this.params.off?.onClose();
     }
 
     private ready(): boolean {

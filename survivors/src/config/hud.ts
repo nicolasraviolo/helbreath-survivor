@@ -33,6 +33,18 @@ export const HUD_TOP = GAME_HEIGHT - HUD_HEIGHT * HUD_SCALE;
 export const HUD_HP = { x: 102, y: 10, width: 104, height: 16 } as const;
 export const HUD_MP = { x: 102, y: 32, width: 104, height: 16 } as const;
 export const HUD_XP = { x: 226, y: 8, width: 170, height: 11 } as const;
+/**
+ * Helbreath Off (Off-3B): the green gauge is the stamina (as the original), so the experience gets a thin gold strip.
+ * Classic bar: between the green gauge and the text box under it (bar pixels). Compact HUD: just above the green gauge.
+ */
+export const HUD_XP_STRIP = {
+    classic: { x: 228, y: 20, width: 166, height: 3 },
+    compactHeight: 4,
+    compactGap: 2,
+    track: 0x1a1208,
+    trackAlpha: 0.85,
+    fill: 0xe0b830,
+} as const;
 /** Text box under the XP gauge. */
 export const HUD_INFO = { x: 226, y: 22, width: 170, height: 24 } as const;
 

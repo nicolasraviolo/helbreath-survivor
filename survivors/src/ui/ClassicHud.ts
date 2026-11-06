@@ -21,11 +21,13 @@ import {
     HUD_TEXT_STYLE,
     HUD_TEXTURE,
     HUD_TOP,
+    HUD_XP_STRIP,
     HUD_XP,
 } from '../config/hud';
 import { formatGold } from '../data/gold';
 import { formatTime } from '../utils/format';
 import { ReviveIcon } from './ReviveIcon';
+import { ThinGauge } from './ThinGauge';
 import { CritIconState, sameOrb, type SkillOrb, type HudBar, type HudBarActions, type HudBarState } from './hudLayout';
 
 interface Gauge {
@@ -48,6 +50,8 @@ export class ClassicHud implements HudBar {
     private shownCrit: SkillOrb | undefined | null = null;
     private readonly critState = new CritIconState();
     private readonly revive: ReviveIcon;
+    /** Helbreath Off only: the experience, while the green gauge shows the stamina. */
+    private readonly xpStrip: ThinGauge;
 
     constructor(private readonly scene: Phaser.Scene, actions: HudBarActions) {
         // Scaled around the bottom centre of the screen, so a bigger bar stays centred and on the bottom edge.
@@ -56,6 +60,8 @@ export class ClassicHud implements HudBar {
         this.hp = this.createGauge(HUD_HP, HUD_FRAME.gaugeEmpty);
         this.mp = this.createGauge(HUD_MP, HUD_FRAME.gaugeEmpty);
         this.xp = this.createGauge(HUD_XP, HUD_FRAME.xpEmpty);
+        const strip = HUD_XP_STRIP.classic;
+        this.xpStrip = new ThinGauge(scene, strip.x, strip.y, strip.width, strip.height, this.bar);
         this.hpText = this.createCenteredText(HUD_HP, HUD_TEXT_STYLE);
         this.mpText = this.createCenteredText(HUD_MP, HUD_TEXT_STYLE);
         this.infoText = this.createCenteredText(HUD_INFO, HUD_INFO_STYLE);
@@ -77,7 +83,9 @@ export class ClassicHud implements HudBar {
             setGauge(this.mp, state.mana / state.maxMana);
             this.mpText.setText(`${Math.ceil(state.mana)} / ${state.maxMana}`);
         }
-        setGauge(this.xp, state.xpRatio);
+        // Helbreath Off: the green gauge is the stamina, as in the original (the XP goes to its info line).
+        setGauge(this.xp, state.stamina ? state.stamina.value / Math.max(1, state.stamina.max) : state.xpRatio);
+        this.xpStrip.update(state.stamina ? state.xpRatio : undefined);
         this.infoText.setText(state.infoLine ?? `Power ${state.level}  ${formatTime(state.elapsedMs)}  ${state.kills} kills  ${formatGold(state.gold)} gold`);
         this.showCrit(state.skillOrb);
         this.revive.update(state.revive);

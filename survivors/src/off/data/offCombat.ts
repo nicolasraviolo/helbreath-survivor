@@ -16,26 +16,53 @@ export interface OffWeaponDef {
     large: readonly [number, number, number];
     /** Tiles it reaches (1 = next to the target). */
     range: number;
-    /** Time of one attack (animation and wait), ms. */
-    attackMs: number;
+    /** STR needed to equip it (Item.cfg weight / 100). Checked when there is gear to equip (Off-3C / Off-4). */
+    strToEquip: number;
+    /** Item.cfg speed: 0 = fastest. Every OFF_ATTACK_SPEED.strPerStep of STR takes 1 off it (see offAttackMs). */
+    speed: number;
     /** Drawn in the hand. */
     look: { sprite: typeof MELEE_WEAPONS.dagger.sprite.key; startSheet: number };
 }
 
-/**
- * The novice's Dagger (Item.cfg 1: 1d5 small, 1d4 large).
- * Attack time: the original client took 8·(56 + (15 − v)·11) ms, with v a speed index that grows with STR up to the
- * weapon's best (docs/hb-wiki/armas.md). Without enough STR for the Dagger's best (18) we take v = 12: 712 ms.
- * Off-3 will work it out from STR.
- */
+/** The novice's Dagger (Item.cfg 1: 1d5 small, 1d4 large; weight 200 → STR 2; speed 0, the fastest whatever the STR). */
 export const OFF_DAGGER: OffWeaponDef = {
     name: 'Dagger',
     small: [1, 5, 0],
     large: [1, 4, 0],
     range: 1,
-    attackMs: 712,
+    strToEquip: 2,
+    speed: 0,
     look: { sprite: MELEE_WEAPONS.dagger.sprite.key, startSheet: MELEE_WEAPONS.dagger.sprite.startSheet },
 };
+
+/**
+ * Attack speed (Fase Off-3B; propietario, 7-nov-2026: depends on the weapon and the STR).
+ * - Server (reference/Server.cpp, on equipping): slowness = Item.cfg speed − STR / 13 (whole division), never below 0.
+ *   So a weapon reaches its best speed with STR = speed × 13 (the original shop showed "speed ~ speed×13").
+ * - Time of one attack: 8 frames of 56 + slowness × 11 ms (docs/hb-wiki/armas.md: 448 ms at the fastest).
+ */
+export const OFF_ATTACK_SPEED = {
+    strPerStep: 13,
+    frames: 8,
+    baseFrameMs: 56,
+    frameMsPerSlowness: 11,
+} as const;
+
+/** How slow a weapon swings with that STR (0 = its best). */
+export function offWeaponSlowness(weapon: Pick<OffWeaponDef, 'speed'>, str: number): number {
+    return Math.max(0, weapon.speed - Math.floor(str / OFF_ATTACK_SPEED.strPerStep));
+}
+
+/** Time of one attack (animation and wait) with that weapon and STR, ms. */
+export function offAttackMs(weapon: Pick<OffWeaponDef, 'speed'>, str: number): number {
+    const a = OFF_ATTACK_SPEED;
+    return a.frames * (a.baseFrameMs + offWeaponSlowness(weapon, str) * a.frameMsPerSlowness);
+}
+
+/** STR at which a weapon swings at its best. */
+export function offBestSpeedStr(weapon: Pick<OffWeaponDef, 'speed'>): number {
+    return weapon.speed * OFF_ATTACK_SPEED.strPerStep;
+}
 
 export const OFF_COMBAT = {
     /** Hit chance limits, % (server DEF_MINIMUMHITRATIO / DEF_MAXIMUMHITRATIO). */
