@@ -2,14 +2,16 @@
 // versión publicada. Sin `?off`, el juego arranca directo en Survivors como siempre.
 //   ?off       → al arrancar sale la pantalla de elegir juego (GameSelectScene)
 //   ?off=game  → directo a la escena de Off (para probar)
+//   ?off=world → directo a andar por el mundo de Off (Fase Off-1)
 
 /** How the page reaches Helbreath Off: not at all, through the game choice screen, or straight into Off. */
-export type OffAccess = 'hidden' | 'select' | 'game';
+export type OffAccess = 'hidden' | 'select' | 'game' | 'world';
 
 function readOffAccess(): OffAccess {
     const params = new URLSearchParams(window.location.search);
     if (!params.has('off')) return 'hidden';
-    return params.get('off') === 'game' ? 'game' : 'select';
+    const value = params.get('off');
+    return value === 'game' || value === 'world' ? value : 'select';
 }
 
 export const OFF_ACCESS = readOffAccess();

@@ -9,6 +9,8 @@
 // casi sin verse.
 // Fase 23: también carga la ciudad (data/town.ts): su mapa, su música, el portal, el polvo de los pasos y la ropa del
 // personaje; nada de monstruos ni efectos de partida.
+// Helbreath Off (Fase Off-1): `{ place }` carga un sitio que describe quien llama (mapa, sprites, ropa, sonidos y la
+// escena que se abre después), sin nada de las partidas de Survivors.
 import Phaser from 'phaser';
 import { ASSET_BASE_PATH, LATER_SOUNDS, MAPS,MINIMAPS, RUN_SPRITES, SOUNDS, SPRITES, type MapKey, type MinimapKey, type SoundKey, type SpriteKey } from '../config/assetManifest';
 import { registerEffectAnimations } from '../config/effects';
@@ -32,8 +34,20 @@ import { LoadingScreen } from '../ui/LoadingScreen';
 const FIRST_DOWNLOAD_SHARE = 0.4;
 const DOWNLOAD_SHARE = 0.5;
 
-/** A hunting map, or the town (Fase 23). */
-export type MapLoadSceneData = { map: MapId } | { town: true };
+/** A place loaded for another scene (Helbreath Off): everything it needs is listed by the caller. */
+export interface ExternalPlace extends Place {
+    /** Scene started when everything is ready. */
+    sceneKey: string;
+    /** Sprites besides the map's tiles and the character's clothes. */
+    sprites: readonly SpriteKey[];
+    /** Body and clothes of the character that walks there (LookLoader). */
+    worn: readonly SpriteKey[];
+    /** Sounds not loaded before the menu (LATER_SOUNDS) that the place plays. */
+    sounds: readonly SoundKey[];
+}
+
+/** A hunting map, the town (Fase 23), or a place of Helbreath Off (Fase Off-1). */
+export type MapLoadSceneData = { map: MapId } | { town: true } | { place: ExternalPlace };
 
 /** Sprites the town needs besides the character: the teleport, the dust of the steps, and the NPCs (23B). */
 const TOWN_SPRITES: readonly SpriteKey[] = [
@@ -46,7 +60,7 @@ export function startTown(scene: Phaser.Scene): void {
 }
 
 /** What the loading screen needs to know of the place. */
-interface Place {
+export interface Place {
     name: string;
     asset: MapKey;
     minimap: MinimapKey;
@@ -56,6 +70,7 @@ interface Place {
 export class MapLoadScene extends Phaser.Scene {
     private mapId: MapId = 'traveler';
     private town = false;
+    private external: ExternalPlace | undefined;
     private screen!: LoadingScreen;
     /** Sprites of this run still to prepare (downloaded in preload). */
     private sprites: SpriteKey[] = [];
@@ -66,6 +81,7 @@ export class MapLoadScene extends Phaser.Scene {
 
     init(data: MapLoadSceneData): void {
         this.town = 'town' in data;
+        this.external = 'place' in data ? data.place : undefined;
         if ('map' in data) {
             this.mapId = data.map;
             this.registry.set(CHOSEN_MAP_KEY, data.map);
@@ -73,7 +89,7 @@ export class MapLoadScene extends Phaser.Scene {
     }
 
     private get place(): Place {
-        return this.town ? TOWN : MAPS_DATA[this.mapId];
+        return this.external ?? (this.town ? TOWN : MAPS_DATA[this.mapId]);
     }
 
     preload(): void {
@@ -118,6 +134,11 @@ export class MapLoadScene extends Phaser.Scene {
         }
         await wearing;
         registerEffectAnimations(this.anims, this.textures);
+        if (this.external) {
+            loadTimer.end(this.timerName);
+            this.scene.start(this.external.sceneKey);
+            return;
+        }
         if (this.town) {
             loadTimer.end(this.timerName);
             this.scene.start('Town');
@@ -137,6 +158,7 @@ export class MapLoadScene extends Phaser.Scene {
 
     /** Body, clothes and weapon of the character that will play (as GameScene draws it). */
     private wornSprites(): SpriteKey[] {
+        if (this.external) return [...this.external.worn];
         const uid: unknown = this.registry.get(ACTIVE_CHARACTER_KEY);
         const saved = characterStore.byUid(typeof uid === 'string' ? uid : undefined);
         const classId = saved?.classId ?? this.classId;
@@ -145,6 +167,7 @@ export class MapLoadScene extends Phaser.Scene {
 
     /** What this run needs besides the map: first-wave monsters, run effects (common and of the class), items on the ground. */
     private runSprites(): SpriteKey[] {
+        if (this.external) return [...this.external.sprites];
         if (this.town) return [...TOWN_SPRITES];
         const classId = this.classId;
         return [...new Set<SpriteKey>([
@@ -157,6 +180,7 @@ export class MapLoadScene extends Phaser.Scene {
 
     /** Sounds not loaded before the menu (LATER_SOUNDS) that this place plays. */
     private sounds(): SoundKey[] {
+        if (this.external) return [...this.external.sounds];
         if (this.town) return [TOWN.music];
         // Fase 30A: un mapa con música propia (Icebound) la baja aquí, no antes del menú.
         const music = MAPS_DATA[this.mapId].music;
@@ -170,6 +194,7 @@ export class MapLoadScene extends Phaser.Scene {
     }
 
     private get timerName(): string {
+        if (this.external) return `MapLoad:${this.external.sceneKey}`;
         return this.town ? 'MapLoad:town' : `MapLoad:${this.mapId}`;
     }
 }

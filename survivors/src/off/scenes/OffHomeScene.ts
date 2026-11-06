@@ -1,12 +1,14 @@
-// Escena de inicio de Helbreath Off (Fase Off-0): de momento vacía, solo el título, "Coming soon" y Back.
-// Back (clic, Enter/A, o Esc/B) vuelve a la pantalla de elegir juego. Las fases siguientes (docs/PLAN-OFF.md) la llenan.
+// Escena de inicio de Helbreath Off (Fase Off-0): el título, Play y Back.
+// Play (Fase Off-1) carga Traveler Zone para andar por él (OffWorldScene). Back (clic, Enter/A, o Esc/B) vuelve a la
+// pantalla de elegir juego. Las fases siguientes (docs/PLAN-OFF.md) la llenan.
 import Phaser from 'phaser';
 import { GAME_HEIGHT, GAME_WIDTH } from '../../config/gameConfig';
-import { MAIN_MENU, MENU_BACKGROUND, MENU_BACKGROUND_SCALE, MENU_INPUT_DELAY_MS, MENU_ITEM, MENU_PANEL, MENU_TEXT_STYLE } from '../../config/menus';
+import { MAIN_MENU, MENU_BACKGROUND, MENU_BACKGROUND_SCALE, MENU_INPUT_DELAY_MS, MENU_ITEM, MENU_PANEL } from '../../config/menus';
 import { SpriteText } from '../../hb/SpriteText';
 import { Action, InputSystem } from '../../systems/InputSystem';
 import { MenuList } from '../../ui/MenuList';
 import { OFF_HOME } from '../config/offHome';
+import { startOffWorld } from './OffWorldScene';
 
 export class OffHomeScene extends Phaser.Scene {
     private menuInput!: InputSystem;
@@ -28,9 +30,10 @@ export class OffHomeScene extends Phaser.Scene {
         const title = new SpriteText(this, x, MAIN_MENU.panelY + OFF_HOME.titleOffsetY, OFF_HOME.title, MENU_ITEM.titleColor, 'center');
         title.container.setScale(OFF_HOME.titleScale);
         title.container.y -= title.container.getBounds().height / 2;
-        this.add.text(x, MAIN_MENU.panelY + OFF_HOME.textOffsetY, OFF_HOME.text, MENU_TEXT_STYLE).setOrigin(0.5);
-
-        this.list = new MenuList(this, [{ label: 'Back', onConfirm: () => this.back() }], { x, y: MAIN_MENU.panelY + OFF_HOME.backOffsetY, spacing: 0 });
+        this.list = new MenuList(this, [
+            { label: 'Play', onConfirm: () => startOffWorld(this) },
+            { label: 'Back', onConfirm: () => this.back() },
+        ], { x, y: MAIN_MENU.panelY + OFF_HOME.listOffsetY, spacing: MAIN_MENU.itemSpacing });
         this.list.setReadyCheck(() => this.ready());
         this.menuInput = new InputSystem(this);
         this.menuInput.setPointerMaxY(-1);
