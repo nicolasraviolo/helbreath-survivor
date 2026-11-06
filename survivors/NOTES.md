@@ -125,6 +125,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Andar casilla a casilla en Helbreath Off (Fase Off-1)
 - Pits y combate en Helbreath Off (Fase Off-2A)
 - Experiencia y niveles en Helbreath Off (Fase Off-2B)
+- Crear personaje en Helbreath Off (Fase Off-3A)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -1415,3 +1416,11 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - **Guardado:** `off/systems/OffSaveStore.ts`, clave `hb-off.character` (`exp`, `points`), en `TRANSFER_KEYS`. `?offreset`, `?offlevel=N` (debugStart.ts).
 - **HUD:** `off/scenes/OffHudScene.ts` reutiliza `ClassicHud` / `CompactHud` con `HudBarState.infoLine` (si está, sustituye "Power, tiempo, bajas, oro"). La lista de mensajes de abajo a la izquierda salió de HudScene a `ui/EventLineList.ts` y la usan los dos. Los avisos llegan con `ANNOUNCE_EVENT` / `EVENT_LIST_EVENT` emitidos en la escena OffWorld. El mundo se recorta hasta la barra (`fitPlayArea`) y los clics sobre la barra no mueven al personaje.
 - **Check:** `offlevel` (de cero, mata Slimes 20 s), `offdeath` (nivel 10 + 200, muere: la experiencia antes y después). Cada `check` abre un navegador limpio: el guardado se ve con `--eval="localStorage.getItem('hb-off.character')"` en la misma visita.
+
+## Crear personaje en Helbreath Off (Fase Off-3A)
+- **Pantalla:** `off/scenes/OffCreateScene.ts` sobre el fondo `gamedialog86.spr` hoja 9 y las medidas de `config/characterSelect.ts` (la usó `CharacterSelectScene` de Survivors, borrada el 22-oct-2026 en el commit `d1b5f02`; `git show d1b5f02^:survivors/src/scenes/CharacterSelectScene.ts`). La caja del nombre es `ui/TextInput.ts` (un `<input>` invisible), recuperada del mismo commit.
+- **El dibujo de los stats tiene + a la izquierda y − a la derecha** (en las mismas x que las flechas ← → del aspecto) y **6 filas**: la de Charisma se tapa con un recorte de la madera del mismo fondo dos filas más abajo (`OFF_CREATE.hiddenRow`, `setCrop`), que no se nota; un rectángulo de color sí se notaba.
+- Los botones Warrior / Magician de abajo eran presets de stats en el original: `OFF_PRESETS` en `off/data/offCharacter.ts`.
+- La ropa del otro sexo y las pieles no se bajan al empezar: `CharacterSprite` las pide sola y la capa aparece un momento después (`systems/LookLoader.ts`).
+- **Guardado** `hb-off.character` versión 2 (`created`, `name`, `look`, `stats`, `exp`, `points`); la versión 1 cuenta como creada con 12 en cada stat. `?offreset` deja un personaje sin crear (el mundo funciona igual con el novato de 12); `?offlevel=N` lo marca como creado.
+- **Check:** `offcreate` (captura de la pantalla) y `offcreated` (+1 Str, Create bloqueado, Warrior, Create; en eval lo guardado y si llegó a `OffWorld`).

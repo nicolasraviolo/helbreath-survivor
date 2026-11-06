@@ -19,9 +19,9 @@ import { DamageNumbers } from '../../systems/DamageNumbers';
 import { HitParticles } from '../../systems/HitParticles';
 import { Pool } from '../../utils/Pool';
 import { OFF_MONSTER_LOOK } from '../config/offMonsterLook';
-import { OFF_COMBAT, OFF_DAGGER, OFF_NOVICE_STATS, offMaxHp } from '../data/offCombat';
+import { offMaxHp } from '../data/offCharacter';
+import { OFF_COMBAT, OFF_DAGGER } from '../data/offCombat';
 import { OFF_LEVEL, OFF_LEVEL_TEXT, offDeathExpLoss, offKillExp, offLevelForExp } from '../data/offLevel';
-import { OFF_NOVICE_LOOK } from '../data/offWorld';
 import type { OffCharacter } from '../entities/OffCharacter';
 import type { OffMonster } from '../entities/OffMonster';
 import { isFromBehind, offHitChance, rollMonsterDamage, rollWeaponDamage, tileDistance } from './OffCombatRules';
@@ -86,7 +86,7 @@ export class OffBattle implements OffMonsterWorld {
 
     /** Original max health, which grows with the level. */
     public get maxHp(): number {
-        return offMaxHp({ ...OFF_NOVICE_STATS, level: this.level });
+        return offMaxHp({ ...offSaveStore.character.stats, level: this.level });
     }
 
     /** The player may start a step (not while swinging, not dead). */
@@ -192,7 +192,7 @@ export class OffBattle implements OffMonsterWorld {
 
     public rollHitOnPlayer(monster: OffMonster): boolean {
         this.audio.play(monster.def.base.attackSound);
-        const defense = OFF_NOVICE_STATS.dex * 2;
+        const defense = offSaveStore.character.stats.dex * 2;
         return Math.random() < offHitChance(monster.def.base.hitRatio, defense, isFromBehind(monster.mover.facing, this.mover.facing));
     }
 
@@ -204,7 +204,7 @@ export class OffBattle implements OffMonsterWorld {
             this.numbers.showWord(x, y, 'Miss');
             return;
         }
-        const damage = rollMonsterDamage(monster.def.base.damageDice, OFF_NOVICE_STATS.vit);
+        const damage = rollMonsterDamage(monster.def.base.damageDice, offSaveStore.character.stats.vit);
         if (damage <= 0) return;
         this.hp = Math.max(0, this.hp - damage);
         this.numbers.showColored(x, y, damage, OFF_MONSTER_LOOK.playerDamageColor, false, this.hp === 0);
@@ -266,7 +266,7 @@ export class OffBattle implements OffMonsterWorld {
             this.numbers.showWord(monster.x, bodyY, 'Miss');
             return;
         }
-        const damage = rollWeaponDamage(OFF_DAGGER, monster.def.size, OFF_NOVICE_STATS.str);
+        const damage = rollWeaponDamage(OFF_DAGGER, monster.def.size, offSaveStore.character.stats.str);
         monster.hurt(damage);
         provokeMonster(monster);
         const killed = monster.hp <= 0;
@@ -297,7 +297,7 @@ export class OffBattle implements OffMonsterWorld {
             this.points += (level - this.level) * OFF_LEVEL.pointsPerLevel;
             this.level = level;
             this.hp = this.maxHp;
-            this.audio.play(GENDER_SOUNDS[OFF_NOVICE_LOOK.gender].levelUp);
+            this.audio.play(GENDER_SOUNDS[offSaveStore.character.look.gender].levelUp);
             this.scene.events.emit(ANNOUNCE_EVENT, OFF_LEVEL_TEXT.levelUp);
             this.scene.events.emit(EVENT_LIST_EVENT, OFF_LEVEL_TEXT.levelLine(level));
         }
@@ -305,7 +305,7 @@ export class OffBattle implements OffMonsterWorld {
     }
 
     private save(): void {
-        offSaveStore.save({ exp: this.exp, points: this.points });
+        offSaveStore.saveProgress(this.exp, this.points);
     }
 
     // ---- Dying and coming back ----
@@ -316,7 +316,7 @@ export class OffBattle implements OffMonsterWorld {
         this.clearTarget();
         this.mover.cancel();
         this.character.die(this.mover.facing);
-        this.audio.play(GENDER_SOUNDS[OFF_NOVICE_LOOK.gender].death);
+        this.audio.play(GENDER_SOUNDS[offSaveStore.character.look.gender].death);
         this.respawnLeftMs = OFF_COMBAT.playerRespawnMs;
         const loss = offDeathExpLoss(this.exp, this.level);
         if (loss > 0) {

@@ -641,7 +641,7 @@ export function permanentStats(character: Readonly<SavedCharacter>): Stats {
 }
 
 /** A saved look, or undefined if missing or out of range (then the class's look is used). */
-function readLook(value: unknown): CharacterLook | undefined {
+export function readLook(value: unknown): CharacterLook | undefined {
     if (!isRecord(value)) return undefined;
     const gender = GENDERS.find((g) => g === value.gender);
     const index = (raw: unknown, count: number) => {

@@ -5,16 +5,9 @@
 // - Daño de un arma: sus dados (contra pequeños o grandes) × (1 + STR / 500).
 // - Monstruos (NpcBehavior_*): buscan cada acción en un cuadrado de su alcance; si pierden 20 turnos persiguiendo,
 //   lo dejan. Con 2 de vida o menos y 1d(valentía) ≤ 3 huyen 10 acciones (ya portado en Survivors, MONSTER_AI).
-// Hasta que haya personaje (Off-3) y equipo (Off-4), el novato lleva stats fijos y una Dagger (propietario, 6-nov-2026).
+// Hasta que haya equipo (Off-4), el personaje lleva una Dagger (propietario, 6-nov-2026). Sus stats y la fórmula de la
+// vida están en off/data/offCharacter.ts (Off-3A).
 import { MELEE_WEAPONS } from '../../data/weapons';
-
-/** The novice's stats until Off-3: the original's 70 starting points, split evenly between the 5 stats of Off. */
-export const OFF_NOVICE_STATS = { level: 1, str: 14, vit: 14, dex: 14, int: 14, mag: 14 } as const;
-
-/** Original max health: VIT×3 + Level×2 + STR/2 (server, integer division). */
-export function offMaxHp(stats: { level: number; str: number; vit: number }): number {
-    return stats.vit * 3 + stats.level * 2 + Math.floor(stats.str / 2);
-}
 
 export interface OffWeaponDef {
     name: string;

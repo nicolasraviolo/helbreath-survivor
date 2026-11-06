@@ -7,6 +7,7 @@ import { CHARACTERS, CHOSEN_CHARACTER_KEY, DEFAULT_CHARACTER } from '../data/cha
 import { CHOSEN_MAP_KEY, DEFAULT_MAP } from '../data/maps';
 import { HBSpriteFile, SpriteType } from '../hb/HBSprite';
 import { OFF_ACCESS } from '../off/offAccess';
+import { OFF_CREATE_SCENE_KEY } from '../off/scenes/OffCreateScene';
 import { startOffWorld } from '../off/scenes/OffWorldScene';
 import { ACTIVE_CHARACTER_KEY, characterStore } from '../systems/CharacterStore';
 import { loadTimer } from '../systems/LoadTimer';
@@ -91,6 +92,10 @@ export class PreloadScene extends Phaser.Scene {
         // Fase Off-0: Helbreath Off está oculto; solo ?off lleva a elegir juego (y ?off=game, directo a Off; ?off=world, directo a andar por su mundo, Fase Off-1).
         if (OFF_ACCESS === 'world') {
             startOffWorld(this);
+            return;
+        }
+        if (OFF_ACCESS === 'create') {
+            this.scene.start(OFF_CREATE_SCENE_KEY);
             return;
         }
         if (OFF_ACCESS === 'game') {

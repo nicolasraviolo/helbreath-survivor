@@ -7,6 +7,7 @@
 // - Teclado, cruceta y stick: va hacia donde se apunta.
 // - Correr o andar: interruptor con R o R3 del mando (6-nov-2026, propietario: como el original, no mantener Shift).
 // - Esc / B vuelve a la pantalla de Off.
+// Fase Off-3A: el personaje lleva el aspecto que se eligió al crearlo (OffSaveStore).
 // Fase Off-2B: encima va el HUD (OffHudScene) con vida, experiencia y nivel; el mundo llega hasta la barra.
 // Mapa, árboles que se transparentan, cámara, pasos y minimapa, como la ciudad de Survivors (scenes/TownScene.ts).
 import Phaser from 'phaser';
@@ -27,10 +28,11 @@ import { playAreaBottom } from '../../ui/hudLayout';
 import { setGameViewport, toGame, zoomWorldCamera } from '../../ui/renderScale';
 import { Pool } from '../../utils/Pool';
 import type { MapLoadSceneData } from '../../scenes/MapLoadScene';
-import { OFF_MOVEMENT, OFF_NOVICE, OFF_NOVICE_LOOK, OFF_STEP_MS, OFF_WORLD, TILES_PER_ANIMATION_CYCLE } from '../data/offWorld';
+import { OFF_MOVEMENT, OFF_NOVICE, OFF_STEP_MS, OFF_WORLD, TILES_PER_ANIMATION_CYCLE } from '../data/offWorld';
 import { OffCharacter } from '../entities/OffCharacter';
 import { offLevelProgress } from '../data/offLevel';
 import { OffBattle } from '../systems/OffBattle';
+import { offSaveStore } from '../systems/OffSaveStore';
 import { OFF_HUD_SCENE_KEY, type OffHudSceneData, type OffHudState } from './OffHudScene';
 import { directionOffset, findFreeTile, TileMover, type TilePoint } from '../systems/TileMover';
 
@@ -45,7 +47,7 @@ export function startOffWorld(scene: Phaser.Scene): void {
         place: {
             ...OFF_WORLD,
             sceneKey: OFF_WORLD_SCENE_KEY,
-            worn: runSprites(OFF_NOVICE, OFF_NOVICE_LOOK),
+            worn: runSprites(OFF_NOVICE, offSaveStore.character.look),
             sounds: [OFF_WORLD.music],
         },
     };
@@ -88,7 +90,7 @@ export class OffWorldScene extends Phaser.Scene {
         // Monsters block the way too (the battle knows where they are).
         this.mover = new TileMover((x, y) => this.battle.isFreeForPlayer(x, y), spawn.x, spawn.y);
         this.lastTile = { x: spawn.x, y: spawn.y };
-        this.character = new OffCharacter(this, OFF_NOVICE, OFF_NOVICE_LOOK);
+        this.character = new OffCharacter(this, OFF_NOVICE, offSaveStore.character.look);
         this.character.update(this.mover, false, 0);
         this.audio = new AudioSystem(this);
         const respawnTile = () => findFreeTile((x, y) => this.battle.isFreeForPlayer(x, y), spawn.x, spawn.y, OFF_MOVEMENT.clickSearchRadius) ?? spawn;
