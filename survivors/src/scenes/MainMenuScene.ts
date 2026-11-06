@@ -2,11 +2,13 @@
 // Play → los 4 personajes (las partidas guardadas se continúan al elegir su personaje) (CharacterSlotsScene, Fase 17A); How to Play (Fase 11), Achievements, Settings y Credits se abren encima, y "What's new" (novedades) desde el link del pie; Install
 // (Fase 12), si el navegador lo permite. Pantalla completa: icono pequeño arriba a la derecha (Fase 12C), y a su izquierda el de Discord. Suena la música por defecto del original.
 // Se maneja con ↑/↓ (cruceta o stick) + Enter/A, o con el ratón.
+// Fase Off-0: si se abrió con ?off, al final sale "Change Game" (y Esc/B) para volver a la pantalla de elegir juego.
 import Phaser from 'phaser';
 import { DEBUG_START } from '../config/debugStart';
 import { GAME_HEIGHT, GAME_WIDTH } from '../config/gameConfig';
 import { GAME_VERSION } from '../config/version';
 import {
+    GAME_SELECT,
     MAIN_MENU,
     MAIN_MENU_FOOTER_Y,
     MAIN_MENU_NEWS_LINK,
@@ -16,7 +18,8 @@ import {
     MENU_INPUT_DELAY_MS,
     MENU_PANEL,
 } from '../config/menus';
-import { InputSystem } from '../systems/InputSystem';
+import { offVisible } from '../off/offAccess';
+import { Action, InputSystem } from '../systems/InputSystem';
 import { addDiscordButton } from '../ui/discordButton';
 import { addFullscreenButton } from '../ui/fullscreen';
 import { INSTALL_CHANGED, installEvents, installItem } from '../ui/install';
@@ -68,7 +71,12 @@ export class MainMenuScene extends Phaser.Scene {
 
     override update(): void {
         this.menuInput.update();
-        if (this.ready()) this.list?.handleInput(this.menuInput);
+        if (!this.ready()) return;
+        if (offVisible() && this.menuInput.justPressed(Action.Back)) {
+            this.scene.start('GameSelect');
+            return;
+        }
+        this.list?.handleInput(this.menuInput);
     }
 
     private buildList(): void {
@@ -82,6 +90,7 @@ export class MainMenuScene extends Phaser.Scene {
             { label: 'Settings', onConfirm: () => openOverlay(this, 'Settings') },
             { label: 'Credits', onConfirm: () => openOverlay(this, 'Credits') },
             ...installItem(),
+            ...(offVisible() ? [{ label: GAME_SELECT.changeGameLabel, onConfirm: () => this.scene.start('GameSelect') }] : []),
         ];
         const maxSpan = (MAIN_MENU.itemsAtFullSpacing - 1) * MAIN_MENU.itemSpacing;
         const spacing = Math.min(MAIN_MENU.itemSpacing, maxSpan / Math.max(1, items.length - 1));

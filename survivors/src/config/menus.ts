@@ -36,6 +36,15 @@ export const MAIN_MENU = {
     footerSeparator: '  ·  ',
 } as const;
 
+/** Game choice screen (scenes/GameSelectScene.ts, Fase Off-0): two options in the main menu's panel. */
+export const GAME_SELECT = {
+    itemSpacing: byDevice(48, 56),
+    survivorsLabel: 'Helbreath Survivors',
+    offLabel: 'Helbreath Off',
+    /** Last option of Survivors' main menu when the page was opened with ?off: back to the game choice. */
+    changeGameLabel: 'Change Game',
+} as const;
+
 /** Pause, Settings, Credits, Achievements and How to play: a big panel in the middle of the screen. */
 export const MENU_OVERLAY = {
     /** Darkens whatever is underneath (the paused game or the main menu). */
