@@ -36,6 +36,10 @@ const PRESETS = {
     // Fase Off-0: Helbreath Off oculto tras ?off. Pantalla de elegir juego y escena (vacía) de Off.
     gameselect: 'off',
     off: 'off=game',
+    // Fase Off-1: andar por Traveler Zone. offwalk lo hace correr con clics de mentira hasta detrás de un edificio y en
+    // eval sale dónde acaba (PRESET_EVAL; o = escena OffWorld). Otro destino: --eval="o.debugWalkTo(x, y, run)".
+    offworld: 'off=world',
+    offwalk: 'off=world',
     game: 'play',
     levelup: 'debug=levelup',
     // Fase 21½A: todas las cartas Epic (marco morado, cinta, brillo y sonido).
@@ -288,6 +292,11 @@ const waitArg = args.find((a) => a.startsWith('--wait='));
 const waitMs = waitArg ? Number(waitArg.slice('--wait='.length)) : 3000;
 const autoCards = args.includes('--cards');
 const evalArg = args.find((a) => a.startsWith('--eval='))?.slice('--eval='.length);
+/** Situations that run an expression of their own when no --eval is given. */
+const PRESET_EVAL = {
+    // Fase Off-1: runs to (112,100), then to (137,100), on the far side of a building (x 122–134): it must go round.
+    offwalk: 'o.debugWalkTo(112, 100, true), new Promise((r) => setTimeout(() => { o.debugWalkTo(137, 100, true); setTimeout(() => r(o.debugState()), 9000); }, 5000))',
+};
 const scenarios = args.filter((a) => !a.startsWith('--'));
 if (scenarios.length === 0) scenarios.push('menu');
 
@@ -338,6 +347,11 @@ function readState() {
     if (town && (game.scene.isActive('Town') || game.scene.isPaused('Town')) && town.player) {
         state.town = { tile: `${Math.floor(town.player.x / 32)},${Math.floor(town.player.y / 32)}`, paused: game.scene.isPaused('Town') };
     }
+    const off = game.scene.getScene('OffWorld');
+    if (off && game.scene.isActive('OffWorld')) {
+        const s = off.debugState();
+        state.off = { tile: `${s.tile.x},${s.tile.y}`, moving: s.moving };
+    }
     return state;
 }
 
@@ -372,7 +386,7 @@ async function runScenario(browser, name) {
 
     // ?open= (debugStart.ts) shows a menu screen: wait for it instead of the game.
     const openKey = { howtoplay: 'HowToPlay', settings: 'Settings', controls: 'Controls', credits: 'Credits', releasenotes: 'ReleaseNotes', achievements: 'Achievements', missions: 'Missions', slots: 'CharacterSlots', mapselect: 'MapSelect', town: 'Town', charinfo: 'CharacterInfo', equipment: 'Equipment', warehouse: 'Warehouse', runchoice: 'RunChoice', transfer: 'Transfer' }[params.get('open') ?? ''];
-    const target = params.has('loading') ? 'Preload' : params.get('town') === 'portal' ? 'MapSelect' : params.has('shop') ? 'Shop' : params.has('smith') ? 'Smith' : params.has('talk') ? 'NpcDialog' : params.get('off') === 'game' ? 'OffHome' : params.has('off') && !openKey ? 'GameSelect' : openKey ?? (query ? 'Game' : 'MainMenu');
+    const target = params.has('loading') ? 'Preload' : params.get('town') === 'portal' ? 'MapSelect' : params.has('shop') ? 'Shop' : params.has('smith') ? 'Smith' : params.has('talk') ? 'NpcDialog' : params.get('off') === 'game' ? 'OffHome' : params.get('off') === 'world' ? 'OffWorld' : params.has('off') && !openKey ? 'GameSelect' : openKey ?? (query ? 'Game' : 'MainMenu');
     await page.goto(url);
     const t0 = Date.now();
     await page.waitForFunction((key) => window.__game?.scene.isActive(key), target, { timeout: LOAD_TIMEOUT_MS });
@@ -388,16 +402,18 @@ async function runScenario(browser, name) {
     await page.waitForTimeout(waitMs);
     const state = await page.evaluate(readState);
     // Not awaited yet: with a simulated run, the expression watches it while it plays.
-    const evalPromise = evalArg === undefined ? undefined : page.evaluate(async (code) => {
+    const code = evalArg ?? PRESET_EVAL[name];
+    const evalPromise = code === undefined ? undefined : page.evaluate(async (code) => {
         const game = window.__game;
         const g = game?.scene.getScene('Game');
+        const o = game?.scene.getScene('OffWorld');
         try {
             // A promise is awaited, so an expression can watch the game for a while (e.g. the most particles in 3 s).
-            return JSON.stringify(await new Function('game', 'g', `return (${code});`)(game, g));
+            return JSON.stringify(await new Function('game', 'g', 'o', `return (${code});`)(game, g, o));
         } catch (err) {
             return `error: ${err.message}`;
         }
-    }, evalArg);
+    }, code);
     const sim = params.get('debug')?.split(',').includes('sim')
         ? await page.waitForFunction(() => window.__sim?.done && window.__sim, undefined, { timeout: SIM_TIMEOUT_MS, polling: 1000 }).then((h) => h.jsonValue())
         : undefined;
@@ -410,6 +426,7 @@ async function runScenario(browser, name) {
 
     console.log(`\n■ ${name}${mobile ? ' (mobile)' : ''}  →  ${url}`);
     console.log(`  loaded in ${loadS}s · scenes: ${state.scenes?.join(', ')} · ${state.fps} FPS`);
+    if (state.off) console.log(`  off: tile ${state.off.tile} · ${state.off.moving ? 'moving' : 'standing'}`);
     if (state.run) console.log(`  run: ${Object.entries(state.run).map(([k, v]) => `${k} ${v}`).join(' · ')}`);
     if (state.error) console.log(`  ${state.error}`);
     if (evalResult !== undefined) console.log(`  eval: ${evalResult}`);

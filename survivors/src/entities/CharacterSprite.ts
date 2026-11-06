@@ -179,6 +179,8 @@ export class CharacterSprite {
             }
             case PlayerState.Run:
                 return Math.floor((this.stateTime * this.def.runFrameRate) / 1000) % PLAYER_FRAMES_PER_DIRECTION;
+            case PlayerState.Walk:
+                return Math.floor((this.stateTime * (this.def.walkFrameRate ?? this.def.idleFrameRate)) / 1000) % PLAYER_FRAMES_PER_DIRECTION;
             default:
                 return Math.floor((this.stateTime * this.def.idleFrameRate) / 1000) % PLAYER_FRAMES_PER_DIRECTION;
         }

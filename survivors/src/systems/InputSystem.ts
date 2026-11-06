@@ -70,6 +70,8 @@ export enum Action {
     TrainingLevelUp = 'trainingLevelUp',
     /** Barracks: the damage panel back to zero (R). */
     TrainingReset = 'trainingReset',
+    /** Helbreath Off (Fase Off-1): run / walk switch, R or gamepad R3 (the original had a run-mode switch). */
+    ToggleRun = 'toggleRun',
 }
 
 export type InputDevice = 'keyboard' | 'mouse' | 'gamepad' | 'touch' | 'none';
@@ -114,6 +116,7 @@ const KEYBOARD_ACTIONS: Record<Action, number[]> = {
     [Action.DebugOneHp]: [KEY.U],
     [Action.TrainingLevelUp]: [KEY.L],
     [Action.TrainingReset]: [KEY.R],
+    [Action.ToggleRun]: [KEY.R],
 };
 
 const GAMEPAD_AXIS = { LeftX: 0, LeftY: 1, RightX: 2, RightY: 3 } as const;
@@ -137,6 +140,7 @@ const GAMEPAD_ACTIONS: Partial<Record<Action, number[]>> = {
     [Action.Talk]: [GAMEPAD_BUTTON.A],
     [Action.ToggleStats]: [DEFAULT_CONTROLS.gamepad.toggleStats],
     [Action.ToggleDebug]: [GAMEPAD_BUTTON.View],
+    [Action.ToggleRun]: [GAMEPAD_BUTTON.R3],
 };
 
 /** Actions also triggered by a mouse click. */

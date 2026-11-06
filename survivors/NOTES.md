@@ -122,6 +122,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Elementos y quemadura (4-nov-2026)
 - Números de daño: letra y movimiento (4-nov-2026)
 - Helbreath Off oculto y teclas en Playwright (Fase Off-0)
+- Andar casilla a casilla en Helbreath Off (Fase Off-1)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -1385,3 +1386,15 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 ## Helbreath Off oculto y teclas en Playwright (Fase Off-0)
 - Off solo se ve con `?off` en la dirección, **también en el build publicado**: por eso se lee en `off/offAccess.ts` y no en `DEBUG_START` (que en el build devuelve todo apagado). `?off=game` va directo a `OffHome`. `?play` y `?open=` mandan antes que `?off`.
 - Al automatizar teclas con Playwright, `page.keyboard.press()` es demasiado rápido: `InputSystem` mira las teclas una vez por frame y no lo ve. Usar `keyboard.down()`, esperar ~120 ms y `keyboard.up()`. Tras cambiar de escena, esperar más de `MENU_INPUT_DELAY_MS` (200 ms) antes de la siguiente tecla.
+
+## Andar casilla a casilla en Helbreath Off (Fase Off-1)
+- `off/systems/TileMover.ts` copia el movimiento del original (`sp-client` `GameObject.processMovement` / `findNextMovableDirection`, `CoordinateUtils.getNextDirection` / `findMovableLocation`). **No hay búsqueda de caminos**: si el paso recto está bloqueado prueba la dirección +1 y +2 hacia un lado (el lado cambia cada vez que se atasca). Detrás de una pared larga o en una U se puede quedar parado, como en el original.
+- El stick y el teclado usan el "modo directo" del clic mantenido: el paso va hacia donde se apunta y, si está bloqueado, se busca una casilla a `OFF_MOVEMENT.stickTargetTiles` en esa dirección como si fuera un clic. Al soltar, termina la casilla y se para.
+- Correr o andar es un **interruptor** (`Action.ToggleRun`: R o R3 del mando), como el original, que empezaba corriendo (`OFF_MOVEMENT.startRunning`). Se recuerda mientras la página está abierta (variable del módulo `OffWorldScene`), no se guarda. R es también `TrainingReset` en los Barracks de Survivors: cada escena lee solo la suya. El ritmo se decide en cada paso: al pulsar R a medio camino cambia en la siguiente casilla.
+- Velocidad: el original corría a 180 ms por casilla; al propietario le pareció muy rápido (6-nov-2026): `OFF_STEP_MS` = 250 corriendo y 400 andando.
+- `MapLoadScene` acepta `{ place }` (`ExternalPlace`): quien llama dice mapa, sprites, ropa, sonidos y la escena que abre después. Así Off carga sin tocar la lógica de Survivors (`startOffWorld`).
+- `CharacterDef.walkFrameRate` (opcional): sin él, la pose `Walk` va al ritmo de `idleFrameRate`, como antes. Off pone el ritmo de andar y correr para que dos casillas sean una vuelta de animación (`OFF_NOVICE`).
+- Traveler Zone se carga **entero** (170×170) en Off y tarda ~1,4 s en local. Alrededor del inicio (90,88) casi todo es libre; los "edificios" del mapa de casillas son desniveles del terreno. `check offwalk` corre a (112,100) y luego a (137,100), al otro lado de uno.
+- Mando de mentira en Playwright: `addInitScript` que sustituye `navigator.getGamepads` por un objeto con `buttons` y `axes` que se cambian desde `page.evaluate` (así se probó R3 y el stick).
+- Para `--eval` en Off: `o` = escena `OffWorld` (`o.debugWalkTo(x, y, run)`, `o.debugState()`); `PRESET_EVAL` en `scripts/check.mjs` da a una situación su expresión por defecto.
+

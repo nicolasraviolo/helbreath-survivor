@@ -26,6 +26,8 @@ export interface CharacterDef {
     /** Animation speed (frames per second; every animation has 8 frames). */
     idleFrameRate: number;
     runFrameRate: number;
+    /** Walking animation speed; without it, walking plays at idleFrameRate (the character screens). Helbreath Off sets it. */
+    walkFrameRate?: number;
     /** Death animation speed (frames per second; 8 frames, played once). */
     dieFrameRate: number;
     /** Health before Vit and level (see data/stats.ts). */
