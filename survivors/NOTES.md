@@ -136,6 +136,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Magias, libro y teclas F1–F8 en Helbreath Off (Fase Off-6A)
 - Lanzar magias en Helbreath Off (Fase Off-6B)
 - Magias de apoyo y mando en Helbreath Off (Fase Off-6C)
+- Promiseland (Helbreath Off, Fase Off-7A, 8-nov-2026)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -1523,3 +1524,13 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - **En Off:** `OffSpells.castOnSelf` (Heal, escudos: cualquier clic) y `castHold`; `OffBattle.protection` + `defense` / `magicDamageFactor`; `OffBattle.updateWornLook` (el `wornEffect` del escudo, en bucle bajo los pies), `OffMonster.hold` (reloj a 0 como el aturdido; `hurt` lo quita). El escudo pasa por los portales (`OffCarriedVitals.protection`) y se pierde al morir.
 - **Mando:** `Action.OffCastTrigger` (R2) y `OFF_PAD_SPELL_ACTIONS` (A/B/X/Y). Con RT pulsado, la escena del mundo y el libro ignoran ataque, pausa (B), Character (Y) e Inventory (X). `OffWorldScene.updatePadCast` suelta la magia cuando está lista y RT ya no está pulsado, al `OffBattle.spellTarget()` (marcado o más cercano). `padSpells` en el guardado (versión 8).
 - **Pruebas:** `check offheal` / `offshield` / `offhold` / `offpadcast` / `offbookpad`; `?offhp=N` empieza con esa vida; `o.debugPadCast(0..3)` simula RT + botón y soltar.
+
+## Promiseland (Helbreath Off, Fase Off-7A, 8-nov-2026)
+- **Promiseland es `2ndmiddle.amd`** (250×250; en `reference/Client.cpp` GET_OFFICIAL_MAP_NAME65). En helbreathnemesis.com es el mapa 4; `action=largemap&id=4` es una imagen de 800 px: **casilla = px / 3,2**.
+- **Puertas del original:** casillas de teleport (flag 0x40) en y 21, x 121–131 (arriba, Elvine) y en y 228, x 135–146 (abajo, Aresden). No se ven en el mapa: les ponemos nuestro portal. Se llega a (126,24) o (140,224).
+- **12 pits:** 2 Orc, 2 Giant Scorpion, 2 Skeleton, 2 Zombie, Clay Golem y Stone Golem al este, Troll y Cyclops en el centro (`PROMISELAND_PITS`).
+- **Nemesis coincide con NPC.cfg:** su vida es la de los HitDice del servidor (Troll 276–330 = HitDice 55). Los HitDice de los Golems salen de ahí (Clay 30, Stone 25). Su oro (`action=monster&id=N`) es el que usamos desde la 7A (unas 8 veces el que había puesto Claude). Ids: 1 Slime, 12 Rabbit, 37 Giant Ant, 68 Snake, 60 Orc, 65 Giant Scorpion, 67 Skeleton, 81 Zombie, 18 Clay Golem, 71 Stone Golem, 2 Troll, 21 Cyclops.
+- **Monstruos que lanzan magia** (`OffMonsterDef.spell`, `OFF_MONSTER_CAST`): si no te alcanza su golpe y estás a 9×7 casillas, la mitad de las veces lanza (servidor `NpcBehavior_Attack`); se dibuja con `OffSpells.monsterCast` y hace daño en `OffBattle.monsterCasts` (directo si sigues en la casilla, área dentro de su alcance; Protection From Magic lo divide entre 2). El Cyclops casi siempre acaba pegando porque su golpe llega a 3 casillas.
+- **El teleport de la ciudad** abre `OffTeleportScene` (`OFF_TELEPORT_DESTINATIONS`); `offArrivalIn(sitio, ciudad)` da la casilla de llegada por el portal que lleva a tu ciudad.
+- **Dificultad (para la 7C):** un Level 60 (STR 100, VIT 80, DEX 60, Long Sword, sin armadura ni pociones, 410 de vida) muere en unos 30 s en el pit de Skeletons (salen varios a la vez) y en 20 s contra un Troll.
+- **Pendiente para la 7B:** en Nemesis los Skeletons sueltan armas de su nivel (Esterk, Sabre, Saxon Axe…); en Off todos los monstruos siguen con el botín de nivel 1.

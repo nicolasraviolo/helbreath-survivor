@@ -9,16 +9,19 @@
 //   personaje queda unido para siempre (propietario, 6-nov-2026). Ya unido, su portal lleva directo a su ciudad y el
 //   del otro bando no deja pasar.
 // - Al morir se vuelve a la ciudad propia; sin bando, a Traveler Zone.
+// - Off-7A: el teleport de la ciudad deja elegir el mapa (OffTeleportScene; propietario, 8-nov-2026, como el portal de
+//   Survivors): Traveler Zone o Promiseland. Promiseland tiene las dos puertas del original (casillas de teleport del
+//   2ndmiddle.amd): la de arriba lleva a Elvine y la de abajo a Aresden, y por la de tu ciudad se llega y se vuelve.
 import type { MapKey, MinimapKey, SoundKey, SpriteKey } from '../../config/assetManifest';
 import type { TileRect } from '../../data/maps';
 import type { TilePoint } from '../systems/TileMover';
-import { ARESDEN_PITS, ELVINE_PITS, pitSprites, TRAVELER_PITS, type OffPitDef } from './offPits';
+import { ARESDEN_PITS, ELVINE_PITS, pitSprites, PROMISELAND_PITS, TRAVELER_PITS, type OffPitDef } from './offPits';
 import type { OffFaction, OffPlaceId } from './offPlaceIds';
 
 export { isOffFaction, isOffPlaceId, OFF_FACTIONS, OFF_PLACE_IDS, type OffFaction, type OffPlaceId } from './offPlaceIds';
 
-/** Where a portal leads: a faction's city (asks to join the first time) or back to Traveler Zone. */
-export type OffPortalTarget = { kind: 'city'; faction: OffFaction } | { kind: 'traveler' };
+/** Where a portal leads: a faction's city (asks to join the first time) or a city's teleport, which lets you choose. */
+export type OffPortalTarget = { kind: 'city'; faction: OffFaction } | { kind: 'teleport' };
 
 export interface OffPortalDef {
     /** Tiles that take you through when stepped on. */
@@ -26,7 +29,7 @@ export interface OffPortalDef {
     to: OffPortalTarget;
     /** Our portal effect drawn on its centre (a city's own); the original's teleport tiles need none. */
     drawn: boolean;
-    /** Where you appear when you come back through it from the place it leads to (a free tile near it). */
+    /** Where you appear when you come through it from the place it leads to (a free tile near it). */
     arrival: TilePoint;
 }
 
@@ -103,7 +106,7 @@ export const OFF_PLACES: Record<OffPlaceId, OffPlaceDef> = {
         pits: ARESDEN_PITS,
         portals: [
             // On the original's round platform with red posts, by the owner's mark.
-            { area: rect(140, 207, 140, 207), to: { kind: 'traveler' }, drawn: true, arrival: { x: 140, y: 210 } },
+            { area: rect(140, 207, 140, 207), to: { kind: 'teleport' }, drawn: true, arrival: { x: 140, y: 210 } },
         ],
         doors: [
             { kind: 'shop', area: rect(126, 166, 127, 167) },
@@ -127,7 +130,7 @@ export const OFF_PLACES: Record<OffPlaceId, OffPlaceDef> = {
         sprites: [...WORLD_SPRITES, 'fx.effect11', ...pitSprites(ELVINE_PITS)],
         pits: ELVINE_PITS,
         portals: [
-            { area: rect(237, 140, 237, 140), to: { kind: 'traveler' }, drawn: true, arrival: { x: 237, y: 142 } },
+            { area: rect(237, 140, 237, 140), to: { kind: 'teleport' }, drawn: true, arrival: { x: 237, y: 142 } },
         ],
         doors: [
             { kind: 'shop', area: rect(225, 151, 226, 152) },
@@ -137,6 +140,26 @@ export const OFF_PLACES: Record<OffPlaceId, OffPlaceDef> = {
             { kind: 'warehouse', area: rect(198, 128, 198, 128) },
             { kind: 'warehouse', area: rect(203, 129, 203, 129) },
         ],
+    },
+    promiseland: {
+        name: 'Promiseland',
+        asset: 'map.promiseland',
+        minimap: 'minimap.promiseland',
+        size: { width: 250, height: 250 },
+        playArea: { x: 0, y: 0, width: 250, height: 250 },
+        // Only used without an arrival (you always come through your city's gate): Aresden's.
+        spawn: { x: 140, y: 224 },
+        // Middleland's theme (Survivors loads it before the menu).
+        music: 'music.middleland',
+        sprites: [...WORLD_SPRITES, 'fx.effect11', ...pitSprites(PROMISELAND_PITS)],
+        pits: PROMISELAND_PITS,
+        portals: [
+            // The original's two gates: north to Elvine, south to Aresden. Their tiles show nothing on the map: our portal
+            // effect marks them (also on the minimap).
+            { area: rect(121, 21, 131, 21), to: { kind: 'city', faction: 'elvine' }, drawn: true, arrival: { x: 126, y: 24 } },
+            { area: rect(135, 228, 146, 228), to: { kind: 'city', faction: 'aresden' }, drawn: true, arrival: { x: 140, y: 224 } },
+        ],
+        doors: [],
     },
 };
 
@@ -150,10 +173,21 @@ export function offHomePlace(faction: OffFaction | undefined): OffPlaceId {
     return faction === undefined ? 'traveler' : offCityOf(faction);
 }
 
+/** The maps a city's teleport offers (Off-7A, owner: choose the map, as Survivors' portal), in this order. */
+export const OFF_TELEPORT_DESTINATIONS: readonly OffPlaceId[] = ['traveler', 'promiseland'];
+
+/** Where you appear in `place` when you come from `from` (a city): by its portal that leads there. */
+export function offArrivalIn(place: OffPlaceId, from: OffPlaceId): TilePoint | undefined {
+    return OFF_PLACES[place].portals.find((p) => p.to.kind === 'city' && offCityOf(p.to.faction) === from)?.arrival;
+}
+
 export const OFF_PLACE_TEXT = {
     joinTitle: (faction: OffFaction) => OFF_PLACES[offCityOf(faction)].name,
     joinQuestion: (faction: OffFaction) => `Do you want to join ${OFF_PLACES[offCityOf(faction)].name}?`,
     joinWarning: 'You can never change it.',
     joined: (faction: OffFaction) => `You are now a citizen of ${OFF_PLACES[offCityOf(faction)].name}.`,
     otherCity: (faction: OffFaction) => `Only citizens of ${OFF_PLACES[offCityOf(faction)].name} can enter.`,
+    teleportTitle: 'Teleport',
+    teleportQuestion: 'Where do you want to go?',
+    teleportCancel: 'Cancel',
 } as const;

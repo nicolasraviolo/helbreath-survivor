@@ -163,6 +163,12 @@ export class OffMonster implements Poolable {
         this.pendingHitLands = lands;
     }
 
+    /** Casts its spell (Off-7A): the attack motion, without a blow. */
+    public startCast(towards: Direction): void {
+        this.mover.face(towards);
+        this.actionLeftMs = this.play(MonsterState.Attack, true);
+    }
+
     /** Takes a blow: flashes, and flinches if it is standing (no death here: see kill). */
     public hurt(damage: number): void {
         this.hp = Math.max(0, this.hp - damage);

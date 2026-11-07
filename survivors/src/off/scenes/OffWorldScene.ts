@@ -22,6 +22,8 @@
 // portales. Pisar uno lleva al otro sitio con la vida, el maná y la estamina que tenías; el de una ciudad, sin bando,
 // pregunta antes si quieres unirte (OffConfirmScene, con el mundo en pausa). Al morir lejos de casa se reaparece en tu
 // ciudad (o en Traveler Zone sin bando).
+// Fase Off-7A: el teleport de la ciudad pregunta adónde ir (OffTeleportScene: Traveler Zone o Promiseland). En
+// Promiseland se llega por la puerta de tu ciudad (Elvine arriba, Aresden abajo) y por ella se vuelve.
 // Fase Off-5B: pisar la puerta de la tienda, el herrero o el almacén de tu ciudad abre su ventana (OffStoreScene /
 // OffWarehouseScene) encima del mundo, que sigue; como los portales, hay que salir de la puerta para que vuelva a abrir.
 // Fase Off-6A: B abre el libro de magias (OffSpellBookScene), que tapa el mundo como Character; la tienda tiene la
@@ -51,7 +53,7 @@ import { Pool } from '../../utils/Pool';
 import type { MapLoadSceneData } from '../../scenes/MapLoadScene';
 import { OFF_MOVEMENT, OFF_NOVICE, OFF_STEP_MS, TILES_PER_ANIMATION_CYCLE } from '../data/offWorld';
 import {
-    OFF_PLACE_TEXT, OFF_PLACES, offCityOf, offHomePlace, type OffBuildingKind, type OffDoorDef, type OffFaction, type OffPlaceDef, type OffPlaceId, type OffPortalDef,
+    OFF_PLACE_TEXT, OFF_PLACES, offArrivalIn, offCityOf, offHomePlace, type OffBuildingKind, type OffDoorDef, type OffFaction, type OffPlaceDef, type OffPlaceId, type OffPortalDef,
 } from '../data/offPlaces';
 import { OFF_STORE_SCENE_KEY, type OffStoreSceneData, type OffStoreTab } from './OffStoreScene';
 import { OFF_SPELL_BOOK_SCENE_KEY, type OffSpellBookSceneData } from './OffSpellBookScene';
@@ -60,6 +62,7 @@ import { EVENT_LIST_EVENT } from '../../config/hud';
 import { Portal } from '../../entities/Portal';
 import { openOverlay } from '../../scenes/MenuOverlayScene';
 import { OFF_CONFIRM_SCENE_KEY, type OffConfirmSceneData } from './OffConfirmScene';
+import { OFF_TELEPORT_SCENE_KEY, type OffTeleportSceneData } from './OffTeleportScene';
 import type { OffCarriedVitals } from '../systems/OffBattle';
 import { OffCharacter } from '../entities/OffCharacter';
 import { offLevelProgress } from '../data/offLevel';
@@ -170,9 +173,12 @@ export class OffWorldScene extends Phaser.Scene {
     }
 
     init(data: Partial<OffWorldSceneData> | undefined): void {
-        this.placeId = data?.place ?? offHomePlace(offSaveStore.character.faction);
+        const home = offHomePlace(offSaveStore.character.faction);
+        this.placeId = data?.place ?? home;
         this.place = OFF_PLACES[this.placeId];
-        this.arrival = { ...data, place: this.placeId };
+        // Without a tile (?offplace), by the gate of the character's city when the place has one (Promiseland, Off-7A).
+        const at = data?.at ?? offArrivalIn(this.placeId, home);
+        this.arrival = { ...data, place: this.placeId, ...(at ? { at } : {}) };
     }
 
     create(): void {
@@ -375,8 +381,8 @@ export class OffWorldScene extends Phaser.Scene {
 
     private enterPortal(portal: OffPortalDef): void {
         const to = portal.to;
-        if (to.kind === 'traveler') {
-            this.travel({ place: 'traveler', at: this.travelerArrivalFor(this.placeId), carried: this.carriedVitals() });
+        if (to.kind === 'teleport') {
+            this.askDestination();
             return;
         }
         const faction = offSaveStore.character.faction;
@@ -409,6 +415,21 @@ export class OffWorldScene extends Phaser.Scene {
             },
         };
         openOverlay(this, OFF_CONFIRM_SCENE_KEY, data);
+    }
+
+    /** A city's teleport (Off-7A): which map to go to, over the world, which waits paused. */
+    private askDestination(): void {
+        if (this.window === 'inventory') {
+            this.scene.stop(OFF_INVENTORY_SCENE_KEY);
+            this.closeInventory();
+        }
+        if (this.window) return;
+        this.stopForWindow();
+        this.mover.cancel();
+        const data: Omit<OffTeleportSceneData, 'returnTo'> = {
+            onChoose: (place) => this.travel({ place, at: offArrivalIn(place, this.placeId), carried: this.carriedVitals() }),
+        };
+        openOverlay(this, OFF_TELEPORT_SCENE_KEY, data);
     }
 
     // ---- Doors (Off-5B) ----
@@ -445,11 +466,6 @@ export class OffWorldScene extends Phaser.Scene {
         }
         const data: OffStoreSceneData = { kind, onChange: () => undefined, onClose, ...(tab ? { tab } : {}) };
         this.scene.launch(OFF_STORE_SCENE_KEY, data);
-    }
-
-    /** In Traveler Zone, by the portal of the city you come from. */
-    private travelerArrivalFor(from: OffPlaceId): TilePoint | undefined {
-        return OFF_PLACES.traveler.portals.find((p) => p.to.kind === 'city' && offCityOf(p.to.faction) === from)?.arrival;
     }
 
     private carriedVitals(): OffCarriedVitals {
@@ -860,7 +876,7 @@ function portalCentre(portal: OffPortalDef): { x: number; y: number } {
     return { x: portal.area.x + portal.area.width / 2, y: portal.area.y + portal.area.height / 2 };
 }
 
-/** In a city, by its portal back to Traveler Zone. */
+/** In a city, by its teleport. */
 function cityArrival(faction: OffFaction): TilePoint | undefined {
-    return OFF_PLACES[offCityOf(faction)].portals.find((p) => p.to.kind === 'traveler')?.arrival;
+    return OFF_PLACES[offCityOf(faction)].portals.find((p) => p.to.kind === 'teleport')?.arrival;
 }

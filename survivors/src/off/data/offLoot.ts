@@ -8,7 +8,8 @@
 //   · Escudo (40 %): Wood Shield o Targe Shield.
 // - Además, al desaparecer el cuerpo, el Slime suelta Slime Jelly 1 de cada 25 veces (DeleteNpc).
 // - Fuera de momento (nada en su lugar): caramelos, Power Green Potion, piedras, tablillas y bolas de la tabla normal.
-// - El oro de cada monstruo sale de Npc.cfg, que no está en el repo: el de Slime y Rabbit lo pone Claude (7-nov-2026).
+// - El oro de cada monstruo sale de Npc.cfg, que no está en el repo. Desde la Off-7A, el de helbreathnemesis.com
+//   (propietario, 8-nov-2026), para todos: unas 8 veces más que el que puso Claude. Se ajusta con `goldMultiplier` (Off-7C).
 // - Tiempo en el suelo: el servidor del repo no lo dice; 3 minutos (Claude, aceptado con el plan de la Off-4).
 // - Off-4B: como mucho 20 pociones en total, del tipo que sea (propietario, 7-nov-2026); la que no cabe se queda en el suelo.
 import type { OffMonsterId } from './offMonsters';
@@ -28,6 +29,8 @@ export const OFF_LOOT = {
     meleeShare: 0.8,
     /** Multiplies `dropChance` (1 = the original; capped at always). */
     dropMultiplier: 1,
+    /** Multiplies the gold of every gold drop (1 = Nemesis' amounts; Off-7C may lower it if the shops get too cheap). */
+    goldMultiplier: 1,
     /** Multiplies `valuableShare` (1 = the original). */
     valuableMultiplier: 1,
     /** Time an item stays on the ground before it disappears. */
@@ -71,14 +74,19 @@ export interface OffMonsterLoot {
 }
 
 export const OFF_MONSTER_LOOT: Record<OffMonsterId, OffMonsterLoot> = {
-    // Gold: Claude's numbers (Npc.cfg is not in the repo). Slime Jelly: 1 in 25 (DeleteNpc).
-    slime: { gold: [4, 12], extra: { id: 'slimeJelly', chance: 1 / 25 } },
-    rabbit: { gold: [6, 16] },
-    // Off-5C, Claude's numbers too: more gold the more experience the monster gives.
-    giantAnt: { gold: [10, 25] },
-    snake: { gold: [15, 35] },
-    orc: { gold: [20, 45] },
-    giantScorpion: { gold: [30, 70] },
+    // Gold: helbreathnemesis.com, action=monster (Off-7A, owner, 8-nov-2026). Slime Jelly: 1 in 25 (DeleteNpc).
+    slime: { gold: [51, 100], extra: { id: 'slimeJelly', chance: 1 / 25 } },
+    rabbit: { gold: [101, 200] },
+    giantAnt: { gold: [101, 200] },
+    snake: { gold: [151, 300] },
+    orc: { gold: [251, 500] },
+    giantScorpion: { gold: [351, 700] },
+    skeleton: { gold: [501, 1000] },
+    zombie: { gold: [401, 800] },
+    clayGolem: { gold: [1251, 2500] },
+    stoneGolem: { gold: [1251, 2500] },
+    troll: { gold: [2501, 5000] },
+    cyclops: { gold: [2751, 5500] },
 };
 
 /** Texts of the loot (the list at the bottom left). */

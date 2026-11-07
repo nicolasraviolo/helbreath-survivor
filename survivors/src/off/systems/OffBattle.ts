@@ -45,6 +45,7 @@ import { OFF_LEVEL, OFF_LEVEL_TEXT, offDeathExpLoss, offKillExp, offLevelForExp 
 import type { OffCharacter } from '../entities/OffCharacter';
 import type { OffMonster } from '../entities/OffMonster';
 import { isFromBehind, offHitChance, rollMonsterDamage, rollWeaponDamage, tileDistance } from './OffCombatRules';
+import { rollSpellDamage } from './OffSpellRules';
 import { provokeMonster, updateMonster, type OffMonsterWorld } from './OffMonsterAI';
 import { OffGroundItems } from './OffGroundItems';
 import { rollKillLoot } from './OffLootRoller';
@@ -183,10 +184,7 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost {
         return this.stats.dex * 2 + offArmorDefense(offSaveStore.character.equipment) + (OFF_PROTECT.defenseByPower[power] ?? 0);
     }
 
-    /**
-     * What magic damage on the player is multiplied by: half with Protection From Magic (server). No monster of Off
-     * casts spells yet: this is here for when they do.
-     */
+    /** What magic damage on the player is multiplied by: half with Protection From Magic (server; the Cyclops, Off-7A). */
     public get magicDamageFactor(): number {
         const power = this.protection ? OFF_SPELLS[this.protection.spell].power ?? 0 : 0;
         return OFF_PROTECT.magicHalvedPowers.includes(power) ? OFF_PROTECT.magicDamageFactor : 1;
@@ -411,8 +409,35 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost {
             this.numbers.showWord(x, y, 'Miss');
             return;
         }
-        const damage = rollMonsterDamage(monster.def.base.damageDice, this.stats.vit);
-        if (damage <= 0) return;
+        this.hurtPlayer(rollMonsterDamage(monster.def.base.damageDice, this.stats.vit));
+    }
+
+    /**
+     * A monster's spell (Off-7A, the Cyclops): it flies to where the player was. On arrival, the direct roll if the
+     * player is still on that tile and the area roll within its range (like the player's spells on monsters), each
+     * halved by Protection From Magic. The player has no magic resistance in Off yet: it always lands.
+     */
+    public monsterCasts(monster: OffMonster, at: TilePoint): void {
+        const id = monster.def.spell;
+        if (!id || this.dead) return;
+        const def = OFF_SPELLS[id];
+        const toX = this.character.x;
+        const toY = this.character.y - PLAYER_BODY_OFFSET_Y;
+        this.spells.monsterCast(def, monster.x, monster.y, toX, toY, () => {
+            if (this.dead) return;
+            const distance = tileDistance(this.mover.tileX, this.mover.tileY, at.x, at.y);
+            let damage = 0;
+            if (def.direct && distance === 0) damage += rollSpellDamage(def.direct, 0, 'neutral');
+            if (def.area && def.areaRange !== undefined && distance <= def.areaRange) damage += rollSpellDamage(def.area, 0, 'neutral');
+            if (damage > 0) this.hurtPlayer(Math.max(1, Math.round(damage * this.magicDamageFactor)));
+        });
+    }
+
+    /** Health off the player, with its number, blood and cry; it dies at 0. */
+    private hurtPlayer(damage: number): void {
+        if (damage <= 0 || this.dead) return;
+        const x = this.character.x;
+        const y = this.character.y - PLAYER_BODY_OFFSET_Y;
         this.hp = Math.max(0, this.hp - damage);
         this.numbers.showColored(x, y, damage, OFF_MONSTER_LOOK.playerDamageColor, false, this.hp === 0);
         this.spawnEffect('fx.hit', x, y);

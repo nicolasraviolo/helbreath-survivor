@@ -6,12 +6,14 @@
 //   1 vez de cada 3. Los neutrales (Rabbit) no buscan: solo atacan a quien les pega.
 // - Atacando: si está al lado, pega (el golpe se decide al empezar); si no, da un paso hacia él. A los 20 turnos lo deja.
 // - Con poca vida y poca valentía huye 10 acciones (MONSTER_AI, ya portado en Survivors).
+// - Off-7A: los que tienen magia (el Cyclops) la lanzan a veces cuando aún no te alcanzan (OFF_MONSTER_CAST).
 // Paseo entre puntos al azar de su pit: el original andaba entre waypoints del mapa; el pit nos sirve de zona.
 import Phaser from 'phaser';
 import type { TileRect } from '../../data/maps';
 import { MONSTER_AI } from '../../data/enemies';
 import { originalAttackIntervalMs } from '../../entities/Enemy';
 import { OFF_COMBAT } from '../data/offCombat';
+import { OFF_MONSTER_CAST } from '../data/offMonsters';
 import type { OffMonster } from '../entities/OffMonster';
 import { rollDice, tileDistance } from './OffCombatRules';
 import { directionTowards, type TilePoint } from './TileMover';
@@ -32,6 +34,8 @@ export interface OffMonsterWorld {
     rollHitOnPlayer(monster: OffMonster): boolean;
     /** Its blow lands now (`lands` false: a miss). */
     monsterStrikes(monster: OffMonster, lands: boolean): void;
+    /** It casts its spell at the player's tile (Off-7A). */
+    monsterCasts(monster: OffMonster, at: TilePoint): void;
 }
 
 /** Advances one monster: its step, its blow on the way, and a new action when the last one is over. */
@@ -106,6 +110,13 @@ function attack(monster: OffMonster, world: OffMonsterWorld): void {
         const towards = directionTowards(mover.tileX, mover.tileY, player.x, player.y) ?? mover.facing;
         monster.startAttack(towards, world.rollHitOnPlayer(monster));
         monster.waitMs = interval;
+        return;
+    }
+    if (monster.def.spell && Math.random() < OFF_MONSTER_CAST.chance
+        && Math.abs(mover.tileX - player.x) <= OFF_MONSTER_CAST.rangeX && Math.abs(mover.tileY - player.y) <= OFF_MONSTER_CAST.rangeY) {
+        monster.startCast(directionTowards(mover.tileX, mover.tileY, player.x, player.y) ?? mover.facing);
+        world.monsterCasts(monster, { x: player.x, y: player.y });
+        monster.waitMs = OFF_MONSTER_CAST.waitMs;
         return;
     }
     monster.waitMs = mover.stepToward(player.x, player.y, interval) ? 0 : interval;

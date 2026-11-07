@@ -25,7 +25,7 @@ export function rollKillLoot(monster: OffMonsterId, mode: OffDropMode, random: (
     } else if (mode === 'all' || random() < chance) {
         if (random() < OFF_LOOT.goldShare) {
             const [min, max] = table.gold;
-            loot.gold = min + Math.floor(random() * (max - min + 1));
+            loot.gold = Math.max(1, Math.round((min + Math.floor(random() * (max - min + 1))) * OFF_LOOT.goldMultiplier));
         } else if (random() < Math.min(1, OFF_LOOT.valuableShare * OFF_LOOT.valuableMultiplier)) {
             const item = rollValuable(random);
             if (item) loot.items.push(item);

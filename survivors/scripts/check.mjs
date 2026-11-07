@@ -91,7 +91,7 @@ const PRESETS = {
     offbagfull: `off=world&offreset&offlevel=3&offdrop=valuable&offbag=${Array(50).fill('redPotion').join(',')}`,
     // Fase Off-5A: bandos. offportal pisa el portal de Aresden sin bando (sale "Do you want to join Aresden?");
     // offjoin contesta Yes (en eval: sitio, bando y lo guardado; captura en Aresden). offaresden / offelvine abren la
-    // ciudad de cada bando (Play lleva a la tuya). offcityback, de Elvine: su portal lleva a Traveler Zone y el portal
+    // ciudad de cada bando (Play lleva a la tuya). offcityback, de Elvine: su teleport (eligiendo Traveler Zone, Off-7A) lleva allí y el portal
     // de Elvine de allí vuelve sin preguntar. offotherportal: siendo de Elvine, el portal de Aresden no deja pasar.
     // offdeathhome: de Aresden, muere en Traveler Zone y reaparece en Aresden.
     offportal: 'off=world&offreset&offlevel=5&offplace=traveler&offat=81,79',
@@ -145,6 +145,20 @@ const PRESETS = {
     offelvinepits: 'off=world&offlevel=5&offfaction=elvine',
     offorc: 'off=world&offlevel=20&offstats=str:30&offgear=longSword&offfaction=aresden&offplace=aresden&offat=243,201',
     offscorpion: 'off=world&offlevel=20&offstats=str:30&offgear=longSword&offfaction=aresden&offplace=aresden&offat=101,52',
+    // Fase Off-7A: Promiseland. offteleport pisa el teleport de Aresden (sale la ventana con los mapas) y elige
+    // Promiseland (en eval: sitio y casilla, abajo). offpromiseland / offpromiselandelvine abren Promiseland siendo de
+    // Aresden (abajo) o de Elvine (arriba) y dan los monstruos vivos. offpromiselandback pisa la puerta de Aresden y
+    // vuelve a la ciudad; offpromiselandother pisa la de Elvine siendo de Aresden (no deja pasar). offskeleton y
+    // offtroll pelean 20 s junto a su pit (Level 40 y 80, Long Sword).
+    offteleport: 'off=world&offlevel=40&offfaction=aresden',
+    offpromiseland: 'off=world&offlevel=40&offfaction=aresden&offplace=promiseland',
+    offpromiselandelvine: 'off=world&offlevel=40&offfaction=elvine&offplace=promiseland',
+    offpromiselandback: 'off=world&offlevel=40&offfaction=aresden&offplace=promiseland',
+    offpromiselandother: 'off=world&offlevel=40&offfaction=aresden&offplace=promiseland&offat=126,24',
+    offskeleton: 'off=world&offlevel=40&offstats=str:60&offgear=longSword&offfaction=aresden&offplace=promiseland&offat=96,204',
+    // offcyclops: Level 100 quieto a 2 casillas del pit del Cyclops; en eval, la vida cada segundo (le lanza Fire Strike).
+    offcyclops: 'off=world&offlevel=100&offstats=vit:150&offfaction=aresden&offplace=promiseland&offat=135,140',
+    offtroll: 'off=world&offlevel=80&offstats=str:100,vit:80&offgear=longSword&offfaction=aresden&offplace=promiseland&offat=115,140',
     game: 'play',
     levelup: 'debug=levelup',
     // Fase 21½A: todas las cartas Epic (marco morado, cinta, brillo y sonido).
@@ -410,7 +424,7 @@ const PRESET_EVAL = {
     // Fase Off-2B: 200 experience into level 10, dies (as a monster's last blow would); the experience before and after coming back.
     offportal: "o.debugWalkTo(81, 76), new Promise((r) => setTimeout(() => r({ confirm: game.scene.isActive('OffConfirm'), worldPaused: game.scene.isPaused('OffWorld'), state: o.debugState().place }), 3000))",
     offjoin: "o.debugWalkTo(81, 76), new Promise((r) => setTimeout(() => { const asked = game.scene.isActive('OffConfirm'); game.scene.getScene('OffConfirm').answer(true); setTimeout(() => { const s = o.debugState(); r({ asked, place: s.place, faction: s.faction, tile: s.tile, hp: s.hp, saved: JSON.parse(localStorage.getItem('hb-off.character')).faction }); }, 4000); }, 3000))",
-    offcityback: "new Promise((r) => { const start = o.debugState().place; o.debugWalkTo(237, 140); setTimeout(() => { const s = o.debugState(); const mid = [s.place, s.tile]; o.debugWalkTo(128, 79); setTimeout(() => { const e = o.debugState(); r({ start, mid, end: [e.place, e.tile], asked: game.scene.isActive('OffConfirm') }); }, 6000); }, 5000); })",
+    offcityback: "new Promise((r) => { const start = o.debugState().place; o.debugWalkTo(237, 140); setTimeout(() => { game.scene.getScene('OffTeleport').choose('traveler'); }, 2500); setTimeout(() => { const s = o.debugState(); const mid = [s.place, s.tile]; o.debugWalkTo(128, 79); setTimeout(() => { const e = o.debugState(); r({ start, mid, end: [e.place, e.tile], asked: game.scene.isActive('OffConfirm') }); }, 6000); }, 5000); })",
     offotherportal: "o.debugWalkTo(81, 76), new Promise((r) => setTimeout(() => { const s = o.debugState(); r({ place: s.place, faction: s.faction, tile: s.tile, asked: game.scene.isActive('OffConfirm') }); }, 3500))",
     offdeathhome: "new Promise((r) => { const start = o.debugState().place; o.battle.hp = 0; o.battle.die(); setTimeout(() => { const s = o.debugState(); r({ start, end: s.place, tile: s.tile, dead: s.dead, hp: [s.hp, s.maxHp] }); }, 6000); })",
     offshop: "new Promise((r) => setTimeout(() => { const st = game.scene.getScene('OffStore'); const before = st.debugState(); st.mark(0); st.act(); setTimeout(() => r({ open: game.scene.isActive('OffStore'), hud: game.scene.isActive('OffHud'), before: { rows: before.rows, gold: before.gold }, after: st.debugState(), saved: (({ gold, bag }) => ({ gold, bag }))(JSON.parse(localStorage.getItem('hb-off.character'))) }), 300); }, 1000))",
@@ -438,6 +452,14 @@ const PRESET_EVAL = {
     offelvinepits: "new Promise((r) => setTimeout(() => { const s = o.debugState(); r({ place: s.place, tile: s.tile, monsters: s.monsters }); }, 1500))",
     offorc: "new Promise((r) => { const log = []; const t = setInterval(() => { if (!o.debugState().target) o.debugFight('orc'); log.push(o.debugState()); }, 1000); setTimeout(() => { clearInterval(t); const pick = (s) => s && ({ tile: s.tile, hp: [s.hp, s.maxHp], level: s.level, exp: s.exp, kills: s.kills, target: s.target, monsters: s.monsters, gold: s.gold, dead: s.dead }); r({ start: pick(log[0]), mid: pick(log[10]), end: pick(log[log.length - 1]) }); }, 20000); })",
     offscorpion: "new Promise((r) => { const log = []; const t = setInterval(() => { if (!o.debugState().target) o.debugFight('giantScorpion'); log.push(o.debugState()); }, 1000); setTimeout(() => { clearInterval(t); const pick = (s) => s && ({ tile: s.tile, hp: [s.hp, s.maxHp], level: s.level, exp: s.exp, kills: s.kills, target: s.target, monsters: s.monsters, gold: s.gold, dead: s.dead }); r({ start: pick(log[0]), mid: pick(log[10]), end: pick(log[log.length - 1]) }); }, 20000); })",
+    offteleport: "o.debugWalkTo(140, 207), new Promise((r) => setTimeout(() => { const asked = game.scene.isActive('OffTeleport'); const paused = game.scene.isPaused('OffWorld'); game.scene.getScene('OffTeleport').choose('promiseland'); setTimeout(() => { const s = o.debugState(); r({ asked, paused, place: s.place, tile: s.tile }); }, 6000); }, 4000))",
+    offpromiseland: "new Promise((r) => setTimeout(() => { const s = o.debugState(); r({ place: s.place, tile: s.tile, monsters: s.monsters }); }, 2500))",
+    offpromiselandelvine: "new Promise((r) => setTimeout(() => { const s = o.debugState(); r({ place: s.place, tile: s.tile, monsters: s.monsters }); }, 2500))",
+    offpromiselandback: "o.debugWalkTo(140, 228), new Promise((r) => setTimeout(() => { const s = o.debugState(); r({ place: s.place, tile: s.tile }); }, 6000))",
+    offpromiselandother: "o.debugWalkTo(126, 21), new Promise((r) => setTimeout(() => { const s = o.debugState(); r({ place: s.place, tile: s.tile }); }, 4000))",
+    offskeleton: "new Promise((r) => { const log = []; const t = setInterval(() => { if (!o.debugState().target) o.debugFight('skeleton'); log.push(o.debugState()); }, 1000); setTimeout(() => { clearInterval(t); const pick = (s) => s && ({ tile: s.tile, hp: [s.hp, s.maxHp], level: s.level, exp: s.exp, kills: s.kills, target: s.target, gold: s.gold, dead: s.dead }); r({ start: pick(log[0]), mid: pick(log[10]), end: pick(log[log.length - 1]) }); }, 20000); })",
+    offcyclops: "new Promise((r) => { const log = []; const t = setInterval(() => { const s = o.debugState(); log.push(s.hp); }, 1000); setTimeout(() => { clearInterval(t); r(log); }, 15000); })",
+    offtroll: "new Promise((r) => { const log = []; const t = setInterval(() => { if (!o.debugState().target) o.debugFight('troll'); log.push(o.debugState()); }, 1000); setTimeout(() => { clearInterval(t); const pick = (s) => s && ({ tile: s.tile, hp: [s.hp, s.maxHp], level: s.level, exp: s.exp, kills: s.kills, target: s.target, gold: s.gold, dead: s.dead }); r({ start: pick(log[0]), mid: pick(log[10]), end: pick(log[log.length - 1]) }); }, 20000); })",
     offdeath: "new Promise((r) => { o.battle.exp += 200; const start = o.debugState(); o.battle.hp = 0; o.battle.die(); setTimeout(() => r({ start, end: o.debugState() }), 4000); })",
     offcreated: "new Promise((r) => { const c = game.scene.getScene('OffCreate'); c.changeStat('str', 1); const one = c.stats.str; c.createCharacter(); const blocked = game.scene.isActive('OffCreate'); c.applyPreset('warrior'); c.createCharacter(); setTimeout(() => r({ oneStr: one, blockedWithPointsLeft: blocked, saved: JSON.parse(localStorage.getItem('hb-off.character')), world: game.scene.isActive('OffWorld') }), 4000); })",
     offchar: "o.openCharacter(), new Promise((r) => setTimeout(() => r({ open: game.scene.isActive('CharacterInfo'), worldPaused: game.scene.isPaused('OffWorld'), state: o.debugState() }), 800))",

@@ -400,6 +400,8 @@ export const MAPS = {
     // Helbreath Off (Fase Off-5A): las ciudades de los dos bandos; se anda solo un recorte (off/data/offPlaces.ts).
     'map.aresden': { file: 'maps/aresden.amd' },
     'map.elvine': { file: 'maps/elvine.amd' },
+    // Helbreath Off (Fase Off-7A): Promiseland (`2ndmiddle.amd`, 250×250), el mapa de caza entre las dos ciudades.
+    'map.promiseland': { file: 'maps/2ndmiddle.amd' },
 } as const satisfies Record<string, { file: string }>;
 
 export type MapKey = keyof typeof MAPS;
@@ -419,6 +421,7 @@ export const MINIMAPS = {
     'minimap.barracks': { file: 'images/minimaps/elvbrk11.png' },
     'minimap.aresden': { file: 'images/minimaps/aresden.jpg' },
     'minimap.elvine': { file: 'images/minimaps/elvine.jpg' },
+    'minimap.promiseland': { file: 'images/minimaps/2ndmiddle.jpg' },
 } as const satisfies Record<string, { file: string }>;
 
 export type MinimapKey = keyof typeof MINIMAPS;

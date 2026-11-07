@@ -3,7 +3,8 @@
 export const OFF_FACTIONS = ['aresden', 'elvine'] as const;
 export type OffFaction = (typeof OFF_FACTIONS)[number];
 
-export const OFF_PLACE_IDS = ['traveler', 'aresden', 'elvine'] as const;
+// Off-7A: Promiseland, el mapa de caza al que lleva el teleport de la ciudad.
+export const OFF_PLACE_IDS = ['traveler', 'aresden', 'elvine', 'promiseland'] as const;
 export type OffPlaceId = (typeof OFF_PLACE_IDS)[number];
 
 export function isOffFaction(value: unknown): value is OffFaction {
