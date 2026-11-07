@@ -132,6 +132,8 @@ const PRESETS = {
     offheal: 'off=world&offlevel=30&offstats=int:50,mag:50&offgear=noweapon&offhp=5&offspells=heal,defenseShield,holdPerson,paralyze,greatHeal,protectionFromMagic',
     offshield: 'off=world&offlevel=30&offstats=int:50,mag:50&offgear=noweapon&offspells=heal,defenseShield,holdPerson,paralyze,greatHeal,protectionFromMagic',
     // offprotect: Protection From Magic (6): el círculo blanco bajo los pies mientras dura.
+    // offdefenseaura: Defense Shield (2) y su aura bajo los pies.
+    offdefenseaura: 'off=world&offlevel=30&offstats=int:50,mag:50&offgear=noweapon&offspells=heal,defenseShield,holdPerson,paralyze,greatHeal,protectionFromMagic',
     offprotect: 'off=world&offlevel=30&offstats=int:50,mag:50&offgear=noweapon&offspells=heal,defenseShield,holdPerson,paralyze,greatHeal,protectionFromMagic',
     offhold: 'off=world&offlevel=30&offstats=int:50,mag:50&offgear=noweapon&offspells=heal,defenseShield,holdPerson,paralyze,greatHeal,protectionFromMagic',
     offpadcast: 'off=world&offlevel=30&offstats=int:50,mag:50&offgear=noweapon&offspells=heal,defenseShield,holdPerson,paralyze,greatHeal,protectionFromMagic',
@@ -427,6 +429,7 @@ const PRESET_EVAL = {
     offbookempty: "new Promise((r) => setTimeout(() => r(game.scene.getScene('OffSpellBook').debugState()), 1000))",
     offheal: "new Promise((r) => setTimeout(() => { const pick = () => (({ hp, maxHp, mana, spell, casts, fails, defense, shield, held, target }) => ({ hp, maxHp, mana, spell, casts, fails, defense, shield, held, target }))(o.debugState()); const before = pick(); o.debugCast(0); setTimeout(() => r({ before, after: pick() }), 2600); }, 1500))",
     offshield: "new Promise((r) => setTimeout(() => { const pick = () => (({ hp, maxHp, mana, spell, casts, fails, defense, shield, held, target }) => ({ hp, maxHp, mana, spell, casts, fails, defense, shield, held, target }))(o.debugState()); const before = pick(); o.debugCast(1); setTimeout(() => { const shield = pick(); o.debugCast(5); setTimeout(() => r({ before, shield, second: pick() }), 2600); }, 2600); }, 1500))",
+    offdefenseaura: "new Promise((r) => setTimeout(() => { o.debugCast(1); setTimeout(() => r((({ mana, casts, fails, shield, defense }) => ({ mana, casts, fails, shield, defense }))(o.debugState())), 2000); }, 1500))",
     offprotect: "new Promise((r) => setTimeout(() => { o.debugCast(5); setTimeout(() => r((({ mana, casts, fails, shield }) => ({ mana, casts, fails, shield }))(o.debugState())), 2000); }, 1500))",
     offhold: "new Promise((r) => setTimeout(() => { const pick = () => (({ hp, maxHp, mana, spell, casts, fails, defense, shield, held, target }) => ({ hp, maxHp, mana, spell, casts, fails, defense, shield, held, target }))(o.debugState()); const before = pick(); o.debugCast(2, 'slime'); setTimeout(() => r({ before, after: pick() }), 2600); }, 1500))",
     offpadcast: "new Promise((r) => setTimeout(() => { const pick = () => (({ hp, maxHp, mana, spell, casts, fails, defense, shield, held, target }) => ({ hp, maxHp, mana, spell, casts, fails, defense, shield, held, target }))(o.debugState()); const before = pick(); o.debugPadCast(1); setTimeout(() => { const shield = pick(); o.debugPadCast(2); setTimeout(() => r({ before, shield, hold: pick(), pad: o.debugState().padSpells }), 2600); }, 2600); }, 1500))",

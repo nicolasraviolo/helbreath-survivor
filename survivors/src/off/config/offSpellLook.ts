@@ -1,3 +1,6 @@
+import type { EffectKey } from '../../config/effects';
+import { AURA_RING_ALPHA } from '../../data/passiveMagic';
+
 // Helbreath Off (Fase Off-6B): el nombre de la magia sobre la cabeza al empezar a prepararla, como el cliente original
 // (reference/Client.cpp: mensaje de tipo 41 "Nombre!", dibujado con PutString_SprFont3 tipo 0 = la letra de las cartas
 // de Survivors, SpriteText 'title'): rojo (RGB 75,10,10 × 4), 65 px sobre los pies, sube 1 px cada 32 ms hasta 10 px
@@ -27,3 +30,10 @@ export const OFF_SPELL_HUD = {
     ready: (name: string) => `${name} ready`,
     shield: (name: string, seconds: number) => `${name} ${seconds}s`,
 } as const;
+
+/**
+ * Off-6C (propietario, 7-nov-2026): Defense Shield y Protection From Magic dejan un aura bajo los pies mientras duran
+ * (`wornEffect` en off/data/offSpells.ts). Se dibujan a ras de suelo, debajo del personaje; esta es su transparencia
+ * (el anillo, como el aura de Survivors).
+ */
+export const OFF_WORN_ALPHA: Partial<Record<EffectKey, number>> = { 'fx.aura.ring': AURA_RING_ALPHA };

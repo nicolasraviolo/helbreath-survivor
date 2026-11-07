@@ -77,7 +77,7 @@ export const OFF_SPELLS: Record<OffSpellId, OffSpellDef> = {
     heal: { name: 'Heal', magicId: 1, circle: 1, kind: 'heal', mana: 15, reqInt: 20, price: 100, direct: [2, 6, 10], castEffect: 'fx.heal.cast' },
     // ---- Circle 2 ----
     energyBolt: { name: 'Energy Bolt', magicId: 10, circle: 2, kind: 'damage', mana: 15, reqInt: 24, price: 200, direct: [2, 4, 1], area: [2, 4, 1], areaRange: 2, element: 'lightning', look: 'energyBolt' },
-    defenseShield: { name: 'Defense Shield', magicId: 13, circle: 2, kind: 'shield', mana: 19, reqInt: 26, price: 200, durationSec: 60, power: 3, castEffect: 'fx.defenseShield.cast' },
+    defenseShield: { name: 'Defense Shield', magicId: 13, circle: 2, kind: 'shield', mana: 19, reqInt: 26, price: 200, durationSec: 60, power: 3, castEffect: 'fx.defenseShield.cast', wornEffect: 'fx.defenseShield.aura' },
     // ---- Circle 3 ----
     fireBall: { name: 'Fire Ball', magicId: 20, circle: 3, kind: 'damage', mana: 27, reqInt: 26, price: 500, direct: [2, 6, 2], area: [2, 6, 2], areaRange: 2, element: 'fire', look: 'fireBall' },
     greatHeal: { name: 'Great Heal', magicId: 21, circle: 3, kind: 'heal', mana: 28, reqInt: 28, price: 500, direct: [4, 10, 20], castEffect: 'fx.heal.cast' },
