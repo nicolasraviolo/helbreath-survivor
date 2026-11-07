@@ -2,14 +2,16 @@
 // - Arma: daño desde / hasta de un golpe normal con tu STR (sin críticos), velocidad propia (Fast / Medium / Slow, sin
 //   contar la STR) y la STR con la que llega a su mejor golpe. Armadura: defensa que suma.
 // - Comparado con lo que llevas puesto en su hueco: verde si mejora, rojo si empeora.
-// - STR necesaria (en rojo si no llegas) y atributos (ninguno de momento).
+// - STR necesaria y Level si lo pide (Off-5B; en rojo si no llegas) y atributos (ninguno de momento).
 // - Pociones (Off-4B): qué llenan y cuánto, de menos a más. Slime Jelly: que se vende.
 import Phaser from 'phaser';
 import { EQUIPMENT_MET_COLOR, EQUIPMENT_UNMET_COLOR } from '../../config/equipment';
 import { OFF_EQUIPMENT_BOX, OFF_EQUIPMENT_BOX_STYLE, OFF_EQUIPMENT_BOX_TITLE_STYLE, OFF_EQUIPMENT_SAME_COLOR } from '../config/offEquipment';
 import { offBestSpeedStr, offSpeedLabel } from '../data/offCombat';
 import { offGood } from '../data/offGoods';
-import { diceAverage, isOffItemId, OFF_ITEMS, type OffBagItemId, type OffItemDef, type OffItemId, type OffWeaponItem } from '../data/offItems';
+import {
+    diceAverage, isOffItemId, OFF_ITEMS, offNeedsText, offWearCheck, type OffBagItemId, type OffItemDef, type OffItemId, type OffWeaponItem, type OffWearer,
+} from '../data/offItems';
 import { weaponDamageRange } from '../systems/OffCombatRules';
 
 /** A line of the stat box: label, value, and how the worn item compares. */
@@ -28,7 +30,8 @@ const BAR_LABELS = { hp: 'Health', mana: 'Mana', stamina: 'Stamina' } as const;
  * What the box says about an item (undefined = an empty slot), compared with `worn` when it is another one (an empty
  * armour slot counts as defence 0). Goods (potions, Slime Jelly) are not compared.
  */
-export function offItemBoxLines(id: OffBagItemId | undefined, worn: OffItemId | undefined, str: number): OffBoxLine[] {
+export function offItemBoxLines(id: OffBagItemId | undefined, worn: OffItemId | undefined, who: OffWearer): OffBoxLine[] {
+    const str = who.str;
     if (id !== undefined && !isOffItemId(id)) {
         const good = offGood(id);
         const restores = good.restores;
@@ -67,9 +70,10 @@ export function offItemBoxLines(id: OffBagItemId | undefined, worn: OffItemId | 
         const now = comparing ? { text: `(now +${otherDefense})`, better: Math.sign(defense - otherDefense) } : undefined;
         lines.push({ label: 'Defense', value: `+${defense}`, ...(now ? { now } : {}) });
     }
-    if (item) {
-        const met = str >= item.strToEquip;
-        lines.push({ label: 'Needs', value: `Str ${item.strToEquip}`, valueColor: met ? EQUIPMENT_MET_COLOR : EQUIPMENT_UNMET_COLOR, now: { text: `(you have ${str})`, better: 0 } });
+    if (item && id !== undefined && isOffItemId(id)) {
+        const met = offWearCheck(id, who) === 'ok';
+        const have = item.levelToEquip ? `(you have ${str} · ${who.level})` : `(you have ${str})`;
+        lines.push({ label: 'Needs', value: offNeedsText(id), valueColor: met ? EQUIPMENT_MET_COLOR : EQUIPMENT_UNMET_COLOR, now: { text: have, better: 0 } });
         // Attributes (Sharp, Poison...) are for later: the loot so far has none.
         lines.push({ label: 'Attributes', value: 'None' });
     } else if (other) {

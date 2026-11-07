@@ -131,6 +131,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Botín en el suelo y oro en Helbreath Off (Fase Off-4A)
 - Inventario, equipar, pociones y pausa en Helbreath Off (Fase Off-4B)
 - Bandos, portales y ciudades en Helbreath Off (Fase Off-5A)
+- Tienda, herrero y almacén en Helbreath Off (Fase Off-5B)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -1475,3 +1476,11 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - **Recortes y teleport (marcados por el propietario):** Aresden (95,148) 81×73, teleport en 140,207 (sobre la plataforma redonda de postes rojos del original, junto a la marca); Elvine (193,102) 61×67, teleport en 237,140. El teleport es nuestro (`fx.portal`) y lleva a Traveler Zone. La tienda de magia (Off-6) irá de momento en la tienda o el herrero.
 - **Código:** `off/data/offPlaces.ts` (sitios, portales, textos), `off/data/offPlaceIds.ts` (solo los nombres, para `debugStart` sin dependencias circulares), `off/scenes/OffConfirmScene.ts` ("Do you want to join ...?", sobre `MenuOverlayScene`, mundo en pausa), `OffSaveStore.faction` (versión 5). `OffWorldScene.init(data)` recibe `{ place, at, carried, message }` a través de `MapLoadScene` (`ExternalPlace.sceneData`). Los portales funcionan al **entrar** en su zona (`insidePortal`): no repiten hasta salir. La vida, el maná y la estamina pasan por el portal (`OffCarriedVitals`). Morir fuera de casa: `respawnTile` devuelve `undefined` y la escena viaja a la ciudad (`offHomePlace`).
 - **Atajos y checks:** `?offfaction=aresden|elvine|none`, `?offplace=traveler|aresden|elvine&offat=x,y` (solo el primer sitio que se abre). Checks `offportal`, `offjoin`, `offaresden`, `offelvine`, `offcityback`, `offotherportal`, `offdeathhome`; en eval, `o.debugPortal(i)` cruza el portal i del sitio.
+
+## Tienda, herrero y almacén en Helbreath Off (Fase Off-5B)
+- **Item.cfg, columnas útiles** (contando tras el nombre): 1 tipo, 2 hueco (8 = una mano, 9 = dos manos), 4–9 dados contra pequeños / grandes (armas) o defensa en la 4 (armaduras), 13 frame del icono, **14 precio** (negativo = no se vende en tienda; su valor absoluto es el precio), **15 peso** (STR = peso / 100), 17 velocidad, **18 Level mínimo**. Las piezas (M)/(W) son una sola en Off (el dibujo cambia con el sexo). Tomahoc del original = nuestro `tomahawk`; Flameberge = `flamberge`.
+- **Banco del original:** `DEF_MAXBANKITEMS` (120) no está definido en el repo (solo se usa en Client.cpp).
+- **helbreathnemesis.com, mapas:** `action=map&id=N` (1 Traveler Zone, 2 / 3 Farms, 10 Aresden, 11 Elvine, 12 Middleland…). La imagen (`imagemap.php?id=N`) va a 3,2 px por casilla y se muestra a 500 px de ancho: casilla = px del `<area>` × ancho original / 500 / 3,2 (Aresden y Elvine: × 0,6). `action=monster&id=N` da vida, golpe, defensa, experiencia y dónde sale. Devlin, Perry y Mc-Gaffin salen como "Pit" pero son vecinos con 15.000 de vida.
+- **Ventanas que tapan el mundo** (`window = 'cover'`): el minimapa se pinta a profundidad `DEPTH_DEBUG - 1` en el mundo y asoma por encima de cualquier ventana; `coverWorld` lo esconde y `uncoverWorld` lo devuelve según Settings.
+- **Puertas:** funcionan como los portales (`insideDoor`): abren al entrar en sus casillas y no repiten hasta salir. Sin búsqueda de caminos, desde el teleport de Aresden el personaje se queda atascado camino de la tienda (127,196): por eso `check offdoor` empieza al lado (`offat=128,172`).
+- **Medir la descarga de un sitio:** `performance.getEntriesByType('resource')` se corta en 250 entradas y da lo mismo para cualquier recorte. Contar los `map-tile-N` de `game.textures` y sumar el tamaño de sus `.spr`: recorte de Aresden 10,8 MB de suelo, ciudad entera 17,8 MB.

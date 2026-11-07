@@ -22,6 +22,8 @@
 // portales. Pisar uno lleva al otro sitio con la vida, el maná y la estamina que tenías; el de una ciudad, sin bando,
 // pregunta antes si quieres unirte (OffConfirmScene, con el mundo en pausa). Al morir lejos de casa se reaparece en tu
 // ciudad (o en Traveler Zone sin bando).
+// Fase Off-5B: pisar la puerta de la tienda, el herrero o el almacén de tu ciudad abre su ventana (OffStoreScene /
+// OffWarehouseScene) encima del mundo, que sigue; como los portales, hay que salir de la puerta para que vuelva a abrir.
 // Mapa, árboles que se transparentan, cámara, pasos y minimapa, como la ciudad de Survivors (scenes/TownScene.ts).
 import Phaser from 'phaser';
 import { CAMERA_LERP, DEPTH_DEBUG, GAME_WIDTH, TILE_SIZE } from '../../config/gameConfig';
@@ -42,7 +44,11 @@ import { setGameViewport, toGame, zoomWorldCamera } from '../../ui/renderScale';
 import { Pool } from '../../utils/Pool';
 import type { MapLoadSceneData } from '../../scenes/MapLoadScene';
 import { OFF_MOVEMENT, OFF_NOVICE, OFF_STEP_MS, TILES_PER_ANIMATION_CYCLE } from '../data/offWorld';
-import { OFF_PLACE_TEXT, OFF_PLACES, offCityOf, offHomePlace, type OffFaction, type OffPlaceDef, type OffPlaceId, type OffPortalDef } from '../data/offPlaces';
+import {
+    OFF_PLACE_TEXT, OFF_PLACES, offCityOf, offHomePlace, type OffBuildingKind, type OffDoorDef, type OffFaction, type OffPlaceDef, type OffPlaceId, type OffPortalDef,
+} from '../data/offPlaces';
+import { OFF_STORE_SCENE_KEY, type OffStoreSceneData } from './OffStoreScene';
+import { OFF_WAREHOUSE_SCENE_KEY, type OffWarehouseSceneData } from './OffWarehouseScene';
 import { EVENT_LIST_EVENT } from '../../config/hud';
 import { Portal } from '../../entities/Portal';
 import { openOverlay } from '../../scenes/MenuOverlayScene';
@@ -113,6 +119,8 @@ export class OffWorldScene extends Phaser.Scene {
     private portalSprites: Portal[] = [];
     /** Portal the character stands in: it takes you through on stepping in, not again until you step out. */
     private insidePortal: OffPortalDef | undefined;
+    /** The door stood on (Off-5B): its window opens again only after stepping off it. */
+    private insideDoor: OffDoorDef | undefined;
     /** Already on the way to another place (the loading screen opens next). */
     private leaving = false;
     private mapView!: MapView;
@@ -185,6 +193,7 @@ export class OffWorldScene extends Phaser.Scene {
             return new Portal(this, centre.x * TILE_SIZE, centre.y * TILE_SIZE, Number.POSITIVE_INFINITY);
         });
         this.insidePortal = this.portalAt(spawn.x, spawn.y);
+        this.insideDoor = this.doorAt(spawn.x, spawn.y);
         // Each running step costs stamina (the step is chosen as a run only while there is some).
         this.mover.onStep = (stepMs) => {
             if (stepMs === OFF_STEP_MS.run) this.battle.vitals.spendRunStep();
@@ -226,7 +235,7 @@ export class OffWorldScene extends Phaser.Scene {
             settings.off(SETTINGS_CHANGED, onSettings);
             this.events.off(OFF_OPEN_CHARACTER_EVENT, this.openCharacter, this);
             this.events.off(OFF_OPEN_PAUSE_EVENT, this.openPause, this);
-            for (const key of [OFF_INVENTORY_SCENE_KEY, OFF_EQUIPMENT_SCENE_KEY]) this.scene.stop(key);
+            for (const key of [OFF_INVENTORY_SCENE_KEY, OFF_EQUIPMENT_SCENE_KEY, OFF_STORE_SCENE_KEY, OFF_WAREHOUSE_SCENE_KEY]) this.scene.stop(key);
             this.input.off(Phaser.Input.Events.POINTER_DOWN, this.onPointerDown, this);
             this.input.off(Phaser.Input.Events.POINTER_UP, this.onPointerUp, this);
             this.audio.stopLoop('sfx.footsteps');
@@ -234,7 +243,9 @@ export class OffWorldScene extends Phaser.Scene {
         });
         const hud: OffHudSceneData = { worldSceneKey: OFF_WORLD_SCENE_KEY, getState: () => this.hudState() };
         this.scene.launch(OFF_HUD_SCENE_KEY, hud);
-        if (DEBUG_START.offOpen === 'bag') this.time.delayedCall(0, () => this.openInventory());
+        const open = DEBUG_START.offOpen;
+        if (open === 'bag') this.time.delayedCall(0, () => this.openInventory());
+        else if (open !== undefined) this.time.delayedCall(0, () => this.openBuilding(open));
         const message = this.arrival.message;
         // After the HUD has opened and listens.
         if (message !== undefined) this.time.delayedCall(ARRIVAL_MESSAGE_DELAY_MS, () => this.events.emit(EVENT_LIST_EVENT, message));
@@ -296,6 +307,7 @@ export class OffWorldScene extends Phaser.Scene {
         this.battle.update(delta);
         this.updateFootsteps(stepRunning);
         this.updatePortals();
+        this.updateDoors();
         this.mapView.updateFading(this.character.y, this.character.getVisualBounds());
         this.minimap.update({ player: this.character, bosses: [], totems: [], loot: [], portals: this.portalSprites }, this.time.now);
         for (const effect of [...this.dust.active]) {
@@ -354,6 +366,42 @@ export class OffWorldScene extends Phaser.Scene {
             },
         };
         openOverlay(this, OFF_CONFIRM_SCENE_KEY, data);
+    }
+
+    // ---- Doors (Off-5B) ----
+
+    private doorAt(x: number, y: number): OffDoorDef | undefined {
+        return this.place.doors.find((d) => insideArea(d.area, x, y));
+    }
+
+    /** Stepping on a door opens its window (once: step off before it works again). */
+    private updateDoors(): void {
+        if (this.leaving || this.battle.dead) return;
+        const door = this.doorAt(this.mover.tileX, this.mover.tileY);
+        if (door && door !== this.insideDoor) this.openBuilding(door.kind);
+        this.insideDoor = door;
+    }
+
+    /** The shop's, the blacksmith's or the warehouse's window over the world (the Inventory closes first). */
+    public openBuilding(kind: OffBuildingKind): void {
+        if (!this.scene.isActive()) return;
+        if (this.window === 'inventory') {
+            this.scene.stop(OFF_INVENTORY_SCENE_KEY);
+            this.closeInventory();
+        }
+        if (this.window) return;
+        this.coverWorld();
+        const onClose = () => {
+            this.uncoverWorld();
+            this.dressCharacter();
+        };
+        if (kind === 'warehouse') {
+            const data: OffWarehouseSceneData = { onClose };
+            this.scene.launch(OFF_WAREHOUSE_SCENE_KEY, data);
+            return;
+        }
+        const data: OffStoreSceneData = { kind, onChange: () => undefined, onClose };
+        this.scene.launch(OFF_STORE_SCENE_KEY, data);
     }
 
     /** In Traveler Zone, by the portal of the city you come from. */
@@ -446,12 +494,15 @@ export class OffWorldScene extends Phaser.Scene {
         this.stopForWindow();
         this.mover.cancel();
         this.scene.sleep(OFF_HUD_SCENE_KEY);
+        // The minimap is drawn on top of everything (DEPTH_DEBUG) and would show through a centred window (Off-5B).
+        this.minimap.setVisible(false);
     }
 
     private uncoverWorld(): void {
         this.window = undefined;
         this.windowClosedFrame = this.game.loop.frame;
         this.scene.wake(OFF_HUD_SCENE_KEY);
+        this.minimap.setVisible(settings.current.showMinimap);
     }
 
     /** Stops following the mouse and attacking (a window opens over the world). */

@@ -28,7 +28,7 @@ import {
     OFF_INVENTORY_TITLE_STYLE,
 } from '../config/offInventory';
 import { OFF_BAG_TEXT } from '../data/offBag';
-import { isOffItemId, OFF_ITEMS, offBagItemName, offBagItemPicture, type OffBagItemId } from '../data/offItems';
+import { isOffItemId, OFF_ITEMS, offBagItemName, offWearCheck, offBagItemPicture, type OffBagItemId } from '../data/offItems';
 import { OFF_LOOT } from '../data/offLoot';
 import type { OffBattle, OffUseResult } from '../systems/OffBattle';
 import { offSaveStore } from '../systems/OffSaveStore';
@@ -217,11 +217,11 @@ export class OffInventoryScene extends Phaser.Scene {
         const bag = this.bag;
         this.drawnBag = bag;
         this.drawnGold = offSaveStore.character.gold;
-        const str = offSaveStore.character.stats.str;
+        const who = { str: offSaveStore.character.stats.str, level: offSaveStore.level };
         const g = OFF_INVENTORY_GRID;
         this.cells.forEach(({ box, icon }, index) => {
             const id = bag[index];
-            const short = id !== undefined && isOffItemId(id) && OFF_ITEMS[id].strToEquip > str;
+            const short = id !== undefined && isOffItemId(id) && offWearCheck(id, who) !== 'ok';
             box.setFillStyle(short ? g.unmetColor : g.background);
             const frame = id !== undefined && this.iconsReady ? offBagItemPicture(id, offSaveStore.character.look.gender) : undefined;
             if (!frame) {
@@ -266,7 +266,7 @@ export class OffInventoryScene extends Phaser.Scene {
             return;
         }
         const worn = isOffItemId(id) ? offSaveStore.character.equipment[OFF_ITEMS[id].slot] : undefined;
-        const lines = offItemBoxLines(id, worn === id ? undefined : worn, offSaveStore.character.stats.str);
+        const lines = offItemBoxLines(id, worn === id ? undefined : worn, { str: offSaveStore.character.stats.str, level: offSaveStore.level });
         this.boxObjects = drawOffItemBox(this, this.boxArea, offBagItemName(id), lines);
     }
 

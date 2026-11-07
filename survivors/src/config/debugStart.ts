@@ -221,8 +221,10 @@ interface DebugStart {
     offGold: number | undefined;
     /** ?offbag=a,b: Helbreath Off's bag holds those items (Fase Off-4A). */
     offBag: string[];
-    /** ?offopen=bag: Helbreath Off's Inventory open on entering the world (Fase Off-4B). */
-    offOpen: 'bag' | undefined;
+    /** Helbreath Off: ?offwarehouse=cape,redPotion fills the warehouse (Off-5B). */
+    offWarehouse: string[];
+    /** ?offopen=bag|shop|smith|warehouse: that Helbreath Off window open on entering the world (Fase Off-4B / 5B). */
+    offOpen: 'bag' | 'shop' | 'smith' | 'warehouse' | undefined;
     /** ?offfaction=aresden|elvine|none: Helbreath Off's character has that faction, or none (Fase Off-5A). */
     offFaction: OffFaction | 'none' | undefined;
     /** ?offplace=aresden: Helbreath Off starts in that place (Fase Off-5A). */
@@ -275,7 +277,7 @@ function readDebugStart(): DebugStart {
     const none: DebugStart = {
         play: false, character: undefined, actions: [], trees: undefined, open: undefined, achievements: undefined, characters: undefined,
         sendMetrics: false, spells: { auto: undefined, active: undefined }, openClass: undefined, openSlot: undefined, slash: undefined,
-        holdLoading: false, gear: [], settingsTab: undefined, attribute: undefined, attributeValue: undefined, secondary: undefined, secondaryValue: undefined, unlocks: undefined, unlockCounts: {}, map: undefined, maps: undefined, rescued: undefined, kills: {}, unique: undefined, offLevel: undefined, offReset: false, offGear: [], offStats: {}, offGold: undefined, offBag: [], offOpen: undefined, offDrop: 'normal', offFaction: undefined, offPlace: undefined, offAt: undefined, townSpot: undefined, townTalk: false, townShop: false, townDye: false, townMissions: false, townSmith: undefined,
+        holdLoading: false, gear: [], settingsTab: undefined, attribute: undefined, attributeValue: undefined, secondary: undefined, secondaryValue: undefined, unlocks: undefined, unlockCounts: {}, map: undefined, maps: undefined, rescued: undefined, kills: {}, unique: undefined, offLevel: undefined, offReset: false, offGear: [], offStats: {}, offGold: undefined, offBag: [], offWarehouse: [], offOpen: undefined, offDrop: 'normal', offFaction: undefined, offPlace: undefined, offAt: undefined, townSpot: undefined, townTalk: false, townShop: false, townDye: false, townMissions: false, townSmith: undefined,
         gold: undefined, weapon: undefined, upgrade: undefined, xelima: undefined, level: undefined, build: undefined, kit: 'best', simBot: 'circle',
     };
     if (!import.meta.env.DEV) return none;
@@ -333,7 +335,8 @@ function readDebugStart(): DebugStart {
         offStats: parseOffStats(params.get('offstats')),
         offGold: parseOffGold(params.get('offgold')),
         offBag: (params.get('offbag') ?? '').split(',').map((g) => g.trim()).filter((g) => g.length > 0),
-        offOpen: params.get('offopen') === 'bag' ? 'bag' : undefined,
+        offWarehouse: (params.get('offwarehouse') ?? '').split(',').map((g) => g.trim()).filter((g) => g.length > 0),
+        offOpen: parseOffOpen(params.get('offopen')),
         offFaction: parseOffFaction(params.get('offfaction')),
         offPlace: parseOffPlace(params.get('offplace')),
         offAt: parseOffAt(params.get('offat')),
@@ -369,6 +372,10 @@ function readBuild(value: string | null): Partial<Stats> | undefined {
 }
 
 /** ?offfaction=aresden|elvine|none → that faction, 'none', or undefined (anything else). */
+function parseOffOpen(value: string | null): DebugStart['offOpen'] {
+    return value === 'bag' || value === 'shop' || value === 'smith' || value === 'warehouse' ? value : undefined;
+}
+
 function parseOffFaction(value: string | null): OffFaction | 'none' | undefined {
     if (value === 'none') return 'none';
     return isOffFaction(value) ? value : undefined;

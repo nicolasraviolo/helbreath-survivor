@@ -27,7 +27,7 @@ import { Pool } from '../../utils/Pool';
 import { OFF_MONSTER_LOOK } from '../config/offMonsterLook';
 import { OFF_REGEN_TEXT, OFF_STAT_IDS, offMaxHp, type OffStats } from '../data/offCharacter';
 import { OFF_COMBAT, offAttackMs } from '../data/offCombat';
-import { isOffItemId, OFF_ITEMS, offArmorDefense, offBagItemName, offWeapon, type OffWeaponItem } from '../data/offItems';
+import { isOffItemId, OFF_ITEMS, offArmorDefense, offBagItemName, offItem, offWeapon, type OffWeaponItem } from '../data/offItems';
 import { OFF_GOODS, offGood, type OffPotionRestores } from '../data/offGoods';
 import { OFF_BAG_TEXT } from '../data/offBag';
 import { OFF_LOOT_TEXT } from '../data/offLoot';
@@ -391,6 +391,7 @@ export class OffBattle implements OffMonsterWorld {
         if (isOffItemId(id)) {
             const result = offSaveStore.equipFromBag(index);
             if (result === 'str') return { done: false, line: OFF_BAG_TEXT.needsStr(OFF_ITEMS[id].strToEquip) };
+            if (result === 'level') return { done: false, line: OFF_BAG_TEXT.needsLevel(offItem(id).levelToEquip ?? 0) };
             if (result !== 'ok') return { done: false };
             this.audio.play('sfx.itemEquip');
             return { done: true, line: OFF_BAG_TEXT.equipped(OFF_ITEMS[id].name), gear: true };

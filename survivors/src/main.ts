@@ -18,6 +18,8 @@ import { OffCreateScene } from './off/scenes/OffCreateScene';
 import { OffEquipmentScene } from './off/scenes/OffEquipmentScene';
 import { OffInventoryScene } from './off/scenes/OffInventoryScene';
 import { OffConfirmScene } from './off/scenes/OffConfirmScene';
+import { OffStoreScene } from './off/scenes/OffStoreScene';
+import { OffWarehouseScene } from './off/scenes/OffWarehouseScene';
 import { OffHomeScene } from './off/scenes/OffHomeScene';
 import { OffHudScene } from './off/scenes/OffHudScene';
 import { OffWorldScene } from './off/scenes/OffWorldScene';
@@ -69,7 +71,7 @@ function startGame(): void {
         plugins: { scene: [{ key: 'RenderScale', plugin: RenderScalePlugin, mapping: 'renderScale' }] },
         // HudScene, LevelUpScene y los menús que se abren encima (pausa, ajustes...) van después para dibujarse encima.
         scene: [
-            BootScene, PreloadScene, GameSelectScene, OffHomeScene, OffCreateScene, OffWorldScene, OffHudScene, OffEquipmentScene, OffInventoryScene, OffConfirmScene, MainMenuScene, CharacterSlotsScene, TownScene, MapSelectScene, MapLoadScene, GameScene, HudScene, LevelUpScene, LootScene, GameOverScene,
+            BootScene, PreloadScene, GameSelectScene, OffHomeScene, OffCreateScene, OffWorldScene, OffHudScene, OffEquipmentScene, OffInventoryScene, OffConfirmScene, OffStoreScene, OffWarehouseScene, MainMenuScene, CharacterSlotsScene, TownScene, MapSelectScene, MapLoadScene, GameScene, HudScene, LevelUpScene, LootScene, GameOverScene,
             PauseScene, CharacterInfoScene, EquipmentScene, WarehouseScene, SettingsScene, ControlsScene, CreditsScene, RunChoiceScene, TransferScene, NpcDialogScene, ShopScene, DyeScene, SmithScene, ReleaseNotesScene, AchievementsScene, MissionsScene, HowToPlayScene, SpriteTestScene,
         ],
     });
