@@ -14,6 +14,9 @@
 // - Magias (Off-6B): las lanza OffSpells (`spells`); aquí su daño cae en el monstruo (spellHit) y pasa por lo mismo que
 //   un golpe (hurtMonster: número, muerte, botín, experiencia). El fuego deja quemadura y el hielo frena, como en
 //   Survivors. Un monstruo frenado o aturdido vive a su ritmo (OffMonster.timeScale).
+// Magias (Off-6C): Heal suma vida (healPlayer); Defense Shield y Protection From Magic quedan en `protection` con su
+//   tiempo (OFF_PROTECT: +40 de defensa, o el daño mágico a la mitad cuando haya monstruos que lancen magia); pasan de un
+//   sitio a otro por los portales (OffCarriedVitals). Hold Person y Paralyze los pone OffMonster.hold.
 // Los mensajes ("Level Up!" y la lista de abajo a la izquierda) van a OffHudScene por los eventos de la escena.
 import Phaser from 'phaser';
 import { DEBUG_START } from '../../config/debugStart';
@@ -48,7 +51,8 @@ import type { OffPitDef } from '../data/offPits';
 import { offSaveStore, type OffEquipResult } from './OffSaveStore';
 import { OffVitals } from './OffVitals';
 import { OffSpells, type OffSpellHost } from './OffSpells';
-import { OFF_CAST_WORDS, OFF_CASTING } from '../data/offSpells';
+import { OFF_CAST_TEXT, OFF_CAST_WORDS, OFF_CASTING, OFF_PROTECT, OFF_SPELLS, type OffSpellId } from '../data/offSpells';
+import { OFF_HEAL_NUMBER_COLOR } from '../config/offSpellLook';
 import { directionTowards, type TileMover, type TilePoint } from './TileMover';
 
 /** What using or dropping a bag item did, and the line that says so (also when it was refused). */
@@ -57,6 +61,14 @@ export interface OffCarriedVitals {
     hp: number;
     mana: number;
     stamina: number;
+    /** A shield spell still on (Off-6C). */
+    protection?: OffProtection;
+}
+
+/** Defense Shield or Protection From Magic on the player, and the time it has left. */
+export interface OffProtection {
+    spell: OffSpellId;
+    leftMs: number;
 }
 
 export interface OffUseResult {
@@ -89,6 +101,8 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost {
     /** Monster under the mouse (its name shows). */
     public hovered: OffMonster | undefined;
     public dead = false;
+    /** Defense Shield or Protection From Magic (Off-6C; one at a time, as the server). */
+    public protection: OffProtection | undefined;
     public readonly pits: OffPits;
     /** Loot lying on the ground (Off-4A). */
     public readonly ground: OffGroundItems;
@@ -128,6 +142,9 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost {
             this.hp = Math.min(this.maxHp, Math.max(1, carried.hp));
             this.vitals.mana = Math.min(this.vitals.maxMana, carried.mana);
             this.vitals.stamina = Math.min(this.vitals.maxStamina, carried.stamina);
+            this.protection = carried.protection ? { ...carried.protection } : undefined;
+        } else if (DEBUG_START.offHp !== undefined) {
+            this.hp = Math.min(this.maxHp, Math.max(1, DEBUG_START.offHp));
         }
         this.numbers = new DamageNumbers(scene);
         this.particles = new HitParticles(scene);
@@ -153,9 +170,19 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost {
         return offWeapon(offSaveStore.character.equipment);
     }
 
-    /** Defence against monsters: 2 × DEX and the worn armour (original). */
+    /** Defence against monsters: 2 × DEX and the worn armour (original), and Defense Shield's (Off-6C). */
     public get defense(): number {
-        return this.stats.dex * 2 + offArmorDefense(offSaveStore.character.equipment);
+        const power = this.protection ? OFF_SPELLS[this.protection.spell].power ?? 0 : 0;
+        return this.stats.dex * 2 + offArmorDefense(offSaveStore.character.equipment) + (OFF_PROTECT.defenseByPower[power] ?? 0);
+    }
+
+    /**
+     * What magic damage on the player is multiplied by: half with Protection From Magic (server). No monster of Off
+     * casts spells yet: this is here for when they do.
+     */
+    public get magicDamageFactor(): number {
+        const power = this.protection ? OFF_SPELLS[this.protection.spell].power ?? 0 : 0;
+        return OFF_PROTECT.magicHalvedPowers.includes(power) ? OFF_PROTECT.magicDamageFactor : 1;
     }
 
     /** Character window, Ok: the points go into the stats for good. Health, mana and stamina keep their value. */
@@ -197,6 +224,27 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost {
     public spellResisted(monster: OffMonster): void {
         provokeMonster(monster);
         this.numbers.showWord(monster.x, monster.y - monster.def.base.bodyOffsetY, OFF_CAST_WORDS.resisted);
+    }
+
+    public healPlayer(amount: number): void {
+        if (this.dead) return;
+        const gained = Math.min(amount, this.maxHp - this.hp);
+        if (gained <= 0) return;
+        this.hp += gained;
+        this.numbers.showColored(this.character.x, this.character.y - PLAYER_BODY_OFFSET_Y, gained, OFF_HEAL_NUMBER_COLOR);
+        this.eventLine(OFF_REGEN_TEXT.hpUp(gained));
+    }
+
+    public protect(spell: OffSpellId): boolean {
+        if (this.protection) return false;
+        this.protection = { spell, leftMs: (OFF_SPELLS[spell].durationSec ?? 0) * 1000 };
+        this.eventLine(OFF_CAST_TEXT.shieldOn(OFF_SPELLS[spell].name));
+        return true;
+    }
+
+    public spellHeld(monster: OffMonster): void {
+        provokeMonster(monster);
+        this.numbers.showWord(monster.x, monster.y - monster.def.base.bodyOffsetY, OFF_CAST_WORDS.held);
     }
 
     public castFailed(): void {
@@ -261,6 +309,12 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost {
         this.target = near[(index + step + near.length) % near.length];
     }
 
+    /** A gamepad spell's monster (Off-6C): the marked one if it is alive, else the nearest within reach. */
+    public spellTarget(): OffMonster | undefined {
+        if (this.target?.isAlive) return this.target;
+        return this.nearbyMonsters()[0];
+    }
+
     /** Tile the player may step onto: walkable and nobody there. */
     public isFreeForPlayer(x: number, y: number): boolean {
         return this.isWalkable(x, y) && !this.monsterOn(x, y);
@@ -271,6 +325,7 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost {
         else this.updateAttack(deltaMs);
         this.spells.update(deltaMs);
         this.vitals.update(deltaMs);
+        this.updateProtection(deltaMs);
         this.hp = Math.min(this.hp, this.maxHp);
         for (const monster of this.pits.monsters) {
             this.updateBurn(monster, deltaMs);
@@ -287,6 +342,16 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost {
         for (const effect of [...this.effects.active]) {
             if (!effect.update(deltaMs)) this.effects.release(effect);
         }
+    }
+
+    /** The shield's time runs out. */
+    private updateProtection(deltaMs: number): void {
+        const protection = this.protection;
+        if (!protection) return;
+        protection.leftMs -= deltaMs;
+        if (protection.leftMs > 0) return;
+        this.protection = undefined;
+        this.eventLine(OFF_CAST_TEXT.shieldOff(OFF_SPELLS[protection.spell].name));
     }
 
     // ---- OffMonsterWorld ----
@@ -541,6 +606,8 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost {
     private die(): void {
         this.dead = true;
         this.spells.cancel();
+        // Dying takes the shield off.
+        this.protection = undefined;
         this.blow = undefined;
         this.clearTarget();
         this.mover.cancel();

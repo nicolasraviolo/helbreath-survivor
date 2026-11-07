@@ -88,3 +88,9 @@ export function rollSpellDamage(dice: OffSpellDice, mag: number, match: ElementM
 export function offElementMatch(spell: OffSpellDef, monsterElement: MagicElement): ElementMatch {
     return elementMatch(spell.element, monsterElement);
 }
+
+/** Heal / Great Heal (Off-6C, server Effect_HpUp_Spot): the plain dice, no MAG bonus. */
+export function rollHeal(dice: OffSpellDice): number {
+    const [count, sides, bonus] = dice;
+    return rollDice(count, sides) + bonus;
+}

@@ -2,22 +2,25 @@
 // demás ventanas de Off, el mundo sigue debajo (propietario, 7-nov-2026: solo Esc o Start pausan) pero el personaje no
 // recibe órdenes mientras está abierto.
 // - A la izquierda, las magias que sabes, por círculos, con su maná y la tecla que las lanza.
-// - A la derecha, el cuadro de la magia marcada (off/ui/offItemBox.ts, el mismo de la tienda) y las ocho teclas 1–8.
+// - A la derecha, el cuadro de la magia marcada (off/ui/offItemBox.ts, el mismo de la tienda) y las ocho teclas 1–8
+//   (desde la Off-6C en dos columnas, 1–4 y 5–8, para que quepan los huecos del mando).
 // - Para poner la magia marcada en una tecla: pulsar esa tecla (1–8) o hacer clic en su fila. Si ya estaba en otra
 //   tecla, se mueve. Supr (o un clic en la tecla que ya la tiene) la quita. Al aprender una magia en la tienda va sola a
 //   la primera tecla libre (OffSaveStore.learnSpell).
-// - Con el mando, de momento solo se mira (las magias rápidas con RT + A/B/X/Y llegan en la Off-6C).
+// - Fase Off-6C: debajo de las teclas, los 4 huecos del mando (RT + A/B/X/Y, en dos filas de dos). Con el mando se pone
+//   la magia marcada manteniendo RT y pulsando el botón (otra vez, la quita); con el ratón, clic en el hueco. Una magia
+//   puede estar a la vez en una tecla y en un botón del mando.
 import Phaser from 'phaser';
 import { CHARACTER_INFO_INPUT_DELAY_MS } from '../../config/characterInfo';
 import { GAME_WIDTH } from '../../config/gameConfig';
-import { Action, InputSystem, OFF_SPELL_KEY_ACTIONS } from '../../systems/InputSystem';
+import { Action, InputSystem, OFF_PAD_SPELL_ACTIONS, OFF_SPELL_KEY_ACTIONS } from '../../systems/InputSystem';
 import { playAreaBottom } from '../../ui/hudLayout';
 import { OFF_SPELL_BOOK_KEYS, OFF_SPELL_BOOK_PANEL } from '../config/offSpellBook';
 import {
     OFF_STORE_BUTTON_STYLE, OFF_STORE_HEADER_STYLE, OFF_STORE_LIST, OFF_STORE_MESSAGE_STYLE, OFF_STORE_PANEL, OFF_STORE_ROW_STYLE,
     OFF_STORE_SIDE, OFF_STORE_SMALL_STYLE, OFF_STORE_TITLE_STYLE,
 } from '../config/offStore';
-import { OFF_SPELL_IDS, OFF_SPELL_KEY_COUNT, OFF_SPELLS, offCircleTitle, offSpellKeyName, type OffSpellId } from '../data/offSpells';
+import { OFF_PAD_SPELL_COUNT, OFF_SPELL_IDS, OFF_SPELL_KEY_COUNT, OFF_SPELLS, offCircleTitle, offPadSpellName, offSpellKeyName, type OffSpellId } from '../data/offSpells';
 import { offSaveStore } from '../systems/OffSaveStore';
 import { drawOffItemBox, offSpellBoxLines } from '../ui/offItemBox';
 
@@ -35,10 +38,12 @@ export const OFF_SPELL_BOOK_TEXT = {
     closeButton: 'Close',
     empty: "You don't know any spells yet. Learn them in the Magic tab of your city's shop.",
     noKey: '—',
+    padHeader: 'GAMEPAD',
     onKey: (name: string, key: string) => `${name} is on ${key}.`,
     offKey: (name: string) => `${name} is on no key now.`,
+    offPad: (name: string, button: string) => `${name} is off ${button}.`,
     helpMouse: 'Click: mark · 1–8 or click a key: put it there · Delete: take it off · B / Esc: close',
-    helpPad: 'Up / down: choose · B: close',
+    helpPad: 'Up / down: choose · RT + A/B/X/Y: put it there · B: close',
 } as const;
 
 type Row = { kind: 'section'; title: string } | { kind: 'spell'; id: OffSpellId };
@@ -54,6 +59,7 @@ export class OffSpellBookScene extends Phaser.Scene {
     private listArea = { x: 0, y: 0, width: 0, height: 0 };
     private boxArea = { x: 0, y: 0, width: 0, height: 0 };
     private keysTop = 0;
+    private padTop = 0;
     private listObjects: Phaser.GameObjects.GameObject[] = [];
     private sideObjects: Phaser.GameObjects.GameObject[] = [];
     private messageText!: Phaser.GameObjects.Text;
@@ -102,8 +108,14 @@ export class OffSpellBookScene extends Phaser.Scene {
         const keysHeaderY = headerY + side.boxHeight + side.gap;
         this.add.text(sideX, keysHeaderY, OFF_SPELL_BOOK_TEXT.keysHeader, OFF_STORE_HEADER_STYLE);
         this.keysTop = keysHeaderY + l.headerHeight;
-        this.add.rectangle(sideX, this.keysTop, sideWidth, OFF_SPELL_KEY_COUNT * k.rowHeight, k.background).setOrigin(0).setStrokeStyle(1, k.border);
-        const messageY = this.keysTop + OFF_SPELL_KEY_COUNT * k.rowHeight + side.gap;
+        const keyRows = Math.ceil(OFF_SPELL_KEY_COUNT / 2);
+        this.add.rectangle(sideX, this.keysTop, sideWidth, keyRows * k.rowHeight, k.background).setOrigin(0).setStrokeStyle(1, k.border);
+        const padHeaderY = this.keysTop + keyRows * k.rowHeight + side.gap;
+        this.add.text(sideX, padHeaderY, OFF_SPELL_BOOK_TEXT.padHeader, OFF_STORE_HEADER_STYLE);
+        this.padTop = padHeaderY + l.headerHeight;
+        const padRows = Math.ceil(OFF_PAD_SPELL_COUNT / 2);
+        this.add.rectangle(sideX, this.padTop, sideWidth, padRows * k.rowHeight, k.background).setOrigin(0).setStrokeStyle(1, k.border);
+        const messageY = this.padTop + padRows * k.rowHeight + side.gap;
         this.messageText = this.add.text(sideX, messageY, '', { ...OFF_STORE_MESSAGE_STYLE, wordWrap: { width: sideWidth } });
         const buttonY = messageY + side.goldHeight + side.gap;
         const buttonWidth = (sideWidth - side.gap) / 2;
@@ -133,8 +145,16 @@ export class OffSpellBookScene extends Phaser.Scene {
         const help = input.getLastDevice() === 'gamepad' ? OFF_SPELL_BOOK_TEXT.helpPad : OFF_SPELL_BOOK_TEXT.helpMouse;
         if (this.helpText.text !== help) this.helpText.setText(help);
         if (!this.ready()) return;
-        if (input.justPressed(Action.Back) || input.justPressed(Action.Pause) || input.justPressed(Action.OffSpellBook)) {
+        // RT held: A/B/X/Y put the marked spell on that gamepad button (B does not close then).
+        const trigger = input.isHeld(Action.OffCastTrigger);
+        if ((!trigger && input.justPressed(Action.Back)) || input.justPressed(Action.Pause) || input.justPressed(Action.OffSpellBook)) {
             this.close();
+            return;
+        }
+        if (trigger) {
+            OFF_PAD_SPELL_ACTIONS.forEach((action, index) => {
+                if (input.justPressed(action)) this.togglePad(index);
+            });
             return;
         }
         if (input.justPressed(Action.MenuUp)) this.moveMark(-1);
@@ -194,10 +214,14 @@ export class OffSpellBookScene extends Phaser.Scene {
         const k = OFF_SPELL_BOOK_KEYS;
         const x = this.boxArea.x;
         const width = this.boxArea.width;
+        // Two columns: 1–4 on the left, 5–8 on the right.
+        const cellWidth = width / 2;
+        const keyRows = Math.ceil(OFF_SPELL_KEY_COUNT / 2);
         offSaveStore.character.spellKeys.forEach((spell, index) => {
-            const top = this.keysTop + index * k.rowHeight;
+            const cellX = x + Math.floor(index / keyRows) * cellWidth;
+            const top = this.keysTop + (index % keyRows) * k.rowHeight;
             const middle = top + k.rowHeight / 2;
-            const background = this.add.rectangle(x + 1, top + 1, width - 2, k.rowHeight - 2, k.markedFill, spell !== undefined && spell === id ? 1 : 0).setOrigin(0);
+            const background = this.add.rectangle(cellX + 1, top + 1, cellWidth - 2, k.rowHeight - 2, k.markedFill, spell !== undefined && spell === id ? 1 : 0).setOrigin(0);
             background.setInteractive({ useHandCursor: true });
             background.on(Phaser.Input.Events.POINTER_UP, () => {
                 if (!this.ready()) return;
@@ -206,9 +230,29 @@ export class OffSpellBookScene extends Phaser.Scene {
             });
             this.sideObjects.push(
                 background,
-                this.add.text(x + 8, middle, offSpellKeyName(index), { ...OFF_STORE_HEADER_STYLE, color: OFF_STORE_LIST.sectionColor }).setOrigin(0, 0.5),
-                this.add.text(x + 8 + k.labelWidth, middle, spell ? OFF_SPELLS[spell].name : OFF_SPELL_BOOK_TEXT.noKey, {
-                    ...OFF_STORE_ROW_STYLE, ...(spell ? {} : { color: k.emptyColor }),
+                this.add.text(cellX + 8, middle, offSpellKeyName(index), { ...OFF_STORE_HEADER_STYLE, color: OFF_STORE_LIST.sectionColor }).setOrigin(0, 0.5),
+                this.add.text(cellX + 8 + k.labelWidth, middle, spell ? OFF_SPELLS[spell].name : OFF_SPELL_BOOK_TEXT.noKey, {
+                    ...OFF_STORE_SMALL_STYLE, ...(spell ? {} : { color: k.emptyColor }),
+                    fixedWidth: cellWidth - 12 - k.labelWidth,
+                }).setOrigin(0, 0.5),
+            );
+        });
+        // The gamepad's four, in two rows of two (RT + A | RT + B, RT + X | RT + Y).
+        offSaveStore.character.padSpells.forEach((spell, index) => {
+            const cellX = x + (index % 2) * cellWidth;
+            const top = this.padTop + Math.floor(index / 2) * k.rowHeight;
+            const middle = top + k.rowHeight / 2;
+            const background = this.add.rectangle(cellX + 1, top + 1, cellWidth - 2, k.rowHeight - 2, k.markedFill, spell !== undefined && spell === id ? 1 : 0).setOrigin(0);
+            background.setInteractive({ useHandCursor: true });
+            background.on(Phaser.Input.Events.POINTER_UP, () => {
+                if (this.ready()) this.togglePad(index);
+            });
+            this.sideObjects.push(
+                background,
+                this.add.text(cellX + 6, middle, offPadSpellName(index), { ...OFF_STORE_SMALL_STYLE, color: OFF_STORE_LIST.sectionColor }).setOrigin(0, 0.5),
+                this.add.text(cellX + 6 + k.padLabelWidth, middle, spell ? OFF_SPELLS[spell].name : OFF_SPELL_BOOK_TEXT.noKey, {
+                    ...OFF_STORE_SMALL_STYLE, ...(spell ? {} : { color: k.emptyColor }),
+                    fixedWidth: cellWidth - 10 - k.padLabelWidth,
                 }).setOrigin(0, 0.5),
             );
         });
@@ -262,6 +306,21 @@ export class OffSpellBookScene extends Phaser.Scene {
         this.redraw();
     }
 
+    /** The marked spell on that gamepad button, or off it when it already holds it (Off-6C). */
+    public togglePad(index: number): void {
+        const id = this.markedSpell;
+        if (id === undefined) return;
+        const button = offPadSpellName(index);
+        if (offSaveStore.character.padSpells[index] === id) {
+            offSaveStore.setPadSpell(index, undefined);
+            this.messageText.setText(OFF_SPELL_BOOK_TEXT.offPad(OFF_SPELLS[id].name, button));
+        } else {
+            offSaveStore.setPadSpell(index, id);
+            this.messageText.setText(OFF_SPELL_BOOK_TEXT.onKey(OFF_SPELLS[id].name, button));
+        }
+        this.redraw();
+    }
+
     /** Takes the marked spell off its key (Delete, or a click on the key that holds it). */
     public takeOffKey(): void {
         const id = this.markedSpell;
@@ -273,12 +332,13 @@ export class OffSpellBookScene extends Phaser.Scene {
     }
 
     /** Development: what the book shows. */
-    public debugState(): { rows: string[]; marked: string | undefined; keys: string[]; message: string; box: string[] } {
+    public debugState(): { rows: string[]; marked: string | undefined; keys: string[]; pad: string[]; message: string; box: string[] } {
         const box = this.sideObjects.filter((o): o is Phaser.GameObjects.Text => o instanceof Phaser.GameObjects.Text).map((t) => t.text);
         return {
             rows: this.rows.map((r) => (r.kind === 'section' ? `[${r.title}]` : r.id)),
             marked: this.markedSpell,
             keys: offSaveStore.character.spellKeys.map((k, i) => `${offSpellKeyName(i)}: ${k ?? '-'}`),
+            pad: offSaveStore.character.padSpells.map((k, i) => `${offPadSpellName(i)}: ${k ?? '-'}`),
             message: this.messageText.text,
             box,
         };

@@ -96,7 +96,17 @@ export enum Action {
     OffSpellKey6 = 'offSpellKey6',
     OffSpellKey7 = 'offSpellKey7',
     OffSpellKey8 = 'offSpellKey8',
+    /** Helbreath Off (Off-6C): held (RT), A/B/X/Y are spells; let go, the spell is cast at the target. Gamepad only. */
+    OffCastTrigger = 'offCastTrigger',
+    /** Helbreath Off (Off-6C): with RT held, the gamepad's spells (A, B, X, Y). Gamepad only. */
+    OffPadSpellA = 'offPadSpellA',
+    OffPadSpellB = 'offPadSpellB',
+    OffPadSpellX = 'offPadSpellX',
+    OffPadSpellY = 'offPadSpellY',
 }
+
+/** Helbreath Off (Off-6C): the gamepad's spell buttons with RT held, in order (A, B, X, Y). */
+export const OFF_PAD_SPELL_ACTIONS: readonly Action[] = [Action.OffPadSpellA, Action.OffPadSpellB, Action.OffPadSpellX, Action.OffPadSpellY];
 
 /** Helbreath Off (Off-6A): the spell keys 1–8, in order. */
 export const OFF_SPELL_KEY_ACTIONS: readonly Action[] = [
@@ -166,6 +176,11 @@ const KEYBOARD_ACTIONS: Record<Action, number[]> = {
     // With the mouse a click marks a monster: these two are gamepad only.
     [Action.OffNextTarget]: [],
     [Action.OffPrevTarget]: [],
+    [Action.OffCastTrigger]: [],
+    [Action.OffPadSpellA]: [],
+    [Action.OffPadSpellB]: [],
+    [Action.OffPadSpellX]: [],
+    [Action.OffPadSpellY]: [],
 };
 
 const GAMEPAD_AXIS = { LeftX: 0, LeftY: 1, RightX: 2, RightY: 3 } as const;
@@ -195,6 +210,11 @@ const GAMEPAD_ACTIONS: Partial<Record<Action, number[]>> = {
     [Action.OffDrop]: [GAMEPAD_BUTTON.Y],
     [Action.OffNextTarget]: [GAMEPAD_BUTTON.R1],
     [Action.OffPrevTarget]: [GAMEPAD_BUTTON.L1],
+    [Action.OffCastTrigger]: [GAMEPAD_BUTTON.R2],
+    [Action.OffPadSpellA]: [GAMEPAD_BUTTON.A],
+    [Action.OffPadSpellB]: [GAMEPAD_BUTTON.B],
+    [Action.OffPadSpellX]: [GAMEPAD_BUTTON.X],
+    [Action.OffPadSpellY]: [GAMEPAD_BUTTON.Y],
 };
 
 /** Actions also triggered by a mouse click. */

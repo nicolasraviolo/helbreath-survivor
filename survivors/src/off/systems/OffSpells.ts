@@ -8,7 +8,9 @@
 //   maná. Si sale: gasta el maná, vuela el efecto de Survivors (`look`, data/spells.ts) y al llegar hace el daño: una
 //   tirada directa al objetivo y, con área, otra a cada monstruo del área (el del centro también). Cada monstruo puede
 //   resistirla. El daño, la quemadura, el hielo y las muertes los pone la batalla (OffSpellHost.spellHit).
-// - Heal, escudos y parálisis llegan en la Off-6C: de momento dicen "coming soon".
+// - Off-6C: Heal y escudos te los lanzas a ti (cualquier clic; OffSpellHost.healPlayer / protect), Hold Person y
+//   Paralyze paran al monstruo del clic si no la resiste (OffMonster.hold). Cada una con su efecto del original
+//   (`castEffect`). Con el mando: pressSpell + la escena suelta la magia sola al objetivo (OffWorldScene).
 import Phaser from 'phaser';
 import { DEPTH_DAMAGE_NUMBERS, DEPTH_EFFECT_OFFSET, TILE_SIZE } from '../../config/gameConfig';
 import { EFFECTS, effectAnimationKey, type EffectDef, type EffectKey } from '../../config/effects';
@@ -20,13 +22,13 @@ import { SpriteText } from '../../hb/SpriteText';
 import { smoothSprite } from '../../hb/XbrPipeline';
 import type { AudioSystem } from '../../systems/AudioSystem';
 import { Pool, type Poolable } from '../../utils/Pool';
-import { OFF_CAST_TEXT, OFF_CASTING, OFF_SPELLS, type OffSpellDef, type OffSpellDice, type OffSpellId } from '../data/offSpells';
+import { OFF_CAST_TEXT, OFF_CASTING, OFF_SPELLS, offSpellOnSelf, type OffSpellDef, type OffSpellDice, type OffSpellId } from '../data/offSpells';
 import type { OffStats } from '../data/offCharacter';
 import type { OffCharacter } from '../entities/OffCharacter';
 import type { OffMonster } from '../entities/OffMonster';
 import { OFF_SPELL_NAME_LOOK } from '../config/offSpellLook';
 import { offSaveStore } from './OffSaveStore';
-import { offElementMatch, offMagicHit, offPrepareMs, rollCastWorks, rollResisted, rollSpellDamage, type OffCaster } from './OffSpellRules';
+import { offElementMatch, offMagicHit, offPrepareMs, rollCastWorks, rollHeal, rollResisted, rollSpellDamage, type OffCaster } from './OffSpellRules';
 import { directionTowards, type TileMover } from './TileMover';
 
 /** The casting circle is drawn just under the character (config/effects.ts). */
@@ -46,6 +48,12 @@ export interface OffSpellHost {
     spellHit(monster: OffMonster, damage: number, element: SpellElement | undefined): void;
     /** The monster resisted the spell. */
     spellResisted(monster: OffMonster): void;
+    /** Heal / Great Heal on the player (Off-6C). */
+    healPlayer(amount: number): void;
+    /** Defense Shield / Protection From Magic on the player; false when one is already on (no effect). */
+    protect(spell: OffSpellId): boolean;
+    /** Hold Person / Paralyze took hold of a monster. */
+    spellHeld(monster: OffMonster): void;
     /** "Failed!" over the player, and its flinch. */
     castFailed(): void;
     /** A line in the bottom-left list. */
@@ -168,14 +176,18 @@ export class OffSpells {
 
     /** 1–8: starts preparing the spell on that key (or says why not). */
     public press(keyIndex: number): void {
-        if (this.host.dead) return;
         const id = offSaveStore.character.spellKeys[keyIndex];
-        if (id === undefined) return;
+        if (id !== undefined) this.pressSpell(id);
+    }
+
+    /** Starts preparing a spell (a key 1–8, or RT + a gamepad button), or says why not. True when it started. */
+    public pressSpell(id: OffSpellId): boolean {
+        if (this.host.dead) return false;
         const def = OFF_SPELLS[id];
         const refusal = this.refusal(id, def);
         if (refusal) {
             this.host.eventLine(refusal);
-            return;
+            return false;
         }
         this.spell = id;
         this.state = 'preparing';
@@ -188,6 +200,12 @@ export class OffSpells {
             this.circle.setActive(true).setVisible(true).play('fx.castingCircle');
         }
         this.syncCircle();
+        return true;
+    }
+
+    /** The spell being prepared or ready is cast on yourself (Heal, shields). */
+    public get onSelf(): boolean {
+        return this.spell !== undefined && offSpellOnSelf(OFF_SPELLS[this.spell]);
     }
 
     /** Right click, moving or dying: the spell is dropped (no mana spent). */
@@ -215,6 +233,7 @@ export class OffSpells {
             this.host.eventLine(refusal);
             return true;
         }
+        if (offSpellOnSelf(def)) return this.castOnSelf(id, def);
         const tileX = monster ? monster.mover.tileX : Math.floor(px / TILE_SIZE);
         const tileY = monster ? monster.mover.tileY : Math.floor(py / TILE_SIZE);
         const direction = directionTowards(this.mover.tileX, this.mover.tileY, tileX, tileY);
@@ -230,6 +249,10 @@ export class OffSpells {
         this.casts++;
         this.host.spendMana(def.mana);
         const hit = offMagicHit(def.circle, caster);
+        if (def.kind === 'hold') {
+            this.castHold(def, hit, monster);
+            return true;
+        }
         const toX = monster ? monster.x : px;
         const toY = monster ? monster.y - monster.def.base.bodyOffsetY : py;
         const arriveMs = this.showSpell(def, toX, toY);
@@ -272,13 +295,44 @@ export class OffSpells {
     /** Why that spell can't start now, or undefined. `releasing`: the cooldown was already checked. */
     private refusal(id: OffSpellId, def: OffSpellDef, releasing = false): string | undefined {
         if (!offSaveStore.character.spells.includes(id)) return OFF_CAST_TEXT.unknown(def.name);
-        if (def.kind !== 'damage') return OFF_CAST_TEXT.comingSoon(def.name);
         const equipment = offSaveStore.character.equipment;
         if (equipment.weapon !== undefined) return OFF_CAST_TEXT.weapon;
         if (equipment.shield !== undefined) return OFF_CAST_TEXT.shield;
         if (this.host.mana < def.mana) return OFF_CAST_TEXT.noMana;
         if (!releasing && this.cooldownMs > 0) return OFF_CAST_TEXT.tooSoon;
         return undefined;
+    }
+
+    /** Heal or a shield, on yourself (any click: Off has no one else to cast them on). */
+    private castOnSelf(id: OffSpellId, def: OffSpellDef): boolean {
+        this.cooldownMs = OFF_CASTING.betweenCastsMs;
+        if (!rollCastWorks(def.circle, this.caster())) {
+            this.fails++;
+            this.host.castFailed();
+            this.host.eventLine(OFF_CAST_TEXT.failed);
+            return true;
+        }
+        this.casts++;
+        this.host.spendMana(def.mana);
+        if (def.castEffect) this.effects.acquire().play(def.castEffect, this.character.x, this.character.y);
+        if (def.kind === 'heal' && def.direct) this.host.healPlayer(rollHeal(def.direct));
+        else if (def.kind === 'shield' && !this.host.protect(id)) this.host.eventLine(OFF_CAST_TEXT.noEffect);
+        return true;
+    }
+
+    /** Hold Person / Paralyze on the clicked monster: it may resist; a held one, or the ground, has no effect. */
+    private castHold(def: OffSpellDef, hit: number, monster: OffMonster | undefined): void {
+        if (!monster?.isAlive) {
+            this.host.eventLine(OFF_CAST_TEXT.noEffect);
+            return;
+        }
+        if (def.castEffect) this.effects.acquire().play(def.castEffect, monster.x, monster.y);
+        if (rollResisted(hit, monster.def.magicResist)) {
+            this.host.spellResisted(monster);
+            return;
+        }
+        if (monster.hold((def.durationSec ?? 0) * 1000)) this.host.spellHeld(monster);
+        else this.host.eventLine(OFF_CAST_TEXT.noEffect);
     }
 
     private caster(): OffCaster {

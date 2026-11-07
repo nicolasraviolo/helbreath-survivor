@@ -135,6 +135,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Ciudad entera y sus pits en Helbreath Off (Fase Off-5C)
 - Magias, libro y teclas F1–F8 en Helbreath Off (Fase Off-6A)
 - Lanzar magias en Helbreath Off (Fase Off-6B)
+- Magias de apoyo y mando en Helbreath Off (Fase Off-6C)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -1515,3 +1516,10 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - **Pruebas:** `check offcast` / `offcastfire` / `offcastice` / `offcastfail` / `offcastshield`; desde consola, `o.debugCast(teclaIndex, 'slime')` la suelta sobre el más cercano en cuanto está lista.
 - **Nombre al preparar:** como el original (Client.cpp, mensaje de tipo 41 "Nombre!"): letra de sprite `PutString_SprFont3` tipo 0 (nuestra `SpriteText` `'title'`), rojo RGB(75,10,10) × 4, 65 px sobre los pies, sube 1 px cada 32 ms hasta 10 px y dura 2 s (`off/config/offSpellLook.ts`). sp-client lo pinta en verde, pero el original es rojo (captura del propietario, 7-nov-2026).
 - **Arma y escudo solo del equipo:** `OFF_NOVICE.appearance` lleva una Dagger (se ve en la creación de personaje); `OffCharacter.wear` deja vacías las capas `weapon` y `shield` si no hay nada equipado (antes, sin arma, se dibujaba esa Dagger).
+
+## Magias de apoyo y mando en Helbreath Off (Fase Off-6C)
+- **Servidor (reference/Server.cpp):** Heal = `Effect_HpUp_Spot`, dados tal cual, sin MAG. Escudos = `DEF_MAGICTYPE_PROTECT` con el valor v4 de Magic.cfg: 1 flechas, 2 y 5 magia (daño ÷ 2 en los `Effect_Damage_*`), 3 Defense Shield (+40 a `iTargetDefenseRatio`), 4 Great Defense Shield (+100). Un solo hueco: con uno puesto, otro = MAGIC_NOEFFECT (el maná se gasta igual). Hold = `DEF_MAGICTYPE_HOLDOBJECT`: el NPC no actúa (`NpcBehavior_*` hacen `return`); cualquier daño a un NPC lo quita (Hold Person y Paralyze; en jugadores Paralyze no se rompe). Los NPC con `m_cMagicLevel >= 6` son inmunes; Off no tiene ese dato y ninguno lo es.
+- **Efectos del cliente (Client.cpp, efecto 100 + número de magia):** Heal y Great Heal = effect7 hoja 5 (14 frames, 80 ms); Defense Shield = effect8 (usamos `fx.defenseShield.cast`, hoja 6; el original seguramente es la 5 y la 6 la Great); Protection From Magic = effect.spr hoja 4; Hold/Paralyze = "Hold Twist", effect5 hoja 2. El original no dibuja nada fijo mientras dura un escudo o una parálisis (solo texto en la lista).
+- **En Off:** `OffSpells.castOnSelf` (Heal, escudos: cualquier clic) y `castHold`; `OffBattle.protection` + `defense` / `magicDamageFactor`; `OffMonster.hold` (reloj a 0 como el aturdido; `hurt` lo quita). El escudo pasa por los portales (`OffCarriedVitals.protection`) y se pierde al morir.
+- **Mando:** `Action.OffCastTrigger` (R2) y `OFF_PAD_SPELL_ACTIONS` (A/B/X/Y). Con RT pulsado, la escena del mundo y el libro ignoran ataque, pausa (B), Character (Y) e Inventory (X). `OffWorldScene.updatePadCast` suelta la magia cuando está lista y RT ya no está pulsado, al `OffBattle.spellTarget()` (marcado o más cercano). `padSpells` en el guardado (versión 8).
+- **Pruebas:** `check offheal` / `offshield` / `offhold` / `offpadcast` / `offbookpad`; `?offhp=N` empieza con esa vida; `o.debugPadCast(0..3)` simula RT + botón y soltar.

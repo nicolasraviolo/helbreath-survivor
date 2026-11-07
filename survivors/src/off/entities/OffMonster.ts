@@ -5,6 +5,7 @@
 // Fase Off-6B: arder y frenarse con las magias, como los de Survivors (Enemy.burn / Enemy.slow, números de
 // data/elements.ts BURN y data/activeSpells.ts ICE_SLOW). Frenado o aturdido, su reloj corre más despacio (`timeScale`):
 // la IA, el paso y la animación van a ese ritmo.
+// Fase Off-6C: Hold Person y Paralyze lo dejan quieto (`hold`, reloj a 0) hasta que acaba o le hacen daño (`hurt`).
 import Phaser from 'phaser';
 import {
     BODY_SHADOW_ALPHA, BODY_SHADOW_ROTATION, BODY_SHADOW_SCALE_Y, DEFAULT_ANIMATION_FRAME_RATE, DEPTH_DAMAGE_NUMBERS,
@@ -85,6 +86,8 @@ export class OffMonster implements Poolable {
     private slowFactor = 1;
     private slowMs = 0;
     private stunMs = 0;
+    /** Hold Person / Paralyze (Off-6C): stopped for `holdMs`; any damage ends it (server). */
+    private holdMs = 0;
 
     constructor(scene: Phaser.Scene, public readonly id: OffMonsterId, public readonly def: OffMonsterDef, isFree: (x: number, y: number) => boolean) {
         const base = def.base;
@@ -144,6 +147,7 @@ export class OffMonster implements Poolable {
         this.extinguish();
         this.slowMs = 0;
         this.stunMs = 0;
+        this.holdMs = 0;
         this.slowFactor = 1;
         this.sprite.setAlpha(1).clearTint();
         this.setVisible(true);
@@ -162,6 +166,7 @@ export class OffMonster implements Poolable {
     /** Takes a blow: flashes, and flinches if it is standing (no death here: see kill). */
     public hurt(damage: number): void {
         this.hp = Math.max(0, this.hp - damage);
+        this.holdMs = 0;
         this.flashLeftMs = ENEMY_HIT_FLASH_MS;
         this.sprite.setTintFill(0xffffff);
         if (this.hp > 0 && !this.mover.isMoving && this.state !== MonsterState.Attack) {
@@ -177,6 +182,7 @@ export class OffMonster implements Poolable {
         this.extinguish();
         this.slowMs = 0;
         this.stunMs = 0;
+        this.holdMs = 0;
         this.sprite.anims.timeScale = 1;
         this.applyTint();
         this.mover.cancel();
@@ -197,9 +203,9 @@ export class OffMonster implements Poolable {
 
     // ---- Burn and ice (Off-6B) ----
 
-    /** How fast its clock runs: 0 stunned, ICE_SLOW's factor while slowed, else 1. */
+    /** How fast its clock runs: 0 stunned or held, ICE_SLOW's factor while slowed, else 1. */
     public get timeScale(): number {
-        if (this.stunMs > 0) return 0;
+        if (this.stunMs > 0 || this.holdMs > 0) return 0;
         return this.slowMs > 0 ? this.slowFactor : 1;
     }
 
@@ -209,6 +215,17 @@ export class OffMonster implements Poolable {
 
     public get isSlowed(): boolean {
         return this.slowMs > 0;
+    }
+
+    public get isHeld(): boolean {
+        return this.holdMs > 0;
+    }
+
+    /** Hold Person / Paralyze: it neither walks nor attacks for `ms` (false: already held, no effect, as the server). */
+    public hold(ms: number): boolean {
+        if (!this.isAlive || this.holdMs > 0) return false;
+        this.holdMs = ms;
+        return true;
     }
 
     /** A fire spell's hit: one more layer (up to BURN.maxStacks; then a stronger one replaces the weakest), as Enemy.burn. */
@@ -283,6 +300,7 @@ export class OffMonster implements Poolable {
     /** Advances its step and its animation, and draws it where its feet are. */
     public sync(deltaMs: number): void {
         if (this.stunMs > 0) this.stunMs = Math.max(0, this.stunMs - deltaMs);
+        if (this.holdMs > 0) this.holdMs = Math.max(0, this.holdMs - deltaMs);
         if (this.slowMs > 0) {
             this.slowMs = Math.max(0, this.slowMs - deltaMs);
             if (this.slowMs === 0) this.applyTint();

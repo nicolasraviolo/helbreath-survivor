@@ -11,3 +11,19 @@ export const OFF_SPELL_NAME_LOOK = {
     maxRisePx: 10,
     durationMs: 2000,
 } as const;
+
+/** Off-6C: the health Heal gives, over the player (green, as the potions' colour in Survivors). */
+export const OFF_HEAL_NUMBER_COLOR = '#5cff6a';
+
+/**
+ * Off-6C: bottom right of the HUD, in the same place and letters as Survivors' buffs (HUD_BUFF): the shield on with its
+ * seconds (lowest line) and, above it, the spell being prepared or ready.
+ */
+export const OFF_SPELL_HUD = {
+    shieldColor: 0x8ad8ff,
+    preparingColor: 0xb0a080,
+    readyColor: 0xffd860,
+    preparing: (name: string) => `${name}...`,
+    ready: (name: string) => `${name} ready`,
+    shield: (name: string, seconds: number) => `${name} ${seconds}s`,
+} as const;

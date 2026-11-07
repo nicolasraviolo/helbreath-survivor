@@ -8,11 +8,13 @@ export const OFF_SPELL_BOOK_PANEL = {
     listWidth: 320,
 } as const;
 
-/** The eight key rows (1–8) under the spell's box. */
+/** The eight keys (1–8, two columns since Off-6C) and the gamepad's four under the spell's box. */
 export const OFF_SPELL_BOOK_KEYS = {
     rowHeight: byDevice(24, 28),
-    /** Width of the "F1" label at the start of each row. */
-    labelWidth: 34,
+    /** Width of the "1" label at the start of each key cell. */
+    labelWidth: 22,
+    /** Width of the "RT + A" label in the gamepad cells (Off-6C). */
+    padLabelWidth: 44,
     background: 0x120c06,
     border: 0x5a4a30,
     /** The key that holds the marked spell. */
