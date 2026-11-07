@@ -9,6 +9,8 @@ export const OFF_EQUIPMENT_BOX = {
     /** Space kept above the Ok button. */
     bottomGap: 8,
     padding: 8,
+    /** Where the values start, from the box's left padding (the labels go before). */
+    valueX: 74,
     lineHeight: byDevice(21, 23),
     background: 0x120c06,
     border: 0x5a4a30,

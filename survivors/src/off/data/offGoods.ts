@@ -2,7 +2,7 @@
 // reference/Item.cfg (efecto, dados, precio); dibujos de item-ground.spr / item-pack.spr como en sp-client Items.ts
 // (hoja 5; Survivors usa los mismos en data/pickups.ts).
 // - Pociones (Item.cfg 91–96): roja = vida, azul = maná, verde = estamina. Normal 2d12+10, grande 3d8+40 (roja) o
-//   4d8+50 (azul y verde). Beberlas llega en la Off-4B (inventario).
+//   4d8+50 (azul y verde). Se beben desde el inventario (Off-4B); como mucho 20 en total (OFF_LOOT.potionLimit).
 // - Slime Jelly (Item.cfg 220): solo para vender (precio 10, que no está en la tienda); vender llega en la Off-5.
 import type { ItemIconFrame } from '../../data/itemTypes';
 
@@ -38,3 +38,13 @@ export function isOffGoodId(id: string): id is OffGoodId {
 
 /** Gold on the ground: the original's "Gold" (Item.cfg 90; item-ground 5/0). */
 export const OFF_GOLD_PICTURE: ItemIconFrame = { sheet: 5, frame: 0 };
+
+/** The definition of a good, with the shape every good has (restores is optional). */
+export function offGood(id: OffGoodId): OffGoodDef {
+    return OFF_GOODS[id];
+}
+
+/** A potion (it counts towards OFF_LOOT.potionLimit and can be drunk). */
+export function isOffPotion(id: string): boolean {
+    return isOffGoodId(id) && OFF_GOODS[id].kind === 'potion';
+}

@@ -3,14 +3,15 @@
 // - Se recoge al pisar la casilla (decisión del propietario, 7-nov-2026: sin agacharse como el original). Se intenta
 //   una vez al llegar a cada casilla: lo que no cabe (bolsa llena) se queda en el suelo hasta que vuelvas a pisarla.
 // - Caduca a los 3 minutos (OFF_LOOT.groundLifeMs).
-// Quien lo usa (OffBattle) decide qué pasa al recoger: `take` devuelve false si no ha cabido, y entonces avisa una
-// sola vez (`onBagFull`).
+// Quien lo usa (OffBattle) decide qué pasa al recoger: `take` dice si ha cabido y, si no, por qué (bolsa llena o
+// límite de pociones, Off-4B); se avisa una sola vez por casilla (`onLeft`).
+// Off-4B: lo que tiras desde el inventario cae en tu casilla; como ya estás en ella, no se recoge hasta que vuelvas.
 import type Phaser from 'phaser';
 import { Pool } from '../../utils/Pool';
 import { OffGroundItem, type OffGroundContent } from '../entities/OffGroundItem';
 import { OFF_GOLD_PICTURE } from '../data/offGoods';
 import { offBagItemPicture } from '../data/offItems';
-import { offSaveStore } from './OffSaveStore';
+import { offSaveStore, type OffEquipResult } from './OffSaveStore';
 import type { OffKillLoot } from './OffLootRoller';
 import type { TilePoint } from './TileMover';
 
@@ -21,8 +22,8 @@ export class OffGroundItems {
 
     constructor(
         scene: Phaser.Scene,
-        private readonly take: (content: OffGroundContent) => boolean,
-        private readonly onBagFull: () => void,
+        private readonly take: (content: OffGroundContent) => OffEquipResult,
+        private readonly onLeft: (reason: OffEquipResult) => void,
     ) {
         this.pool = new Pool(() => new OffGroundItem(scene));
     }
@@ -72,12 +73,14 @@ export class OffGroundItems {
     public pickUpAt(x: number, y: number): void {
         const here = this.pool.active.filter((g) => g.tileX === x && g.tileY === y)
             .sort((a, b) => Number('gold' in b.content) - Number('gold' in a.content));
-        let left = false;
+        let left: OffEquipResult | undefined;
         for (const item of here) {
-            if (this.take(item.content)) this.remove(item);
-            else left = true;
+            const result = this.take(item.content);
+            if (result === 'ok') this.remove(item);
+            // A full bag says more than the potion limit: it is the one reported.
+            else if (left !== 'bagFull') left = result;
         }
-        if (left) this.onBagFull();
+        if (left) this.onLeft(left);
     }
 
     private remove(item: OffGroundItem): void {

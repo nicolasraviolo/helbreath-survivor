@@ -10,6 +10,7 @@
 // - Equipo (Off-3C): el arma puesta da el daño, el alcance y la velocidad; la armadura suma defensa (2 × DEX + la suya).
 // - Botín (Off-4A): al matar, lo que suelta el monstruo (OffLootRoller) cae en su casilla (OffGroundItems) y se recoge
 //   al pisarlo: el oro al contador, lo demás a la bolsa (OffSaveStore). Morir no hace perder ni oro ni bolsa.
+// - Inventario (Off-4B): usar un objeto de la bolsa (ponérselo o beberlo) y tirarlo a tus pies (useBagItem, dropBagItem).
 // Los mensajes ("Level Up!" y la lista de abajo a la izquierda) van a OffHudScene por los eventos de la escena.
 import Phaser from 'phaser';
 import { DEBUG_START } from '../../config/debugStart';
@@ -24,9 +25,11 @@ import { DamageNumbers } from '../../systems/DamageNumbers';
 import { HitParticles } from '../../systems/HitParticles';
 import { Pool } from '../../utils/Pool';
 import { OFF_MONSTER_LOOK } from '../config/offMonsterLook';
-import { OFF_STAT_IDS, offMaxHp, type OffStats } from '../data/offCharacter';
+import { OFF_REGEN_TEXT, OFF_STAT_IDS, offMaxHp, type OffStats } from '../data/offCharacter';
 import { OFF_COMBAT, offAttackMs } from '../data/offCombat';
-import { offArmorDefense, offBagItemName, offWeapon, type OffWeaponItem } from '../data/offItems';
+import { isOffItemId, OFF_ITEMS, offArmorDefense, offBagItemName, offWeapon, type OffWeaponItem } from '../data/offItems';
+import { OFF_GOODS, offGood, type OffPotionRestores } from '../data/offGoods';
+import { OFF_BAG_TEXT } from '../data/offBag';
 import { OFF_LOOT_TEXT } from '../data/offLoot';
 import type { OffGroundContent } from '../entities/OffGroundItem';
 import { OFF_LEVEL, OFF_LEVEL_TEXT, offDeathExpLoss, offKillExp, offLevelForExp } from '../data/offLevel';
@@ -37,9 +40,17 @@ import { provokeMonster, updateMonster, type OffMonsterWorld } from './OffMonste
 import { OffGroundItems } from './OffGroundItems';
 import { rollKillLoot } from './OffLootRoller';
 import { OffPits } from './OffPits';
-import { offSaveStore } from './OffSaveStore';
+import { offSaveStore, type OffEquipResult } from './OffSaveStore';
 import { OffVitals } from './OffVitals';
 import { directionTowards, type TileMover, type TilePoint } from './TileMover';
+
+/** What using or dropping a bag item did, and the line that says so (also when it was refused). */
+export interface OffUseResult {
+    done: boolean;
+    line?: string;
+    /** Gear changed: the character is dressed again. */
+    gear?: boolean;
+}
 
 /** The player's blow on the way: it lands on `monster` after `leftMs`. */
 interface PendingBlow {
@@ -98,7 +109,7 @@ export class OffBattle implements OffMonsterWorld {
         this.effects = new Pool(() => new Effect(scene));
         this.pits = new OffPits(scene, (x, y) => this.isFree(x, y));
         this.pits.fillAll();
-        this.ground = new OffGroundItems(scene, (content) => this.pickUp(content), () => this.eventLine(OFF_LOOT_TEXT.bagFull));
+        this.ground = new OffGroundItems(scene, (content) => this.pickUp(content), (reason) => this.eventLine(reason === 'potionLimit' ? OFF_LOOT_TEXT.potionLimit : OFF_LOOT_TEXT.bagFull));
     }
 
     /** Original max health, which grows with the level. */
@@ -337,17 +348,73 @@ export class OffBattle implements OffMonsterWorld {
         if (this.ground.dropLoot(loot, Math.floor(monster.x / TILE_SIZE), Math.floor(monster.y / TILE_SIZE))) this.audio.play('sfx.itemDrop');
     }
 
-    /** Something picked up from the ground. False if it does not fit in the bag. */
-    private pickUp(content: OffGroundContent): boolean {
+    /** Something picked up from the ground; anything but 'ok' means it stays there (bag full, potion limit). */
+    private pickUp(content: OffGroundContent): OffEquipResult {
         if ('gold' in content) {
             offSaveStore.addGold(content.gold);
             this.eventLine(OFF_LOOT_TEXT.gotGold(content.gold));
         } else {
-            if (!offSaveStore.addToBag(content.item)) return false;
+            const result = offSaveStore.addToBag(content.item);
+            if (result !== 'ok') return result;
             this.eventLine(OFF_LOOT_TEXT.gotItem(offBagItemName(content.item)));
         }
         this.audio.play('sfx.pickup');
-        return true;
+        return 'ok';
+    }
+
+    // ---- Inventory (Off-4B) ----
+
+    /**
+     * Uses the item in that bag cell: gear goes on (if the STR is enough; the worn one goes back to the cell), a potion
+     * is drunk (not when that bar is already full). The line for the bottom-left list says what happened.
+     */
+    public useBagItem(index: number): OffUseResult {
+        const id = offSaveStore.character.bag[index];
+        if (id === undefined) return { done: false };
+        if (isOffItemId(id)) {
+            const result = offSaveStore.equipFromBag(index);
+            if (result === 'str') return { done: false, line: OFF_BAG_TEXT.needsStr(OFF_ITEMS[id].strToEquip) };
+            if (result !== 'ok') return { done: false };
+            this.audio.play('sfx.itemEquip');
+            return { done: true, line: OFF_BAG_TEXT.equipped(OFF_ITEMS[id].name), gear: true };
+        }
+        const restores = offGood(id).restores;
+        if (!restores) return { done: false, line: OFF_BAG_TEXT.cantUse(OFF_GOODS[id].name) };
+        if (this.dead) return { done: false };
+        const [now, max] = this.barOf(restores.what);
+        if (now >= max) return { done: false, line: OFF_BAG_TEXT.alreadyFull(restores.what) };
+        const [count, sides, bonus] = restores.dice;
+        let roll = bonus;
+        for (let i = 0; i < count; i++) roll += Phaser.Math.Between(1, sides);
+        const gained = Math.min(roll, max - now);
+        if (restores.what === 'hp') this.hp += gained;
+        else if (restores.what === 'mana') this.vitals.mana += gained;
+        else this.vitals.stamina += gained;
+        offSaveStore.takeFromBag(index);
+        this.audio.play('sfx.drink');
+        const line = restores.what === 'hp' ? OFF_REGEN_TEXT.hpUp(gained) : restores.what === 'mana' ? OFF_REGEN_TEXT.mpUp(gained) : OFF_REGEN_TEXT.spUp(gained);
+        this.eventLine(line);
+        return { done: true, line };
+    }
+
+    /** Drops the item in that bag cell on the player's tile (not picked up again until the player comes back to it). */
+    public dropBagItem(index: number): OffUseResult {
+        const tile = this.playerTile();
+        if (!tile) return { done: false };
+        const id = offSaveStore.takeFromBag(index);
+        if (id === undefined) return { done: false };
+        this.ground.drop({ item: id }, tile.x, tile.y);
+        this.audio.play('sfx.itemDrop');
+        const line = OFF_BAG_TEXT.dropped(offBagItemName(id));
+        this.eventLine(line);
+        return { done: true, line };
+    }
+
+    /** Value and maximum of the bar a potion fills. */
+    private barOf(what: OffPotionRestores): [number, number] {
+        if (what === 'hp') return [this.hp, this.maxHp];
+        if (what === 'mana') return [this.vitals.mana, this.vitals.maxMana];
+        return [this.vitals.stamina, this.vitals.maxStamina];
     }
 
     private eventLine(line: string): void {

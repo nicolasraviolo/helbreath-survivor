@@ -7,6 +7,8 @@
 // empiezan con la Dagger y nada más.
 // Fase Off-4A (versión 4): también el oro y la bolsa (`bag`, hasta 50 objetos: equipo, pociones, Slime Jelly). Los
 // guardados anteriores empiezan sin oro y con la bolsa vacía.
+// Fase Off-4B (misma versión): equipar sale de la bolsa y lo que te quitas vuelve a ella (en la misma casilla si es un
+// cambio); beber y tirar sacan el objeto de la bolsa; como mucho OFF_LOOT.potionLimit pociones al recoger.
 // Lleva número de versión como los guardados de Survivors. Si el navegador no deja guardar, dura hasta cerrar la página.
 // Va en el código de traspaso (config/transfer.ts → TRANSFER_KEYS).
 // Desarrollo: ?offreset borra el personaje (Play vuelve a crear uno); ?offlevel=N pone al personaje al principio del
@@ -21,6 +23,7 @@ import { OFF_CREATION, OFF_OLD_SAVE_STATS, OFF_STAT_IDS, OFF_STAT_MAX, type OffS
 import {
     isOffBagItemId, isOffItemId, OFF_ITEMS, OFF_START_EQUIPMENT, readOffEquipment, type OffBagItemId, type OffEquipment, type OffItemId, type OffSlotId,
 } from '../data/offItems';
+import { isOffPotion } from '../data/offGoods';
 import { OFF_LOOT } from '../data/offLoot';
 import { OFF_LEVEL, offExpForLevel, offLevelForExp } from '../data/offLevel';
 import { OFF_NOVICE_LOOK } from '../data/offWorld';
@@ -46,6 +49,9 @@ export interface OffSavedCharacter {
     /** What the bag holds, in the order it came in (Off-4A; at most OFF_LOOT.bagSize). */
     bag: OffBagItemId[];
 }
+
+/** What a bag or equipment change gave: done, nothing to do, short of STR, no room, too many potions. */
+export type OffEquipResult = 'ok' | 'none' | 'str' | 'bagFull' | 'potionLimit';
 
 /** The character before anyone creates one (also what ?offreset leaves). */
 function blankCharacter(): OffSavedCharacter {
@@ -104,18 +110,59 @@ class OffSaveStoreImpl {
     }
 
     /**
-     * Equipment screen (Off-3C): puts the item on (undefined empties the slot). False, and nothing changes, if the STR is
-     * short or the weapon slot would be left empty.
+     * Puts on the gear in that bag cell (Off-4B). What was worn in its slot takes the cell; with nothing worn, the cell
+     * empties. 'str' (nothing changes) if the STR is short.
      */
-    public equip(slot: OffSlotId, id: OffItemId | undefined): boolean {
-        if (id === undefined && slot === 'weapon') return false;
-        if (id !== undefined && (OFF_ITEMS[id].slot !== slot || OFF_ITEMS[id].strToEquip > this.data.stats.str)) return false;
-        const equipment = { ...this.data.equipment };
-        if (id === undefined) delete equipment[slot];
-        else equipment[slot] = id;
-        this.data = { ...this.data, equipment };
+    public equipFromBag(index: number): OffEquipResult {
+        const id = this.data.bag[index];
+        if (id === undefined || !isOffItemId(id)) return 'none';
+        const item = OFF_ITEMS[id];
+        if (item.strToEquip > this.data.stats.str) return 'str';
+        const worn = this.data.equipment[item.slot];
+        const bag = [...this.data.bag];
+        if (worn) bag[index] = worn;
+        else bag.splice(index, 1);
+        this.data = { ...this.data, equipment: { ...this.data.equipment, [item.slot]: id }, bag };
         this.write();
-        return true;
+        return 'ok';
+    }
+
+    /** Takes off what that slot holds, into the bag (Off-4B). Never the weapon; 'bagFull' if there is no room. */
+    public unequip(slot: OffSlotId): OffEquipResult {
+        const worn = this.data.equipment[slot];
+        if (!worn || slot === 'weapon') return 'none';
+        if (this.data.bag.length >= OFF_LOOT.bagSize) return 'bagFull';
+        const equipment = { ...this.data.equipment };
+        delete equipment[slot];
+        this.data = { ...this.data, equipment, bag: [...this.data.bag, worn] };
+        this.write();
+        return 'ok';
+    }
+
+    /**
+     * Equipment screen: puts on that item from the bag, or empties the slot (undefined). Same results as above; an item
+     * that is not in the bag gives 'none'.
+     */
+    public equip(slot: OffSlotId, id: OffItemId | undefined): OffEquipResult {
+        if (id === undefined) return this.unequip(slot);
+        if (OFF_ITEMS[id].slot !== slot) return 'none';
+        return this.equipFromBag(this.data.bag.indexOf(id));
+    }
+
+    /** Takes an item out of the bag (drunk or dropped, Off-4B). Undefined if the cell is empty. */
+    public takeFromBag(index: number): OffBagItemId | undefined {
+        const id = this.data.bag[index];
+        if (id === undefined) return undefined;
+        const bag = [...this.data.bag];
+        bag.splice(index, 1);
+        this.data = { ...this.data, bag };
+        this.write();
+        return id;
+    }
+
+    /** Potions carried now (of any kind). */
+    public get potionCount(): number {
+        return this.data.bag.filter(isOffPotion).length;
     }
 
     /** Experience and unspent points after a fight (the rest stays as it is). */
@@ -131,12 +178,16 @@ class OffSaveStoreImpl {
         this.write();
     }
 
-    /** An item into the bag (Off-4A). False, and nothing changes, if the bag is full. */
-    public addToBag(id: OffBagItemId): boolean {
-        if (this.data.bag.length >= OFF_LOOT.bagSize) return false;
+    /**
+     * An item into the bag (Off-4A). Nothing changes if the bag is full ('bagFull') or it is a potion and the potion
+     * limit is reached ('potionLimit', Off-4B).
+     */
+    public addToBag(id: OffBagItemId): OffEquipResult {
+        if (this.data.bag.length >= OFF_LOOT.bagSize) return 'bagFull';
+        if (isOffPotion(id) && this.potionCount >= OFF_LOOT.potionLimit) return 'potionLimit';
         this.data = { ...this.data, bag: [...this.data.bag, id] };
         this.write();
-        return true;
+        return 'ok';
     }
 
     private write(): void {

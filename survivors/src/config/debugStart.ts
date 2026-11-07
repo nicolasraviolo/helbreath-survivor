@@ -110,6 +110,7 @@
 //   ?offstats=str:30,dex:20 → Helbreath Off: pone esos stats (Fase Off-3C)
 //   ?offgold=500 → Helbreath Off: el personaje tiene ese oro (Fase Off-4A)
 //   ?offbag=shortSword,redPotion → Helbreath Off: la bolsa lleva eso (off/data/offItems.ts y offGoods.ts; Fase Off-4A)
+//   ?offopen=bag → Helbreath Off: el inventario abierto al entrar en el mundo (Fase Off-4B)
 //   ?offdrop=all → Helbreath Off: todos los monstruos sueltan algo; ?offdrop=valuable, siempre un arma o escudo (Off-4A)
 //   ?metrics=send    → enviar las métricas de esta partida al servidor de verdad (en desarrollo no se envían; Fase 14A)
 //   Se combina con ?ui=compact (interfaz de móvil).
@@ -217,6 +218,8 @@ interface DebugStart {
     offGold: number | undefined;
     /** ?offbag=a,b: Helbreath Off's bag holds those items (Fase Off-4A). */
     offBag: string[];
+    /** ?offopen=bag: Helbreath Off's Inventory open on entering the world (Fase Off-4B). */
+    offOpen: 'bag' | undefined;
     /** ?offdrop=all|valuable: every monster drops something / a weapon or shield (Fase Off-4A). */
     offDrop: 'normal' | 'all' | 'valuable';
     /**
@@ -263,7 +266,7 @@ function readDebugStart(): DebugStart {
     const none: DebugStart = {
         play: false, character: undefined, actions: [], trees: undefined, open: undefined, achievements: undefined, characters: undefined,
         sendMetrics: false, spells: { auto: undefined, active: undefined }, openClass: undefined, openSlot: undefined, slash: undefined,
-        holdLoading: false, gear: [], settingsTab: undefined, attribute: undefined, attributeValue: undefined, secondary: undefined, secondaryValue: undefined, unlocks: undefined, unlockCounts: {}, map: undefined, maps: undefined, rescued: undefined, kills: {}, unique: undefined, offLevel: undefined, offReset: false, offGear: [], offStats: {}, offGold: undefined, offBag: [], offDrop: 'normal', townSpot: undefined, townTalk: false, townShop: false, townDye: false, townMissions: false, townSmith: undefined,
+        holdLoading: false, gear: [], settingsTab: undefined, attribute: undefined, attributeValue: undefined, secondary: undefined, secondaryValue: undefined, unlocks: undefined, unlockCounts: {}, map: undefined, maps: undefined, rescued: undefined, kills: {}, unique: undefined, offLevel: undefined, offReset: false, offGear: [], offStats: {}, offGold: undefined, offBag: [], offOpen: undefined, offDrop: 'normal', townSpot: undefined, townTalk: false, townShop: false, townDye: false, townMissions: false, townSmith: undefined,
         gold: undefined, weapon: undefined, upgrade: undefined, xelima: undefined, level: undefined, build: undefined, kit: 'best', simBot: 'circle',
     };
     if (!import.meta.env.DEV) return none;
@@ -321,6 +324,7 @@ function readDebugStart(): DebugStart {
         offStats: parseOffStats(params.get('offstats')),
         offGold: parseOffGold(params.get('offgold')),
         offBag: (params.get('offbag') ?? '').split(',').map((g) => g.trim()).filter((g) => g.length > 0),
+        offOpen: params.get('offopen') === 'bag' ? 'bag' : undefined,
         offDrop: params.get('offdrop') === 'all' ? 'all' : params.get('offdrop') === 'valuable' ? 'valuable' : 'normal',
         townSpot: parseTownSpot(params.get('town')),
         townTalk: params.has('talk'),

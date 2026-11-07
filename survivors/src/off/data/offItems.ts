@@ -1,5 +1,5 @@
-// Helbreath Off (Fase Off-3C): el equipo. Objetos de prueba con los números del original hasta que haya inventario,
-// botín y tienda (Off-4; decisión del 7-nov-2026: el cuadro de stats se prueba con objetos de prueba).
+// Helbreath Off (Fase Off-3C): el equipo, con los números del original. Desde la Off-4B solo te pones lo que llevas en
+// la bolsa (botín del suelo; la tienda llega en la Off-5).
 // - Números de reference/Item.cfg: tras el nombre van tipo, hueco, efecto, 6 valores, ..., precio, peso, ..., velocidad.
 //   · Armas (efecto 1): los valores son los dados contra pequeños (3) y grandes (3).
 //   · Armaduras (efecto 2): el primer valor es la defensa que suma (server: m_iDefenseRatio += valor 1).
@@ -80,9 +80,13 @@ export function offItem(id: OffItemId): OffItemDef {
 /** What a new character wears (the weapon slot is never empty). */
 export const OFF_START_EQUIPMENT: Readonly<OffEquipment> = { weapon: 'dagger' };
 
-/** Until the inventory (Off-4): every test item can be chosen in its slot. */
-export function offItemsFor(slot: OffSlotId): OffItemId[] {
-    return (Object.keys(OFF_ITEMS) as OffItemId[]).filter((id) => OFF_ITEMS[id].slot === slot).sort((a, b) => OFF_ITEMS[a].strToEquip - OFF_ITEMS[b].strToEquip);
+/** The gear in the bag for that slot (Off-4B), each kind once, lightest STR first. */
+export function offBagGearFor(bag: readonly OffBagItemId[], slot: OffSlotId): OffItemId[] {
+    const ids = new Set<OffItemId>();
+    for (const id of bag) {
+        if (isOffItemId(id) && OFF_ITEMS[id].slot === slot) ids.add(id);
+    }
+    return [...ids].sort((a, b) => OFF_ITEMS[a].strToEquip - OFF_ITEMS[b].strToEquip);
 }
 
 export function canEmptyOffSlot(slot: OffSlotId): boolean {

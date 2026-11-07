@@ -10,6 +10,7 @@
 // - Fuera de momento (nada en su lugar): caramelos, Power Green Potion, piedras, tablillas y bolas de la tabla normal.
 // - El oro de cada monstruo sale de Npc.cfg, que no está en el repo: el de Slime y Rabbit lo pone Claude (7-nov-2026).
 // - Tiempo en el suelo: el servidor del repo no lo dice; 3 minutos (Claude, aceptado con el plan de la Off-4).
+// - Off-4B: como mucho 20 pociones en total, del tipo que sea (propietario, 7-nov-2026); la que no cabe se queda en el suelo.
 import type { OffMonsterId } from './offMonsters';
 import type { OffGoodId } from './offGoods';
 import type { OffItemId } from './offItems';
@@ -38,6 +39,11 @@ export const OFF_LOOT = {
     groundNudges: [[0, 0], [8, 4], [-8, 4], [0, -6]] as ReadonlyArray<readonly [number, number]>,
     /** Most items in the bag (the original's DEF_MAXITEMS). */
     bagSize: 50,
+    /**
+     * Most potions carried, of any kind together (owner, 7-nov-2026: 20 in all, mixed as the player likes). They also
+     * take their place in the bag.
+     */
+    potionLimit: 20,
 } as const;
 
 /** Potion table of a normal item drop: weights out of 12000 (server). The rest of the 12000 gives nothing. */
@@ -75,4 +81,5 @@ export const OFF_LOOT_TEXT = {
     gotGold: (amount: number) => `You got ${amount} Gold.`,
     gotItem: (name: string) => `You got ${name}.`,
     bagFull: 'Your bag is full.',
+    potionLimit: "You can't carry more potions.",
 } as const;

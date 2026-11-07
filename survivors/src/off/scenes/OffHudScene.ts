@@ -7,7 +7,7 @@
 // EVENT_LIST_EVENT), igual que en Survivors.
 // Fase Off-3B: el maná con sus números, la barra verde es la estamina como en el original (propietario, 7-nov-2026; la
 // experiencia va en una barra fina dorada debajo y en % en la línea de texto) y el casco abre la ventana Character (OFF_OPEN_CHARACTER_EVENT a la escena del mundo). La pausa
-// (disquete) aún no hace nada.
+// (disquete) abre la pausa desde la Off-4B (OFF_OPEN_PAUSE_EVENT).
 // Fase Off-4A: el oro que llevas va en la línea de texto, en vez de las muertes.
 import Phaser from 'phaser';
 import { GAME_WIDTH } from '../../config/gameConfig';
@@ -24,6 +24,8 @@ import type { HudStyle } from '../../config/settings';
 export const OFF_HUD_SCENE_KEY = 'OffHud';
 /** Emitted on the world scene by the HUD's helmet button: open the Character window. */
 export const OFF_OPEN_CHARACTER_EVENT = 'off-open-character';
+/** Emitted on the world scene by the HUD's disk button: open the pause (Off-4B). */
+export const OFF_OPEN_PAUSE_EVENT = 'off-open-pause';
 
 /** What the HUD shows, read every frame from the world. */
 /** The info line under the green (stamina) gauge. */
@@ -122,7 +124,7 @@ export class OffHudScene extends Phaser.Scene {
         this.barStyle = activeHudStyle();
         const actions = {
             toggleStats: () => this.scene.get(this.worldSceneKey).events.emit(OFF_OPEN_CHARACTER_EVENT),
-            openPause: () => undefined,
+            openPause: () => this.scene.get(this.worldSceneKey).events.emit(OFF_OPEN_PAUSE_EVENT),
         };
         this.bar = this.barStyle === 'classic' ? new ClassicHud(this, actions) : new CompactHud(this, actions);
     }

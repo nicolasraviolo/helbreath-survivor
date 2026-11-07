@@ -6,12 +6,18 @@
 //   cursor; clic derecho para (termina la casilla en la que está).
 // - Teclado, cruceta y stick: va hacia donde se apunta.
 // - Correr o andar: interruptor con R o R3 del mando (6-nov-2026, propietario: como el original, no mantener Shift).
-// - Esc / B vuelve a la pantalla de Off.
+// - Esc / B o Start del mando: pausa (Off-4B; Quit to Menu vuelve a la pantalla de Off).
 // Fase Off-3A: el personaje lleva el aspecto que se eligió al crearlo (OffSaveStore).
 // Fase Off-2B: encima va el HUD (OffHudScene) con vida, experiencia y nivel; el mundo llega hasta la barra.
 // Fase Off-3B: correr gasta estamina (sin ella se anda) y C, Y o Start del mando (o el casco de la barra) abren la
 // ventana Character de Survivors en su modo de Off (openCharacter), con el mundo en pausa y el HUD escondido.
 // Fase Off-4A: botín en el suelo, que se recoge al pisarlo (OffBattle, OffGroundItems); el oro va en el HUD.
+// Fase Off-4B: I / X abren el inventario (OffInventoryScene) a la derecha, **sin parar el mundo**: con él abierto, el
+// personaje anda con el ratón (fuera del panel) y el stick; teclas y cruceta son del inventario. Equipment y Character
+// tampoco paran el mundo (propietario, 7-nov-2026: solo Esc o Start pausan), pero tapan la pantalla: mientras están
+// abiertas, el personaje no recibe órdenes (se queda quieto, y los monstruos le pueden pegar). C / Y abren Character.
+// Cada frame se leen todas las teclas aunque haya una ventana abierta, para que una pulsación de la ventana no llegue
+// al mundo al cerrarla.
 // Mapa, árboles que se transparentan, cámara, pasos y minimapa, como la ciudad de Survivors (scenes/TownScene.ts).
 import Phaser from 'phaser';
 import { CAMERA_LERP, DEPTH_DEBUG, GAME_WIDTH, TILE_SIZE } from '../../config/gameConfig';
@@ -36,11 +42,14 @@ import { OffCharacter } from '../entities/OffCharacter';
 import { offLevelProgress } from '../data/offLevel';
 import { OffBattle } from '../systems/OffBattle';
 import { offSaveStore } from '../systems/OffSaveStore';
-import { OFF_HUD_SCENE_KEY, OFF_OPEN_CHARACTER_EVENT, type OffHudSceneData, type OffHudState } from './OffHudScene';
+import { OFF_HUD_SCENE_KEY, OFF_OPEN_CHARACTER_EVENT, OFF_OPEN_PAUSE_EVENT, type OffHudSceneData, type OffHudState } from './OffHudScene';
 import { offCharacterInfo } from './offCharacterInfo';
 import { offEquipmentLook } from '../data/offItems';
 import { offAttackMs } from '../data/offCombat';
 import { OFF_EQUIPMENT_SCENE_KEY, type OffEquipmentSceneData } from './OffEquipmentScene';
+import { OFF_INVENTORY_SCENE_KEY, type OffInventorySceneData } from './OffInventoryScene';
+import type { PauseSceneData } from '../../scenes/PauseScene';
+import type { MenuOverlayData } from '../../scenes/MenuOverlayScene';
 import { directionOffset, findFreeTile, TileMover, type TilePoint } from '../systems/TileMover';
 
 export const OFF_WORLD_SCENE_KEY = 'OffWorld';
@@ -82,6 +91,14 @@ export class OffWorldScene extends Phaser.Scene {
     /** The pace of the step under way decides the footsteps loop; it restarts when it changes. */
     private footstepsMs = 0;
     private lastTile: TilePoint = { x: 0, y: 0 };
+    /** Window open over the world (Off-4B): the side Inventory, or a screen that covers it (Equipment, Character). */
+    private window: 'inventory' | 'cover' | undefined;
+    /**
+     * Game frame in which a window closed. Phaser updates the scenes from the top one down, so the window reads a key
+     * (I, Esc, C...) and closes before the world reads that same key: on that frame the world must not act on it, or I
+     * would open the Inventory again right after closing it.
+     */
+    private windowClosedFrame = -1;
 
     constructor() {
         super(OFF_WORLD_SCENE_KEY);
@@ -110,6 +127,8 @@ export class OffWorldScene extends Phaser.Scene {
         this.mouseAttack = false;
         this.steering = false;
         this.footstepsMs = 0;
+        this.window = undefined;
+        this.windowClosedFrame = -1;
 
         const camera = this.cameras.main;
         zoomWorldCamera(camera);
@@ -136,9 +155,12 @@ export class OffWorldScene extends Phaser.Scene {
         };
         settings.on(SETTINGS_CHANGED, onSettings);
         this.events.on(OFF_OPEN_CHARACTER_EVENT, this.openCharacter, this);
+        this.events.on(OFF_OPEN_PAUSE_EVENT, this.openPause, this);
         this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
             settings.off(SETTINGS_CHANGED, onSettings);
             this.events.off(OFF_OPEN_CHARACTER_EVENT, this.openCharacter, this);
+            this.events.off(OFF_OPEN_PAUSE_EVENT, this.openPause, this);
+            for (const key of [OFF_INVENTORY_SCENE_KEY, OFF_EQUIPMENT_SCENE_KEY]) this.scene.stop(key);
             this.input.off(Phaser.Input.Events.POINTER_DOWN, this.onPointerDown, this);
             this.input.off(Phaser.Input.Events.POINTER_UP, this.onPointerUp, this);
             this.audio.stopLoop('sfx.footsteps');
@@ -146,6 +168,7 @@ export class OffWorldScene extends Phaser.Scene {
         });
         const hud: OffHudSceneData = { worldSceneKey: OFF_WORLD_SCENE_KEY, getState: () => this.hudState() };
         this.scene.launch(OFF_HUD_SCENE_KEY, hud);
+        if (DEBUG_START.offOpen === 'bag') this.time.delayedCall(0, () => this.openInventory());
     }
 
     /** World down to the HUD bar, or the whole screen with the compact HUD (as GameScene.fitPlayArea). */
@@ -175,22 +198,28 @@ export class OffWorldScene extends Phaser.Scene {
     override update(_time: number, delta: number): void {
         const input = this.inputSystem;
         input.update();
-        if (input.justPressed(Action.Back)) {
-            this.scene.start('OffHome');
-            return;
+        // Read every frame, also under a window (a key pressed there must not act here once it closes).
+        const pause = input.justPressed(Action.Pause) || input.justPressed(Action.Back);
+        const character = input.justPressed(Action.ToggleStats);
+        const inventory = input.justPressed(Action.OffInventory);
+        const toggleRun = input.justPressed(Action.ToggleRun);
+        if (!this.window && this.windowClosedFrame !== this.game.loop.frame) {
+            if (pause) {
+                this.openPause();
+                return;
+            }
+            if (character) {
+                this.openCharacter();
+                return;
+            }
+            if (inventory) {
+                this.openInventory();
+                return;
+            }
+            if (toggleRun) runMode = !runMode;
         }
-        // Esc is Back (above); Start (the gamepad's Pause), Y and C open the Character window.
-        if (input.justPressed(Action.ToggleStats) || input.justPressed(Action.Pause)) {
-            this.openCharacter();
-            return;
-        }
-        if (input.justPressed(Action.OffEquipment)) {
-            this.openEquipment();
-            return;
-        }
-        if (input.justPressed(Action.ToggleRun)) runMode = !runMode;
         this.updateCombatInput();
-        if (!this.battle.dead) this.steer();
+        if (!this.battle.dead && this.window !== 'cover') this.steer();
         const running = runMode && this.battle.vitals.canRun;
         if (this.battle.canMove) this.mover.update(delta, running ? OFF_STEP_MS.run : OFF_STEP_MS.walk);
         const stepRunning = this.mover.currentStepMs === OFF_STEP_MS.run;
@@ -204,41 +233,89 @@ export class OffWorldScene extends Phaser.Scene {
         }
     }
 
-    /** The Character window over the paused world (and HUD); both go on when it closes. */
-    public openCharacter(): void {
-        if (!this.scene.isActive()) return;
-        // The HUD hides (the window shows health, mana and stamina, and its help line goes where the bar is).
-        this.pauseForWindow();
-        // CharacterInfo resumes the world (returnTo); the HUD wakes here. Spent points are read at once by both.
-        this.scene.launch('CharacterInfo', offCharacterInfo(this.battle, OFF_WORLD_SCENE_KEY, () => this.scene.wake(OFF_HUD_SCENE_KEY)));
+    /** Pause (Esc, B, Start or the HUD's disk): world and HUD stop until Resume; Quit to Menu goes back to Off's screen. */
+    public openPause(): void {
+        if (!this.scene.isActive() || this.window) return;
+        this.stopForWindow();
+        const data: PauseSceneData & MenuOverlayData = { gameSceneKey: OFF_WORLD_SCENE_KEY, returnTo: OFF_HUD_SCENE_KEY, quitTo: 'OffHome', hideHowToPlay: true };
+        this.scene.pause();
+        this.scene.pause(OFF_HUD_SCENE_KEY);
+        this.scene.launch('Pause', data);
+        this.scene.bringToTop('Pause');
     }
 
-    /** The Equipment screen (Off-3C) over the paused world; on closing, the character wears the new gear. */
+    /** The Character window over the world, which goes on underneath (Off-4B); the HUD hides while it is open. */
+    public openCharacter(): void {
+        if (!this.scene.isActive() || this.window) return;
+        this.coverWorld();
+        // CharacterInfo "resumes" the world (returnTo; it was never paused). Spent points are read at once by both.
+        this.scene.launch('CharacterInfo', offCharacterInfo(this.battle, OFF_WORLD_SCENE_KEY, () => this.uncoverWorld()));
+    }
+
+    /** The Equipment screen (Off-3C) over the world, which goes on; on closing, the character wears the new gear. */
     public openEquipment(): void {
-        if (!this.scene.isActive()) return;
-        this.pauseForWindow();
+        if (!this.scene.isActive() || (this.window && this.window !== 'inventory')) return;
+        this.coverWorld();
         const data: OffEquipmentSceneData = {
-            returnTo: OFF_WORLD_SCENE_KEY,
             vitals: { hp: this.battle.hp, mana: this.battle.vitals.mana, stamina: this.battle.vitals.stamina },
             onClose: () => {
-                this.scene.wake(OFF_HUD_SCENE_KEY);
-                const look = offEquipmentLook(offSaveStore.character.equipment);
-                // Items not downloaded yet appear as soon as they arrive (CharacterSprite asks for them).
-                this.character.wear(look);
+                this.uncoverWorld();
+                this.dressCharacter();
             },
         };
         this.scene.launch(OFF_EQUIPMENT_SCENE_KEY, data);
     }
 
-    /** Stops walking and attacking, pauses the world and hides the HUD (a window opens over them). */
-    private pauseForWindow(): void {
+    /** The Inventory (Off-4B) on the right; the world goes on and the character still walks (mouse and stick). */
+    public openInventory(): void {
+        if (!this.scene.isActive() || this.window) return;
+        this.window = 'inventory';
+        this.inputSystem.setStickOnlyMove(true);
+        const data: OffInventorySceneData = {
+            battle: this.battle,
+            onGearChange: () => this.dressCharacter(),
+            openEquipment: () => {
+                this.closeInventory();
+                this.openEquipment();
+            },
+            onClose: () => this.closeInventory(),
+        };
+        this.scene.launch(OFF_INVENTORY_SCENE_KEY, data);
+    }
+
+    private closeInventory(): void {
+        if (this.window === 'inventory') this.window = undefined;
+        this.windowClosedFrame = this.game.loop.frame;
+        this.inputSystem.setStickOnlyMove(false);
+    }
+
+    /** What the character wears now, on the sprite (items not downloaded yet appear when they arrive). */
+    private dressCharacter(): void {
+        this.character.wear(offEquipmentLook(offSaveStore.character.equipment));
+    }
+
+    /** A screen covers the world: the character stops and takes no orders; the HUD hides. */
+    private coverWorld(): void {
+        this.window = 'cover';
+        this.stopForWindow();
+        this.mover.cancel();
+        this.scene.sleep(OFF_HUD_SCENE_KEY);
+    }
+
+    private uncoverWorld(): void {
+        this.window = undefined;
+        this.windowClosedFrame = this.game.loop.frame;
+        this.scene.wake(OFF_HUD_SCENE_KEY);
+    }
+
+    /** Stops following the mouse and attacking (a window opens over the world). */
+    private stopForWindow(): void {
         this.leftHeld = false;
         this.mouseAttack = false;
+        this.debugHold = false;
         this.battle.stopAttacking();
         this.audio.stopLoop('sfx.footsteps');
         this.footstepsMs = 0;
-        this.scene.pause();
-        this.scene.sleep(OFF_HUD_SCENE_KEY);
     }
 
     /** Development (`check offwalk`): walks (or runs, `run`) to a tile as a click there would. */
@@ -303,12 +380,17 @@ export class OffWorldScene extends Phaser.Scene {
     private updateCombatInput(): void {
         const input = this.inputSystem;
         const battle = this.battle;
-        if (input.justPressed(Action.OffAttack)) battle.attackPressed();
-        if (input.justPressed(Action.OffNextTarget)) battle.cycleTarget(1);
-        if (input.justPressed(Action.OffPrevTarget)) battle.cycleTarget(-1);
+        // Under a window the buttons are the window's (A uses an item in the Inventory): read, but not acted on.
+        const keys = this.window === undefined && this.windowClosedFrame !== this.game.loop.frame;
+        const attack = input.justPressed(Action.OffAttack);
+        const next = input.justPressed(Action.OffNextTarget);
+        const previous = input.justPressed(Action.OffPrevTarget);
+        if (keys && attack) battle.attackPressed();
+        if (keys && next) battle.cycleTarget(1);
+        if (keys && previous) battle.cycleTarget(-1);
         const pointer = this.input.activePointer;
         if (this.mouseAttack && !pointer.leftButtonDown()) this.mouseAttack = false;
-        if (this.mouseAttack || this.debugHold || input.isHeld(Action.OffAttack)) battle.setHeld(true);
+        if (this.mouseAttack || this.debugHold || (keys && input.isHeld(Action.OffAttack))) battle.setHeld(true);
         else battle.setHeld(false);
         if (!pointer.wasTouch) {
             const world = this.tileUnder(pointer);
@@ -346,8 +428,8 @@ export class OffWorldScene extends Phaser.Scene {
     }
 
     private onPointerDown(pointer: Phaser.Input.Pointer): void {
-        // On the HUD bar: not the world.
-        if (toGame(pointer.downY) >= playAreaBottom()) return;
+        // On the HUD bar, or a screen covers the world: not the world. (On the Inventory's panel, the panel takes it.)
+        if (toGame(pointer.downY) >= playAreaBottom() || this.window === 'cover') return;
         this.debugHold = false;
         if (pointer.rightButtonDown()) {
             this.leftHeld = false;
@@ -373,7 +455,7 @@ export class OffWorldScene extends Phaser.Scene {
     /** Letting go of the left button: the character goes on to the tile under the cursor (sp-client: pointer up). */
     private onPointerUp(pointer: Phaser.Input.Pointer): void {
         this.mouseAttack = false;
-        if (!this.leftHeld) return;
+        if (!this.leftHeld || this.window === 'cover') return;
         this.leftHeld = false;
         const tile = this.tileUnder(pointer);
         this.clickTile(tile.x, tile.y);

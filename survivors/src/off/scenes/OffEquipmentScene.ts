@@ -1,11 +1,14 @@
-// Helbreath Off (Fase Off-3C): pantalla Equipment, sobre el mundo en pausa. Se ve como la de Survivors
+// Helbreath Off (Fase Off-3C): pantalla Equipment, sobre el mundo. Se ve como la de Survivors
 // (scenes/EquipmentScene.ts, con sus medidas de config/equipment.ts), pero con el personaje y los objetos de Off:
 // - Izquierda: la ventana Character original (sin Charisma) con el muñeco vestido, el nivel, la experiencia, la vida /
 //   maná / estamina y los stats.
 // - Derecha: los 7 huecos (el anillo apagado debajo), la lista del hueco elegido y, al marcar un objeto, el **cuadro de
-//   stats**: daño desde / hasta de un golpe normal con tu STR (sin críticos) o defensa, velocidad propia del arma (Fast / Medium / Slow, sin contar la STR) y la STR con la que llega a su mejor golpe, STR necesaria y atributos, comparado con lo que llevas
-//   puesto (verde si mejora, rojo si empeora). Sin la STR, el requisito sale en rojo y no deja ponérselo.
-// - Hasta el inventario (Off-4) salen todos los objetos de prueba (off/data/offItems.ts).
+//   stats** (off/ui/offItemBox.ts), comparado con lo que llevas puesto. Sin la STR, el requisito sale en rojo y no deja
+//   ponérselo.
+// - Off-4B: la lista es lo que llevas puesto y lo que hay en la bolsa para ese hueco. Lo que te pones sale de la bolsa
+//   y lo que te quitas vuelve a ella (si está llena, no deja quitárselo).
+// - Off-4B: el mundo **no se para** debajo (propietario, 7-nov-2026: solo Esc o Start pausan); al cerrar, el personaje
+//   se viste con lo nuevo.
 // - Lo que te pones se guarda al momento (offSaveStore.equip). Ok, Esc, B, I o X cierran.
 // Teclado y mando como en Survivors: izquierda/derecha eligen hueco, abajo entra en la lista, Enter / A se lo pone.
 // Es una escena aparte (no un modo de EquipmentScene) porque aquella está atada a los personajes guardados de Survivors.
@@ -46,40 +49,30 @@ import { EQUIP_SLOT_NAMES, itemIcon } from '../../data/items';
 import { PaperDoll } from '../../entities/PaperDoll';
 import { Action, InputSystem } from '../../systems/InputSystem';
 import { lookLoader } from '../../systems/LookLoader';
-import {
-    OFF_EQUIPMENT_BOX,
-    OFF_EQUIPMENT_BOX_STYLE,
-    OFF_EQUIPMENT_BOX_TITLE_STYLE,
-    OFF_EQUIPMENT_SAME_COLOR,
-} from '../config/offEquipment';
+import { OFF_EQUIPMENT_BOX } from '../config/offEquipment';
+import { OFF_LOOT_TEXT } from '../data/offLoot';
 import { OFF_STAT_IDS, offMaxHp, offMaxMana, offMaxStamina } from '../data/offCharacter';
-import { offBestSpeedStr, offSpeedLabel } from '../data/offCombat';
 import {
     canEmptyOffSlot,
-    diceAverage,
     OFF_FUTURE_SLOTS,
     OFF_GEAR_SLOT_IDS,
     OFF_ITEMS,
+    offBagGearFor,
     offEquipmentLook,
-    offItemsFor,
-    type OffItemDef,
     type OffItemId,
-    type OffWeaponItem,
     type OffSlotId,
 } from '../data/offItems';
 import { OFF_LEVEL, offExpForLevel } from '../data/offLevel';
 import { OFF_NOVICE } from '../data/offWorld';
-import { weaponDamageRange } from '../systems/OffCombatRules';
 import { offSaveStore } from '../systems/OffSaveStore';
+import { drawOffItemBox, offItemBoxLines } from '../ui/offItemBox';
 
 export const OFF_EQUIPMENT_SCENE_KEY = 'OffEquipment';
 
 export interface OffEquipmentSceneData {
-    /** Paused world underneath: resumed on closing. */
-    returnTo: string;
     /** Health, mana and stamina now (the window shows "now/max"). */
     vitals: { hp: number; mana: number; stamina: number };
-    /** After closing (the world wakes its HUD and dresses the character in the new gear). */
+    /** After closing (the world dresses the character in the new gear). */
     onClose: () => void;
 }
 
@@ -93,16 +86,6 @@ interface RowView {
 }
 
 type Focus = { kind: 'slot' } | { kind: 'row'; index: number } | { kind: 'ok' };
-
-/** A line of the stat box: label, value, and how the worn item compares. */
-interface BoxLine {
-    label: string;
-    value: string;
-    /** Value colour (requirements: green / red). */
-    valueColor?: string;
-    /** "(now …)" and whether the marked item is better (1), worse (−1) or the same (0). */
-    now?: { text: string; better: number };
-}
 
 export class OffEquipmentScene extends Phaser.Scene {
     private params!: OffEquipmentSceneData;
@@ -175,7 +158,7 @@ export class OffEquipmentScene extends Phaser.Scene {
         const input = this.inputSystem;
         input.update();
         if (!this.ready()) return;
-        if (input.justPressed(Action.Back) || input.justPressed(Action.Pause) || input.justPressed(Action.OffEquipment)) {
+        if (input.justPressed(Action.Back) || input.justPressed(Action.Pause) || input.justPressed(Action.OffInventory)) {
             this.close();
             return;
         }
@@ -307,7 +290,9 @@ export class OffEquipmentScene extends Phaser.Scene {
         for (const [id, { box }] of this.slotBoxes) {
             box.setStrokeStyle(2, id === slot ? EQUIPMENT_SLOTS.selectedBorder : EQUIPMENT_SLOTS.border);
         }
-        const items: Row[] = offItemsFor(slot);
+        // What it wears first, then the bag's gear for this slot (Off-4B).
+        const worn = this.equipment[slot];
+        const items: Row[] = [...(worn ? [worn] : []), ...offBagGearFor(offSaveStore.character.bag, slot).filter((id) => id !== worn)];
         this.rows = canEmptyOffSlot(slot) ? [undefined, ...items] : items;
         this.drawRows();
     }
@@ -384,71 +369,11 @@ export class OffEquipmentScene extends Phaser.Scene {
         const okTop = p.y + p.height - EQUIPMENT_OK.bottom - EQUIPMENT_OK.height * EQUIPMENT_OK.scale;
         const x = p.x + p.padding;
         const y = p.y + b.top;
-        const width = p.width - p.padding * 2;
-        this.boxObjects.push(this.add.rectangle(x, y, width, okTop - b.bottomGap - y, b.background).setOrigin(0).setStrokeStyle(1, b.border));
         const id = shown.id;
         const worn = this.equipment[this.slot];
         const title = id ? `${OFF_ITEMS[id].name}${id === worn ? '  (worn)' : ''}` : 'Nothing';
-        this.boxObjects.push(this.add.text(x + b.padding, y + b.padding, title, OFF_EQUIPMENT_BOX_TITLE_STYLE));
-        let lineY = y + b.padding + b.lineHeight + 2;
-        for (const line of this.boxLines(id, id === worn ? undefined : worn)) {
-            const label = this.add.text(x + b.padding, lineY, line.label, { ...OFF_EQUIPMENT_BOX_STYLE, color: OFF_EQUIPMENT_SAME_COLOR });
-            const value = this.add.text(x + b.padding + 74, lineY, line.value, { ...OFF_EQUIPMENT_BOX_STYLE, ...(line.valueColor ? { color: line.valueColor } : {}) });
-            this.boxObjects.push(label, value);
-            if (line.now) {
-                const color = line.now.better > 0 ? EQUIPMENT_MET_COLOR : line.now.better < 0 ? EQUIPMENT_UNMET_COLOR : OFF_EQUIPMENT_SAME_COLOR;
-                this.boxObjects.push(this.add.text(value.x + value.width + 8, lineY, line.now.text, { ...OFF_EQUIPMENT_BOX_STYLE, color }));
-            }
-            lineY += b.lineHeight;
-        }
-    }
-
-    /**
-     * What the box says about an item (undefined = an empty slot), compared with `worn` when it is another one (an empty
-     * armour slot counts as defence 0).
-     */
-    private boxLines(id: OffItemId | undefined, worn: OffItemId | undefined): BoxLine[] {
-        const item: OffItemDef | undefined = id ? OFF_ITEMS[id] : undefined;
-        const other: OffItemDef | undefined = worn ? OFF_ITEMS[worn] : undefined;
-        const comparing = id !== worn;
-        const str = this.str;
-        const lines: BoxLine[] = [];
-        if (item?.kind === 'weapon') {
-            // Damage from / to of a normal blow with your STR, crits apart (owner: the dice were hard to read).
-            const range = (w: OffWeaponItem) => {
-                const r = weaponDamageRange(w, str);
-                return `${r.min} – ${r.max}`;
-            };
-            const damage = range(item);
-            const speed = offSpeedLabel(item);
-            const best = offBestSpeedStr(item);
-            if (other?.kind === 'weapon' && comparing) {
-                const average = diceAverage(item.small) + diceAverage(item.large);
-                const otherAverage = diceAverage(other.small) + diceAverage(other.large);
-                const otherSpeed = offSpeedLabel(other);
-                lines.push({ label: 'Damage', value: damage, now: { text: `(now ${range(other)})`, better: Math.sign(average - otherAverage) } });
-                lines.push({ label: 'Speed', value: speed.label, now: { text: `(now ${otherSpeed.label})`, better: Math.sign(otherSpeed.rank - speed.rank) } });
-            } else {
-                lines.push({ label: 'Damage', value: damage });
-                lines.push({ label: 'Speed', value: speed.label });
-            }
-            // Range left out: every test weapon reaches 1 tile (and the mobile box has no room for one more line).
-            lines.push({ label: '', value: best > 0 ? `Fastest with Str ${best}` : 'Fastest with any Str' });
-        } else {
-            const defense = item?.kind === 'armor' ? item.defense : 0;
-            const otherDefense = other?.kind === 'armor' ? other.defense : 0;
-            const now = comparing ? { text: `(now +${otherDefense})`, better: Math.sign(defense - otherDefense) } : undefined;
-            lines.push({ label: 'Defense', value: `+${defense}`, ...(now ? { now } : {}) });
-        }
-        if (item) {
-            const met = str >= item.strToEquip;
-            lines.push({ label: 'Needs', value: `Str ${item.strToEquip}`, valueColor: met ? EQUIPMENT_MET_COLOR : EQUIPMENT_UNMET_COLOR, now: { text: `(you have ${str})`, better: 0 } });
-            // Attributes (Sharp, Poison...) come with the loot of Off-4: test items have none.
-            lines.push({ label: 'Attributes', value: 'None' });
-        } else if (other) {
-            lines.push({ label: '', value: `Takes off the ${other.name}.` });
-        }
-        return lines;
+        const area = { x, y, width: p.width - p.padding * 2, height: okTop - b.bottomGap - y };
+        this.boxObjects = drawOffItemBox(this, area, title, offItemBoxLines(id, id === worn ? undefined : worn, this.str));
     }
 
     // ---- Focus and actions ----
@@ -474,7 +399,8 @@ export class OffEquipmentScene extends Phaser.Scene {
         if (this.focus.kind === 'ok') return 'Your equipment is saved as you change it.';
         if (this.focus.kind === 'slot') {
             const worn = this.equipment[this.slot];
-            return `${EQUIP_SLOT_NAMES[this.slot]}: ${worn ? OFF_ITEMS[worn].name : 'nothing'}.`;
+            const more = this.rows.some((id) => id !== undefined && id !== worn) ? '' : ' Nothing else in your bag for it.';
+            return `${EQUIP_SLOT_NAMES[this.slot]}: ${worn ? OFF_ITEMS[worn].name : 'nothing'}.${more}`;
         }
         const id = this.rows[this.focus.index];
         if (!id) return 'Take off what you wear in this slot.';
@@ -526,14 +452,16 @@ export class OffEquipmentScene extends Phaser.Scene {
         if (index < 0 || index >= this.rows.length) return false;
         const id = this.rows[index];
         if (this.isWorn(id)) return false;
-        if (!offSaveStore.equip(this.slot, id)) {
-            this.helpText.setText(this.describeFocus());
+        const result = offSaveStore.equip(this.slot, id);
+        if (result !== 'ok') {
+            this.helpText.setText(result === 'bagFull' ? OFF_LOOT_TEXT.bagFull : this.describeFocus());
             return false;
         }
         this.buildDoll();
         this.refreshSlotIcons();
         this.showSlot(this.slot);
-        this.setFocus({ kind: 'row', index });
+        // The rows move (what is worn goes first): the mark follows the item just put on.
+        this.setFocus({ kind: 'row', index: this.wornRow() });
         return true;
     }
 
@@ -549,9 +477,8 @@ export class OffEquipmentScene extends Phaser.Scene {
         return { slot: this.slot, rows: [...this.rows], box };
     }
 
-    private close(): void {
+    public close(): void {
         this.scene.stop();
-        this.scene.resume(this.params.returnTo);
         this.params.onClose();
     }
 
