@@ -1,0 +1,54 @@
+// Helbreath Off (Fase Off-4A): un objeto (o un montón de oro) en el suelo, en una casilla. Reciclable con un pool
+// (regla 5). Se dibuja con su imagen de item-ground.spr, como el original (sin brillo), bajo los cuerpos. Parpadea al
+// final de su tiempo y desaparece (off/data/offLoot.ts).
+import type Phaser from 'phaser';
+import { DEPTH_GROUND_SHADOWS, TILE_SIZE } from '../../config/gameConfig';
+import type { ItemIconFrame } from '../../data/itemTypes';
+import { getSheetKey } from '../../hb/HBSprite';
+import { smoothSprite } from '../../hb/XbrPipeline';
+import type { Poolable } from '../../utils/Pool';
+import type { OffBagItemId } from '../data/offItems';
+import { OFF_LOOT } from '../data/offLoot';
+
+/** What lies there: gold (an amount) or one item. */
+export type OffGroundContent = { gold: number } | { item: OffBagItemId };
+
+export class OffGroundItem implements Poolable {
+    public poolIndex = -1;
+    public tileX = 0;
+    public tileY = 0;
+    public content: OffGroundContent = { gold: 0 };
+    private lifeLeftMs = 0;
+    private readonly image: Phaser.GameObjects.Image;
+
+    constructor(scene: Phaser.Scene) {
+        // Above the shadows, under every body (they are drawn at their y).
+        this.image = smoothSprite(scene.add.image(0, 0, '__DEFAULT')).setDepth(DEPTH_GROUND_SHADOWS + 2).setActive(false).setVisible(false);
+    }
+
+    /** `nudge` (0, 1, 2...) moves a second or third item on the same tile a little, so all of them show. */
+    public drop(content: OffGroundContent, tileX: number, tileY: number, picture: ItemIconFrame, nudge: number): void {
+        this.content = content;
+        this.tileX = tileX;
+        this.tileY = tileY;
+        this.lifeLeftMs = OFF_LOOT.groundLifeMs;
+        const nudges = OFF_LOOT.groundNudges;
+        const shift = nudges[nudge % nudges.length] ?? [0, 0];
+        this.image.setTexture(getSheetKey('item.ground', picture.sheet), picture.frame)
+            .setPosition((tileX + 0.5) * TILE_SIZE + shift[0], (tileY + 0.5) * TILE_SIZE + shift[1])
+            .setAlpha(1).setActive(true).setVisible(true);
+    }
+
+    /** Counts down its time. False once it has gone. */
+    public update(deltaMs: number): boolean {
+        this.lifeLeftMs -= deltaMs;
+        if (this.lifeLeftMs <= 0) return false;
+        const blinking = this.lifeLeftMs < OFF_LOOT.blinkMs && Math.floor(this.lifeLeftMs / OFF_LOOT.blinkPeriodMs) % 2 === 0;
+        this.image.setAlpha(blinking ? 0.3 : 1);
+        return true;
+    }
+
+    public deactivate(): void {
+        this.image.setActive(false).setVisible(false);
+    }
+}

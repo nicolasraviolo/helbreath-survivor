@@ -8,9 +8,11 @@
 // Fase Off-3B: el maná con sus números, la barra verde es la estamina como en el original (propietario, 7-nov-2026; la
 // experiencia va en una barra fina dorada debajo y en % en la línea de texto) y el casco abre la ventana Character (OFF_OPEN_CHARACTER_EVENT a la escena del mundo). La pausa
 // (disquete) aún no hace nada.
+// Fase Off-4A: el oro que llevas va en la línea de texto, en vez de las muertes.
 import Phaser from 'phaser';
 import { GAME_WIDTH } from '../../config/gameConfig';
 import { ANNOUNCE_EVENT, EVENT_LIST_EVENT, HUD_ANNOUNCE, HUD_DEPTH_TEXT, HUD_EVENT_LIST } from '../../config/hud';
+import { formatGold } from '../../data/gold';
 import { SpriteText } from '../../hb/SpriteText';
 import { SETTINGS_CHANGED, settings } from '../../systems/Settings';
 import { ClassicHud } from '../../ui/ClassicHud';
@@ -26,7 +28,7 @@ export const OFF_OPEN_CHARACTER_EVENT = 'off-open-character';
 /** What the HUD shows, read every frame from the world. */
 /** The info line under the green (stamina) gauge. */
 export const OFF_HUD_TEXT = {
-    infoLine: (level: number, xpRatio: number, kills: number) => `Level ${level}   Exp ${Math.min(100, Math.max(0, Math.floor(xpRatio * 100)))}%   ${kills} kills`,
+    infoLine: (level: number, xpRatio: number, gold: number) => `Level ${level}   Exp ${Math.min(100, Math.max(0, Math.floor(xpRatio * 100)))}%   ${formatGold(gold)} Gold`,
 } as const;
 
 export interface OffHudState {
@@ -40,6 +42,8 @@ export interface OffHudState {
     /** 0..1 towards the next level. */
     xpRatio: number;
     kills: number;
+    /** Gold carried (Off-4A). */
+    gold: number;
 }
 
 export interface OffHudSceneData {
@@ -102,11 +106,11 @@ export class OffHudScene extends Phaser.Scene {
             level: state.level,
             elapsedMs: 0,
             kills: state.kills,
-            gold: 0,
+            gold: state.gold,
             skillOrb: undefined,
             skillUses: 0,
             revive: undefined,
-            infoLine: OFF_HUD_TEXT.infoLine(state.level, state.xpRatio, state.kills),
+            infoLine: OFF_HUD_TEXT.infoLine(state.level, state.xpRatio, state.gold),
         };
         this.bar.update(barState);
         this.updateAnnouncement(delta);

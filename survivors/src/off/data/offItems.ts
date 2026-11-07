@@ -9,7 +9,10 @@
 //   haya anillos.
 // - Alcance: 1 casilla para todas las armas de prueba (el original no las distingue en Item.cfg).
 import type { ArmorPieceId } from '../../data/armor';
-import type { SavedEquipment } from '../../data/items';
+import type { Gender } from '../../data/appearance';
+import { itemIcon, type SavedEquipment } from '../../data/items';
+import type { ItemIconFrame } from '../../data/itemTypes';
+import { isOffGoodId, OFF_GOODS, type OffGoodId } from './offGoods';
 import type { MeleeWeaponId } from '../../data/weapons';
 import type { OffWeaponDef } from './offCombat';
 
@@ -48,6 +51,8 @@ export const OFF_ITEMS = {
     longSword: { kind: 'weapon', slot: 'weapon', name: 'Long Sword', small: [1, 9, 0], large: [1, 10, 0], range: 1, strToEquip: 14, speed: 6, look: 'longSword' },
     // Item.cfg 79: defence 8, weight 800.
     woodShield: { kind: 'armor', slot: 'shield', name: 'Wood Shield', defense: 8, strToEquip: 8, look: 'woodShield' },
+    // Item.cfg 81: defence 13, weight 1800 (Off-4A: monsters drop it).
+    targeShield: { kind: 'armor', slot: 'shield', name: 'Targe Shield', defense: 13, strToEquip: 18, look: 'targeShield' },
     // Item.cfg 600 Helm(M): defence 5, weight 5200 (heavy: a test of a requirement not met).
     helmet: { kind: 'armor', slot: 'helm', name: 'Helmet', defense: 5, strToEquip: 52, look: 'helmet' },
     // Item.cfg 455 LeatherArmor(M): defence 10, weight 1500.
@@ -121,6 +126,23 @@ export function readOffEquipment(value: unknown): OffEquipment {
         else if (canEmptyOffSlot(slot)) delete equipment[slot];
     }
     return equipment;
+}
+
+/** Anything the bag holds (Off-4A): gear or goods (potions, Slime Jelly). */
+export type OffBagItemId = OffItemId | OffGoodId;
+
+export function isOffBagItemId(id: string): id is OffBagItemId {
+    return isOffItemId(id) || isOffGoodId(id);
+}
+
+/** Name of anything in the bag. */
+export function offBagItemName(id: OffBagItemId): string {
+    return isOffItemId(id) ? OFF_ITEMS[id].name : OFF_GOODS[id].name;
+}
+
+/** Its picture (item-ground / item-pack sheet and frame), for that gender. */
+export function offBagItemPicture(id: OffBagItemId, gender: Gender): ItemIconFrame | undefined {
+    return isOffItemId(id) ? itemIcon(OFF_ITEMS[id].look, gender) : OFF_GOODS[id].picture;
 }
 
 /** Average of some dice (to tell which weapon hits harder). */

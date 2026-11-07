@@ -11,6 +11,7 @@
 // Fase Off-2B: encima va el HUD (OffHudScene) con vida, experiencia y nivel; el mundo llega hasta la barra.
 // Fase Off-3B: correr gasta estamina (sin ella se anda) y C, Y o Start del mando (o el casco de la barra) abren la
 // ventana Character de Survivors en su modo de Off (openCharacter), con el mundo en pausa y el HUD escondido.
+// Fase Off-4A: botín en el suelo, que se recoge al pisarlo (OffBattle, OffGroundItems); el oro va en el HUD.
 // Mapa, árboles que se transparentan, cámara, pasos y minimapa, como la ciudad de Survivors (scenes/TownScene.ts).
 import Phaser from 'phaser';
 import { CAMERA_LERP, DEPTH_DEBUG, GAME_WIDTH, TILE_SIZE } from '../../config/gameConfig';
@@ -167,6 +168,7 @@ export class OffWorldScene extends Phaser.Scene {
             level: battle.level,
             xpRatio: offLevelProgress(battle.exp, battle.level),
             kills: battle.kills,
+            gold: offSaveStore.character.gold,
         };
     }
 
@@ -250,7 +252,7 @@ export class OffWorldScene extends Phaser.Scene {
         tile: TilePoint; moving: boolean; running: boolean; stepMs: number; spawn: TilePoint; hp: number; maxHp: number; dead: boolean;
         mana: number; maxMana: number; stamina: number; maxStamina: number; stats: Readonly<Record<string, number>>;
         level: number; exp: number; points: number; kills: number; monsters: Record<string, number>; target: string | undefined;
-        weapon: string; attackMs: number; defense: number;
+        weapon: string; attackMs: number; defense: number; gold: number; bag: string[]; ground: string[];
     } {
         const monsters: Record<string, number> = {};
         for (const monster of this.battle.pits.monsters) {
@@ -280,6 +282,9 @@ export class OffWorldScene extends Phaser.Scene {
             weapon: this.battle.weapon.name,
             attackMs: offAttackMs(this.battle.weapon, this.battle.stats.str),
             defense: this.battle.defense,
+            gold: offSaveStore.character.gold,
+            bag: [...offSaveStore.character.bag],
+            ground: this.battle.ground.items.map((g) => `${'gold' in g.content ? `${g.content.gold} gold` : g.content.item} at ${g.tileX},${g.tileY}`),
         };
     }
 

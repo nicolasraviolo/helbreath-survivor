@@ -5,23 +5,29 @@
 // nombre por defecto y el aspecto del novato, y cuenta como creado.
 // Fase Off-3C (versión 3): también lo que lleva puesto (`equipment`, off/data/offItems.ts). Los guardados anteriores
 // empiezan con la Dagger y nada más.
+// Fase Off-4A (versión 4): también el oro y la bolsa (`bag`, hasta 50 objetos: equipo, pociones, Slime Jelly). Los
+// guardados anteriores empiezan sin oro y con la bolsa vacía.
 // Lleva número de versión como los guardados de Survivors. Si el navegador no deja guardar, dura hasta cerrar la página.
 // Va en el código de traspaso (config/transfer.ts → TRANSFER_KEYS).
 // Desarrollo: ?offreset borra el personaje (Play vuelve a crear uno); ?offlevel=N pone al personaje al principio del
-// nivel N, ya creado; ?offgear=longSword,leatherArmor le pone esos objetos (debugStart.ts).
+// nivel N, ya creado; ?offgear=longSword,leatherArmor le pone esos objetos; ?offgold=N le da ese oro;
+// ?offbag=shortSword,redPotion le llena la bolsa con eso (debugStart.ts).
 import { DEBUG_START } from '../../config/debugStart';
 import type { CharacterLook } from '../../data/appearance';
 import { CHARACTER_NAME_MAX_LENGTH } from '../../data/characterSlots';
 import { cleanName, readLook } from '../../systems/CharacterStore';
 import { isRecord } from '../../systems/SaveStore';
 import { OFF_CREATION, OFF_OLD_SAVE_STATS, OFF_STAT_IDS, OFF_STAT_MAX, type OffStats } from '../data/offCharacter';
-import { isOffItemId, OFF_ITEMS, OFF_START_EQUIPMENT, readOffEquipment, type OffEquipment, type OffItemId, type OffSlotId } from '../data/offItems';
+import {
+    isOffBagItemId, isOffItemId, OFF_ITEMS, OFF_START_EQUIPMENT, readOffEquipment, type OffBagItemId, type OffEquipment, type OffItemId, type OffSlotId,
+} from '../data/offItems';
+import { OFF_LOOT } from '../data/offLoot';
 import { OFF_LEVEL, offExpForLevel, offLevelForExp } from '../data/offLevel';
 import { OFF_NOVICE_LOOK } from '../data/offWorld';
 
 export const OFF_CHARACTER_STORAGE_KEY = 'hb-off.character';
-/** 1 (Off-2B): experience and unspent points. 2 (Off-3A): name, look, stats and whether it was created. 3 (Off-3C): equipment. */
-const OFF_CHARACTER_VERSION = 3;
+/** 1 (Off-2B): experience and unspent points. 2 (Off-3A): name, look, stats and whether it was created. 3 (Off-3C): equipment. 4 (Off-4A): gold and bag. */
+const OFF_CHARACTER_VERSION = 4;
 
 export interface OffSavedCharacter {
     /** False until the creation screen is done (Play opens it). */
@@ -35,11 +41,15 @@ export interface OffSavedCharacter {
     points: number;
     /** What it wears (Off-3C). */
     equipment: OffEquipment;
+    /** Gold carried (Off-4A). */
+    gold: number;
+    /** What the bag holds, in the order it came in (Off-4A; at most OFF_LOOT.bagSize). */
+    bag: OffBagItemId[];
 }
 
 /** The character before anyone creates one (also what ?offreset leaves). */
 function blankCharacter(): OffSavedCharacter {
-    return { created: false, name: OFF_CREATION.defaultName, look: { ...OFF_NOVICE_LOOK }, stats: { ...OFF_OLD_SAVE_STATS }, exp: 0, points: 0, equipment: { ...OFF_START_EQUIPMENT } };
+    return { created: false, name: OFF_CREATION.defaultName, look: { ...OFF_NOVICE_LOOK }, stats: { ...OFF_OLD_SAVE_STATS }, exp: 0, points: 0, equipment: { ...OFF_START_EQUIPMENT }, gold: 0, bag: [] };
 }
 
 class OffSaveStoreImpl {
@@ -65,7 +75,10 @@ class OffSaveStoreImpl {
             for (const id of gear) equipment[OFF_ITEMS[id].slot] = id;
             this.data = { ...this.data, equipment };
         }
-        if (DEBUG_START.offReset || level !== undefined || gear.length > 0 || statsChanged) this.write();
+        if (DEBUG_START.offGold !== undefined) this.data = { ...this.data, gold: DEBUG_START.offGold };
+        const bag = DEBUG_START.offBag.filter(isOffBagItemId).slice(0, OFF_LOOT.bagSize);
+        if (bag.length > 0) this.data = { ...this.data, bag };
+        if (DEBUG_START.offReset || level !== undefined || gear.length > 0 || statsChanged || DEBUG_START.offGold !== undefined || bag.length > 0) this.write();
     }
 
     public get character(): Readonly<OffSavedCharacter> {
@@ -78,7 +91,7 @@ class OffSaveStoreImpl {
 
     /** Creation screen done: a new character at level 1. */
     public create(name: string, look: CharacterLook, stats: OffStats): void {
-        this.data = { created: true, name, look: { ...look }, stats: { ...stats }, exp: 0, points: 0, equipment: { ...OFF_START_EQUIPMENT } };
+        this.data = { created: true, name, look: { ...look }, stats: { ...stats }, exp: 0, points: 0, equipment: { ...OFF_START_EQUIPMENT }, gold: 0, bag: [] };
         this.write();
     }
 
@@ -111,6 +124,21 @@ class OffSaveStoreImpl {
         this.write();
     }
 
+    /** Gold picked up (Off-4A). */
+    public addGold(amount: number): void {
+        if (amount <= 0) return;
+        this.data = { ...this.data, gold: this.data.gold + Math.floor(amount) };
+        this.write();
+    }
+
+    /** An item into the bag (Off-4A). False, and nothing changes, if the bag is full. */
+    public addToBag(id: OffBagItemId): boolean {
+        if (this.data.bag.length >= OFF_LOOT.bagSize) return false;
+        this.data = { ...this.data, bag: [...this.data.bag, id] };
+        this.write();
+        return true;
+    }
+
     private write(): void {
         try {
             localStorage.setItem(OFF_CHARACTER_STORAGE_KEY, JSON.stringify({ version: OFF_CHARACTER_VERSION, ...this.data }));
@@ -136,6 +164,8 @@ function load(): OffSavedCharacter {
             exp: nonNegative(data.exp),
             points: nonNegative(data.points),
             equipment: readOffEquipment(data.equipment),
+            gold: nonNegative(data.gold),
+            bag: readBag(data.bag),
         };
     } catch {
         return blankCharacter();
@@ -151,6 +181,12 @@ function readStats(value: unknown): OffStats | undefined {
         stats[id] = n;
     }
     return stats;
+}
+
+/** The bag read back from a save: unknown items are dropped. */
+function readBag(value: unknown): OffBagItemId[] {
+    if (!Array.isArray(value)) return [];
+    return value.filter((id): id is OffBagItemId => typeof id === 'string' && isOffBagItemId(id)).slice(0, OFF_LOOT.bagSize);
 }
 
 function nonNegative(value: unknown): number {

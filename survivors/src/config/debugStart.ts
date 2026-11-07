@@ -108,6 +108,9 @@
 //   ?offreset    → Helbreath Off: el personaje vuelve a nivel 1 sin experiencia (Fase Off-2B)
 //   ?offgear=longSword,leatherArmor → Helbreath Off: se pone esos objetos (off/data/offItems.ts; Fase Off-3C)
 //   ?offstats=str:30,dex:20 → Helbreath Off: pone esos stats (Fase Off-3C)
+//   ?offgold=500 → Helbreath Off: el personaje tiene ese oro (Fase Off-4A)
+//   ?offbag=shortSword,redPotion → Helbreath Off: la bolsa lleva eso (off/data/offItems.ts y offGoods.ts; Fase Off-4A)
+//   ?offdrop=all → Helbreath Off: todos los monstruos sueltan algo; ?offdrop=valuable, siempre un arma o escudo (Off-4A)
 //   ?metrics=send    → enviar las métricas de esta partida al servidor de verdad (en desarrollo no se envían; Fase 14A)
 //   Se combina con ?ui=compact (interfaz de móvil).
 // En el build publicado no hace nada.
@@ -210,6 +213,12 @@ interface DebugStart {
     offGear: string[];
     /** ?offstats=str:30,dex:20: Helbreath Off's character gets those stats (Fase Off-3C). */
     offStats: Record<string, number>;
+    /** ?offgold=N: Helbreath Off's character has that gold (Fase Off-4A). */
+    offGold: number | undefined;
+    /** ?offbag=a,b: Helbreath Off's bag holds those items (Fase Off-4A). */
+    offBag: string[];
+    /** ?offdrop=all|valuable: every monster drops something / a weapon or shield (Fase Off-4A). */
+    offDrop: 'normal' | 'all' | 'valuable';
     /**
      * ?town=portal: the character appears on the town's teleport, so Select Map opens over the town (Fase 23).
      * ?town=<npc>: next to that NPC (Fase 23B); with &talk, its panel opens too.
@@ -254,7 +263,7 @@ function readDebugStart(): DebugStart {
     const none: DebugStart = {
         play: false, character: undefined, actions: [], trees: undefined, open: undefined, achievements: undefined, characters: undefined,
         sendMetrics: false, spells: { auto: undefined, active: undefined }, openClass: undefined, openSlot: undefined, slash: undefined,
-        holdLoading: false, gear: [], settingsTab: undefined, attribute: undefined, attributeValue: undefined, secondary: undefined, secondaryValue: undefined, unlocks: undefined, unlockCounts: {}, map: undefined, maps: undefined, rescued: undefined, kills: {}, unique: undefined, offLevel: undefined, offReset: false, offGear: [], offStats: {}, townSpot: undefined, townTalk: false, townShop: false, townDye: false, townMissions: false, townSmith: undefined,
+        holdLoading: false, gear: [], settingsTab: undefined, attribute: undefined, attributeValue: undefined, secondary: undefined, secondaryValue: undefined, unlocks: undefined, unlockCounts: {}, map: undefined, maps: undefined, rescued: undefined, kills: {}, unique: undefined, offLevel: undefined, offReset: false, offGear: [], offStats: {}, offGold: undefined, offBag: [], offDrop: 'normal', townSpot: undefined, townTalk: false, townShop: false, townDye: false, townMissions: false, townSmith: undefined,
         gold: undefined, weapon: undefined, upgrade: undefined, xelima: undefined, level: undefined, build: undefined, kit: 'best', simBot: 'circle',
     };
     if (!import.meta.env.DEV) return none;
@@ -310,6 +319,9 @@ function readDebugStart(): DebugStart {
         offReset: params.has('offreset'),
         offGear: (params.get('offgear') ?? '').split(',').map((g) => g.trim()).filter((g) => g.length > 0),
         offStats: parseOffStats(params.get('offstats')),
+        offGold: parseOffGold(params.get('offgold')),
+        offBag: (params.get('offbag') ?? '').split(',').map((g) => g.trim()).filter((g) => g.length > 0),
+        offDrop: params.get('offdrop') === 'all' ? 'all' : params.get('offdrop') === 'valuable' ? 'valuable' : 'normal',
         townSpot: parseTownSpot(params.get('town')),
         townTalk: params.has('talk'),
         townShop: params.has('shop'),
@@ -338,6 +350,13 @@ function readBuild(value: string | null): Partial<Stats> | undefined {
         if (stat && amount !== undefined && /^\d+$/.test(amount.trim())) build[stat] = Number(amount);
     }
     return Object.keys(build).length > 0 ? build : undefined;
+}
+
+/** ?offgold=N → N (a whole number, 0 or more). */
+function parseOffGold(value: string | null): number | undefined {
+    if (value === null) return undefined;
+    const n = Number(value);
+    return Number.isInteger(n) && n >= 0 ? n : undefined;
 }
 
 /** ?offstats=str:30,dex:20 → { str: 30, dex: 20 } (whole numbers above 0). */

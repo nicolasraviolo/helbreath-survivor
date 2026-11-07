@@ -8,9 +8,12 @@
 //   del original, sale "Level Up!" y guarda 3 puntos. Todo se guarda al momento (OffSaveStore).
 // - Maná, estamina y las tandas de recuperación (Off-3B): OffVitals. Subir de nivel y volver a la vida los llenan.
 // - Equipo (Off-3C): el arma puesta da el daño, el alcance y la velocidad; la armadura suma defensa (2 × DEX + la suya).
+// - Botín (Off-4A): al matar, lo que suelta el monstruo (OffLootRoller) cae en su casilla (OffGroundItems) y se recoge
+//   al pisarlo: el oro al contador, lo demás a la bolsa (OffSaveStore). Morir no hace perder ni oro ni bolsa.
 // Los mensajes ("Level Up!" y la lista de abajo a la izquierda) van a OffHudScene por los eventos de la escena.
 import Phaser from 'phaser';
-import { PLAYER_BODY_OFFSET_Y } from '../../config/gameConfig';
+import { DEBUG_START } from '../../config/debugStart';
+import { PLAYER_BODY_OFFSET_Y, TILE_SIZE } from '../../config/gameConfig';
 import { ANNOUNCE_EVENT, EVENT_LIST_EVENT } from '../../config/hud';
 import { GENDER_SOUNDS } from '../../data/appearance';
 import { Effect } from '../../entities/Effect';
@@ -23,12 +26,16 @@ import { Pool } from '../../utils/Pool';
 import { OFF_MONSTER_LOOK } from '../config/offMonsterLook';
 import { OFF_STAT_IDS, offMaxHp, type OffStats } from '../data/offCharacter';
 import { OFF_COMBAT, offAttackMs } from '../data/offCombat';
-import { offArmorDefense, offWeapon, type OffWeaponItem } from '../data/offItems';
+import { offArmorDefense, offBagItemName, offWeapon, type OffWeaponItem } from '../data/offItems';
+import { OFF_LOOT_TEXT } from '../data/offLoot';
+import type { OffGroundContent } from '../entities/OffGroundItem';
 import { OFF_LEVEL, OFF_LEVEL_TEXT, offDeathExpLoss, offKillExp, offLevelForExp } from '../data/offLevel';
 import type { OffCharacter } from '../entities/OffCharacter';
 import type { OffMonster } from '../entities/OffMonster';
 import { isFromBehind, offHitChance, rollMonsterDamage, rollWeaponDamage, tileDistance } from './OffCombatRules';
 import { provokeMonster, updateMonster, type OffMonsterWorld } from './OffMonsterAI';
+import { OffGroundItems } from './OffGroundItems';
+import { rollKillLoot } from './OffLootRoller';
 import { OffPits } from './OffPits';
 import { offSaveStore } from './OffSaveStore';
 import { OffVitals } from './OffVitals';
@@ -58,6 +65,8 @@ export class OffBattle implements OffMonsterWorld {
     public hovered: OffMonster | undefined;
     public dead = false;
     public readonly pits: OffPits;
+    /** Loot lying on the ground (Off-4A). */
+    public readonly ground: OffGroundItems;
     private readonly numbers: DamageNumbers;
     private readonly particles: HitParticles;
     private readonly effects: Pool<Effect>;
@@ -89,6 +98,7 @@ export class OffBattle implements OffMonsterWorld {
         this.effects = new Pool(() => new Effect(scene));
         this.pits = new OffPits(scene, (x, y) => this.isFree(x, y));
         this.pits.fillAll();
+        this.ground = new OffGroundItems(scene, (content) => this.pickUp(content), () => this.eventLine(OFF_LOOT_TEXT.bagFull));
     }
 
     /** Original max health, which grows with the level. */
@@ -195,6 +205,7 @@ export class OffBattle implements OffMonsterWorld {
         if (this.target && !this.target.isAlive) this.clearTarget();
         if (this.hovered && !this.hovered.isAlive) this.hovered = undefined;
         this.pits.update(deltaMs);
+        this.ground.update(deltaMs, this.playerTile());
         this.numbers.update(deltaMs);
         for (const effect of [...this.effects.active]) {
             if (!effect.update(deltaMs)) this.effects.release(effect);
@@ -310,11 +321,37 @@ export class OffBattle implements OffMonsterWorld {
             this.particles.death(monster.x, monster.y, bodyY);
             this.audio.play(monster.def.base.deathSound);
             this.kills++;
+            this.dropLoot(monster);
             this.gainExp(offKillExp(monster.exp, this.level), monster.x, bodyY);
         } else {
             this.particles.hit(monster.x, bodyY, this.character.x, this.character.y);
             this.audio.play(monster.def.base.hitSound);
         }
+    }
+
+    // ---- Loot (Off-4A) ----
+
+    /** What the monster drops falls on its tile. */
+    private dropLoot(monster: OffMonster): void {
+        const loot = rollKillLoot(monster.id, DEBUG_START.offDrop);
+        if (this.ground.dropLoot(loot, Math.floor(monster.x / TILE_SIZE), Math.floor(monster.y / TILE_SIZE))) this.audio.play('sfx.itemDrop');
+    }
+
+    /** Something picked up from the ground. False if it does not fit in the bag. */
+    private pickUp(content: OffGroundContent): boolean {
+        if ('gold' in content) {
+            offSaveStore.addGold(content.gold);
+            this.eventLine(OFF_LOOT_TEXT.gotGold(content.gold));
+        } else {
+            if (!offSaveStore.addToBag(content.item)) return false;
+            this.eventLine(OFF_LOOT_TEXT.gotItem(offBagItemName(content.item)));
+        }
+        this.audio.play('sfx.pickup');
+        return true;
+    }
+
+    private eventLine(line: string): void {
+        this.scene.events.emit(EVENT_LIST_EVENT, line);
     }
 
     // ---- Experience ----

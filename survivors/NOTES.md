@@ -128,6 +128,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Crear personaje en Helbreath Off (Fase Off-3A)
 - Ventana Character, maná, estamina y velocidad del arma en Helbreath Off (Fase Off-3B)
 - Equipment y cuadro de stats en Helbreath Off (Fase Off-3C)
+- Botín en el suelo y oro en Helbreath Off (Fase Off-4A)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -1443,3 +1444,9 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - **Dibujo:** cada objeto de Off apunta a su igual de Survivors (`look`), que da icono (item-pack.spr) y capa. `OffCharacter.wear` vuelve primero a la ropa del novato en cada capa y luego pone el equipo (si no, quitar algo dejaría al personaje en ropa interior).
 - **Check:** `offequip` (Str 10, Long Sword marcada; en eval las filas y el texto del cuadro) y `offequipswap` (Str 14; en eval qué se dejó poner, arma / tiempo de golpe / defensa antes y después, y lo guardado). `e.debugMark(slot, fila)` y `e.debugState()` en la escena.
 
+## Botín en el suelo y oro en Helbreath Off (Fase Off-4A)
+- **Tiradas del original:** `reference/Server.cpp`, `NpcDeadItemGenerator` (~L48238): 1d10000 ≥ 6500 → suelta algo (35 %); 60 % oro (Item 90, cantidad 1d(max − min) + min de Npc.cfg, que **no está en el repo**); el resto, 1d10000 ≤ 9000 → normal (tabla 1d12000 de pociones, ~L48295), si no, valioso por `iGenLevel` (Slime y Rabbit = 1: Dagger / Short Sword / Light Axe, o Wood / Targe Shield). Aparte, `DeleteNpc` (~L27051): Slime Jelly 1/25 al quitar el cuerpo. No hay tiempo de vida en el suelo en el servidor del repo.
+- **Recoger en el original:** `DEF_OBJECTGETITEM`, de pie sobre la casilla y con animación (sp-client: clic sobre uno mismo → `PlayerState.PickUp`). En Off se recoge al **pisar** (propietario), una vez al llegar a cada casilla (`OffGroundItems.lastTile`), para no repetir "Your bag is full." cada frame.
+- **Dibujos:** item-ground.spr y item-pack.spr comparten hoja y frame (sp-client `Items.ts`, que usa sus propios ids, no los de Item.cfg: el Gold es su id 35). Oro 5/0, pociones 5/1–6, Slime Jelly 5/49; armas y escudos salen del `look` de Survivors (`itemIcon`). En el mundo de Off se ven al tamaño original (pequeños), sin el brillo del botín de Survivors. `item.ground` va en `OFF_WORLD.sprites`.
+- **Código:** `off/data/offLoot.ts` (probabilidades, multiplicadores, oro por monstruo, vida en el suelo, tamaño de la bolsa), `off/data/offGoods.ts` (pociones y Slime Jelly), `off/systems/OffLootRoller.ts`, `off/systems/OffGroundItems.ts` + `off/entities/OffGroundItem.ts` (pool), `OffBattle.dropLoot` / `pickUp`, `OffSaveStore.addGold` / `addToBag` (versión 4).
+- **Check:** `offlootview` (captura con botín en el suelo), `offloot` (pisa las casillas; oro y bolsa guardados), `offbagfull` (50 Red Potion: el escudo se queda en el suelo). Atajos `?offdrop=all|valuable`, `?offgold=N`, `?offbag=a,b`.

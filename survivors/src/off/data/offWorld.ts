@@ -55,8 +55,8 @@ export const OFF_WORLD: OffWorldDef = {
     spawn: { x: 90, y: 88 },
     /** The original's general theme (Survivors' Icebound uses it too); loaded with the map (LATER_SOUNDS). */
     music: 'music.default',
-    /** Effects of the world (the dust of the steps; fx.effect: the blood of the blows) and the monsters of the pits. */
-    sprites: ['fx.effect2', 'fx.effect', ...Object.values(OFF_MONSTERS).map((m) => m.base.sprite)],
+    /** Effects of the world (the dust of the steps; fx.effect: the blood of the blows), the loot on the ground (Off-4A) and the monsters of the pits. */
+    sprites: ['fx.effect2', 'fx.effect', 'item.ground', ...Object.values(OFF_MONSTERS).map((m) => m.base.sprite)],
 };
 
 /** The novice's look: a man with the default body, hair and underwear. */
