@@ -67,6 +67,8 @@ export interface OffSpellDef {
     look?: SpellId;
     /** Heal, shields and holds (Off-6C): the original's effect where it lands (config/effects.ts). */
     castEffect?: EffectKey;
+    /** Shields (Off-6C): drawn in a loop under the player's feet while it lasts. */
+    wornEffect?: EffectKey;
 }
 
 export const OFF_SPELLS: Record<OffSpellId, OffSpellDef> = {
@@ -84,7 +86,7 @@ export const OFF_SPELLS: Record<OffSpellId, OffSpellDef> = {
     fireStrike: { name: 'Fire Strike', magicId: 30, circle: 4, kind: 'damage', mana: 36, reqInt: 34, price: 1000, direct: [2, 8, 3], area: [2, 8, 3], areaRange: 2, element: 'fire', look: 'fireStrike' },
     lightningArrow: { name: 'Lightning Arrow', magicId: 37, circle: 4, kind: 'damage', mana: 32, reqInt: 38, price: 1100, direct: [4, 5, 10], element: 'lightning', look: 'lightningArrow' },
     paralyze: { name: 'Paralyze', magicId: 35, circle: 4, kind: 'hold', mana: 35, reqInt: 36, price: 1000, durationSec: 50, castEffect: 'fx.hold.cast' },
-    protectionFromMagic: { name: 'Protection From Magic', magicId: 33, circle: 4, kind: 'shield', mana: 35, reqInt: 32, price: 850, durationSec: 60, power: 2, castEffect: 'fx.protectMagic.cast' },
+    protectionFromMagic: { name: 'Protection From Magic', magicId: 33, circle: 4, kind: 'shield', mana: 35, reqInt: 32, price: 850, durationSec: 60, power: 2, wornEffect: 'fx.aura.ring' },
     // ---- Circle 5 ----
     tripleEnergyBolt: { name: 'Triple Energy Bolt', magicId: 47, circle: 5, kind: 'damage', mana: 40, reqInt: 45, price: 1700, direct: [2, 4, 2], area: [3, 8, 3], areaRange: 2, element: 'lightning', look: 'tripleEnergyBolt' },
     chillWind: { name: 'Chill Wind', magicId: 45, circle: 5, kind: 'damage', mana: 48, reqInt: 50, price: 2000, direct: [2, 8, 3], area: [2, 8, 3], areaRange: 2, element: 'ice', look: 'chillWind' },

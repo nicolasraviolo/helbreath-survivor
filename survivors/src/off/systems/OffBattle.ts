@@ -16,11 +16,14 @@
 //   Survivors. Un monstruo frenado o aturdido vive a su ritmo (OffMonster.timeScale).
 // Magias (Off-6C): Heal suma vida (healPlayer); Defense Shield y Protection From Magic quedan en `protection` con su
 //   tiempo (OFF_PROTECT: +40 de defensa, o el daño mágico a la mitad cuando haya monstruos que lancen magia); pasan de un
-//   sitio a otro por los portales (OffCarriedVitals). Hold Person y Paralyze los pone OffMonster.hold.
+//   sitio a otro por los portales (OffCarriedVitals). Protection From Magic se ve como un círculo blanco bajo los pies
+//   mientras dura (`wornEffect`, el Protection Ring del original, como el aura de Survivors). Hold Person y Paralyze los pone OffMonster.hold.
 // Los mensajes ("Level Up!" y la lista de abajo a la izquierda) van a OffHudScene por los eventos de la escena.
 import Phaser from 'phaser';
 import { DEBUG_START } from '../../config/debugStart';
-import { PLAYER_BODY_OFFSET_Y, TILE_SIZE } from '../../config/gameConfig';
+import { DEPTH_GROUND_SHADOWS, PLAYER_BODY_OFFSET_Y, TILE_SIZE } from '../../config/gameConfig';
+import { AURA_RING_ALPHA } from '../../data/passiveMagic';
+import { smoothSprite } from '../../hb/XbrPipeline';
 import { ANNOUNCE_EVENT, EVENT_LIST_EVENT } from '../../config/hud';
 import { GENDER_SOUNDS } from '../../data/appearance';
 import { BURN, ELEMENT_NUMBER_COLOR, type SpellElement } from '../../data/elements';
@@ -111,6 +114,9 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost {
     private readonly numbers: DamageNumbers;
     private readonly particles: HitParticles;
     private readonly effects: Pool<Effect>;
+    /** A shield's look under the feet while it lasts (Protection From Magic's ring). */
+    private readonly wornLook: Phaser.GameObjects.Sprite;
+    private wornLookKey: string | undefined;
     /** One attack asked for (a click or a press) and not yet started. */
     private attackQueued = false;
     /** The button is held: attacks go on. */
@@ -149,6 +155,7 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost {
         this.numbers = new DamageNumbers(scene);
         this.particles = new HitParticles(scene);
         this.effects = new Pool(() => new Effect(scene));
+        this.wornLook = smoothSprite(scene.add.sprite(0, 0, '__DEFAULT')).setVisible(false).setAlpha(AURA_RING_ALPHA).setDepth(DEPTH_GROUND_SHADOWS + 1);
         this.pits = new OffPits(scene, pits, (x, y) => this.isFree(x, y));
         this.pits.fillAll();
         this.spells = new OffSpells(scene, this, mover, character, audio);
@@ -344,14 +351,27 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost {
         }
     }
 
-    /** The shield's time runs out. */
+    /** The shield's time runs out; its look follows the feet meanwhile. */
     private updateProtection(deltaMs: number): void {
         const protection = this.protection;
-        if (!protection) return;
-        protection.leftMs -= deltaMs;
-        if (protection.leftMs > 0) return;
-        this.protection = undefined;
-        this.eventLine(OFF_CAST_TEXT.shieldOff(OFF_SPELLS[protection.spell].name));
+        if (protection) {
+            protection.leftMs -= deltaMs;
+            if (protection.leftMs <= 0) {
+                this.protection = undefined;
+                this.eventLine(OFF_CAST_TEXT.shieldOff(OFF_SPELLS[protection.spell].name));
+            }
+        }
+        this.updateWornLook();
+    }
+
+    private updateWornLook(): void {
+        const key = this.protection ? OFF_SPELLS[this.protection.spell].wornEffect : undefined;
+        if (key !== this.wornLookKey) {
+            this.wornLookKey = key;
+            if (key && this.scene.anims.exists(key)) this.wornLook.setVisible(true).play(key);
+            else this.wornLook.setVisible(false).stop();
+        }
+        if (this.wornLook.visible) this.wornLook.setPosition(this.character.x, this.character.y);
     }
 
     // ---- OffMonsterWorld ----
