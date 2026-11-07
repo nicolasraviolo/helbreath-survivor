@@ -7,6 +7,7 @@
 // - Experiencia (Off-2B, off/data/offLevel.ts): entera al matar al monstruo. Subir de nivel llena la vida, suena la voz
 //   del original, sale "Level Up!" y guarda 3 puntos. Todo se guarda al momento (OffSaveStore).
 // - Maná, estamina y las tandas de recuperación (Off-3B): OffVitals. Subir de nivel y volver a la vida los llenan.
+// - Equipo (Off-3C): el arma puesta da el daño, el alcance y la velocidad; la armadura suma defensa (2 × DEX + la suya).
 // Los mensajes ("Level Up!" y la lista de abajo a la izquierda) van a OffHudScene por los eventos de la escena.
 import Phaser from 'phaser';
 import { PLAYER_BODY_OFFSET_Y } from '../../config/gameConfig';
@@ -21,7 +22,8 @@ import { HitParticles } from '../../systems/HitParticles';
 import { Pool } from '../../utils/Pool';
 import { OFF_MONSTER_LOOK } from '../config/offMonsterLook';
 import { OFF_STAT_IDS, offMaxHp, type OffStats } from '../data/offCharacter';
-import { OFF_COMBAT, OFF_DAGGER, offAttackMs } from '../data/offCombat';
+import { OFF_COMBAT, offAttackMs } from '../data/offCombat';
+import { offArmorDefense, offWeapon, type OffWeaponItem } from '../data/offItems';
 import { OFF_LEVEL, OFF_LEVEL_TEXT, offDeathExpLoss, offKillExp, offLevelForExp } from '../data/offLevel';
 import type { OffCharacter } from '../entities/OffCharacter';
 import type { OffMonster } from '../entities/OffMonster';
@@ -97,6 +99,16 @@ export class OffBattle implements OffMonsterWorld {
     /** The character's stats (they grow in the Character window). */
     public get stats(): Readonly<OffStats> {
         return offSaveStore.character.stats;
+    }
+
+    /** The weapon held now (Equipment screen, Off-3C). */
+    public get weapon(): OffWeaponItem {
+        return offWeapon(offSaveStore.character.equipment);
+    }
+
+    /** Defence against monsters: 2 × DEX and the worn armour (original). */
+    public get defense(): number {
+        return this.stats.dex * 2 + offArmorDefense(offSaveStore.character.equipment);
     }
 
     /** Character window, Ok: the points go into the stats for good. Health, mana and stamina keep their value. */
@@ -212,8 +224,7 @@ export class OffBattle implements OffMonsterWorld {
 
     public rollHitOnPlayer(monster: OffMonster): boolean {
         this.audio.play(monster.def.base.attackSound);
-        const defense = this.stats.dex * 2;
-        return Math.random() < offHitChance(monster.def.base.hitRatio, defense, isFromBehind(monster.mover.facing, this.mover.facing));
+        return Math.random() < offHitChance(monster.def.base.hitRatio, this.defense, isFromBehind(monster.mover.facing, this.mover.facing));
     }
 
     public monsterStrikes(monster: OffMonster, lands: boolean): void {
@@ -253,9 +264,10 @@ export class OffBattle implements OffMonsterWorld {
         }
         const target = this.target;
         if (!target || !target.isAlive || !(this.attackQueued || this.attackHeld)) return;
-        if (this.distanceTo(target) > OFF_DAGGER.range) {
+        const range = this.weapon.range;
+        if (this.distanceTo(target) > range) {
             // Walk up to it (the mover stops when it is in reach).
-            if (!this.character.isActing) this.mover.approach(target.mover.tileX, target.mover.tileY, OFF_DAGGER.range);
+            if (!this.character.isActing) this.mover.approach(target.mover.tileX, target.mover.tileY, range);
             return;
         }
         if (this.mover.isMoving) return;
@@ -271,7 +283,7 @@ export class OffBattle implements OffMonsterWorld {
         const hitRatio = OFF_COMBAT.noviceSkill + OFF_COMBAT.playerHitBonus;
         const behind = isFromBehind(direction, target.mover.facing);
         const lands = Math.random() < offHitChance(hitRatio, target.def.base.defenseRatio, behind);
-        const attackMs = offAttackMs(OFF_DAGGER, this.stats.str);
+        const attackMs = offAttackMs(this.weapon, this.stats.str);
         this.character.act(PlayerState.Melee, direction, attackMs);
         this.cooldownMs = attackMs;
         this.blow = { monster: target, lands, leftMs: attackMs * OFF_COMBAT.hitShare };
@@ -287,7 +299,7 @@ export class OffBattle implements OffMonsterWorld {
             this.numbers.showWord(monster.x, bodyY, 'Miss');
             return;
         }
-        const damage = rollWeaponDamage(OFF_DAGGER, monster.def.size, this.stats.str);
+        const damage = rollWeaponDamage(this.weapon, monster.def.size, this.stats.str);
         monster.hurt(damage);
         provokeMonster(monster);
         const killed = monster.hp <= 0;

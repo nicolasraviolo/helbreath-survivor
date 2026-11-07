@@ -9,7 +9,7 @@ import type { CharacterLook } from '../../data/appearance';
 import { CHARACTERS, type CharacterDef } from '../../data/characters';
 import type { TileRect } from '../../data/maps';
 import { OFF_MONSTERS } from './offMonsters';
-import { OFF_DAGGER } from './offCombat';
+import { MELEE_WEAPONS } from '../../data/weapons';
 
 /** Time to cross one tile, in milliseconds. */
 export const OFF_STEP_MS = { run: 250, walk: 400 } as const;
@@ -72,6 +72,6 @@ export const OFF_NOVICE: CharacterDef = {
         hauberk: { sprite: 'gear.shirt.m' },
         leggings: { sprite: 'gear.trousers.m' },
         boots: { sprite: 'gear.boots.long.m' },
-        weapon: { sprite: OFF_DAGGER.look.sprite, startSheet: OFF_DAGGER.look.startSheet },
+        weapon: { sprite: MELEE_WEAPONS.dagger.sprite.key, startSheet: MELEE_WEAPONS.dagger.sprite.startSheet },
     },
 };

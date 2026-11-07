@@ -5,10 +5,8 @@
 // - Daño de un arma: sus dados (contra pequeños o grandes) × (1 + STR / 500).
 // - Monstruos (NpcBehavior_*): buscan cada acción en un cuadrado de su alcance; si pierden 20 turnos persiguiendo,
 //   lo dejan. Con 2 de vida o menos y 1d(valentía) ≤ 3 huyen 10 acciones (ya portado en Survivors, MONSTER_AI).
-// Hasta que haya equipo (Off-4), el personaje lleva una Dagger (propietario, 6-nov-2026). Sus stats y la fórmula de la
-// vida están en off/data/offCharacter.ts (Off-3A).
-import { MELEE_WEAPONS } from '../../data/weapons';
-
+// Las armas (la Dagger de salida y las de prueba, Off-3C) están en off/data/offItems.ts. Los stats y la fórmula de la
+// vida, en off/data/offCharacter.ts (Off-3A).
 export interface OffWeaponDef {
     name: string;
     /** Damage dice against small monsters (Item.cfg values 1–3) and large ones (4–6): count, sides, bonus. */
@@ -16,24 +14,11 @@ export interface OffWeaponDef {
     large: readonly [number, number, number];
     /** Tiles it reaches (1 = next to the target). */
     range: number;
-    /** STR needed to equip it (Item.cfg weight / 100). Checked when there is gear to equip (Off-3C / Off-4). */
+    /** STR needed to equip it (Item.cfg weight / 100). Checked on the Equipment screen (Off-3C). */
     strToEquip: number;
     /** Item.cfg speed: 0 = fastest. Every OFF_ATTACK_SPEED.strPerStep of STR takes 1 off it (see offAttackMs). */
     speed: number;
-    /** Drawn in the hand. */
-    look: { sprite: typeof MELEE_WEAPONS.dagger.sprite.key; startSheet: number };
 }
-
-/** The novice's Dagger (Item.cfg 1: 1d5 small, 1d4 large; weight 200 → STR 2; speed 0, the fastest whatever the STR). */
-export const OFF_DAGGER: OffWeaponDef = {
-    name: 'Dagger',
-    small: [1, 5, 0],
-    large: [1, 4, 0],
-    range: 1,
-    strToEquip: 2,
-    speed: 0,
-    look: { sprite: MELEE_WEAPONS.dagger.sprite.key, startSheet: MELEE_WEAPONS.dagger.sprite.startSheet },
-};
 
 /**
  * Attack speed (Fase Off-3B; propietario, 7-nov-2026: depends on the weapon and the STR).
@@ -57,6 +42,25 @@ export function offWeaponSlowness(weapon: Pick<OffWeaponDef, 'speed'>, str: numb
 export function offAttackMs(weapon: Pick<OffWeaponDef, 'speed'>, str: number): number {
     const a = OFF_ATTACK_SPEED;
     return a.frames * (a.baseFrameMs + offWeaponSlowness(weapon, str) * a.frameMsPerSlowness);
+}
+
+/**
+ * Speed shown on the Equipment screen (propietario, 7-nov-2026): the weapon's own speed (Item.cfg), whatever the STR.
+ * With enough STR every weapon swings as fast as the Dagger, so the label tells how slow it is before STR helps; the
+ * screen also says the STR at which it reaches its best. Ours, by Item.cfg speed: Fast 0–2 (Dagger, Short Sword),
+ * Medium 3–7 (Rapier, Esterk, Light Axe, Long Sword, Broad Sword, Claymore), Slow 8+ (Great Sword, Flameberge, War Axe,
+ * Battle Axe, hammers). In order, fastest first.
+ */
+export const OFF_SPEED_LABELS = [
+    { upToSpeed: 2, label: 'Fast' },
+    { upToSpeed: 7, label: 'Medium' },
+    { upToSpeed: Infinity, label: 'Slow' },
+] as const;
+
+/** Fast / Medium / Slow, and its place in OFF_SPEED_LABELS (0 = fastest), for a weapon. */
+export function offSpeedLabel(weapon: Pick<OffWeaponDef, 'speed'>): { label: string; rank: number } {
+    const rank = Math.max(0, OFF_SPEED_LABELS.findIndex((s) => weapon.speed <= s.upToSpeed));
+    return { label: OFF_SPEED_LABELS[rank]?.label ?? 'Slow', rank };
 }
 
 /** STR at which a weapon swings at its best. */

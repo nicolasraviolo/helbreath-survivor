@@ -1,11 +1,11 @@
 // Helbreath Off (Fase Off-3B): lo que la ventana Character de Survivors (scenes/CharacterInfoScene.ts, modo `off`)
 // necesita del personaje de Off: nombre, nivel, experiencia, stats, puntos por repartir, vida / maná / estamina
 // (lo que tiene y el máximo con los stats que se están repartiendo) y qué hacer al pulsar Ok.
-import { START_EQUIPMENT } from '../../data/items';
 import type { Stats } from '../../data/stats';
 import type { CharacterInfoOff, CharacterInfoSceneData } from '../../scenes/CharacterInfoScene';
 import type { MenuOverlayData } from '../../scenes/MenuOverlayScene';
 import { OFF_STAT_HELP, OFF_STAT_IDS, OFF_STAT_MAX, offMaxHp, offMaxMana, offMaxStamina, type OffStats } from '../data/offCharacter';
+import { offEquipmentLook } from '../data/offItems';
 import { OFF_LEVEL, offExpForLevel } from '../data/offLevel';
 import { OFF_NOVICE } from '../data/offWorld';
 import type { OffBattle } from '../systems/OffBattle';
@@ -20,8 +20,7 @@ export function offCharacterInfo(battle: OffBattle, worldKey: string, onClose: (
         subtitle: `Level ${level}`,
         def: OFF_NOVICE,
         look: saved.look,
-        // Until there is gear (Off-4): the Dagger the novice carries.
-        equipment: START_EQUIPMENT.warrior,
+        equipment: offEquipmentLook(saved.equipment),
         level,
         exp: battle.exp,
         nextExp: level >= OFF_LEVEL.max ? undefined : offExpForLevel(level + 1),

@@ -77,6 +77,8 @@ export enum Action {
     /** Helbreath Off: mark the next / previous monster near you (RB / LB; with the mouse, a click marks one). */
     OffNextTarget = 'offNextTarget',
     OffPrevTarget = 'offPrevTarget',
+    /** Helbreath Off (Fase Off-3C): open / close the Equipment screen (I or gamepad X). */
+    OffEquipment = 'offEquipment',
 }
 
 export type InputDevice = 'keyboard' | 'mouse' | 'gamepad' | 'touch' | 'none';
@@ -123,6 +125,7 @@ const KEYBOARD_ACTIONS: Record<Action, number[]> = {
     [Action.TrainingReset]: [KEY.R],
     [Action.ToggleRun]: [KEY.R],
     [Action.OffAttack]: [KEY.SPACE],
+    [Action.OffEquipment]: [KEY.I],
     // With the mouse a click marks a monster: these two are gamepad only.
     [Action.OffNextTarget]: [],
     [Action.OffPrevTarget]: [],
@@ -151,6 +154,7 @@ const GAMEPAD_ACTIONS: Partial<Record<Action, number[]>> = {
     [Action.ToggleDebug]: [GAMEPAD_BUTTON.View],
     [Action.ToggleRun]: [GAMEPAD_BUTTON.R3],
     [Action.OffAttack]: [GAMEPAD_BUTTON.A],
+    [Action.OffEquipment]: [GAMEPAD_BUTTON.X],
     [Action.OffNextTarget]: [GAMEPAD_BUTTON.R1],
     [Action.OffPrevTarget]: [GAMEPAD_BUTTON.L1],
 };

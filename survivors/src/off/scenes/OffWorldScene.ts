@@ -37,6 +37,9 @@ import { OffBattle } from '../systems/OffBattle';
 import { offSaveStore } from '../systems/OffSaveStore';
 import { OFF_HUD_SCENE_KEY, OFF_OPEN_CHARACTER_EVENT, type OffHudSceneData, type OffHudState } from './OffHudScene';
 import { offCharacterInfo } from './offCharacterInfo';
+import { offEquipmentLook } from '../data/offItems';
+import { offAttackMs } from '../data/offCombat';
+import { OFF_EQUIPMENT_SCENE_KEY, type OffEquipmentSceneData } from './OffEquipmentScene';
 import { directionOffset, findFreeTile, TileMover, type TilePoint } from '../systems/TileMover';
 
 export const OFF_WORLD_SCENE_KEY = 'OffWorld';
@@ -50,7 +53,7 @@ export function startOffWorld(scene: Phaser.Scene): void {
         place: {
             ...OFF_WORLD,
             sceneKey: OFF_WORLD_SCENE_KEY,
-            worn: runSprites(OFF_NOVICE, offSaveStore.character.look),
+            worn: runSprites(OFF_NOVICE, offSaveStore.character.look, offEquipmentLook(offSaveStore.character.equipment)),
             sounds: [OFF_WORLD.music],
         },
     };
@@ -93,7 +96,7 @@ export class OffWorldScene extends Phaser.Scene {
         // Monsters block the way too (the battle knows where they are).
         this.mover = new TileMover((x, y) => this.battle.isFreeForPlayer(x, y), spawn.x, spawn.y);
         this.lastTile = { x: spawn.x, y: spawn.y };
-        this.character = new OffCharacter(this, OFF_NOVICE, offSaveStore.character.look);
+        this.character = new OffCharacter(this, OFF_NOVICE, offSaveStore.character.look, offEquipmentLook(offSaveStore.character.equipment));
         this.character.update(this.mover, false, 0);
         this.audio = new AudioSystem(this);
         const respawnTile = () => findFreeTile((x, y) => this.battle.isFreeForPlayer(x, y), spawn.x, spawn.y, OFF_MOVEMENT.clickSearchRadius) ?? spawn;
@@ -179,6 +182,10 @@ export class OffWorldScene extends Phaser.Scene {
             this.openCharacter();
             return;
         }
+        if (input.justPressed(Action.OffEquipment)) {
+            this.openEquipment();
+            return;
+        }
         if (input.justPressed(Action.ToggleRun)) runMode = !runMode;
         this.updateCombatInput();
         if (!this.battle.dead) this.steer();
@@ -198,16 +205,38 @@ export class OffWorldScene extends Phaser.Scene {
     /** The Character window over the paused world (and HUD); both go on when it closes. */
     public openCharacter(): void {
         if (!this.scene.isActive()) return;
+        // The HUD hides (the window shows health, mana and stamina, and its help line goes where the bar is).
+        this.pauseForWindow();
+        // CharacterInfo resumes the world (returnTo); the HUD wakes here. Spent points are read at once by both.
+        this.scene.launch('CharacterInfo', offCharacterInfo(this.battle, OFF_WORLD_SCENE_KEY, () => this.scene.wake(OFF_HUD_SCENE_KEY)));
+    }
+
+    /** The Equipment screen (Off-3C) over the paused world; on closing, the character wears the new gear. */
+    public openEquipment(): void {
+        if (!this.scene.isActive()) return;
+        this.pauseForWindow();
+        const data: OffEquipmentSceneData = {
+            returnTo: OFF_WORLD_SCENE_KEY,
+            vitals: { hp: this.battle.hp, mana: this.battle.vitals.mana, stamina: this.battle.vitals.stamina },
+            onClose: () => {
+                this.scene.wake(OFF_HUD_SCENE_KEY);
+                const look = offEquipmentLook(offSaveStore.character.equipment);
+                // Items not downloaded yet appear as soon as they arrive (CharacterSprite asks for them).
+                this.character.wear(look);
+            },
+        };
+        this.scene.launch(OFF_EQUIPMENT_SCENE_KEY, data);
+    }
+
+    /** Stops walking and attacking, pauses the world and hides the HUD (a window opens over them). */
+    private pauseForWindow(): void {
         this.leftHeld = false;
         this.mouseAttack = false;
         this.battle.stopAttacking();
         this.audio.stopLoop('sfx.footsteps');
         this.footstepsMs = 0;
         this.scene.pause();
-        // The HUD hides (the window shows health, mana and stamina, and its help line goes where the bar is).
         this.scene.sleep(OFF_HUD_SCENE_KEY);
-        // CharacterInfo resumes the world (returnTo); the HUD wakes here. Spent points are read at once by both.
-        this.scene.launch('CharacterInfo', offCharacterInfo(this.battle, OFF_WORLD_SCENE_KEY, () => this.scene.wake(OFF_HUD_SCENE_KEY)));
     }
 
     /** Development (`check offwalk`): walks (or runs, `run`) to a tile as a click there would. */
@@ -221,6 +250,7 @@ export class OffWorldScene extends Phaser.Scene {
         tile: TilePoint; moving: boolean; running: boolean; stepMs: number; spawn: TilePoint; hp: number; maxHp: number; dead: boolean;
         mana: number; maxMana: number; stamina: number; maxStamina: number; stats: Readonly<Record<string, number>>;
         level: number; exp: number; points: number; kills: number; monsters: Record<string, number>; target: string | undefined;
+        weapon: string; attackMs: number; defense: number;
     } {
         const monsters: Record<string, number> = {};
         for (const monster of this.battle.pits.monsters) {
@@ -247,6 +277,9 @@ export class OffWorldScene extends Phaser.Scene {
             kills: this.battle.kills,
             monsters,
             target: target ? `${target.id} ${target.hp}/${target.maxHp} at ${target.mover.tileX},${target.mover.tileY}` : undefined,
+            weapon: this.battle.weapon.name,
+            attackMs: offAttackMs(this.battle.weapon, this.battle.stats.str),
+            defense: this.battle.defense,
         };
     }
 

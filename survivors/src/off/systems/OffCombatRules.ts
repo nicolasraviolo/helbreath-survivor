@@ -24,8 +24,25 @@ export function isFromBehind(attackerFacing: number, targetFacing: number): bool
 /** A weapon's damage: its dice for the target's size, then +1 % per 5 STR (never under 1). */
 export function rollWeaponDamage(weapon: OffWeaponDef, size: 'small' | 'large', str: number): number {
     const [count, sides, bonus] = size === 'small' ? weapon.small : weapon.large;
-    const base = rollDice(count, sides) + bonus;
+    return strDamage(rollDice(count, sides) + bonus, str);
+}
+
+/** The dice's result with the STR bonus. */
+function strDamage(base: number, str: number): number {
     return Math.max(1, Math.floor(base * (1 + str / 500)));
+}
+
+/**
+ * Least and most damage of a normal blow with that STR (crits apart), against any monster: the lowest of the small and
+ * large dice to the highest (Fase Off-3C: the owner wanted this instead of the dice, which were hard to read).
+ */
+export function weaponDamageRange(weapon: Pick<OffWeaponDef, 'small' | 'large'>, str: number): { min: number; max: number } {
+    const low = ([count, , bonus]: readonly [number, number, number]) => count + bonus;
+    const high = ([count, sides, bonus]: readonly [number, number, number]) => count * sides + bonus;
+    return {
+        min: strDamage(Math.min(low(weapon.small), low(weapon.large)), str),
+        max: strDamage(Math.max(high(weapon.small), high(weapon.large)), str),
+    };
 }
 
 /** A monster's damage on the player: its dice, minus 1d(VIT/10) − 1 (it can reach 0). */

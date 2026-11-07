@@ -3,22 +3,25 @@
 // Fase Off-3A (versión 2): también nombre, aspecto y stats, y si ya se ha creado. Sin personaje creado, Play lleva a la
 // pantalla de crear (OffCreateScene). Un guardado de la versión 1 se queda con su experiencia, 12 en cada stat, el
 // nombre por defecto y el aspecto del novato, y cuenta como creado.
+// Fase Off-3C (versión 3): también lo que lleva puesto (`equipment`, off/data/offItems.ts). Los guardados anteriores
+// empiezan con la Dagger y nada más.
 // Lleva número de versión como los guardados de Survivors. Si el navegador no deja guardar, dura hasta cerrar la página.
 // Va en el código de traspaso (config/transfer.ts → TRANSFER_KEYS).
 // Desarrollo: ?offreset borra el personaje (Play vuelve a crear uno); ?offlevel=N pone al personaje al principio del
-// nivel N, ya creado (debugStart.ts).
+// nivel N, ya creado; ?offgear=longSword,leatherArmor le pone esos objetos (debugStart.ts).
 import { DEBUG_START } from '../../config/debugStart';
 import type { CharacterLook } from '../../data/appearance';
 import { CHARACTER_NAME_MAX_LENGTH } from '../../data/characterSlots';
 import { cleanName, readLook } from '../../systems/CharacterStore';
 import { isRecord } from '../../systems/SaveStore';
 import { OFF_CREATION, OFF_OLD_SAVE_STATS, OFF_STAT_IDS, OFF_STAT_MAX, type OffStats } from '../data/offCharacter';
+import { isOffItemId, OFF_ITEMS, OFF_START_EQUIPMENT, readOffEquipment, type OffEquipment, type OffItemId, type OffSlotId } from '../data/offItems';
 import { OFF_LEVEL, offExpForLevel, offLevelForExp } from '../data/offLevel';
 import { OFF_NOVICE_LOOK } from '../data/offWorld';
 
 export const OFF_CHARACTER_STORAGE_KEY = 'hb-off.character';
-/** 1 (Off-2B): experience and unspent points. 2 (Off-3A): name, look, stats and whether it was created. */
-const OFF_CHARACTER_VERSION = 2;
+/** 1 (Off-2B): experience and unspent points. 2 (Off-3A): name, look, stats and whether it was created. 3 (Off-3C): equipment. */
+const OFF_CHARACTER_VERSION = 3;
 
 export interface OffSavedCharacter {
     /** False until the creation screen is done (Play opens it). */
@@ -30,11 +33,13 @@ export interface OffSavedCharacter {
     exp: number;
     /** Stat points not spent yet (3 per level). */
     points: number;
+    /** What it wears (Off-3C). */
+    equipment: OffEquipment;
 }
 
 /** The character before anyone creates one (also what ?offreset leaves). */
 function blankCharacter(): OffSavedCharacter {
-    return { created: false, name: OFF_CREATION.defaultName, look: { ...OFF_NOVICE_LOOK }, stats: { ...OFF_OLD_SAVE_STATS }, exp: 0, points: 0 };
+    return { created: false, name: OFF_CREATION.defaultName, look: { ...OFF_NOVICE_LOOK }, stats: { ...OFF_OLD_SAVE_STATS }, exp: 0, points: 0, equipment: { ...OFF_START_EQUIPMENT } };
 }
 
 class OffSaveStoreImpl {
@@ -44,7 +49,23 @@ class OffSaveStoreImpl {
         if (DEBUG_START.offReset) this.data = blankCharacter();
         const level = DEBUG_START.offLevel;
         if (level !== undefined) this.data = { ...this.data, created: true, exp: offExpForLevel(level), points: (level - 1) * OFF_LEVEL.pointsPerLevel };
-        if (DEBUG_START.offReset || level !== undefined) this.write();
+        const debugStats = { ...this.data.stats };
+        let statsChanged = false;
+        for (const id of OFF_STAT_IDS) {
+            const n = DEBUG_START.offStats[id];
+            if (n !== undefined) {
+                debugStats[id] = Math.min(OFF_STAT_MAX, n);
+                statsChanged = true;
+            }
+        }
+        if (statsChanged) this.data = { ...this.data, stats: debugStats };
+        const gear = DEBUG_START.offGear.filter(isOffItemId);
+        if (gear.length > 0) {
+            const equipment = { ...this.data.equipment };
+            for (const id of gear) equipment[OFF_ITEMS[id].slot] = id;
+            this.data = { ...this.data, equipment };
+        }
+        if (DEBUG_START.offReset || level !== undefined || gear.length > 0 || statsChanged) this.write();
     }
 
     public get character(): Readonly<OffSavedCharacter> {
@@ -57,7 +78,7 @@ class OffSaveStoreImpl {
 
     /** Creation screen done: a new character at level 1. */
     public create(name: string, look: CharacterLook, stats: OffStats): void {
-        this.data = { created: true, name, look: { ...look }, stats: { ...stats }, exp: 0, points: 0 };
+        this.data = { created: true, name, look: { ...look }, stats: { ...stats }, exp: 0, points: 0, equipment: { ...OFF_START_EQUIPMENT } };
         this.write();
     }
 
@@ -67,6 +88,21 @@ class OffSaveStoreImpl {
         for (const id of OFF_STAT_IDS) stats[id] = Math.min(OFF_STAT_MAX, stats[id] + Math.max(0, added[id]));
         this.data = { ...this.data, stats, points: Math.max(0, pointsLeft) };
         this.write();
+    }
+
+    /**
+     * Equipment screen (Off-3C): puts the item on (undefined empties the slot). False, and nothing changes, if the STR is
+     * short or the weapon slot would be left empty.
+     */
+    public equip(slot: OffSlotId, id: OffItemId | undefined): boolean {
+        if (id === undefined && slot === 'weapon') return false;
+        if (id !== undefined && (OFF_ITEMS[id].slot !== slot || OFF_ITEMS[id].strToEquip > this.data.stats.str)) return false;
+        const equipment = { ...this.data.equipment };
+        if (id === undefined) delete equipment[slot];
+        else equipment[slot] = id;
+        this.data = { ...this.data, equipment };
+        this.write();
+        return true;
     }
 
     /** Experience and unspent points after a fight (the rest stays as it is). */
@@ -99,6 +135,7 @@ function load(): OffSavedCharacter {
             stats: readStats(data.stats) ?? blank.stats,
             exp: nonNegative(data.exp),
             points: nonNegative(data.points),
+            equipment: readOffEquipment(data.equipment),
         };
     } catch {
         return blankCharacter();

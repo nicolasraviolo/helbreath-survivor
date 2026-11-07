@@ -127,6 +127,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Experiencia y niveles en Helbreath Off (Fase Off-2B)
 - Crear personaje en Helbreath Off (Fase Off-3A)
 - Ventana Character, maná, estamina y velocidad del arma en Helbreath Off (Fase Off-3B)
+- Equipment y cuadro de stats en Helbreath Off (Fase Off-3C)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -1433,3 +1434,12 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - **HUD:** en el original, la barra verde es la **estamina** (propietario, 7-nov-2026), no la experiencia. Con `HudBarState.stamina`, la barra verde (clásica y compacta) enseña la estamina. La experiencia va en una barra fina dorada justo debajo (en la compacta, encima; `ui/ThinGauge.ts`, `HUD_XP_STRIP`) y en % en la línea de texto: "Level 5   Exp 42%   0 kills" (`OFF_HUD_TEXT`). Survivors sigue con la experiencia en verde.
 - `TileMover.onStep` avisa al empezar cada paso; solo lo usa el jugador.
 - **Check:** `offchar`, `offassign` (+3 Str, +2 Vit y Ok; muestra lo guardado), `offstamina` (5 de estamina: 5 pasos de 250 ms y luego de 400), `offregen` (25 s).
+
+## Equipment y cuadro de stats en Helbreath Off (Fase Off-3C)
+- **Escena aparte** (`off/scenes/OffEquipmentScene.ts`), no un modo de `scenes/EquipmentScene.ts`: aquella lee `characterStore` en casi todos sus métodos. Copia sus medidas (`config/equipment.ts`, `config/characterInfo.ts`) y lo nuevo va en `off/config/offEquipment.ts`. La tapa de Charisma es la misma de la Off-3B (`CHARACTER_INFO_CHR_COVER`).
+- **Item.cfg** (`reference/Item.cfg`): tras id y nombre: tipo, hueco (`EquipPos`: 1 cabeza, 2 cuerpo, 3 brazos/camisa, 4 piernas, 5 pies, 7 mano izquierda/escudo, 8 mano derecha, 12 espalda/capa), tipo de efecto (1 arma, 2 defensa), 6 valores, vida del objeto, efecto especial, sprite, frame, precio, **peso**, apariencia, **velocidad**, nivel mínimo, sexo (1 hombre, 2 mujer)... Armas: los 6 valores son dados contra pequeños y grandes. Defensa: el valor 1 se suma a `m_iDefenseRatio` (Server.cpp, `DEF_ITEMEFFECTTYPE_DEFENSE`). **STR para equipar cualquier objeto = peso / 100** (Client.cpp, al equipar: "m_wWeight / 100 > m_iStr"). Por eso el Helm(M) pide Str 52.
+- **Velocidad:** el servidor del repo pone lentitud = velocidad − STR/13 (mín. 0) igual para todas las armas, y solo frena golpes a menos de 450 ms (`bCheckClientAttackFrequency`). La wiki (`docs/hb-wiki/armas.md`) describe un suelo por familia de una versión posterior: **no se usa** (propietario, 7-nov-2026). El cuadro enseña Fast / Medium / Slow por la velocidad propia del arma (`OFF_SPEED_LABELS`), no por la STR.
+- **Daño en el cuadro:** desde/hasta de un golpe normal con la STR (`weaponDamageRange`), del menor de los dados contra pequeños y grandes al mayor; sin críticos.
+- **Dibujo:** cada objeto de Off apunta a su igual de Survivors (`look`), que da icono (item-pack.spr) y capa. `OffCharacter.wear` vuelve primero a la ropa del novato en cada capa y luego pone el equipo (si no, quitar algo dejaría al personaje en ropa interior).
+- **Check:** `offequip` (Str 10, Long Sword marcada; en eval las filas y el texto del cuadro) y `offequipswap` (Str 14; en eval qué se dejó poner, arma / tiempo de golpe / defensa antes y después, y lo guardado). `e.debugMark(slot, fila)` y `e.debugState()` en la escena.
+

@@ -61,6 +61,11 @@ const PRESETS = {
     offassign: 'off=world&offlevel=5',
     offstamina: 'off=world&offlevel=5',
     offregen: 'off=world&offlevel=5',
+    // Fase Off-3C: pantalla Equipment. offequip la abre con Str 10 y marca la Long Sword (cuadro de stats comparado con
+    // la Dagger, Str en rojo). offequipswap, con Str 14: intenta el Helmet (Str 52, no deja), se pone la Long Sword y la
+    // Chain Hose, cierra, y en eval salen arma, tiempo de golpe y defensa antes y después, y lo guardado.
+    offequip: 'off=world&offlevel=5&offstats=str:10',
+    offequipswap: 'off=world&offlevel=5&offstats=str:14',
     game: 'play',
     levelup: 'debug=levelup',
     // Fase 21½A: todas las cartas Epic (marco morado, cinta, brillo y sonido).
@@ -329,6 +334,8 @@ const PRESET_EVAL = {
     offchar: "o.openCharacter(), new Promise((r) => setTimeout(() => r({ open: game.scene.isActive('CharacterInfo'), worldPaused: game.scene.isPaused('OffWorld'), state: o.debugState() }), 800))",
     offassign: "new Promise((r) => { const before = o.debugState(); o.openCharacter(); setTimeout(() => { const c = game.scene.getScene('CharacterInfo'); for (let i = 0; i < 3; i++) c.change('str', 1); c.change('vit', 1); c.change('vit', 1); c.change('chr', 1); c.confirm(); setTimeout(() => r({ before, after: o.debugState(), worldRunning: game.scene.isActive('OffWorld'), saved: JSON.parse(localStorage.getItem('hb-off.character')) }), 500); }, 500); })",
     offstamina: "new Promise((r) => { o.battle.vitals.stamina = 5; o.debugWalkTo(90, 100, true); const log = []; const t = setInterval(() => { const s = o.debugState(); log.push(`${s.stamina} ${s.stepMs}`); }, 250); setTimeout(() => { clearInterval(t); r({ log, end: o.debugState() }); }, 4500); })",
+    offequip: "o.openEquipment(), new Promise((r) => setTimeout(() => { const e = game.scene.getScene('OffEquipment'); e.debugMark('weapon', 3); r({ open: game.scene.isActive('OffEquipment'), worldPaused: game.scene.isPaused('OffWorld'), state: e.debugState() }); }, 1500))",
+    offequipswap: "new Promise((r) => { const before = o.debugState(); o.openEquipment(); setTimeout(() => { const e = game.scene.getScene('OffEquipment'); e.debugMark('helm'); const helmet = e.wear(1); e.debugMark('weapon'); const sword = e.wear(3); e.debugMark('legs'); const hose = e.wear(1); e.debugMark('body', 1); const box = e.debugState().box; e.close(); setTimeout(() => { const after = o.debugState(); r({ helmet, sword, hose, leatherBox: box, before: [before.weapon, before.attackMs, before.defense], after: [after.weapon, after.attackMs, after.defense], worldRunning: game.scene.isActive('OffWorld'), saved: JSON.parse(localStorage.getItem('hb-off.character')).equipment }); }, 1500); }, 1000); })",
     offregen: "new Promise((r) => { o.battle.hp = 1; o.battle.vitals.mana = 1; o.battle.vitals.stamina = 1; const start = o.debugState(); setTimeout(() => r({ start, end: o.debugState() }), 25000); })",
     offrabbit: "new Promise((r) => { const log = []; const t = setInterval(() => { if (!o.debugState().target) o.debugFight('rabbit'); log.push(o.debugState()); }, 1000); setTimeout(() => { clearInterval(t); r({ start: log[0], mid: log[12], end: log[log.length - 1] }); }, 25000); })",
 };
