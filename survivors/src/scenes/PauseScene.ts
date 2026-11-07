@@ -2,6 +2,7 @@
 // el mando. La partida y la barra quedan congeladas debajo. Resume vuelve a jugar; Settings abre los ajustes;
 // Fullscreen (si el navegador lo permite); Quit to menu abandona la partida y vuelve al menú principal.
 // En la ciudad (24-oct-2026, propietario) además Character (repartir los puntos) y Equipment, sin ir a Howard.
+// Helbreath Off (Off-4B) la usa también: sin How to Play, y Quit to menu vuelve a la pantalla de Off (`quitTo`).
 import { QUIT_RUN_EVENT } from '../config/hud';
 import { MENU_OVERLAY } from '../config/menus';
 import { fullscreenItem } from '../ui/fullscreen';
@@ -19,6 +20,10 @@ export interface PauseSceneData {
     town?: { characterUid: string; classId: CharacterId };
     /** Barracks (training): Back to Town leaves it (nothing to lose there). */
     leaveToTown?: boolean;
+    /** Helbreath Off (Off-4B): "Quit to menu" opens this scene instead of the main menu. */
+    quitTo?: string;
+    /** Helbreath Off (Off-4B): no "How to Play" (it explains Survivors). */
+    hideHowToPlay?: boolean;
 }
 
 export class PauseScene extends MenuOverlayScene {
@@ -26,6 +31,8 @@ export class PauseScene extends MenuOverlayScene {
     private gameSceneKey = '';
     private town: PauseSceneData['town'];
     private leaveToTown = false;
+    private quitTo = 'MainMenu';
+    private hideHowToPlay = false;
     /** In the town there are two more options: the bigger panel, so all of them fit inside the frame. */
     protected override panelScale: number = MENU_OVERLAY.panelScale;
     protected override itemSpacing: number = MENU_OVERLAY.itemSpacing;
@@ -39,6 +46,8 @@ export class PauseScene extends MenuOverlayScene {
         this.gameSceneKey = data.gameSceneKey;
         this.town = data.town;
         this.leaveToTown = data.leaveToTown === true;
+        this.quitTo = data.quitTo ?? 'MainMenu';
+        this.hideHowToPlay = data.hideHowToPlay === true;
         // The town and the Barracks (Back to Town) have more options: the bigger panel, so all of them fit in the frame.
         const longer = data.town !== undefined || data.leaveToTown === true;
         this.panelScale = longer ? MENU_OVERLAY.creditsPanelScale : MENU_OVERLAY.panelScale;
@@ -50,7 +59,7 @@ export class PauseScene extends MenuOverlayScene {
             { label: 'Resume', onConfirm: () => this.close() },
             ...this.townItems(),
             { label: 'Settings', onConfirm: () => openOverlay(this, 'Settings') },
-            { label: 'How to Play', onConfirm: () => openOverlay(this, 'HowToPlay') },
+            ...(this.hideHowToPlay ? [] : [{ label: 'How to Play', onConfirm: () => openOverlay(this, 'HowToPlay') }]),
             ...fullscreenItem(this),
             ...(this.leaveToTown ? [{ label: 'Back to Town', onConfirm: () => this.backToTown() }] : []),
             { label: 'Quit to menu', onConfirm: () => this.quit() },
@@ -99,6 +108,6 @@ export class PauseScene extends MenuOverlayScene {
         this.scene.get(this.gameSceneKey).events.emit(QUIT_RUN_EVENT);
         // Stopping the game also stops its HUD and level-up / game over scenes (GameScene, on SHUTDOWN).
         this.scene.stop(this.gameSceneKey);
-        this.scene.start('MainMenu');
+        this.scene.start(this.quitTo);
     }
 }

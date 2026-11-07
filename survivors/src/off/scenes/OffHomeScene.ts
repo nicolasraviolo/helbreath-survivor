@@ -1,5 +1,5 @@
 // Escena de inicio de Helbreath Off (Fase Off-0): el título, Play y Back.
-// Play (Fase Off-1) carga Traveler Zone para andar por él (OffWorldScene). Back (clic, Enter/A, o Esc/B) vuelve a la
+// Play (Fase Off-1) carga Traveler Zone; sin personaje creado (Fase Off-3A), antes abre la pantalla de crearlo para andar por él (OffWorldScene). Back (clic, Enter/A, o Esc/B) vuelve a la
 // pantalla de elegir juego. Las fases siguientes (docs/PLAN-OFF.md) la llenan.
 import Phaser from 'phaser';
 import { GAME_HEIGHT, GAME_WIDTH } from '../../config/gameConfig';
@@ -8,6 +8,8 @@ import { SpriteText } from '../../hb/SpriteText';
 import { Action, InputSystem } from '../../systems/InputSystem';
 import { MenuList } from '../../ui/MenuList';
 import { OFF_HOME } from '../config/offHome';
+import { offSaveStore } from '../systems/OffSaveStore';
+import { OFF_CREATE_SCENE_KEY } from './OffCreateScene';
 import { startOffWorld } from './OffWorldScene';
 
 export class OffHomeScene extends Phaser.Scene {
@@ -31,7 +33,7 @@ export class OffHomeScene extends Phaser.Scene {
         title.container.setScale(OFF_HOME.titleScale);
         title.container.y -= title.container.getBounds().height / 2;
         this.list = new MenuList(this, [
-            { label: 'Play', onConfirm: () => startOffWorld(this) },
+            { label: 'Play', onConfirm: () => this.play() },
             { label: 'Back', onConfirm: () => this.back() },
         ], { x, y: MAIN_MENU.panelY + OFF_HOME.listOffsetY, spacing: MAIN_MENU.itemSpacing });
         this.list.setReadyCheck(() => this.ready());
@@ -47,6 +49,11 @@ export class OffHomeScene extends Phaser.Scene {
             return;
         }
         this.list.handleInput(this.menuInput);
+    }
+
+    private play(): void {
+        if (offSaveStore.character.created) startOffWorld(this);
+        else this.scene.start(OFF_CREATE_SCENE_KEY);
     }
 
     private back(): void {

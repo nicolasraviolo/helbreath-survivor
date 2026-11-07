@@ -1,13 +1,18 @@
 // Helbreath Off (Fase Off-2B): la interfaz del mundo, encima de OffWorldScene. Reutiliza la barra de Survivors (la
 // clásica abajo en el PC, la compacta en el móvil: ui/ClassicHud.ts, ui/CompactHud.ts) con la vida, la experiencia y
-// el nivel; el maná sale "— / —" hasta la Off-6. En la línea de texto, "Level N   N kills" en vez de Power, tiempo y oro.
+// el nivel (el maná, desde la Off-3B; se gastará en la Off-6). En la línea de texto, "Level N   Exp N%   N kills" en vez
+// de Power, tiempo y oro.
 // Además, el aviso grande "Level Up!" (como los avisos de Survivors, HUD_ANNOUNCE) y la lista de mensajes de abajo a la
 // izquierda (experiencia ganada y perdida). Los dos llegan por los eventos de la escena del mundo (ANNOUNCE_EVENT,
 // EVENT_LIST_EVENT), igual que en Survivors.
-// Los botones de la barra (Character, pausa) aún no hacen nada: la ventana Character llega en la Off-3.
+// Fase Off-3B: el maná con sus números, la barra verde es la estamina como en el original (propietario, 7-nov-2026; la
+// experiencia va en una barra fina dorada debajo y en % en la línea de texto) y el casco abre la ventana Character (OFF_OPEN_CHARACTER_EVENT a la escena del mundo). La pausa
+// (disquete) abre la pausa desde la Off-4B (OFF_OPEN_PAUSE_EVENT).
+// Fase Off-4A: el oro que llevas va en la línea de texto, en vez de las muertes.
 import Phaser from 'phaser';
 import { GAME_WIDTH } from '../../config/gameConfig';
 import { ANNOUNCE_EVENT, EVENT_LIST_EVENT, HUD_ANNOUNCE, HUD_DEPTH_TEXT, HUD_EVENT_LIST } from '../../config/hud';
+import { formatGold } from '../../data/gold';
 import { SpriteText } from '../../hb/SpriteText';
 import { SETTINGS_CHANGED, settings } from '../../systems/Settings';
 import { ClassicHud } from '../../ui/ClassicHud';
@@ -17,15 +22,30 @@ import { activeHudStyle, overlayBottom, type HudBar, type HudBarState } from '..
 import type { HudStyle } from '../../config/settings';
 
 export const OFF_HUD_SCENE_KEY = 'OffHud';
+/** Emitted on the world scene by the HUD's helmet button: open the Character window. */
+export const OFF_OPEN_CHARACTER_EVENT = 'off-open-character';
+/** Emitted on the world scene by the HUD's disk button: open the pause (Off-4B). */
+export const OFF_OPEN_PAUSE_EVENT = 'off-open-pause';
 
 /** What the HUD shows, read every frame from the world. */
+/** The info line under the green (stamina) gauge. */
+export const OFF_HUD_TEXT = {
+    infoLine: (level: number, xpRatio: number, gold: number) => `Level ${level}   Exp ${Math.min(100, Math.max(0, Math.floor(xpRatio * 100)))}%   ${formatGold(gold)} Gold`,
+} as const;
+
 export interface OffHudState {
     hp: number;
     maxHp: number;
+    mana: number;
+    maxMana: number;
+    stamina: number;
+    maxStamina: number;
     level: number;
     /** 0..1 towards the next level. */
     xpRatio: number;
     kills: number;
+    /** Gold carried (Off-4A). */
+    gold: number;
 }
 
 export interface OffHudSceneData {
@@ -81,17 +101,18 @@ export class OffHudScene extends Phaser.Scene {
         const barState: HudBarState = {
             hp: state.hp,
             maxHp: state.maxHp,
-            mana: undefined,
-            maxMana: 0,
+            mana: state.mana,
+            maxMana: state.maxMana,
+            stamina: { value: state.stamina, max: state.maxStamina },
             xpRatio: state.xpRatio,
             level: state.level,
             elapsedMs: 0,
             kills: state.kills,
-            gold: 0,
+            gold: state.gold,
             skillOrb: undefined,
             skillUses: 0,
             revive: undefined,
-            infoLine: `Level ${state.level}   ${state.kills} kills`,
+            infoLine: OFF_HUD_TEXT.infoLine(state.level, state.xpRatio, state.gold),
         };
         this.bar.update(barState);
         this.updateAnnouncement(delta);
@@ -101,7 +122,10 @@ export class OffHudScene extends Phaser.Scene {
     /** The bar of the style chosen in the settings (the PC always gets the classic one). */
     private buildBar(): void {
         this.barStyle = activeHudStyle();
-        const actions = { toggleStats: () => undefined, openPause: () => undefined };
+        const actions = {
+            toggleStats: () => this.scene.get(this.worldSceneKey).events.emit(OFF_OPEN_CHARACTER_EVENT),
+            openPause: () => this.scene.get(this.worldSceneKey).events.emit(OFF_OPEN_PAUSE_EVENT),
+        };
         this.bar = this.barStyle === 'classic' ? new ClassicHud(this, actions) : new CompactHud(this, actions);
     }
 

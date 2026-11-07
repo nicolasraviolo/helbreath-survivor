@@ -31,6 +31,9 @@ const DESKTOP = { width: 1000, height: 750 };
 const IGNORED_ERRORS = [/favicon\.ico/];
 
 /** Named situations; anything else is used as the address query as it is. */
+/** Off-4B: the bag of the inventory checks (index 1 = Long Sword, 2 = Helmet, 4 = Red Potion, then Blue Potion). */
+const OFF_TEST_BAG = 'shortSword,longSword,helmet,targeShield,redPotion,bluePotion,bigRedPotion,greenPotion,slimeJelly';
+
 const PRESETS = {
     menu: '',
     // Fase Off-0: Helbreath Off oculto tras ?off. Pantalla de elegir juego y escena (vacía) de Off.
@@ -49,6 +52,41 @@ const PRESETS = {
     // eval); offdeath empieza en el nivel 10, muere y en eval sale cuánta experiencia perdió (sin bajar de nivel).
     offlevel: 'off=world&offreset',
     offdeath: 'off=world&offlevel=10',
+    // Fase Off-3A: crear personaje. offcreate abre la pantalla sin personaje; offcreated pulsa Warrior y Create y en
+    // eval sale lo guardado y la escena a la que llega.
+    offcreate: 'off=create&offreset',
+    offcreated: 'off=create&offreset',
+    // Fase Off-3B: ventana Character. offchar la abre en el nivel 5 (12 puntos); offassign reparte 3 en Str y 2 en Vit
+    // con los + y Ok (en eval: stats, puntos y máximos antes y después, y lo guardado). offstamina corre con 5 de
+    // estamina (en eval: la estamina y el tiempo de cada paso por el camino). offregen deja vida, maná y estamina a 1
+    // y espera 25 s a las tandas.
+    offchar: 'off=world&offlevel=5',
+    offassign: 'off=world&offlevel=5',
+    offstamina: 'off=world&offlevel=5',
+    offregen: 'off=world&offlevel=5',
+    // Fase Off-3C: pantalla Equipment. offequip la abre con Str 10 y marca la Long Sword (cuadro de stats comparado con
+    // la Dagger, Str en rojo). offequipswap, con Str 14: intenta el Helmet (Str 52, no deja), se pone la Long Sword y la
+    // Chain Hose, cierra, y en eval salen arma, tiempo de golpe y defensa antes y después, y lo guardado.
+    // Off-4B: Equipment solo con lo de la bolsa (lo que te quitas vuelve a ella).
+    offequip: 'off=world&offreset&offlevel=5&offstats=str:10&offbag=shortSword,lightAxe,longSword,redPotion',
+    offequipswap: 'off=world&offreset&offlevel=5&offstats=str:14&offbag=helmet,shortSword,longSword,chainHose,leatherArmor',
+    // Fase Off-4B: inventario. offbag lo abre con 9 objetos y marca la Long Sword (captura; en eval, que el mundo sigue).
+    // offbagequip intenta el Helmet (Str 52, no deja) y se pone la Long Sword (la Dagger vuelve a su casilla).
+    // offbagdrink bebe una Red Potion con 5 de vida e intenta una Blue Potion con el maná lleno (no la gasta).
+    // offbagdrop tira la Short Sword a sus pies. offpotionlimit lleva 20 pociones y pisa una más (se queda en el
+    // suelo). offpause abre la pausa (mundo y HUD parados).
+    offbag: `off=world&offreset&offlevel=5&offstats=str:14&offopen=bag&offbag=${OFF_TEST_BAG}`,
+    offbagequip: `off=world&offreset&offlevel=5&offstats=str:14&offopen=bag&offbag=${OFF_TEST_BAG}`,
+    offbagdrink: `off=world&offreset&offlevel=5&offstats=str:14&offopen=bag&offbag=${OFF_TEST_BAG}`,
+    offbagdrop: `off=world&offreset&offlevel=5&offstats=str:14&offopen=bag&offbag=${OFF_TEST_BAG}`,
+    offpotionlimit: `off=world&offreset&offlevel=5&offbag=${Array(10).fill('redPotion').concat(Array(10).fill('bluePotion')).join(',')},shortSword`,
+    offpause: 'off=world&offreset&offlevel=5',
+    // Fase Off-4A: botín. offlootview mata Slimes 14 s con ?offdrop=all y se para (captura con el botín en el suelo);
+    // offloot, lo mismo y luego pisa las casillas con botín (en eval: suelo antes, oro y bolsa después). offbagfull
+    // empieza con la bolsa llena (50 Red Potion) y ?offdrop=valuable: lo que pisa se queda en el suelo.
+    offlootview: 'off=world&offreset&offlevel=3&offdrop=all',
+    offloot: 'off=world&offreset&offlevel=3&offdrop=all',
+    offbagfull: `off=world&offreset&offlevel=3&offdrop=valuable&offbag=${Array(50).fill('redPotion').join(',')}`,
     game: 'play',
     levelup: 'debug=levelup',
     // Fase 21½A: todas las cartas Epic (marco morado, cinta, brillo y sonido).
@@ -313,6 +351,22 @@ const PRESET_EVAL = {
     offlevel: "new Promise((r) => { const start = o.debugState(); const t = setInterval(() => { if (!o.debugState().target) o.debugFight('slime'); }, 1000); setTimeout(() => { clearInterval(t); r({ start, end: o.debugState() }); }, 20000); })",
     // Fase Off-2B: 200 experience into level 10, dies (as a monster's last blow would); the experience before and after coming back.
     offdeath: "new Promise((r) => { o.battle.exp += 200; const start = o.debugState(); o.battle.hp = 0; o.battle.die(); setTimeout(() => r({ start, end: o.debugState() }), 4000); })",
+    offcreated: "new Promise((r) => { const c = game.scene.getScene('OffCreate'); c.changeStat('str', 1); const one = c.stats.str; c.createCharacter(); const blocked = game.scene.isActive('OffCreate'); c.applyPreset('warrior'); c.createCharacter(); setTimeout(() => r({ oneStr: one, blockedWithPointsLeft: blocked, saved: JSON.parse(localStorage.getItem('hb-off.character')), world: game.scene.isActive('OffWorld') }), 4000); })",
+    offchar: "o.openCharacter(), new Promise((r) => setTimeout(() => r({ open: game.scene.isActive('CharacterInfo'), worldPaused: game.scene.isPaused('OffWorld'), state: o.debugState() }), 800))",
+    offassign: "new Promise((r) => { const before = o.debugState(); o.openCharacter(); setTimeout(() => { const c = game.scene.getScene('CharacterInfo'); for (let i = 0; i < 3; i++) c.change('str', 1); c.change('vit', 1); c.change('vit', 1); c.change('chr', 1); c.confirm(); setTimeout(() => r({ before, after: o.debugState(), worldRunning: game.scene.isActive('OffWorld'), saved: JSON.parse(localStorage.getItem('hb-off.character')) }), 500); }, 500); })",
+    offstamina: "new Promise((r) => { o.battle.vitals.stamina = 5; o.debugWalkTo(90, 100, true); const log = []; const t = setInterval(() => { const s = o.debugState(); log.push(`${s.stamina} ${s.stepMs}`); }, 250); setTimeout(() => { clearInterval(t); r({ log, end: o.debugState() }); }, 4500); })",
+    offlootview: "(async () => { const fight = (ms) => new Promise((r) => { const t = setInterval(() => { if (!o.debugState().target) o.debugFight('slime'); }, 1000); setTimeout(() => { clearInterval(t); o.debugHold = false; o.battle.stopAttacking(); r(); }, ms); }); await fight(14000); return o.debugState(); })()",
+    offloot: "(async () => { const fight = (ms) => new Promise((r) => { const t = setInterval(() => { if (!o.debugState().target) o.debugFight('slime'); }, 1000); setTimeout(() => { clearInterval(t); o.debugHold = false; o.battle.stopAttacking(); r(); }, ms); }); const walkAll = async () => { for (let i = 0; i < 4; i++) { const g = o.battle.ground.items[0]; if (!g) break; o.debugWalkTo(g.tileX, g.tileY, true); await new Promise((r) => setTimeout(r, 3500)); } }; await fight(14000); const before = o.debugState(); await walkAll(); const after = o.debugState(); return { kills: before.kills, groundBefore: before.ground, goldAfter: after.gold, bagAfter: after.bag, groundAfter: after.ground, saved: (({ gold, bag }) => ({ gold, bag }))(JSON.parse(localStorage.getItem('hb-off.character'))) }; })()",
+    offbagfull: "(async () => { const fight = (ms) => new Promise((r) => { const t = setInterval(() => { if (!o.debugState().target) o.debugFight('slime'); }, 1000); setTimeout(() => { clearInterval(t); o.debugHold = false; o.battle.stopAttacking(); r(); }, ms); }); await fight(8000); const before = o.debugState(); const g = o.battle.ground.items[0]; if (g) o.debugWalkTo(g.tileX, g.tileY, true); await new Promise((r) => setTimeout(r, 3500)); const after = o.debugState(); return { groundBefore: before.ground, tile: after.tile, bagSize: after.bag.length, groundAfter: after.ground }; })()",
+    offequip: "o.openEquipment(), new Promise((r) => setTimeout(() => { const e = game.scene.getScene('OffEquipment'); e.debugMark('weapon', 3); r({ open: game.scene.isActive('OffEquipment'), worldPaused: game.scene.isPaused('OffWorld'), state: e.debugState() }); }, 1500))",
+    offbag: "new Promise((r) => setTimeout(() => { const inv = game.scene.getScene('OffInventory'); inv.debugMark(1); const m = () => o.battle.pits.monsters.filter((x) => x.isAlive).map((x) => `${x.mover.tileX},${x.mover.tileY}`).join(' '); const before = m(); setTimeout(() => r({ open: game.scene.isActive('OffInventory'), worldPaused: game.scene.isPaused('OffWorld'), monstersMoved: before !== m(), state: inv.debugState() }), 3000); }, 1000))",
+    offbagequip: "new Promise((r) => setTimeout(() => { const inv = game.scene.getScene('OffInventory'); const helmet = inv.use(2); const sword = inv.use(1); r({ helmet, sword, weapon: o.debugState().weapon, bag: inv.debugState().bag, saved: (({ equipment, bag }) => ({ equipment, bag }))(JSON.parse(localStorage.getItem('hb-off.character'))) }); }, 1000))",
+    offbagdrink: "new Promise((r) => setTimeout(() => { const inv = game.scene.getScene('OffInventory'); o.battle.hp = 5; const red = inv.use(4); const hp = o.battle.hp; const blue = inv.use(4); r({ red, hp, maxHp: o.battle.maxHp, blue, potions: inv.debugState().info, bag: inv.debugState().bag }); }, 1000))",
+    offbagdrop: "new Promise((r) => setTimeout(() => { const inv = game.scene.getScene('OffInventory'); const drop = inv.drop(0); setTimeout(() => { const s = o.debugState(); r({ drop, tile: s.tile, ground: s.ground, bag: s.bag }); }, 1500); }, 1000))",
+    offpotionlimit: "new Promise((r) => { const t = o.debugState().tile; o.battle.ground.drop({ item: 'bigRedPotion' }, t.x + 2, t.y); o.battle.ground.drop({ item: 'cape' }, t.x + 2, t.y); o.debugWalkTo(t.x + 2, t.y, false); setTimeout(() => { const s = o.debugState(); r({ tile: s.tile, ground: s.ground, bagSize: s.bag.length, potions: s.bag.filter((id) => id.includes('Potion')).length, hasCape: s.bag.includes('cape') }); }, 3000); })",
+    offpause: "o.openPause(), new Promise((r) => setTimeout(() => r({ pause: game.scene.isActive('Pause'), worldPaused: game.scene.isPaused('OffWorld'), hudPaused: game.scene.isPaused('OffHud') }), 800))",
+    offequipswap: "new Promise((r) => { const before = o.debugState(); o.openEquipment(); setTimeout(() => { const e = game.scene.getScene('OffEquipment'); e.debugMark('helm'); const helmet = e.wear(1); e.debugMark('weapon'); const sword = e.wear(2); e.debugMark('legs'); const hose = e.wear(1); const hoseOff = e.wear(0); const hoseAgain = e.wear(1); e.debugMark('body', 1); const box = e.debugState().box; e.close(); setTimeout(() => { const after = o.debugState(); const saved = JSON.parse(localStorage.getItem('hb-off.character')); r({ helmet, sword, hose, hoseOff, hoseAgain, leatherBox: box, before: [before.weapon, before.attackMs, before.defense], after: [after.weapon, after.attackMs, after.defense], worldRunning: game.scene.isActive('OffWorld'), saved: { equipment: saved.equipment, bag: saved.bag } }); }, 1500); }, 1000); })",
+    offregen: "new Promise((r) => { o.battle.hp = 1; o.battle.vitals.mana = 1; o.battle.vitals.stamina = 1; const start = o.debugState(); setTimeout(() => r({ start, end: o.debugState() }), 25000); })",
     offrabbit: "new Promise((r) => { const log = []; const t = setInterval(() => { if (!o.debugState().target) o.debugFight('rabbit'); log.push(o.debugState()); }, 1000); setTimeout(() => { clearInterval(t); r({ start: log[0], mid: log[12], end: log[log.length - 1] }); }, 25000); })",
 };
 const scenarios = args.filter((a) => !a.startsWith('--'));
@@ -404,7 +458,7 @@ async function runScenario(browser, name) {
 
     // ?open= (debugStart.ts) shows a menu screen: wait for it instead of the game.
     const openKey = { howtoplay: 'HowToPlay', settings: 'Settings', controls: 'Controls', credits: 'Credits', releasenotes: 'ReleaseNotes', achievements: 'Achievements', missions: 'Missions', slots: 'CharacterSlots', mapselect: 'MapSelect', town: 'Town', charinfo: 'CharacterInfo', equipment: 'Equipment', warehouse: 'Warehouse', runchoice: 'RunChoice', transfer: 'Transfer' }[params.get('open') ?? ''];
-    const target = params.has('loading') ? 'Preload' : params.get('town') === 'portal' ? 'MapSelect' : params.has('shop') ? 'Shop' : params.has('smith') ? 'Smith' : params.has('talk') ? 'NpcDialog' : params.get('off') === 'game' ? 'OffHome' : params.get('off') === 'world' ? 'OffWorld' : params.has('off') && !openKey ? 'GameSelect' : openKey ?? (query ? 'Game' : 'MainMenu');
+    const target = params.has('loading') ? 'Preload' : params.get('town') === 'portal' ? 'MapSelect' : params.has('shop') ? 'Shop' : params.has('smith') ? 'Smith' : params.has('talk') ? 'NpcDialog' : params.get('off') === 'game' ? 'OffHome' : params.get('off') === 'world' ? 'OffWorld' : params.get('off') === 'create' ? 'OffCreate' : params.has('off') && !openKey ? 'GameSelect' : openKey ?? (query ? 'Game' : 'MainMenu');
     await page.goto(url);
     const t0 = Date.now();
     await page.waitForFunction((key) => window.__game?.scene.isActive(key), target, { timeout: LOAD_TIMEOUT_MS });

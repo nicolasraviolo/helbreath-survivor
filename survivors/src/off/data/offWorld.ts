@@ -9,7 +9,7 @@ import type { CharacterLook } from '../../data/appearance';
 import { CHARACTERS, type CharacterDef } from '../../data/characters';
 import type { TileRect } from '../../data/maps';
 import { OFF_MONSTERS } from './offMonsters';
-import { OFF_DAGGER } from './offCombat';
+import { MELEE_WEAPONS } from '../../data/weapons';
 
 /** Time to cross one tile, in milliseconds. */
 export const OFF_STEP_MS = { run: 250, walk: 400 } as const;
@@ -55,8 +55,8 @@ export const OFF_WORLD: OffWorldDef = {
     spawn: { x: 90, y: 88 },
     /** The original's general theme (Survivors' Icebound uses it too); loaded with the map (LATER_SOUNDS). */
     music: 'music.default',
-    /** Effects of the world (the dust of the steps; fx.effect: the blood of the blows) and the monsters of the pits. */
-    sprites: ['fx.effect2', 'fx.effect', ...Object.values(OFF_MONSTERS).map((m) => m.base.sprite)],
+    /** Effects of the world (the dust of the steps; fx.effect: the blood of the blows), the loot on the ground (Off-4A) and the monsters of the pits. */
+    sprites: ['fx.effect2', 'fx.effect', 'item.ground', ...Object.values(OFF_MONSTERS).map((m) => m.base.sprite)],
 };
 
 /** The novice's look: a man with the default body, hair and underwear. */
@@ -72,6 +72,6 @@ export const OFF_NOVICE: CharacterDef = {
         hauberk: { sprite: 'gear.shirt.m' },
         leggings: { sprite: 'gear.trousers.m' },
         boots: { sprite: 'gear.boots.long.m' },
-        weapon: { sprite: OFF_DAGGER.look.sprite, startSheet: OFF_DAGGER.look.startSheet },
+        weapon: { sprite: MELEE_WEAPONS.dagger.sprite.key, startSheet: MELEE_WEAPONS.dagger.sprite.startSheet },
     },
 };

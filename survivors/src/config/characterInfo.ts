@@ -52,6 +52,14 @@ export const CHARACTER_INFO_STAT_BOXES: Readonly<Record<StatId, InfoBox>> = {
     mag: { x: 134, y: 300, width: 33, height: 15 },
     chr: { x: 218, y: 300, width: 33, height: 15 },
 };
+/**
+ * Helbreath Off (Off-3B) has no Charisma: its label and box are covered with plain parchment of the same image, taken
+ * from just under the stats' separator line (that strip is only 13 px tall, so two pieces).
+ */
+export const CHARACTER_INFO_CHR_COVER = [
+    { x: 180, y: 298, width: 76, height: 10, sourceX: 180, sourceY: 329 },
+    { x: 180, y: 308, width: 76, height: 10, sourceX: 180, sourceY: 329 },
+] as const;
 /** Keyboard / gamepad order: two rows of three, as drawn. */
 export const CHARACTER_INFO_STAT_GRID: readonly (readonly StatId[])[] = [['str', 'int', 'vit'], ['dex', 'mag', 'chr']];
 

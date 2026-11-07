@@ -1,0 +1,106 @@
+// Helbreath Off (Fase Off-3B): maná y estamina del personaje y las tandas de recuperación de vida, maná y estamina,
+// como el servidor original (fórmulas en off/data/offCharacter.ts). La vida la lleva OffBattle (los golpes); aquí solo
+// se le suma la tanda. Cada reloj corre siempre; si al llegar la tanda no falta nada, no pasa nada.
+// El maná aún no se gasta: las magias llegan en la Off-6.
+import {
+    OFF_REGEN,
+    OFF_REGEN_TEXT,
+    OFF_RUN_STEP_STAMINA,
+    offHpRegen,
+    offManaRegen,
+    offMaxMana,
+    offMaxStamina,
+    offStaminaRegen,
+    type OffStats,
+} from '../data/offCharacter';
+
+/** What the vitals need from the fight: the health they top up, the level and whether the character is dead. */
+export interface OffVitalsOwner {
+    hp: number;
+    readonly maxHp: number;
+    readonly level: number;
+    readonly dead: boolean;
+    readonly stats: Readonly<OffStats>;
+}
+
+export class OffVitals {
+    public mana = 0;
+    public stamina = 0;
+    private hpWaitMs = 0;
+    private manaWaitMs = 0;
+    private staminaWaitMs = 0;
+
+    constructor(
+        private readonly owner: OffVitalsOwner,
+        /** A line for the bottom-left list ("HP has been increased by +N points."). */
+        private readonly announce: (line: string) => void,
+    ) {
+        this.fill();
+    }
+
+    public get maxMana(): number {
+        return offMaxMana({ ...this.owner.stats, level: this.owner.level });
+    }
+
+    public get maxStamina(): number {
+        return offMaxStamina({ ...this.owner.stats, level: this.owner.level });
+    }
+
+    /** Level up and coming back to life: mana and stamina full (the fight fills the health). */
+    public fill(): void {
+        this.mana = this.maxMana;
+        this.stamina = this.maxStamina;
+    }
+
+    /** A running step: false (and nothing spent) when there is no stamina left, so the step is walked. */
+    public spendRunStep(): boolean {
+        if (this.stamina < OFF_RUN_STEP_STAMINA) return false;
+        this.stamina -= OFF_RUN_STEP_STAMINA;
+        return true;
+    }
+
+    public get canRun(): boolean {
+        return this.stamina >= OFF_RUN_STEP_STAMINA;
+    }
+
+    public update(deltaMs: number): void {
+        const owner = this.owner;
+        // Stats may grow in the Character window: never above the new maximum, never below it either.
+        this.mana = Math.min(this.mana, this.maxMana);
+        this.stamina = Math.min(this.stamina, this.maxStamina);
+        if (owner.dead) return;
+        const stats = owner.stats;
+        this.hpWaitMs += deltaMs;
+        if (this.hpWaitMs >= OFF_REGEN.hpIntervalMs) {
+            this.hpWaitMs %= OFF_REGEN.hpIntervalMs;
+            const gained = topUp(owner.hp, owner.maxHp, offHpRegen(stats.vit));
+            if (gained > 0) {
+                owner.hp += gained;
+                this.announce(OFF_REGEN_TEXT.hpUp(gained));
+            }
+        }
+        this.manaWaitMs += deltaMs;
+        if (this.manaWaitMs >= OFF_REGEN.manaIntervalMs) {
+            this.manaWaitMs %= OFF_REGEN.manaIntervalMs;
+            const gained = topUp(this.mana, this.maxMana, offManaRegen(stats.mag));
+            if (gained > 0) {
+                this.mana += gained;
+                this.announce(OFF_REGEN_TEXT.mpUp(gained));
+            }
+        }
+        this.staminaWaitMs += deltaMs;
+        if (this.staminaWaitMs >= OFF_REGEN.staminaIntervalMs) {
+            this.staminaWaitMs %= OFF_REGEN.staminaIntervalMs;
+            const gained = topUp(this.stamina, this.maxStamina, offStaminaRegen(stats.vit, owner.level));
+            if (gained > 0) {
+                this.stamina += gained;
+                this.announce(OFF_REGEN_TEXT.spUp(gained));
+            }
+        }
+    }
+}
+
+/** What a batch really adds: never past the maximum. */
+function topUp(value: number, max: number, batch: number): number {
+    return Math.max(0, Math.min(batch, max - value));
+}

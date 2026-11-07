@@ -55,6 +55,8 @@ export class TileMover {
     public tileY: number;
     /** Where it looks (and steps). */
     public facing = Direction.South;
+    /** Called as each step starts, with its time (Off-3B: a running step costs stamina). */
+    public onStep: ((stepMs: number) => void) | undefined;
     /** Tile being stepped onto, while moving. */
     private toX = 0;
     private toY = 0;
@@ -249,5 +251,6 @@ export class TileMover {
         this.stepMs = stepMs;
         this.elapsedMs = 0;
         this.moving = true;
+        this.onStep?.(stepMs);
     }
 }

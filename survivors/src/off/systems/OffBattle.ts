@@ -6,9 +6,15 @@
 // - Morir (Off-2A): cae, y a los 3 s vuelve al inicio con la vida llena. Pierde algo de experiencia sin bajar de nivel.
 // - Experiencia (Off-2B, off/data/offLevel.ts): entera al matar al monstruo. Subir de nivel llena la vida, suena la voz
 //   del original, sale "Level Up!" y guarda 3 puntos. Todo se guarda al momento (OffSaveStore).
+// - Maná, estamina y las tandas de recuperación (Off-3B): OffVitals. Subir de nivel y volver a la vida los llenan.
+// - Equipo (Off-3C): el arma puesta da el daño, el alcance y la velocidad; la armadura suma defensa (2 × DEX + la suya).
+// - Botín (Off-4A): al matar, lo que suelta el monstruo (OffLootRoller) cae en su casilla (OffGroundItems) y se recoge
+//   al pisarlo: el oro al contador, lo demás a la bolsa (OffSaveStore). Morir no hace perder ni oro ni bolsa.
+// - Inventario (Off-4B): usar un objeto de la bolsa (ponérselo o beberlo) y tirarlo a tus pies (useBagItem, dropBagItem).
 // Los mensajes ("Level Up!" y la lista de abajo a la izquierda) van a OffHudScene por los eventos de la escena.
 import Phaser from 'phaser';
-import { PLAYER_BODY_OFFSET_Y } from '../../config/gameConfig';
+import { DEBUG_START } from '../../config/debugStart';
+import { PLAYER_BODY_OFFSET_Y, TILE_SIZE } from '../../config/gameConfig';
 import { ANNOUNCE_EVENT, EVENT_LIST_EVENT } from '../../config/hud';
 import { GENDER_SOUNDS } from '../../data/appearance';
 import { Effect } from '../../entities/Effect';
@@ -19,16 +25,32 @@ import { DamageNumbers } from '../../systems/DamageNumbers';
 import { HitParticles } from '../../systems/HitParticles';
 import { Pool } from '../../utils/Pool';
 import { OFF_MONSTER_LOOK } from '../config/offMonsterLook';
-import { OFF_COMBAT, OFF_DAGGER, OFF_NOVICE_STATS, offMaxHp } from '../data/offCombat';
+import { OFF_REGEN_TEXT, OFF_STAT_IDS, offMaxHp, type OffStats } from '../data/offCharacter';
+import { OFF_COMBAT, offAttackMs } from '../data/offCombat';
+import { isOffItemId, OFF_ITEMS, offArmorDefense, offBagItemName, offWeapon, type OffWeaponItem } from '../data/offItems';
+import { OFF_GOODS, offGood, type OffPotionRestores } from '../data/offGoods';
+import { OFF_BAG_TEXT } from '../data/offBag';
+import { OFF_LOOT_TEXT } from '../data/offLoot';
+import type { OffGroundContent } from '../entities/OffGroundItem';
 import { OFF_LEVEL, OFF_LEVEL_TEXT, offDeathExpLoss, offKillExp, offLevelForExp } from '../data/offLevel';
-import { OFF_NOVICE_LOOK } from '../data/offWorld';
 import type { OffCharacter } from '../entities/OffCharacter';
 import type { OffMonster } from '../entities/OffMonster';
 import { isFromBehind, offHitChance, rollMonsterDamage, rollWeaponDamage, tileDistance } from './OffCombatRules';
 import { provokeMonster, updateMonster, type OffMonsterWorld } from './OffMonsterAI';
+import { OffGroundItems } from './OffGroundItems';
+import { rollKillLoot } from './OffLootRoller';
 import { OffPits } from './OffPits';
-import { offSaveStore } from './OffSaveStore';
+import { offSaveStore, type OffEquipResult } from './OffSaveStore';
+import { OffVitals } from './OffVitals';
 import { directionTowards, type TileMover, type TilePoint } from './TileMover';
+
+/** What using or dropping a bag item did, and the line that says so (also when it was refused). */
+export interface OffUseResult {
+    done: boolean;
+    line?: string;
+    /** Gear changed: the character is dressed again. */
+    gear?: boolean;
+}
 
 /** The player's blow on the way: it lands on `monster` after `leftMs`. */
 interface PendingBlow {
@@ -38,6 +60,8 @@ interface PendingBlow {
 }
 
 export class OffBattle implements OffMonsterWorld {
+    /** Mana, stamina and the self-healing batches (Off-3B). */
+    public readonly vitals: OffVitals;
     public hp: number;
     /** Total experience; the level comes from it. */
     public exp: number;
@@ -52,6 +76,8 @@ export class OffBattle implements OffMonsterWorld {
     public hovered: OffMonster | undefined;
     public dead = false;
     public readonly pits: OffPits;
+    /** Loot lying on the ground (Off-4A). */
+    public readonly ground: OffGroundItems;
     private readonly numbers: DamageNumbers;
     private readonly particles: HitParticles;
     private readonly effects: Pool<Effect>;
@@ -77,16 +103,41 @@ export class OffBattle implements OffMonsterWorld {
         this.points = saved.points;
         this.level = offLevelForExp(this.exp);
         this.hp = this.maxHp;
+        this.vitals = new OffVitals(this, (line) => this.scene.events.emit(EVENT_LIST_EVENT, line));
         this.numbers = new DamageNumbers(scene);
         this.particles = new HitParticles(scene);
         this.effects = new Pool(() => new Effect(scene));
         this.pits = new OffPits(scene, (x, y) => this.isFree(x, y));
         this.pits.fillAll();
+        this.ground = new OffGroundItems(scene, (content) => this.pickUp(content), (reason) => this.eventLine(reason === 'potionLimit' ? OFF_LOOT_TEXT.potionLimit : OFF_LOOT_TEXT.bagFull));
     }
 
     /** Original max health, which grows with the level. */
     public get maxHp(): number {
-        return offMaxHp({ ...OFF_NOVICE_STATS, level: this.level });
+        return offMaxHp({ ...this.stats, level: this.level });
+    }
+
+    /** The character's stats (they grow in the Character window). */
+    public get stats(): Readonly<OffStats> {
+        return offSaveStore.character.stats;
+    }
+
+    /** The weapon held now (Equipment screen, Off-3C). */
+    public get weapon(): OffWeaponItem {
+        return offWeapon(offSaveStore.character.equipment);
+    }
+
+    /** Defence against monsters: 2 × DEX and the worn armour (original). */
+    public get defense(): number {
+        return this.stats.dex * 2 + offArmorDefense(offSaveStore.character.equipment);
+    }
+
+    /** Character window, Ok: the points go into the stats for good. Health, mana and stamina keep their value. */
+    public assignPoints(added: Readonly<OffStats>): void {
+        const spent = OFF_STAT_IDS.reduce((sum, id) => sum + added[id], 0);
+        if (spent <= 0 || spent > this.points) return;
+        this.points -= spent;
+        offSaveStore.assignPoints(added, this.points);
     }
 
     /** The player may start a step (not while swinging, not dead). */
@@ -155,6 +206,8 @@ export class OffBattle implements OffMonsterWorld {
     public update(deltaMs: number): void {
         if (this.dead) this.updateDead(deltaMs);
         else this.updateAttack(deltaMs);
+        this.vitals.update(deltaMs);
+        this.hp = Math.min(this.hp, this.maxHp);
         for (const monster of this.pits.monsters) {
             updateMonster(monster, deltaMs, this);
             monster.marked = monster.isAlive && (monster === this.target || monster === this.hovered);
@@ -163,6 +216,7 @@ export class OffBattle implements OffMonsterWorld {
         if (this.target && !this.target.isAlive) this.clearTarget();
         if (this.hovered && !this.hovered.isAlive) this.hovered = undefined;
         this.pits.update(deltaMs);
+        this.ground.update(deltaMs, this.playerTile());
         this.numbers.update(deltaMs);
         for (const effect of [...this.effects.active]) {
             if (!effect.update(deltaMs)) this.effects.release(effect);
@@ -192,8 +246,7 @@ export class OffBattle implements OffMonsterWorld {
 
     public rollHitOnPlayer(monster: OffMonster): boolean {
         this.audio.play(monster.def.base.attackSound);
-        const defense = OFF_NOVICE_STATS.dex * 2;
-        return Math.random() < offHitChance(monster.def.base.hitRatio, defense, isFromBehind(monster.mover.facing, this.mover.facing));
+        return Math.random() < offHitChance(monster.def.base.hitRatio, this.defense, isFromBehind(monster.mover.facing, this.mover.facing));
     }
 
     public monsterStrikes(monster: OffMonster, lands: boolean): void {
@@ -204,7 +257,7 @@ export class OffBattle implements OffMonsterWorld {
             this.numbers.showWord(x, y, 'Miss');
             return;
         }
-        const damage = rollMonsterDamage(monster.def.base.damageDice, OFF_NOVICE_STATS.vit);
+        const damage = rollMonsterDamage(monster.def.base.damageDice, this.stats.vit);
         if (damage <= 0) return;
         this.hp = Math.max(0, this.hp - damage);
         this.numbers.showColored(x, y, damage, OFF_MONSTER_LOOK.playerDamageColor, false, this.hp === 0);
@@ -233,9 +286,10 @@ export class OffBattle implements OffMonsterWorld {
         }
         const target = this.target;
         if (!target || !target.isAlive || !(this.attackQueued || this.attackHeld)) return;
-        if (this.distanceTo(target) > OFF_DAGGER.range) {
+        const range = this.weapon.range;
+        if (this.distanceTo(target) > range) {
             // Walk up to it (the mover stops when it is in reach).
-            if (!this.character.isActing) this.mover.approach(target.mover.tileX, target.mover.tileY, OFF_DAGGER.range);
+            if (!this.character.isActing) this.mover.approach(target.mover.tileX, target.mover.tileY, range);
             return;
         }
         if (this.mover.isMoving) return;
@@ -251,9 +305,10 @@ export class OffBattle implements OffMonsterWorld {
         const hitRatio = OFF_COMBAT.noviceSkill + OFF_COMBAT.playerHitBonus;
         const behind = isFromBehind(direction, target.mover.facing);
         const lands = Math.random() < offHitChance(hitRatio, target.def.base.defenseRatio, behind);
-        this.character.act(PlayerState.Melee, direction, OFF_DAGGER.attackMs);
-        this.cooldownMs = OFF_DAGGER.attackMs;
-        this.blow = { monster: target, lands, leftMs: OFF_DAGGER.attackMs * OFF_COMBAT.hitShare };
+        const attackMs = offAttackMs(this.weapon, this.stats.str);
+        this.character.act(PlayerState.Melee, direction, attackMs);
+        this.cooldownMs = attackMs;
+        this.blow = { monster: target, lands, leftMs: attackMs * OFF_COMBAT.hitShare };
         this.attackQueued = false;
         this.audio.play('sfx.melee.swing');
     }
@@ -266,7 +321,7 @@ export class OffBattle implements OffMonsterWorld {
             this.numbers.showWord(monster.x, bodyY, 'Miss');
             return;
         }
-        const damage = rollWeaponDamage(OFF_DAGGER, monster.def.size, OFF_NOVICE_STATS.str);
+        const damage = rollWeaponDamage(this.weapon, monster.def.size, this.stats.str);
         monster.hurt(damage);
         provokeMonster(monster);
         const killed = monster.hp <= 0;
@@ -277,11 +332,93 @@ export class OffBattle implements OffMonsterWorld {
             this.particles.death(monster.x, monster.y, bodyY);
             this.audio.play(monster.def.base.deathSound);
             this.kills++;
+            this.dropLoot(monster);
             this.gainExp(offKillExp(monster.exp, this.level), monster.x, bodyY);
         } else {
             this.particles.hit(monster.x, bodyY, this.character.x, this.character.y);
             this.audio.play(monster.def.base.hitSound);
         }
+    }
+
+    // ---- Loot (Off-4A) ----
+
+    /** What the monster drops falls on its tile. */
+    private dropLoot(monster: OffMonster): void {
+        const loot = rollKillLoot(monster.id, DEBUG_START.offDrop);
+        if (this.ground.dropLoot(loot, Math.floor(monster.x / TILE_SIZE), Math.floor(monster.y / TILE_SIZE))) this.audio.play('sfx.itemDrop');
+    }
+
+    /** Something picked up from the ground; anything but 'ok' means it stays there (bag full, potion limit). */
+    private pickUp(content: OffGroundContent): OffEquipResult {
+        if ('gold' in content) {
+            offSaveStore.addGold(content.gold);
+            this.eventLine(OFF_LOOT_TEXT.gotGold(content.gold));
+        } else {
+            const result = offSaveStore.addToBag(content.item);
+            if (result !== 'ok') return result;
+            this.eventLine(OFF_LOOT_TEXT.gotItem(offBagItemName(content.item)));
+        }
+        this.audio.play('sfx.pickup');
+        return 'ok';
+    }
+
+    // ---- Inventory (Off-4B) ----
+
+    /**
+     * Uses the item in that bag cell: gear goes on (if the STR is enough; the worn one goes back to the cell), a potion
+     * is drunk (not when that bar is already full). The line for the bottom-left list says what happened.
+     */
+    public useBagItem(index: number): OffUseResult {
+        const id = offSaveStore.character.bag[index];
+        if (id === undefined) return { done: false };
+        if (isOffItemId(id)) {
+            const result = offSaveStore.equipFromBag(index);
+            if (result === 'str') return { done: false, line: OFF_BAG_TEXT.needsStr(OFF_ITEMS[id].strToEquip) };
+            if (result !== 'ok') return { done: false };
+            this.audio.play('sfx.itemEquip');
+            return { done: true, line: OFF_BAG_TEXT.equipped(OFF_ITEMS[id].name), gear: true };
+        }
+        const restores = offGood(id).restores;
+        if (!restores) return { done: false, line: OFF_BAG_TEXT.cantUse(OFF_GOODS[id].name) };
+        if (this.dead) return { done: false };
+        const [now, max] = this.barOf(restores.what);
+        if (now >= max) return { done: false, line: OFF_BAG_TEXT.alreadyFull(restores.what) };
+        const [count, sides, bonus] = restores.dice;
+        let roll = bonus;
+        for (let i = 0; i < count; i++) roll += Phaser.Math.Between(1, sides);
+        const gained = Math.min(roll, max - now);
+        if (restores.what === 'hp') this.hp += gained;
+        else if (restores.what === 'mana') this.vitals.mana += gained;
+        else this.vitals.stamina += gained;
+        offSaveStore.takeFromBag(index);
+        this.audio.play('sfx.drink');
+        const line = restores.what === 'hp' ? OFF_REGEN_TEXT.hpUp(gained) : restores.what === 'mana' ? OFF_REGEN_TEXT.mpUp(gained) : OFF_REGEN_TEXT.spUp(gained);
+        this.eventLine(line);
+        return { done: true, line };
+    }
+
+    /** Drops the item in that bag cell on the player's tile (not picked up again until the player comes back to it). */
+    public dropBagItem(index: number): OffUseResult {
+        const tile = this.playerTile();
+        if (!tile) return { done: false };
+        const id = offSaveStore.takeFromBag(index);
+        if (id === undefined) return { done: false };
+        this.ground.drop({ item: id }, tile.x, tile.y);
+        this.audio.play('sfx.itemDrop');
+        const line = OFF_BAG_TEXT.dropped(offBagItemName(id));
+        this.eventLine(line);
+        return { done: true, line };
+    }
+
+    /** Value and maximum of the bar a potion fills. */
+    private barOf(what: OffPotionRestores): [number, number] {
+        if (what === 'hp') return [this.hp, this.maxHp];
+        if (what === 'mana') return [this.vitals.mana, this.vitals.maxMana];
+        return [this.vitals.stamina, this.vitals.maxStamina];
+    }
+
+    private eventLine(line: string): void {
+        this.scene.events.emit(EVENT_LIST_EVENT, line);
     }
 
     // ---- Experience ----
@@ -297,7 +434,8 @@ export class OffBattle implements OffMonsterWorld {
             this.points += (level - this.level) * OFF_LEVEL.pointsPerLevel;
             this.level = level;
             this.hp = this.maxHp;
-            this.audio.play(GENDER_SOUNDS[OFF_NOVICE_LOOK.gender].levelUp);
+            this.vitals.fill();
+            this.audio.play(GENDER_SOUNDS[offSaveStore.character.look.gender].levelUp);
             this.scene.events.emit(ANNOUNCE_EVENT, OFF_LEVEL_TEXT.levelUp);
             this.scene.events.emit(EVENT_LIST_EVENT, OFF_LEVEL_TEXT.levelLine(level));
         }
@@ -305,7 +443,7 @@ export class OffBattle implements OffMonsterWorld {
     }
 
     private save(): void {
-        offSaveStore.save({ exp: this.exp, points: this.points });
+        offSaveStore.saveProgress(this.exp, this.points);
     }
 
     // ---- Dying and coming back ----
@@ -316,7 +454,7 @@ export class OffBattle implements OffMonsterWorld {
         this.clearTarget();
         this.mover.cancel();
         this.character.die(this.mover.facing);
-        this.audio.play(GENDER_SOUNDS[OFF_NOVICE_LOOK.gender].death);
+        this.audio.play(GENDER_SOUNDS[offSaveStore.character.look.gender].death);
         this.respawnLeftMs = OFF_COMBAT.playerRespawnMs;
         const loss = offDeathExpLoss(this.exp, this.level);
         if (loss > 0) {
@@ -332,6 +470,7 @@ export class OffBattle implements OffMonsterWorld {
         const tile = this.respawnTile();
         this.mover.place(tile.x, tile.y);
         this.hp = this.maxHp;
+        this.vitals.fill();
         this.dead = false;
         this.cooldownMs = 0;
         this.character.revive();

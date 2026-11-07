@@ -2,19 +2,23 @@
 // dibuja: las capas de cuerpo y ropa de Survivors (CharacterSprite), quieto / andando / corriendo, y la sombra sacada
 // del cuerpo desnudo como el jugador de Survivors (entities/Player.ts, syncShadow).
 // Fase Off-2: golpear, encogerse al recibir un golpe y caer al morir. La vida se ve en el HUD (OffHudScene, Off-2B).
+// Fase Off-3C: lleva puesto su equipo (`wear`), encima de la ropa de inicio del novato.
 import Phaser from 'phaser';
 import { BODY_SHADOW_ALPHA, BODY_SHADOW_ROTATION, BODY_SHADOW_SCALE_Y, DEPTH_GROUND_SHADOWS, TILE_SIZE } from '../../config/gameConfig';
 import type { CharacterLook } from '../../data/appearance';
 import type { CharacterDef } from '../../data/characters';
+import type { SavedEquipment } from '../../data/items';
 import { CharacterSprite } from '../../entities/CharacterSprite';
 import type { Direction } from '../../hb/directions';
-import { PlayerState } from '../../hb/playerAppearance';
+import { PlayerState, type GearSlot } from '../../hb/playerAppearance';
 import { smoothSprite } from '../../hb/XbrPipeline';
 import type { TileMover, TilePoint } from '../systems/TileMover';
 
 /** Approximate size of the drawn character, used to fade map objects that cover it (as Player). */
 const VISUAL_WIDTH = 32;
 const VISUAL_HEIGHT = 80;
+/** Layers equipment can draw: taking it off goes back to the novice's starting clothes there (as TownScene). */
+const DRESSED_SLOTS: readonly GearSlot[] = ['hauberk', 'leggings', 'boots', 'helm', 'armor', 'weapon', 'cape', 'shield'];
 
 export class OffCharacter {
     public readonly container: Phaser.GameObjects.Container;
@@ -28,8 +32,9 @@ export class OffCharacter {
     private actionLeftMs = 0;
     private dead = false;
 
-    constructor(scene: Phaser.Scene, def: CharacterDef, look: CharacterLook) {
+    constructor(scene: Phaser.Scene, private readonly def: CharacterDef, look: CharacterLook, equipment: Readonly<SavedEquipment> = {}) {
         this.body = new CharacterSprite(scene, def, look);
+        this.wear(equipment);
         this.container = scene.add.container(0, 0, [this.body.container]);
         this.shadow = smoothSprite(scene.add.sprite(0, 0, '__DEFAULT'))
             .setTint(0x000000)
@@ -38,6 +43,12 @@ export class OffCharacter {
             .setScale(1, BODY_SHADOW_SCALE_Y)
             .setDepth(DEPTH_GROUND_SHADOWS + 1)
             .setVisible(false);
+    }
+
+    /** Dresses it in this equipment (drawn as Survivors items; off/data/offItems.ts → offEquipmentLook). */
+    public wear(equipment: Readonly<SavedEquipment>): void {
+        for (const slot of DRESSED_SLOTS) this.body.setLayer(slot, this.def.appearance[slot], false);
+        this.body.wearEquipment(equipment);
     }
 
     /** True while an attack or a flinch is showing. */

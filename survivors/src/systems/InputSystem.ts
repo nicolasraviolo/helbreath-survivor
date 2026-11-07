@@ -77,6 +77,12 @@ export enum Action {
     /** Helbreath Off: mark the next / previous monster near you (RB / LB; with the mouse, a click marks one). */
     OffNextTarget = 'offNextTarget',
     OffPrevTarget = 'offPrevTarget',
+    /** Helbreath Off (Fase Off-4B): open / close the Inventory (I or gamepad X); before, the Equipment screen (Off-3C). */
+    OffInventory = 'offInventory',
+    /** Helbreath Off (Fase Off-4B): in the Inventory, drop the marked item (Delete or gamepad Y). */
+    OffDrop = 'offDrop',
+    /** Helbreath Off (Fase Off-4B): from the Inventory, open the Equipment screen (E; with the gamepad, its button). */
+    OffOpenEquipment = 'offOpenEquipment',
 }
 
 export type InputDevice = 'keyboard' | 'mouse' | 'gamepad' | 'touch' | 'none';
@@ -123,6 +129,9 @@ const KEYBOARD_ACTIONS: Record<Action, number[]> = {
     [Action.TrainingReset]: [KEY.R],
     [Action.ToggleRun]: [KEY.R],
     [Action.OffAttack]: [KEY.SPACE],
+    [Action.OffInventory]: [KEY.I],
+    [Action.OffDrop]: [KEY.DELETE],
+    [Action.OffOpenEquipment]: [KEY.E],
     // With the mouse a click marks a monster: these two are gamepad only.
     [Action.OffNextTarget]: [],
     [Action.OffPrevTarget]: [],
@@ -151,6 +160,8 @@ const GAMEPAD_ACTIONS: Partial<Record<Action, number[]>> = {
     [Action.ToggleDebug]: [GAMEPAD_BUTTON.View],
     [Action.ToggleRun]: [GAMEPAD_BUTTON.R3],
     [Action.OffAttack]: [GAMEPAD_BUTTON.A],
+    [Action.OffInventory]: [GAMEPAD_BUTTON.X],
+    [Action.OffDrop]: [GAMEPAD_BUTTON.Y],
     [Action.OffNextTarget]: [GAMEPAD_BUTTON.R1],
     [Action.OffPrevTarget]: [GAMEPAD_BUTTON.L1],
 };
@@ -190,6 +201,10 @@ export class InputSystem {
     private syncHeldOnly = true;
     /** False while a text box is being typed in (Fase 17A): the letters must not move menus or confirm. */
     private keyboardEnabled = true;
+    /** False: a flick of the left stick does not move menus (Off-4B: the stick walks while the Inventory is open). */
+    private stickMenus = true;
+    /** True: only the left stick (and the touch joystick) moves; keys and d-pad are left to a window (Off-4B). */
+    private stickOnlyMove = false;
 
     constructor(private readonly scene: Phaser.Scene) {
         const sync = () => {
@@ -240,6 +255,16 @@ export class InputSystem {
         this.keyboardEnabled = enabled;
     }
 
+    /** Helbreath Off (Off-4B): the left stick no longer moves menus in this scene (it walks the world underneath). */
+    public setStickMenus(enabled: boolean): void {
+        this.stickMenus = enabled;
+    }
+
+    /** Helbreath Off (Off-4B): movement only from the left stick, while a window uses the keys and the d-pad. */
+    public setStickOnlyMove(on: boolean): void {
+        this.stickOnlyMove = on;
+    }
+
     /** Call once per frame before reading actions. */
     public update(): void {
         this.pad = readGamepad();
@@ -248,10 +273,10 @@ export class InputSystem {
         this.pad?.buttons.forEach((button, index) => {
             if (button.pressed) pressedNow.add(index);
         });
-        const stickX = this.pad?.axes[GAMEPAD_AXIS.LeftX] ?? 0;
+        const stickX = this.stickMenus ? this.pad?.axes[GAMEPAD_AXIS.LeftX] ?? 0 : 0;
         if (stickX <= -STICK_MENU_THRESHOLD) pressedNow.add(STICK_BUTTON.Left);
         if (stickX >= STICK_MENU_THRESHOLD) pressedNow.add(STICK_BUTTON.Right);
-        const stickY = this.pad?.axes[GAMEPAD_AXIS.LeftY] ?? 0;
+        const stickY = this.stickMenus ? this.pad?.axes[GAMEPAD_AXIS.LeftY] ?? 0 : 0;
         if (stickY <= -STICK_MENU_THRESHOLD) pressedNow.add(STICK_BUTTON.Up);
         if (stickY >= STICK_MENU_THRESHOLD) pressedNow.add(STICK_BUTTON.Down);
         for (const index of pressedNow) {
@@ -352,6 +377,14 @@ export class InputSystem {
     }
 
     private updateMove(): void {
+        if (this.stickOnlyMove) {
+            const pad = this.pad;
+            const stick = pad ? applyRadialDeadzone(pad.axes[GAMEPAD_AXIS.LeftX] ?? 0, pad.axes[GAMEPAD_AXIS.LeftY] ?? 0, GAMEPAD_DEADZONE) : { x: 0, y: 0 };
+            const touch = this.joystick?.active ? this.joystick.vector : undefined;
+            this.move.set(touch?.x ?? stick.x, touch?.y ?? stick.y);
+            if (this.move.lengthSq() > 1) this.move.normalize();
+            return;
+        }
         const isDown = (keys: Phaser.Input.Keyboard.Key[]) => keys.some((key) => key.isDown);
         let x = Number(isDown(this.right)) - Number(isDown(this.left));
         let y = Number(isDown(this.down)) - Number(isDown(this.up));
