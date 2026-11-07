@@ -15,6 +15,7 @@
 //       --eval="g.enemies.alive"       → además, evalúa esa expresión en la página y escribe el resultado (si es una promesa, la espera)
 //                                        (g = escena Game, game = window.__game)
 // Si el servidor de desarrollo (puerto 8090) no está en marcha, lo arranca y lo para al terminar.
+// CHECK_PORT=8091 pnpm check … usa otro puerto (para probar otra copia del repo mientras la principal ocupa el 8090).
 import { spawn } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -22,7 +23,8 @@ import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright-core';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const BASE_URL = 'http://localhost:8090/';
+const PORT = Number(process.env.CHECK_PORT ?? 8090);
+const BASE_URL = `http://localhost:${PORT}/`;
 const OUT_DIR = join(ROOT, '.check');
 const LOAD_TIMEOUT_MS = 90000;
 const PHONE = { width: 844, height: 390 };
@@ -56,6 +58,14 @@ const PRESETS = {
     // eval sale lo guardado y la escena a la que llega.
     offcreate: 'off=create&offreset',
     offcreated: 'off=create&offreset',
+    // Select Character de Off (8-nov-2026). offslots: la pantalla con un personaje de nivel 5 en el hueco 1.
+    // offslotsnew: Create New Character, crea un Warrior en el hueco 2 y vuelve (en eval: los huecos guardados).
+    // offslotsdelete: borra el del hueco 1 con Yes (en eval: lo que queda). offslotsold: un guardado de antes (un solo
+    // personaje en hb-off.character) sale en el hueco 1.
+    offslots: 'off=slots&offlevel=5&offgear=longSword,leatherArmor',
+    offslotsnew: 'off=slots&offlevel=5',
+    offslotsdelete: 'off=slots&offlevel=5',
+    offslotsold: 'off=slots',
     // Fase Off-3B: ventana Character. offchar la abre en el nivel 5 (12 puntos); offassign reparte 3 en Str y 2 en Vit
     // con los + y Ok (en eval: stats, puntos y máximos antes y después, y lo guardado). offstamina corre con 5 de
     // estamina (en eval: la estamina y el tiempo de cada paso por el camino). offregen deja vida, maná y estamina a 1
@@ -439,6 +449,8 @@ const PRESET_EVAL = {
     offorc: "new Promise((r) => { const log = []; const t = setInterval(() => { if (!o.debugState().target) o.debugFight('orc'); log.push(o.debugState()); }, 1000); setTimeout(() => { clearInterval(t); const pick = (s) => s && ({ tile: s.tile, hp: [s.hp, s.maxHp], level: s.level, exp: s.exp, kills: s.kills, target: s.target, monsters: s.monsters, gold: s.gold, dead: s.dead }); r({ start: pick(log[0]), mid: pick(log[10]), end: pick(log[log.length - 1]) }); }, 20000); })",
     offscorpion: "new Promise((r) => { const log = []; const t = setInterval(() => { if (!o.debugState().target) o.debugFight('giantScorpion'); log.push(o.debugState()); }, 1000); setTimeout(() => { clearInterval(t); const pick = (s) => s && ({ tile: s.tile, hp: [s.hp, s.maxHp], level: s.level, exp: s.exp, kills: s.kills, target: s.target, monsters: s.monsters, gold: s.gold, dead: s.dead }); r({ start: pick(log[0]), mid: pick(log[10]), end: pick(log[log.length - 1]) }); }, 20000); })",
     offdeath: "new Promise((r) => { o.battle.exp += 200; const start = o.debugState(); o.battle.hp = 0; o.battle.die(); setTimeout(() => r({ start, end: o.debugState() }), 4000); })",
+    offslotsnew: "new Promise((r) => { game.scene.getScene('OffSlots').newCharacter(); setTimeout(() => { const c = game.scene.getScene('OffCreate'); c.applyPreset('warrior'); c.createCharacter(); setTimeout(() => r({ world: game.scene.isActive('OffWorld'), slot: localStorage.getItem('hb-off.slot'), one: JSON.parse(localStorage.getItem('hb-off.character'))?.name, two: JSON.parse(localStorage.getItem('hb-off.character.2'))?.created }), 4000); }, 600); })",
+    offslotsdelete: "new Promise((r) => { const sl = game.scene.getScene('OffSlots'); sl.deleteFocused(); setTimeout(() => { const asked = game.scene.isActive('OffDelete'); game.scene.getScene('OffDelete').answer(true); setTimeout(() => r({ asked, left: localStorage.getItem('hb-off.character'), slotsActive: game.scene.isActive('OffSlots') }), 800); }, 600); })",
     offcreated: "new Promise((r) => { const c = game.scene.getScene('OffCreate'); c.changeStat('str', 1); const one = c.stats.str; c.createCharacter(); const blocked = game.scene.isActive('OffCreate'); c.applyPreset('warrior'); c.createCharacter(); setTimeout(() => r({ oneStr: one, blockedWithPointsLeft: blocked, saved: JSON.parse(localStorage.getItem('hb-off.character')), world: game.scene.isActive('OffWorld') }), 4000); })",
     offchar: "o.openCharacter(), new Promise((r) => setTimeout(() => r({ open: game.scene.isActive('CharacterInfo'), worldPaused: game.scene.isPaused('OffWorld'), state: o.debugState() }), 800))",
     offassign: "new Promise((r) => { const before = o.debugState(); o.openCharacter(); setTimeout(() => { const c = game.scene.getScene('CharacterInfo'); for (let i = 0; i < 3; i++) c.change('str', 1); c.change('vit', 1); c.change('vit', 1); c.change('chr', 1); c.confirm(); setTimeout(() => r({ before, after: o.debugState(), worldRunning: game.scene.isActive('OffWorld'), saved: JSON.parse(localStorage.getItem('hb-off.character')) }), 500); }, 500); })",
@@ -471,13 +483,13 @@ async function serverUp() {
 
 async function ensureServer() {
     if (await serverUp()) return undefined;
-    const child = spawn('pnpm', ['exec', 'vite'], { cwd: ROOT, shell: true, stdio: 'ignore' });
+    const child = spawn('pnpm', ['exec', 'vite', '--port', String(PORT)], { cwd: ROOT, shell: true, stdio: 'ignore' });
     for (let i = 0; i < 60; i++) {
         await new Promise((r) => setTimeout(r, 500));
         if (await serverUp()) return child;
     }
     child.kill();
-    throw new Error('The dev server did not start on port 8090');
+    throw new Error(`The dev server did not start on port ${PORT}`);
 }
 
 function stopServer(child) {
@@ -545,9 +557,13 @@ async function runScenario(browser, name) {
         await page.addInitScript(() => performance.setResourceTimingBufferSize(100000));
     }
 
+    // offslotsold: a save from before Select Character (one character, no hb-off.slot).
+    if (name === 'offslotsold') {
+        await page.addInitScript(() => localStorage.setItem('hb-off.character', JSON.stringify({ version: 8, created: true, name: 'Oldie', look: { gender: 'female', skin: 0, hairStyle: 1, hairColor: 2, underwear: 0 }, stats: { str: 14, vit: 12, dex: 14, int: 10, mag: 10 }, exp: 500, points: 0, equipment: {}, gold: 0, bag: [], warehouse: [], spells: [], spellKeys: [], padSpells: [] })));
+    }
     // ?open= (debugStart.ts) shows a menu screen: wait for it instead of the game.
     const openKey = { howtoplay: 'HowToPlay', settings: 'Settings', controls: 'Controls', credits: 'Credits', releasenotes: 'ReleaseNotes', achievements: 'Achievements', missions: 'Missions', slots: 'CharacterSlots', mapselect: 'MapSelect', town: 'Town', charinfo: 'CharacterInfo', equipment: 'Equipment', warehouse: 'Warehouse', runchoice: 'RunChoice', transfer: 'Transfer' }[params.get('open') ?? ''];
-    const target = params.has('loading') ? 'Preload' : params.get('town') === 'portal' ? 'MapSelect' : params.has('shop') ? 'Shop' : params.has('smith') ? 'Smith' : params.has('talk') ? 'NpcDialog' : params.get('off') === 'game' ? 'OffHome' : params.get('off') === 'world' ? 'OffWorld' : params.get('off') === 'create' ? 'OffCreate' : params.has('off') && !openKey ? 'GameSelect' : openKey ?? (query ? 'Game' : 'MainMenu');
+    const target = params.has('loading') ? 'Preload' : params.get('town') === 'portal' ? 'MapSelect' : params.has('shop') ? 'Shop' : params.has('smith') ? 'Smith' : params.has('talk') ? 'NpcDialog' : params.get('off') === 'game' ? 'OffHome' : params.get('off') === 'world' ? 'OffWorld' : params.get('off') === 'create' ? 'OffCreate' : params.get('off') === 'slots' ? 'OffSlots' : params.has('off') && !openKey ? 'GameSelect' : openKey ?? (query ? 'Game' : 'MainMenu');
     await page.goto(url);
     const t0 = Date.now();
     await page.waitForFunction((key) => window.__game?.scene.isActive(key), target, { timeout: LOAD_TIMEOUT_MS });

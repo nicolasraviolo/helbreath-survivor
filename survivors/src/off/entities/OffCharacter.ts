@@ -24,6 +24,13 @@ const DRESSED_SLOTS: readonly GearSlot[] = ['hauberk', 'leggings', 'boots', 'hel
 /** Held in the hands: drawn only when equipped. */
 const HELD_SLOTS: ReadonlySet<GearSlot> = new Set(['weapon', 'shield']);
 
+/** Dresses an Off body in this equipment over the novice's starting clothes (also Select Character's figures). */
+export function dressOffBody(body: CharacterSprite, def: CharacterDef, equipment: Readonly<SavedEquipment>): void {
+    // Weapon and shield only from the equipment: the novice's starting look holds a Dagger (Off-6B: empty hands show empty).
+    for (const slot of DRESSED_SLOTS) body.setLayer(slot, HELD_SLOTS.has(slot) ? undefined : def.appearance[slot], false);
+    body.wearEquipment(equipment);
+}
+
 export class OffCharacter {
     public readonly container: Phaser.GameObjects.Container;
     public x = 0;
@@ -51,9 +58,7 @@ export class OffCharacter {
 
     /** Dresses it in this equipment (drawn as Survivors items; off/data/offItems.ts → offEquipmentLook). */
     public wear(equipment: Readonly<SavedEquipment>): void {
-        // Weapon and shield only from the equipment: the novice's starting look holds a Dagger (Off-6B: empty hands show empty).
-        for (const slot of DRESSED_SLOTS) this.body.setLayer(slot, HELD_SLOTS.has(slot) ? undefined : this.def.appearance[slot], false);
-        this.body.wearEquipment(equipment);
+        dressOffBody(this.body, this.def, equipment);
     }
 
     /** True while an attack or a flinch is showing. */

@@ -8,6 +8,7 @@ import { CHOSEN_MAP_KEY, DEFAULT_MAP } from '../data/maps';
 import { HBSpriteFile, SpriteType } from '../hb/HBSprite';
 import { OFF_ACCESS } from '../off/offAccess';
 import { OFF_CREATE_SCENE_KEY } from '../off/scenes/OffCreateScene';
+import { OFF_SLOTS_SCENE_KEY } from '../off/scenes/OffSlotsScene';
 import { startOffWorld } from '../off/scenes/OffWorldScene';
 import { ACTIVE_CHARACTER_KEY, characterStore } from '../systems/CharacterStore';
 import { loadTimer } from '../systems/LoadTimer';
@@ -96,6 +97,10 @@ export class PreloadScene extends Phaser.Scene {
         }
         if (OFF_ACCESS === 'create') {
             this.scene.start(OFF_CREATE_SCENE_KEY);
+            return;
+        }
+        if (OFF_ACCESS === 'slots') {
+            this.scene.start(OFF_SLOTS_SCENE_KEY);
             return;
         }
         if (OFF_ACCESS === 'game') {

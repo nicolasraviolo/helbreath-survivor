@@ -1523,3 +1523,10 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - **En Off:** `OffSpells.castOnSelf` (Heal, escudos: cualquier clic) y `castHold`; `OffBattle.protection` + `defense` / `magicDamageFactor`; `OffBattle.updateWornLook` (el `wornEffect` del escudo, en bucle bajo los pies), `OffMonster.hold` (reloj a 0 como el aturdido; `hurt` lo quita). El escudo pasa por los portales (`OffCarriedVitals.protection`) y se pierde al morir.
 - **Mando:** `Action.OffCastTrigger` (R2) y `OFF_PAD_SPELL_ACTIONS` (A/B/X/Y). Con RT pulsado, la escena del mundo y el libro ignoran ataque, pausa (B), Character (Y) e Inventory (X). `OffWorldScene.updatePadCast` suelta la magia cuando está lista y RT ya no está pulsado, al `OffBattle.spellTarget()` (marcado o más cercano). `padSpells` en el guardado (versión 8).
 - **Pruebas:** `check offheal` / `offshield` / `offhold` / `offpadcast` / `offbookpad`; `?offhp=N` empieza con esa vida; `o.debugPadCast(0..3)` simula RT + botón y soltar.
+
+## Select Character en Helbreath Off (8-nov-2026)
+- Es la `CharacterSlotsScene` de Survivors copiada a `off/scenes/OffSlotsScene.ts`, con las mismas medidas (`config/characterSlots.ts`) y con crear y borrar como en la Fase 17A. Los textos van en `off/config/offSlots.ts`.
+- Guardado: un personaje por hueco y por clave. El hueco 1 conserva `hb-off.character` (así un guardado de antes no se pierde ni hay que migrarlo) y los demás van en `hb-off.character.2` … `.4`; `hb-off.slot` dice cuál se juega. `offSaveStore.character` y todos sus métodos trabajan siempre con el hueco elegido (`select(i)`); `peek(i)` lee otro sin cambiar de hueco. `?offreset` vacía los cuatro.
+- Los muñecos se visten con `dressOffBody` (`off/entities/OffCharacter.ts`), lo mismo que el personaje del mundo: arma y escudo solo si los lleva puestos.
+- En una copia aparte del repo (worktree) el script de comprobación puede usar otro puerto: `CHECK_PORT=8091 node scripts/check.mjs …`, con `./node_modules/.bin/vite --port 8091` en marcha. Ahí salen 7 errores 403 de las fuentes (`@fontsource`): Vite no deja leerlas desde fuera de esa copia. No pasa en la copia principal.
+
