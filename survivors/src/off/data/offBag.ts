@@ -14,6 +14,7 @@ export const OFF_BAG_TEXT = {
     empty: 'Your bag is empty. Monsters drop gold, potions and gear: walk over them to pick them up.',
     equipped: (name: string) => `You put on the ${name}.`,
     needsStr: (str: number) => `Not enough Str (needs ${str}).`,
+    needsLevel: (level: number) => `Your level is too low (needs Level ${level}).`,
     alreadyFull: (what: OffPotionRestores) => `Your ${BAR_NAMES[what]} is already full.`,
     cantUse: (name: string) => `${name} can't be used. Sell it in town.`,
     dropped: (name: string) => `You dropped the ${name}.`,

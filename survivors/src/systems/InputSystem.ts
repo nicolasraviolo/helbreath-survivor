@@ -83,6 +83,8 @@ export enum Action {
     OffDrop = 'offDrop',
     /** Helbreath Off (Fase Off-4B): from the Inventory, open the Equipment screen (E; with the gamepad, its button). */
     OffOpenEquipment = 'offOpenEquipment',
+    /** Helbreath Off (Off-5B): Buy / Sell in a store, bag / warehouse in the warehouse (Tab; LB / RB on a pad). */
+    OffSwitchTab = 'offSwitchTab',
 }
 
 export type InputDevice = 'keyboard' | 'mouse' | 'gamepad' | 'touch' | 'none';
@@ -132,6 +134,7 @@ const KEYBOARD_ACTIONS: Record<Action, number[]> = {
     [Action.OffInventory]: [KEY.I],
     [Action.OffDrop]: [KEY.DELETE],
     [Action.OffOpenEquipment]: [KEY.E],
+    [Action.OffSwitchTab]: [KEY.TAB],
     // With the mouse a click marks a monster: these two are gamepad only.
     [Action.OffNextTarget]: [],
     [Action.OffPrevTarget]: [],

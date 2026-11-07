@@ -74,6 +74,11 @@ export const OFF_MONSTER_LOOT: Record<OffMonsterId, OffMonsterLoot> = {
     // Gold: Claude's numbers (Npc.cfg is not in the repo). Slime Jelly: 1 in 25 (DeleteNpc).
     slime: { gold: [4, 12], extra: { id: 'slimeJelly', chance: 1 / 25 } },
     rabbit: { gold: [6, 16] },
+    // Off-5C, Claude's numbers too: more gold the more experience the monster gives.
+    giantAnt: { gold: [10, 25] },
+    snake: { gold: [15, 35] },
+    orc: { gold: [20, 45] },
+    giantScorpion: { gold: [30, 70] },
 };
 
 /** Texts of the loot (the list at the bottom left). */

@@ -59,8 +59,12 @@ import {
     OFF_ITEMS,
     offBagGearFor,
     offEquipmentLook,
+    offItem,
+    offNeedsText,
+    offWearCheck,
     type OffItemId,
     type OffSlotId,
+    type OffWearer,
 } from '../data/offItems';
 import { OFF_LEVEL, offExpForLevel } from '../data/offLevel';
 import { OFF_NOVICE } from '../data/offWorld';
@@ -175,6 +179,10 @@ export class OffEquipmentScene extends Phaser.Scene {
 
     private get str(): number {
         return offSaveStore.character.stats.str;
+    }
+
+    private get wearer(): OffWearer {
+        return { str: this.str, level: offSaveStore.level };
     }
 
     // ---- Character window (left) ----
@@ -319,9 +327,8 @@ export class OffEquipmentScene extends Phaser.Scene {
         const name = this.add.text(x + l.iconSize + 12, middle, id ? OFF_ITEMS[id].name : 'Nothing', EQUIPMENT_ROW_STYLE).setOrigin(0, 0.5);
         const objects: Phaser.GameObjects.GameObject[] = [icon, name];
         if (id) {
-            const need = OFF_ITEMS[id].strToEquip;
-            objects.push(this.add.text(x + width - 6, middle, `Str ${need}`, {
-                ...EQUIPMENT_DETAIL_STYLE, color: this.str >= need ? EQUIPMENT_MET_COLOR : EQUIPMENT_UNMET_COLOR,
+            objects.push(this.add.text(x + width - 6, middle, offNeedsText(id), {
+                ...EQUIPMENT_DETAIL_STYLE, color: offWearCheck(id, this.wearer) === 'ok' ? EQUIPMENT_MET_COLOR : EQUIPMENT_UNMET_COLOR,
             }).setOrigin(1, 0.5));
         }
         background.setInteractive({ useHandCursor: true });
@@ -373,7 +380,7 @@ export class OffEquipmentScene extends Phaser.Scene {
         const worn = this.equipment[this.slot];
         const title = id ? `${OFF_ITEMS[id].name}${id === worn ? '  (worn)' : ''}` : 'Nothing';
         const area = { x, y, width: p.width - p.padding * 2, height: okTop - b.bottomGap - y };
-        this.boxObjects = drawOffItemBox(this, area, title, offItemBoxLines(id, id === worn ? undefined : worn, this.str));
+        this.boxObjects = drawOffItemBox(this, area, title, offItemBoxLines(id, id === worn ? undefined : worn, this.wearer));
     }
 
     // ---- Focus and actions ----
@@ -405,8 +412,9 @@ export class OffEquipmentScene extends Phaser.Scene {
         const id = this.rows[this.focus.index];
         if (!id) return 'Take off what you wear in this slot.';
         if (this.isWorn(id)) return 'You wear it.';
-        const need = OFF_ITEMS[id].strToEquip;
-        return this.str >= need ? 'Enter or A puts it on.' : `Needs Str ${need}. Assign points in the Character window (C).`;
+        const check = offWearCheck(id, this.wearer);
+        if (check === 'level') return `Needs Level ${offItem(id).levelToEquip ?? 0}.`;
+        return check === 'ok' ? 'Enter or A puts it on.' : `Needs Str ${OFF_ITEMS[id].strToEquip}. Assign points in the Character window (C).`;
     }
 
     private moveSideways(dx: number): void {

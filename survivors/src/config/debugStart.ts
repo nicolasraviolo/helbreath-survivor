@@ -111,6 +111,8 @@
 //   ?offgold=500 → Helbreath Off: el personaje tiene ese oro (Fase Off-4A)
 //   ?offbag=shortSword,redPotion → Helbreath Off: la bolsa lleva eso (off/data/offItems.ts y offGoods.ts; Fase Off-4A)
 //   ?offopen=bag → Helbreath Off: el inventario abierto al entrar en el mundo (Fase Off-4B)
+//   ?offfaction=aresden → Helbreath Off: el personaje es de ese bando (aresden, elvine; none = sin bando) (Fase Off-5A)
+//   ?offplace=aresden&offat=120,160 → Helbreath Off: empieza en ese sitio (traveler, aresden, elvine), en esa casilla (Off-5A)
 //   ?offdrop=all → Helbreath Off: todos los monstruos sueltan algo; ?offdrop=valuable, siempre un arma o escudo (Off-4A)
 //   ?metrics=send    → enviar las métricas de esta partida al servidor de verdad (en desarrollo no se envían; Fase 14A)
 //   Se combina con ?ui=compact (interfaz de móvil).
@@ -130,6 +132,7 @@ import { isAutoSpellId, type AutoSpellId } from '../data/spells';
 import { UPGRADE_MAX } from '../data/upgrades';
 import { isNpcId, type NpcId } from '../data/town';
 import { TREE_MODES, type TreeMode } from './settings';
+import { isOffFaction, isOffPlaceId, type OffFaction, type OffPlaceId } from '../off/data/offPlaceIds';
 import { CHARACTER_LEVEL_MAX } from '../data/characterLevel';
 import { STAT_IDS, type Stats } from '../data/stats';
 import type { MeleeWeaponId } from '../data/weapons';
@@ -218,8 +221,16 @@ interface DebugStart {
     offGold: number | undefined;
     /** ?offbag=a,b: Helbreath Off's bag holds those items (Fase Off-4A). */
     offBag: string[];
-    /** ?offopen=bag: Helbreath Off's Inventory open on entering the world (Fase Off-4B). */
-    offOpen: 'bag' | undefined;
+    /** Helbreath Off: ?offwarehouse=cape,redPotion fills the warehouse (Off-5B). */
+    offWarehouse: string[];
+    /** ?offopen=bag|shop|smith|warehouse: that Helbreath Off window open on entering the world (Fase Off-4B / 5B). */
+    offOpen: 'bag' | 'shop' | 'smith' | 'warehouse' | undefined;
+    /** ?offfaction=aresden|elvine|none: Helbreath Off's character has that faction, or none (Fase Off-5A). */
+    offFaction: OffFaction | 'none' | undefined;
+    /** ?offplace=aresden: Helbreath Off starts in that place (Fase Off-5A). */
+    offPlace: OffPlaceId | undefined;
+    /** ?offat=x,y: on that tile (Fase Off-5A). */
+    offAt: { x: number; y: number } | undefined;
     /** ?offdrop=all|valuable: every monster drops something / a weapon or shield (Fase Off-4A). */
     offDrop: 'normal' | 'all' | 'valuable';
     /**
@@ -266,7 +277,7 @@ function readDebugStart(): DebugStart {
     const none: DebugStart = {
         play: false, character: undefined, actions: [], trees: undefined, open: undefined, achievements: undefined, characters: undefined,
         sendMetrics: false, spells: { auto: undefined, active: undefined }, openClass: undefined, openSlot: undefined, slash: undefined,
-        holdLoading: false, gear: [], settingsTab: undefined, attribute: undefined, attributeValue: undefined, secondary: undefined, secondaryValue: undefined, unlocks: undefined, unlockCounts: {}, map: undefined, maps: undefined, rescued: undefined, kills: {}, unique: undefined, offLevel: undefined, offReset: false, offGear: [], offStats: {}, offGold: undefined, offBag: [], offOpen: undefined, offDrop: 'normal', townSpot: undefined, townTalk: false, townShop: false, townDye: false, townMissions: false, townSmith: undefined,
+        holdLoading: false, gear: [], settingsTab: undefined, attribute: undefined, attributeValue: undefined, secondary: undefined, secondaryValue: undefined, unlocks: undefined, unlockCounts: {}, map: undefined, maps: undefined, rescued: undefined, kills: {}, unique: undefined, offLevel: undefined, offReset: false, offGear: [], offStats: {}, offGold: undefined, offBag: [], offWarehouse: [], offOpen: undefined, offDrop: 'normal', offFaction: undefined, offPlace: undefined, offAt: undefined, townSpot: undefined, townTalk: false, townShop: false, townDye: false, townMissions: false, townSmith: undefined,
         gold: undefined, weapon: undefined, upgrade: undefined, xelima: undefined, level: undefined, build: undefined, kit: 'best', simBot: 'circle',
     };
     if (!import.meta.env.DEV) return none;
@@ -324,7 +335,11 @@ function readDebugStart(): DebugStart {
         offStats: parseOffStats(params.get('offstats')),
         offGold: parseOffGold(params.get('offgold')),
         offBag: (params.get('offbag') ?? '').split(',').map((g) => g.trim()).filter((g) => g.length > 0),
-        offOpen: params.get('offopen') === 'bag' ? 'bag' : undefined,
+        offWarehouse: (params.get('offwarehouse') ?? '').split(',').map((g) => g.trim()).filter((g) => g.length > 0),
+        offOpen: parseOffOpen(params.get('offopen')),
+        offFaction: parseOffFaction(params.get('offfaction')),
+        offPlace: parseOffPlace(params.get('offplace')),
+        offAt: parseOffAt(params.get('offat')),
         offDrop: params.get('offdrop') === 'all' ? 'all' : params.get('offdrop') === 'valuable' ? 'valuable' : 'normal',
         townSpot: parseTownSpot(params.get('town')),
         townTalk: params.has('talk'),
@@ -354,6 +369,29 @@ function readBuild(value: string | null): Partial<Stats> | undefined {
         if (stat && amount !== undefined && /^\d+$/.test(amount.trim())) build[stat] = Number(amount);
     }
     return Object.keys(build).length > 0 ? build : undefined;
+}
+
+/** ?offfaction=aresden|elvine|none → that faction, 'none', or undefined (anything else). */
+function parseOffOpen(value: string | null): DebugStart['offOpen'] {
+    return value === 'bag' || value === 'shop' || value === 'smith' || value === 'warehouse' ? value : undefined;
+}
+
+function parseOffFaction(value: string | null): OffFaction | 'none' | undefined {
+    if (value === 'none') return 'none';
+    return isOffFaction(value) ? value : undefined;
+}
+
+/** ?offplace=aresden → that place, or undefined. */
+function parseOffPlace(value: string | null): OffPlaceId | undefined {
+    return isOffPlaceId(value) ? value : undefined;
+}
+
+/** ?offat=x,y → that tile (whole numbers, 0 or more). */
+function parseOffAt(value: string | null): { x: number; y: number } | undefined {
+    const parts = (value ?? '').split(',').map((n) => Number(n));
+    const [x, y] = parts;
+    if (parts.length !== 2 || x === undefined || y === undefined || !Number.isInteger(x) || !Number.isInteger(y) || x < 0 || y < 0) return undefined;
+    return { x, y };
 }
 
 /** ?offgold=N → N (a whole number, 0 or more). */

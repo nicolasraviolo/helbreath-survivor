@@ -87,6 +87,35 @@ const PRESETS = {
     offlootview: 'off=world&offreset&offlevel=3&offdrop=all',
     offloot: 'off=world&offreset&offlevel=3&offdrop=all',
     offbagfull: `off=world&offreset&offlevel=3&offdrop=valuable&offbag=${Array(50).fill('redPotion').join(',')}`,
+    // Fase Off-5A: bandos. offportal pisa el portal de Aresden sin bando (sale "Do you want to join Aresden?");
+    // offjoin contesta Yes (en eval: sitio, bando y lo guardado; captura en Aresden). offaresden / offelvine abren la
+    // ciudad de cada bando (Play lleva a la tuya). offcityback, de Elvine: su portal lleva a Traveler Zone y el portal
+    // de Elvine de allí vuelve sin preguntar. offotherportal: siendo de Elvine, el portal de Aresden no deja pasar.
+    // offdeathhome: de Aresden, muere en Traveler Zone y reaparece en Aresden.
+    offportal: 'off=world&offreset&offlevel=5&offplace=traveler&offat=81,79',
+    offjoin: 'off=world&offreset&offlevel=5&offplace=traveler&offat=81,79',
+    offaresden: 'off=world&offlevel=5&offfaction=aresden',
+    offelvine: 'off=world&offlevel=5&offfaction=elvine',
+    offcityback: 'off=world&offlevel=5&offfaction=elvine',
+    offotherportal: 'off=world&offlevel=5&offfaction=elvine&offplace=traveler&offat=81,79',
+    offdeathhome: 'off=world&offlevel=5&offfaction=aresden&offplace=traveler',
+    // Fase Off-5B: tienda, herrero y almacén. offshop / offsmith / offwarehouse los abren (captura); en eval offshop
+    // compra una Red Potion, offsmith compra la Long Sword e intenta la Plate Mail (sin oro) y mira la Battle Hammer
+    // (Level 110), offsell vende la Long Sword y la Slime Jelly a mitad de precio, offwarehouse guarda la Cape y saca la
+    // Long Sword, offdoor pisa la puerta de la tienda de Aresden (se abre) y offelvinedoor la del herrero de Elvine.
+    offshop: 'off=world&offlevel=5&offfaction=aresden&offgold=500&offopen=shop&offbag=redPotion',
+    offsmith: 'off=world&offlevel=5&offstats=str:14&offfaction=aresden&offgold=2000&offopen=smith&offbag=redPotion',
+    offsell: 'off=world&offlevel=5&offfaction=aresden&offgold=100&offopen=shop&offbag=longSword,slimeJelly,redPotion',
+    offwarehouse: 'off=world&offlevel=5&offfaction=elvine&offopen=warehouse&offbag=cape,redPotion&offwarehouse=longSword,bluePotion',
+    offdoor: 'off=world&offlevel=5&offfaction=aresden&offgold=300&offplace=aresden&offat=128,172',
+    offelvinedoor: 'off=world&offlevel=5&offfaction=elvine&offgold=300',
+    // Fase Off-5C: la ciudad entera. offcitypits / offelvinepits dan los monstruos vivos de cada tipo en Aresden / Elvine
+    // (8 pits: 1 Slime, 2 Giant Ant, 2 Snake, 2 Orc, 1 Giant Scorpion); offorc pelea 20 s junto al pit de Orcs del
+    // este de Aresden (Level 20, Long Sword); offscorpion, lo mismo con el Giant Scorpion del norte.
+    offcitypits: 'off=world&offlevel=5&offfaction=aresden',
+    offelvinepits: 'off=world&offlevel=5&offfaction=elvine',
+    offorc: 'off=world&offlevel=20&offstats=str:30&offgear=longSword&offfaction=aresden&offplace=aresden&offat=243,201',
+    offscorpion: 'off=world&offlevel=20&offstats=str:30&offgear=longSword&offfaction=aresden&offplace=aresden&offat=101,52',
     game: 'play',
     levelup: 'debug=levelup',
     // Fase 21½A: todas las cartas Epic (marco morado, cinta, brillo y sonido).
@@ -350,6 +379,21 @@ const PRESET_EVAL = {
     // Fase Off-2B: kills Slimes for 20 s from level 1; level, experience and points before and after.
     offlevel: "new Promise((r) => { const start = o.debugState(); const t = setInterval(() => { if (!o.debugState().target) o.debugFight('slime'); }, 1000); setTimeout(() => { clearInterval(t); r({ start, end: o.debugState() }); }, 20000); })",
     // Fase Off-2B: 200 experience into level 10, dies (as a monster's last blow would); the experience before and after coming back.
+    offportal: "o.debugWalkTo(81, 76), new Promise((r) => setTimeout(() => r({ confirm: game.scene.isActive('OffConfirm'), worldPaused: game.scene.isPaused('OffWorld'), state: o.debugState().place }), 3000))",
+    offjoin: "o.debugWalkTo(81, 76), new Promise((r) => setTimeout(() => { const asked = game.scene.isActive('OffConfirm'); game.scene.getScene('OffConfirm').answer(true); setTimeout(() => { const s = o.debugState(); r({ asked, place: s.place, faction: s.faction, tile: s.tile, hp: s.hp, saved: JSON.parse(localStorage.getItem('hb-off.character')).faction }); }, 4000); }, 3000))",
+    offcityback: "new Promise((r) => { const start = o.debugState().place; o.debugWalkTo(237, 140); setTimeout(() => { const s = o.debugState(); const mid = [s.place, s.tile]; o.debugWalkTo(128, 79); setTimeout(() => { const e = o.debugState(); r({ start, mid, end: [e.place, e.tile], asked: game.scene.isActive('OffConfirm') }); }, 6000); }, 5000); })",
+    offotherportal: "o.debugWalkTo(81, 76), new Promise((r) => setTimeout(() => { const s = o.debugState(); r({ place: s.place, faction: s.faction, tile: s.tile, asked: game.scene.isActive('OffConfirm') }); }, 3500))",
+    offdeathhome: "new Promise((r) => { const start = o.debugState().place; o.battle.hp = 0; o.battle.die(); setTimeout(() => { const s = o.debugState(); r({ start, end: s.place, tile: s.tile, dead: s.dead, hp: [s.hp, s.maxHp] }); }, 6000); })",
+    offshop: "new Promise((r) => setTimeout(() => { const st = game.scene.getScene('OffStore'); const before = st.debugState(); st.mark(0); st.act(); setTimeout(() => r({ open: game.scene.isActive('OffStore'), hud: game.scene.isActive('OffHud'), before: { rows: before.rows, gold: before.gold }, after: st.debugState(), saved: (({ gold, bag }) => ({ gold, bag }))(JSON.parse(localStorage.getItem('hb-off.character'))) }), 300); }, 1000))",
+    offsmith: "new Promise((r) => setTimeout(() => { const st = game.scene.getScene('OffStore'); const rows = st.debugState().rows; st.mark(rows.indexOf('longSword')); st.act(); const sword = st.debugState(); st.mark(rows.indexOf('plateMail')); st.act(); const plate = st.debugState(); st.mark(rows.indexOf('battleHammer')); const hammer = st.debugState(); st.mark(rows.indexOf('longSword')); r({ rows, sword: [sword.message, sword.gold], plate: plate.message, hammerBox: hammer.box, bag: JSON.parse(localStorage.getItem('hb-off.character')).bag }); }, 1000))",
+    offsell: "new Promise((r) => setTimeout(() => { const st = game.scene.getScene('OffStore'); st.showTab('sell'); const before = st.debugState(); st.mark(0); st.act(); const one = st.debugState(); st.act(); const two = st.debugState(); r({ before: before.rows, one: [one.message, one.gold, one.rows], two: [two.message, two.gold, two.rows], saved: (({ gold, bag }) => ({ gold, bag }))(JSON.parse(localStorage.getItem('hb-off.character'))) }); }, 1000))",
+    offwarehouse: "new Promise((r) => setTimeout(() => { const w = game.scene.getScene('OffWarehouse'); const before = w.debugState(); const store = w.moveItem('bag', 0); const take = w.moveItem('warehouse', 0); const after = w.debugState(); r({ before, store, take, after, saved: (({ bag, warehouse }) => ({ bag, warehouse }))(JSON.parse(localStorage.getItem('hb-off.character'))) }); }, 1000))",
+    offdoor: "o.debugWalkTo(126, 166, true), new Promise((r) => setTimeout(() => { const st = game.scene.getScene('OffStore'); const open = game.scene.isActive('OffStore'); const state = open ? st.debugState() : undefined; r({ open, tile: o.debugState().tile, rows: state && state.rows.length, title: state && state.tab }); }, 14000))",
+    offelvinedoor: "o.debugWalkTo(229, 112), new Promise((r) => setTimeout(() => { const open = game.scene.isActive('OffStore'); r({ open, tile: o.debugState().tile, rows: open ? game.scene.getScene('OffStore').debugState().rows.slice(0, 4) : undefined }); }, 9000))",
+    offcitypits: "new Promise((r) => setTimeout(() => { const s = o.debugState(); r({ place: s.place, tile: s.tile, monsters: s.monsters }); }, 1500))",
+    offelvinepits: "new Promise((r) => setTimeout(() => { const s = o.debugState(); r({ place: s.place, tile: s.tile, monsters: s.monsters }); }, 1500))",
+    offorc: "new Promise((r) => { const log = []; const t = setInterval(() => { if (!o.debugState().target) o.debugFight('orc'); log.push(o.debugState()); }, 1000); setTimeout(() => { clearInterval(t); const pick = (s) => s && ({ tile: s.tile, hp: [s.hp, s.maxHp], level: s.level, exp: s.exp, kills: s.kills, target: s.target, monsters: s.monsters, gold: s.gold, dead: s.dead }); r({ start: pick(log[0]), mid: pick(log[10]), end: pick(log[log.length - 1]) }); }, 20000); })",
+    offscorpion: "new Promise((r) => { const log = []; const t = setInterval(() => { if (!o.debugState().target) o.debugFight('giantScorpion'); log.push(o.debugState()); }, 1000); setTimeout(() => { clearInterval(t); const pick = (s) => s && ({ tile: s.tile, hp: [s.hp, s.maxHp], level: s.level, exp: s.exp, kills: s.kills, target: s.target, monsters: s.monsters, gold: s.gold, dead: s.dead }); r({ start: pick(log[0]), mid: pick(log[10]), end: pick(log[log.length - 1]) }); }, 20000); })",
     offdeath: "new Promise((r) => { o.battle.exp += 200; const start = o.debugState(); o.battle.hp = 0; o.battle.die(); setTimeout(() => r({ start, end: o.debugState() }), 4000); })",
     offcreated: "new Promise((r) => { const c = game.scene.getScene('OffCreate'); c.changeStat('str', 1); const one = c.stats.str; c.createCharacter(); const blocked = game.scene.isActive('OffCreate'); c.applyPreset('warrior'); c.createCharacter(); setTimeout(() => r({ oneStr: one, blockedWithPointsLeft: blocked, saved: JSON.parse(localStorage.getItem('hb-off.character')), world: game.scene.isActive('OffWorld') }), 4000); })",
     offchar: "o.openCharacter(), new Promise((r) => setTimeout(() => r({ open: game.scene.isActive('CharacterInfo'), worldPaused: game.scene.isPaused('OffWorld'), state: o.debugState() }), 800))",

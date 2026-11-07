@@ -18,6 +18,12 @@
 // abiertas, el personaje no recibe órdenes (se queda quieto, y los monstruos le pueden pegar). C / Y abren Character.
 // Cada frame se leen todas las teclas aunque haya una ventana abierta, para que una pulsación de la ventana no llegue
 // al mundo al cerrarla.
+// Fase Off-5A: el mundo carga el sitio que le digan (off/data/offPlaces.ts: Traveler Zone, Aresden o Elvine) y tiene
+// portales. Pisar uno lleva al otro sitio con la vida, el maná y la estamina que tenías; el de una ciudad, sin bando,
+// pregunta antes si quieres unirte (OffConfirmScene, con el mundo en pausa). Al morir lejos de casa se reaparece en tu
+// ciudad (o en Traveler Zone sin bando).
+// Fase Off-5B: pisar la puerta de la tienda, el herrero o el almacén de tu ciudad abre su ventana (OffStoreScene /
+// OffWarehouseScene) encima del mundo, que sigue; como los portales, hay que salir de la puerta para que vuelva a abrir.
 // Mapa, árboles que se transparentan, cámara, pasos y minimapa, como la ciudad de Survivors (scenes/TownScene.ts).
 import Phaser from 'phaser';
 import { CAMERA_LERP, DEPTH_DEBUG, GAME_WIDTH, TILE_SIZE } from '../../config/gameConfig';
@@ -37,7 +43,17 @@ import { playAreaBottom } from '../../ui/hudLayout';
 import { setGameViewport, toGame, zoomWorldCamera } from '../../ui/renderScale';
 import { Pool } from '../../utils/Pool';
 import type { MapLoadSceneData } from '../../scenes/MapLoadScene';
-import { OFF_MOVEMENT, OFF_NOVICE, OFF_STEP_MS, OFF_WORLD, TILES_PER_ANIMATION_CYCLE } from '../data/offWorld';
+import { OFF_MOVEMENT, OFF_NOVICE, OFF_STEP_MS, TILES_PER_ANIMATION_CYCLE } from '../data/offWorld';
+import {
+    OFF_PLACE_TEXT, OFF_PLACES, offCityOf, offHomePlace, type OffBuildingKind, type OffDoorDef, type OffFaction, type OffPlaceDef, type OffPlaceId, type OffPortalDef,
+} from '../data/offPlaces';
+import { OFF_STORE_SCENE_KEY, type OffStoreSceneData } from './OffStoreScene';
+import { OFF_WAREHOUSE_SCENE_KEY, type OffWarehouseSceneData } from './OffWarehouseScene';
+import { EVENT_LIST_EVENT } from '../../config/hud';
+import { Portal } from '../../entities/Portal';
+import { openOverlay } from '../../scenes/MenuOverlayScene';
+import { OFF_CONFIRM_SCENE_KEY, type OffConfirmSceneData } from './OffConfirmScene';
+import type { OffCarriedVitals } from '../systems/OffBattle';
 import { OffCharacter } from '../entities/OffCharacter';
 import { offLevelProgress } from '../data/offLevel';
 import { OffBattle } from '../systems/OffBattle';
@@ -57,21 +73,56 @@ export const OFF_WORLD_SCENE_KEY = 'OffWorld';
 /** Run mode (R / R3): kept while the page is open, also when leaving the world and coming back. */
 let runMode: boolean = OFF_MOVEMENT.startRunning;
 
-/** Opens Off's world through the map loading screen (almost unseen when it is already loaded). */
-export function startOffWorld(scene: Phaser.Scene): void {
-    const data: MapLoadSceneData = {
+/** Which place the world opens, and how the character gets there (Off-5A). */
+export interface OffWorldSceneData {
+    place: OffPlaceId;
+    /** Tile to appear on (the nearest free one); the place's spawn without it. */
+    at?: TilePoint;
+    /** Health, mana and stamina brought through a portal; full without them. */
+    carried?: OffCarriedVitals;
+    /** A line for the bottom-left list on arriving. */
+    message?: string;
+}
+
+/** ?offplace / ?offat apply to the first place opened only. */
+let debugPlacePending = true;
+
+/**
+ * Opens a place of Off through the map loading screen (almost unseen when it is already loaded). Without data: the
+ * character's home (its city, or Traveler Zone without a faction).
+ */
+export function startOffWorld(scene: Phaser.Scene, data?: OffWorldSceneData): void {
+    let sceneData: OffWorldSceneData = data ?? { place: offHomePlace(offSaveStore.character.faction) };
+    if (debugPlacePending && data === undefined && DEBUG_START.offPlace !== undefined) {
+        sceneData = { place: DEBUG_START.offPlace, at: DEBUG_START.offAt };
+    }
+    debugPlacePending = false;
+    const def = OFF_PLACES[sceneData.place];
+    const load: MapLoadSceneData = {
         place: {
-            ...OFF_WORLD,
+            ...def,
             sceneKey: OFF_WORLD_SCENE_KEY,
             worn: runSprites(OFF_NOVICE, offSaveStore.character.look, offEquipmentLook(offSaveStore.character.equipment)),
-            sounds: [OFF_WORLD.music],
+            sounds: [def.music],
+            sceneData,
         },
     };
-    scene.scene.start('MapLoad', data);
+    scene.scene.start('MapLoad', load);
 }
 
 export class OffWorldScene extends Phaser.Scene {
+    private placeId: OffPlaceId = 'traveler';
+    private place: OffPlaceDef = OFF_PLACES.traveler;
+    private arrival: OffWorldSceneData = { place: 'traveler' };
     private map!: HBMap;
+    /** Our portal effects (a city's way back), also shown on the minimap. */
+    private portalSprites: Portal[] = [];
+    /** Portal the character stands in: it takes you through on stepping in, not again until you step out. */
+    private insidePortal: OffPortalDef | undefined;
+    /** The door stood on (Off-5B): its window opens again only after stepping off it. */
+    private insideDoor: OffDoorDef | undefined;
+    /** Already on the way to another place (the loading screen opens next). */
+    private leaving = false;
     private mapView!: MapView;
     private mover!: TileMover;
     private character!: OffCharacter;
@@ -104,21 +155,45 @@ export class OffWorldScene extends Phaser.Scene {
         super(OFF_WORLD_SCENE_KEY);
     }
 
+    init(data: Partial<OffWorldSceneData> | undefined): void {
+        this.placeId = data?.place ?? offHomePlace(offSaveStore.character.faction);
+        this.place = OFF_PLACES[this.placeId];
+        this.arrival = { ...data, place: this.placeId };
+    }
+
     create(): void {
-        const map = getMap(this, OFF_WORLD.asset);
+        const place = this.place;
+        const map = getMap(this, place.asset);
         this.map = map;
-        const area = OFF_WORLD.playArea;
+        const area = place.playArea;
         this.mapView = new MapView(this, map, area, area);
-        const isWalkable = (x: number, y: number) => map.isWalkableTile(x, y);
-        const spawn = findFreeTile(isWalkable, OFF_WORLD.spawn.x, OFF_WORLD.spawn.y, OFF_MOVEMENT.clickSearchRadius) ?? OFF_WORLD.spawn;
+        const isWalkable = (x: number, y: number) => map.isWalkableTile(x, y) && insideArea(area, x, y);
+        const home = findFreeTile(isWalkable, place.spawn.x, place.spawn.y, OFF_MOVEMENT.clickSearchRadius) ?? place.spawn;
+        const at = this.arrival.at;
+        const spawn = (at && findFreeTile(isWalkable, at.x, at.y, OFF_MOVEMENT.clickSearchRadius)) ?? home;
         // Monsters block the way too (the battle knows where they are).
         this.mover = new TileMover((x, y) => this.battle.isFreeForPlayer(x, y), spawn.x, spawn.y);
         this.lastTile = { x: spawn.x, y: spawn.y };
         this.character = new OffCharacter(this, OFF_NOVICE, offSaveStore.character.look, offEquipmentLook(offSaveStore.character.equipment));
         this.character.update(this.mover, false, 0);
         this.audio = new AudioSystem(this);
-        const respawnTile = () => findFreeTile((x, y) => this.battle.isFreeForPlayer(x, y), spawn.x, spawn.y, OFF_MOVEMENT.clickSearchRadius) ?? spawn;
-        this.battle = new OffBattle(this, this.mover, this.character, this.audio, isWalkable, respawnTile);
+        // Coming back to life: here, on the place's spawn, if this is home; otherwise off to the character's city.
+        const respawnTile = (): TilePoint | undefined => {
+            const homePlace = offHomePlace(offSaveStore.character.faction);
+            if (homePlace !== this.placeId) {
+                this.travel({ place: homePlace });
+                return undefined;
+            }
+            return findFreeTile((x, y) => this.battle.isFreeForPlayer(x, y), home.x, home.y, OFF_MOVEMENT.clickSearchRadius) ?? home;
+        };
+        this.battle = new OffBattle(this, this.mover, this.character, this.audio, isWalkable, respawnTile, place.pits, this.arrival.carried);
+        this.leaving = false;
+        this.portalSprites = place.portals.filter((p) => p.drawn).map((p) => {
+            const centre = portalCentre(p);
+            return new Portal(this, centre.x * TILE_SIZE, centre.y * TILE_SIZE, Number.POSITIVE_INFINITY);
+        });
+        this.insidePortal = this.portalAt(spawn.x, spawn.y);
+        this.insideDoor = this.doorAt(spawn.x, spawn.y);
         // Each running step costs stamina (the step is chosen as a run only while there is some).
         this.mover.onStep = (stepMs) => {
             if (stepMs === OFF_STEP_MS.run) this.battle.vitals.spendRunStep();
@@ -135,10 +210,11 @@ export class OffWorldScene extends Phaser.Scene {
         camera.setBounds(area.x * TILE_SIZE, area.y * TILE_SIZE, area.width * TILE_SIZE, area.height * TILE_SIZE);
         camera.startFollow(this.character.container, true, CAMERA_LERP, CAMERA_LERP);
         camera.centerOn(this.character.x, this.character.y);
+        this.cullMap();
 
         this.dust = new Pool(() => new Effect(this));
-        new MusicSystem(this).play(OFF_WORLD.music);
-        this.minimap = new Minimap(this, { key: OFF_WORLD.minimap, mapWidth: OFF_WORLD.size.width, mapHeight: OFF_WORLD.size.height, playArea: area }, DEPTH_DEBUG - 1);
+        new MusicSystem(this).play(place.music);
+        this.minimap = new Minimap(this, { key: place.minimap, mapWidth: place.size.width, mapHeight: place.size.height, playArea: area }, DEPTH_DEBUG - 1);
         this.minimap.setVisible(settings.current.showMinimap);
 
         this.inputSystem = new InputSystem(this);
@@ -160,7 +236,7 @@ export class OffWorldScene extends Phaser.Scene {
             settings.off(SETTINGS_CHANGED, onSettings);
             this.events.off(OFF_OPEN_CHARACTER_EVENT, this.openCharacter, this);
             this.events.off(OFF_OPEN_PAUSE_EVENT, this.openPause, this);
-            for (const key of [OFF_INVENTORY_SCENE_KEY, OFF_EQUIPMENT_SCENE_KEY]) this.scene.stop(key);
+            for (const key of [OFF_INVENTORY_SCENE_KEY, OFF_EQUIPMENT_SCENE_KEY, OFF_STORE_SCENE_KEY, OFF_WAREHOUSE_SCENE_KEY]) this.scene.stop(key);
             this.input.off(Phaser.Input.Events.POINTER_DOWN, this.onPointerDown, this);
             this.input.off(Phaser.Input.Events.POINTER_UP, this.onPointerUp, this);
             this.audio.stopLoop('sfx.footsteps');
@@ -168,7 +244,12 @@ export class OffWorldScene extends Phaser.Scene {
         });
         const hud: OffHudSceneData = { worldSceneKey: OFF_WORLD_SCENE_KEY, getState: () => this.hudState() };
         this.scene.launch(OFF_HUD_SCENE_KEY, hud);
-        if (DEBUG_START.offOpen === 'bag') this.time.delayedCall(0, () => this.openInventory());
+        const open = DEBUG_START.offOpen;
+        if (open === 'bag') this.time.delayedCall(0, () => this.openInventory());
+        else if (open !== undefined) this.time.delayedCall(0, () => this.openBuilding(open));
+        const message = this.arrival.message;
+        // After the HUD has opened and listens.
+        if (message !== undefined) this.time.delayedCall(ARRIVAL_MESSAGE_DELAY_MS, () => this.events.emit(EVENT_LIST_EVENT, message));
     }
 
     /** World down to the HUD bar, or the whole screen with the compact HUD (as GameScene.fitPlayArea). */
@@ -193,6 +274,12 @@ export class OffWorldScene extends Phaser.Scene {
             kills: battle.kills,
             gold: offSaveStore.character.gold,
         };
+    }
+
+    /** Only the map objects near the camera are sorted and drawn (whole cities, Off-5C). */
+    private cullMap(): void {
+        const camera = this.cameras.main;
+        this.mapView.cullAround(this.character.x, this.character.y, camera.width / camera.zoom / 2, camera.height / camera.zoom / 2);
     }
 
     override update(_time: number, delta: number): void {
@@ -226,11 +313,126 @@ export class OffWorldScene extends Phaser.Scene {
         this.character.update(this.mover, stepRunning, delta);
         this.battle.update(delta);
         this.updateFootsteps(stepRunning);
+        this.updatePortals();
+        this.updateDoors();
         this.mapView.updateFading(this.character.y, this.character.getVisualBounds());
-        this.minimap.update({ player: this.character, bosses: [], totems: [], loot: [] }, this.time.now);
+        this.cullMap();
+        this.minimap.update({ player: this.character, bosses: [], totems: [], loot: [], portals: this.portalSprites }, this.time.now);
         for (const effect of [...this.dust.active]) {
             if (!effect.update()) this.dust.release(effect);
         }
+    }
+
+    // ---- Portals (Off-5A) ----
+
+    /** The portal whose tiles include that one. */
+    private portalAt(x: number, y: number): OffPortalDef | undefined {
+        return this.place.portals.find((p) => insideArea(p.area, x, y));
+    }
+
+    /** Stepping into a portal takes you through (once: you step out before it works again). */
+    private updatePortals(): void {
+        if (this.leaving || this.battle.dead) return;
+        const portal = this.portalAt(this.mover.tileX, this.mover.tileY);
+        if (portal && portal !== this.insidePortal) this.enterPortal(portal);
+        this.insidePortal = portal;
+    }
+
+    private enterPortal(portal: OffPortalDef): void {
+        const to = portal.to;
+        if (to.kind === 'traveler') {
+            this.travel({ place: 'traveler', at: this.travelerArrivalFor(this.placeId), carried: this.carriedVitals() });
+            return;
+        }
+        const faction = offSaveStore.character.faction;
+        if (faction === to.faction) {
+            this.travel({ place: offCityOf(faction), at: cityArrival(faction), carried: this.carriedVitals() });
+            return;
+        }
+        if (faction !== undefined) {
+            this.events.emit(EVENT_LIST_EVENT, OFF_PLACE_TEXT.otherCity(to.faction));
+            return;
+        }
+        this.askToJoin(to.faction);
+    }
+
+    /** "Do you want to join ...?" over the world, which waits paused; Yes joins for ever and goes there. */
+    private askToJoin(faction: OffFaction): void {
+        if (this.window === 'inventory') {
+            this.scene.stop(OFF_INVENTORY_SCENE_KEY);
+            this.closeInventory();
+        }
+        // Under Equipment or Character the character cannot walk in: nothing to ask.
+        if (this.window) return;
+        this.stopForWindow();
+        this.mover.cancel();
+        const data: Omit<OffConfirmSceneData, 'returnTo'> = {
+            faction,
+            onYes: () => {
+                offSaveStore.joinFaction(faction);
+                this.travel({ place: offCityOf(faction), at: cityArrival(faction), carried: this.carriedVitals(), message: OFF_PLACE_TEXT.joined(faction) });
+            },
+        };
+        openOverlay(this, OFF_CONFIRM_SCENE_KEY, data);
+    }
+
+    // ---- Doors (Off-5B) ----
+
+    private doorAt(x: number, y: number): OffDoorDef | undefined {
+        return this.place.doors.find((d) => insideArea(d.area, x, y));
+    }
+
+    /** Stepping on a door opens its window (once: step off before it works again). */
+    private updateDoors(): void {
+        if (this.leaving || this.battle.dead) return;
+        const door = this.doorAt(this.mover.tileX, this.mover.tileY);
+        if (door && door !== this.insideDoor) this.openBuilding(door.kind);
+        this.insideDoor = door;
+    }
+
+    /** The shop's, the blacksmith's or the warehouse's window over the world (the Inventory closes first). */
+    public openBuilding(kind: OffBuildingKind): void {
+        if (!this.scene.isActive()) return;
+        if (this.window === 'inventory') {
+            this.scene.stop(OFF_INVENTORY_SCENE_KEY);
+            this.closeInventory();
+        }
+        if (this.window) return;
+        this.coverWorld();
+        const onClose = () => {
+            this.uncoverWorld();
+            this.dressCharacter();
+        };
+        if (kind === 'warehouse') {
+            const data: OffWarehouseSceneData = { onClose };
+            this.scene.launch(OFF_WAREHOUSE_SCENE_KEY, data);
+            return;
+        }
+        const data: OffStoreSceneData = { kind, onChange: () => undefined, onClose };
+        this.scene.launch(OFF_STORE_SCENE_KEY, data);
+    }
+
+    /** In Traveler Zone, by the portal of the city you come from. */
+    private travelerArrivalFor(from: OffPlaceId): TilePoint | undefined {
+        return OFF_PLACES.traveler.portals.find((p) => p.to.kind === 'city' && offCityOf(p.to.faction) === from)?.arrival;
+    }
+
+    private carriedVitals(): OffCarriedVitals {
+        return { hp: this.battle.hp, mana: this.battle.vitals.mana, stamina: this.battle.vitals.stamina };
+    }
+
+    /** Off to another place through its loading screen. */
+    private travel(data: OffWorldSceneData): void {
+        if (this.leaving) return;
+        this.leaving = true;
+        this.stopForWindow();
+        startOffWorld(this, data);
+    }
+
+    /** Development (`check offportal`): goes through a place's portal at once, as stepping on it would. */
+    public debugPortal(index: number): void {
+        const portal = this.place.portals[index];
+        if (portal) this.enterPortal(portal);
     }
 
     /** Pause (Esc, B, Start or the HUD's disk): world and HUD stop until Resume; Quit to Menu goes back to Off's screen. */
@@ -300,12 +502,15 @@ export class OffWorldScene extends Phaser.Scene {
         this.stopForWindow();
         this.mover.cancel();
         this.scene.sleep(OFF_HUD_SCENE_KEY);
+        // The minimap is drawn on top of everything (DEPTH_DEBUG) and would show through a centred window (Off-5B).
+        this.minimap.setVisible(false);
     }
 
     private uncoverWorld(): void {
         this.window = undefined;
         this.windowClosedFrame = this.game.loop.frame;
         this.scene.wake(OFF_HUD_SCENE_KEY);
+        this.minimap.setVisible(settings.current.showMinimap);
     }
 
     /** Stops following the mouse and attacking (a window opens over the world). */
@@ -326,7 +531,7 @@ export class OffWorldScene extends Phaser.Scene {
 
     /** Development: where the character is, its health and the monsters, for `check`. */
     public debugState(): {
-        tile: TilePoint; moving: boolean; running: boolean; stepMs: number; spawn: TilePoint; hp: number; maxHp: number; dead: boolean;
+        tile: TilePoint; moving: boolean; running: boolean; stepMs: number; spawn: TilePoint; place: OffPlaceId; faction: string; hp: number; maxHp: number; dead: boolean;
         mana: number; maxMana: number; stamina: number; maxStamina: number; stats: Readonly<Record<string, number>>;
         level: number; exp: number; points: number; kills: number; monsters: Record<string, number>; target: string | undefined;
         weapon: string; attackMs: number; defense: number; gold: number; bag: string[]; ground: string[];
@@ -341,7 +546,9 @@ export class OffWorldScene extends Phaser.Scene {
             moving: this.mover.isTravelling,
             running: runMode,
             stepMs: this.mover.currentStepMs,
-            spawn: { ...OFF_WORLD.spawn },
+            spawn: { ...this.place.spawn },
+            place: this.placeId,
+            faction: offSaveStore.character.faction ?? 'none',
             hp: this.battle.hp,
             maxHp: this.battle.maxHp,
             dead: this.battle.dead,
@@ -493,4 +700,21 @@ export class OffWorldScene extends Phaser.Scene {
             if (running) this.dust.acquire().play('fx.footsteps', this.character.x, this.character.y);
         }
     }
+}
+
+/** Time for the HUD to open before the arrival line is sent. */
+const ARRIVAL_MESSAGE_DELAY_MS = 300;
+
+function insideArea(area: { x: number; y: number; width: number; height: number }, x: number, y: number): boolean {
+    return x >= area.x && y >= area.y && x < area.x + area.width && y < area.y + area.height;
+}
+
+/** Middle of a portal's tiles, in tiles (its effect is drawn there). */
+function portalCentre(portal: OffPortalDef): { x: number; y: number } {
+    return { x: portal.area.x + portal.area.width / 2, y: portal.area.y + portal.area.height / 2 };
+}
+
+/** In a city, by its portal back to Traveler Zone. */
+function cityArrival(faction: OffFaction): TilePoint | undefined {
+    return OFF_PLACES[offCityOf(faction)].portals.find((p) => p.to.kind === 'traveler')?.arrival;
 }

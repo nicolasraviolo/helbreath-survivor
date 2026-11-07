@@ -44,6 +44,8 @@ export interface ExternalPlace extends Place {
     worn: readonly SpriteKey[];
     /** Sounds not loaded before the menu (LATER_SOUNDS) that the place plays. */
     sounds: readonly SoundKey[];
+    /** Handed to that scene when it starts (Off-5A: which place and where on it). */
+    sceneData?: object;
 }
 
 /** A hunting map, the town (Fase 23), or a place of Helbreath Off (Fase Off-1). */
@@ -136,7 +138,7 @@ export class MapLoadScene extends Phaser.Scene {
         registerEffectAnimations(this.anims, this.textures);
         if (this.external) {
             loadTimer.end(this.timerName);
-            this.scene.start(this.external.sceneKey);
+            this.scene.start(this.external.sceneKey, this.external.sceneData);
             return;
         }
         if (this.town) {
