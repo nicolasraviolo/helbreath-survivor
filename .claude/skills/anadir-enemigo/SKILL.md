@@ -22,6 +22,7 @@ Antes de empezar: lee `survivors/PROGRESS.md`, presenta un plan corto con los n�
 - **Comportamiento real:** su fila en el `NPC.cfg`. La tabla de nuestros monstruos está en `docs/hb-wiki/monstruos-comportamiento.md`. Si no está, descárgalo de [centuu/HelbreathServer](https://github.com/centuu/HelbreathServer) (`Files/NPC.cfg`) y saca `ATime`, `AttkRange`, `MinBrvy`, `ADT`/`ADR`.
   - Ojo: en el `.cfg` algunos nombres cambian (Snake = `Amphis`, Ogre = `Orge`, Gargoyle = `Gagoyle`, Hellhound = `Hellbound`).
 - **Vida y XP:** su tier en `docs/hb-wiki/monstruos.md`; colócalo entre los nuestros del mismo tier.
+- **Drops (qué suelta):** `docs/DROPS-ORIGINAL.md`, con `grep -n -A12 "### <Nombre>"`. Tiene materiales, raros y nivel de drop genérico del original, con %. No lo leas entero.
 
 ## Archivos, en este orden
 1. `survivors/src/config/assetManifest.ts`:
