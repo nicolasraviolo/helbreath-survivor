@@ -26,8 +26,8 @@ import { HitParticles } from '../../systems/HitParticles';
 import { Pool } from '../../utils/Pool';
 import { OFF_MONSTER_LOOK } from '../config/offMonsterLook';
 import { OFF_REGEN_TEXT, OFF_STAT_IDS, offMaxHp, type OffStats } from '../data/offCharacter';
-import { OFF_COMBAT, offAttackMs } from '../data/offCombat';
-import { isOffItemId, OFF_ITEMS, offArmorDefense, offBagItemName, offItem, offWeapon, type OffWeaponItem } from '../data/offItems';
+import { OFF_COMBAT, offAttackMs, type OffWeaponDef } from '../data/offCombat';
+import { isOffItemId, OFF_ITEMS, offArmorDefense, offBagItemName, offItem, offWeapon } from '../data/offItems';
 import { OFF_GOODS, offGood, type OffPotionRestores } from '../data/offGoods';
 import { OFF_BAG_TEXT } from '../data/offBag';
 import { OFF_LOOT_TEXT } from '../data/offLoot';
@@ -139,8 +139,8 @@ export class OffBattle implements OffMonsterWorld {
         return offSaveStore.character.stats;
     }
 
-    /** The weapon held now (Equipment screen, Off-3C). */
-    public get weapon(): OffWeaponItem {
+    /** The weapon held now (Equipment screen, Off-3C), or bare hands (Off-6A). */
+    public get weapon(): OffWeaponDef {
         return offWeapon(offSaveStore.character.equipment);
     }
 

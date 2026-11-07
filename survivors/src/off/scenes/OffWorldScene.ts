@@ -24,6 +24,8 @@
 // ciudad (o en Traveler Zone sin bando).
 // Fase Off-5B: pisar la puerta de la tienda, el herrero o el almacén de tu ciudad abre su ventana (OffStoreScene /
 // OffWarehouseScene) encima del mundo, que sigue; como los portales, hay que salir de la puerta para que vuelva a abrir.
+// Fase Off-6A: B abre el libro de magias (OffSpellBookScene), que tapa el mundo como Character; la tienda tiene la
+// pestaña Magic.
 // Mapa, árboles que se transparentan, cámara, pasos y minimapa, como la ciudad de Survivors (scenes/TownScene.ts).
 import Phaser from 'phaser';
 import { CAMERA_LERP, DEPTH_DEBUG, GAME_WIDTH, TILE_SIZE } from '../../config/gameConfig';
@@ -47,7 +49,8 @@ import { OFF_MOVEMENT, OFF_NOVICE, OFF_STEP_MS, TILES_PER_ANIMATION_CYCLE } from
 import {
     OFF_PLACE_TEXT, OFF_PLACES, offCityOf, offHomePlace, type OffBuildingKind, type OffDoorDef, type OffFaction, type OffPlaceDef, type OffPlaceId, type OffPortalDef,
 } from '../data/offPlaces';
-import { OFF_STORE_SCENE_KEY, type OffStoreSceneData } from './OffStoreScene';
+import { OFF_STORE_SCENE_KEY, type OffStoreSceneData, type OffStoreTab } from './OffStoreScene';
+import { OFF_SPELL_BOOK_SCENE_KEY, type OffSpellBookSceneData } from './OffSpellBookScene';
 import { OFF_WAREHOUSE_SCENE_KEY, type OffWarehouseSceneData } from './OffWarehouseScene';
 import { EVENT_LIST_EVENT } from '../../config/hud';
 import { Portal } from '../../entities/Portal';
@@ -246,6 +249,8 @@ export class OffWorldScene extends Phaser.Scene {
         this.scene.launch(OFF_HUD_SCENE_KEY, hud);
         const open = DEBUG_START.offOpen;
         if (open === 'bag') this.time.delayedCall(0, () => this.openInventory());
+        else if (open === 'book') this.time.delayedCall(0, () => this.openSpellBook());
+        else if (open === 'magic') this.time.delayedCall(0, () => this.openBuilding('shop', 'magic'));
         else if (open !== undefined) this.time.delayedCall(0, () => this.openBuilding(open));
         const message = this.arrival.message;
         // After the HUD has opened and listens.
@@ -290,6 +295,7 @@ export class OffWorldScene extends Phaser.Scene {
         const character = input.justPressed(Action.ToggleStats);
         const inventory = input.justPressed(Action.OffInventory);
         const toggleRun = input.justPressed(Action.ToggleRun);
+        const spellBook = input.justPressed(Action.OffSpellBook);
         if (!this.window && this.windowClosedFrame !== this.game.loop.frame) {
             if (pause) {
                 this.openPause();
@@ -301,6 +307,10 @@ export class OffWorldScene extends Phaser.Scene {
             }
             if (inventory) {
                 this.openInventory();
+                return;
+            }
+            if (spellBook) {
+                this.openSpellBook();
                 return;
             }
             if (toggleRun) runMode = !runMode;
@@ -391,7 +401,7 @@ export class OffWorldScene extends Phaser.Scene {
     }
 
     /** The shop's, the blacksmith's or the warehouse's window over the world (the Inventory closes first). */
-    public openBuilding(kind: OffBuildingKind): void {
+    public openBuilding(kind: OffBuildingKind, tab?: OffStoreTab): void {
         if (!this.scene.isActive()) return;
         if (this.window === 'inventory') {
             this.scene.stop(OFF_INVENTORY_SCENE_KEY);
@@ -408,7 +418,7 @@ export class OffWorldScene extends Phaser.Scene {
             this.scene.launch(OFF_WAREHOUSE_SCENE_KEY, data);
             return;
         }
-        const data: OffStoreSceneData = { kind, onChange: () => undefined, onClose };
+        const data: OffStoreSceneData = { kind, onChange: () => undefined, onClose, ...(tab ? { tab } : {}) };
         this.scene.launch(OFF_STORE_SCENE_KEY, data);
     }
 
@@ -466,6 +476,14 @@ export class OffWorldScene extends Phaser.Scene {
             },
         };
         this.scene.launch(OFF_EQUIPMENT_SCENE_KEY, data);
+    }
+
+    /** The spell book (Off-6A) over the world, which goes on; the HUD hides while it is open. */
+    public openSpellBook(): void {
+        if (!this.scene.isActive() || this.window) return;
+        this.coverWorld();
+        const data: OffSpellBookSceneData = { onClose: () => this.uncoverWorld() };
+        this.scene.launch(OFF_SPELL_BOOK_SCENE_KEY, data);
     }
 
     /** The Inventory (Off-4B) on the right; the world goes on and the character still walks (mouse and stick). */

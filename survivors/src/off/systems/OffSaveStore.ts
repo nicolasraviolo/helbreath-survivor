@@ -13,11 +13,14 @@
 // Los guardados anteriores empiezan sin bando.
 // Fase Off-5B (versión 6): también el almacén (`warehouse`, hasta OFF_STORE.warehouseSize objetos) y comprar y vender
 // en la tienda y el herrero. Los guardados anteriores empiezan con el almacén vacío.
+// Fase Off-6A (versión 7): también las magias aprendidas (`spells`, en la pestaña Magic de la tienda) y qué tecla
+// F1–F8 lanza cada una (`spellKeys`). Al aprender una magia va sola a la primera tecla libre. Los guardados anteriores
+// empiezan sin magias.
 // Lleva número de versión como los guardados de Survivors. Si el navegador no deja guardar, dura hasta cerrar la página.
 // Va en el código de traspaso (config/transfer.ts → TRANSFER_KEYS).
 // Desarrollo: ?offreset borra el personaje (Play vuelve a crear uno); ?offlevel=N pone al personaje al principio del
 // nivel N, ya creado; ?offgear=longSword,leatherArmor le pone esos objetos; ?offgold=N le da ese oro;
-// ?offbag=shortSword,redPotion le llena la bolsa con eso; ?offwarehouse=cape,redPotion llena el almacén; ?offfaction=aresden|elvine|none le pone ese bando (debugStart.ts).
+// ?offbag=shortSword,redPotion le llena la bolsa con eso; ?offwarehouse=cape,redPotion llena el almacén; ?offfaction=aresden|elvine|none le pone ese bando; ?offspells=all|magicMissile,heal le enseña esas magias (en las teclas F1–F8 por orden) (debugStart.ts).
 import { DEBUG_START } from '../../config/debugStart';
 import type { CharacterLook } from '../../data/appearance';
 import { CHARACTER_NAME_MAX_LENGTH } from '../../data/characterSlots';
@@ -33,10 +36,13 @@ import { OFF_STORE, offPrice, offSellPrice } from '../data/offStore';
 import { OFF_LEVEL, offExpForLevel, offLevelForExp } from '../data/offLevel';
 import { OFF_NOVICE_LOOK } from '../data/offWorld';
 import { isOffFaction, type OffFaction } from '../data/offPlaces';
+import {
+    isOffSpellId, OFF_SPELL_IDS, OFF_SPELL_KEY_COUNT, OFF_SPELLS, type OffLearnResult, type OffSpellId, type OffSpellKeys,
+} from '../data/offSpells';
 
 export const OFF_CHARACTER_STORAGE_KEY = 'hb-off.character';
-/** 1 (Off-2B): experience and unspent points. 2 (Off-3A): name, look, stats and whether it was created. 3 (Off-3C): equipment. 4 (Off-4A): gold and bag. 5 (Off-5A): faction. 6 (Off-5B): warehouse. */
-const OFF_CHARACTER_VERSION = 6;
+/** 1 (Off-2B): experience and unspent points. 2 (Off-3A): name, look, stats and whether it was created. 3 (Off-3C): equipment. 4 (Off-4A): gold and bag. 5 (Off-5A): faction. 6 (Off-5B): warehouse. 7 (Off-6A): spells and spell keys. */
+const OFF_CHARACTER_VERSION = 7;
 
 export interface OffSavedCharacter {
     /** False until the creation screen is done (Play opens it). */
@@ -58,6 +64,10 @@ export interface OffSavedCharacter {
     faction: OffFaction | undefined;
     /** What the city's warehouse keeps (Off-5B; at most OFF_STORE.warehouseSize), shared by both cities. */
     warehouse: OffBagItemId[];
+    /** Spells learned, in the order they were learned (Off-6A). */
+    spells: OffSpellId[];
+    /** Which spell each key F1–F8 casts (Off-6A; always OFF_SPELL_KEY_COUNT long, undefined = none). */
+    spellKeys: OffSpellKeys;
 }
 
 /** What a bag or equipment change gave: done, nothing to do, short of STR or level, no room, too many potions. */
@@ -68,7 +78,11 @@ export type OffTradeResult = 'ok' | 'none' | 'gold' | 'bagFull' | 'potionLimit' 
 
 /** The character before anyone creates one (also what ?offreset leaves). */
 function blankCharacter(): OffSavedCharacter {
-    return { created: false, name: OFF_CREATION.defaultName, look: { ...OFF_NOVICE_LOOK }, stats: { ...OFF_OLD_SAVE_STATS }, exp: 0, points: 0, equipment: { ...OFF_START_EQUIPMENT }, gold: 0, bag: [], faction: undefined, warehouse: [] };
+    return { created: false, name: OFF_CREATION.defaultName, look: { ...OFF_NOVICE_LOOK }, stats: { ...OFF_OLD_SAVE_STATS }, exp: 0, points: 0, equipment: { ...OFF_START_EQUIPMENT }, gold: 0, bag: [], faction: undefined, warehouse: [], spells: [], spellKeys: noSpellKeys() };
+}
+
+function noSpellKeys(): OffSpellKeys {
+    return Array.from({ length: OFF_SPELL_KEY_COUNT }, () => undefined);
 }
 
 class OffSaveStoreImpl {
@@ -101,7 +115,12 @@ class OffSaveStoreImpl {
         if (faction !== undefined) this.data = { ...this.data, faction: faction === 'none' ? undefined : faction };
         const warehouse = DEBUG_START.offWarehouse.filter(isOffBagItemId).slice(0, OFF_STORE.warehouseSize);
         if (warehouse.length > 0) this.data = { ...this.data, warehouse };
-        if (DEBUG_START.offReset || level !== undefined || gear.length > 0 || statsChanged || DEBUG_START.offGold !== undefined || bag.length > 0 || faction !== undefined || warehouse.length > 0) this.write();
+        const spells = DEBUG_START.offSpells === 'all' ? [...OFF_SPELL_IDS] : DEBUG_START.offSpells.filter(isOffSpellId);
+        if (spells.length > 0) {
+            const spellKeys = noSpellKeys().map((_, i) => spells[i]);
+            this.data = { ...this.data, spells, spellKeys };
+        }
+        if (spells.length > 0 || DEBUG_START.offReset || level !== undefined || gear.length > 0 || statsChanged || DEBUG_START.offGold !== undefined || bag.length > 0 || faction !== undefined || warehouse.length > 0) this.write();
     }
 
     public get character(): Readonly<OffSavedCharacter> {
@@ -114,7 +133,7 @@ class OffSaveStoreImpl {
 
     /** Creation screen done: a new character at level 1. */
     public create(name: string, look: CharacterLook, stats: OffStats): void {
-        this.data = { created: true, name, look: { ...look }, stats: { ...stats }, exp: 0, points: 0, equipment: { ...OFF_START_EQUIPMENT }, gold: 0, bag: [], faction: undefined, warehouse: [] };
+        this.data = { created: true, name, look: { ...look }, stats: { ...stats }, exp: 0, points: 0, equipment: { ...OFF_START_EQUIPMENT }, gold: 0, bag: [], faction: undefined, warehouse: [], spells: [], spellKeys: noSpellKeys() };
         this.write();
     }
 
@@ -145,10 +164,10 @@ class OffSaveStoreImpl {
         return 'ok';
     }
 
-    /** Takes off what that slot holds, into the bag (Off-4B). Never the weapon; 'bagFull' if there is no room. */
+    /** Takes off what that slot holds, into the bag (Off-4B; the weapon too since Off-6A). 'bagFull' if there is no room. */
     public unequip(slot: OffSlotId): OffEquipResult {
         const worn = this.data.equipment[slot];
-        if (!worn || slot === 'weapon') return 'none';
+        if (!worn) return 'none';
         if (this.data.bag.length >= OFF_LOOT.bagSize) return 'bagFull';
         const equipment = { ...this.data.equipment };
         delete equipment[slot];
@@ -263,6 +282,43 @@ class OffSaveStoreImpl {
         return 'ok';
     }
 
+    public knowsSpell(id: OffSpellId): boolean {
+        return this.data.spells.includes(id);
+    }
+
+    /** Whether that spell can be learned now: 'ok', or why not (already known, INT short, gold short). */
+    public canLearn(id: OffSpellId): OffLearnResult {
+        const spell = OFF_SPELLS[id];
+        if (this.knowsSpell(id)) return 'known';
+        if (this.data.stats.int < spell.reqInt) return 'int';
+        if (this.data.gold < spell.price) return 'gold';
+        return 'ok';
+    }
+
+    /** Learns a spell at the magic shop (Off-6A): pays its price and puts it on the first free key F1–F8, if any. */
+    public learnSpell(id: OffSpellId): OffLearnResult {
+        const check = this.canLearn(id);
+        if (check !== 'ok') return check;
+        const spellKeys = [...this.data.spellKeys];
+        const free = spellKeys.indexOf(undefined);
+        if (free >= 0) spellKeys[free] = id;
+        this.data = { ...this.data, gold: this.data.gold - OFF_SPELLS[id].price, spells: [...this.data.spells, id], spellKeys };
+        this.write();
+        return 'ok';
+    }
+
+    /**
+     * Puts a known spell on a key F1–F8 (spell book, Off-6A); undefined empties the key. A spell is on one key at most:
+     * if it was on another one, that key empties.
+     */
+    public setSpellKey(index: number, id: OffSpellId | undefined): void {
+        if (index < 0 || index >= OFF_SPELL_KEY_COUNT || (id !== undefined && !this.knowsSpell(id))) return;
+        const spellKeys = this.data.spellKeys.map((k) => (k === id ? undefined : k));
+        spellKeys[index] = id;
+        this.data = { ...this.data, spellKeys };
+        this.write();
+    }
+
     /** Joins a city for ever (Off-5A). Nothing changes once the character has one. */
     public joinFaction(faction: OffFaction): void {
         if (this.data.faction !== undefined) return;
@@ -299,6 +355,7 @@ function load(): OffSavedCharacter {
             bag: readBag(data.bag),
             faction: isOffFaction(data.faction) ? data.faction : undefined,
             warehouse: readBag(data.warehouse, OFF_STORE.warehouseSize),
+            ...readSpells(data.spells, data.spellKeys),
         };
     } catch {
         return blankCharacter();
@@ -320,6 +377,19 @@ function readStats(value: unknown): OffStats | undefined {
 function readBag(value: unknown, size: number = OFF_LOOT.bagSize): OffBagItemId[] {
     if (!Array.isArray(value)) return [];
     return value.filter((id): id is OffBagItemId => typeof id === 'string' && isOffBagItemId(id)).slice(0, size);
+}
+
+/** Spells and keys read back from a save: unknown spells, repeats and keys of spells not learned are dropped. */
+function readSpells(spellsValue: unknown, keysValue: unknown): { spells: OffSpellId[]; spellKeys: OffSpellKeys } {
+    const spells = Array.isArray(spellsValue) ? [...new Set(spellsValue.filter(isOffSpellId))] : [];
+    const spellKeys = noSpellKeys();
+    if (Array.isArray(keysValue)) {
+        for (let i = 0; i < OFF_SPELL_KEY_COUNT; i++) {
+            const id: unknown = keysValue[i];
+            if (isOffSpellId(id) && spells.includes(id) && !spellKeys.includes(id)) spellKeys[i] = id;
+        }
+    }
+    return { spells, spellKeys };
 }
 
 function nonNegative(value: unknown): number {
