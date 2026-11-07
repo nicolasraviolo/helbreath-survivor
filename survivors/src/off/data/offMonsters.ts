@@ -6,6 +6,8 @@
 // - Rabbit neutral (propietario, 6-nov-2026): no busca a nadie; solo ataca a quien le pega.
 // - Giant Ant, Snake, Orc y Giant Scorpion (Fase Off-5C), para los pits de las ciudades. Experiencia de monstruos.md.
 //   El tamaño (Size de NPC.cfg) no está en el repo: los cuatro van como pequeños, igual que el Slime.
+// - Resistencia a la magia (Fase Off-6B): la columna Magic Resistance de monstruos.md (el m_cResistMagic del servidor).
+//   Su elemento es el de Survivors (`base.element`, de la wiki).
 import { ENEMIES, type EnemyDef } from '../../data/enemies';
 
 export type OffMonsterId = 'slime' | 'rabbit' | 'giantAnt' | 'snake' | 'orc' | 'giantScorpion';
@@ -25,21 +27,23 @@ export interface OffMonsterDef {
     size: 'small' | 'large';
     /** Never starts a fight (propietario: the Rabbits). */
     neutral: boolean;
+    /** Magic resistance (wiki): the higher, the more often it resists a spell (OffSpellRules). */
+    magicResist: number;
 }
 
 export const OFF_MONSTERS: Record<OffMonsterId, OffMonsterDef> = {
     // NPC.cfg Slime: ATime 2100, 1d4, HitDice 2, search 2; wiki: 7 HP, 400–499 XP, HR 30, DR 10.
-    slime: { base: ENEMIES.slime, name: 'Slime', hitDice: 2, searchRange: 2, exp: [400, 499], size: 'small', neutral: false },
+    slime: { base: ENEMIES.slime, name: 'Slime', hitDice: 2, searchRange: 2, exp: [400, 499], size: 'small', neutral: false, magicResist: 5 },
     // NPC.cfg Rabbit: ATime 1500, 1d5, HitDice 4, search 2; wiki: 14 HP, 250 XP, HR 35, DR 10.
-    rabbit: { base: ENEMIES.bunny, name: 'Rabbit', hitDice: 4, searchRange: 2, exp: [250, 250], size: 'small', neutral: true },
+    rabbit: { base: ENEMIES.bunny, name: 'Rabbit', hitDice: 4, searchRange: 2, exp: [250, 250], size: 'small', neutral: true, magicResist: 5 },
     // NPC.cfg Giant-Ant: ATime 1200, 2d3, HitDice 3, search 2; wiki: 10 HP, 700–1,749 XP, HR 40, DR 15.
-    giantAnt: { base: ENEMIES.ant, name: 'Giant Ant', hitDice: 3, searchRange: 2, exp: [700, 1749], size: 'small', neutral: false },
+    giantAnt: { base: ENEMIES.ant, name: 'Giant Ant', hitDice: 3, searchRange: 2, exp: [700, 1749], size: 'small', neutral: false, magicResist: 10 },
     // NPC.cfg Amphis: ATime 1000, 2d4, HitDice 4, search 3; wiki: 13 HP, 1,000–2,499 XP, HR 50, DR 30.
-    snake: { base: ENEMIES.snake, name: 'Snake', hitDice: 4, searchRange: 3, exp: [1000, 2499], size: 'small', neutral: false },
+    snake: { base: ENEMIES.snake, name: 'Snake', hitDice: 4, searchRange: 3, exp: [1000, 2499], size: 'small', neutral: false, magicResist: 20 },
     // NPC.cfg Orc: ATime 1200, 3d3, HitDice 4, search 5; wiki: 20 HP, 1,300–3,249 XP, HR 60, DR 40.
-    orc: { base: ENEMIES.orc, name: 'Orc', hitDice: 4, searchRange: 5, exp: [1300, 3249], size: 'small', neutral: false },
+    orc: { base: ENEMIES.orc, name: 'Orc', hitDice: 4, searchRange: 5, exp: [1300, 3249], size: 'small', neutral: false, magicResist: 25 },
     // NPC.cfg Scorpion: ATime 1200, 5d3, HitDice 6, search 4; wiki: 30 HP, 2,200–5,499 XP, HR 70, DR 45.
-    giantScorpion: { base: ENEMIES.scorpion, name: 'Giant Scorpion', hitDice: 6, searchRange: 4, exp: [2200, 5499], size: 'small', neutral: false },
+    giantScorpion: { base: ENEMIES.scorpion, name: 'Giant Scorpion', hitDice: 6, searchRange: 4, exp: [2200, 5499], size: 'small', neutral: false, magicResist: 30 },
 };
 
 /** Health of a new monster (server, at spawn). */

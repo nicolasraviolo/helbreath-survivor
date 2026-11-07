@@ -8,7 +8,7 @@
 //   oro. Un precio que no puedes pagar sale en rojo, y lo que aún no puedes ponerte (Str o Level), con el nombre en rojo.
 // - Tab o LB / RB cambian de pestaña; Esc, B o el botón Close cierran. La rueda del ratón mueve la lista.
 // Fase Off-6A: la tienda tiene una tercera pestaña, **Magic** (la tienda de magia, de momento aquí): las 14 magias por
-// círculos (off/data/offSpells.ts). Learn la aprende (INT mínima + oro) y va sola a la primera tecla F1–F8 libre. Una
+// círculos (off/data/offSpells.ts). Learn la aprende (INT mínima + oro) y va sola a la primera tecla 1–8 libre. Una
 // magia que aún no puedes aprender por INT sale con el nombre en rojo; una que ya sabes, con "Learned" en vez de precio.
 import Phaser from 'phaser';
 import { itemPackTexture } from '../../config/equipment';

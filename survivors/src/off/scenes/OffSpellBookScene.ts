@@ -2,8 +2,8 @@
 // demás ventanas de Off, el mundo sigue debajo (propietario, 7-nov-2026: solo Esc o Start pausan) pero el personaje no
 // recibe órdenes mientras está abierto.
 // - A la izquierda, las magias que sabes, por círculos, con su maná y la tecla que las lanza.
-// - A la derecha, el cuadro de la magia marcada (off/ui/offItemBox.ts, el mismo de la tienda) y las ocho teclas F1–F8.
-// - Para poner la magia marcada en una tecla: pulsar esa tecla (F1–F8) o hacer clic en su fila. Si ya estaba en otra
+// - A la derecha, el cuadro de la magia marcada (off/ui/offItemBox.ts, el mismo de la tienda) y las ocho teclas 1–8.
+// - Para poner la magia marcada en una tecla: pulsar esa tecla (1–8) o hacer clic en su fila. Si ya estaba en otra
 //   tecla, se mueve. Supr (o un clic en la tecla que ya la tiene) la quita. Al aprender una magia en la tienda va sola a
 //   la primera tecla libre (OffSaveStore.learnSpell).
 // - Con el mando, de momento solo se mira (las magias rápidas con RT + A/B/X/Y llegan en la Off-6C).
@@ -37,7 +37,7 @@ export const OFF_SPELL_BOOK_TEXT = {
     noKey: '—',
     onKey: (name: string, key: string) => `${name} is on ${key}.`,
     offKey: (name: string) => `${name} is on no key now.`,
-    helpMouse: 'Click: mark · F1–F8 or click a key: put it there · Delete: take it off · B / Esc: close',
+    helpMouse: 'Click: mark · 1–8 or click a key: put it there · Delete: take it off · B / Esc: close',
     helpPad: 'Up / down: choose · B: close',
 } as const;
 
@@ -253,7 +253,7 @@ export class OffSpellBookScene extends Phaser.Scene {
 
     // ---- Keys ----
 
-    /** The marked spell on key F(index + 1) (F1–F8 or a click on that key). */
+    /** The marked spell on key index + 1 (1–8 or a click on that key). */
     public putOnKey(index: number): void {
         const id = this.markedSpell;
         if (id === undefined) return;

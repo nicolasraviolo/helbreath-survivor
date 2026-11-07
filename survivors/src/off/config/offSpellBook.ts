@@ -1,5 +1,5 @@
 // Helbreath Off (Fase Off-6A): medidas del libro de magias (off/scenes/OffSpellBookScene.ts). Mismo estilo que la
-// tienda (off/config/offStore.ts): lista a la izquierda; a la derecha, el cuadro de la magia marcada y las teclas F1–F8.
+// tienda (off/config/offStore.ts): lista a la izquierda; a la derecha, el cuadro de la magia marcada y las teclas 1–8.
 import { byDevice } from '../../config/device';
 
 export const OFF_SPELL_BOOK_PANEL = {
@@ -8,7 +8,7 @@ export const OFF_SPELL_BOOK_PANEL = {
     listWidth: 320,
 } as const;
 
-/** The eight key rows (F1–F8) under the spell's box. */
+/** The eight key rows (1–8) under the spell's box. */
 export const OFF_SPELL_BOOK_KEYS = {
     rowHeight: byDevice(24, 28),
     /** Width of the "F1" label at the start of each row. */

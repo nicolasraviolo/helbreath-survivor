@@ -87,7 +87,7 @@ export enum Action {
     OffSwitchTab = 'offSwitchTab',
     /** Helbreath Off (Off-6A): open / close the spell book (B). */
     OffSpellBook = 'offSpellBook',
-    /** Helbreath Off (Off-6A): the spell keys F1–F8 (cast in the world; in the spell book, put the marked spell there). */
+    /** Helbreath Off (Off-6A): the spell keys 1–8 (cast in the world; in the spell book, put the marked spell there). */
     OffSpellKey1 = 'offSpellKey1',
     OffSpellKey2 = 'offSpellKey2',
     OffSpellKey3 = 'offSpellKey3',
@@ -98,7 +98,7 @@ export enum Action {
     OffSpellKey8 = 'offSpellKey8',
 }
 
-/** Helbreath Off (Off-6A): the spell keys F1–F8, in order. */
+/** Helbreath Off (Off-6A): the spell keys 1–8, in order. */
 export const OFF_SPELL_KEY_ACTIONS: readonly Action[] = [
     Action.OffSpellKey1, Action.OffSpellKey2, Action.OffSpellKey3, Action.OffSpellKey4,
     Action.OffSpellKey5, Action.OffSpellKey6, Action.OffSpellKey7, Action.OffSpellKey8,
@@ -154,15 +154,15 @@ const KEYBOARD_ACTIONS: Record<Action, number[]> = {
     [Action.OffSwitchTab]: [KEY.TAB],
     // B is also DebugAddMagic in development, but that one only acts in Survivors' run.
     [Action.OffSpellBook]: [KEY.B],
-    // F1 is also ToggleDebug, which only acts in Survivors' run. Captured: F5 does not reload the page in Off either.
-    [Action.OffSpellKey1]: [KEY.F1],
-    [Action.OffSpellKey2]: [KEY.F2],
-    [Action.OffSpellKey3]: [KEY.F3],
-    [Action.OffSpellKey4]: [KEY.F4],
-    [Action.OffSpellKey5]: [KEY.F5],
-    [Action.OffSpellKey6]: [KEY.F6],
-    [Action.OffSpellKey7]: [KEY.F7],
-    [Action.OffSpellKey8]: [KEY.F8],
+    // Owner (7-nov-2026): the number keys 1–8, not F1–F8 (on a Mac the F keys need Fn and clash with the system).
+    [Action.OffSpellKey1]: [KEY.ONE, KEY.NUMPAD_ONE],
+    [Action.OffSpellKey2]: [KEY.TWO, KEY.NUMPAD_TWO],
+    [Action.OffSpellKey3]: [KEY.THREE, KEY.NUMPAD_THREE],
+    [Action.OffSpellKey4]: [KEY.FOUR, KEY.NUMPAD_FOUR],
+    [Action.OffSpellKey5]: [KEY.FIVE, KEY.NUMPAD_FIVE],
+    [Action.OffSpellKey6]: [KEY.SIX, KEY.NUMPAD_SIX],
+    [Action.OffSpellKey7]: [KEY.SEVEN, KEY.NUMPAD_SEVEN],
+    [Action.OffSpellKey8]: [KEY.EIGHT, KEY.NUMPAD_EIGHT],
     // With the mouse a click marks a monster: these two are gamepad only.
     [Action.OffNextTarget]: [],
     [Action.OffPrevTarget]: [],
@@ -253,20 +253,10 @@ export class InputSystem {
             this.down.push(keyboard.addKey(KEY.S), keyboard.addKey(KEY.DOWN));
             this.left.push(keyboard.addKey(KEY.A), keyboard.addKey(KEY.LEFT));
             this.right.push(keyboard.addKey(KEY.D), keyboard.addKey(KEY.RIGHT));
-            // Helbreath Off (Off-6A): F2–F8 are captured only in Off's scenes (Survivors keeps F5 = reload the page), and
-            // let go again when that scene closes.
-            const offScene = scene.sys.settings.key.startsWith('Off');
+            // Helbreath Off (Off-6B): the spell keys 1–8 are not captured, so a name can still be typed with numbers.
             const offOnly = new Set<Action>(OFF_SPELL_KEY_ACTIONS);
             for (const [action, codes] of Object.entries(KEYBOARD_ACTIONS) as [Action, number[]][]) {
-                const capture = !offOnly.has(action) || offScene || codes.every((code) => code === KEY.F1);
-                this.actionKeys.set(action, codes.map((code) => keyboard.addKey(code, capture)));
-            }
-            if (offScene) {
-                const released = OFF_SPELL_KEY_ACTIONS.flatMap((action) => KEYBOARD_ACTIONS[action]).filter((code) => code !== KEY.F1);
-                scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
-                    const otherOff = scene.game.scene.getScenes(true).some((s) => s !== scene && s.sys.settings.key.startsWith('Off'));
-                    if (!otherOff) keyboard.removeCapture(released);
-                });
+                this.actionKeys.set(action, codes.map((code) => keyboard.addKey(code, !offOnly.has(action))));
             }
             // The keys picked in Settings → Controls, added now so their first press is not missed.
             for (const action of Object.keys(REMAPPABLE_ACTIONS) as Action[]) this.keysFor(action);

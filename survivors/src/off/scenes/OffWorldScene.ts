@@ -26,6 +26,8 @@
 // OffWarehouseScene) encima del mundo, que sigue; como los portales, hay que salir de la puerta para que vuelva a abrir.
 // Fase Off-6A: B abre el libro de magias (OffSpellBookScene), que tapa el mundo como Character; la tienda tiene la
 // pestaña Magic.
+// Fase Off-6B: 1–8 preparan la magia de esa tecla (OffBattle.spells); con ella preparada o lista, el clic izquierdo
+// la lanza (al monstruo o al suelo) en vez de andar o pegar, y el clic derecho, el stick o las flechas la cancelan.
 // Mapa, árboles que se transparentan, cámara, pasos y minimapa, como la ciudad de Survivors (scenes/TownScene.ts).
 import Phaser from 'phaser';
 import { CAMERA_LERP, DEPTH_DEBUG, GAME_WIDTH, TILE_SIZE } from '../../config/gameConfig';
@@ -36,7 +38,7 @@ import { getMap, type HBMap } from '../../hb/HBMap';
 import { MapView } from '../../hb/mapRenderer';
 import { directionFromVector } from '../../hb/directions';
 import { AudioSystem } from '../../systems/AudioSystem';
-import { Action, InputSystem } from '../../systems/InputSystem';
+import { Action, InputSystem, OFF_SPELL_KEY_ACTIONS } from '../../systems/InputSystem';
 import { runSprites } from '../../systems/LookLoader';
 import { MusicSystem } from '../../systems/MusicSystem';
 import { SETTINGS_CHANGED, settings } from '../../systems/Settings';
@@ -138,6 +140,8 @@ export class OffWorldScene extends Phaser.Scene {
     private mouseAttack = false;
     /** Development (`check offfight`): attacks go on as if the button were held, until a click or the stick. */
     private debugHold = false;
+    /** Development (`debugCast`): the kind of monster the spell goes to once ready ('' = any). */
+    private debugCastAt: string | undefined;
     /** The left button went down on the world and is still held: the character follows the cursor. */
     private leftHeld = false;
     /** The stick or the keys were steering last frame (letting go stops the character). */
@@ -203,6 +207,7 @@ export class OffWorldScene extends Phaser.Scene {
         };
         this.leftHeld = false;
         this.mouseAttack = false;
+        this.debugCastAt = undefined;
         this.steering = false;
         this.footstepsMs = 0;
         this.window = undefined;
@@ -296,6 +301,7 @@ export class OffWorldScene extends Phaser.Scene {
         const inventory = input.justPressed(Action.OffInventory);
         const toggleRun = input.justPressed(Action.ToggleRun);
         const spellBook = input.justPressed(Action.OffSpellBook);
+        const spellKey = OFF_SPELL_KEY_ACTIONS.findIndex((action) => input.justPressed(action));
         if (!this.window && this.windowClosedFrame !== this.game.loop.frame) {
             if (pause) {
                 this.openPause();
@@ -314,8 +320,10 @@ export class OffWorldScene extends Phaser.Scene {
                 return;
             }
             if (toggleRun) runMode = !runMode;
+            if (spellKey >= 0) this.pressSpellKey(spellKey);
         }
         this.updateCombatInput();
+        this.updateDebugCast();
         if (!this.battle.dead && this.window !== 'cover') this.steer();
         const running = runMode && this.battle.vitals.canRun;
         if (this.battle.canMove) this.mover.update(delta, running ? OFF_STEP_MS.run : OFF_STEP_MS.walk);
@@ -533,12 +541,50 @@ export class OffWorldScene extends Phaser.Scene {
 
     /** Stops following the mouse and attacking (a window opens over the world). */
     private stopForWindow(): void {
+        this.battle.spells.cancel();
         this.leftHeld = false;
         this.mouseAttack = false;
         this.debugHold = false;
         this.battle.stopAttacking();
         this.audio.stopLoop('sfx.footsteps');
         this.footstepsMs = 0;
+    }
+
+    // ---- Spells (Off-6B) ----
+
+    /** 1–8: stops attacking and walking, and prepares that key's spell. */
+    private pressSpellKey(index: number): void {
+        if (this.battle.dead) return;
+        this.leftHeld = false;
+        this.mouseAttack = false;
+        this.debugHold = false;
+        this.battle.stopAttacking();
+        this.battle.spells.press(index);
+    }
+
+    /** Development (`check offcast`): casts the spell on key `index` at the nearest monster of a kind (any, `id` undefined). */
+    public debugCast(index: number, id?: string): void {
+        this.debugCastAt = id ?? '';
+        this.pressSpellKey(index);
+    }
+
+    /** `debugCast`: once the spell is ready, it is released on the nearest monster of that kind. */
+    private updateDebugCast(): void {
+        const id = this.debugCastAt;
+        const spells = this.battle.spells;
+        if (id === undefined) return;
+        if (!spells.busy) {
+            this.debugCastAt = undefined;
+            return;
+        }
+        if (spells.state !== 'ready') return;
+        this.debugCastAt = undefined;
+        const near = this.battle.pits.monsters
+            .filter((m) => m.isAlive && (id === '' || m.id === id))
+            .sort((a, b) => Math.hypot(a.x - this.character.x, a.y - this.character.y) - Math.hypot(b.x - this.character.x, b.y - this.character.y));
+        const first = near[0];
+        if (first) spells.release(first.x, first.y, first);
+        else spells.cancel();
     }
 
     /** Development (`check offwalk`): walks (or runs, `run`) to a tile as a click there would. */
@@ -553,6 +599,7 @@ export class OffWorldScene extends Phaser.Scene {
         mana: number; maxMana: number; stamina: number; maxStamina: number; stats: Readonly<Record<string, number>>;
         level: number; exp: number; points: number; kills: number; monsters: Record<string, number>; target: string | undefined;
         weapon: string; attackMs: number; defense: number; gold: number; bag: string[]; ground: string[];
+        spell: string; casts: number; fails: number; prepareMs: number; burning: number; slowed: number;
     } {
         const monsters: Record<string, number> = {};
         for (const monster of this.battle.pits.monsters) {
@@ -586,6 +633,12 @@ export class OffWorldScene extends Phaser.Scene {
             defense: this.battle.defense,
             gold: offSaveStore.character.gold,
             bag: [...offSaveStore.character.bag],
+            spell: `${this.battle.spells.state}${this.battle.spells.spell ? ` ${this.battle.spells.spell}` : ''}`,
+            casts: this.battle.spells.casts,
+            fails: this.battle.spells.fails,
+            prepareMs: this.battle.spells.prepareMs,
+            burning: this.battle.pits.monsters.filter((m) => m.isAlive && m.isBurning).length,
+            slowed: this.battle.pits.monsters.filter((m) => m.isAlive && m.isSlowed).length,
             ground: this.battle.ground.items.map((g) => `${'gold' in g.content ? `${g.content.gold} gold` : g.content.item} at ${g.tileX},${g.tileY}`),
         };
     }
@@ -610,7 +663,10 @@ export class OffWorldScene extends Phaser.Scene {
         const attack = input.justPressed(Action.OffAttack);
         const next = input.justPressed(Action.OffNextTarget);
         const previous = input.justPressed(Action.OffPrevTarget);
-        if (keys && attack) battle.attackPressed();
+        if (keys && attack) {
+            battle.spells.cancel();
+            battle.attackPressed();
+        }
         if (keys && next) battle.cycleTarget(1);
         if (keys && previous) battle.cycleTarget(-1);
         const pointer = this.input.activePointer;
@@ -642,6 +698,7 @@ export class OffWorldScene extends Phaser.Scene {
         }
         this.steering = true;
         this.debugHold = false;
+        this.battle.spells.cancel();
         this.battle.stopAttacking();
         const offset = directionOffset(direction);
         const far = OFF_MOVEMENT.stickTargetTiles;
@@ -657,6 +714,7 @@ export class OffWorldScene extends Phaser.Scene {
         if (toGame(pointer.downY) >= playAreaBottom() || this.window === 'cover') return;
         this.debugHold = false;
         if (pointer.rightButtonDown()) {
+            this.battle.spells.cancel();
             this.leftHeld = false;
             this.mouseAttack = false;
             this.battle.clearTarget();
@@ -666,6 +724,13 @@ export class OffWorldScene extends Phaser.Scene {
         if (!pointer.leftButtonDown() || this.battle.dead) return;
         const tile = this.tileUnder(pointer);
         const monster = this.battle.monsterAt(tile.px, tile.py);
+        // A spell prepared or ready takes the click (Off-6B).
+        if (this.battle.spells.release(tile.px, tile.py, monster)) {
+            this.leftHeld = false;
+            this.mouseAttack = false;
+            this.battle.stopAttacking();
+            return;
+        }
         if (monster) {
             this.mouseAttack = true;
             this.leftHeld = false;

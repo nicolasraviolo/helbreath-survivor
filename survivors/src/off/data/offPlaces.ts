@@ -56,8 +56,11 @@ export interface OffPlaceDef {
     doors: readonly OffDoorDef[];
 }
 
-/** Effects of every place: the dust of the steps, the blood of the blows (fx.effect), the loot on the ground (Off-4A). */
-const WORLD_SPRITES: readonly SpriteKey[] = ['fx.effect2', 'fx.effect', 'item.ground'];
+/**
+ * Effects of every place: the dust of the steps, the blood of the blows (fx.effect), the loot on the ground (Off-4A);
+ * the spells (Off-6B): the casting circle (fx.effect5) and Chill Wind's drops (fx.effect4).
+ */
+const WORLD_SPRITES: readonly SpriteKey[] = ['fx.effect2', 'fx.effect', 'item.ground', 'fx.effect5', 'fx.effect4'];
 
 /** Tiles x1..x2, y1..y2 inclusive. */
 function rect(x1: number, y1: number, x2: number, y2: number): TileRect {

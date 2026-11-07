@@ -3,6 +3,8 @@
 // del cuerpo desnudo como el jugador de Survivors (entities/Player.ts, syncShadow).
 // Fase Off-2: golpear, encogerse al recibir un golpe y caer al morir. La vida se ve en el HUD (OffHudScene, Off-2B).
 // Fase Off-3C: lleva puesto su equipo (`wear`), encima de la ropa de inicio del novato.
+// Fase Off-6B: prepara magias (`cast`): la animación Cast del original (16 frames, sin arma) durante la preparación;
+// luego, de pie en guardia hasta el clic (el CastReady del cliente es esa misma hoja).
 import Phaser from 'phaser';
 import { BODY_SHADOW_ALPHA, BODY_SHADOW_ROTATION, BODY_SHADOW_SCALE_Y, DEPTH_GROUND_SHADOWS, TILE_SIZE } from '../../config/gameConfig';
 import type { CharacterLook } from '../../data/appearance';
@@ -19,6 +21,8 @@ const VISUAL_WIDTH = 32;
 const VISUAL_HEIGHT = 80;
 /** Layers equipment can draw: taking it off goes back to the novice's starting clothes there (as TownScene). */
 const DRESSED_SLOTS: readonly GearSlot[] = ['hauberk', 'leggings', 'boots', 'helm', 'armor', 'weapon', 'cape', 'shield'];
+/** Held in the hands: drawn only when equipped. */
+const HELD_SLOTS: ReadonlySet<GearSlot> = new Set(['weapon', 'shield']);
 
 export class OffCharacter {
     public readonly container: Phaser.GameObjects.Container;
@@ -47,7 +51,8 @@ export class OffCharacter {
 
     /** Dresses it in this equipment (drawn as Survivors items; off/data/offItems.ts → offEquipmentLook). */
     public wear(equipment: Readonly<SavedEquipment>): void {
-        for (const slot of DRESSED_SLOTS) this.body.setLayer(slot, this.def.appearance[slot], false);
+        // Weapon and shield only from the equipment: the novice's starting look holds a Dagger (Off-6B: empty hands show empty).
+        for (const slot of DRESSED_SLOTS) this.body.setLayer(slot, HELD_SLOTS.has(slot) ? undefined : this.def.appearance[slot], false);
         this.body.wearEquipment(equipment);
     }
 
@@ -64,6 +69,22 @@ export class OffCharacter {
         // Restart the animation even if the previous one was still showing.
         this.body.setPose(PlayerState.IdleCombat, direction);
         this.body.setPose(action, direction);
+    }
+
+    /** Prepares a spell looking one way: the Cast animation over `durationMs` (it can't walk meanwhile). */
+    public cast(direction: Direction, durationMs: number): void {
+        if (this.dead) return;
+        this.actionLeftMs = durationMs;
+        this.body.actionDurationMs = durationMs;
+        this.body.setPose(PlayerState.IdleCombat, direction);
+        this.body.setPose(PlayerState.Cast, direction);
+    }
+
+    /** The spell was dropped or cast: back to standing at once. */
+    public stopCasting(): void {
+        if (this.dead || !this.isActing) return;
+        this.actionLeftMs = 0;
+        this.body.setPose(PlayerState.IdleCombat, this.body.direction);
     }
 
     /** Falls and stays down (the shadow goes, as Survivors' Player.die). */

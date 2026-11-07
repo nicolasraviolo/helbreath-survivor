@@ -14,13 +14,13 @@
 // Fase Off-5B (versión 6): también el almacén (`warehouse`, hasta OFF_STORE.warehouseSize objetos) y comprar y vender
 // en la tienda y el herrero. Los guardados anteriores empiezan con el almacén vacío.
 // Fase Off-6A (versión 7): también las magias aprendidas (`spells`, en la pestaña Magic de la tienda) y qué tecla
-// F1–F8 lanza cada una (`spellKeys`). Al aprender una magia va sola a la primera tecla libre. Los guardados anteriores
+// 1–8 lanza cada una (`spellKeys`). Al aprender una magia va sola a la primera tecla libre. Los guardados anteriores
 // empiezan sin magias.
 // Lleva número de versión como los guardados de Survivors. Si el navegador no deja guardar, dura hasta cerrar la página.
 // Va en el código de traspaso (config/transfer.ts → TRANSFER_KEYS).
 // Desarrollo: ?offreset borra el personaje (Play vuelve a crear uno); ?offlevel=N pone al personaje al principio del
 // nivel N, ya creado; ?offgear=longSword,leatherArmor le pone esos objetos; ?offgold=N le da ese oro;
-// ?offbag=shortSword,redPotion le llena la bolsa con eso; ?offwarehouse=cape,redPotion llena el almacén; ?offfaction=aresden|elvine|none le pone ese bando; ?offspells=all|magicMissile,heal le enseña esas magias (en las teclas F1–F8 por orden) (debugStart.ts).
+// ?offbag=shortSword,redPotion le llena la bolsa con eso; ?offwarehouse=cape,redPotion llena el almacén; ?offfaction=aresden|elvine|none le pone ese bando; ?offspells=all|magicMissile,heal le enseña esas magias (en las teclas 1–8 por orden) (debugStart.ts).
 import { DEBUG_START } from '../../config/debugStart';
 import type { CharacterLook } from '../../data/appearance';
 import { CHARACTER_NAME_MAX_LENGTH } from '../../data/characterSlots';
@@ -66,7 +66,7 @@ export interface OffSavedCharacter {
     warehouse: OffBagItemId[];
     /** Spells learned, in the order they were learned (Off-6A). */
     spells: OffSpellId[];
-    /** Which spell each key F1–F8 casts (Off-6A; always OFF_SPELL_KEY_COUNT long, undefined = none). */
+    /** Which spell each key 1–8 casts (Off-6A; always OFF_SPELL_KEY_COUNT long, undefined = none). */
     spellKeys: OffSpellKeys;
 }
 
@@ -103,9 +103,12 @@ class OffSaveStoreImpl {
         }
         if (statsChanged) this.data = { ...this.data, stats: debugStats };
         const gear = DEBUG_START.offGear.filter(isOffItemId);
-        if (gear.length > 0) {
+        // Off-6B: `noweapon` leaves the hands empty (spells need them).
+        const noWeapon = DEBUG_START.offGear.includes('noweapon');
+        if (gear.length > 0 || noWeapon) {
             const equipment = { ...this.data.equipment };
             for (const id of gear) equipment[OFF_ITEMS[id].slot] = id;
+            if (noWeapon) delete equipment.weapon;
             this.data = { ...this.data, equipment };
         }
         if (DEBUG_START.offGold !== undefined) this.data = { ...this.data, gold: DEBUG_START.offGold };
@@ -295,7 +298,7 @@ class OffSaveStoreImpl {
         return 'ok';
     }
 
-    /** Learns a spell at the magic shop (Off-6A): pays its price and puts it on the first free key F1–F8, if any. */
+    /** Learns a spell at the magic shop (Off-6A): pays its price and puts it on the first free key 1–8, if any. */
     public learnSpell(id: OffSpellId): OffLearnResult {
         const check = this.canLearn(id);
         if (check !== 'ok') return check;
@@ -308,7 +311,7 @@ class OffSaveStoreImpl {
     }
 
     /**
-     * Puts a known spell on a key F1–F8 (spell book, Off-6A); undefined empties the key. A spell is on one key at most:
+     * Puts a known spell on a key 1–8 (spell book, Off-6A); undefined empties the key. A spell is on one key at most:
      * if it was on another one, that key empties.
      */
     public setSpellKey(index: number, id: OffSpellId | undefined): void {

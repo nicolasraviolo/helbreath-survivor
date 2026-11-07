@@ -124,6 +124,9 @@ export const EFFECTS = {
     // Fase 28A, Eye of the Storm (data/passiveMagic.ts): el Protection Ring del original (sp-client Effects.ts), effect5 hoja 1,
     // en bucle bajo los pies; PassiveMagicSystem lo estira al radio del rango.
     'fx.aura.ring': { sprite: 'fx.effect5', sheet: 1, frameRate: 15, loop: true, depthOffset: -1 },
+    // Helbreath Off (Fase Off-6B): el círculo bajo los pies mientras se prepara una magia (sp-client EFFECT_CASTING_CIRCLE,
+    // effect5 hoja 7, 10 fps, bajo el personaje).
+    'fx.castingCircle': { sprite: 'fx.effect5', sheet: 7, frameRate: 10, loop: true, depthOffset: -1 },
     'fx.footsteps':{ sprite: 'fx.effect2', sheet: 1, frames: [28, 32], frameRate: 10, loop: false, depthOffset: -1 },
 } as const satisfies Record<string, EffectDef>;
 

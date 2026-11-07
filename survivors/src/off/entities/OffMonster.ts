@@ -2,11 +2,17 @@
 // andando, atacando, recibiendo un golpe y muriendo, en 8 direcciones, con su sombra y, si está marcado, su nombre y
 // su barra de vida. Lo que decide qué hace está en off/systems/OffMonsterAI.ts.
 // El dibujo copia el de los monstruos de Survivors (entities/Enemy.ts: play, syncDisplay), sin su forma de moverse.
+// Fase Off-6B: arder y frenarse con las magias, como los de Survivors (Enemy.burn / Enemy.slow, números de
+// data/elements.ts BURN y data/activeSpells.ts ICE_SLOW). Frenado o aturdido, su reloj corre más despacio (`timeScale`):
+// la IA, el paso y la animación van a ese ritmo.
 import Phaser from 'phaser';
 import {
     BODY_SHADOW_ALPHA, BODY_SHADOW_ROTATION, BODY_SHADOW_SCALE_Y, DEFAULT_ANIMATION_FRAME_RATE, DEPTH_DAMAGE_NUMBERS,
-    DEPTH_GROUND_SHADOWS, ENEMY_HIT_FLASH_MS, GROUND_SHADOW, MONSTER_ATTACK, TILE_SIZE,
+    DEPTH_EFFECT_OFFSET, DEPTH_GROUND_SHADOWS, ENEMY_HIT_FLASH_MS, GROUND_SHADOW, MONSTER_ATTACK, TILE_SIZE,
 } from '../../config/gameConfig';
+import { EFFECTS } from '../../config/effects';
+import { ICE_SLOW } from '../../data/activeSpells';
+import { BURN } from '../../data/elements';
 import { ensureGroundShadowTexture } from '../../entities/Enemy';
 import { HBAsset } from '../../hb/HBAsset';
 import { getSheetKey } from '../../hb/HBSprite';
@@ -18,6 +24,9 @@ import { OFF_MONSTER_LOOK } from '../config/offMonsterLook';
 import { OFF_COMBAT } from '../data/offCombat';
 import type { OffMonsterDef, OffMonsterId } from '../data/offMonsters';
 import { TileMover, type TilePoint } from '../systems/TileMover';
+
+/** The little fire at its feet while it burns (config/effects.ts), as Survivors' monsters. */
+const BURN_FLAME_EFFECT = 'fx.burn.flame';
 
 /** What it is doing: walking about its pit, after the player, running away, or dead. */
 export type OffMonsterMode = 'wander' | 'attack' | 'flee' | 'dead';
@@ -67,6 +76,15 @@ export class OffMonster implements Poolable {
     /** Direction of the animation playing (a turn replays it the new way). */
     private playedFacing = Direction.South;
     private readonly feet: TilePoint = { x: 0, y: 0 };
+    /** Burn (Off-6B): health each layer takes per tick, time left and to the next tick; the fire at its feet. */
+    private readonly burnLayers: number[] = [];
+    private burnMs = 0;
+    private burnTickMs = 0;
+    private burnFlame: Phaser.GameObjects.Sprite | undefined;
+    /** Ice (Off-6B): its clock runs at `slowFactor` for `slowMs`; a burn's stun stops it for `stunMs`. */
+    private slowFactor = 1;
+    private slowMs = 0;
+    private stunMs = 0;
 
     constructor(scene: Phaser.Scene, public readonly id: OffMonsterId, public readonly def: OffMonsterDef, isFree: (x: number, y: number) => boolean) {
         const base = def.base;
@@ -123,6 +141,10 @@ export class OffMonster implements Poolable {
         this.actionLeftMs = 0;
         this.flashLeftMs = 0;
         this.corpseLeftMs = 0;
+        this.extinguish();
+        this.slowMs = 0;
+        this.stunMs = 0;
+        this.slowFactor = 1;
         this.sprite.setAlpha(1).clearTint();
         this.setVisible(true);
         this.play(MonsterState.Idle, true);
@@ -152,6 +174,11 @@ export class OffMonster implements Poolable {
         this.mode = 'dead';
         this.pendingHitMs = undefined;
         this.marked = false;
+        this.extinguish();
+        this.slowMs = 0;
+        this.stunMs = 0;
+        this.sprite.anims.timeScale = 1;
+        this.applyTint();
         this.mover.cancel();
         this.play(MonsterState.Dead, true);
         this.corpseLeftMs = OFF_COMBAT.corpseMs + OFF_COMBAT.corpseFadeMs;
@@ -168,11 +195,102 @@ export class OffMonster implements Poolable {
         return this.sprite.getBounds().contains(px, py);
     }
 
+    // ---- Burn and ice (Off-6B) ----
+
+    /** How fast its clock runs: 0 stunned, ICE_SLOW's factor while slowed, else 1. */
+    public get timeScale(): number {
+        if (this.stunMs > 0) return 0;
+        return this.slowMs > 0 ? this.slowFactor : 1;
+    }
+
+    public get isBurning(): boolean {
+        return this.burnLayers.length > 0;
+    }
+
+    public get isSlowed(): boolean {
+        return this.slowMs > 0;
+    }
+
+    /** A fire spell's hit: one more layer (up to BURN.maxStacks; then a stronger one replaces the weakest), as Enemy.burn. */
+    public burn(perTick: number): void {
+        if (!this.isAlive || perTick <= 0) return;
+        if (this.burnLayers.length < BURN.maxStacks) {
+            this.burnLayers.push(perTick);
+        } else {
+            const weakest = this.burnLayers.indexOf(Math.min(...this.burnLayers));
+            if (perTick > (this.burnLayers[weakest] ?? 0)) this.burnLayers[weakest] = perTick;
+        }
+        if (this.burnMs <= 0) this.burnTickMs = BURN.tickMs;
+        this.burnMs = BURN.durationMs;
+        if (!this.burnFlame) {
+            this.burnFlame = smoothSprite(this.sprite.scene.add.sprite(0, 0, '__DEFAULT'))
+                .setAlpha(BURN.flameAlpha).setScale(BURN.flameScale).setVisible(false);
+        }
+        if (!this.burnFlame.visible && this.sprite.scene.anims.exists(BURN_FLAME_EFFECT)) {
+            this.burnFlame.setActive(true).setVisible(true).play(BURN_FLAME_EFFECT);
+        }
+        this.syncBurnFlame();
+    }
+
+    /** Runs the fire: the health it took this frame (0 most frames). It may leave it at 0: the battle kills it. */
+    public tickBurn(deltaMs: number): number {
+        if (!this.isBurning) return 0;
+        this.burnMs -= deltaMs;
+        this.burnTickMs -= deltaMs;
+        let damage = 0;
+        if (this.burnTickMs <= 0) {
+            this.burnTickMs += BURN.tickMs;
+            const total = this.burnLayers.reduce((sum, layer) => sum + layer, 0);
+            damage = Math.max(1, Math.round(total));
+            this.hp = Math.max(0, this.hp - damage);
+        }
+        if (this.burnMs <= 0) this.extinguish();
+        return damage;
+    }
+
+    /** The burn's moment of stun (BURN.stunChance per tick). */
+    public stun(ms: number): void {
+        this.stunMs = Math.max(this.stunMs, ms);
+    }
+
+    /** An ice spell's hit: its clock runs at ICE_SLOW's pace for a while, tinted blue. */
+    public slow(): void {
+        if (!this.isAlive) return;
+        this.slowFactor = ICE_SLOW.normal.factor;
+        this.slowMs = Math.max(this.slowMs, ICE_SLOW.normal.ms);
+        this.applyTint();
+    }
+
+    private extinguish(): void {
+        this.burnLayers.length = 0;
+        this.burnMs = 0;
+        this.burnFlame?.stop().setActive(false).setVisible(false);
+    }
+
+    private syncBurnFlame(): void {
+        const def = EFFECTS[BURN_FLAME_EFFECT];
+        this.burnFlame?.setPosition(this.x + def.offsetX * BURN.flameScale, this.y + def.offsetY * BURN.flameScale)
+            .setDepth(this.y + DEPTH_EFFECT_OFFSET);
+    }
+
+    /** Its own colour: blue while slowed (not over the white flash of a blow). */
+    private applyTint(): void {
+        if (this.flashLeftMs > 0) return;
+        if (this.isAlive && this.slowMs > 0) this.sprite.setTint(ICE_SLOW.tint);
+        else this.sprite.clearTint();
+    }
+
     /** Advances its step and its animation, and draws it where its feet are. */
     public sync(deltaMs: number): void {
+        if (this.stunMs > 0) this.stunMs = Math.max(0, this.stunMs - deltaMs);
+        if (this.slowMs > 0) {
+            this.slowMs = Math.max(0, this.slowMs - deltaMs);
+            if (this.slowMs === 0) this.applyTint();
+        }
+        this.sprite.anims.timeScale = this.mode === 'dead' ? 1 : this.timeScale;
         if (this.flashLeftMs > 0) {
             this.flashLeftMs -= deltaMs;
-            if (this.flashLeftMs <= 0) this.sprite.clearTint();
+            if (this.flashLeftMs <= 0) this.applyTint();
         }
         if (this.mode === 'dead') {
             this.corpseLeftMs -= deltaMs;
@@ -180,7 +298,7 @@ export class OffMonster implements Poolable {
             this.sprite.setAlpha(Phaser.Math.Clamp(this.corpseLeftMs / fade, 0, 1));
             if (this.corpseLeftMs <= 0) this.hide();
         } else {
-            this.actionLeftMs = Math.max(0, this.actionLeftMs - deltaMs);
+            this.actionLeftMs = Math.max(0, this.actionLeftMs - deltaMs * this.timeScale);
             const pose = this.actionLeftMs > 0 ? this.state : this.mover.isMoving ? MonsterState.Move : MonsterState.Idle;
             if (pose !== this.state || this.mover.facing !== this.playedFacing) this.play(pose, false);
         }
@@ -190,6 +308,7 @@ export class OffMonster implements Poolable {
         this.sprite.setPosition(this.x, this.y).setDepth(this.y);
         this.groundShadow?.setPosition(this.x, this.y).setVisible(this.mode !== 'dead');
         this.syncShadow();
+        if (this.isBurning) this.syncBurnFlame();
         this.drawMark();
     }
 
