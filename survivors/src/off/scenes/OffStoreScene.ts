@@ -7,6 +7,9 @@
 // - Un clic marca; doble clic, Enter o A compran o venden; el botón Buy / Sell también. Así un clic sin querer no gasta
 //   oro. Un precio que no puedes pagar sale en rojo, y lo que aún no puedes ponerte (Str o Level), con el nombre en rojo.
 // - Tab o LB / RB cambian de pestaña; Esc, B o el botón Close cierran. La rueda del ratón mueve la lista.
+// Fase Off-6A: la tienda tiene una tercera pestaña, **Magic** (la tienda de magia, de momento aquí): las 14 magias por
+// círculos (off/data/offSpells.ts). Learn la aprende (INT mínima + oro) y va sola a la primera tecla 1–8 libre. Una
+// magia que aún no puedes aprender por INT sale con el nombre en rojo; una que ya sabes, con "Learned" en vez de precio.
 import Phaser from 'phaser';
 import { itemPackTexture } from '../../config/equipment';
 import { GAME_WIDTH } from '../../config/gameConfig';
@@ -22,7 +25,8 @@ import {
 import { isOffItemId, OFF_ITEMS, offBagItemName, offBagItemPicture, offNeedsText, offWearCheck, type OffBagItemId } from '../data/offItems';
 import { OFF_STORE_STOCK, OFF_STORE_TEXT, offPrice, offSellPrice, type OffStoreKind } from '../data/offStore';
 import { offSaveStore, type OffTradeResult } from '../systems/OffSaveStore';
-import { drawOffItemBox, offItemBoxLines } from '../ui/offItemBox';
+import { OFF_SPELL_IDS, OFF_SPELLS, offCircleTitle, type OffLearnResult, type OffSpellId } from '../data/offSpells';
+import { drawOffItemBox, offItemBoxLines, offSpellBoxLines } from '../ui/offItemBox';
 
 export const OFF_STORE_SCENE_KEY = 'OffStore';
 
@@ -31,12 +35,17 @@ export interface OffStoreSceneData {
     /** Something bought or sold: the world dresses the character again if needed. */
     onChange: () => void;
     onClose: () => void;
+    /** Tab open at first (Off-6A: 'magic' for the magic shop). */
+    tab?: OffStoreTab;
 }
 
-export type OffStoreTab = 'buy' | 'sell';
+export type OffStoreTab = 'buy' | 'sell' | 'magic';
 
-/** A line of the list: a section title, or an item (to buy, or the bag cell to sell). */
-type Row = { kind: 'section'; title: string } | { kind: 'item'; id: OffBagItemId; bagIndex?: number };
+/** A line of the list: a section title, an item (to buy, or the bag cell to sell) or a spell (Off-6A). */
+type Row = { kind: 'section'; title: string } | { kind: 'item'; id: OffBagItemId; bagIndex?: number } | { kind: 'spell'; id: OffSpellId };
+
+/** The tabs of each store: only the shop has the magic shop (owner, 7-nov-2026). */
+const STORE_TABS: Record<OffStoreKind, readonly OffStoreTab[]> = { shop: ['buy', 'sell', 'magic'], smith: ['buy', 'sell'] };
 
 type ButtonId = 'act' | 'close';
 
@@ -101,7 +110,7 @@ export class OffStoreScene extends Phaser.Scene {
         // Tabs, then the list under them.
         const left = x + p.padding;
         const tabsY = y + p.titleHeight + p.padding;
-        (['buy', 'sell'] as const).forEach((tab, i) => this.createTab(tab, left + i * (OFF_STORE_TABS.width + OFF_STORE_TABS.gap), tabsY));
+        STORE_TABS[this.params.kind].forEach((tab, i) => this.createTab(tab, left + i * (OFF_STORE_TABS.width + OFF_STORE_TABS.gap), tabsY));
         const headerY = tabsY + OFF_STORE_TABS.height + 6;
         this.add.text(left + l.iconSize + 12, headerY, OFF_STORE_TEXT.itemHeader, OFF_STORE_HEADER_STYLE);
         this.add.text(left + l.width - 8, headerY, OFF_STORE_TEXT.priceHeader, OFF_STORE_HEADER_STYLE).setOrigin(1, 0);
@@ -131,7 +140,7 @@ export class OffStoreScene extends Phaser.Scene {
         this.inputSystem = new InputSystem(this);
         this.inputSystem.setPointerMaxY(-1);
         this.inputSystem.setStickMenus(true);
-        this.showTab('buy');
+        this.showTab(this.params.tab !== undefined && STORE_TABS[this.params.kind].includes(this.params.tab) ? this.params.tab : 'buy');
         if (!this.iconsReady) {
             void lookLoader.ensure(this, ['item.pack']).then(() => {
                 if (!this.sys.isActive()) return;
@@ -151,8 +160,10 @@ export class OffStoreScene extends Phaser.Scene {
             this.close();
             return;
         }
-        if (input.justPressed(Action.OffSwitchTab) || input.justPressed(Action.OffNextTarget) || input.justPressed(Action.OffPrevTarget)) {
-            this.showTab(this.tab === 'buy' ? 'sell' : 'buy');
+        const tabStep = input.justPressed(Action.OffPrevTarget) ? -1 : input.justPressed(Action.OffSwitchTab) || input.justPressed(Action.OffNextTarget) ? 1 : 0;
+        if (tabStep !== 0) {
+            const tabs = STORE_TABS[this.params.kind];
+            this.showTab(tabs[(tabs.indexOf(this.tab) + tabStep + tabs.length) % tabs.length] ?? 'buy');
             return;
         }
         if (input.justPressed(Action.MenuUp)) this.moveMark(-1);
@@ -165,7 +176,7 @@ export class OffStoreScene extends Phaser.Scene {
     private createTab(tab: OffStoreTab, x: number, y: number): void {
         const t = OFF_STORE_TABS;
         const box = this.add.rectangle(x, y, t.width, t.height, t.background).setOrigin(0).setStrokeStyle(1, t.border);
-        this.add.text(x + t.width / 2, y + t.height / 2, tab === 'buy' ? OFF_STORE_TEXT.buyTab : OFF_STORE_TEXT.sellTab, OFF_STORE_BUTTON_STYLE).setOrigin(0.5);
+        this.add.text(x + t.width / 2, y + t.height / 2, OFF_STORE_TEXT.tabs[tab], OFF_STORE_BUTTON_STYLE).setOrigin(0.5);
         box.setInteractive({ useHandCursor: true });
         box.on(Phaser.Input.Events.POINTER_UP, () => {
             if (this.ready()) this.showTab(tab);
@@ -188,6 +199,18 @@ export class OffStoreScene extends Phaser.Scene {
 
     /** The rows of a tab: what the place sells, or what the bag holds. */
     private rowsFor(tab: OffStoreTab): Row[] {
+        if (tab === 'magic') {
+            const rows: Row[] = [];
+            let circle = 0;
+            for (const id of OFF_SPELL_IDS) {
+                if (OFF_SPELLS[id].circle !== circle) {
+                    circle = OFF_SPELLS[id].circle;
+                    rows.push({ kind: 'section', title: offCircleTitle(circle) });
+                }
+                rows.push({ kind: 'spell', id });
+            }
+            return rows;
+        }
         if (tab === 'sell') return offSaveStore.character.bag.map((id, bagIndex) => ({ kind: 'item', id, bagIndex }));
         const rows: Row[] = [];
         const sections = OFF_STORE_STOCK[this.params.kind];
@@ -202,11 +225,11 @@ export class OffStoreScene extends Phaser.Scene {
         this.tab = tab;
         this.rows = this.rowsFor(tab);
         this.scroll = 0;
-        this.marked = this.rows.findIndex((r) => r.kind === 'item');
+        this.marked = this.rows.findIndex((r) => r.kind !== 'section');
         this.messageText.setText(tab === 'sell' && this.marked < 0 ? OFF_STORE_TEXT.nothingToSell : '');
         const t = OFF_STORE_TABS;
         this.tabViews.forEach((box, id) => box.setFillStyle(id === tab ? t.activeBackground : t.background));
-        this.buttons.get('act')?.label.setText(tab === 'buy' ? OFF_STORE_TEXT.buyButton : OFF_STORE_TEXT.sellButton);
+        this.buttons.get('act')?.label.setText(OFF_STORE_TEXT.actButton[tab]);
         this.redraw();
     }
 
@@ -240,6 +263,11 @@ export class OffStoreScene extends Phaser.Scene {
             background.setInteractive({ useHandCursor: true });
             background.on(Phaser.Input.Events.POINTER_UP, () => this.clickRow(index));
             objects.push(background);
+            if (row.kind === 'spell') {
+                this.drawSpellRow(row.id, objects, middle);
+                this.rowViews.push({ objects });
+                continue;
+            }
             const frame = this.iconsReady ? offBagItemPicture(row.id, offSaveStore.character.look.gender) : undefined;
             if (frame) {
                 const icon = this.add.image(a.x + 6 + l.iconSize / 2, middle, itemPackTexture(frame.sheet), frame.frame);
@@ -264,15 +292,41 @@ export class OffStoreScene extends Phaser.Scene {
         }
     }
 
+    /** A spell row (Off-6A): name (red if the INT is short), "Int N", and price or "Learned". */
+    private drawSpellRow(id: OffSpellId, objects: Phaser.GameObjects.GameObject[], middle: number): void {
+        const a = this.listArea;
+        const spell = OFF_SPELLS[id];
+        const character = offSaveStore.character;
+        const intMet = character.stats.int >= spell.reqInt;
+        const known = offSaveStore.knowsSpell(id);
+        const red = { color: OFF_STORE_UNMET_COLOR };
+        objects.push(this.add.text(a.x + 12, middle, spell.name, { ...OFF_STORE_ROW_STYLE, ...(intMet || known ? {} : red) }).setOrigin(0, 0.5));
+        const priceText = this.add.text(a.x + a.width - 8, middle, known ? OFF_STORE_TEXT.learned : spell.price.toLocaleString('en-US'), {
+            ...(known ? OFF_STORE_SMALL_STYLE : OFF_STORE_ROW_STYLE), ...(!known && spell.price > character.gold ? red : {}),
+        }).setOrigin(1, 0.5);
+        objects.push(priceText);
+        if (!known) {
+            objects.push(this.add.text(priceText.x - priceText.width - 14, middle, `Int ${spell.reqInt}`, {
+                ...OFF_STORE_SMALL_STYLE, ...(intMet ? {} : red),
+            }).setOrigin(1, 0.5));
+        }
+    }
+
     private drawSide(): void {
         this.boxObjects.forEach((o) => o.destroy());
         this.boxObjects = [];
         const id = this.markedId;
+        const row = this.rows[this.marked];
+        const spellId = row?.kind === 'spell' ? row.id : undefined;
         this.goldText.setText(OFF_STORE_TEXT.gold(offSaveStore.character.gold));
         const act = this.buttons.get('act');
-        const alpha = id === undefined ? OFF_STORE_SIDE.disabledAlpha : 1;
+        const alpha = id === undefined && (spellId === undefined || offSaveStore.knowsSpell(spellId)) ? OFF_STORE_SIDE.disabledAlpha : 1;
         act?.box.setAlpha(alpha);
         act?.label.setAlpha(alpha);
+        if (spellId !== undefined) {
+            this.boxObjects = drawOffItemBox(this, this.boxArea, OFF_SPELLS[spellId].name, offSpellBoxLines(spellId, offSaveStore.character.stats.int));
+            return;
+        }
         if (id === undefined) return;
         const worn = isOffItemId(id) ? offSaveStore.character.equipment[OFF_ITEMS[id].slot] : undefined;
         const lines = offItemBoxLines(id, worn === id ? undefined : worn, { str: offSaveStore.character.stats.str, level: offSaveStore.level });
@@ -297,7 +351,8 @@ export class OffStoreScene extends Phaser.Scene {
 
     /** Development and clicks: marks that row (sections are skipped). */
     public mark(index: number): void {
-        if (this.rows[index]?.kind !== 'item') return;
+        const kind = this.rows[index]?.kind;
+        if (kind === undefined || kind === 'section') return;
         this.marked = index;
         this.redraw();
     }
@@ -306,7 +361,7 @@ export class OffStoreScene extends Phaser.Scene {
     private moveMark(step: number): void {
         let index = this.marked;
         do index += step;
-        while (index >= 0 && index < this.rows.length && this.rows[index]?.kind !== 'item');
+        while (index >= 0 && index < this.rows.length && this.rows[index]?.kind === 'section');
         if (index >= 0 && index < this.rows.length) this.mark(index);
         else this.scrollBy(step);
     }
@@ -329,9 +384,13 @@ export class OffStoreScene extends Phaser.Scene {
 
     // ---- Buying and selling ----
 
-    /** Buys or sells the marked item (button, double click, Enter, A). */
+    /** Buys or sells the marked item, or learns the marked spell (button, double click, Enter, A). */
     public act(): void {
         const row = this.rows[this.marked];
+        if (row?.kind === 'spell') {
+            this.learn(row.id);
+            return;
+        }
         if (row?.kind !== 'item') return;
         if (this.tab === 'buy') this.buy(row.id);
         else if (row.bagIndex !== undefined) this.sell(row.bagIndex);
@@ -361,6 +420,14 @@ export class OffStoreScene extends Phaser.Scene {
         this.redraw();
     }
 
+    private learn(id: OffSpellId): void {
+        const result: OffLearnResult = offSaveStore.learnSpell(id);
+        const spell = OFF_SPELLS[id];
+        this.messageText.setText(result === 'ok' ? OFF_STORE_TEXT.learnt(spell.name, spell.price) : OFF_STORE_TEXT.cantLearn[result]);
+        if (result === 'ok') this.audio.play('sfx.pickup');
+        this.redraw();
+    }
+
     private failure(result: OffTradeResult): string {
         if (result === 'gold') return OFF_STORE_TEXT.noGold;
         if (result === 'bagFull') return OFF_STORE_TEXT.bagFull;
@@ -371,8 +438,9 @@ export class OffStoreScene extends Phaser.Scene {
     /** Development: what the window shows. */
     public debugState(): { tab: OffStoreTab; rows: string[]; marked: string | undefined; gold: string; message: string; box: string[] } {
         const box = this.boxObjects.filter((o): o is Phaser.GameObjects.Text => o instanceof Phaser.GameObjects.Text).map((t) => t.text);
-        const rows = this.rows.map((r) => (r.kind === 'section' ? `[${r.title}]` : r.id));
-        return { tab: this.tab, rows, marked: this.markedId, gold: this.goldText.text, message: this.messageText.text, box };
+        const rows = this.rows.map((r) => (r.kind === 'section' ? `[${r.title}]` : r.kind === 'spell' && offSaveStore.knowsSpell(r.id) ? `${r.id} (learned)` : r.id));
+        const row = this.rows[this.marked];
+        return { tab: this.tab, rows, marked: row?.kind === 'section' ? undefined : row?.id, gold: this.goldText.text, message: this.messageText.text, box };
     }
 
     public close(): void {

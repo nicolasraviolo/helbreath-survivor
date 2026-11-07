@@ -11,12 +11,21 @@
 // - Botín (Off-4A): al matar, lo que suelta el monstruo (OffLootRoller) cae en su casilla (OffGroundItems) y se recoge
 //   al pisarlo: el oro al contador, lo demás a la bolsa (OffSaveStore). Morir no hace perder ni oro ni bolsa.
 // - Inventario (Off-4B): usar un objeto de la bolsa (ponérselo o beberlo) y tirarlo a tus pies (useBagItem, dropBagItem).
+// - Magias (Off-6B): las lanza OffSpells (`spells`); aquí su daño cae en el monstruo (spellHit) y pasa por lo mismo que
+//   un golpe (hurtMonster: número, muerte, botín, experiencia). El fuego deja quemadura y el hielo frena, como en
+//   Survivors. Un monstruo frenado o aturdido vive a su ritmo (OffMonster.timeScale).
+// Magias (Off-6C): Heal suma vida (healPlayer); Defense Shield y Protection From Magic quedan en `protection` con su
+//   tiempo (OFF_PROTECT: +40 de defensa, o el daño mágico a la mitad cuando haya monstruos que lancen magia); pasan de un
+//   sitio a otro por los portales (OffCarriedVitals). Mientras duran, cada uno deja su aura bajo los pies (`wornEffect`,
+//   propietario): Defense Shield la de Survivors (effect9) y Protection From Magic el círculo blanco del aura de viento. Hold Person y Paralyze los pone OffMonster.hold.
 // Los mensajes ("Level Up!" y la lista de abajo a la izquierda) van a OffHudScene por los eventos de la escena.
 import Phaser from 'phaser';
 import { DEBUG_START } from '../../config/debugStart';
-import { PLAYER_BODY_OFFSET_Y, TILE_SIZE } from '../../config/gameConfig';
+import { DEPTH_GROUND_SHADOWS, PLAYER_BODY_OFFSET_Y, TILE_SIZE } from '../../config/gameConfig';
+import { smoothSprite } from '../../hb/XbrPipeline';
 import { ANNOUNCE_EVENT, EVENT_LIST_EVENT } from '../../config/hud';
 import { GENDER_SOUNDS } from '../../data/appearance';
+import { BURN, ELEMENT_NUMBER_COLOR, type SpellElement } from '../../data/elements';
 import { Effect } from '../../entities/Effect';
 import type { TileRect } from '../../data/maps';
 import { PlayerState } from '../../hb/playerAppearance';
@@ -26,8 +35,8 @@ import { HitParticles } from '../../systems/HitParticles';
 import { Pool } from '../../utils/Pool';
 import { OFF_MONSTER_LOOK } from '../config/offMonsterLook';
 import { OFF_REGEN_TEXT, OFF_STAT_IDS, offMaxHp, type OffStats } from '../data/offCharacter';
-import { OFF_COMBAT, offAttackMs } from '../data/offCombat';
-import { isOffItemId, OFF_ITEMS, offArmorDefense, offBagItemName, offItem, offWeapon, type OffWeaponItem } from '../data/offItems';
+import { OFF_COMBAT, offAttackMs, type OffWeaponDef } from '../data/offCombat';
+import { isOffItemId, OFF_ITEMS, offArmorDefense, offBagItemName, offItem, offWeapon } from '../data/offItems';
 import { OFF_GOODS, offGood, type OffPotionRestores } from '../data/offGoods';
 import { OFF_BAG_TEXT } from '../data/offBag';
 import { OFF_LOOT_TEXT } from '../data/offLoot';
@@ -43,6 +52,10 @@ import { OffPits } from './OffPits';
 import type { OffPitDef } from '../data/offPits';
 import { offSaveStore, type OffEquipResult } from './OffSaveStore';
 import { OffVitals } from './OffVitals';
+import { OffSpells, type OffSpellHost } from './OffSpells';
+import { OFF_CAST_TEXT, OFF_CAST_WORDS, OFF_CASTING, OFF_PROTECT, OFF_SPELLS, type OffSpellId } from '../data/offSpells';
+import { OFF_HEAL_NUMBER_COLOR, OFF_WORN_ALPHA } from '../config/offSpellLook';
+import { EFFECTS, type EffectDef, type EffectKey } from '../../config/effects';
 import { directionTowards, type TileMover, type TilePoint } from './TileMover';
 
 /** What using or dropping a bag item did, and the line that says so (also when it was refused). */
@@ -51,6 +64,14 @@ export interface OffCarriedVitals {
     hp: number;
     mana: number;
     stamina: number;
+    /** A shield spell still on (Off-6C). */
+    protection?: OffProtection;
+}
+
+/** Defense Shield or Protection From Magic on the player, and the time it has left. */
+export interface OffProtection {
+    spell: OffSpellId;
+    leftMs: number;
 }
 
 export interface OffUseResult {
@@ -67,7 +88,7 @@ interface PendingBlow {
     leftMs: number;
 }
 
-export class OffBattle implements OffMonsterWorld {
+export class OffBattle implements OffMonsterWorld, OffSpellHost {
     /** Mana, stamina and the self-healing batches (Off-3B). */
     public readonly vitals: OffVitals;
     public hp: number;
@@ -83,12 +104,19 @@ export class OffBattle implements OffMonsterWorld {
     /** Monster under the mouse (its name shows). */
     public hovered: OffMonster | undefined;
     public dead = false;
+    /** Defense Shield or Protection From Magic (Off-6C; one at a time, as the server). */
+    public protection: OffProtection | undefined;
     public readonly pits: OffPits;
     /** Loot lying on the ground (Off-4A). */
     public readonly ground: OffGroundItems;
+    /** Spells: preparing, casting and their effects (Off-6B). */
+    public readonly spells: OffSpells;
     private readonly numbers: DamageNumbers;
     private readonly particles: HitParticles;
     private readonly effects: Pool<Effect>;
+    /** A shield's look under the feet while it lasts (Protection From Magic's ring). */
+    private readonly wornLook: Phaser.GameObjects.Sprite;
+    private wornLookKey: EffectKey | undefined;
     /** One attack asked for (a click or a press) and not yet started. */
     private attackQueued = false;
     /** The button is held: attacks go on. */
@@ -120,12 +148,17 @@ export class OffBattle implements OffMonsterWorld {
             this.hp = Math.min(this.maxHp, Math.max(1, carried.hp));
             this.vitals.mana = Math.min(this.vitals.maxMana, carried.mana);
             this.vitals.stamina = Math.min(this.vitals.maxStamina, carried.stamina);
+            this.protection = carried.protection ? { ...carried.protection } : undefined;
+        } else if (DEBUG_START.offHp !== undefined) {
+            this.hp = Math.min(this.maxHp, Math.max(1, DEBUG_START.offHp));
         }
         this.numbers = new DamageNumbers(scene);
         this.particles = new HitParticles(scene);
         this.effects = new Pool(() => new Effect(scene));
+        this.wornLook = smoothSprite(scene.add.sprite(0, 0, '__DEFAULT')).setVisible(false).setDepth(DEPTH_GROUND_SHADOWS + 1);
         this.pits = new OffPits(scene, pits, (x, y) => this.isFree(x, y));
         this.pits.fillAll();
+        this.spells = new OffSpells(scene, this, mover, character, audio);
         this.ground = new OffGroundItems(scene, (content) => this.pickUp(content), (reason) => this.eventLine(reason === 'potionLimit' ? OFF_LOOT_TEXT.potionLimit : OFF_LOOT_TEXT.bagFull));
     }
 
@@ -139,14 +172,24 @@ export class OffBattle implements OffMonsterWorld {
         return offSaveStore.character.stats;
     }
 
-    /** The weapon held now (Equipment screen, Off-3C). */
-    public get weapon(): OffWeaponItem {
+    /** The weapon held now (Equipment screen, Off-3C), or bare hands (Off-6A). */
+    public get weapon(): OffWeaponDef {
         return offWeapon(offSaveStore.character.equipment);
     }
 
-    /** Defence against monsters: 2 × DEX and the worn armour (original). */
+    /** Defence against monsters: 2 × DEX and the worn armour (original), and Defense Shield's (Off-6C). */
     public get defense(): number {
-        return this.stats.dex * 2 + offArmorDefense(offSaveStore.character.equipment);
+        const power = this.protection ? OFF_SPELLS[this.protection.spell].power ?? 0 : 0;
+        return this.stats.dex * 2 + offArmorDefense(offSaveStore.character.equipment) + (OFF_PROTECT.defenseByPower[power] ?? 0);
+    }
+
+    /**
+     * What magic damage on the player is multiplied by: half with Protection From Magic (server). No monster of Off
+     * casts spells yet: this is here for when they do.
+     */
+    public get magicDamageFactor(): number {
+        const power = this.protection ? OFF_SPELLS[this.protection.spell].power ?? 0 : 0;
+        return OFF_PROTECT.magicHalvedPowers.includes(power) ? OFF_PROTECT.magicDamageFactor : 1;
     }
 
     /** Character window, Ok: the points go into the stats for good. Health, mana and stamina keep their value. */
@@ -157,9 +200,67 @@ export class OffBattle implements OffMonsterWorld {
         offSaveStore.assignPoints(added, this.points);
     }
 
-    /** The player may start a step (not while swinging, not dead). */
+    /** The player may start a step (not while swinging or preparing a spell, not dead). */
     public get canMove(): boolean {
         return !this.dead && !this.character.isActing;
+    }
+
+    // ---- OffSpellHost (Off-6B) ----
+
+    public get mana(): number {
+        return this.vitals.mana;
+    }
+
+    public spendMana(amount: number): void {
+        this.vitals.mana = Math.max(0, this.vitals.mana - amount);
+    }
+
+    public monstersAround(tileX: number, tileY: number, range: number): OffMonster[] {
+        return this.pits.monsters.filter((m) => m.isAlive
+            && Math.abs(m.mover.tileX - tileX) <= range && Math.abs(m.mover.tileY - tileY) <= range);
+    }
+
+    public spellHit(monster: OffMonster, damage: number, element: SpellElement | undefined): void {
+        const killed = this.hurtMonster(monster, damage, element);
+        this.audio.play(killed ? monster.def.base.deathSound : monster.def.base.hitSound);
+        if (killed) return;
+        if (element === 'fire') monster.burn(damage * BURN.shareOfHit);
+        if (element === 'ice') monster.slow();
+    }
+
+    public spellResisted(monster: OffMonster): void {
+        provokeMonster(monster);
+        this.numbers.showWord(monster.x, monster.y - monster.def.base.bodyOffsetY, OFF_CAST_WORDS.resisted);
+    }
+
+    public healPlayer(amount: number): void {
+        if (this.dead) return;
+        const gained = Math.min(amount, this.maxHp - this.hp);
+        if (gained <= 0) return;
+        this.hp += gained;
+        this.numbers.showColored(this.character.x, this.character.y - PLAYER_BODY_OFFSET_Y, gained, OFF_HEAL_NUMBER_COLOR);
+        this.eventLine(OFF_REGEN_TEXT.hpUp(gained));
+    }
+
+    public protect(spell: OffSpellId): boolean {
+        if (this.protection) return false;
+        this.protection = { spell, leftMs: (OFF_SPELLS[spell].durationSec ?? 0) * 1000 };
+        this.eventLine(OFF_CAST_TEXT.shieldOn(OFF_SPELLS[spell].name));
+        return true;
+    }
+
+    public spellHeld(monster: OffMonster): void {
+        provokeMonster(monster);
+        this.numbers.showWord(monster.x, monster.y - monster.def.base.bodyOffsetY, OFF_CAST_WORDS.held);
+    }
+
+    public castFailed(): void {
+        this.numbers.showWord(this.character.x, this.character.y - PLAYER_BODY_OFFSET_Y, OFF_CAST_WORDS.failed);
+        this.character.act(PlayerState.Hurt, this.mover.facing, OFF_CASTING.failFlinchMs);
+    }
+
+    public eventLine(line: string): void {
+        this.scene.events.emit(EVENT_LIST_EVENT, line);
     }
 
     // ---- What the scene tells it ----
@@ -215,6 +316,12 @@ export class OffBattle implements OffMonsterWorld {
         this.target = near[(index + step + near.length) % near.length];
     }
 
+    /** A gamepad spell's monster (Off-6C): the marked one if it is alive, else the nearest within reach. */
+    public spellTarget(): OffMonster | undefined {
+        if (this.target?.isAlive) return this.target;
+        return this.nearbyMonsters()[0];
+    }
+
     /** Tile the player may step onto: walkable and nobody there. */
     public isFreeForPlayer(x: number, y: number): boolean {
         return this.isWalkable(x, y) && !this.monsterOn(x, y);
@@ -223,10 +330,14 @@ export class OffBattle implements OffMonsterWorld {
     public update(deltaMs: number): void {
         if (this.dead) this.updateDead(deltaMs);
         else this.updateAttack(deltaMs);
+        this.spells.update(deltaMs);
         this.vitals.update(deltaMs);
+        this.updateProtection(deltaMs);
         this.hp = Math.min(this.hp, this.maxHp);
         for (const monster of this.pits.monsters) {
-            updateMonster(monster, deltaMs, this);
+            this.updateBurn(monster, deltaMs);
+            // Slowed by ice or stunned by a burn: its clock runs slower (Off-6B).
+            updateMonster(monster, deltaMs * monster.timeScale, this);
             monster.marked = monster.isAlive && (monster === this.target || monster === this.hovered);
             monster.sync(deltaMs);
         }
@@ -237,6 +348,32 @@ export class OffBattle implements OffMonsterWorld {
         this.numbers.update(deltaMs);
         for (const effect of [...this.effects.active]) {
             if (!effect.update(deltaMs)) this.effects.release(effect);
+        }
+    }
+
+    /** The shield's time runs out; its look follows the feet meanwhile. */
+    private updateProtection(deltaMs: number): void {
+        const protection = this.protection;
+        if (protection) {
+            protection.leftMs -= deltaMs;
+            if (protection.leftMs <= 0) {
+                this.protection = undefined;
+                this.eventLine(OFF_CAST_TEXT.shieldOff(OFF_SPELLS[protection.spell].name));
+            }
+        }
+        this.updateWornLook();
+    }
+
+    private updateWornLook(): void {
+        const key = this.protection ? OFF_SPELLS[this.protection.spell].wornEffect : undefined;
+        if (key !== this.wornLookKey) {
+            this.wornLookKey = key;
+            if (key && this.scene.anims.exists(key)) this.wornLook.setVisible(true).setAlpha(OFF_WORN_ALPHA[key] ?? 1).play(key);
+            else this.wornLook.setVisible(false).stop();
+        }
+        if (this.wornLook.visible && key) {
+            const def: EffectDef = EFFECTS[key];
+            this.wornLook.setPosition(this.character.x + (def.offsetX ?? 0), this.character.y + (def.offsetY ?? 0));
         }
     }
 
@@ -339,21 +476,48 @@ export class OffBattle implements OffMonsterWorld {
             return;
         }
         const damage = rollWeaponDamage(this.weapon, monster.def.size, this.stats.str);
+        this.audio.play('sfx.melee.hit');
+        const killed = this.hurtMonster(monster, damage, undefined);
+        this.audio.play(killed ? monster.def.base.deathSound : monster.def.base.hitSound);
+    }
+
+    /**
+     * Damage on a monster, from a blow or a spell (`element`: its number's colour): the number, and the death with its
+     * loot and experience. Returns whether it died.
+     */
+    private hurtMonster(monster: OffMonster, damage: number, element: SpellElement | undefined): boolean {
+        const bodyY = monster.y - monster.def.base.bodyOffsetY;
         monster.hurt(damage);
         provokeMonster(monster);
         const killed = monster.hp <= 0;
-        this.numbers.show(monster.x, bodyY, damage, false, killed);
-        this.audio.play('sfx.melee.hit');
+        this.numbers.show(monster.x, bodyY, damage, false, killed, element);
+        if (killed) this.killMonster(monster);
+        else this.particles.hit(monster.x, bodyY, this.character.x, this.character.y);
+        return killed;
+    }
+
+    /** It dies: falls, drops its loot and gives its experience. */
+    private killMonster(monster: OffMonster): void {
+        const bodyY = monster.y - monster.def.base.bodyOffsetY;
+        monster.kill();
+        this.particles.death(monster.x, monster.y, bodyY);
+        this.kills++;
+        this.dropLoot(monster);
+        this.gainExp(offKillExp(monster.exp, this.level), monster.x, bodyY);
+    }
+
+    /** The fire of a burning monster (Off-6B, as Survivors' CombatSystem.updateBurn): fire-coloured numbers, may stun or kill. */
+    private updateBurn(monster: OffMonster, deltaMs: number): void {
+        if (!monster.isAlive || !monster.isBurning) return;
+        const damage = monster.tickBurn(deltaMs);
+        if (damage <= 0) return;
+        const killed = monster.hp <= 0;
+        this.numbers.showColored(monster.x, monster.y - monster.def.base.bodyOffsetY, damage, ELEMENT_NUMBER_COLOR.fire, false, killed);
         if (killed) {
-            monster.kill();
-            this.particles.death(monster.x, monster.y, bodyY);
+            this.killMonster(monster);
             this.audio.play(monster.def.base.deathSound);
-            this.kills++;
-            this.dropLoot(monster);
-            this.gainExp(offKillExp(monster.exp, this.level), monster.x, bodyY);
-        } else {
-            this.particles.hit(monster.x, bodyY, this.character.x, this.character.y);
-            this.audio.play(monster.def.base.hitSound);
+        } else if (Math.random() < BURN.stunChance) {
+            monster.stun(BURN.stunMs);
         }
     }
 
@@ -435,10 +599,6 @@ export class OffBattle implements OffMonsterWorld {
         return [this.vitals.stamina, this.vitals.maxStamina];
     }
 
-    private eventLine(line: string): void {
-        this.scene.events.emit(EVENT_LIST_EVENT, line);
-    }
-
     // ---- Experience ----
 
     /** A kill's experience: shown over the monster; one level or more may come with it. */
@@ -468,6 +628,9 @@ export class OffBattle implements OffMonsterWorld {
 
     private die(): void {
         this.dead = true;
+        this.spells.cancel();
+        // Dying takes the shield off.
+        this.protection = undefined;
         this.blow = undefined;
         this.clearTarget();
         this.mover.cancel();

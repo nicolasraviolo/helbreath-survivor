@@ -4,14 +4,16 @@
 // - Comparado con lo que llevas puesto en su hueco: verde si mejora, rojo si empeora.
 // - STR necesaria y Level si lo pide (Off-5B; en rojo si no llegas) y atributos (ninguno de momento).
 // - Pociones (Off-4B): qué llenan y cuánto, de menos a más. Slime Jelly: que se vende.
+// - Magias (Off-6A, tienda y libro): maná, daño o efecto, elemento e INT que piden.
 import Phaser from 'phaser';
 import { EQUIPMENT_MET_COLOR, EQUIPMENT_UNMET_COLOR } from '../../config/equipment';
 import { OFF_EQUIPMENT_BOX, OFF_EQUIPMENT_BOX_STYLE, OFF_EQUIPMENT_BOX_TITLE_STYLE, OFF_EQUIPMENT_SAME_COLOR } from '../config/offEquipment';
 import { offBestSpeedStr, offSpeedLabel } from '../data/offCombat';
 import { offGood } from '../data/offGoods';
 import {
-    diceAverage, isOffItemId, OFF_ITEMS, offNeedsText, offWearCheck, type OffBagItemId, type OffItemDef, type OffItemId, type OffWeaponItem, type OffWearer,
+    diceAverage, isOffItemId, OFF_FISTS, OFF_ITEMS, offNeedsText, offWearCheck, type OffBagItemId, type OffItemDef, type OffItemId, type OffWeaponItem, type OffWearer,
 } from '../data/offItems';
+import { OFF_ELEMENT_NAMES, OFF_SPELLS, offDiceRange, type OffSpellId } from '../data/offSpells';
 import { weaponDamageRange } from '../systems/OffCombatRules';
 
 /** A line of the stat box: label, value, and how the worn item compares. */
@@ -64,6 +66,14 @@ export function offItemBoxLines(id: OffBagItemId | undefined, worn: OffItemId | 
         }
         // Range left out: every weapon so far reaches 1 tile (and the mobile box has no room for one more line).
         lines.push({ label: '', value: best > 0 ? `Fastest with Str ${best}` : 'Fastest with any Str' });
+    } else if (!item && other?.kind === 'weapon') {
+        // An empty hand (Off-6A): bare hands' damage, compared with the weapon held.
+        const show = (w: Pick<OffWeaponItem, 'small' | 'large'>) => {
+            const r = weaponDamageRange(w, str);
+            return `${r.min} – ${r.max}`;
+        };
+        lines.push({ label: 'Damage', value: show(OFF_FISTS), now: { text: `(now ${show(other)})`, better: -1 } });
+        lines.push({ label: '', value: 'Bare hands. Spells need an empty hand.' });
     } else {
         const defense = item?.kind === 'armor' ? item.defense : 0;
         const otherDefense = other?.kind === 'armor' ? other.defense : 0;
@@ -107,4 +117,28 @@ export function drawOffItemBox(
         lineY += b.lineHeight;
     }
     return objects;
+}
+
+const SHIELD_EFFECT: Partial<Record<OffSpellId, string>> = { defenseShield: 'Defense up', protectionFromMagic: 'Magic resistance up' };
+
+/** What the box says about a spell (Off-6A): mana, what it does, element and the INT it needs (red if short). */
+export function offSpellBoxLines(id: OffSpellId, int: number): OffBoxLine[] {
+    const spell = OFF_SPELLS[id];
+    const lines: OffBoxLine[] = [{ label: 'Mana', value: `${spell.mana}` }];
+    if (spell.kind === 'damage' && spell.direct) {
+        lines.push({ label: 'Damage', value: offDiceRange(spell.direct) });
+        if (spell.area && spell.areaRange) {
+            const side = spell.areaRange * 2 + 1;
+            lines.push({ label: 'Area', value: `${side} × ${side} tiles, ${offDiceRange(spell.area)} each` });
+        }
+    } else if (spell.kind === 'heal' && spell.direct) {
+        lines.push({ label: 'Heals', value: `${offDiceRange(spell.direct)} health` });
+    } else {
+        lines.push({ label: 'Effect', value: spell.kind === 'hold' ? "The monster can't move" : SHIELD_EFFECT[id] ?? '' });
+        if (spell.durationSec) lines.push({ label: 'Lasts', value: `${spell.durationSec} seconds` });
+    }
+    if (spell.element) lines.push({ label: 'Element', value: OFF_ELEMENT_NAMES[spell.element] });
+    const met = int >= spell.reqInt;
+    lines.push({ label: 'Needs', value: `Int ${spell.reqInt}`, valueColor: met ? EQUIPMENT_MET_COLOR : EQUIPMENT_UNMET_COLOR, now: { text: `(you have ${int})`, better: 0 } });
+    return lines;
 }

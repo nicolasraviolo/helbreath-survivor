@@ -85,7 +85,34 @@ export enum Action {
     OffOpenEquipment = 'offOpenEquipment',
     /** Helbreath Off (Off-5B): Buy / Sell in a store, bag / warehouse in the warehouse (Tab; LB / RB on a pad). */
     OffSwitchTab = 'offSwitchTab',
+    /** Helbreath Off (Off-6A): open / close the spell book (B). */
+    OffSpellBook = 'offSpellBook',
+    /** Helbreath Off (Off-6A): the spell keys 1–8 (cast in the world; in the spell book, put the marked spell there). */
+    OffSpellKey1 = 'offSpellKey1',
+    OffSpellKey2 = 'offSpellKey2',
+    OffSpellKey3 = 'offSpellKey3',
+    OffSpellKey4 = 'offSpellKey4',
+    OffSpellKey5 = 'offSpellKey5',
+    OffSpellKey6 = 'offSpellKey6',
+    OffSpellKey7 = 'offSpellKey7',
+    OffSpellKey8 = 'offSpellKey8',
+    /** Helbreath Off (Off-6C): held (RT), A/B/X/Y are spells; let go, the spell is cast at the target. Gamepad only. */
+    OffCastTrigger = 'offCastTrigger',
+    /** Helbreath Off (Off-6C): with RT held, the gamepad's spells (A, B, X, Y). Gamepad only. */
+    OffPadSpellA = 'offPadSpellA',
+    OffPadSpellB = 'offPadSpellB',
+    OffPadSpellX = 'offPadSpellX',
+    OffPadSpellY = 'offPadSpellY',
 }
+
+/** Helbreath Off (Off-6C): the gamepad's spell buttons with RT held, in order (A, B, X, Y). */
+export const OFF_PAD_SPELL_ACTIONS: readonly Action[] = [Action.OffPadSpellA, Action.OffPadSpellB, Action.OffPadSpellX, Action.OffPadSpellY];
+
+/** Helbreath Off (Off-6A): the spell keys 1–8, in order. */
+export const OFF_SPELL_KEY_ACTIONS: readonly Action[] = [
+    Action.OffSpellKey1, Action.OffSpellKey2, Action.OffSpellKey3, Action.OffSpellKey4,
+    Action.OffSpellKey5, Action.OffSpellKey6, Action.OffSpellKey7, Action.OffSpellKey8,
+];
 
 export type InputDevice = 'keyboard' | 'mouse' | 'gamepad' | 'touch' | 'none';
 
@@ -135,9 +162,25 @@ const KEYBOARD_ACTIONS: Record<Action, number[]> = {
     [Action.OffDrop]: [KEY.DELETE],
     [Action.OffOpenEquipment]: [KEY.E],
     [Action.OffSwitchTab]: [KEY.TAB],
+    // B is also DebugAddMagic in development, but that one only acts in Survivors' run.
+    [Action.OffSpellBook]: [KEY.B],
+    // Owner (7-nov-2026): the number keys 1–8, not F1–F8 (on a Mac the F keys need Fn and clash with the system).
+    [Action.OffSpellKey1]: [KEY.ONE, KEY.NUMPAD_ONE],
+    [Action.OffSpellKey2]: [KEY.TWO, KEY.NUMPAD_TWO],
+    [Action.OffSpellKey3]: [KEY.THREE, KEY.NUMPAD_THREE],
+    [Action.OffSpellKey4]: [KEY.FOUR, KEY.NUMPAD_FOUR],
+    [Action.OffSpellKey5]: [KEY.FIVE, KEY.NUMPAD_FIVE],
+    [Action.OffSpellKey6]: [KEY.SIX, KEY.NUMPAD_SIX],
+    [Action.OffSpellKey7]: [KEY.SEVEN, KEY.NUMPAD_SEVEN],
+    [Action.OffSpellKey8]: [KEY.EIGHT, KEY.NUMPAD_EIGHT],
     // With the mouse a click marks a monster: these two are gamepad only.
     [Action.OffNextTarget]: [],
     [Action.OffPrevTarget]: [],
+    [Action.OffCastTrigger]: [],
+    [Action.OffPadSpellA]: [],
+    [Action.OffPadSpellB]: [],
+    [Action.OffPadSpellX]: [],
+    [Action.OffPadSpellY]: [],
 };
 
 const GAMEPAD_AXIS = { LeftX: 0, LeftY: 1, RightX: 2, RightY: 3 } as const;
@@ -167,6 +210,11 @@ const GAMEPAD_ACTIONS: Partial<Record<Action, number[]>> = {
     [Action.OffDrop]: [GAMEPAD_BUTTON.Y],
     [Action.OffNextTarget]: [GAMEPAD_BUTTON.R1],
     [Action.OffPrevTarget]: [GAMEPAD_BUTTON.L1],
+    [Action.OffCastTrigger]: [GAMEPAD_BUTTON.R2],
+    [Action.OffPadSpellA]: [GAMEPAD_BUTTON.A],
+    [Action.OffPadSpellB]: [GAMEPAD_BUTTON.B],
+    [Action.OffPadSpellX]: [GAMEPAD_BUTTON.X],
+    [Action.OffPadSpellY]: [GAMEPAD_BUTTON.Y],
 };
 
 /** Actions also triggered by a mouse click. */
@@ -225,8 +273,10 @@ export class InputSystem {
             this.down.push(keyboard.addKey(KEY.S), keyboard.addKey(KEY.DOWN));
             this.left.push(keyboard.addKey(KEY.A), keyboard.addKey(KEY.LEFT));
             this.right.push(keyboard.addKey(KEY.D), keyboard.addKey(KEY.RIGHT));
+            // Helbreath Off (Off-6B): the spell keys 1–8 are not captured, so a name can still be typed with numbers.
+            const offOnly = new Set<Action>(OFF_SPELL_KEY_ACTIONS);
             for (const [action, codes] of Object.entries(KEYBOARD_ACTIONS) as [Action, number[]][]) {
-                this.actionKeys.set(action, codes.map((code) => keyboard.addKey(code)));
+                this.actionKeys.set(action, codes.map((code) => keyboard.addKey(code, !offOnly.has(action))));
             }
             // The keys picked in Settings → Controls, added now so their first press is not missed.
             for (const action of Object.keys(REMAPPABLE_ACTIONS) as Action[]) this.keysFor(action);

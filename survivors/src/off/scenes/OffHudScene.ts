@@ -9,9 +9,12 @@
 // experiencia va en una barra fina dorada debajo y en % en la línea de texto) y el casco abre la ventana Character (OFF_OPEN_CHARACTER_EVENT a la escena del mundo). La pausa
 // (disquete) abre la pausa desde la Off-4B (OFF_OPEN_PAUSE_EVENT).
 // Fase Off-4A: el oro que llevas va en la línea de texto, en vez de las muertes.
+// Fase Off-6C: abajo a la derecha, como los buffs de Survivors (HUD_BUFF), el escudo puesto con sus segundos y encima
+// la magia que se prepara o está lista (OFF_SPELL_HUD).
 import Phaser from 'phaser';
 import { GAME_WIDTH } from '../../config/gameConfig';
-import { ANNOUNCE_EVENT, EVENT_LIST_EVENT, HUD_ANNOUNCE, HUD_DEPTH_TEXT, HUD_EVENT_LIST } from '../../config/hud';
+import { ANNOUNCE_EVENT, EVENT_LIST_EVENT, HUD_ANNOUNCE, HUD_BUFF, HUD_DEPTH_TEXT, HUD_EVENT_LIST } from '../../config/hud';
+import { OFF_SPELL_HUD } from '../config/offSpellLook';
 import { formatGold } from '../../data/gold';
 import { SpriteText } from '../../hb/SpriteText';
 import { SETTINGS_CHANGED, settings } from '../../systems/Settings';
@@ -46,6 +49,10 @@ export interface OffHudState {
     kills: number;
     /** Gold carried (Off-4A). */
     gold: number;
+    /** The spell being prepared or ready (Off-6C). */
+    spell: { name: string; ready: boolean } | undefined;
+    /** The shield on and its seconds left (Off-6C). */
+    shield: { name: string; secondsLeft: number } | undefined;
 }
 
 export interface OffHudSceneData {
@@ -61,6 +68,8 @@ export class OffHudScene extends Phaser.Scene {
     private announce!: SpriteText;
     private announceLeftMs = 0;
     private eventLines!: EventLineList;
+    /** Bottom right: [0] the shield, [1] the spell (Off-6C). */
+    private statusTexts: SpriteText[] = [];
 
     constructor() {
         super(OFF_HUD_SCENE_KEY);
@@ -77,6 +86,11 @@ export class OffHudScene extends Phaser.Scene {
         this.announce.container.setScale(HUD_ANNOUNCE.scale).setDepth(HUD_DEPTH_TEXT).setVisible(false);
         this.announceLeftMs = 0;
         this.eventLines = new EventLineList(this);
+        this.statusTexts = [0, 1].map(() => {
+            const text = new SpriteText(this, GAME_WIDTH - HUD_BUFF.right, 0, '', 0xffffff, 'right');
+            text.container.setScale(HUD_BUFF.scale).setDepth(HUD_DEPTH_TEXT).setVisible(false);
+            return text;
+        });
         const world = this.scene.get(this.worldSceneKey);
         const onAnnounce = (message: string) => this.showAnnouncement(message);
         const onEventLine = (line: string) => this.eventLines.add(line);
@@ -115,6 +129,7 @@ export class OffHudScene extends Phaser.Scene {
             infoLine: OFF_HUD_TEXT.infoLine(state.level, state.xpRatio, state.gold),
         };
         this.bar.update(barState);
+        this.showStatus(state);
         this.updateAnnouncement(delta);
         this.eventLines.update(delta, false, overlayBottom() - HUD_EVENT_LIST.bottomGap);
     }
@@ -127,6 +142,25 @@ export class OffHudScene extends Phaser.Scene {
             openPause: () => this.scene.get(this.worldSceneKey).events.emit(OFF_OPEN_PAUSE_EVENT),
         };
         this.bar = this.barStyle === 'classic' ? new ClassicHud(this, actions) : new CompactHud(this, actions);
+    }
+
+    /** The shield (lowest line) and the spell above it; a missing one leaves no gap. */
+    private showStatus(state: OffHudState): void {
+        const lines: { text: string; color: number }[] = [];
+        if (state.shield) lines.push({ text: OFF_SPELL_HUD.shield(state.shield.name, state.shield.secondsLeft), color: OFF_SPELL_HUD.shieldColor });
+        if (state.spell) {
+            lines.push(state.spell.ready
+                ? { text: OFF_SPELL_HUD.ready(state.spell.name), color: OFF_SPELL_HUD.readyColor }
+                : { text: OFF_SPELL_HUD.preparing(state.spell.name), color: OFF_SPELL_HUD.preparingColor });
+        }
+        this.statusTexts.forEach((text, i) => {
+            const line = lines[i];
+            text.container.setVisible(line !== undefined);
+            if (!line) return;
+            text.setText(line.text);
+            text.setColor(line.color);
+            text.container.setY(overlayBottom() - HUD_BUFF.bottomGap - i * HUD_BUFF.lineHeight);
+        });
     }
 
     private showAnnouncement(message: string): void {

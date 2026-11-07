@@ -4,7 +4,7 @@
 //   que hay dibujado), y los dos compran cualquier cosa de la bolsa a mitad de precio. Sin desgaste ni reparar.
 // - Precios de Item.cfg (en off/data/offItems.ts y off/data/offGoods.ts).
 // - Almacén: 120 huecos, como el banco del original (DEF_MAXBANKITEMS). El oro va siempre contigo.
-// - La tienda de magia (Off-6) irá de momento dentro de una de estas dos.
+// - La tienda de magia (Off-6A) es la pestaña Magic de la tienda (propietario, 7-nov-2026); las magias, en offSpells.ts.
 import { OFF_GOODS, type OffGoodId } from './offGoods';
 import { OFF_ITEMS, type OffItemId, type OffSlotId } from './offItems';
 import type { OffBuildingKind } from './offPlaces';
@@ -64,10 +64,12 @@ export function offSellPrice(id: OffGoodId | OffItemId): number {
 export const OFF_STORE_TEXT = {
     title: { shop: 'Shop', smith: 'Blacksmith' } satisfies Record<OffStoreKind, string>,
     warehouseTitle: 'Warehouse',
-    buyTab: 'Buy',
-    sellTab: 'Sell',
-    buyButton: 'Buy',
-    sellButton: 'Sell',
+    tabs: { buy: 'Buy', sell: 'Sell', magic: 'Magic' },
+    /** The left button's label on each tab. */
+    actButton: { buy: 'Buy', sell: 'Sell', magic: 'Learn' },
+    learned: 'Learned',
+    learnt: (name: string, price: number) => `You learned ${name} for ${price.toLocaleString('en-US')} gold.`,
+    cantLearn: { known: 'You already know it.', int: 'Your Int is too low (in red).', gold: 'Not enough gold.' },
     closeButton: 'Close',
     itemHeader: 'ITEM',
     priceHeader: 'PRICE',
@@ -85,8 +87,8 @@ export const OFF_STORE_TEXT = {
     bagLabel: (count: number, size: number) => `Bag ${count} / ${size}`,
     warehouseLabel: (count: number, size: number) => `Warehouse ${count} / ${size}`,
     /** Help line, by device. */
-    storeHelpMouse: 'Click: mark · Double-click or Enter: buy / sell · Tab: Buy / Sell · Esc: close',
-    storeHelpPad: 'A: buy / sell · LB / RB: Buy / Sell · B: close',
+    storeHelpMouse: 'Click: mark · Double-click or Enter: buy / sell / learn · Tab: change tab · Esc: close',
+    storeHelpPad: 'A: buy / sell / learn · LB / RB: change tab · B: close',
     warehouseHelpMouse: 'Click: move it to the other side · Tab: change side · Esc: close',
     warehouseHelpPad: 'A: move it to the other side · LB / RB: change side · B: close',
 } as const;

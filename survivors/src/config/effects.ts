@@ -123,7 +123,16 @@ export const EFFECTS = {
     'fx.bloodyShock.node': { sprite: 'fx.effect4', sheet: 0, frameRate: 30, loop: false },
     // Fase 28A, Eye of the Storm (data/passiveMagic.ts): el Protection Ring del original (sp-client Effects.ts), effect5 hoja 1,
     // en bucle bajo los pies; PassiveMagicSystem lo estira al radio del rango.
+    // Helbreath Off (Off-6C), del cliente original (Client.cpp, efecto 100 + número de la magia): Heal y Great Heal
+    // = effect7 hoja 5 (14 frames a 80 ms); Hold Person y Paralyze = "Hold Twist", effect5 hoja 2 (15 frames a 80 ms).
+    // Defense Shield usa fx.defenseShield.cast; Protection From Magic, el círculo blanco fx.aura.ring mientras dura
+    // (propietario, 7-nov-2026: es el del original, el mismo del aura Eye of the Storm).
+    'fx.heal.cast': { sprite: 'fx.effect7', sheet: 5, frameRate: 12.5, loop: false },
+    'fx.hold.cast': { sprite: 'fx.effect5', sheet: 2, frameRate: 12.5, loop: false },
     'fx.aura.ring': { sprite: 'fx.effect5', sheet: 1, frameRate: 15, loop: true, depthOffset: -1 },
+    // Helbreath Off (Fase Off-6B): el círculo bajo los pies mientras se prepara una magia (sp-client EFFECT_CASTING_CIRCLE,
+    // effect5 hoja 7, 10 fps, bajo el personaje).
+    'fx.castingCircle': { sprite: 'fx.effect5', sheet: 7, frameRate: 10, loop: true, depthOffset: -1 },
     'fx.footsteps':{ sprite: 'fx.effect2', sheet: 1, frames: [28, 32], frameRate: 10, loop: false, depthOffset: -1 },
 } as const satisfies Record<string, EffectDef>;
 

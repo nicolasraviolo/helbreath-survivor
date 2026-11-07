@@ -170,7 +170,7 @@ export function offNeedsText(id: OffItemId): string {
     return item.levelToEquip ? `Str ${item.strToEquip} · Level ${item.levelToEquip}` : `Str ${item.strToEquip}`;
 }
 
-/** What a new character wears (the weapon slot is never empty). */
+/** What a new character wears. */
 export const OFF_START_EQUIPMENT: Readonly<OffEquipment> = { weapon: 'dagger' };
 
 /** The gear in the bag for that slot (Off-4B), each kind once, lightest STR first. */
@@ -182,15 +182,25 @@ export function offBagGearFor(bag: readonly OffBagItemId[], slot: OffSlotId): Of
     return [...ids].sort((a, b) => OFF_ITEMS[a].strToEquip - OFF_ITEMS[b].strToEquip);
 }
 
-export function canEmptyOffSlot(slot: OffSlotId): boolean {
-    return slot !== 'weapon';
+/**
+ * Every slot can be emptied. Off-6A (owner, 7-nov-2026): the weapon too, as in the original, because spells need an
+ * empty hand (before, the weapon slot was never empty).
+ */
+export function canEmptyOffSlot(_slot: OffSlotId): boolean {
+    return true;
 }
 
-/** The weapon held (the Dagger if the saved one is missing). */
-export function offWeapon(equipment: Readonly<OffEquipment>): OffWeaponItem {
+/**
+ * Bare hands (Off-6A), with no weapon held. The original's numbers for them are not clear in Server.cpp: 1d2 and the
+ * fastest speed are ours.
+ */
+export const OFF_FISTS: OffWeaponDef = { name: 'Fists', small: [1, 2, 0], large: [1, 2, 0], range: 1, strToEquip: 0, speed: 0 };
+
+/** The weapon held, or bare hands. */
+export function offWeapon(equipment: Readonly<OffEquipment>): OffWeaponDef {
     const id = equipment.weapon;
     const item = id ? OFF_ITEMS[id] : undefined;
-    return item?.kind === 'weapon' ? item : OFF_ITEMS.dagger;
+    return item?.kind === 'weapon' ? item : OFF_FISTS;
 }
 
 /** Defence the worn armour adds. */
@@ -213,7 +223,7 @@ export function offEquipmentLook(equipment: Readonly<OffEquipment>): SavedEquipm
     return look;
 }
 
-/** Equipment read back from a save: unknown items and items in the wrong slot are dropped; always a weapon. */
+/** Equipment read back from a save: unknown items and items in the wrong slot are dropped (no weapon = bare hands). */
 export function readOffEquipment(value: unknown): OffEquipment {
     const equipment: OffEquipment = { ...OFF_START_EQUIPMENT };
     if (typeof value !== 'object' || value === null) return equipment;
