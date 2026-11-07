@@ -2,8 +2,9 @@
 // - Traveler Zone: el mapa entero, con sus pits (Off-2) y los dos portales del original (casillas de teleport del
 //   default.amd: x80–82,y75–76 y x127–129,y78–79). El servidor decía adónde lleva cada uno en un .txt que no está en el
 //   repo: cuál es Aresden y cuál Elvine lo decidimos nosotros.
-// - Aresden y Elvine: un recorte de la ciudad (la entera pesa ~22 MB) con la tienda y el herrero (Off-5B) y un portal
-//   nuestro (el efecto del teleport de la ciudad de Survivors) que vuelve a Traveler Zone.
+// - Aresden y Elvine: la ciudad entera (Off-5C; ~17,8 MB de suelo frente a 10,8 del recorte de la Off-5A), con la
+//   tienda, el herrero y el almacén (Off-5B), sus 8 pits (offPits.ts) y un portal nuestro (el efecto del teleport de
+//   la ciudad de Survivors) que vuelve a Traveler Zone.
 // - Al pisar el portal de una ciudad sin bando, sale "Do you want to join ...?" (OffConfirmScene); con Yes, el
 //   personaje queda unido para siempre (propietario, 6-nov-2026). Ya unido, su portal lleva directo a su ciudad y el
 //   del otro bando no deja pasar.
@@ -11,8 +12,7 @@
 import type { MapKey, MinimapKey, SoundKey, SpriteKey } from '../../config/assetManifest';
 import type { TileRect } from '../../data/maps';
 import type { TilePoint } from '../systems/TileMover';
-import { OFF_MONSTERS } from './offMonsters';
-import { TRAVELER_PITS, type OffPitDef } from './offPits';
+import { ARESDEN_PITS, ELVINE_PITS, pitSprites, TRAVELER_PITS, type OffPitDef } from './offPits';
 import type { OffFaction, OffPlaceId } from './offPlaceIds';
 
 export { isOffFaction, isOffPlaceId, OFF_FACTIONS, OFF_PLACE_IDS, type OffFaction, type OffPlaceId } from './offPlaceIds';
@@ -76,7 +76,7 @@ export const OFF_PLACES: Record<OffPlaceId, OffPlaceDef> = {
         spawn: { x: 90, y: 88 },
         // The original's general theme; loaded with the map (LATER_SOUNDS).
         music: 'music.default',
-        sprites: [...WORLD_SPRITES, ...Object.values(OFF_MONSTERS).map((m) => m.base.sprite)],
+        sprites: [...WORLD_SPRITES, ...pitSprites(TRAVELER_PITS)],
         pits: TRAVELER_PITS,
         portals: [
             { area: rect(80, 75, 82, 76), to: { kind: 'city', faction: 'aresden' }, drawn: false, arrival: { x: 81, y: 79 } },
@@ -91,12 +91,12 @@ export const OFF_PLACES: Record<OffPlaceId, OffPlaceDef> = {
         size: { width: 300, height: 300 },
         // Zone, buildings and teleport marked by the owner on a capture (7-nov-2026), with the original's NPCs:
         // the shop is the house with crates, the warehouse the dark house with stairs, the blacksmith the one with the
-        // forge. The crop is fitted to their doors.
-        playArea: { x: 95, y: 148, width: 81, height: 73 },
+        // forge. The whole city since Off-5C (the crop of Off-5A was x95,y148, 81×73).
+        playArea: { x: 0, y: 0, width: 300, height: 300 },
         spawn: { x: 140, y: 210 },
         music: 'music.aresden',
-        sprites: [...WORLD_SPRITES, 'fx.effect11'],
-        pits: [],
+        sprites: [...WORLD_SPRITES, 'fx.effect11', ...pitSprites(ARESDEN_PITS)],
+        pits: ARESDEN_PITS,
         portals: [
             // On the original's round platform with red posts, by the owner's mark.
             { area: rect(140, 207, 140, 207), to: { kind: 'traveler' }, drawn: true, arrival: { x: 140, y: 210 } },
@@ -116,11 +116,12 @@ export const OFF_PLACES: Record<OffPlaceId, OffPlaceDef> = {
         minimap: 'minimap.elvine',
         size: { width: 300, height: 300 },
         // Marked by the owner the same way (7-nov-2026): the same buildings as Aresden's (the city is its mirror).
-        playArea: { x: 193, y: 102, width: 61, height: 67 },
+        // The whole city since Off-5C (the crop of Off-5A was x193,y102, 61×67).
+        playArea: { x: 0, y: 0, width: 300, height: 300 },
         spawn: { x: 237, y: 142 },
         music: 'music.elvine',
-        sprites: [...WORLD_SPRITES, 'fx.effect11'],
-        pits: [],
+        sprites: [...WORLD_SPRITES, 'fx.effect11', ...pitSprites(ELVINE_PITS)],
+        pits: ELVINE_PITS,
         portals: [
             { area: rect(237, 140, 237, 140), to: { kind: 'traveler' }, drawn: true, arrival: { x: 237, y: 142 } },
         ],

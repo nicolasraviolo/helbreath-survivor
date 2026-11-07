@@ -132,6 +132,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Inventario, equipar, pociones y pausa en Helbreath Off (Fase Off-4B)
 - Bandos, portales y ciudades en Helbreath Off (Fase Off-5A)
 - Tienda, herrero y almacén en Helbreath Off (Fase Off-5B)
+- Ciudad entera y sus pits en Helbreath Off (Fase Off-5C)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -1484,3 +1485,11 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - **Ventanas que tapan el mundo** (`window = 'cover'`): el minimapa se pinta a profundidad `DEPTH_DEBUG - 1` en el mundo y asoma por encima de cualquier ventana; `coverWorld` lo esconde y `uncoverWorld` lo devuelve según Settings.
 - **Puertas:** funcionan como los portales (`insideDoor`): abren al entrar en sus casillas y no repiten hasta salir. Sin búsqueda de caminos, desde el teleport de Aresden el personaje se queda atascado camino de la tienda (127,196): por eso `check offdoor` empieza al lado (`offat=128,172`).
 - **Medir la descarga de un sitio:** `performance.getEntriesByType('resource')` se corta en 250 entradas y da lo mismo para cualquier recorte. Contar los `map-tile-N` de `game.textures` y sumar el tamaño de sus `.spr`: recorte de Aresden 10,8 MB de suelo, ciudad entera 17,8 MB.
+
+## Ciudad entera y sus pits en Helbreath Off (Fase Off-5C)
+- **Ciudad entera:** `playArea` de Aresden y Elvine = 300×300 (17,8 MB de suelo frente a 10,8 MB del recorte de la 5A). En el PC carga igual de rápido (1,6–1,9 s en `check`); no hay cifra real de móvil lento: con la cuenta de la Fase 22 (~1,4 s por MB en móvil) serían unos 10 s más que el recorte la primera vez.
+- **Pits:** `ARESDEN_PITS` y `ELVINE_PITS` en `off/data/offPits.ts`, en orden de cercanía al teleport. Máximo 8 vivos (Scorpion 6), el doble de la primera versión (propietario): 62 monstruos por ciudad. Todos los pits encuentran casillas libres. Cada sitio carga solo los sprites de sus pits (`pitSprites`). Con 8 Orcs juntos, un Level 20 con Long Sword muere en ~20 s.
+- **Monstruos nuevos** (`off/data/offMonsters.ts`): Giant Ant (`ENEMIES.ant`), Snake (`ENEMIES.snake`), Orc y Giant Scorpion, con HitDice, búsqueda y experiencia del original. **El Size de NPC.cfg no está en el repo** (`reference/Server.cpp` lo lee, pero el .cfg no viene): los cuatro van como pequeños. El oro de cada uno lo puso Claude (`OFF_MONSTER_LOOT`); los objetos valiosos que sueltan son los de nivel 1 (la tabla por nivel del monstruo no está hecha).
+- **Experiencia ×0,025** (propietario; antes ×2, con el que un Orc subía 4 niveles a un Level 20). La experiencia de los monstruos es la de la wiki (servidor moderno) y no cuadra con `iGetLevelExp` del original (`reference/Server.cpp`, igual que nuestra tabla): en 3.51 el servidor daba `m_iExp` (1/3 al morir y el resto por golpe) × la bonificación de nivel bajo, sin más recortes salvo en `aresdend1`/`elvined1` por encima del 80 (÷10) o por debajo (÷4). Ahora: 3 Slimes para el nivel 2, ~12 Orcs por nivel en el 20.
+- **Rendimiento (tirones en la ciudad entera):** el suelo es una sola capa Tilemap (se recorta sola), pero los objetos son una imagen cada uno: 1.883 en Aresden, todos ordenados por profundidad y procesados cada fotograma. `MapView.cullAround` los agrupa en trozos de 16×16 casillas y deja en la lista de dibujo solo los que están a menos de 16 casillas de la vista (~350–470). Coste por fotograma en `check` (PC): Aresden 4,3 → 2,2 ms (ya con 62 monstruos), Traveler Zone 2,5 → 1,0 ms. **Los FPS de `check` no sirven** para ver tirones (el navegador de pruebas va a 30 o 60 fijos): medir envolviendo `game.loop.callback` con `performance.now()`.
+- **Checks:** `offcitypits` / `offelvinepits` (monstruos vivos por tipo), `offorc` (pelea 20 s en el pit de Orcs del este de Aresden, desde 243,201) y `offscorpion` (el Giant Scorpion del norte, desde 101,52).

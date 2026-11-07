@@ -210,6 +210,7 @@ export class OffWorldScene extends Phaser.Scene {
         camera.setBounds(area.x * TILE_SIZE, area.y * TILE_SIZE, area.width * TILE_SIZE, area.height * TILE_SIZE);
         camera.startFollow(this.character.container, true, CAMERA_LERP, CAMERA_LERP);
         camera.centerOn(this.character.x, this.character.y);
+        this.cullMap();
 
         this.dust = new Pool(() => new Effect(this));
         new MusicSystem(this).play(place.music);
@@ -275,6 +276,12 @@ export class OffWorldScene extends Phaser.Scene {
         };
     }
 
+    /** Only the map objects near the camera are sorted and drawn (whole cities, Off-5C). */
+    private cullMap(): void {
+        const camera = this.cameras.main;
+        this.mapView.cullAround(this.character.x, this.character.y, camera.width / camera.zoom / 2, camera.height / camera.zoom / 2);
+    }
+
     override update(_time: number, delta: number): void {
         const input = this.inputSystem;
         input.update();
@@ -309,6 +316,7 @@ export class OffWorldScene extends Phaser.Scene {
         this.updatePortals();
         this.updateDoors();
         this.mapView.updateFading(this.character.y, this.character.getVisualBounds());
+        this.cullMap();
         this.minimap.update({ player: this.character, bosses: [], totems: [], loot: [], portals: this.portalSprites }, this.time.now);
         for (const effect of [...this.dust.active]) {
             if (!effect.update()) this.dust.release(effect);

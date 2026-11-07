@@ -109,6 +109,13 @@ const PRESETS = {
     offwarehouse: 'off=world&offlevel=5&offfaction=elvine&offopen=warehouse&offbag=cape,redPotion&offwarehouse=longSword,bluePotion',
     offdoor: 'off=world&offlevel=5&offfaction=aresden&offgold=300&offplace=aresden&offat=128,172',
     offelvinedoor: 'off=world&offlevel=5&offfaction=elvine&offgold=300',
+    // Fase Off-5C: la ciudad entera. offcitypits / offelvinepits dan los monstruos vivos de cada tipo en Aresden / Elvine
+    // (8 pits: 1 Slime, 2 Giant Ant, 2 Snake, 2 Orc, 1 Giant Scorpion); offorc pelea 20 s junto al pit de Orcs del
+    // este de Aresden (Level 20, Long Sword); offscorpion, lo mismo con el Giant Scorpion del norte.
+    offcitypits: 'off=world&offlevel=5&offfaction=aresden',
+    offelvinepits: 'off=world&offlevel=5&offfaction=elvine',
+    offorc: 'off=world&offlevel=20&offstats=str:30&offgear=longSword&offfaction=aresden&offplace=aresden&offat=243,201',
+    offscorpion: 'off=world&offlevel=20&offstats=str:30&offgear=longSword&offfaction=aresden&offplace=aresden&offat=101,52',
     game: 'play',
     levelup: 'debug=levelup',
     // Fase 21½A: todas las cartas Epic (marco morado, cinta, brillo y sonido).
@@ -383,6 +390,10 @@ const PRESET_EVAL = {
     offwarehouse: "new Promise((r) => setTimeout(() => { const w = game.scene.getScene('OffWarehouse'); const before = w.debugState(); const store = w.moveItem('bag', 0); const take = w.moveItem('warehouse', 0); const after = w.debugState(); r({ before, store, take, after, saved: (({ bag, warehouse }) => ({ bag, warehouse }))(JSON.parse(localStorage.getItem('hb-off.character'))) }); }, 1000))",
     offdoor: "o.debugWalkTo(126, 166, true), new Promise((r) => setTimeout(() => { const st = game.scene.getScene('OffStore'); const open = game.scene.isActive('OffStore'); const state = open ? st.debugState() : undefined; r({ open, tile: o.debugState().tile, rows: state && state.rows.length, title: state && state.tab }); }, 14000))",
     offelvinedoor: "o.debugWalkTo(229, 112), new Promise((r) => setTimeout(() => { const open = game.scene.isActive('OffStore'); r({ open, tile: o.debugState().tile, rows: open ? game.scene.getScene('OffStore').debugState().rows.slice(0, 4) : undefined }); }, 9000))",
+    offcitypits: "new Promise((r) => setTimeout(() => { const s = o.debugState(); r({ place: s.place, tile: s.tile, monsters: s.monsters }); }, 1500))",
+    offelvinepits: "new Promise((r) => setTimeout(() => { const s = o.debugState(); r({ place: s.place, tile: s.tile, monsters: s.monsters }); }, 1500))",
+    offorc: "new Promise((r) => { const log = []; const t = setInterval(() => { if (!o.debugState().target) o.debugFight('orc'); log.push(o.debugState()); }, 1000); setTimeout(() => { clearInterval(t); const pick = (s) => s && ({ tile: s.tile, hp: [s.hp, s.maxHp], level: s.level, exp: s.exp, kills: s.kills, target: s.target, monsters: s.monsters, gold: s.gold, dead: s.dead }); r({ start: pick(log[0]), mid: pick(log[10]), end: pick(log[log.length - 1]) }); }, 20000); })",
+    offscorpion: "new Promise((r) => { const log = []; const t = setInterval(() => { if (!o.debugState().target) o.debugFight('giantScorpion'); log.push(o.debugState()); }, 1000); setTimeout(() => { clearInterval(t); const pick = (s) => s && ({ tile: s.tile, hp: [s.hp, s.maxHp], level: s.level, exp: s.exp, kills: s.kills, target: s.target, monsters: s.monsters, gold: s.gold, dead: s.dead }); r({ start: pick(log[0]), mid: pick(log[10]), end: pick(log[log.length - 1]) }); }, 20000); })",
     offdeath: "new Promise((r) => { o.battle.exp += 200; const start = o.debugState(); o.battle.hp = 0; o.battle.die(); setTimeout(() => r({ start, end: o.debugState() }), 4000); })",
     offcreated: "new Promise((r) => { const c = game.scene.getScene('OffCreate'); c.changeStat('str', 1); const one = c.stats.str; c.createCharacter(); const blocked = game.scene.isActive('OffCreate'); c.applyPreset('warrior'); c.createCharacter(); setTimeout(() => r({ oneStr: one, blockedWithPointsLeft: blocked, saved: JSON.parse(localStorage.getItem('hb-off.character')), world: game.scene.isActive('OffWorld') }), 4000); })",
     offchar: "o.openCharacter(), new Promise((r) => setTimeout(() => r({ open: game.scene.isActive('CharacterInfo'), worldPaused: game.scene.isPaused('OffWorld'), state: o.debugState() }), 800))",

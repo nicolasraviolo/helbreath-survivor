@@ -7,6 +7,8 @@
 //   pase por delante o por detrás. Las sombras de los árboles van pegadas al suelo.
 // - Si un objeto tapa al jugador, se vuelve semitransparente.
 // - Fase 11: los árboles grandes se pueden quitar (Settings → Large Trees).
+// - Fase Off-5C: en mapas enteros (ciudades de 300×300, casi 1.900 objetos) los objetos van por trozos de casillas y
+//   `cullAround` deja en la lista de dibujo solo los trozos cerca de la cámara. Survivors no lo usa (recortes pequeños).
 import Phaser from 'phaser';
 import {
     DEPTH_GROUND,
@@ -27,6 +29,10 @@ const TREE_SHADOW_OFFSET_PX = 16;
 /** Tiles around the player searched for objects that may cover it (objects reach far upwards). */
 const FADE_SEARCH_X = 4;
 const FADE_SEARCH_DOWN = 8;
+/** Side of a culling chunk, in tiles. */
+const CULL_CHUNK_TILES = 16;
+/** Extra tiles kept round the view: big objects (houses, trees) are drawn far from their anchor tile. */
+const CULL_MARGIN_TILES = 16;
 
 export class MapView {
     /** Drawn objects by map tile index, used to find the ones near the player. */
@@ -36,6 +42,12 @@ export class MapView {
     private readonly treeShadows: Phaser.GameObjects.Image[] = [];
     private treeMode: TreeMode = 'on';
     private readonly bounds = new Phaser.Geom.Rectangle();
+    /** Objects and tree shadows by culling chunk (chunk key = cy * chunksPerRow + cx). */
+    private readonly chunks = new Map<number, Phaser.GameObjects.Image[]>();
+    private readonly chunksPerRow: number;
+    /** Chunks in the display list after the last `cullAround` (undefined = all, as built). */
+    private shownChunks: Set<number> | undefined;
+    private lastCullKey = '';
 
     constructor(
         private readonly scene: Phaser.Scene,
@@ -43,6 +55,7 @@ export class MapView {
         groundArea: TileRect,
         objectArea: TileRect,
     ) {
+        this.chunksPerRow = Math.ceil(map.width / CULL_CHUNK_TILES);
         this.renderGround(groundArea);
         this.renderObjects(clampToMap(objectArea, map));
     }
@@ -54,6 +67,34 @@ export class MapView {
         const visible = mode !== 'off';
         for (const tree of this.trees) tree.setVisible(visible);
         for (const shadow of this.treeShadows) shadow.setVisible(visible);
+    }
+
+    /**
+     * Keeps in the display list only the objects near a view centred on (x, y) with those half sizes in pixels: the
+     * rest are neither sorted nor drawn. Cheap to call every frame (does nothing until the chunks in view change).
+     */
+    public cullAround(x: number, y: number, halfWidth: number, halfHeight: number): void {
+        const chunkPx = CULL_CHUNK_TILES * TILE_SIZE;
+        const margin = CULL_MARGIN_TILES * TILE_SIZE;
+        const x1 = Math.floor((x - halfWidth - margin) / chunkPx);
+        const x2 = Math.floor((x + halfWidth + margin) / chunkPx);
+        const y1 = Math.floor((y - halfHeight - margin) / chunkPx);
+        const y2 = Math.floor((y + halfHeight + margin) / chunkPx);
+        const cullKey = `${x1},${x2},${y1},${y2}`;
+        if (cullKey === this.lastCullKey) return;
+        this.lastCullKey = cullKey;
+        const wanted = new Set<number>();
+        for (let cy = Math.max(0, y1); cy <= y2; cy++) {
+            for (let cx = Math.max(0, x1); cx <= Math.min(this.chunksPerRow - 1, x2); cx++) wanted.add(cy * this.chunksPerRow + cx);
+        }
+        const displayList = this.scene.sys.displayList;
+        for (const [key, images] of this.chunks) {
+            const was = this.shownChunks === undefined || this.shownChunks.has(key);
+            const now = wanted.has(key);
+            if (was && !now) for (const image of images) image.removeFromDisplayList();
+            else if (!was && now) for (const image of images) image.addToDisplayList(displayList);
+        }
+        this.shownChunks = wanted;
     }
 
     /** Fades objects drawn in front of the player whose image overlaps the player's bounds. */
@@ -139,6 +180,17 @@ export class MapView {
         tilemap.createLayer(0, tileset, area.x * TILE_SIZE, area.y * TILE_SIZE)?.setDepth(DEPTH_GROUND);
     }
 
+    /** The culling chunk of a tile (created when first used). */
+    private chunkOf(x: number, y: number): Phaser.GameObjects.Image[] {
+        const key = Math.floor(y / CULL_CHUNK_TILES) * this.chunksPerRow + Math.floor(x / CULL_CHUNK_TILES);
+        let chunk = this.chunks.get(key);
+        if (!chunk) {
+            chunk = [];
+            this.chunks.set(key, chunk);
+        }
+        return chunk;
+    }
+
     private renderObjects(area: TileRect): void {
         const { map, scene } = this;
         for (let y = area.y; y < area.y + area.height; y++) {
@@ -156,14 +208,18 @@ export class MapView {
                 const py = y * TILE_SIZE + TILE_ANCHOR_OFFSET;
                 const object = scene.add.image(px, py, key, frame).setDepth(py);
                 this.objects.set(i, object);
+                const chunk = this.chunkOf(x, y);
+                chunk.push(object);
 
                 if (isTreeSpriteIndex(sprite)) {
                     this.trees.add(object);
                     const shadowKey = getTileTextureKey(sprite + TREE_SHADOW_OFFSET);
                     if (scene.textures.get(shadowKey).has(frame)) {
-                        this.treeShadows.push(scene.add.image(px + TREE_SHADOW_OFFSET_PX, py + TREE_SHADOW_OFFSET_PX, shadowKey, frame)
+                        const shadow = scene.add.image(px + TREE_SHADOW_OFFSET_PX, py + TREE_SHADOW_OFFSET_PX, shadowKey, frame)
                             .setAlpha(TREE_SHADOW_ALPHA)
-                            .setDepth(DEPTH_GROUND_SHADOWS));
+                            .setDepth(DEPTH_GROUND_SHADOWS);
+                        this.treeShadows.push(shadow);
+                        chunk.push(shadow);
                     }
                 }
             }
