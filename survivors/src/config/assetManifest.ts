@@ -343,6 +343,8 @@ export const SOUNDS = {
     // Música de la ciudad (Fase 23, elegida por el propietario). No va antes del menú: la baja la carga de la ciudad
     // (LATER_SOUNDS).
     'music.elvine': { file: 'music/elvine.mp3' },
+    // Helbreath Off (Fase Off-5A): la música de Aresden; se baja con la ciudad (LATER_SOUNDS).
+    'music.aresden': { file: 'music/aresden.mp3' },
     // Música de Icebound (Fase 30A, propietario): el tema general del original (no tenía uno propio). La baja la carga
     // del mapa (LATER_SOUNDS).
     'music.default': { file: 'music/default.mp3' },
@@ -381,7 +383,7 @@ export const SOUNDS = {
 export type SoundKey = keyof typeof SOUNDS;
 
 /** Sounds that PreloadScene skips: MapLoadScene downloads them with the place that uses them (the town's music). */
-export const LATER_SOUNDS: readonly SoundKey[] = ['music.elvine', 'music.default'];
+export const LATER_SOUNDS: readonly SoundKey[] = ['music.elvine', 'music.default', 'music.aresden'];
 
 export const MAPS = {
     'map.huntzone2': { file: 'maps/huntzone2.amd' },
@@ -395,6 +397,9 @@ export const MAPS = {
     'map.elvineFarm': { file: 'maps/elvfarm.amd' },
     // Barracks de Elvine (31-oct-2026): mapa de entrenamiento con muñecos (data/training.ts).
     'map.barracks': { file: 'maps/elvbrk11.amd' },
+    // Helbreath Off (Fase Off-5A): las ciudades de los dos bandos; se anda solo un recorte (off/data/offPlaces.ts).
+    'map.aresden': { file: 'maps/aresden.amd' },
+    'map.elvine': { file: 'maps/elvine.amd' },
 } as const satisfies Record<string, { file: string }>;
 
 export type MapKey = keyof typeof MAPS;
@@ -412,6 +417,8 @@ export const MINIMAPS = {
     'minimap.elvineFarm': { file: 'images/minimaps/elvfarm.jpg' },
     // El original no trae minimapa de los Barracks: dibujado por nosotros con las casillas que se pisan (custom-assets/).
     'minimap.barracks': { file: 'images/minimaps/elvbrk11.png' },
+    'minimap.aresden': { file: 'images/minimaps/aresden.jpg' },
+    'minimap.elvine': { file: 'images/minimaps/elvine.jpg' },
 } as const satisfies Record<string, { file: string }>;
 
 export type MinimapKey = keyof typeof MINIMAPS;

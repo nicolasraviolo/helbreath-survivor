@@ -7,7 +7,7 @@ import { MONSTER_AI } from '../../data/enemies';
 import { Pool } from '../../utils/Pool';
 import { OFF_COMBAT } from '../data/offCombat';
 import { OFF_MONSTERS, rollMonsterHp, type OffMonsterId } from '../data/offMonsters';
-import { OFF_PIT_RESPAWN, OFF_PITS } from '../data/offPits';
+import { OFF_PIT_RESPAWN, type OffPitDef } from '../data/offPits';
 import { OffMonster } from '../entities/OffMonster';
 import { rollDice } from './OffCombatRules';
 import type { TilePoint } from './TileMover';
@@ -21,7 +21,7 @@ export class OffPits {
     private readonly pools = new Map<OffMonsterId, Pool<OffMonster>>();
     private checkLeftMs: number = OFF_PIT_RESPAWN.checkMs;
 
-    constructor(scene: Phaser.Scene, private readonly isFree: (x: number, y: number) => boolean) {
+    constructor(scene: Phaser.Scene, private readonly pits: readonly OffPitDef[], private readonly isFree: (x: number, y: number) => boolean) {
         for (const id of Object.keys(OFF_MONSTERS) as OffMonsterId[]) {
             this.pools.set(id, new Pool(() => new OffMonster(scene, id, OFF_MONSTERS[id], isFree)));
         }
@@ -29,14 +29,14 @@ export class OffPits {
 
     /** Every pit full, as when the map opens. */
     public fillAll(): void {
-        OFF_PITS.forEach((pit, index) => {
+        this.pits.forEach((pit, index) => {
             for (let i = this.aliveIn(index); i < pit.max; i++) this.spawnIn(index);
         });
     }
 
     /** Zone where a pit's monsters wander: the pit and a margin round it. */
     public wanderArea(pit: number): TileRect {
-        const area = OFF_PITS[pit]?.area ?? { x: 0, y: 0, width: 1, height: 1 };
+        const area = this.pits[pit]?.area ?? { x: 0, y: 0, width: 1, height: 1 };
         const margin = OFF_PIT_RESPAWN.wanderMargin;
         return { x: area.x - margin, y: area.y - margin, width: area.width + margin * 2, height: area.height + margin * 2 };
     }
@@ -53,14 +53,14 @@ export class OffPits {
         this.checkLeftMs -= deltaMs;
         if (this.checkLeftMs > 0) return;
         this.checkLeftMs = OFF_PIT_RESPAWN.checkMs;
-        OFF_PITS.forEach((pit, index) => {
+        this.pits.forEach((pit, index) => {
             if (this.aliveIn(index) + this.deadIn(index) < pit.max && Math.random() < OFF_PIT_RESPAWN.chance) this.spawnIn(index);
         });
     }
 
     /** A new monster on a free tile of the pit, with its rolls (server, at spawn). */
     private spawnIn(pit: number): OffMonster | undefined {
-        const def = OFF_PITS[pit];
+        const def = this.pits[pit];
         if (!def) return undefined;
         const tile = this.freeTileIn(def.area);
         if (!tile) return undefined;

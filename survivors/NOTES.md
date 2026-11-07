@@ -130,6 +130,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Equipment y cuadro de stats en Helbreath Off (Fase Off-3C)
 - Botín en el suelo y oro en Helbreath Off (Fase Off-4A)
 - Inventario, equipar, pociones y pausa en Helbreath Off (Fase Off-4B)
+- Bandos, portales y ciudades en Helbreath Off (Fase Off-5A)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -1462,3 +1463,15 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - **Equipment** ya no tiene objetos gratis: cada hueco es lo puesto + lo de la bolsa para ese hueco (`offBagGearFor`, cada tipo una vez). Quitarse algo lo manda a la bolsa (no deja si está llena). El cuadro de stats es común: `off/ui/offItemBox.ts` (también dice lo que llena una poción, de mínimo a máximo).
 - **Pausa:** la de Survivors (`PauseScene`) con `quitTo: 'OffHome'` y sin How to Play; la abren Esc, B, Start y el disquete del HUD (`OFF_OPEN_PAUSE_EVENT`). C / Y abren Character (ya no Start).
 - **Check:** `offbag` (captura + que los monstruos se mueven), `offbagequip`, `offbagdrink`, `offbagdrop`, `offpotionlimit`, `offpause`; `offequip` / `offequipswap` ahora con `?offbag=`. Atajo `?offopen=bag`. En eval: `game.scene.getScene('OffInventory').use(i)` / `.drop(i)` / `.debugMark(i)` / `.debugState()`.
+
+## Bandos, portales y ciudades en Helbreath Off (Fase Off-5A)
+- **Teleports en los .amd:** byte 8 de cada casilla, bit `0x40` (el `0x80` es bloqueada). El cliente solo sabe que la casilla es un teleport; **adónde lleva** lo decía el `.txt` del mapa en el servidor (`teleport-loc`), que **no está en el repo**. Script para sacar los grupos de casillas: leer la cabecera (`TILESIZE` = 10 en todos) y agrupar las casillas con `0x40`.
+- **Traveler Zone (default.amd):** solo dos grupos, x80–82,y75–76 (estandartes rojos y símbolo de Aresden en el suelo, al oeste) y x127–129,y78–79 (azules, Elvine, al este). Se ven en el mapa: no hace falta dibujar nada encima.
+- **Edificios de las ciudades** (Aresden y Elvine son una el espejo de la otra). Los marcó el propietario sobre capturas de helbreathnemesis.com, que enseñan los NPCs del original (7-nov-2026):
+  - **Tienda:** la casa de las cajas y barriles, con dos puertas (Aresden 127,167 y 131,167; Elvine 225,151 y 229,151).
+  - **Almacén:** la casa oscura con torre de piedra y escaleras, con dos puertas de una casilla (Aresden 102,184 y 107,185; Elvine 198,128 y 203,129). Yo la había tomado por los Barracks, y la casa de las cajas por el almacén: sin los NPCs no se distinguen.
+  - **Herrero:** horno redondo, yunque y armas en la puerta (Aresden 158,201 y 168,195; Elvine 230,113 y 240,107).
+  - **Otros:** Aresden 79,210 = entrada de la mazmorra (`aresdend1`, Off-7). La casa de piedra gris (Aresden 56,118; Elvine 181,77) y el otro edificio de escaleras (Aresden 218,133; Elvine 88,175) no se sabe qué son.
+- **Recortes y teleport (marcados por el propietario):** Aresden (95,148) 81×73, teleport en 140,207 (sobre la plataforma redonda de postes rojos del original, junto a la marca); Elvine (193,102) 61×67, teleport en 237,140. El teleport es nuestro (`fx.portal`) y lleva a Traveler Zone. La tienda de magia (Off-6) irá de momento en la tienda o el herrero.
+- **Código:** `off/data/offPlaces.ts` (sitios, portales, textos), `off/data/offPlaceIds.ts` (solo los nombres, para `debugStart` sin dependencias circulares), `off/scenes/OffConfirmScene.ts` ("Do you want to join ...?", sobre `MenuOverlayScene`, mundo en pausa), `OffSaveStore.faction` (versión 5). `OffWorldScene.init(data)` recibe `{ place, at, carried, message }` a través de `MapLoadScene` (`ExternalPlace.sceneData`). Los portales funcionan al **entrar** en su zona (`insidePortal`): no repiten hasta salir. La vida, el maná y la estamina pasan por el portal (`OffCarriedVitals`). Morir fuera de casa: `respawnTile` devuelve `undefined` y la escena viaja a la ciudad (`offHomePlace`).
+- **Atajos y checks:** `?offfaction=aresden|elvine|none`, `?offplace=traveler|aresden|elvine&offat=x,y` (solo el primer sitio que se abre). Checks `offportal`, `offjoin`, `offaresden`, `offelvine`, `offcityback`, `offotherportal`, `offdeathhome`; en eval, `o.debugPortal(i)` cruza el portal i del sitio.

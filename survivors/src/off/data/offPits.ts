@@ -23,7 +23,8 @@ function rect(x1: number, y1: number, x2: number, y2: number): TileRect {
     return { x: x1, y: y1, width: x2 - x1 + 1, height: y2 - y1 + 1 };
 }
 
-export const OFF_PITS: readonly OffPitDef[] = [
+/** Traveler Zone's pits (each place lists its own: off/data/offPlaces.ts). */
+export const TRAVELER_PITS: readonly OffPitDef[] = [
     { monster: 'slime', area: rect(100, 80, 112, 87), max: 4 },
     { monster: 'slime', area: rect(85, 89, 98, 97), max: 4 },
     { monster: 'slime', area: rect(66, 96, 79, 103), max: 4 },

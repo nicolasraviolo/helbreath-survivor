@@ -40,11 +40,19 @@ import { provokeMonster, updateMonster, type OffMonsterWorld } from './OffMonste
 import { OffGroundItems } from './OffGroundItems';
 import { rollKillLoot } from './OffLootRoller';
 import { OffPits } from './OffPits';
+import type { OffPitDef } from '../data/offPits';
 import { offSaveStore, type OffEquipResult } from './OffSaveStore';
 import { OffVitals } from './OffVitals';
 import { directionTowards, type TileMover, type TilePoint } from './TileMover';
 
 /** What using or dropping a bag item did, and the line that says so (also when it was refused). */
+/** Health, mana and stamina carried through a portal (Off-5A). */
+export interface OffCarriedVitals {
+    hp: number;
+    mana: number;
+    stamina: number;
+}
+
 export interface OffUseResult {
     done: boolean;
     line?: string;
@@ -96,7 +104,11 @@ export class OffBattle implements OffMonsterWorld {
         private readonly character: OffCharacter,
         private readonly audio: AudioSystem,
         private readonly isWalkable: (x: number, y: number) => boolean,
-        private readonly respawnTile: () => TilePoint,
+        /** Where to come back to life here; undefined when it is somewhere else (the scene travels there). */
+        private readonly respawnTile: () => TilePoint | undefined,
+        pits: readonly OffPitDef[],
+        /** Health, mana and stamina brought from the place before (Off-5A: a portal does not heal); full without it. */
+        carried?: OffCarriedVitals,
     ) {
         const saved = offSaveStore.character;
         this.exp = saved.exp;
@@ -104,10 +116,15 @@ export class OffBattle implements OffMonsterWorld {
         this.level = offLevelForExp(this.exp);
         this.hp = this.maxHp;
         this.vitals = new OffVitals(this, (line) => this.scene.events.emit(EVENT_LIST_EVENT, line));
+        if (carried) {
+            this.hp = Math.min(this.maxHp, Math.max(1, carried.hp));
+            this.vitals.mana = Math.min(this.vitals.maxMana, carried.mana);
+            this.vitals.stamina = Math.min(this.vitals.maxStamina, carried.stamina);
+        }
         this.numbers = new DamageNumbers(scene);
         this.particles = new HitParticles(scene);
         this.effects = new Pool(() => new Effect(scene));
-        this.pits = new OffPits(scene, (x, y) => this.isFree(x, y));
+        this.pits = new OffPits(scene, pits, (x, y) => this.isFree(x, y));
         this.pits.fillAll();
         this.ground = new OffGroundItems(scene, (content) => this.pickUp(content), (reason) => this.eventLine(reason === 'potionLimit' ? OFF_LOOT_TEXT.potionLimit : OFF_LOOT_TEXT.bagFull));
     }
@@ -468,6 +485,8 @@ export class OffBattle implements OffMonsterWorld {
         this.respawnLeftMs -= deltaMs;
         if (this.respawnLeftMs > 0) return;
         const tile = this.respawnTile();
+        // Off-5A: dying away from home, the scene takes the character to its city (it comes back to life there).
+        if (!tile) return;
         this.mover.place(tile.x, tile.y);
         this.hp = this.maxHp;
         this.vitals.fill();

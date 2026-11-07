@@ -9,11 +9,13 @@
 // guardados anteriores empiezan sin oro y con la bolsa vacía.
 // Fase Off-4B (misma versión): equipar sale de la bolsa y lo que te quitas vuelve a ella (en la misma casilla si es un
 // cambio); beber y tirar sacan el objeto de la bolsa; como mucho OFF_LOOT.potionLimit pociones al recoger.
+// Fase Off-5A (versión 5): también el bando (`faction`), elegido una vez y para siempre en un portal de Traveler Zone.
+// Los guardados anteriores empiezan sin bando.
 // Lleva número de versión como los guardados de Survivors. Si el navegador no deja guardar, dura hasta cerrar la página.
 // Va en el código de traspaso (config/transfer.ts → TRANSFER_KEYS).
 // Desarrollo: ?offreset borra el personaje (Play vuelve a crear uno); ?offlevel=N pone al personaje al principio del
 // nivel N, ya creado; ?offgear=longSword,leatherArmor le pone esos objetos; ?offgold=N le da ese oro;
-// ?offbag=shortSword,redPotion le llena la bolsa con eso (debugStart.ts).
+// ?offbag=shortSword,redPotion le llena la bolsa con eso; ?offfaction=aresden|elvine|none le pone ese bando (debugStart.ts).
 import { DEBUG_START } from '../../config/debugStart';
 import type { CharacterLook } from '../../data/appearance';
 import { CHARACTER_NAME_MAX_LENGTH } from '../../data/characterSlots';
@@ -27,10 +29,11 @@ import { isOffPotion } from '../data/offGoods';
 import { OFF_LOOT } from '../data/offLoot';
 import { OFF_LEVEL, offExpForLevel, offLevelForExp } from '../data/offLevel';
 import { OFF_NOVICE_LOOK } from '../data/offWorld';
+import { isOffFaction, type OffFaction } from '../data/offPlaces';
 
 export const OFF_CHARACTER_STORAGE_KEY = 'hb-off.character';
-/** 1 (Off-2B): experience and unspent points. 2 (Off-3A): name, look, stats and whether it was created. 3 (Off-3C): equipment. 4 (Off-4A): gold and bag. */
-const OFF_CHARACTER_VERSION = 4;
+/** 1 (Off-2B): experience and unspent points. 2 (Off-3A): name, look, stats and whether it was created. 3 (Off-3C): equipment. 4 (Off-4A): gold and bag. 5 (Off-5A): faction. */
+const OFF_CHARACTER_VERSION = 5;
 
 export interface OffSavedCharacter {
     /** False until the creation screen is done (Play opens it). */
@@ -48,6 +51,8 @@ export interface OffSavedCharacter {
     gold: number;
     /** What the bag holds, in the order it came in (Off-4A; at most OFF_LOOT.bagSize). */
     bag: OffBagItemId[];
+    /** Aresden or Elvine, for ever (Off-5A); undefined until a portal of Traveler Zone is taken. */
+    faction: OffFaction | undefined;
 }
 
 /** What a bag or equipment change gave: done, nothing to do, short of STR, no room, too many potions. */
@@ -55,7 +60,7 @@ export type OffEquipResult = 'ok' | 'none' | 'str' | 'bagFull' | 'potionLimit';
 
 /** The character before anyone creates one (also what ?offreset leaves). */
 function blankCharacter(): OffSavedCharacter {
-    return { created: false, name: OFF_CREATION.defaultName, look: { ...OFF_NOVICE_LOOK }, stats: { ...OFF_OLD_SAVE_STATS }, exp: 0, points: 0, equipment: { ...OFF_START_EQUIPMENT }, gold: 0, bag: [] };
+    return { created: false, name: OFF_CREATION.defaultName, look: { ...OFF_NOVICE_LOOK }, stats: { ...OFF_OLD_SAVE_STATS }, exp: 0, points: 0, equipment: { ...OFF_START_EQUIPMENT }, gold: 0, bag: [], faction: undefined };
 }
 
 class OffSaveStoreImpl {
@@ -84,7 +89,9 @@ class OffSaveStoreImpl {
         if (DEBUG_START.offGold !== undefined) this.data = { ...this.data, gold: DEBUG_START.offGold };
         const bag = DEBUG_START.offBag.filter(isOffBagItemId).slice(0, OFF_LOOT.bagSize);
         if (bag.length > 0) this.data = { ...this.data, bag };
-        if (DEBUG_START.offReset || level !== undefined || gear.length > 0 || statsChanged || DEBUG_START.offGold !== undefined || bag.length > 0) this.write();
+        const faction = DEBUG_START.offFaction;
+        if (faction !== undefined) this.data = { ...this.data, faction: faction === 'none' ? undefined : faction };
+        if (DEBUG_START.offReset || level !== undefined || gear.length > 0 || statsChanged || DEBUG_START.offGold !== undefined || bag.length > 0 || faction !== undefined) this.write();
     }
 
     public get character(): Readonly<OffSavedCharacter> {
@@ -97,7 +104,7 @@ class OffSaveStoreImpl {
 
     /** Creation screen done: a new character at level 1. */
     public create(name: string, look: CharacterLook, stats: OffStats): void {
-        this.data = { created: true, name, look: { ...look }, stats: { ...stats }, exp: 0, points: 0, equipment: { ...OFF_START_EQUIPMENT }, gold: 0, bag: [] };
+        this.data = { created: true, name, look: { ...look }, stats: { ...stats }, exp: 0, points: 0, equipment: { ...OFF_START_EQUIPMENT }, gold: 0, bag: [], faction: undefined };
         this.write();
     }
 
@@ -190,6 +197,13 @@ class OffSaveStoreImpl {
         return 'ok';
     }
 
+    /** Joins a city for ever (Off-5A). Nothing changes once the character has one. */
+    public joinFaction(faction: OffFaction): void {
+        if (this.data.faction !== undefined) return;
+        this.data = { ...this.data, faction };
+        this.write();
+    }
+
     private write(): void {
         try {
             localStorage.setItem(OFF_CHARACTER_STORAGE_KEY, JSON.stringify({ version: OFF_CHARACTER_VERSION, ...this.data }));
@@ -217,6 +231,7 @@ function load(): OffSavedCharacter {
             equipment: readOffEquipment(data.equipment),
             gold: nonNegative(data.gold),
             bag: readBag(data.bag),
+            faction: isOffFaction(data.faction) ? data.faction : undefined,
         };
     } catch {
         return blankCharacter();
