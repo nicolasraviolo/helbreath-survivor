@@ -12,7 +12,7 @@ Reglas (Fase 22):
 - Música: `MUSIC.normal` en todos (decidido el 20-oct-2026) salvo que el propietario diga otra.
 - Textos del juego en inglés (regla 9). Números de diseño solo en `data/` (regla 4).
 
-Antes de empezar: lee `survivors/PROGRESS.md` y `survivors/NOTES.md` → "Varios mapas y Select Map (Fase 22A)", "Carga por mapa y tiempos de carga (Fase 22B)" y el último mapa añadido ("Middleland (Fase 22E)"). Presenta un plan corto con **monstruos, jefes, minutos, dificultad y duración** y espera el OK: el propietario elige monstruos y jefes.
+Antes de empezar: lee `survivors/PROGRESS.md` y `survivors/PROGRESS-survivors.md` y `survivors/NOTES.md` → "Varios mapas y Select Map (Fase 22A)", "Carga por mapa y tiempos de carga (Fase 22B)" y el último mapa añadido ("Middleland (Fase 22E)"). Presenta un plan corto con **monstruos, jefes, minutos, dificultad y duración** y espera el OK: el propietario elige monstruos y jefes.
 
 ## Investigar primero (subagente, solo el resumen)
 - **Monstruos del original en ese mapa:** `<mapa>.txt` de centuu/HelbreathServer (`Files/GameServers/<Mapa>/MAPDATA/`, `spot-mob-generator` y aleatorios) y `reference/Server.cpp` (`MobGenerator`). Propón la lista; el propietario decide.
@@ -34,7 +34,7 @@ Antes de empezar: lee `survivors/PROGRESS.md` y `survivors/NOTES.md` → "Varios
 8. **What's new**: una línea en `data/releaseNotes.ts` (la añade el `/checkpoint`).
 9. **Notas**:
    - `survivors/NOTES.md`: sección "<Mapa> (Fase N)" con monstruos, jefes, zona, MB y lo medido.
-   - `survivors/PROGRESS.md`: las situaciones nuevas en "Cómo probar".
+   - `survivors/CHECK.md`: las situaciones nuevas del check; `survivors/PROGRESS-survivors.md`: el mapa en "Reglas" (orden de mapas).
 
 ## Ejemplo mínimo (Middleland, Fase 22E)
 ```ts

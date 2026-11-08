@@ -11,7 +11,7 @@ Stone of Merien, Magnet Amulet; `data/passives.ts`, con rango, `stacking` e icon
 hechizos ni armaduras**: eso es el equipo permanente (pantalla Equipment). Una pasiva nueva = una entrada en
 `PASSIVES` + su efecto donde toque; una carta de otro tipo, caso B.
 
-Antes de empezar: lee `survivors/PROGRESS.md` y presenta al propietario un plan corto. Espera su OK.
+Antes de empezar: lee `survivors/PROGRESS.md` y `survivors/PROGRESS-survivors.md` y presenta al propietario un plan corto. Espera su OK.
 
 ## Decide qué caso es
 - **A. Un stat hace algo nuevo o distinto** (p. ej. "Dex también da esquiva"): cambia datos y cálculo; la carta sale sola.
@@ -26,7 +26,7 @@ Antes de empezar: lee `survivors/PROGRESS.md` y presenta al propietario un plan 
 4. `survivors/src/scenes/LevelUpScene.ts`: `LevelUpChoice`, `createCard()` (cómo se dibuja) y `describeChanges()` (las líneas antes → después).
 5. `survivors/src/scenes/HudScene.ts` → `describeDerived()`: filas del panel de stats (tecla C), si el efecto debe verse ahí.
 6. Si usa un asset nuevo (icono, sonido): `survivors/src/config/assetManifest.ts` con clave propia (`ui.icon.boots`, `sfx.levelUp`).
-7. `survivors/PROGRESS.md` y, si se aprendió algo no obvio, `survivors/NOTES.md`.
+7. `survivors/PROGRESS-survivors.md` (pistas; situaciones nuevas del check en `survivors/CHECK.md`) y, si se aprendió algo no obvio, `survivors/NOTES.md`.
 
 ## Caso A: efecto nuevo de un stat
 1. Número en `data/stats.ts`, con comentario de dónde sale (wiki o decisión del propietario).
@@ -99,4 +99,4 @@ onChoose: (choice) => {
    - tras elegirla, la tecla **C** muestra el cambio y se nota en la partida.
 3. Elegir con flechas + Enter, con el ratón y (si hay) con mando.
 4. Con Playwright: mantener teclas y clics ~80 ms (`keyboard.down` → espera → `up`); un `press` instantáneo no lo ve Phaser.
-5. Dile al propietario cómo probarlo (comando, URL, teclas, qué debería ver) y apúntalo en `PROGRESS.md`.
+5. Dile al propietario cómo probarlo (comando, URL, teclas, qué debería ver) y apunta las situaciones nuevas del check en `CHECK.md`.

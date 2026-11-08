@@ -10,7 +10,7 @@ Reglas del diseño (Fase 6, `docs/DESIGN.md`):
 - Las cartas ofrecen el siguiente **eslabón** de tu familia o **cambiar de familia**. La varita de la Maga es solo estética.
 - Los números son **propios**, no los del original. Requisito: Str para armas y armaduras, Int para hechizos, Mag para la ropa de mago.
 
-Antes de empezar: lee `survivors/PROGRESS.md`, presenta un plan corto con los números propuestos y espera el OK.
+Antes de empezar: lee `survivors/PROGRESS.md` y `survivors/PROGRESS-survivors.md`, presenta un plan corto con los números propuestos y espera el OK.
 
 ## Decide qué caso es
 - **A. Eslabón nuevo en una familia que ya ataca** (otra espada larga, otro hechizo de fuego): solo datos y sprite.
@@ -39,7 +39,7 @@ Antes de empezar: lee `survivors/PROGRESS.md`, presenta un plan corto con los n�
    - lo que necesite del contexto, en `WeaponContext` (`weapons/Weapon.ts`) y `systems/WeaponSystem.ts`;
    - crear la clase según la familia en `GameScene.applyChoice` (casos `weaponLink`/`weaponSwitch` o `spellLink`/`spellSwitch`).
 5. Poner `enabled: true` en la familia. Las cartas salen solas: `systems/UpgradePool.ts` ya mira todas las familias activas.
-6. `survivors/PROGRESS.md`, y `survivors/NOTES.md` si se aprendió algo del sprite (índices, pivotes raros).
+6. `survivors/PROGRESS-survivors.md` (pistas; situaciones nuevas del check en `survivors/CHECK.md`), y `survivors/NOTES.md` si se aprendió algo del sprite (índices, pivotes raros).
 
 ## Ejemplo real: un eslabón de espada larga (caso A)
 ```ts

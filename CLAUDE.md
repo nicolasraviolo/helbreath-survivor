@@ -12,7 +12,8 @@ No sabe programar. Explica lo que haces en español sencillo, dile siempre **có
 - `multiplayer/`, `tools/`, `reference/` → ignorar salvo que se pida.
 - `docs/PLAN.md` → fases del proyecto. `docs/DESIGN.md` → diseño del juego (personajes, armas, enemigos, oleadas).
 - `docs/DECISIONES.md` → todas las decisiones del propietario (no leer entero; grep por fase o tema).
-- `survivors/PROGRESS.md` → estado actual y cómo probar. **Léelo al empezar cada sesión.** El historial de lo ya hecho está en `PROGRESS-historial.md` (no leerlo entero; buscar con grep).
+- `survivors/PROGRESS.md` → índice corto: estado y cómo probar. **Léelo al empezar cada sesión**, y después **solo** el archivo del juego en que se trabaja: `PROGRESS-survivors.md` (Survivors) o `PROGRESS-off.md` (Helbreath Off, oculto tras `?off`, código en `src/off/`, plan en `docs/PLAN-OFF.md`).
+- Con grep, nunca enteros: `survivors/CHECK.md` (situaciones del check y atajos `?...`), `PROGRESS-historial.md` (bloques hechos), `NOTES.md`.
 
 ## Reglas
 1. No modificar nada fuera de `survivors/`, `docs/` y `.claude/` sin permiso explícito.
@@ -29,7 +30,7 @@ No sabe programar. Explica lo que haces en español sencillo, dile siempre **có
 - **Un bloque por sesión** (`/fase N`). Antes de programar, presenta un plan corto y espera el OK. Al cerrar el bloque, `/checkpoint` y sesión nueva: las sesiones largas gastan muchísimos tokens.
 - Para investigar `sp-client` usa un **subagente** y trae solo un resumen; no vuelques archivos grandes a la conversación.
 - Cambios pequeños. Tras cada bloque: `pnpm --dir survivors exec tsc --noEmit` y corregir errores.
-- **Comprobar el juego:** `pnpm --dir survivors check <situaciones> [--mobile]` (ver "Cómo probar" en PROGRESS.md). Da escenas, FPS, estado y errores de consola en texto, y guarda capturas pequeñas en `survivors/.check/`. Hazlo tú antes de pedir al propietario que pruebe.
+- **Comprobar el juego:** `pnpm --dir survivors check <situaciones> [--mobile]` (lista de situaciones en `survivors/CHECK.md`). Da escenas, FPS, estado y errores de consola en texto, y guarda capturas pequeñas en `survivors/.check/`. Hazlo tú antes de pedir al propietario que pruebe.
   - Mira capturas solo cuando el cambio sea visual, y pocas: cada imagen se queda en la conversación y se relee en cada respuesta.
   - Para llegar a una situación usa los atajos `?play`, `?debug=...` y `?ui=compact` (`src/config/debugStart.ts`); si falta uno, añádelo ahí en vez de improvisar JavaScript en el navegador.
   - Playwright MCP a mano solo para lo que el script no cubra (interacciones, menús). No uses el navegador interno para el juego: en segundo plano va a ~1 FPS.

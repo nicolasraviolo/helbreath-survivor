@@ -10,7 +10,7 @@ Reglas del diseño (Fase 7):
 - La **vida y la XP son nuestras**: siguen el orden de los tiers de la wiki (`docs/hb-wiki/monstruos.md`), comprimido para 12 minutos.
 - Todo el texto del juego, en inglés (regla 9). Números de diseño solo en `data/` (regla 4).
 
-Antes de empezar: lee `survivors/PROGRESS.md`, presenta un plan corto con los números propuestos y espera el OK.
+Antes de empezar: lee `survivors/PROGRESS.md` y `survivors/PROGRESS-survivors.md`, presenta un plan corto con los números propuestos y espera el OK.
 
 ## Investigar primero (con un subagente, trae solo el resumen)
 - **Sprite, sonidos y animaciones especiales:** `sp-client/src/constants/Monsters.ts`.
@@ -37,7 +37,7 @@ Antes de empezar: lee `survivors/PROGRESS.md`, presenta un plan corto con los n�
 3. `survivors/src/data/waves.ts`:
    - para que salga siempre en un tramo: añádelo a su `WAVES[i].enemies` con un `weight`;
    - para un momento concreto: un `WAVE_EVENTS` (`'boss'`, `'finalBoss'` o `'surround'` + `count`) con su `message` en inglés.
-4. `survivors/PROGRESS.md`, y `survivors/NOTES.md` si el sprite tiene algo raro (pivotes, errata en el nombre, sonidos que faltan).
+4. `survivors/PROGRESS-survivors.md` (pistas; situaciones nuevas del check en `survivors/CHECK.md`), y `survivors/NOTES.md` si el sprite tiene algo raro (pivotes, errata en el nombre, sonidos que faltan).
 
 ## Ejemplo real: un monstruo normal
 ```ts
