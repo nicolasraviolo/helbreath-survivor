@@ -145,6 +145,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Mercenario (Off-8B)
 - Maga mercenaria y Berserk (Off-8C)
 - Frases del mercenario y golpes por la espalda (Off-8D)
+- Mercenario que aguanta: vida, poción y huir (Off-8E)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -1623,3 +1624,10 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - **Por la espalda** (`OffMercenaryAI.flank`): solo con **Paralyze** (`OffMonster.isParalyzed`: `holdPower` > `OFF_HOLD.breaksOnBlow`), porque Hold Person se rompe al primer golpe. Casilla de detrás = la del monstruo menos `directionOffset(facing)` (las direcciones van **de 0 = norte a 7**, en el sentido de las agujas del reloj). Si está ocupada pega de frente; si en `OFF_MERCENARY.flankStallMs` (4 s, más que `stallMs` porque rodear a otros Golems tarda) no se acerca, se rinde con ese monstruo (`flankGaveUp`). `isFromBehind` ya daba la defensa a la mitad; `behindBlows` los cuenta.
 - Pruebas: `check offmercsay` / `offmercsaymage` / `offmerczerk` / `offmercbehind`; `o.debugParalyze()` paraliza al monstruo con el que pelea el mercenario. En `debugState`: `mercSaid`, `mercSaying`, `mercBehind`. Ojo: `check` espera 3 s antes del eval, así que lo que se dice al principio no sale en `heard` (sí en `said`).
 - El mercenario contratado se guarda desde la 8B (`mercenary` en `hb-off.character`); su vida, maná e inconsciencia no, igual que tu vida (plan de la 8D aprobado por el propietario el 8-nov-2026).
+
+## Mercenario que aguanta: vida, poción y huir (Off-8E)
+- **Vida como un jugador:** `OffMercenaryAI.regenBatch` da cada `OFF_REGEN.hpIntervalMs` (15 s) `offHpRegen(VIT) × hpFactor`, **también peleando**, con número verde (`OffBattle.mercHeals` → `healMerc`). Fuera de pelea sigue el 3 % cada 3 s (`regen`). En `debugState`: `mercBatch` (lo que han dado las tandas).
+- **Poción propia** (`OFF_MERCENARY_POTION`): `OffMercenary.potionLeftMs` (0 = la tiene; cuenta también inconsciente y cruza portales en `OffCarriedMercenary`, pero no se guarda). Bajo `drinkBelow` (30 %) cura `healShare` (40 %) de su vida máxima, con sonido de beber y la frase `drankPotion` ("I drank my potion!"). Sin icono: el propietario lo quitó. Primero se probó como Big Red Potion al 10 % y con Trolls (8d5 por golpe, 2–3 a la vez) moría igual: un golpe salta de >10 % a 0.
+- **Huir** (`OFF_MERCENARY_FLEE`, `keepsFleeing` + `flee` en `OffMercenaryAI`, antes que todo lo demás de su cabeza): sin poción y bajo `below` (25 %) (Kaila solo si `bestHeal` no encuentra magia con maná) deja de pegar, cancela su magia, dice "Heal me!" y corre: cada `replanMs` elige entre 8 casillas a `stepTiles` y una junto a ti la de más puntos = distancia al monstruo atacante más cercano × `awayWeight` − distancia a ti. Para al pasar de `backAbove` (50 %), si Kaila ya puede curarse, o tras `safeMs` sin un monstruo que vaya a por él a `chaserTiles`; en ese caso guarda `calmHp` y no vuelve a huir hasta que le hieran más (si no, huiría otra vez al instante).
+- Pruebas: `check offmercpotion` / `offmercflee` / `offmercfleesafe` / `offmercfleemage` / `offmercregen` / `offmerchard` (Gorn Level 25 con Trolls en Promiseland; el resultado varía mucho, a veces tu personaje muere). En `debugState`: `mercPotion`, `mercDrunk`, `mercFleeing`, `mercFlees`. `offmercsay` gasta antes la poción para oír "Heal me!".
+- `offRollRestore(dice)` (`data/offGoods.ts`) tira los dados de una poción; lo usa el inventario.

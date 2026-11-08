@@ -970,7 +970,7 @@ export class OffWorldScene extends Phaser.Scene {
         spell: string; casts: number; fails: number; prepareMs: number; burning: number; slowed: number;
         held: number; poisoned: number; shield: string | undefined; padSpells: string[];
         merc: string | undefined; mercKills: number; mercDown: number; mercShield: string | undefined; onMerc: number; hirer: TilePoint | undefined;
-        mercPicked: number; mercTarget: string | undefined; mercLoot: string | undefined; berserk: number; mercBerserk: number; mercMana: string | undefined; mercCasts: Record<string, number>; mercSaid: Record<string, number>; mercSaying: string | undefined; mercBehind: number; blowAvg: { plain: number; berserk: number };
+        mercPicked: number; mercTarget: string | undefined; mercLoot: string | undefined; berserk: number; mercBerserk: number; mercMana: string | undefined; mercCasts: Record<string, number>; mercSaid: Record<string, number>; mercSaying: string | undefined; mercPotion: number; mercDrunk: number; mercFleeing: boolean; mercFlees: number; mercBatch: number; mercBehind: number; blowAvg: { plain: number; berserk: number };
     } {
         const monsters: Record<string, number> = {};
         for (const monster of this.battle.pits.monsters) {
@@ -993,6 +993,11 @@ export class OffWorldScene extends Phaser.Scene {
             mercSaid: { ...(merc?.saidCount ?? {}) },
             mercSaying: merc?.saying,
             mercBehind: merc?.behindBlows ?? 0,
+            mercPotion: merc ? Math.ceil(merc.potionLeftMs / 1000) : 0,
+            mercDrunk: merc?.potionsDrunk ?? 0,
+            mercFleeing: merc?.fleeing ?? false,
+            mercFlees: merc?.flees ?? 0,
+            mercBatch: merc?.batchGained ?? 0,
             blowAvg: {
                 plain: Math.round(this.battle.debugBlows.plain.sum / Math.max(1, this.battle.debugBlows.plain.count) * 10) / 10,
                 berserk: Math.round(this.battle.debugBlows.berserk.sum / Math.max(1, this.battle.debugBlows.berserk.count) * 10) / 10,

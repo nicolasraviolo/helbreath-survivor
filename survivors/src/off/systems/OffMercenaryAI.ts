@@ -18,8 +18,17 @@
 // si aguanta muchos golpes tuyos y Hold Person a otro si te atacan varios. Después, magias de daño desde lejos
 // (castTiles), guardando maná para un Heal. Nunca a un monstruo quieto por Hold o Paralyze (la magia lo soltaría), y
 // mientras haya uno cerca, solo al que vaya a por ella; si uno que va a por ella se acerca (keepAwayTiles), retrocede.
+// Fase Off-8E, aguantar:
+// - Una tanda de vida de jugador cada 15 s (offHpRegen de su VIT × su hpFactor), también peleando, con número verde.
+// - Bajo OFF_MERCENARY_POTION.drinkBelow se bebe su poción (dice "I drank my potion!"); vuelve a tenerla a los refillMs.
+// - Sin poción (y Kaila sin maná para curarse), bajo OFF_MERCENARY_FLEE.below huye: deja de pegar, dice "Heal me!" y
+//   corre a la casilla más lejos de los monstruos que le persiguen y más cerca de ti. Vuelve a pelear al pasar de
+//   backAbove, si Kaila ya puede curarse, o tras safeMs sin que nadie le persiga (entonces no vuelve a huir hasta
+//   que le hieran más).
 import { OFF_COMBAT, offAttackMs } from '../data/offCombat';
-import { OFF_MERCENARY, OFF_MERCENARY_CASTER, offMercenarySpells } from '../data/offMercenary';
+import { OFF_MERCENARY, OFF_MERCENARY_CASTER, OFF_MERCENARY_FLEE, OFF_MERCENARY_POTION, offMercenarySpells } from '../data/offMercenary';
+import { OFF_REGEN, offHpRegen } from '../data/offCharacter';
+import { DIRECTION_COUNT, type Direction } from '../../hb/directions';
 import { OFF_SPELLS, type OffSpellId } from '../data/offSpells';
 import type { OffSpellAlly } from './OffSpells';
 import { OFF_STEP_MS } from '../data/offWorld';
@@ -68,10 +77,13 @@ export interface OffMercenaryWorld {
     mercSwings(): void;
     /** It stood up again. */
     mercStandsUp(merc: OffMercenary): void;
+    /** Off-8E: it gets health back (a batch, or its potion: `drink`), with a green number. Returns what it got. */
+    mercHeals(merc: OffMercenary, amount: number, drink: boolean): number;
 }
 
 /** Advances it one frame. Returns whether its step is a run (for its pose). */
 export function updateMercenary(merc: OffMercenary, deltaMs: number, world: OffMercenaryWorld): boolean {
+    merc.potionLeftMs = Math.max(0, merc.potionLeftMs - deltaMs);
     if (merc.isDown) {
         merc.downLeftMs = Math.max(0, merc.downLeftMs - deltaMs);
         if (merc.downLeftMs === 0) {
@@ -92,6 +104,14 @@ export function updateMercenary(merc: OffMercenary, deltaMs: number, world: OffM
             mover.place(tile.x, tile.y);
             merc.target = undefined;
         }
+    }
+    // Off-8E: health back, its potion, and running away.
+    regenBatch(merc, deltaMs, world);
+    drinkPotion(merc, world);
+    if (keepsFleeing(merc, world, deltaMs)) {
+        flee(merc, owner, world, deltaMs);
+        if (!merc.character.isActing) mover.update(deltaMs, OFF_STEP_MS.run);
+        return true;
     }
     // Off-8C: the Mage with a spell on the way only waits for it (and lets it go when ready).
     if (merc.isCaster && castInProgress(merc, world)) return false;
@@ -473,4 +493,107 @@ function regen(merc: OffMercenary, deltaMs: number): void {
     if (merc.regenMs < OFF_MERCENARY.regenMs) return;
     merc.regenMs = 0;
     merc.hp = Math.min(merc.maxHp, merc.hp + Math.max(1, Math.round(merc.maxHp * OFF_MERCENARY.regenShare)));
+}
+
+// ---- Holding on (Off-8E) ----
+
+/** A player's batch of health every OFF_REGEN.hpIntervalMs, fighting or not (times its hpFactor). */
+function regenBatch(merc: OffMercenary, deltaMs: number, world: OffMercenaryWorld): void {
+    merc.hpBatchMs += deltaMs;
+    if (merc.hpBatchMs < OFF_REGEN.hpIntervalMs) return;
+    merc.hpBatchMs %= OFF_REGEN.hpIntervalMs;
+    if (merc.hp >= merc.maxHp) return;
+    const batch = Math.max(1, Math.round(offHpRegen(merc.stats.vit) * merc.def.hpFactor));
+    merc.batchGained += world.mercHeals(merc, batch, false);
+}
+
+/** Under OFF_MERCENARY_POTION.drinkBelow with its potion: drinks it ("I drank my potion!"). */
+function drinkPotion(merc: OffMercenary, world: OffMercenaryWorld): void {
+    const potion = OFF_MERCENARY_POTION;
+    if (!merc.hasPotion || merc.hp / Math.max(1, merc.maxHp) >= potion.drinkBelow) return;
+    world.mercHeals(merc, Math.round(merc.maxHp * potion.healShare), true);
+    merc.potionLeftMs = potion.refillMs;
+    merc.potionsDrunk++;
+    merc.say('drankPotion', true);
+}
+
+/** The Mage has the mana and the spell for a Heal on herself. */
+function canHealItself(merc: OffMercenary): boolean {
+    return merc.isCaster && bestHeal(merc) !== undefined;
+}
+
+/** Starts, keeps or ends running away (OFF_MERCENARY_FLEE). True while it runs. */
+function keepsFleeing(merc: OffMercenary, world: OffMercenaryWorld, deltaMs: number): boolean {
+    const flee = OFF_MERCENARY_FLEE;
+    const share = merc.hp / Math.max(1, merc.maxHp);
+    if (share >= flee.below) merc.calmHp = Number.POSITIVE_INFINITY;
+    if (!merc.fleeing) {
+        if (share >= flee.below || merc.hasPotion || merc.hp >= merc.calmHp || canHealItself(merc)) return false;
+        merc.fleeing = true;
+        merc.flees++;
+        merc.fleeSafeMs = 0;
+        merc.fleeReplanMs = 0;
+        merc.target = undefined;
+        merc.lootTile = undefined;
+        merc.castFor = undefined;
+        merc.spells?.cancel();
+        merc.mover.cancel();
+        resetChase(merc);
+        merc.say('healMe', true);
+        return true;
+    }
+    if (share > flee.backAbove || canHealItself(merc)) {
+        merc.stopFleeing();
+        return false;
+    }
+    const mover = merc.mover;
+    const chased = world.monsters.some((m) => m.isAlive && m.mode === 'attack' && m.victim === 'merc' && !m.isHeld
+        && tileDistance(m.mover.tileX, m.mover.tileY, mover.tileX, mover.tileY) <= flee.chaserTiles);
+    merc.fleeSafeMs = chased ? 0 : merc.fleeSafeMs + deltaMs;
+    if (merc.fleeSafeMs >= flee.safeMs) {
+        merc.stopFleeing(true);
+        return false;
+    }
+    return true;
+}
+
+/**
+ * Runs `stepTiles` at a time to the tile farthest from the monsters attacking near it and nearest to you (farness
+ * counts `awayWeight` more); with none near, back to you. Picks again every `replanMs` or when it stops.
+ */
+function flee(merc: OffMercenary, owner: TilePoint | undefined, world: OffMercenaryWorld, deltaMs: number): void {
+    const flee = OFF_MERCENARY_FLEE;
+    const mover = merc.mover;
+    merc.fleeReplanMs -= deltaMs;
+    if ((mover.isTravelling && merc.fleeReplanMs > 0) || merc.character.isActing) return;
+    merc.fleeReplanMs = flee.replanMs;
+    const here = { x: mover.tileX, y: mover.tileY };
+    const chasers = world.monsters.filter((m) => m.isAlive && m.mode === 'attack' && !m.isHeld
+        && tileDistance(m.mover.tileX, m.mover.tileY, here.x, here.y) <= flee.chaserTiles * 2);
+    const score = (t: TilePoint): number => {
+        let nearest = flee.chaserTiles * 2;
+        for (const m of chasers) nearest = Math.min(nearest, tileDistance(t.x, t.y, m.mover.tileX, m.mover.tileY));
+        return nearest * flee.awayWeight - (owner ? tileDistance(t.x, t.y, owner.x, owner.y) : 0);
+    };
+    const candidates: TilePoint[] = [];
+    for (let d = 0; d < DIRECTION_COUNT; d++) {
+        const step = directionOffset(d as Direction);
+        candidates.push({ x: here.x + step.x * flee.stepTiles, y: here.y + step.y * flee.stepTiles });
+    }
+    const byYou = owner ? world.freeTileNear(owner.x, owner.y) : undefined;
+    if (byYou) candidates.push(byYou);
+    let best: TilePoint | undefined;
+    let bestScore = score(here);
+    for (const t of candidates) {
+        if (!world.mercCanStand(t.x, t.y)) continue;
+        const value = score(t);
+        if (value > bestScore) {
+            best = t;
+            bestScore = value;
+        }
+    }
+    if (!best) return;
+    const path = world.findPath(here, best, OFF_MERCENARY.pathMaxTiles);
+    if (path && path.length > 0) mover.goAlong(path);
+    else mover.goTo(best.x, best.y);
 }

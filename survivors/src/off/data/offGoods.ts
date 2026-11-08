@@ -48,3 +48,11 @@ export function offGood(id: OffGoodId): OffGoodDef {
 export function isOffPotion(id: string): boolean {
     return isOffGoodId(id) && OFF_GOODS[id].kind === 'potion';
 }
+
+/** A potion's dice rolled (count × 1d(sides) + bonus): what it fills (Off-8E: also the mercenary's own potion). */
+export function offRollRestore(dice: readonly [number, number, number]): number {
+    const [count, sides, bonus] = dice;
+    let roll = bonus;
+    for (let i = 0; i < count; i++) roll += 1 + Math.floor(Math.random() * sides);
+    return roll;
+}

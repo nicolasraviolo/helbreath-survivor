@@ -16,6 +16,8 @@
 // - Orden: curarte, curarse, escudo (Protection From Magic si en el pit hay monstruos que lanzan magia), Berserk,
 //   Paralyze al monstruo que atacas si tiene vida para muchos golpes, Hold Person a otro si te atacan varios, daño.
 // - Con un monstruo paralizado no lanza magias de daño (la romperían), salvo al que vaya a por ella.
+// Fase Off-8E (propietario, 8-nov-2026): recupera vida como un jugador (una tanda cada 15 s, también peleando), lleva
+// una poción propia que se rellena (OFF_MERCENARY_POTION) y, sin ella, huye con poca vida (OFF_MERCENARY_FLEE).
 import type { CharacterLook } from '../../data/appearance';
 import { FIXED_CHARACTERS } from '../../data/characterSlots';
 import type { DyeColorId, WornColors } from '../../data/dyes';
@@ -154,7 +156,7 @@ export const OFF_MERCENARY_CASTER = {
  * Off-8D: what it says over its head (white, as the original's chat), by line. A line missing for one of them is never
  * said by it (Gorn has no mana; Kaila needs no Berserk: she casts it herself).
  */
-export type OffMercenaryLineId = 'healMe' | 'zerkMe' | 'noMana' | 'ownerLow' | 'down' | 'up' | 'hired';
+export type OffMercenaryLineId = 'healMe' | 'zerkMe' | 'noMana' | 'ownerLow' | 'down' | 'up' | 'hired' | 'drankPotion';
 
 export const OFF_MERCENARY_LINES: Readonly<Record<OffMercenaryId, Readonly<Partial<Record<OffMercenaryLineId, string>>>>> = {
     warrior: {
@@ -164,6 +166,7 @@ export const OFF_MERCENARY_LINES: Readonly<Record<OffMercenaryId, Readonly<Parti
         down: 'Ugh...',
         up: 'I\'m back!',
         hired: 'At your service!',
+        drankPotion: 'I drank my potion!',
     },
     mage: {
         healMe: 'Heal me!',
@@ -172,6 +175,7 @@ export const OFF_MERCENARY_LINES: Readonly<Record<OffMercenaryId, Readonly<Parti
         down: 'Ugh...',
         up: 'I\'m back!',
         hired: 'At your service!',
+        drankPotion: 'I drank my potion!',
     },
 };
 
@@ -216,6 +220,8 @@ export const OFF_MERCENARY = {
     /** Out of a fight, it gets back this share of its health every `regenMs`. */
     regenShare: 0.03,
     regenMs: 3000,
+    // Off-8E: and, fighting or not, a player's batch of health (offHpRegen of its VIT, times its hpFactor) every
+    // OFF_REGEN.hpIntervalMs (15 s), with a green number (OffMercenaryAI.regenBatch).
     /** Its blow on a monster that was going for you makes the monster go for it instead, this often (it tanks). */
     tauntChance: 0.5,
     /** Share of a kill's experience you get when it lands the killing blow. */
@@ -240,6 +246,37 @@ export const OFF_MERCENARY = {
      */
     lootWaitMs: 5000,
     lootTiles: 10,
+} as const;
+
+/** Off-8E: its own potion, which fills up again by itself (our numbers, the owner's plan of 8-nov-2026). */
+export const OFF_MERCENARY_POTION = {
+    /**
+     * It drinks it under this share of its health... (the owner, 8-nov-2026, after trying it with Trolls: at 10 % and
+     * as a Big Red Potion, one or two blows killed it anyway)
+     */
+    drinkBelow: 0.3,
+    /** ...it heals this share of its maximum health (it keeps up with its level, unlike a shop potion)... */
+    healShare: 0.4,
+    /** ...and it has it again this long after (no icon: the owner, 8-nov-2026, only the line when it drinks). */
+    refillMs: 60_000,
+} as const;
+
+/** Off-8E: running away with little health and no potion (Kaila only without mana for a Heal). */
+export const OFF_MERCENARY_FLEE = {
+    /** It runs under this share of its health (high enough that one strong blow doesn't skip it)... */
+    below: 0.25,
+    /** ...and fights again over this share (healed by you)... */
+    backAbove: 0.5,
+    /** ...or once nobody has chased it for this long. */
+    safeMs: 8000,
+    /** A monster going for it this close counts as chasing it (tiles). */
+    chaserTiles: 8,
+    /** Each run goes this many tiles: to the tile farthest from the chasers, nearest to you. */
+    stepTiles: 4,
+    /** Farness from the chasers counts this much more than nearness to you. */
+    awayWeight: 2,
+    /** It picks a new tile this often while running (ms). */
+    replanMs: 800,
 } as const;
 
 /** Colour of its cape and boots (a dye number, data/dyes.ts: 4 = Crimson). */

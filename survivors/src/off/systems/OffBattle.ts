@@ -61,7 +61,7 @@ import {
     isOffGearKey, offArmorDefense, offBagItemName, offPartAbsorb, offShieldAbsorb, offEquipmentEffects, offGearDef, offStrToEquip, offWeapon, type OffBagItemKey,
 } from '../data/offItems';
 import { OFF_ATTRIBUTES, type OffAttributeEffects } from '../data/offAttributes';
-import { isOffGoodId, OFF_GOODS, offGood, type OffPotionRestores } from '../data/offGoods';
+import { isOffGoodId, OFF_GOODS, offGood, offRollRestore, type OffPotionRestores } from '../data/offGoods';
 import { OFF_BAG_TEXT } from '../data/offBag';
 import { OFF_LOOT_TEXT } from '../data/offLoot';
 import type { OffGroundContent } from '../entities/OffGroundItem';
@@ -372,12 +372,19 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost, OffMercenaryWor
         };
     }
 
-    public healMerc(merc: OffMercenary, amount: number): void {
-        if (merc.isDown) return;
+    public healMerc(merc: OffMercenary, amount: number): number {
+        if (merc.isDown) return 0;
         const gained = Math.min(amount, merc.maxHp - merc.hp);
-        if (gained <= 0) return;
+        if (gained <= 0) return 0;
         merc.hp += gained;
         this.numbers.showColored(merc.x, merc.y - PLAYER_BODY_OFFSET_Y, gained, OFF_HEAL_NUMBER_COLOR);
+        return gained;
+    }
+
+    /** Off-8E: its batch of health or its own potion (with the drinking sound). */
+    public mercHeals(merc: OffMercenary, amount: number, drink: boolean): number {
+        if (drink) this.audio.play('sfx.drink');
+        return this.healMerc(merc, amount);
     }
 
     /** Tile the mercenary may step onto: walkable, no monster and not you. */
@@ -1120,10 +1127,7 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost, OffMercenaryWor
         if (this.dead) return { done: false };
         const [now, max] = this.barOf(restores.what);
         if (now >= max) return { done: false, line: OFF_BAG_TEXT.alreadyFull(restores.what) };
-        const [count, sides, bonus] = restores.dice;
-        let roll = bonus;
-        for (let i = 0; i < count; i++) roll += Phaser.Math.Between(1, sides);
-        const gained = Math.min(roll, max - now);
+        const gained = Math.min(offRollRestore(restores.dice), max - now);
         if (restores.what === 'hp') this.hp += gained;
         else if (restores.what === 'mana') this.vitals.mana += gained;
         else this.vitals.stamina += gained;

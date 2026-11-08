@@ -5,6 +5,8 @@
 // OffBattle). Cualquiera de los dos puede estar en Berserk (`berserkLeftMs`): brillo rojo como el buff de Survivors.
 // Fase Off-8D: dice frases encima del nombre (`say`, texto blanco OFF_MERCENARY_TALK.showMs); cuándo, OffMercenaryTalk.
 // Al caer dice "Ugh..." y al levantarse "I'm back!" sin esperar turno.
+// Fase Off-8E: lleva una poción propia (`potionLeftMs` = 0 la tiene) y puede estar huyendo
+// (`fleeing`); qué hace con ellas, OffMercenaryAI.
 import Phaser from 'phaser';
 import { DEPTH_DAMAGE_NUMBERS, DEPTH_GROUND_SHADOWS } from '../../config/gameConfig';
 import { EFFECTS, type EffectDef, type EffectKey } from '../../config/effects';
@@ -43,6 +45,8 @@ export interface OffCarriedMercenary {
     /** Off-8C: its mana and Berserk's time left. */
     mana?: number;
     berserkLeftMs?: number;
+    /** Off-8E: time until its potion is back (0 = it has it). */
+    potionLeftMs?: number;
 }
 
 /** Off-8C: who the spell the Mage is preparing goes to. */
@@ -79,6 +83,21 @@ export class OffMercenary {
     public blow: OffMercenaryBlow | undefined;
     /** Time towards its next bit of health out of a fight. */
     public regenMs = 0;
+    /** Off-8E: time towards its next batch of health (a player's, also fighting), and what those batches gave (checks). */
+    public hpBatchMs = 0;
+    public batchGained = 0;
+    /** Off-8E: time until its potion is back (0 = it has it), and potions drunk (checks). */
+    public potionLeftMs = 0;
+    public potionsDrunk = 0;
+    /**
+     * Off-8E: running away: the time nobody has chased it, the time to its next choice of tile, and times it ran
+     * (checks). After a run that ended with nobody chasing it, it runs again only once it is hurt under `calmHp`.
+     */
+    public fleeing = false;
+    public fleeSafeMs = 0;
+    public fleeReplanMs = 0;
+    public flees = 0;
+    public calmHp = Number.POSITIVE_INFINITY;
     /** Following you or chasing a monster: the fewest tiles it has been from there, and for how long it has not got closer. */
     public chaseBest = Number.POSITIVE_INFINITY;
     public chaseStallMs = 0;
@@ -159,6 +178,11 @@ export class OffMercenary {
         return this.stats.dex * 2 + offArmorDefense(this.equipment) + this.def.defenseBonus + (OFF_PROTECT.defenseByPower[power] ?? 0);
     }
 
+    /** Off-8E: its own potion is ready. */
+    public get hasPotion(): boolean {
+        return this.potionLeftMs <= 0;
+    }
+
     public get isDown(): boolean {
         return this.downLeftMs > 0;
     }
@@ -197,12 +221,13 @@ export class OffMercenary {
         this.protection = carried.protection ? { ...carried.protection } : undefined;
         if (carried.mana !== undefined) this.mana = Math.min(this.maxMana, Math.max(0, carried.mana));
         this.berserkLeftMs = this.isDown ? 0 : Math.max(0, carried.berserkLeftMs ?? 0);
+        this.potionLeftMs = Math.max(0, carried.potionLeftMs ?? 0);
         if (this.isDown) this.character.die(this.mover.facing);
     }
 
     public carried(): OffCarriedMercenary {
         return {
-            hp: this.hp, downLeftMs: this.downLeftMs, mana: this.mana, berserkLeftMs: this.berserkLeftMs,
+            hp: this.hp, downLeftMs: this.downLeftMs, mana: this.mana, berserkLeftMs: this.berserkLeftMs, potionLeftMs: this.potionLeftMs,
             ...(this.protection ? { protection: { ...this.protection } } : {}),
         };
     }
@@ -244,10 +269,19 @@ export class OffMercenary {
         this.protection = undefined;
         this.berserkLeftMs = 0;
         this.castFor = undefined;
+        this.stopFleeing();
         this.spells?.cancel();
         this.mover.cancel();
         this.character.die(this.mover.facing);
         this.say('down', true);
+    }
+
+    /** Off-8E: it stops running away (`calm`: nobody chased it for a while, so it runs again only once hurt more). */
+    public stopFleeing(calm = false): void {
+        this.fleeing = false;
+        this.fleeSafeMs = 0;
+        this.fleeReplanMs = 0;
+        this.calmHp = calm ? this.hp : Number.POSITIVE_INFINITY;
     }
 
     /** Stands up with part of its health. */
