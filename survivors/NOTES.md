@@ -142,6 +142,8 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Medir y ajustar: armadura, pits, experiencia y oro (Helbreath Off, Fase Off-7D, 8-nov-2026)
 - Guardado y pulido: caminos, suelo, dos manos y dónde estás (Helbreath Off, Fase Off-7E, 8-nov-2026)
 - Critical Strike con cargas (Helbreath Off, Fase Off-8A, 8-nov-2026)
+- Mercenario (Off-8B)
+- Maga mercenaria y Berserk (Off-8C)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -1603,3 +1605,13 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - `E` en Off bebe maná, así que con William cerca se habla con Espacio / A (en vez de atacar).
 - Su cuerpo (`OFF_MERCENARY_BODY`, piel 1) y su equipo pueden no estar descargados: `startOffWorld` los mete en `worn` si está contratado, y al contratar se espera a `lookLoader.ensure` antes de crearlo.
 - Apuntar magias de apoyo con el stick derecho usa `InputSystem.getManualAim()` (en Off no hay `pointerAnchor`, así que solo cuenta el stick o `setForcedAim`). La flecha es `ui/AimArrow` de Survivors.
+
+## Maga mercenaria y Berserk (Off-8C)
+- Berserk (`OFF_SPELLS.berserk`, kind `'berserk'`) es un estado aparte de los escudos: `OffBattle.berserkLeftMs` y `OffMercenary.berserkLeftMs`. `OFF_BERSERK.damageFactor` (×2) solo en golpes normales (`landBlow` con `!blow.crit`, `mercLandsBlow`). Brillo rojo con `OffCharacter.setGlow` (el `CharacterSprite.setGlow` de Survivors): **llamarlo solo cuando cambia**, porque redibuja todas las capas. Línea "Berserk Ns" en el HUD debajo del escudo.
+- `OffSpells` ya no mira `offSaveStore` para saber si se puede lanzar: el host dice `knows(id)` y `handsRefusal()`. Así la maga usa otra copia de `OffSpells` con `OffMercenarySpells` como host (sus stats, su maná, sus magias por tu nivel). Hay **una sola copia por batalla** (`OffBattle.mercSpells`) que pasa a la siguiente maga con `attach(mover, character)`, porque los pools no se pueden destruir.
+- En `OffSpells.release`, una magia "a sí mismo" sin `ally` cae en el host: para la maga, el host es ella. Para lanzarte algo a ti, la IA usa `world.ownerAlly()`.
+- IA de la maga (`OffMercenaryAI`, rama `merc.isCaster`): con una magia a medias, nada más (`castInProgress`); luego `support` (curarte, curarse, escudo, Berserk) y `castFight` (acercarse hasta `castTiles`, retroceder si uno que va a por ella está a `keepAwayTiles`, `bestDamage` deja maná para un Heal). Su maná se recarga siempre (`regenMercMana`).
+- `?offmerc=mage` empieza con Kaila. `check offmercmage` / `offmercmagezerk` / `offberserk` / `offmercwindow`. En `debugState`: `berserk`, `mercBerserk`, `mercMana`, `mercCasts`, `blowAvg`.
+- Ajustes (8-nov-2026, propietario): sabe las magias de `OFF_MERCENARY_SPELLS` cuya `reqInt` ya tiene (`offMercenarySpells(int)`; INT = 20 + 1,3 × tu nivel con `statStart`). Maná: `offManaRegen(MAG)` cada `manaRegenMs` (10 s). `OffOwnerNeeds.blowDamage` (media de tu golpe normal) decide si Paralyze merece la pena (`paralyzeMinBlows`); `casterNear` mira los pits de los monstruos cercanos, no solo la distancia. `breaksAHold` impide lanzar daño a un monstruo quieto o con uno quieto en su área; mientras haya uno quieto cerca, solo ataca a quien va a por ella.
+- **Hold Person ≠ Paralyze** (servidor, `iCalculateAttackEffect` y `Effect_Damage_Spot`): `OffMonster.hurt(damage, magic)` y `hold(ms, power)`. Un golpe quita la de `power` 1 (Hold Person); la 2 (Paralyze) solo en monstruos con `hitDice` > 50 y 1 de cada 10 golpes (`OFF_HOLD`). Cualquier daño mágico quita las dos; la quemadura y el veneno no. Un monstruo quieto no hace la animación de recibir golpe. `check offholdblows`, `offmercparalyze`, `offmercslime`.
+- **Recoger el botín** (8-nov-2026): `OffGroundItem.ageMs` / `fromPlayer` (lo que tiras desde la bolsa) / `mercSkip` (no cupo o no llegó: no vuelve). `OffGroundItems.forMerc` elige, `pickUpByMerc` lo da con `OffBattle.pickUp(content, mercName)`. En la IA, `collectLoot` va antes que `follow`, y un monstruo que solo pasea (`mode !== 'attack'` y no es tu objetivo) se deja mientras haya botín. En un pit con monstruos atacando sin parar no recoge: es lo esperado. `check offmercloot` / `offmercloot2` (Kaila) / `offmercdropped`; `debugDropLoot(dx, dy, gold, item)` puede tirar en casillas no andables (el mercenario se rinde a los 2,5 s).

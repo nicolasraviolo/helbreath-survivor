@@ -16,7 +16,7 @@
 //   a la mitad (ningún monstruo de Off lanza magia todavía: queda puesta para cuando lo hagan). Comparten hueco: con uno
 //   puesto, el otro no hace nada ("no effect"), como el original.
 // - Hold Person / Paralyze: el monstruo no anda ni ataca durante `durationSec`; puede resistirla como el daño, y
-//   cualquier golpe o magia que le haga daño la rompe (el servidor la quita al dañar a un NPC). El fuego que arde no.
+//   cualquier golpe o magia que le haga daño la rompía (corregido en la Off-8C: ver abajo). El fuego que arde no.
 // - Curar y escudos te los lanzas a ti: en Off juegas solo, así que cualquier clic sirve (decisión de Claude, aceptada).
 // - Mando (propietario): RT + A/B/X/Y preparan las 4 magias del mando (elegidas en el libro); soltar RT la lanza al
 //   monstruo marcado o, sin él, al más cercano.
@@ -26,6 +26,14 @@
 // - Preparar (propietario): 2 s con MAG 10, más rápido con más MAG, 1 s desde MAG 50.
 // - Elementos como en Survivors (propietario): ±20 % según el elemento del monstruo, quemadura con el fuego y frenado
 //   con el hielo (data/elements.ts, ICE_SLOW de data/activeSpells.ts).
+// Fase Off-8C (propietario, 8-nov-2026), arreglo de Paralyze: el servidor (iCalculateAttackEffect, Effect_Damage_Spot)
+//   separa las dos por su v4. **Hold Person (1) se quita con cualquier golpe; Paralyze (2) aguanta los golpes**, salvo
+//   en monstruos de más de 50 de HitDice (Troll, Cyclops), que se libran 1 de cada 10 golpes. **Una magia que hace daño
+//   quita las dos.** La duración es fija (30 s y 50 s). OFF_HOLD lo dice en números.
+// Fase Off-8C (propietario, 8-nov-2026): Berserk (Magic.cfg 50: círculo 6, INT 59, 57 de maná, 2.200 de oro, 40 s). Se
+//   aprende en la tienda y también la lanza la maga mercenaria. Como el servidor (bIsAttackerBerserk, iAttackMode < 20):
+//   **dobla el daño de los golpes normales**, no el del Critical Strike. Es un estado aparte de los escudos (se pueden
+//   tener los dos); con Berserk ya puesto no hace nada. Se lanza a ti o a tu mercenario, como Heal.
 import type { SpellElement } from '../../data/elements';
 import type { SpellId } from '../../data/spells';
 import type { EffectKey } from '../../config/effects';
@@ -35,9 +43,10 @@ export type OffSpellId =
     | 'energyBolt' | 'defenseShield'
     | 'fireBall' | 'greatHeal' | 'holdPerson'
     | 'fireStrike' | 'lightningArrow' | 'paralyze' | 'protectionFromMagic'
-    | 'tripleEnergyBolt' | 'chillWind' | 'lightning';
+    | 'tripleEnergyBolt' | 'chillWind' | 'lightning'
+    | 'berserk';
 
-export type OffSpellKind = 'damage' | 'heal' | 'shield' | 'hold';
+export type OffSpellKind = 'damage' | 'heal' | 'shield' | 'hold' | 'berserk';
 
 /** Dice as in the cfg: count, sides, bonus (2 6 2 = 2d6 + 2). */
 export type OffSpellDice = readonly [number, number, number];
@@ -60,7 +69,7 @@ export interface OffSpellDef {
     areaRange?: number;
     /** Seconds a shield or a hold lasts. */
     durationSec?: number;
-    /** Strength of a shield (v4 in the cfg: 3 Defense Shield, 2 Protection From Magic; OFF_PROTECT says what it does). */
+    /** Strength of a shield or a hold (v4 in the cfg: 3 Defense Shield, 2 Protection From Magic, OFF_PROTECT; 1 Hold Person, 2 Paralyze, OFF_HOLD). */
     power?: number;
     element?: SpellElement;
     /** Survivors' spell whose flight, explosions and sounds it shows (data/spells.ts); only damage spells. */
@@ -81,25 +90,46 @@ export const OFF_SPELLS: Record<OffSpellId, OffSpellDef> = {
     // ---- Circle 3 ----
     fireBall: { name: 'Fire Ball', magicId: 20, circle: 3, kind: 'damage', mana: 27, reqInt: 26, price: 500, direct: [2, 6, 2], area: [2, 6, 2], areaRange: 2, element: 'fire', look: 'fireBall' },
     greatHeal: { name: 'Great Heal', magicId: 21, circle: 3, kind: 'heal', mana: 28, reqInt: 28, price: 500, direct: [4, 10, 20], castEffect: 'fx.heal.cast' },
-    holdPerson: { name: 'Hold Person', magicId: 25, circle: 3, kind: 'hold', mana: 24, reqInt: 26, price: 500, durationSec: 30, castEffect: 'fx.hold.cast' },
+    holdPerson: { name: 'Hold Person', magicId: 25, circle: 3, kind: 'hold', mana: 24, reqInt: 26, price: 500, durationSec: 30, power: 1, castEffect: 'fx.hold.cast' },
     // ---- Circle 4 ----
     fireStrike: { name: 'Fire Strike', magicId: 30, circle: 4, kind: 'damage', mana: 36, reqInt: 34, price: 1000, direct: [2, 8, 3], area: [2, 8, 3], areaRange: 2, element: 'fire', look: 'fireStrike' },
     lightningArrow: { name: 'Lightning Arrow', magicId: 37, circle: 4, kind: 'damage', mana: 32, reqInt: 38, price: 1100, direct: [4, 5, 10], element: 'lightning', look: 'lightningArrow' },
-    paralyze: { name: 'Paralyze', magicId: 35, circle: 4, kind: 'hold', mana: 35, reqInt: 36, price: 1000, durationSec: 50, castEffect: 'fx.hold.cast' },
+    paralyze: { name: 'Paralyze', magicId: 35, circle: 4, kind: 'hold', mana: 35, reqInt: 36, price: 1000, durationSec: 50, power: 2, castEffect: 'fx.hold.cast' },
     protectionFromMagic: { name: 'Protection From Magic', magicId: 33, circle: 4, kind: 'shield', mana: 35, reqInt: 32, price: 850, durationSec: 60, power: 2, wornEffect: 'fx.aura.ring' },
     // ---- Circle 5 ----
     tripleEnergyBolt: { name: 'Triple Energy Bolt', magicId: 47, circle: 5, kind: 'damage', mana: 40, reqInt: 45, price: 1700, direct: [2, 4, 2], area: [3, 8, 3], areaRange: 2, element: 'lightning', look: 'tripleEnergyBolt' },
     chillWind: { name: 'Chill Wind', magicId: 45, circle: 5, kind: 'damage', mana: 48, reqInt: 50, price: 2000, direct: [2, 8, 3], area: [2, 8, 3], areaRange: 2, element: 'ice', look: 'chillWind' },
     lightning: { name: 'Lightning', magicId: 43, circle: 5, kind: 'damage', mana: 44, reqInt: 47, price: 1700, direct: [4, 7, 12], element: 'lightning', look: 'lightningBolt' },
+    // ---- Circle 6 (Off-8C) ----
+    berserk: { name: 'Berserk', magicId: 50, circle: 6, kind: 'berserk', mana: 57, reqInt: 59, price: 2200, durationSec: 40, castEffect: 'fx.berserk.cast' },
 };
+
+/**
+ * Holds (Off-8C, server iCalculateAttackEffect): a blow ends a hold of strength `breaksOnBlow` (Hold Person) at once;
+ * a stronger one (Paralyze) only on a monster above `strongHitDice`, `strongBreakChance` of the blows. Spell damage
+ * ends any hold.
+ */
+export const OFF_HOLD = {
+    breaksOnBlow: 1,
+    strongHitDice: 50,
+    strongBreakChance: 0.1,
+} as const;
+
+/**
+ * Berserk (Off-8C, server: iAP_SM × 2 when the attacker is berserk and the attack mode is a normal one): what normal
+ * blows are multiplied by. Its red glow is Survivors' Berserk buff's (BUFFS.berserk in data/pickups.ts).
+ */
+export const OFF_BERSERK = {
+    damageFactor: 2,
+} as const;
 
 /** Every spell, by circle and then by the cfg number (the order of the shop and the book). */
 export const OFF_SPELL_IDS: readonly OffSpellId[] = (Object.keys(OFF_SPELLS) as OffSpellId[])
     .sort((a, b) => OFF_SPELLS[a].circle - OFF_SPELLS[b].circle || OFF_SPELLS[a].magicId - OFF_SPELLS[b].magicId);
 
-/** Heal and shields are cast on yourself (Off has no one else to cast them on). */
+/** Heal, shields and Berserk are cast on yourself (or, since Off-8B, on your mercenary). */
 export function offSpellOnSelf(def: OffSpellDef): boolean {
-    return def.kind === 'heal' || def.kind === 'shield';
+    return def.kind === 'heal' || def.kind === 'shield' || def.kind === 'berserk';
 }
 
 /**
@@ -205,6 +235,8 @@ export const OFF_CAST_TEXT = {
     noEffect: 'The spell had no effect.',
     shieldOn: (name: string) => `${name} is on you.`,
     shieldOff: (name: string) => `${name} has worn off.`,
+    berserkOn: 'You feel a berserk rage!',
+    berserkOff: 'The berserk rage has worn off.',
 } as const;
 
 /** Words over a monster. */

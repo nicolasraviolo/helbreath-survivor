@@ -63,8 +63,8 @@ Cada fase se hace por bloques, uno por sesión, y se espera el OK del propietari
 
 - **Off-8 · Critical Strike y mercenarios** (plan del 8-nov-2026, ver DECISIONES.md). Bloques:
   - **8A Critical Strike con cargas ✅** (8-nov-2026; Alt / LT), como Survivors: 1 + nivel/10 cargas, +1 cada 15 s y +1 cada 15 golpes recibidos; daño × (2 + nivel/30), con grito y número grande. Se lanza con Alt o un botón del mando y se ve en la esfera roja del HUD. **El crítico pasivo de la 7C se queda**: son dos cosas distintas.
-  - **8B Guerrero mercenario y la Store**: un NPC de la ciudad lo contrata con oro. **Un mercenario a la vez.** Hace de tanque, con daño medio y equipo según tu nivel. Te sigue si te alejas y aparece a tu lado si te alejas muchísimo. Si cae, queda **inconsciente 45 s** y se levanta. Puedes curarle y lanzarle tus magias de apoyo.
-  - **8C Mago mercenario y la magia Berserk**: lanza Heal / Great Heal, Defense Shield, PFM, Berserk y alguna de daño, según tu nivel.
+  - **8B Guerrero mercenario y la Store ✅** (8-nov-2026): un NPC de la ciudad lo contrata con oro. **Un mercenario a la vez.** Hace de tanque, con daño medio y equipo según tu nivel. Te sigue si te alejas y aparece a tu lado si te alejas muchísimo. Si cae, queda **inconsciente 45 s** y se levanta. Puedes curarle y lanzarle tus magias de apoyo.
+  - **8C Maga mercenaria y la magia Berserk ✅** (8-nov-2026): Kaila lanza Heal / Great Heal, Defense Shield, PFM, Berserk, Paralyze, Hold Person y magias de daño según su INT; Berserk en la tienda (golpes ×2, 40 s). Además: Paralyze aguanta los golpes como el original y los mercenarios recogen el botín olvidado.
   - **8D Frases y detalles**: con poca vida dice frases ("Heal me!", "Zerk me!"...). Contra un monstruo paralizado, el Guerrero le pega por la espalda. El mercenario contratado se guarda.
 - **Off-9 · Raiders** (plan del 8-nov-2026). Los Raiders usan **el mismo cerebro que los mercenarios**, en el bando contrario. Bloques:
   - **9A Aparecer y atacar**: 1 o 2 personajes de la otra ciudad (Guerrero o Mago, nombre en rojo), de nivel parecido al tuyo; si son dos, cada uno algo más flojo. **Solo en Promiseland**, al azar. Van a por ti y a por tu mercenario. Al morir sueltan **oro** y nada más por ahora.
@@ -73,6 +73,7 @@ Cada fase se hace por bloques, uno por sesión, y se espera el OK del propietari
 
 ## Pendiente de decidir más adelante
 
+- **Absolute Magic Protection** (Magic.cfg 65: círculo 7, INT 112, 90 de maná, 13.500 de oro): añadirla cuando haya más magias; Kaila la usará en vez de Protection From Magic (propietario, 8-nov-2026).
 - Pasar Off a una **app independiente** que se juegue sin conexión (idea del propietario, 7-nov-2026).
 
 - Qué valor tiene el multiplicador de experiencia: se mide en Off-2 y Off-7.

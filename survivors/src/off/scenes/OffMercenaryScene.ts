@@ -1,6 +1,7 @@
 // Helbreath Off (Fase Off-8B): la ventana de William, junto al teleport de la ciudad. Dice qué mercenario hay, a qué
 // nivel y cuánto cuesta (pago único según tu nivel), y el oro que tienes. Hire lo contrata (sustituye al que hubiera),
 // Dismiss lo despide, Close cierra. El mundo espera en pausa debajo (openOverlay), como el teleport.
+// Off-8C: dos ofertas, Gorn el Guerrero y Kaila la Maga. Sigue habiendo uno a la vez: contratar a uno despide al otro.
 import { MENU_TEXT_STYLE, MENU_OVERLAY, RUN_CHOICE } from '../../config/menus';
 import { MenuOverlayScene, type MenuOverlayData } from '../../scenes/MenuOverlayScene';
 import type { MenuItem } from '../../ui/MenuList';
@@ -17,6 +18,8 @@ export interface OffMercenarySceneData extends MenuOverlayData {
 
 export class OffMercenaryScene extends MenuOverlayScene {
     protected title = OFF_MERCENARY_TEXT.title;
+    /** Off-8C: two offers and up to three options: the bigger panel (as Settings). */
+    protected override readonly panelScale = MENU_OVERLAY.creditsPanelScale;
     private onHire: OffMercenarySceneData['onHire'] = () => undefined;
     private onDismiss: () => void = () => undefined;
 
@@ -64,5 +67,5 @@ export class OffMercenaryScene extends MenuOverlayScene {
     }
 }
 
-/** The text has four lines (two more than the teleport's question): the options go lower (px). */
-const MERCENARY_LIST_EXTRA_Y = 20;
+/** The text has five lines (three more than the teleport's question): the options go lower (px). */
+const MERCENARY_LIST_EXTRA_Y = 34;

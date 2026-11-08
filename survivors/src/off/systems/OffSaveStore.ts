@@ -180,8 +180,8 @@ class OffSaveStoreImpl {
             const padSpells = noPadSpells().map((_, i) => spells[i]);
             this.data = { ...this.data, spells, spellKeys, padSpells };
         }
-        // Off-8B: ?offmerc starts with the Warrior hired.
-        if (DEBUG_START.offMerc) this.data = { ...this.data, mercenary: 'warrior' };
+        // Off-8B: ?offmerc starts with the Warrior hired (?offmerc=mage, the Mage; Off-8C).
+        if (DEBUG_START.offMerc) this.data = { ...this.data, mercenary: DEBUG_START.offMerc };
         if (DEBUG_START.offMerc || spells.length > 0 || DEBUG_START.offReset || level !== undefined || gear.length > 0 || statsChanged || DEBUG_START.offGold !== undefined || bag.length > 0 || faction !== undefined || warehouse.length > 0) this.write();
     }
 

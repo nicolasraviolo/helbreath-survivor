@@ -7,8 +7,18 @@
 // - Sin nada que pelear: si te alejas, te sigue (buscando camino como tu clic) y corre si va lejos. Quieto, se cura poco
 //   a poco. Si en OFF_MERCENARY.stallMs no se acerca (tú estás en su casilla, una valla en medio), se para y lo vuelve
 //   a pensar; al monstruo al que no llega lo deja un rato (ignoreMs). Nunca se queda en tu casilla.
+// Off-8C, recoger: sin pelea, va a por lo que lleva OFF_MERCENARY.lootWaitMs en el suelo cerca de ti y te lo da (no lo
+//   que tiraste tú). Va antes que atacar a un monstruo que solo pasea, pero después de los que os atacan y del tuyo.
+// Fase Off-8C, la maga (`merc.isCaster`): no pega. Con una magia a medias espera quieta y, lista, la suelta. Si no,
+// por orden: te cura si te queda poca vida (OFF_MERCENARY_CASTER.healBelow), se cura ella, y en pelea te pone Defense
+// Shield (Protection From Magic si en el pit hay monstruos que lanzan magia), Berserk, Paralyze al monstruo que atacas
+// si aguanta muchos golpes tuyos y Hold Person a otro si te atacan varios. Después, magias de daño desde lejos
+// (castTiles), guardando maná para un Heal. Nunca a un monstruo quieto por Hold o Paralyze (la magia lo soltaría), y
+// mientras haya uno cerca, solo al que vaya a por ella; si uno que va a por ella se acerca (keepAwayTiles), retrocede.
 import { OFF_COMBAT, offAttackMs } from '../data/offCombat';
-import { OFF_MERCENARY } from '../data/offMercenary';
+import { OFF_MERCENARY, OFF_MERCENARY_CASTER, offMercenarySpells } from '../data/offMercenary';
+import { OFF_SPELLS, type OffSpellId } from '../data/offSpells';
+import type { OffSpellAlly } from './OffSpells';
 import { OFF_STEP_MS } from '../data/offWorld';
 import type { OffMercenary } from '../entities/OffMercenary';
 import type { OffMonster } from '../entities/OffMonster';
@@ -16,8 +26,30 @@ import { PlayerState } from '../../hb/playerAppearance';
 import { isFromBehind, offHitChance, tileDistance } from './OffCombatRules';
 import { directionTowards, type TilePoint } from './TileMover';
 
+/** Off-8C: what the Mage looks at about you before casting on you. */
+export interface OffOwnerNeeds {
+    /** Health / maximum, 0..1. */
+    hpShare: number;
+    shielded: boolean;
+    berserk: boolean;
+    /** A monster that casts spells is near you (Protection From Magic beats Defense Shield then). */
+    casterNear: boolean;
+    /** Your normal blow's average damage (Paralyze is only worth it on a monster with health for many of them). */
+    blowDamage: number;
+}
+
 /** What the mercenary needs to know about the world. */
 export interface OffMercenaryWorld {
+    /** Off-8C: your health, shield and Berserk, or undefined while you are dead. */
+    ownerNeeds(): OffOwnerNeeds | undefined;
+    /** Off-8C: you, as the target of the Mage's Heal, shields and Berserk. */
+    ownerAlly(): OffSpellAlly | undefined;
+    /** Off-8C: the tile of the loot it should pick up for you now, if any. */
+    lootFor(merc: OffMercenary): TilePoint | undefined;
+    /** Off-8C: it takes what lies on that tile for you. */
+    mercPicksUp(merc: OffMercenary, x: number, y: number): void;
+    /** Off-8C: it could not get to that loot: left alone. */
+    mercGivesUpLoot(x: number, y: number): void;
     /** Your tile, or undefined while you are dead. */
     ownerTile(): TilePoint | undefined;
     /** The monster you are attacking, if any. */
@@ -58,14 +90,21 @@ export function updateMercenary(merc: OffMercenary, deltaMs: number, world: OffM
             merc.target = undefined;
         }
     }
-    const target = owner ? pickTarget(merc, owner, world) : undefined;
+    // Off-8C: the Mage with a spell on the way only waits for it (and lets it go when ready).
+    if (merc.isCaster && castInProgress(merc, world)) return false;
+    let target = owner ? pickTarget(merc, owner, world) : undefined;
+    // Off-8C: a monster that is only walking about (not going for anyone, not yours) waits while there is loot to take.
+    if (target && target.mode !== 'attack' && target !== world.ownerTarget() && world.lootFor(merc)) target = undefined;
     if (target !== merc.target) resetChase(merc);
     merc.target = target;
+    if (merc.isCaster && owner && support(merc, owner, target !== undefined, world)) return false;
     if (target) {
         merc.regenMs = 0;
-        fight(merc, target, world, deltaMs);
+        if (!merc.isCaster) fight(merc, target, world, deltaMs);
+        else if (owner) castFight(merc, target, world, owner, deltaMs);
     } else {
-        follow(merc, owner, world, deltaMs);
+        // Off-8C: nothing to fight: first the loot left on the ground, then back to you.
+        if (!collectLoot(merc, owner, world, deltaMs)) follow(merc, owner, world, deltaMs);
         regen(merc, deltaMs);
     }
     const running = away > OFF_MERCENARY.runTiles || (target !== undefined && tileDistance(mover.tileX, mover.tileY, target.mover.tileX, target.mover.tileY) > OFF_MERCENARY.runTiles);
@@ -123,6 +162,217 @@ function fight(merc: OffMercenary, target: OffMonster, world: OffMercenaryWorld,
     merc.cooldownMs = attackMs;
     merc.blow = { monster: target, lands, leftMs: attackMs * OFF_COMBAT.hitShare };
     world.mercSwings();
+}
+
+// ---- The Mage (Off-8C) ----
+
+/**
+ * Preparing: waits. Ready: casts it on who it was for. A dead monster, a far owner, or a damage spell whose monster
+ * got held meanwhile (it would break the hold) drop it. True while busy.
+ */
+function castInProgress(merc: OffMercenary, world: OffMercenaryWorld): boolean {
+    const spells = merc.spells;
+    if (!spells?.busy) return false;
+    if (spells.state === 'preparing') return true;
+    const goal = merc.castFor;
+    const id = spells.spell;
+    merc.castFor = undefined;
+    if (!goal || id === undefined) {
+        spells.cancel();
+        return false;
+    }
+    const before = spells.casts;
+    if (goal.on === 'owner') {
+        const ally = world.ownerAlly();
+        if (ally) spells.release(ally.x, ally.y, undefined, ally);
+        else spells.cancel();
+    } else if (goal.on === 'self') {
+        spells.release(merc.x, merc.y, undefined);
+    } else if (goal.monster.isAlive && !(OFF_SPELLS[id].kind === 'damage' && breaksAHold(id, goal.monster, world))) {
+        spells.release(goal.monster.x, goal.monster.y, goal.monster);
+    } else {
+        spells.cancel();
+    }
+    if (spells.casts > before) merc.castCount[id] = (merc.castCount[id] ?? 0) + 1;
+    return false;
+}
+
+/**
+ * In order: heals you or itself; fighting, a shield and Berserk on you, Paralyze on the monster you attack (when it
+ * has health for many of your blows) and Hold Person on another one when several go for you. True when it started one.
+ */
+function support(merc: OffMercenary, owner: TilePoint, fighting: boolean, world: OffMercenaryWorld): boolean {
+    const needs = world.ownerNeeds();
+    const caster = OFF_MERCENARY_CASTER;
+    const near = tileDistance(merc.mover.tileX, merc.mover.tileY, owner.x, owner.y) <= caster.supportTiles;
+    const heal = bestHeal(merc);
+    if (heal && needs && near && needs.hpShare < caster.healBelow) return startCast(merc, heal, { on: 'owner' }, owner);
+    if (heal && merc.hp / Math.max(1, merc.maxHp) < caster.healBelow) return startCast(merc, heal, { on: 'self' }, undefined);
+    if (!fighting || !needs || !near) return false;
+    if (!needs.shielded) {
+        const shield: OffSpellId = needs.casterNear ? 'protectionFromMagic' : 'defenseShield';
+        if (canCast(merc, shield)) return startCast(merc, shield, { on: 'owner' }, owner);
+    }
+    if (!needs.berserk && canCast(merc, 'berserk')) return startCast(merc, 'berserk', { on: 'owner' }, owner);
+    // Holds are extras: only with mana left for a Heal afterwards.
+    const yours = world.ownerTarget();
+    if (yours && !yours.isHeld && inCastRange(merc, yours) && canCastKeeping(merc, 'paralyze')
+        && yours.hp >= needs.blowDamage * caster.paralyzeMinBlows) {
+        return startCast(merc, 'paralyze', { on: 'monster', monster: yours }, tileOf(yours));
+    }
+    const attackers = world.monsters.filter((m) => m.isAlive && m.mode === 'attack' && m.victim === 'player' && !m.isHeld
+        && tileDistance(m.mover.tileX, m.mover.tileY, owner.x, owner.y) <= caster.attackersTiles);
+    if (attackers.length >= caster.holdWhenAttackers && canCastKeeping(merc, 'holdPerson')) {
+        const other = attackers.find((m) => m !== yours && inCastRange(merc, m));
+        if (other) return startCast(merc, 'holdPerson', { on: 'monster', monster: other }, tileOf(other));
+    }
+    return false;
+}
+
+/**
+ * From afar: walks closer until in range, steps back when one going for it gets close, and casts damage spells. Never
+ * at a held monster (spells break holds), and while one is held near you, only at the ones going for it: the rest of
+ * the time it waits, ready for its support spells.
+ */
+function castFight(merc: OffMercenary, target: OffMonster, world: OffMercenaryWorld, owner: TilePoint, deltaMs: number): void {
+    const mover = merc.mover;
+    const caster = OFF_MERCENARY_CASTER;
+    const distance = tileDistance(mover.tileX, mover.tileY, target.mover.tileX, target.mover.tileY);
+    if (distance > caster.castTiles) {
+        if (stalled(merc, distance, deltaMs)) {
+            merc.ignored = target;
+            merc.ignoredLeftMs = OFF_MERCENARY.ignoreMs;
+            merc.target = undefined;
+            mover.cancel();
+            resetChase(merc);
+            return;
+        }
+        if (!merc.character.isActing) mover.approach(target.mover.tileX, target.mover.tileY, caster.castTiles);
+        return;
+    }
+    resetChase(merc);
+    if (mover.isMoving) return;
+    mover.cancel();
+    const chaser = world.monsters.find((m) => m.isAlive && m.mode === 'attack' && m.victim === 'merc' && !m.isHeld && inCastRange(merc, m));
+    if (chaser && tileDistance(mover.tileX, mover.tileY, chaser.mover.tileX, chaser.mover.tileY) <= caster.keepAwayTiles
+        && mover.stepAwayFrom(chaser.mover.tileX, chaser.mover.tileY, OFF_STEP_MS.run)) return;
+    const holding = world.monsters.some((m) => m.isAlive && m.isHeld
+        && tileDistance(m.mover.tileX, m.mover.tileY, owner.x, owner.y) <= OFF_MERCENARY.leashTiles);
+    const aim = holding ? chaser : target.isHeld ? chaser : target;
+    if (!aim) return;
+    const spell = bestDamage(merc, aim, world);
+    if (spell) startCast(merc, spell, { on: 'monster', monster: aim }, tileOf(aim));
+}
+
+/** Starts preparing that spell, looking at who it is for. */
+function startCast(merc: OffMercenary, id: OffSpellId, goal: NonNullable<OffMercenary['castFor']>, at: TilePoint | undefined): boolean {
+    const spells = merc.spells;
+    if (!spells || merc.character.isActing) return false;
+    merc.mover.cancel();
+    if (merc.mover.isMoving) return false;
+    if (at) {
+        const direction = directionTowards(merc.mover.tileX, merc.mover.tileY, at.x, at.y);
+        if (direction !== undefined) merc.mover.face(direction);
+    }
+    if (!spells.pressSpell(id)) return false;
+    merc.castFor = goal;
+    return true;
+}
+
+function knows(merc: OffMercenary, id: OffSpellId): boolean {
+    return offMercenarySpells(merc.stats.int).includes(id);
+}
+
+/** It knows the spell (its INT) and has the mana. */
+function canCast(merc: OffMercenary, id: OffSpellId): boolean {
+    return knows(merc, id) && merc.mana >= OFF_SPELLS[id].mana;
+}
+
+/** As canCast, and mana for a Heal stays afterwards (OFF_MERCENARY_CASTER.healReserve). */
+function canCastKeeping(merc: OffMercenary, id: OffSpellId): boolean {
+    return knows(merc, id) && merc.mana - OFF_SPELLS[id].mana >= healReserve(merc);
+}
+
+function healReserve(merc: OffMercenary): number {
+    const heal = knows(merc, 'greatHeal') ? OFF_SPELLS.greatHeal : OFF_SPELLS.heal;
+    return heal.mana * OFF_MERCENARY_CASTER.healReserve;
+}
+
+/** Great Heal if it knows it and has the mana, else Heal. */
+function bestHeal(merc: OffMercenary): OffSpellId | undefined {
+    if (canCast(merc, 'greatHeal')) return 'greatHeal';
+    return canCast(merc, 'heal') ? 'heal' : undefined;
+}
+
+/** Its strongest damage spell that keeps mana for a Heal and whose area would not break a hold near that monster. */
+function bestDamage(merc: OffMercenary, monster: OffMonster, world: OffMercenaryWorld): OffSpellId | undefined {
+    let best: OffSpellId | undefined;
+    for (const id of offMercenarySpells(merc.stats.int)) {
+        const def = OFF_SPELLS[id];
+        if (def.kind !== 'damage' || !canCastKeeping(merc, id) || breaksAHold(id, monster, world)) continue;
+        if (!best || def.circle > OFF_SPELLS[best].circle) best = id;
+    }
+    return best;
+}
+
+/** That spell on that monster would hit a held one (itself, or another in its area). */
+function breaksAHold(id: OffSpellId, monster: OffMonster, world: OffMercenaryWorld): boolean {
+    if (monster.isHeld) return true;
+    const range = OFF_SPELLS[id].area ? OFF_SPELLS[id].areaRange ?? 0 : -1;
+    if (range < 0) return false;
+    return world.monsters.some((m) => m.isAlive && m.isHeld
+        && Math.abs(m.mover.tileX - monster.mover.tileX) <= range && Math.abs(m.mover.tileY - monster.mover.tileY) <= range);
+}
+
+function inCastRange(merc: OffMercenary, monster: OffMonster): boolean {
+    return tileDistance(merc.mover.tileX, merc.mover.tileY, monster.mover.tileX, monster.mover.tileY) <= OFF_MERCENARY_CASTER.castTiles;
+}
+
+function tileOf(monster: OffMonster): TilePoint {
+    return { x: monster.mover.tileX, y: monster.mover.tileY };
+}
+
+/**
+ * Off-8C: walks to the loot that has lain a while near you (OffMercenaryWorld.lootFor) and takes it for you on its
+ * tile. Not getting closer (OFF_MERCENARY.stallMs), it gives up on that one. True while it is busy with loot.
+ */
+function collectLoot(merc: OffMercenary, owner: TilePoint | undefined, world: OffMercenaryWorld, deltaMs: number): boolean {
+    const mover = merc.mover;
+    const loot = owner ? world.lootFor(merc) : undefined;
+    if (!loot) {
+        if (merc.lootTile) {
+            merc.lootTile = undefined;
+            mover.cancel();
+            resetChase(merc);
+        }
+        return false;
+    }
+    if (mover.tileX === loot.x && mover.tileY === loot.y) {
+        if (!mover.isMoving) {
+            world.mercPicksUp(merc, loot.x, loot.y);
+            merc.lootTile = undefined;
+            resetChase(merc);
+        }
+        return true;
+    }
+    const goal = merc.lootTile;
+    if (!goal || goal.x !== loot.x || goal.y !== loot.y) {
+        merc.lootTile = { x: loot.x, y: loot.y };
+        resetChase(merc);
+        const path = world.findPath({ x: mover.tileX, y: mover.tileY }, loot, OFF_MERCENARY.pathMaxTiles);
+        if (path && path.length > 0) mover.goAlong(path);
+        else mover.goTo(loot.x, loot.y);
+        return true;
+    }
+    if (stalled(merc, tileDistance(mover.tileX, mover.tileY, loot.x, loot.y), deltaMs)) {
+        world.mercGivesUpLoot(loot.x, loot.y);
+        merc.lootTile = undefined;
+        mover.cancel();
+        resetChase(merc);
+        return false;
+    }
+    if (!mover.isTravelling) mover.goTo(loot.x, loot.y);
+    return true;
 }
 
 /** Back to you when you are far; it stops a couple of tiles away. */

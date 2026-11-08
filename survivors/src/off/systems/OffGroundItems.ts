@@ -6,6 +6,8 @@
 // Quien lo usa (OffBattle) decide qué pasa al recoger: `take` dice si ha cabido y, si no, por qué (bolsa llena o
 // límite de pociones, Off-4B); se avisa una sola vez por casilla (`onLeft`).
 // Off-4B: lo que tiras desde el inventario cae en tu casilla; como ya estás en ella, no se recoge hasta que vuelvas.
+// Off-8C: el mercenario recoge lo que lleva un rato en el suelo (`forMerc`, `pickUpByMerc`): no lo que tiraste tú, ni
+// lo que ya no le cupo una vez.
 import type Phaser from 'phaser';
 import { Pool } from '../../utils/Pool';
 import { OffGroundItem, type OffGroundContent } from '../entities/OffGroundItem';
@@ -47,11 +49,46 @@ export class OffGroundItems {
         return dropped;
     }
 
-    public drop(content: OffGroundContent, tileX: number, tileY: number): void {
+    public drop(content: OffGroundContent, tileX: number, tileY: number, fromPlayer = false): void {
         const picture = 'gold' in content ? OFF_GOLD_PICTURE : offBagItemPicture(content.item, offSaveStore.character.look.gender);
         if (!picture) return;
         const sharing = this.pool.active.filter((g) => g.tileX === tileX && g.tileY === tileY).length;
-        this.pool.acquire().drop(content, tileX, tileY, picture, sharing);
+        this.pool.acquire().drop(content, tileX, tileY, picture, sharing, fromPlayer);
+    }
+
+    /**
+     * Off-8C: the item the mercenary at (x, y) should go for: on the ground at least `waitMs`, within `range` tiles of
+     * `owner`, not yours nor given up; the nearest to it.
+     */
+    public forMerc(x: number, y: number, owner: TilePoint, waitMs: number, range: number): OffGroundItem | undefined {
+        let best: OffGroundItem | undefined;
+        let bestGap = Number.POSITIVE_INFINITY;
+        for (const item of this.pool.active) {
+            if (item.fromPlayer || item.mercSkip || item.ageMs < waitMs) continue;
+            if (Math.max(Math.abs(item.tileX - owner.x), Math.abs(item.tileY - owner.y)) > range) continue;
+            const gap = Math.max(Math.abs(item.tileX - x), Math.abs(item.tileY - y));
+            if (gap < bestGap) {
+                best = item;
+                bestGap = gap;
+            }
+        }
+        return best;
+    }
+
+    /** Off-8C: the mercenary takes what lies on its tile for you (`take`); what doesn't fit stays and it gives up on it. */
+    public pickUpByMerc(x: number, y: number, take: (content: OffGroundContent) => OffEquipResult): void {
+        const here = this.pool.active.filter((g) => g.tileX === x && g.tileY === y && !g.fromPlayer);
+        for (const item of here) {
+            if (take(item.content) === 'ok') this.remove(item);
+            else item.mercSkip = true;
+        }
+    }
+
+    /** Off-8C: the mercenary could not get there: it leaves those alone. */
+    public mercGivesUp(x: number, y: number): void {
+        for (const item of this.pool.active) {
+            if (item.tileX === x && item.tileY === y) item.mercSkip = true;
+        }
     }
 
     /** Ages the items; on arriving at a new tile (`player`, undefined while dead), picks up what lies there. */

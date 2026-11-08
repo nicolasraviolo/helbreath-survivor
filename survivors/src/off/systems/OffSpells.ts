@@ -13,6 +13,9 @@
 //   (`castEffect`). Con el mando: pressSpell + la escena suelta la magia sola al objetivo (OffWorldScene).
 // - Off-8B: Heal y escudos también van a tu mercenario (`ally` en release): clic sobre él, o con el mando el stick
 //   derecho apuntándole (OffWorldScene decide; aquí solo se lanzan).
+// - Off-8C: Berserk se lanza como Heal (a ti o a tu mercenario: `enrage`). La maga mercenaria usa otra copia de esta
+//   clase con su propio `host` (OffMercenarySpells): sabe sus magias y no lleva arma, así que `knows` y `handsRefusal`
+//   los pone el host en vez de mirar tu guardado.
 import Phaser from 'phaser';
 import { DEPTH_DAMAGE_NUMBERS, DEPTH_EFFECT_OFFSET, TILE_SIZE } from '../../config/gameConfig';
 import { EFFECTS, effectAnimationKey, type EffectDef, type EffectKey } from '../../config/effects';
@@ -39,6 +42,10 @@ const CASTING_CIRCLE_DEPTH = EFFECTS['fx.castingCircle'].depthOffset;
 /** What the spells need from the battle. */
 export interface OffSpellHost {
     readonly dead: boolean;
+    /** Whether the caster knows that spell (the player: learnt at the shop). */
+    knows(id: OffSpellId): boolean;
+    /** Why its hands can't cast (a weapon or a shield held), or undefined. */
+    handsRefusal(): string | undefined;
     readonly level: number;
     readonly stats: Readonly<OffStats>;
     /** Mana now; spending it. */
@@ -54,6 +61,8 @@ export interface OffSpellHost {
     healPlayer(amount: number): void;
     /** Defense Shield / Protection From Magic on the player; false when one is already on (no effect). */
     protect(spell: OffSpellId): boolean;
+    /** Berserk on the caster for that long (Off-8C); false when it is already on (no effect). */
+    enrage(durationMs: number): boolean;
     /** Hold Person / Paralyze took hold of a monster. */
     spellHeld(monster: OffMonster): void;
     /** "Failed!" over the player, and its flinch. */
@@ -70,6 +79,8 @@ export interface OffSpellAlly {
     heal(amount: number): void;
     /** A shield on it; false when it already has one (no effect). */
     protect(spell: OffSpellId): boolean;
+    /** Berserk on it (Off-8C); false when it is already on. */
+    enrage(durationMs: number): boolean;
 }
 
 /** Where the spell is: nothing, being prepared, or ready for the click. */
@@ -164,8 +175,8 @@ export class OffSpells {
     constructor(
         scene: Phaser.Scene,
         private readonly host: OffSpellHost,
-        private readonly mover: TileMover,
-        private readonly character: OffCharacter,
+        private mover: TileMover,
+        private character: OffCharacter,
         private readonly audio: AudioSystem,
     ) {
         this.circle = smoothSprite(scene.add.sprite(0, 0, '__DEFAULT')).setActive(false).setVisible(false);
@@ -174,6 +185,14 @@ export class OffSpells {
         this.shots = new Pool(() => new OffSpellShot(scene));
         this.effects = new Pool(() => new Effect(scene));
         this.lightnings = new Pool(() => new LightningArc(scene));
+    }
+
+    /** Off-8C: casts from another body from now on (the Mage's spells move to the next Mage hired; pools are kept). */
+    public attach(mover: TileMover, character: OffCharacter): void {
+        this.cancel();
+        this.nameText.container.setVisible(false);
+        this.mover = mover;
+        this.character = character;
     }
 
     /** True while a spell is being prepared or waits for its click. */
@@ -306,16 +325,15 @@ export class OffSpells {
 
     /** Why that spell can't start now, or undefined. `releasing`: the cooldown was already checked. */
     private refusal(id: OffSpellId, def: OffSpellDef, releasing = false): string | undefined {
-        if (!offSaveStore.character.spells.includes(id)) return OFF_CAST_TEXT.unknown(def.name);
-        const equipment = offSaveStore.character.equipment;
-        if (equipment.weapon !== undefined) return OFF_CAST_TEXT.weapon;
-        if (equipment.shield !== undefined) return OFF_CAST_TEXT.shield;
+        if (!this.host.knows(id)) return OFF_CAST_TEXT.unknown(def.name);
+        const hands = this.host.handsRefusal();
+        if (hands) return hands;
         if (this.host.mana < def.mana) return OFF_CAST_TEXT.noMana;
         if (!releasing && this.cooldownMs > 0) return OFF_CAST_TEXT.tooSoon;
         return undefined;
     }
 
-    /** Heal or a shield, on yourself or on `ally` (Off-8B). */
+    /** Heal, a shield or Berserk, on yourself or on `ally` (Off-8B). */
     private castOnSelf(id: OffSpellId, def: OffSpellDef, ally: OffSpellAlly | undefined): boolean {
         this.cooldownMs = OFF_CASTING.betweenCastsMs;
         if (!rollCastWorks(def.circle, this.caster())) {
@@ -337,6 +355,9 @@ export class OffSpells {
             else this.host.healPlayer(rollHeal(def.direct));
         } else if (def.kind === 'shield' && !(ally ? ally.protect(id) : this.host.protect(id))) {
             this.host.eventLine(OFF_CAST_TEXT.noEffect);
+        } else if (def.kind === 'berserk') {
+            const ms = (def.durationSec ?? 0) * 1000;
+            if (!(ally ? ally.enrage(ms) : this.host.enrage(ms))) this.host.eventLine(OFF_CAST_TEXT.noEffect);
         }
         return true;
     }
@@ -352,7 +373,7 @@ export class OffSpells {
             this.host.spellResisted(monster);
             return;
         }
-        if (monster.hold((def.durationSec ?? 0) * 1000)) this.host.spellHeld(monster);
+        if (monster.hold((def.durationSec ?? 0) * 1000, def.power ?? 0)) this.host.spellHeld(monster);
         else this.host.eventLine(OFF_CAST_TEXT.noEffect);
     }
 

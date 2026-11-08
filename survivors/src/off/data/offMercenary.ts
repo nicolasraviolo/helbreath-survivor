@@ -8,15 +8,24 @@
 // - Tus magias de apoyo (Heal, Great Heal, Defense Shield, Protection From Magic) se le pueden lanzar: clic sobre él, o
 //   con el mando, el stick derecho apuntándole mientras la magia está lista.
 // Sus stats crecen con tu nivel como un Guerrero que lo pone todo en STR, VIT y DEX (los números son nuestros).
+// Fase Off-8C (propietario, 8-nov-2026): la maga Kaila (la maga de Survivors), también de William. Poca vida, sube INT
+// y MAG, no pega: se queda atrás y lanza magias con su maná. Propietario (8-nov-2026, después de verla):
+// - Poco maná al principio, recuperado como un jugador del original × 2 (1d MAG cada 10 s en vez de cada 20 s).
+// - Sabe las magias de OFF_MERCENARY_SPELLS cuya INT ya tiene (como la tienda): su INT empieza en 21 (Heal y Magic
+//   Missile) y sube 1,3 por tu nivel, así que va ganando una de vez en cuando; Berserk (INT 59) llega a tu nivel 30.
+// - Orden: curarte, curarse, escudo (Protection From Magic si en el pit hay monstruos que lanzan magia), Berserk,
+//   Paralyze al monstruo que atacas si tiene vida para muchos golpes, Hold Person a otro si te atacan varios, daño.
+// - Con un monstruo paralizado no lanza magias de daño (la romperían), salvo al que vaya a por ella.
 import type { CharacterLook } from '../../data/appearance';
 import { FIXED_CHARACTERS } from '../../data/characterSlots';
 import type { DyeColorId, WornColors } from '../../data/dyes';
 import type { OffEquipment } from './offItems';
 import type { OffStats } from './offCharacter';
+import { OFF_SPELLS, type OffSpellId } from './offSpells';
 
-export type OffMercenaryId = 'warrior';
+export type OffMercenaryId = 'warrior' | 'mage';
 
-export const OFF_MERCENARY_IDS: readonly OffMercenaryId[] = ['warrior'];
+export const OFF_MERCENARY_IDS: readonly OffMercenaryId[] = ['warrior', 'mage'];
 
 export function isOffMercenaryId(id: unknown): id is OffMercenaryId {
     return typeof id === 'string' && (OFF_MERCENARY_IDS as readonly string[]).includes(id);
@@ -27,32 +36,25 @@ export interface OffMercenaryDef {
     name: string;
     /** ...and what it is (the Mercenaries window: "Gorn the Warrior"). */
     kind: string;
+    /** A tank that hits (the Warrior) or a caster that stays back (the Mage, Off-8C). */
+    role: 'tank' | 'caster';
+    /** Its body (skin, hair, gender). */
+    body: CharacterLook;
     /** Price: this much gold × your level, paid once. */
     pricePerLevel: number;
-    /** Its stats at your level: base + perLevel × level (INT and MAG stay at the base). */
+    /** Its stats at your level: base + perLevel × level (a stat missing here stays at the base; `statStart` changes the base of some). */
     statBase: number;
-    statPerLevel: Readonly<Pick<OffStats, 'str' | 'vit' | 'dex'>>;
+    statStart?: Readonly<Partial<OffStats>>;
+    statPerLevel: Readonly<Partial<OffStats>>;
     /** Its health is the original's formula for its stats, times this (a tank). */
     hpFactor: number;
     /** Its blows' damage, times this ("medium" damage). */
     damageFactor: number;
     /** Extra defence on top of 2 × DEX and its armour. */
     defenseBonus: number;
+    /** Its gear by your level (OFF_MERCENARY_GEAR). */
+    gear: readonly { fromLevel: number; equipment: Readonly<OffEquipment> }[];
 }
-
-export const OFF_MERCENARIES: Readonly<Record<OffMercenaryId, OffMercenaryDef>> = {
-    warrior: {
-        // The owner (8-nov-2026): a name, not just "Warrior". Gorn, the Survivors warrior (data/characterSlots.ts).
-        name: 'Gorn',
-        kind: 'Warrior',
-        pricePerLevel: 100,
-        statBase: 12,
-        statPerLevel: { str: 1, vit: 1.2, dex: 0.8 },
-        hpFactor: 1.5,
-        damageFactor: 0.7,
-        defenseBonus: 20,
-    },
-};
 
 /**
  * Its gear by your level: the last row whose `fromLevel` you have reached (one hand and a shield, as a tank). Always a
@@ -66,6 +68,87 @@ export const OFF_MERCENARY_GEAR: readonly { fromLevel: number; equipment: Readon
     { fromLevel: 50, equipment: { weapon: 'warAxe', shield: 'knightShield', body: 'chainMail', legs: 'plateLeggings', boots: 'longBoots', helm: 'fullHelmet', cape: 'cape' } },
     { fromLevel: 70, equipment: { weapon: 'warAxe', shield: 'towerShield', body: 'plateMail', legs: 'plateLeggings', boots: 'longBoots', helm: 'fullHelmet', cape: 'cape' } },
 ];
+
+/** The Mage's gear by your level: robes and hats, no weapon or shield (they stop spells). Cape and boots dyed too. */
+export const OFF_MAGE_GEAR: readonly { fromLevel: number; equipment: Readonly<OffEquipment> }[] = [
+    { fromLevel: 1, equipment: { boots: 'longBoots', cape: 'cape' } },
+    { fromLevel: 20, equipment: { body: 'robe', boots: 'longBoots', cape: 'cape' } },
+    { fromLevel: 80, equipment: { body: 'wizardRobe', boots: 'longBoots', cape: 'cape' } },
+    { fromLevel: 90, equipment: { body: 'wizardRobe', helm: 'wizardCap', boots: 'longBoots', cape: 'cape' } },
+    { fromLevel: 120, equipment: { body: 'wizardRobe', helm: 'wizardHat', boots: 'longBoots', cape: 'cape' } },
+];
+
+export const OFF_MERCENARIES: Readonly<Record<OffMercenaryId, OffMercenaryDef>> = {
+    warrior: {
+        // The owner (8-nov-2026): a name, not just "Warrior". Gorn, the Survivors warrior (data/characterSlots.ts).
+        name: 'Gorn',
+        kind: 'Warrior',
+        pricePerLevel: 100,
+        statBase: 12,
+        statPerLevel: { str: 1, vit: 1.2, dex: 0.8 },
+        hpFactor: 1.5,
+        damageFactor: 0.7,
+        defenseBonus: 20,
+        role: 'tank',
+        body: FIXED_CHARACTERS.find((c) => c.name === 'Gorn')?.look ?? { gender: 'male', skin: 2, hairStyle: 2, hairColor: 0, underwear: 5 },
+        gear: OFF_MERCENARY_GEAR,
+    },
+    mage: {
+        // Kaila, the Survivors mage (data/characterSlots.ts). Less health than you, no blows: spells only.
+        name: 'Kaila',
+        kind: 'Mage',
+        pricePerLevel: 150,
+        statBase: 12,
+        // INT 21 at your level 1 (Heal and Magic Missile), 59 at 30 (Berserk). MAG low at first: little mana.
+        statStart: { int: 20 },
+        statPerLevel: { vit: 0.6, dex: 0.6, int: 1.3, mag: 1.6 },
+        hpFactor: 0.9,
+        damageFactor: 0.3,
+        defenseBonus: 0,
+        role: 'caster',
+        body: FIXED_CHARACTERS.find((c) => c.name === 'Kaila')?.look ?? { gender: 'female', skin: 1, hairStyle: 4, hairColor: 2, underwear: 3 },
+        gear: OFF_MAGE_GEAR,
+    },
+};
+
+/**
+ * The spells the Mage uses; she knows each one once her INT reaches its `reqInt` (as the shop). With her INT that is:
+ * Heal and Magic Missile at your level 1, Energy Bolt 4, Defense Shield, Fire Ball and Hold Person 5, Great Heal 7,
+ * Protection From Magic 10, Fire Strike 11, Paralyze 13, Lightning 21, Berserk 30.
+ */
+export const OFF_MERCENARY_SPELLS: readonly OffSpellId[] = [
+    'heal', 'magicMissile', 'energyBolt', 'defenseShield', 'fireBall', 'holdPerson', 'greatHeal',
+    'protectionFromMagic', 'fireStrike', 'paralyze', 'lightning', 'berserk',
+];
+
+/** Every spell the Mage knows with that INT. */
+export function offMercenarySpells(int: number): OffSpellId[] {
+    return OFF_MERCENARY_SPELLS.filter((id) => int >= OFF_SPELLS[id].reqInt);
+}
+
+/** How the Mage casts (tiles, shares and ms; our numbers). */
+export const OFF_MERCENARY_CASTER = {
+    /** It casts at monsters from this far (and walks closer when farther)... */
+    castTiles: 6,
+    /** ...and steps back when a monster going for it is this close. */
+    keepAwayTiles: 2,
+    /** It heals you (or itself) under this share of health... */
+    healBelow: 0.55,
+    /** ...and casts on you only within this many tiles. */
+    supportTiles: 8,
+    /** Mana back: 1d(MAG), as a player's batch (offManaRegen), every `manaRegenMs` (a player's is 20 s: twice as often). */
+    manaRegenMs: 10_000,
+    /** Damage spells only if this much mana stays for a heal afterwards (× the best heal's cost). */
+    healReserve: 1,
+    /** A monster that casts (the Cyclops) in the pit of a monster this close to you: Protection From Magic instead of Defense Shield. */
+    casterNearTiles: 10,
+    /** Paralyze the monster you attack only when its health is at least this many of your normal blows (not a Slime). */
+    paralyzeMinBlows: 6,
+    /** Hold Person on another monster when at least this many go for you at once. */
+    holdWhenAttackers: 2,
+    /** ...counting the ones this close to you. */
+    attackersTiles: 3,
+} as const;
 
 /** How it behaves (tiles, ms and shares). */
 export const OFF_MERCENARY = {
@@ -103,10 +186,13 @@ export const OFF_MERCENARY = {
     ignoreMs: 6000,
     /** Pathfinding when following (tiles of search). */
     pathMaxTiles: 60,
+    /**
+     * Off-8C (the owner: what a supporter does): with nothing to fight, it picks up what has lain on the ground this
+     * long, this close to you, for your bag (not what you dropped).
+     */
+    lootWaitMs: 5000,
+    lootTiles: 10,
 } as const;
-
-/** Its body: Gorn's from Survivors (darker skin, other hair than the novice), so it isn't taken for you. */
-export const OFF_MERCENARY_BODY: CharacterLook = FIXED_CHARACTERS.find((c) => c.name === 'Gorn')?.look ?? { gender: 'male', skin: 2, hairStyle: 2, hairColor: 0, underwear: 5 };
 
 /** Colour of its cape and boots (a dye number, data/dyes.ts: 4 = Crimson). */
 export const OFF_MERCENARY_DYE: DyeColorId = 4;
@@ -131,7 +217,7 @@ export const OFF_MERCENARY_LOOK = {
 /** What the Mercenaries window and the world say. */
 export const OFF_MERCENARY_TEXT = {
     npcName: 'William',
-    npcLine: 'Need a sword at your side?\nI have brave men for hire.',
+    npcLine: 'Need a sword or a spell at your side?\nI have brave fighters for hire.',
     title: 'Mercenaries',
     offer: (name: string, kind: string, level: number, price: number) => `${name} the ${kind} · Level ${level} · ${price} gold`,
     yourGold: (gold: number) => `You have ${gold} gold.`,
@@ -146,19 +232,25 @@ export const OFF_MERCENARY_TEXT = {
     up: (name: string) => `${name} stands up again.`,
     downLabel: (seconds: number) => `Down ${seconds}`,
     shieldOn: (spell: string, name: string) => `${spell} is on ${name}.`,
+    /** Off-8C: it picked up loot for you. */
+    pickedGold: (name: string, gold: number) => `${name} picked up ${gold} Gold.`,
+    pickedItem: (name: string, item: string) => `${name} picked up ${item}.`,
+    /** Off-8C: Berserk on it. */
+    berserkOn: (name: string) => `${name} is in a berserk rage!`,
 } as const;
 
 /** Its stats at your level. */
 export function offMercenaryStats(id: OffMercenaryId, level: number): OffStats {
     const def = OFF_MERCENARIES[id];
-    const grow = (perLevel: number) => Math.floor(def.statBase + perLevel * level);
-    return { str: grow(def.statPerLevel.str), vit: grow(def.statPerLevel.vit), dex: grow(def.statPerLevel.dex), int: def.statBase, mag: def.statBase };
+    const grow = (id: keyof OffStats) => Math.floor((def.statStart?.[id] ?? def.statBase) + (def.statPerLevel[id] ?? 0) * level);
+    return { str: grow('str'), vit: grow('vit'), dex: grow('dex'), int: grow('int'), mag: grow('mag') };
 }
 
 /** Its gear at your level. */
-export function offMercenaryGear(level: number): Readonly<OffEquipment> {
-    let gear = OFF_MERCENARY_GEAR[0]?.equipment ?? {};
-    for (const row of OFF_MERCENARY_GEAR) if (level >= row.fromLevel) gear = row.equipment;
+export function offMercenaryGear(id: OffMercenaryId, level: number): Readonly<OffEquipment> {
+    const rows = OFF_MERCENARIES[id].gear;
+    let gear = rows[0]?.equipment ?? {};
+    for (const row of rows) if (level >= row.fromLevel) gear = row.equipment;
     return gear;
 }
 

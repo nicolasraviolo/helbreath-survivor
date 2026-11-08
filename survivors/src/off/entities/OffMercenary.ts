@@ -1,6 +1,8 @@
 // Helbreath Off (Fase Off-8B): el mercenario en el mundo. Se dibuja como tu personaje (OffCharacter, con su equipo según
 // tu nivel), con su nombre en azul y una barra de vida encima. Anda casilla a casilla con su TileMover. Si cae, se queda
 // tumbado con "Down N" encima hasta levantarse. Qué hace lo decide OffMercenaryAI; el daño, OffBattle.
+// Fase Off-8C: la maga lleva maná (fórmula del original con sus stats) y su propio OffSpells (`spells`, lo pone
+// OffBattle). Cualquiera de los dos puede estar en Berserk (`berserkLeftMs`): brillo rojo como el buff de Survivors.
 import Phaser from 'phaser';
 import { DEPTH_DAMAGE_NUMBERS, DEPTH_GROUND_SHADOWS } from '../../config/gameConfig';
 import { EFFECTS, type EffectDef, type EffectKey } from '../../config/effects';
@@ -8,17 +10,19 @@ import { lookLoader, runSprites } from '../../systems/LookLoader';
 import { smoothSprite } from '../../hb/XbrPipeline';
 import { OFF_WORN_ALPHA } from '../config/offSpellLook';
 import { OFF_MONSTER_LOOK } from '../config/offMonsterLook';
-import { offMaxHp, type OffStats } from '../data/offCharacter';
+import { offMaxHp, offMaxMana, type OffStats } from '../data/offCharacter';
+import { BUFFS, BUFF_OVERLAY_ALPHA } from '../../data/pickups';
 import {
-    OFF_MERCENARIES, OFF_MERCENARY, OFF_MERCENARY_BODY, OFF_MERCENARY_COLORS, OFF_MERCENARY_LOOK, OFF_MERCENARY_TEXT, offMercenaryGear, offMercenaryStats, type OffMercenaryDef, type OffMercenaryId,
+    OFF_MERCENARIES, OFF_MERCENARY, OFF_MERCENARY_COLORS, OFF_MERCENARY_LOOK, OFF_MERCENARY_TEXT, offMercenaryGear, offMercenaryStats, type OffMercenaryDef, type OffMercenaryId,
 } from '../data/offMercenary';
 import { offArmorDefense, offEquipmentLook, offWeapon, type OffEquipment } from '../data/offItems';
 import type { OffWeaponDef } from '../data/offCombat';
-import { OFF_PROTECT, OFF_SPELLS } from '../data/offSpells';
+import { OFF_PROTECT, OFF_SPELLS, type OffSpellId } from '../data/offSpells';
+import type { OffSpells } from '../systems/OffSpells';
 import { OFF_NOVICE } from '../data/offWorld';
 import { offPlayerHitRatio } from '../systems/OffCombatRules';
 import type { OffProtection } from '../systems/OffBattle';
-import { TileMover } from '../systems/TileMover';
+import { TileMover, type TilePoint } from '../systems/TileMover';
 import { OffCharacter } from './OffCharacter';
 import type { OffMonster } from './OffMonster';
 
@@ -34,7 +38,13 @@ export interface OffCarriedMercenary {
     hp: number;
     downLeftMs: number;
     protection?: OffProtection;
+    /** Off-8C: its mana and Berserk's time left. */
+    mana?: number;
+    berserkLeftMs?: number;
 }
+
+/** Off-8C: who the spell the Mage is preparing goes to. */
+export type OffMercenaryCastTarget = { on: 'owner' } | { on: 'self' } | { on: 'monster'; monster: OffMonster };
 
 export class OffMercenary {
     public readonly def: OffMercenaryDef;
@@ -48,6 +58,19 @@ export class OffMercenary {
     public downLeftMs = 0;
     /** Defense Shield or Protection From Magic you cast on it. */
     public protection: OffProtection | undefined;
+    /** Off-8C: Berserk on it for this long (0 = none). */
+    public berserkLeftMs = 0;
+    /** Off-8C, the Mage: its mana, its time towards the next bit of it, its spells and who the one it prepares is for. */
+    public mana = 0;
+    public manaRegenMs = 0;
+    public spells: OffSpells | undefined;
+    public castFor: OffMercenaryCastTarget | undefined;
+    /** Off-8C: the loot it is walking to, and what it has picked up for you (for `check offmercloot`). */
+    public lootTile: TilePoint | undefined;
+    public picked = 0;
+    /** Spells it cast, by id (for `check offmercmage`). */
+    public readonly castCount: Partial<Record<OffSpellId, number>> = {};
+    private glowing = false;
     /** Monster it fights. */
     public target: OffMonster | undefined;
     public cooldownMs = 0;
@@ -74,7 +97,7 @@ export class OffMercenary {
         this.def = OFF_MERCENARIES[id];
         this.mover = new TileMover(isFree, x, y);
         this.stats = offMercenaryStats(id, level);
-        this.character = new OffCharacter(scene, OFF_NOVICE, OFF_MERCENARY_BODY);
+        this.character = new OffCharacter(scene, OFF_NOVICE, this.def.body);
         const look = OFF_MERCENARY_LOOK;
         this.nameText = scene.add.text(0, 0, this.def.name, { ...OFF_MONSTER_LOOK.nameStyle, color: look.nameColor }).setOrigin(0.5, 1).setDepth(DEPTH_DAMAGE_NUMBERS - 1);
         this.downText = scene.add.text(0, 0, '', { ...OFF_MONSTER_LOOK.nameStyle, color: look.downColor }).setOrigin(0.5, 1).setDepth(DEPTH_DAMAGE_NUMBERS - 1).setVisible(false);
@@ -85,11 +108,25 @@ export class OffMercenary {
         this.wornLook = smoothSprite(scene.add.sprite(0, 0, '__DEFAULT')).setVisible(false).setDepth(DEPTH_GROUND_SHADOWS + 1);
         this.setLevel(level);
         this.hp = this.maxHp;
+        this.mana = this.maxMana;
         this.character.update(this.mover, false, 0);
     }
 
     public get maxHp(): number {
         return Math.floor(offMaxHp({ ...this.stats, level: this.level }) * this.def.hpFactor);
+    }
+
+    /** The original's mana for its stats (only the Mage uses it). */
+    public get maxMana(): number {
+        return offMaxMana({ ...this.stats, level: this.level });
+    }
+
+    public get isCaster(): boolean {
+        return this.def.role === 'caster';
+    }
+
+    public get isBerserk(): boolean {
+        return this.berserkLeftMs > 0;
     }
 
     public get weapon(): OffWeaponDef {
@@ -125,13 +162,14 @@ export class OffMercenary {
         this.level = level;
         this.stats = offMercenaryStats(this.id, level);
         this.hp = Math.max(this.isDown ? 0 : 1, Math.round(this.maxHp * share));
-        const gear = offMercenaryGear(level);
+        this.mana = Math.min(this.mana, this.maxMana);
+        const gear = offMercenaryGear(this.id, level);
         if (gear === this.equipment) return;
         this.equipment = gear;
         const look = offEquipmentLook(gear);
         // Its pieces may not be downloaded yet (you wear others): dressed again once they are.
         this.character.wear(look, {}, OFF_MERCENARY_COLORS);
-        void lookLoader.ensure(this.scene, runSprites(OFF_NOVICE, OFF_MERCENARY_BODY, look)).then(() => {
+        void lookLoader.ensure(this.scene, runSprites(OFF_NOVICE, this.def.body, look)).then(() => {
             if (this.character.container.active) this.character.wear(look, {}, OFF_MERCENARY_COLORS);
         });
     }
@@ -141,11 +179,21 @@ export class OffMercenary {
         this.downLeftMs = Math.max(0, carried.downLeftMs);
         this.hp = this.isDown ? 0 : Math.min(this.maxHp, Math.max(1, carried.hp));
         this.protection = carried.protection ? { ...carried.protection } : undefined;
+        if (carried.mana !== undefined) this.mana = Math.min(this.maxMana, Math.max(0, carried.mana));
+        this.berserkLeftMs = this.isDown ? 0 : Math.max(0, carried.berserkLeftMs ?? 0);
         if (this.isDown) this.character.die(this.mover.facing);
     }
 
     public carried(): OffCarriedMercenary {
-        return { hp: this.hp, downLeftMs: this.downLeftMs, ...(this.protection ? { protection: { ...this.protection } } : {}) };
+        return {
+            hp: this.hp, downLeftMs: this.downLeftMs, mana: this.mana, berserkLeftMs: this.berserkLeftMs,
+            ...(this.protection ? { protection: { ...this.protection } } : {}),
+        };
+    }
+
+    /** It (or, for the Mage, one of its spells) killed a monster. */
+    public addKill(): void {
+        this.kills++;
     }
 
     /** Falls unconscious for OFF_MERCENARY.downMs. */
@@ -155,6 +203,9 @@ export class OffMercenary {
         this.target = undefined;
         this.blow = undefined;
         this.protection = undefined;
+        this.berserkLeftMs = 0;
+        this.castFor = undefined;
+        this.spells?.cancel();
         this.mover.cancel();
         this.character.die(this.mover.facing);
     }
@@ -196,6 +247,11 @@ export class OffMercenary {
         }
         this.ring.setVisible(this.aimed && !this.isDown).setPosition(this.x, this.y).setDepth(DEPTH_GROUND_SHADOWS + 2);
         this.syncWornLook();
+        // Off-8C: Berserk's red glow (only set when it changes: setGlow redraws every layer).
+        if (this.isBerserk !== this.glowing) {
+            this.glowing = this.isBerserk;
+            this.character.setGlow(this.glowing ? BUFFS.berserk.overlayTint : undefined, BUFF_OVERLAY_ALPHA);
+        }
     }
 
     private syncWornLook(): void {

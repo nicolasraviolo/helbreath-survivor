@@ -75,6 +75,7 @@ import { OffBattle } from '../systems/OffBattle';
 import { offSaveStore } from '../systems/OffSaveStore';
 import { OFF_HUD_SCENE_KEY, OFF_OPEN_CHARACTER_EVENT, OFF_OPEN_PAUSE_EVENT, type OffHudSceneData, type OffHudState } from './OffHudScene';
 import { offCharacterInfo } from './offCharacterInfo';
+import { isOffGoodId } from '../data/offGoods';
 import { isOffGearKey, offEquipmentLook, offGearId, offGearRolls, offWeaponTint } from '../data/offItems';
 import { rollKillLoot } from '../systems/OffLootRoller';
 import { isOffMonsterId, OFF_MONSTERS, type OffMonsterId } from '../data/offMonsters';
@@ -91,7 +92,7 @@ import { TOWN_NPCS, TOWN_TALK, type NpcDef } from '../../data/town';
 import { AimArrow } from '../../ui/AimArrow';
 import { manualAimAngle } from '../../systems/Targeting';
 import { lookLoader } from '../../systems/LookLoader';
-import { OFF_MERCENARY, OFF_MERCENARY_BODY, OFF_MERCENARY_TEXT, offMercenaryGear, type OffMercenaryId } from '../data/offMercenary';
+import { OFF_MERCENARIES, OFF_MERCENARY, OFF_MERCENARY_TEXT, offMercenaryGear, type OffMercenaryId } from '../data/offMercenary';
 import { OFF_MERCENARY_SCENE_KEY, type OffMercenarySceneData } from './OffMercenaryScene';
 import type { OffSpellAlly } from '../systems/OffSpells';
 
@@ -140,8 +141,13 @@ export function startOffWorld(scene: Phaser.Scene, data?: OffWorldSceneData): vo
 
 /** Off-8B: the hired mercenary's body and gear at your level (nothing without one). */
 function mercenarySprites(): ReturnType<typeof runSprites> {
-    if (!offSaveStore.character.mercenary) return [];
-    return runSprites(OFF_NOVICE, OFF_MERCENARY_BODY, offEquipmentLook(offMercenaryGear(offSaveStore.level)));
+    const id = offSaveStore.character.mercenary;
+    return id ? mercenaryLook(id) : [];
+}
+
+/** Off-8C: that mercenary's body (Gorn's or Kaila's) and gear at your level. */
+function mercenaryLook(id: OffMercenaryId): ReturnType<typeof runSprites> {
+    return runSprites(OFF_NOVICE, OFF_MERCENARIES[id].body, offEquipmentLook(offMercenaryGear(id, offSaveStore.level)));
 }
 
 /** Off-7E: the saved place and tile, as an arrival; its city with nothing saved. */
@@ -384,6 +390,7 @@ export class OffWorldScene extends Phaser.Scene {
             xpRatio: offLevelProgress(battle.exp, battle.level),
             spell: battle.spells.spell ? { name: OFF_SPELLS[battle.spells.spell].name, ready: battle.spells.state === 'ready' } : undefined,
             shield: battle.protection ? { name: OFF_SPELLS[battle.protection.spell].name, secondsLeft: Math.ceil(battle.protection.leftMs / 1000) } : undefined,
+            berserk: battle.berserkLeftMs > 0 ? Math.ceil(battle.berserkLeftMs / 1000) : undefined,
             kills: battle.kills,
             gold: offSaveStore.character.gold,
             critCharges: battle.critStrike.charges,
@@ -570,7 +577,7 @@ export class OffWorldScene extends Phaser.Scene {
 
     private carriedVitals(): OffCarriedVitals {
         const merc = this.battle.carriedMerc();
-        return { hp: this.battle.hp, mana: this.battle.vitals.mana, stamina: this.battle.vitals.stamina, protection: this.battle.protection, ...(merc ? { merc } : {}) };
+        return { hp: this.battle.hp, mana: this.battle.vitals.mana, stamina: this.battle.vitals.stamina, protection: this.battle.protection, berserkLeftMs: this.battle.berserkLeftMs, ...(merc ? { merc } : {}) };
     }
 
     // ---- William and the mercenary (Off-8B) ----
@@ -634,7 +641,7 @@ export class OffWorldScene extends Phaser.Scene {
             this.battle.eventLine(OFF_MERCENARY_TEXT.noGold);
             return;
         }
-        const sprites = runSprites(OFF_NOVICE, OFF_MERCENARY_BODY, offEquipmentLook(offMercenaryGear(offSaveStore.level)));
+        const sprites = mercenaryLook(id);
         void lookLoader.ensure(this, sprites).then(() => {
             if (this.scene.isActive() && !this.leaving) this.battle.hireMercenary(id, price);
         });
@@ -857,6 +864,40 @@ export class OffWorldScene extends Phaser.Scene {
         if (standInMs !== undefined) merc.downLeftMs = standInMs;
     }
 
+    /** Development (`check offmercloot`, Off-8C): some loot falls `dx`, `dy` tiles from you, as from a monster. */
+    public debugDropLoot(dx: number, dy: number, gold: number, item?: string): void {
+        const x = this.mover.tileX + dx;
+        const y = this.mover.tileY + dy;
+        if (gold > 0) this.battle.ground.drop({ gold }, x, y);
+        if (item === undefined) return;
+        if (isOffGearKey(item)) this.battle.ground.drop({ item }, x, y);
+        else if (isOffGoodId(item)) this.battle.ground.drop({ item }, x, y);
+    }
+
+    /** Development (`check offmercdropped`, Off-8C): drops that bag cell on your tile, as the inventory's Drop. */
+    public debugDropBag(index: number): void {
+        this.battle.dropBagItem(index);
+    }
+
+    /** Development (`check offmercparalyze`): drinks the biggest potion of that kind (as Q / E). */
+    public debugDrink(what: 'hp' | 'mana'): void {
+        this.battle.drinkQuick(what);
+    }
+
+    /** Development (`check offberserk`, Off-8C): Berserk ends now (to compare blows without it). */
+    public debugEndBerserk(): void {
+        this.battle.berserkLeftMs = Math.min(this.battle.berserkLeftMs, 1);
+    }
+
+    /** Development (`check offberserk`, `offholdblows`): puts on that weapon from the bag ('' takes it off; spells need empty hands). */
+    public debugWield(weapon: string): string {
+        if (weapon !== '' && !isOffGearKey(weapon)) return 'none';
+        // '' takes the weapon off (back to the bag), to cast again.
+        const result = offSaveStore.equip('weapon', weapon === '' ? undefined : weapon);
+        this.dressCharacter();
+        return result;
+    }
+
     /** Development (`check offmercheal`): the mercenary loses health down to `hp`. */
     public debugMercHp(hp: number): void {
         const merc = this.battle.merc;
@@ -914,6 +955,7 @@ export class OffWorldScene extends Phaser.Scene {
         spell: string; casts: number; fails: number; prepareMs: number; burning: number; slowed: number;
         held: number; poisoned: number; shield: string | undefined; padSpells: string[];
         merc: string | undefined; mercKills: number; mercDown: number; mercShield: string | undefined; onMerc: number; hirer: TilePoint | undefined;
+        mercPicked: number; mercTarget: string | undefined; mercLoot: string | undefined; berserk: number; mercBerserk: number; mercMana: string | undefined; mercCasts: Record<string, number>; blowAvg: { plain: number; berserk: number };
     } {
         const monsters: Record<string, number> = {};
         for (const monster of this.battle.pits.monsters) {
@@ -926,6 +968,17 @@ export class OffWorldScene extends Phaser.Scene {
             mercKills: merc?.kills ?? 0,
             mercDown: merc ? Math.ceil(merc.downLeftMs / 1000) : 0,
             mercShield: merc?.protection ? merc.protection.spell : undefined,
+            mercPicked: merc?.picked ?? 0,
+            mercTarget: merc?.target ? `${merc.target.id} ${merc.target.mode} at ${merc.target.mover.tileX},${merc.target.mover.tileY}` : undefined,
+            mercLoot: merc?.lootTile ? `${merc.lootTile.x},${merc.lootTile.y}` : undefined,
+            berserk: Math.ceil(this.battle.berserkLeftMs / 1000),
+            mercBerserk: merc ? Math.ceil(merc.berserkLeftMs / 1000) : 0,
+            mercMana: merc?.isCaster ? `${merc.mana}/${merc.maxMana}` : undefined,
+            mercCasts: { ...(merc?.castCount ?? {}) },
+            blowAvg: {
+                plain: Math.round(this.battle.debugBlows.plain.sum / Math.max(1, this.battle.debugBlows.plain.count) * 10) / 10,
+                berserk: Math.round(this.battle.debugBlows.berserk.sum / Math.max(1, this.battle.debugBlows.berserk.count) * 10) / 10,
+            },
             onMerc: this.battle.pits.monsters.filter((m) => m.isAlive && m.mode === 'attack' && m.victim === 'merc').length,
             hirer: this.hirer ? { ...this.hirer.def.tile } : undefined,
             tile: { x: this.mover.tileX, y: this.mover.tileY },

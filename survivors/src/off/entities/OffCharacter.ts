@@ -67,6 +67,11 @@ export class OffCharacter {
         dressOffBody(this.body, this.def, equipment, tint, colors);
     }
 
+    /** A coloured glow added over the whole body (Off-8C: Berserk's red, as Survivors' buff), or none. */
+    public setGlow(color: number | undefined, alpha = 1): void {
+        this.body.setGlow(color, alpha);
+    }
+
     /** True while an attack or a flinch is showing. */
     public get isActing(): boolean {
         return this.actionLeftMs > 0;

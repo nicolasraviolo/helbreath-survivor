@@ -1,6 +1,8 @@
 // Helbreath Off (Fase Off-4A): un objeto (o un montón de oro) en el suelo, en una casilla. Reciclable con un pool
 // (regla 5). Se dibuja con su imagen de item-ground.spr, como el original (sin brillo), bajo los cuerpos. Parpadea al
 // final de su tiempo y desaparece (off/data/offLoot.ts).
+// Off-8C: sabe cuánto lleva en el suelo (`ageMs`) y si lo tiraste tú (`fromPlayer`), para que el mercenario recoja
+// lo que se queda olvidado pero no lo que no querías; `mercSkip`: no le cabía, no vuelve a por él.
 import { setColouredTexture } from '../../hb/additiveTint';
 import type Phaser from 'phaser';
 import { DEPTH_GROUND_SHADOWS, TILE_SIZE } from '../../config/gameConfig';
@@ -19,6 +21,9 @@ export class OffGroundItem implements Poolable {
     public tileX = 0;
     public tileY = 0;
     public content: OffGroundContent = { gold: 0 };
+    /** Off-8C: you dropped it from the bag (the mercenary leaves it), and the mercenary gave up on it (it didn't fit). */
+    public fromPlayer = false;
+    public mercSkip = false;
     private lifeLeftMs = 0;
     private readonly image: Phaser.GameObjects.Image;
 
@@ -28,8 +33,10 @@ export class OffGroundItem implements Poolable {
     }
 
     /** `nudge` (0, 1, 2...) moves a second or third item on the same tile a little, so all of them show. */
-    public drop(content: OffGroundContent, tileX: number, tileY: number, picture: ItemIconFrame, nudge: number): void {
+    public drop(content: OffGroundContent, tileX: number, tileY: number, picture: ItemIconFrame, nudge: number, fromPlayer: boolean): void {
         this.content = content;
+        this.fromPlayer = fromPlayer;
+        this.mercSkip = false;
         this.tileX = tileX;
         this.tileY = tileY;
         this.lifeLeftMs = OFF_LOOT.groundLifeMs;
@@ -42,6 +49,11 @@ export class OffGroundItem implements Poolable {
             .setPosition((tileX + 0.5) * TILE_SIZE + shift[0], (tileY + 0.5) * TILE_SIZE + shift[1])
             .setScale(OFF_LOOT.groundScale)
             .setAlpha(1).setActive(true).setVisible(true);
+    }
+
+    /** How long it has been on the ground. */
+    public get ageMs(): number {
+        return OFF_LOOT.groundLifeMs - this.lifeLeftMs;
     }
 
     /** Counts down its time. False once it has gone. */
