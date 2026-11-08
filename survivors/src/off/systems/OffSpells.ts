@@ -360,8 +360,16 @@ export class OffSpells {
         this.host.spellHit(monster, damage, def.element);
     }
 
-    /** Draws the spell flying (or falling from the sky) to (toX, toY); returns when it arrives, ms. */
-    private showSpell(def: OffSpellDef, toX: number, toY: number): number {
+    /**
+     * A monster's spell (Off-7A, the Cyclops): drawn from its body to (toX, toY), and `onArrive` when it gets there.
+     * `fromY` is its feet, like the character's.
+     */
+    public monsterCast(def: OffSpellDef, fromX: number, fromY: number, toX: number, toY: number, onArrive: () => void): void {
+        this.later(this.showSpell(def, toX, toY, { x: fromX, y: fromY }), onArrive);
+    }
+
+    /** Draws the spell flying (or falling from the sky) to (toX, toY) from the character (or `from`); returns when it arrives, ms. */
+    private showSpell(def: OffSpellDef, toX: number, toY: number, from?: { x: number; y: number }): number {
         const look = def.look ? getSpell(def.look) : undefined;
         if (!look) return 0;
         if (look.castSound) this.audio.play(look.castSound);
@@ -370,8 +378,8 @@ export class OffSpells {
             this.bursts(look.bursts, toX, toY);
             return look.skyImpactMs ?? 0;
         }
-        const fromX = this.character.x;
-        const fromY = this.character.y - look.originOffsetY;
+        const fromX = from?.x ?? this.character.x;
+        const fromY = (from?.y ?? this.character.y) - look.originOffsetY;
         const offsets = look.aim === 'pattern' && look.pattern ? look.pattern : [[0, 0] as const];
         let arriveMs = 0;
         offsets.forEach(([dx, dy], index) => {

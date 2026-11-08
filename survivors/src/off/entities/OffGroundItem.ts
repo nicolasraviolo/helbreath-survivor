@@ -1,17 +1,18 @@
 // Helbreath Off (Fase Off-4A): un objeto (o un montón de oro) en el suelo, en una casilla. Reciclable con un pool
 // (regla 5). Se dibuja con su imagen de item-ground.spr, como el original (sin brillo), bajo los cuerpos. Parpadea al
 // final de su tiempo y desaparece (off/data/offLoot.ts).
+import { setColouredTexture } from '../../hb/additiveTint';
 import type Phaser from 'phaser';
 import { DEPTH_GROUND_SHADOWS, TILE_SIZE } from '../../config/gameConfig';
 import type { ItemIconFrame } from '../../data/itemTypes';
 import { getSheetKey } from '../../hb/HBSprite';
 import { smoothSprite } from '../../hb/XbrPipeline';
 import type { Poolable } from '../../utils/Pool';
-import type { OffBagItemId } from '../data/offItems';
+import { offItemTint, type OffBagItemKey } from '../data/offItems';
 import { OFF_LOOT } from '../data/offLoot';
 
 /** What lies there: gold (an amount) or one item. */
-export type OffGroundContent = { gold: number } | { item: OffBagItemId };
+export type OffGroundContent = { gold: number } | { item: OffBagItemKey };
 
 export class OffGroundItem implements Poolable {
     public poolIndex = -1;
@@ -34,8 +35,12 @@ export class OffGroundItem implements Poolable {
         this.lifeLeftMs = OFF_LOOT.groundLifeMs;
         const nudges = OFF_LOOT.groundNudges;
         const shift = nudges[nudge % nudges.length] ?? [0, 0];
-        this.image.setTexture(getSheetKey('item.ground', picture.sheet), picture.frame)
+        // Off-7B: Sharp / Poison / Ancient in their colour, as in the bag.
+        const sheet = getSheetKey('item.ground', picture.sheet);
+        if (!setColouredTexture(this.image, sheet, picture.frame, 'item' in content ? offItemTint(content.item) : undefined)) this.image.setTexture(sheet, picture.frame);
+        this.image
             .setPosition((tileX + 0.5) * TILE_SIZE + shift[0], (tileY + 0.5) * TILE_SIZE + shift[1])
+            .setScale(OFF_LOOT.groundScale)
             .setAlpha(1).setActive(true).setVisible(true);
     }
 

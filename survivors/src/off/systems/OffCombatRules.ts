@@ -1,12 +1,22 @@
 // Helbreath Off (Fase Off-2): las fórmulas del combate del servidor original (ver off/data/offCombat.ts).
 import Phaser from 'phaser';
-import { OFF_COMBAT, type OffWeaponDef } from '../data/offCombat';
+import { OFF_ARMOR, OFF_COMBAT, type OffWeaponDef } from '../data/offCombat';
 
 /** `count` dice of `sides` sides, added (server iDice). 0 sides or count gives 0. */
 export function rollDice(count: number, sides: number): number {
     let total = 0;
     for (let i = 0; i < count; i++) if (sides > 0) total += Phaser.Math.Between(1, sides);
     return total;
+}
+
+/**
+ * The player's hit ratio with a weapon (Off-7C; reference/Server.cpp, iCalculateAttackEffect): weapon skill (DEX × 2,
+ * up to 100) + 50, + DEX above 50, then × the Hitting Probability attribute (`hitting`, Off-7B).
+ */
+export function offPlayerHitRatio(dex: number, hitting = 0): number {
+    const skill = Math.min(OFF_COMBAT.maxSkill, dex * OFF_COMBAT.skillPerDex);
+    const dexBonus = Math.max(0, dex - OFF_COMBAT.dexBonusFrom);
+    return Math.floor((skill + OFF_COMBAT.playerHitBonus + dexBonus) * (1 + hitting));
 }
 
 /** Chance (0..1) that an attack lands: hit / defence × 50 %, defence halved from behind, within the limits. */
@@ -21,27 +31,30 @@ export function isFromBehind(attackerFacing: number, targetFacing: number): bool
     return attackerFacing === targetFacing;
 }
 
-/** A weapon's damage: its dice for the target's size, then +1 % per 5 STR (never under 1). */
-export function rollWeaponDamage(weapon: OffWeaponDef, size: 'small' | 'large', str: number): number {
+/**
+ * A weapon's damage: its dice for the target's size, then +1 % per 5 STR (never under 1). `factor`: the weapon's
+ * attributes (Off-7B: Sharp 1.1, Ancient 1.2).
+ */
+export function rollWeaponDamage(weapon: OffWeaponDef, size: 'small' | 'large', str: number, factor = 1): number {
     const [count, sides, bonus] = size === 'small' ? weapon.small : weapon.large;
-    return strDamage(rollDice(count, sides) + bonus, str);
+    return strDamage(rollDice(count, sides) + bonus, str, factor);
 }
 
-/** The dice's result with the STR bonus. */
-function strDamage(base: number, str: number): number {
-    return Math.max(1, Math.floor(base * (1 + str / 500)));
+/** The dice's result with the STR bonus (and the attributes' factor). */
+function strDamage(base: number, str: number, factor = 1): number {
+    return Math.max(1, Math.floor(base * (1 + str / 500) * factor));
 }
 
 /**
  * Least and most damage of a normal blow with that STR (crits apart), against any monster: the lowest of the small and
  * large dice to the highest (Fase Off-3C: the owner wanted this instead of the dice, which were hard to read).
  */
-export function weaponDamageRange(weapon: Pick<OffWeaponDef, 'small' | 'large'>, str: number): { min: number; max: number } {
+export function weaponDamageRange(weapon: Pick<OffWeaponDef, 'small' | 'large'>, str: number, factor = 1): { min: number; max: number } {
     const low = ([count, , bonus]: readonly [number, number, number]) => count + bonus;
     const high = ([count, sides, bonus]: readonly [number, number, number]) => count * sides + bonus;
     return {
-        min: strDamage(Math.min(low(weapon.small), low(weapon.large)), str),
-        max: strDamage(Math.max(high(weapon.small), high(weapon.large)), str),
+        min: strDamage(Math.min(low(weapon.small), low(weapon.large)), str, factor),
+        max: strDamage(Math.max(high(weapon.small), high(weapon.large)), str, factor),
     };
 }
 
@@ -54,4 +67,31 @@ export function rollMonsterDamage(dice: readonly [number, number], vit: number):
 /** Tiles between two tiles counting diagonals as one (server: the larger of the two distances). */
 export function tileDistance(ax: number, ay: number, bx: number, by: number): number {
     return Math.max(Math.abs(ax - bx), Math.abs(ay - by));
+}
+
+/** Off-7D: the body part (equipment slot) a monster's blow falls on, from a 0..1 roll; undefined = the arms (nothing yet). */
+export function offBlowPart(roll: number): 'body' | 'legs' | 'helm' | undefined {
+    let upTo = 0;
+    for (const part of OFF_ARMOR.parts) {
+        upTo += part.share;
+        if (roll < upTo) return part.slot;
+    }
+    return OFF_ARMOR.parts[OFF_ARMOR.parts.length - 1]?.slot;
+}
+
+/** Off-7D: shield skill (0–100), the chance in % that the shield takes away its share of a blow. */
+export function offShieldSkill(dex: number): number {
+    return Math.min(OFF_ARMOR.maxShieldSkill, dex * OFF_ARMOR.shieldSkillPerDex);
+}
+
+/**
+ * Off-7D: a monster's blow after the armour (server): the body part's % and the shield's %, each at most 80 %, are taken
+ * away separately (rounded down); never under 1.
+ */
+export function offArmorAbsorbed(damage: number, partPercent: number, shieldPercent: number): number {
+    if (damage <= 0) return damage;
+    const cap = OFF_ARMOR.maxAbsorbPercent;
+    const part = Math.floor((damage * Math.min(cap, partPercent)) / 100);
+    const shield = Math.floor((damage * Math.min(cap, shieldPercent)) / 100);
+    return Math.max(1, damage - part - shield);
 }

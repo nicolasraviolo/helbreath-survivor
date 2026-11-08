@@ -2,6 +2,7 @@
 // andando, atacando, recibiendo un golpe y muriendo, en 8 direcciones, con su sombra y, si está marcado, su nombre y
 // su barra de vida. Lo que decide qué hace está en off/systems/OffMonsterAI.ts.
 // El dibujo copia el de los monstruos de Survivors (entities/Enemy.ts: play, syncDisplay), sin su forma de moverse.
+// Fase Off-7B: envenenarse con las armas Poison (poison / tickPoison; números en off/data/offAttributes.ts).
 // Fase Off-6B: arder y frenarse con las magias, como los de Survivors (Enemy.burn / Enemy.slow, números de
 // data/elements.ts BURN y data/activeSpells.ts ICE_SLOW). Frenado o aturdido, su reloj corre más despacio (`timeScale`):
 // la IA, el paso y la animación van a ese ritmo.
@@ -14,6 +15,8 @@ import {
 import { EFFECTS } from '../../config/effects';
 import { ICE_SLOW } from '../../data/activeSpells';
 import { BURN } from '../../data/elements';
+import { POISON } from '../../data/attributes';
+import { OFF_ATTRIBUTES } from '../data/offAttributes';
 import { ensureGroundShadowTexture } from '../../entities/Enemy';
 import { HBAsset } from '../../hb/HBAsset';
 import { getSheetKey } from '../../hb/HBSprite';
@@ -28,6 +31,8 @@ import { TileMover, type TilePoint } from '../systems/TileMover';
 
 /** The little fire at its feet while it burns (config/effects.ts), as Survivors' monsters. */
 const BURN_FLAME_EFFECT = 'fx.burn.flame';
+/** The original's poison cloud over a poisoned one (Off-7B, as Survivors' Enemy: effect9 sheet 15, 70 % opaque). */
+const POISON_CLOUD_EFFECT = 'fx.poison.cloud';
 
 /** What it is doing: walking about its pit, after the player, running away, or dead. */
 export type OffMonsterMode = 'wander' | 'attack' | 'flee' | 'dead';
@@ -82,6 +87,10 @@ export class OffMonster implements Poolable {
     private burnMs = 0;
     private burnTickMs = 0;
     private burnFlame: Phaser.GameObjects.Sprite | undefined;
+    /** Poison (Off-7B, a Poison weapon): level of each tick (1d level), 0 = not poisoned; time to the next tick. */
+    private poisonLevel = 0;
+    private poisonTickMs = 0;
+    private poisonCloud: Phaser.GameObjects.Sprite | undefined;
     /** Ice (Off-6B): its clock runs at `slowFactor` for `slowMs`; a burn's stun stops it for `stunMs`. */
     private slowFactor = 1;
     private slowMs = 0;
@@ -145,6 +154,7 @@ export class OffMonster implements Poolable {
         this.flashLeftMs = 0;
         this.corpseLeftMs = 0;
         this.extinguish();
+        this.cure();
         this.slowMs = 0;
         this.stunMs = 0;
         this.holdMs = 0;
@@ -161,6 +171,12 @@ export class OffMonster implements Poolable {
         this.actionLeftMs = this.play(MonsterState.Attack, true);
         this.pendingHitMs = this.actionLeftMs * OFF_COMBAT.hitShare;
         this.pendingHitLands = lands;
+    }
+
+    /** Casts its spell (Off-7A): the attack motion, without a blow. */
+    public startCast(towards: Direction): void {
+        this.mover.face(towards);
+        this.actionLeftMs = this.play(MonsterState.Attack, true);
     }
 
     /** Takes a blow: flashes, and flinches if it is standing (no death here: see kill). */
@@ -265,6 +281,49 @@ export class OffMonster implements Poolable {
         return damage;
     }
 
+    public get isPoisoned(): boolean {
+        return this.poisonLevel > 0;
+    }
+
+    /**
+     * A Poison weapon's blow (Off-7B, as Survivors and the original's PoisonEffect): it is poisoned at that level if it
+     * was not already. False when it already was.
+     */
+    public poison(level: number): boolean {
+        if (!this.isAlive || this.poisonLevel > 0 || level <= 0) return false;
+        this.poisonLevel = Math.max(1, Math.round(level));
+        this.poisonTickMs = OFF_ATTRIBUTES.poisonTickMs;
+        if (!this.poisonCloud) {
+            this.poisonCloud = smoothSprite(this.sprite.scene.add.sprite(0, 0, '__DEFAULT')).setAlpha(POISON.cloudAlpha).setVisible(false);
+        }
+        if (this.sprite.scene.anims.exists(POISON_CLOUD_EFFECT)) this.poisonCloud.setActive(true).setVisible(true).play(POISON_CLOUD_EFFECT);
+        this.syncPoisonCloud();
+        return true;
+    }
+
+    /** Runs the poison: the health it took this frame (0 most frames); after each tick it may be cured. May leave it at 0. */
+    public tickPoison(deltaMs: number): number {
+        if (!this.isPoisoned) return 0;
+        this.poisonTickMs -= deltaMs;
+        if (this.poisonTickMs > 0) return 0;
+        this.poisonTickMs += OFF_ATTRIBUTES.poisonTickMs;
+        const damage = Phaser.Math.Between(1, this.poisonLevel);
+        this.hp = Math.max(0, this.hp - damage);
+        if (Math.random() < OFF_ATTRIBUTES.poisonCureChance) this.cure();
+        return damage;
+    }
+
+    private cure(): void {
+        this.poisonLevel = 0;
+        this.poisonCloud?.stop().setActive(false).setVisible(false);
+    }
+
+    /** The cloud over its body (offsets of config/effects.ts, as Survivors). */
+    private syncPoisonCloud(): void {
+        const def = EFFECTS[POISON_CLOUD_EFFECT];
+        this.poisonCloud?.setPosition(this.x + def.offsetX, this.y - this.def.base.bodyOffsetY + def.offsetY).setDepth(this.y + DEPTH_EFFECT_OFFSET);
+    }
+
     /** The burn's moment of stun (BURN.stunChance per tick). */
     public stun(ms: number): void {
         this.stunMs = Math.max(this.stunMs, ms);
@@ -327,6 +386,7 @@ export class OffMonster implements Poolable {
         this.groundShadow?.setPosition(this.x, this.y).setVisible(this.mode !== 'dead');
         this.syncShadow();
         if (this.isBurning) this.syncBurnFlame();
+        if (this.isPoisoned) this.syncPoisonCloud();
         this.drawMark();
     }
 

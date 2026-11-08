@@ -6,7 +6,9 @@
 // - En modo directo (clic mantenido o stick) el paso va hacia donde se apunta; si está bloqueado, hace lo mismo que
 //   con un clic hacia la casilla a la que se apunta.
 // - Cancelar termina la casilla que está cruzando y se para (como el clic derecho del original).
-// No hay búsqueda de caminos: igual que el original, detrás de una pared larga se puede quedar parado.
+// Fase Off-7E: un clic puede traer además un camino (OffPathfinder) y entonces va de casilla en casilla por él,
+// rodeando como siempre lo que se cruce (monstruos). Sin camino, como el original: detrás de una pared larga se puede
+// quedar parado. Los monstruos nunca llevan camino.
 import { Direction } from '../../hb/directions';
 
 export interface TilePoint {
@@ -49,6 +51,9 @@ export function findFreeTile(isFree: (x: number, y: number) => boolean, x: numbe
     return undefined;
 }
 
+/** Off-7E: how many path tiles ahead it looks for the one it stands on. */
+const PATH_LOOKAHEAD = 6;
+
 export class TileMover {
     /** Tile the character stands on, or is leaving while it steps. */
     public tileX: number;
@@ -64,6 +69,9 @@ export class TileMover {
     private elapsedMs = 0;
     private stepMs = 1;
     private destination: TilePoint | undefined;
+    /** Off-7E: tiles to go through on the way to `destination` (from a click), and the next one to head for. */
+    private path: readonly TilePoint[] = [];
+    private pathIndex = 0;
     /** Stop this many tiles from the destination (0 = on it): to walk up to a monster and hit it (Fase Off-2). */
     private stopRange = 0;
     /** Direct mode: the next step goes this way if it can (held click, stick). */
@@ -124,6 +132,16 @@ export class TileMover {
         this.destination = { x, y };
         this.directDirection = undefined;
         this.stopRange = 0;
+        this.path = [];
+        this.pathIndex = 0;
+    }
+
+    /** Off-7E: a click with a way found round the walls (OffPathfinder): its last tile is the destination. */
+    public goAlong(path: readonly TilePoint[]): void {
+        const last = path[path.length - 1];
+        if (!last) return;
+        this.goTo(last.x, last.y);
+        this.path = path;
     }
 
     /** Walks until it is `range` tiles from a tile or nearer (counting diagonals as one), then stops (Fase Off-2). */
@@ -164,6 +182,7 @@ export class TileMover {
     public steer(direction: Direction, target: TilePoint): void {
         this.destination = { x: target.x, y: target.y };
         this.directDirection = direction;
+        this.path = [];
     }
 
     /** Stops after the tile being crossed (right click, stick let go). */
@@ -171,6 +190,7 @@ export class TileMover {
         this.destination = undefined;
         this.directDirection = undefined;
         this.stopRange = 0;
+        this.path = [];
     }
 
     /** Advances the step under way; at each tile, picks the next one. `stepMs` is the time a new step takes. */
@@ -207,7 +227,8 @@ export class TileMover {
             }
             this.directDirection = undefined;
         }
-        const wanted = directionTowards(this.tileX, this.tileY, destination.x, destination.y);
+        const waypoint = this.nextWaypoint() ?? destination;
+        const wanted = directionTowards(this.tileX, this.tileY, waypoint.x, waypoint.y);
         if (wanted === undefined) return;
         const free = this.nextFreeDirection(wanted);
         if (free === undefined) {
@@ -220,6 +241,21 @@ export class TileMover {
         }
         this.blockedFrom = undefined;
         this.step(free, stepMs);
+    }
+
+    /**
+     * Off-7E: the path tile to head for. Standing on one of the next few (a monster may have pushed it a little off
+     * the way) moves on past it.
+     */
+    private nextWaypoint(): TilePoint | undefined {
+        const path = this.path;
+        if (path.length === 0) return undefined;
+        const end = Math.min(path.length, this.pathIndex + PATH_LOOKAHEAD);
+        for (let i = this.pathIndex; i < end; i++) {
+            const p = path[i];
+            if (p && p.x === this.tileX && p.y === this.tileY) this.pathIndex = i + 1;
+        }
+        return path[this.pathIndex];
     }
 
     /** sp-client findNextMovableDirection: the wanted direction, then one and two more towards the current side. */

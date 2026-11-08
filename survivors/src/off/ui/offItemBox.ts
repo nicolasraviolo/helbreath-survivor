@@ -2,7 +2,8 @@
 // - Arma: daño desde / hasta de un golpe normal con tu STR (sin críticos), velocidad propia (Fast / Medium / Slow, sin
 //   contar la STR) y la STR con la que llega a su mejor golpe. Armadura: defensa que suma.
 // - Comparado con lo que llevas puesto en su hueco: verde si mejora, rojo si empeora.
-// - STR necesaria y Level si lo pide (Off-5B; en rojo si no llegas) y atributos (ninguno de momento).
+// - STR necesaria y Level si lo pide (Off-5B; en rojo si no llegas) y atributos (Off-7B: lo que sueltan los monstruos;
+//   el nombre de los objetos especiales, en verde como el original, y sus atributos en el color normal).
 // - Pociones (Off-4B): qué llenan y cuánto, de menos a más. Slime Jelly: que se vende.
 // - Magias (Off-6A, tienda y libro): maná, daño o efecto, elemento e INT que piden.
 import Phaser from 'phaser';
@@ -11,8 +12,10 @@ import { OFF_EQUIPMENT_BOX, OFF_EQUIPMENT_BOX_STYLE, OFF_EQUIPMENT_BOX_TITLE_STY
 import { offBestSpeedStr, offSpeedLabel } from '../data/offCombat';
 import { offGood } from '../data/offGoods';
 import {
-    diceAverage, isOffItemId, OFF_FISTS, OFF_ITEMS, offNeedsText, offWearCheck, type OffBagItemId, type OffItemDef, type OffItemId, type OffWeaponItem, type OffWearer,
+    diceAverage, isOffGearKey, isOffSpecial, OFF_FISTS, offGearDef, offGearEffects, offGearId, offGearKind, offGearRolls, offItemAbsorb, offNeedsText, offWearCheck,
+    type OffBagItemKey, type OffGearKey, type OffItemDef, type OffWeaponItem, type OffWearer,
 } from '../data/offItems';
+import { OFF_ATTRIBUTES, offRollLines } from '../data/offAttributes';
 import { OFF_ELEMENT_NAMES, OFF_SPELLS, offDiceRange, type OffSpellId } from '../data/offSpells';
 import { weaponDamageRange } from '../systems/OffCombatRules';
 
@@ -32,60 +35,68 @@ const BAR_LABELS = { hp: 'Health', mana: 'Mana', stamina: 'Stamina' } as const;
  * What the box says about an item (undefined = an empty slot), compared with `worn` when it is another one (an empty
  * armour slot counts as defence 0). Goods (potions, Slime Jelly) are not compared.
  */
-export function offItemBoxLines(id: OffBagItemId | undefined, worn: OffItemId | undefined, who: OffWearer): OffBoxLine[] {
+export function offItemBoxLines(id: OffBagItemKey | undefined, worn: OffGearKey | undefined, who: OffWearer): OffBoxLine[] {
     const str = who.str;
-    if (id !== undefined && !isOffItemId(id)) {
+    if (id !== undefined && !isOffGearKey(id)) {
         const good = offGood(id);
         const restores = good.restores;
         if (!restores) return [{ label: '', value: 'Only for selling.' }];
         const [count, sides, bonus] = restores.dice;
         return [{ label: 'Restores', value: `${BAR_LABELS[restores.what]} ${count + bonus} – ${count * sides + bonus}` }];
     }
-    const item: OffItemDef | undefined = id ? OFF_ITEMS[id] : undefined;
-    const other: OffItemDef | undefined = worn ? OFF_ITEMS[worn] : undefined;
+    const item: OffItemDef | undefined = id ? offGearDef(id) : undefined;
+    const other: OffItemDef | undefined = worn ? offGearDef(worn) : undefined;
     const comparing = id !== worn;
     const lines: OffBoxLine[] = [];
+    const factorOf = (key: OffGearKey | undefined) => 1 + (key ? offGearEffects(key).damage ?? 0 : 0);
     if (item?.kind === 'weapon') {
-        // Damage from / to of a normal blow with your STR, crits apart (owner: the dice were hard to read).
-        const range = (w: OffWeaponItem) => {
-            const r = weaponDamageRange(w, str);
+        // Damage from / to of a normal blow with your STR, crits apart (owner: the dice were hard to read); with Sharp or
+        // Ancient, their share on top (Off-7B).
+        const range = (w: OffWeaponItem, key: OffGearKey | undefined) => {
+            const r = weaponDamageRange(w, str, factorOf(key));
             return `${r.min} – ${r.max}`;
         };
-        const damage = range(item);
+        const damage = range(item, id);
         const speed = offSpeedLabel(item);
         const best = offBestSpeedStr(item);
         if (other?.kind === 'weapon' && comparing) {
-            const average = diceAverage(item.small) + diceAverage(item.large);
-            const otherAverage = diceAverage(other.small) + diceAverage(other.large);
+            const average = (diceAverage(item.small) + diceAverage(item.large)) * factorOf(id);
+            const otherAverage = (diceAverage(other.small) + diceAverage(other.large)) * factorOf(worn);
             const otherSpeed = offSpeedLabel(other);
-            lines.push({ label: 'Damage', value: damage, now: { text: `(now ${range(other)})`, better: Math.sign(average - otherAverage) } });
+            lines.push({ label: 'Damage', value: damage, now: { text: `(now ${range(other, worn)})`, better: Math.sign(average - otherAverage) } });
             lines.push({ label: 'Speed', value: speed.label, now: { text: `(now ${otherSpeed.label})`, better: Math.sign(otherSpeed.rank - speed.rank) } });
         } else {
             lines.push({ label: 'Damage', value: damage });
             lines.push({ label: 'Speed', value: speed.label });
         }
         // Range left out: every weapon so far reaches 1 tile (and the mobile box has no room for one more line).
-        lines.push({ label: '', value: best > 0 ? `Fastest with Str ${best}` : 'Fastest with any Str' });
+        // Off-7E: two-handed weapons say so on the same line (the box has no room for one more).
+        const fastest = best > 0 ? `Fastest with Str ${best}` : 'Fastest with any Str';
+        lines.push({ label: '', value: item.twoHanded ? `${fastest} · Two-handed, no shield` : fastest });
     } else if (!item && other?.kind === 'weapon') {
         // An empty hand (Off-6A): bare hands' damage, compared with the weapon held.
-        const show = (w: Pick<OffWeaponItem, 'small' | 'large'>) => {
-            const r = weaponDamageRange(w, str);
+        const show = (w: Pick<OffWeaponItem, 'small' | 'large'>, factor = 1) => {
+            const r = weaponDamageRange(w, str, factor);
             return `${r.min} – ${r.max}`;
         };
-        lines.push({ label: 'Damage', value: show(OFF_FISTS), now: { text: `(now ${show(other)})`, better: -1 } });
+        lines.push({ label: 'Damage', value: show(OFF_FISTS), now: { text: `(now ${show(other, factorOf(worn))})`, better: -1 } });
         lines.push({ label: '', value: 'Bare hands. Spells need an empty hand.' });
     } else {
         const defense = item?.kind === 'armor' ? item.defense : 0;
         const otherDefense = other?.kind === 'armor' ? other.defense : 0;
         const now = comparing ? { text: `(now +${otherDefense})`, better: Math.sign(defense - otherDefense) } : undefined;
-        lines.push({ label: 'Defense', value: `+${defense}`, ...(now ? { now } : {}) });
+        // Off-7D: what it takes away of a blow on its body part (shields: when the shield skill roll works).
+        const absorb = item?.kind === 'armor' ? offItemAbsorb(item) : 0;
+        lines.push({ label: 'Defense', value: absorb > 0 ? `+${defense} · Absorb ${absorb}%` : `+${defense}`, ...(now ? { now } : {}) });
     }
-    if (item && id !== undefined && isOffItemId(id)) {
+    if (item && id !== undefined && isOffGearKey(id)) {
         const met = offWearCheck(id, who) === 'ok';
         const have = item.levelToEquip ? `(you have ${str} · ${who.level})` : `(you have ${str})`;
         lines.push({ label: 'Needs', value: offNeedsText(id), valueColor: met ? EQUIPMENT_MET_COLOR : EQUIPMENT_UNMET_COLOR, now: { text: have, better: 0 } });
-        // Attributes (Sharp, Poison...) are for later: the loot so far has none.
-        lines.push({ label: 'Attributes', value: 'None' });
+        // Off-7B: the attributes of what monsters drop (shop items have none).
+        const attributes = offRollLines(offGearKind(offGearId(id)), offGearRolls(id));
+        // Both on one line: the box has no room for one more.
+        lines.push({ label: 'Attributes', value: attributes.length > 0 ? attributes.join(', ') : 'None' });
     } else if (other) {
         lines.push({ label: '', value: `Takes off the ${other.name}.` });
     }
@@ -98,12 +109,13 @@ export function drawOffItemBox(
     area: { x: number; y: number; width: number; height: number },
     title: string,
     lines: readonly OffBoxLine[],
+    titleColor?: string,
 ): Phaser.GameObjects.GameObject[] {
     const b = OFF_EQUIPMENT_BOX;
     const { x, y } = area;
     const objects: Phaser.GameObjects.GameObject[] = [
         scene.add.rectangle(x, y, area.width, area.height, b.background).setOrigin(0).setStrokeStyle(1, b.border),
-        scene.add.text(x + b.padding, y + b.padding, title, OFF_EQUIPMENT_BOX_TITLE_STYLE),
+        scene.add.text(x + b.padding, y + b.padding, title, { ...OFF_EQUIPMENT_BOX_TITLE_STYLE, ...(titleColor ? { color: titleColor } : {}) }),
     ];
     let lineY = y + b.padding + b.lineHeight + 2;
     for (const line of lines) {
@@ -117,6 +129,11 @@ export function drawOffItemBox(
         lineY += b.lineHeight;
     }
     return objects;
+}
+
+/** Colour of an item's name: green for a special one (with attributes, Off-7B), as the original; undefined = normal. */
+export function offItemNameColor(key: OffBagItemKey | undefined): string | undefined {
+    return key !== undefined && isOffSpecial(key) ? OFF_ATTRIBUTES.nameColor : undefined;
 }
 
 const SHIELD_EFFECT: Partial<Record<OffSpellId, string>> = { defenseShield: 'Defense up', protectionFromMagic: 'Magic resistance up' };

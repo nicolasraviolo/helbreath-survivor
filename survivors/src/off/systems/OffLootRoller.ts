@@ -1,7 +1,9 @@
 // Helbreath Off (Fase Off-4A): qué suelta un monstruo al morir, con las tiradas del original (off/data/offLoot.ts).
+// Off-7B: el arma o armadura valiosa según el nivel de botín del monstruo, siempre con atributos (offAttributes.ts).
 // Desarrollo: ?offdrop=all hace que todos suelten algo; ?offdrop=valuable, siempre un arma o un escudo.
-import type { OffBagItemId } from '../data/offItems';
-import { OFF_LOOT, OFF_MONSTER_LOOT, OFF_STANDARD_DROP_TOTAL, OFF_STANDARD_DROPS, OFF_VALUABLE_DROPS } from '../data/offLoot';
+import { offGearKey, offGearKind, type OffBagItemKey, type OffItemId } from '../data/offItems';
+import { rollOffAttributes } from '../data/offAttributes';
+import { OFF_LOOT, OFF_MONSTER_LOOT, OFF_STANDARD_DROP_TOTAL, OFF_STANDARD_DROPS, OFF_VALUABLE_DROPS, type OffLootLevel } from '../data/offLoot';
 import type { OffMonsterId } from '../data/offMonsters';
 
 export type OffDropMode = 'normal' | 'all' | 'valuable';
@@ -9,7 +11,7 @@ export type OffDropMode = 'normal' | 'all' | 'valuable';
 export interface OffKillLoot {
     /** Gold dropped (0 = none). */
     gold: number;
-    items: OffBagItemId[];
+    items: OffBagItemKey[];
 }
 
 /** `random` returns 0..1 (Math.random, or a fixed sequence in tests). */
@@ -18,16 +20,16 @@ export function rollKillLoot(monster: OffMonsterId, mode: OffDropMode, random: (
     const table = OFF_MONSTER_LOOT[monster];
     const chance = Math.min(1, OFF_LOOT.dropChance * OFF_LOOT.dropMultiplier);
     if (mode === 'valuable') {
-        // Always something: the wand rolls (nothing at level 1) roll again.
-        let item: OffBagItemId | undefined;
-        for (let i = 0; i < 20 && !item; i++) item = rollValuable(random);
+        // Always something: the wand rolls (no wands yet) roll again.
+        let item: OffBagItemKey | undefined;
+        for (let i = 0; i < 20 && !item; i++) item = rollValuable(table.level, random);
         if (item) loot.items.push(item);
     } else if (mode === 'all' || random() < chance) {
         if (random() < OFF_LOOT.goldShare) {
             const [min, max] = table.gold;
-            loot.gold = min + Math.floor(random() * (max - min + 1));
+            loot.gold = Math.max(1, Math.round((min + Math.floor(random() * (max - min + 1))) * OFF_LOOT.goldMultiplier));
         } else if (random() < Math.min(1, OFF_LOOT.valuableShare * OFF_LOOT.valuableMultiplier)) {
-            const item = rollValuable(random);
+            const item = rollValuable(table.level, random);
             if (item) loot.items.push(item);
         } else {
             const item = rollStandard(random);
@@ -39,7 +41,7 @@ export function rollKillLoot(monster: OffMonsterId, mode: OffDropMode, random: (
 }
 
 /** A potion from the 1d12000 table (or nothing: the candies, stones... left out). */
-function rollStandard(random: () => number): OffBagItemId | undefined {
+function rollStandard(random: () => number): OffBagItemKey | undefined {
     let roll = random() * OFF_STANDARD_DROP_TOTAL;
     for (const entry of OFF_STANDARD_DROPS) {
         if (roll < entry.weight) return entry.id;
@@ -48,13 +50,17 @@ function rollStandard(random: () => number): OffBagItemId | undefined {
     return undefined;
 }
 
-/** A weapon or a shield of monster level 1 (a wand would be nothing). */
-function rollValuable(random: () => number): OffBagItemId | undefined {
+/** A weapon or an armour piece of that loot level, with its attributes (a wand would be nothing). */
+function rollValuable(level: OffLootLevel, random: () => number): OffBagItemKey | undefined {
+    const drops = OFF_VALUABLE_DROPS[level];
+    let id: OffItemId | undefined;
     if (random() < OFF_LOOT.weaponShare) {
         if (random() >= OFF_LOOT.meleeShare) return undefined;
-        return pick(OFF_VALUABLE_DROPS.weapons, random);
+        id = pick(drops.weapons, random);
+    } else {
+        id = pick(drops.armor, random);
     }
-    return pick(OFF_VALUABLE_DROPS.shields, random);
+    return id ? offGearKey(id, rollOffAttributes(offGearKind(id), level, random)) : undefined;
 }
 
 function pick<T>(list: readonly T[], random: () => number): T | undefined {

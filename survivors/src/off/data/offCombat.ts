@@ -68,14 +68,42 @@ export function offBestSpeedStr(weapon: Pick<OffWeaponDef, 'speed'>): number {
     return weapon.speed * OFF_ATTACK_SPEED.strPerStep;
 }
 
+/**
+ * Off-7D: armour that takes away part of a monster's blow, as the original (reference/Server.cpp, iCalculateAttackEffect
+ * ~L54055): each blow falls on one body part (body 50 %, legs 25 %, arms 15 %, head 10 %) and the piece worn there takes
+ * away its `absorb` % (at most 80 %). The shield takes away its own % (defence − defence / 3, at most 80 %) when 1d100 ≤
+ * the shield skill; Off has no skills, so shield skill = DEX × 2, up to 100 (owner, 8-nov-2026, as the weapon skill of
+ * Off-7C). Off has nothing for the arms yet (the original's Hauberk). Spells are not absorbed (only blows).
+ */
+export const OFF_ARMOR = {
+    /** Body part a blow falls on, and its share of the blows. */
+    parts: [
+        { slot: 'body', share: 0.5 },
+        { slot: 'legs', share: 0.25 },
+        { slot: undefined, share: 0.15 },
+        { slot: 'helm', share: 0.1 },
+    ] as ReadonlyArray<{ slot: 'body' | 'legs' | 'helm' | undefined; share: number }>,
+    maxAbsorbPercent: 80,
+    shieldSkillPerDex: 2,
+    maxShieldSkill: 100,
+} as const;
+
 export const OFF_COMBAT = {
     /** Hit chance limits, % (server DEF_MINIMUMHITRATIO / DEF_MAXIMUMHITRATIO). */
     minHitPercent: 15,
     maxHitPercent: 99,
     /** Added to the player's hit ratio on every attack (server: iAttackerHitRatio += 50). */
     playerHitBonus: 50,
-    /** The novice's weapon skill (mastery) until there are skills: the hit ratio before the bonus. Ours. */
-    noviceSkill: 0,
+    /**
+     * Off-7C (owner, 8-nov-2026): Off has no skills, so the weapon skill (mastery) is always at its original cap,
+     * DEX × 2, up to 100 (as the Magic skill is MAG × 2). Server: hit ratio = skill + 50, + (DEX − 50) above DEX 50.
+     */
+    skillPerDex: 2,
+    maxSkill: 100,
+    /** DEX above this adds to the hit ratio, point by point (server, iCalculateAttackEffect). */
+    dexBonusFrom: 50,
+    /** Off-7C (owner): a critical blow does this many times the damage (orange number, as Survivors). */
+    criticalDamage: 2,
     /** Share of the attack animation when the blow lands (ours; sp-client plays the hit on frame 2–3 of 8). */
     hitShare: 0.4,
     /** Monsters: attack turns before giving up a chase and wandering again (server NpcBehavior_Attack). */

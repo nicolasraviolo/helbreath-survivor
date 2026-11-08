@@ -22,6 +22,8 @@
 // portales. Pisar uno lleva al otro sitio con la vida, el maná y la estamina que tenías; el de una ciudad, sin bando,
 // pregunta antes si quieres unirte (OffConfirmScene, con el mundo en pausa). Al morir lejos de casa se reaparece en tu
 // ciudad (o en Traveler Zone sin bando).
+// Fase Off-7A: el teleport de la ciudad pregunta adónde ir (OffTeleportScene: Traveler Zone o Promiseland). En
+// Promiseland se llega por la puerta de tu ciudad (Elvine arriba, Aresden abajo) y por ella se vuelve.
 // Fase Off-5B: pisar la puerta de la tienda, el herrero o el almacén de tu ciudad abre su ventana (OffStoreScene /
 // OffWarehouseScene) encima del mundo, que sigue; como los portales, hay que salir de la puerta para que vuelva a abrir.
 // Fase Off-6A: B abre el libro de magias (OffSpellBookScene), que tapa el mundo como Character; la tienda tiene la
@@ -49,9 +51,9 @@ import { playAreaBottom } from '../../ui/hudLayout';
 import { setGameViewport, toGame, zoomWorldCamera } from '../../ui/renderScale';
 import { Pool } from '../../utils/Pool';
 import type { MapLoadSceneData } from '../../scenes/MapLoadScene';
-import { OFF_MOVEMENT, OFF_NOVICE, OFF_STEP_MS, TILES_PER_ANIMATION_CYCLE } from '../data/offWorld';
+import { OFF_MOVEMENT, OFF_NOVICE, OFF_STEP_MS, OFF_WHERE_SAVE_MS, TILES_PER_ANIMATION_CYCLE } from '../data/offWorld';
 import {
-    OFF_PLACE_TEXT, OFF_PLACES, offCityOf, offHomePlace, type OffBuildingKind, type OffDoorDef, type OffFaction, type OffPlaceDef, type OffPlaceId, type OffPortalDef,
+    OFF_PLACE_TEXT, OFF_PLACES, offArrivalIn, offCityOf, offHomePlace, type OffBuildingKind, type OffDoorDef, type OffFaction, type OffPlaceDef, type OffPlaceId, type OffPortalDef,
 } from '../data/offPlaces';
 import { OFF_STORE_SCENE_KEY, type OffStoreSceneData, type OffStoreTab } from './OffStoreScene';
 import { OFF_SPELL_BOOK_SCENE_KEY, type OffSpellBookSceneData } from './OffSpellBookScene';
@@ -60,6 +62,7 @@ import { EVENT_LIST_EVENT } from '../../config/hud';
 import { Portal } from '../../entities/Portal';
 import { openOverlay } from '../../scenes/MenuOverlayScene';
 import { OFF_CONFIRM_SCENE_KEY, type OffConfirmSceneData } from './OffConfirmScene';
+import { OFF_TELEPORT_SCENE_KEY, type OffTeleportSceneData } from './OffTeleportScene';
 import type { OffCarriedVitals } from '../systems/OffBattle';
 import { OffCharacter } from '../entities/OffCharacter';
 import { offLevelProgress } from '../data/offLevel';
@@ -68,13 +71,17 @@ import { OffBattle } from '../systems/OffBattle';
 import { offSaveStore } from '../systems/OffSaveStore';
 import { OFF_HUD_SCENE_KEY, OFF_OPEN_CHARACTER_EVENT, OFF_OPEN_PAUSE_EVENT, type OffHudSceneData, type OffHudState } from './OffHudScene';
 import { offCharacterInfo } from './offCharacterInfo';
-import { offEquipmentLook } from '../data/offItems';
+import { isOffGearKey, offEquipmentLook, offGearId, offGearRolls, offWeaponTint } from '../data/offItems';
+import { rollKillLoot } from '../systems/OffLootRoller';
+import { isOffMonsterId, OFF_MONSTERS, type OffMonsterId } from '../data/offMonsters';
+import { offHitChance, offPlayerHitRatio } from '../systems/OffCombatRules';
 import { offAttackMs } from '../data/offCombat';
 import { OFF_EQUIPMENT_SCENE_KEY, type OffEquipmentSceneData } from './OffEquipmentScene';
 import { OFF_INVENTORY_SCENE_KEY, type OffInventorySceneData } from './OffInventoryScene';
 import type { PauseSceneData } from '../../scenes/PauseScene';
 import type { MenuOverlayData } from '../../scenes/MenuOverlayScene';
 import { directionOffset, findFreeTile, TileMover, type TilePoint } from '../systems/TileMover';
+import { OffPathfinder } from '../systems/OffPathfinder';
 
 export const OFF_WORLD_SCENE_KEY = 'OffWorld';
 
@@ -100,7 +107,8 @@ let debugPlacePending = true;
  * character's home (its city, or Traveler Zone without a faction).
  */
 export function startOffWorld(scene: Phaser.Scene, data?: OffWorldSceneData): void {
-    let sceneData: OffWorldSceneData = data ?? { place: offHomePlace(offSaveStore.character.faction) };
+    // Off-7E: Play puts the character back where it was (its city when nothing was saved).
+    let sceneData: OffWorldSceneData = data ?? savedArrival();
     if (debugPlacePending && data === undefined && DEBUG_START.offPlace !== undefined) {
         sceneData = { place: DEBUG_START.offPlace, at: DEBUG_START.offAt };
     }
@@ -118,6 +126,13 @@ export function startOffWorld(scene: Phaser.Scene, data?: OffWorldSceneData): vo
     scene.scene.start('MapLoad', load);
 }
 
+/** Off-7E: the saved place and tile, as an arrival; its city with nothing saved. */
+function savedArrival(): OffWorldSceneData {
+    const where = offSaveStore.character.where;
+    if (!where) return { place: offHomePlace(offSaveStore.character.faction) };
+    return where.x !== undefined && where.y !== undefined ? { place: where.place, at: { x: where.x, y: where.y } } : { place: where.place };
+}
+
 export class OffWorldScene extends Phaser.Scene {
     private placeId: OffPlaceId = 'traveler';
     private place: OffPlaceDef = OFF_PLACES.traveler;
@@ -133,6 +148,8 @@ export class OffWorldScene extends Phaser.Scene {
     private leaving = false;
     private mapView!: MapView;
     private mover!: TileMover;
+    /** Off-7E: finds the way round houses and walls for a click. */
+    private pathfinder!: OffPathfinder;
     private character!: OffCharacter;
     private inputSystem!: InputSystem;
     private audio!: AudioSystem;
@@ -141,6 +158,26 @@ export class OffWorldScene extends Phaser.Scene {
     private battle!: OffBattle;
     /** The left button went down on a monster and is still held: the character keeps hitting it. */
     private mouseAttack = false;
+    /**
+     * Development (`check offhitrate`, Off-7C): hit chance (%) of the player's blows against every monster, from the
+     * front, for each DEX (no Hitting Probability), rolled `count` times as a real blow would.
+     */
+    public debugHitTable(dexes: readonly number[], count: number): Record<string, Record<string, { ratio: number; percent: number }>> {
+        const out: Record<string, Record<string, { ratio: number; percent: number }>> = {};
+        for (const dex of dexes) {
+            const ratio = offPlayerHitRatio(dex);
+            const row: Record<string, { ratio: number; percent: number }> = {};
+            for (const id of Object.keys(OFF_MONSTERS) as OffMonsterId[]) {
+                const chance = offHitChance(ratio, OFF_MONSTERS[id].base.defenseRatio, false);
+                let hits = 0;
+                for (let i = 0; i < count; i++) if (Math.random() < chance) hits++;
+                row[id] = { ratio, percent: Math.round((hits / count) * 100) };
+            }
+            out[`dex${dex}`] = row;
+        }
+        return out;
+    }
+
     /** Development (`check offfight`): attacks go on as if the button were held, until a click or the stick. */
     private debugHold = false;
     /** Development (`debugCast`): the kind of monster the spell goes to once ready ('' = any). */
@@ -156,6 +193,8 @@ export class OffWorldScene extends Phaser.Scene {
     /** The pace of the step under way decides the footsteps loop; it restarts when it changes. */
     private footstepsMs = 0;
     private lastTile: TilePoint = { x: 0, y: 0 };
+    /** Off-7E: time since `where` was last saved while walking. */
+    private whereSaveMs = 0;
     /** Window open over the world (Off-4B): the side Inventory, or a screen that covers it (Equipment, Character). */
     private window: 'inventory' | 'cover' | undefined;
     /**
@@ -170,9 +209,12 @@ export class OffWorldScene extends Phaser.Scene {
     }
 
     init(data: Partial<OffWorldSceneData> | undefined): void {
-        this.placeId = data?.place ?? offHomePlace(offSaveStore.character.faction);
+        const home = offHomePlace(offSaveStore.character.faction);
+        this.placeId = data?.place ?? home;
         this.place = OFF_PLACES[this.placeId];
-        this.arrival = { ...data, place: this.placeId };
+        // Without a tile (?offplace), by the gate of the character's city when the place has one (Promiseland, Off-7A).
+        const at = data?.at ?? offArrivalIn(this.placeId, home);
+        this.arrival = { ...data, place: this.placeId, ...(at ? { at } : {}) };
     }
 
     create(): void {
@@ -187,8 +229,10 @@ export class OffWorldScene extends Phaser.Scene {
         const spawn = (at && findFreeTile(isWalkable, at.x, at.y, OFF_MOVEMENT.clickSearchRadius)) ?? home;
         // Monsters block the way too (the battle knows where they are).
         this.mover = new TileMover((x, y) => this.battle.isFreeForPlayer(x, y), spawn.x, spawn.y);
+        this.pathfinder = new OffPathfinder(map.width, map.height, isWalkable);
         this.lastTile = { x: spawn.x, y: spawn.y };
         this.character = new OffCharacter(this, OFF_NOVICE, offSaveStore.character.look, offEquipmentLook(offSaveStore.character.equipment));
+        this.character.wear(offEquipmentLook(offSaveStore.character.equipment), offWeaponTint(offSaveStore.character.equipment));
         this.character.update(this.mover, false, 0);
         this.audio = new AudioSystem(this);
         // Coming back to life: here, on the place's spawn, if this is home; otherwise off to the character's city.
@@ -202,6 +246,20 @@ export class OffWorldScene extends Phaser.Scene {
         };
         this.battle = new OffBattle(this, this.mover, this.character, this.audio, isWalkable, respawnTile, place.pits, this.arrival.carried);
         this.leaving = false;
+        this.whereSaveMs = 0;
+        // Off-7E: saved on arriving, every few seconds, on leaving and when the page is hidden or closed.
+        this.saveWhere();
+        const onHide = () => {
+            if (document.visibilityState === 'hidden') this.saveWhere();
+        };
+        const onPageHide = () => this.saveWhere();
+        document.addEventListener('visibilitychange', onHide);
+        window.addEventListener('pagehide', onPageHide);
+        this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+            this.saveWhere();
+            document.removeEventListener('visibilitychange', onHide);
+            window.removeEventListener('pagehide', onPageHide);
+        });
         this.portalSprites = place.portals.filter((p) => p.drawn).map((p) => {
             const centre = portalCentre(p);
             return new Portal(this, centre.x * TILE_SIZE, centre.y * TILE_SIZE, Number.POSITIVE_INFINITY);
@@ -235,6 +293,8 @@ export class OffWorldScene extends Phaser.Scene {
         this.minimap.setVisible(settings.current.showMinimap);
 
         this.inputSystem = new InputSystem(this);
+        // Off-7B: the d-pad drinks potions (left / right), so only the stick walks.
+        this.inputSystem.setDpadMoves(false);
         this.fitPlayArea();
         this.input.mouse?.disableContextMenu();
         this.input.on(Phaser.Input.Events.POINTER_DOWN, this.onPointerDown, this);
@@ -304,6 +364,11 @@ export class OffWorldScene extends Phaser.Scene {
     }
 
     override update(_time: number, delta: number): void {
+        this.whereSaveMs += delta;
+        if (this.whereSaveMs >= OFF_WHERE_SAVE_MS) {
+            this.whereSaveMs = 0;
+            this.saveWhere();
+        }
         const input = this.inputSystem;
         input.update();
         // Read every frame, also under a window (a key pressed there must not act here once it closes).
@@ -317,6 +382,8 @@ export class OffWorldScene extends Phaser.Scene {
         const toggleRun = input.justPressed(Action.ToggleRun);
         const spellBook = input.justPressed(Action.OffSpellBook);
         const spellKey = OFF_SPELL_KEY_ACTIONS.findIndex((action) => input.justPressed(action));
+        const drinkHealth = !trigger && input.justPressed(Action.OffDrinkHealth);
+        const drinkMana = !trigger && input.justPressed(Action.OffDrinkMana);
         if (!this.window && this.windowClosedFrame !== this.game.loop.frame) {
             if (pause) {
                 this.openPause();
@@ -336,6 +403,9 @@ export class OffWorldScene extends Phaser.Scene {
             }
             if (toggleRun) runMode = !runMode;
             if (spellKey >= 0) this.pressSpellKey(spellKey);
+            // Off-7B: quick potions (Q / E, d-pad left / right).
+            if (drinkHealth && !this.battle.dead) this.battle.drinkQuick('hp');
+            if (drinkMana && !this.battle.dead) this.battle.drinkQuick('mana');
             if (padSpell >= 0) this.pressPadSpell(padSpell);
         }
         this.updateCombatInput();
@@ -375,8 +445,8 @@ export class OffWorldScene extends Phaser.Scene {
 
     private enterPortal(portal: OffPortalDef): void {
         const to = portal.to;
-        if (to.kind === 'traveler') {
-            this.travel({ place: 'traveler', at: this.travelerArrivalFor(this.placeId), carried: this.carriedVitals() });
+        if (to.kind === 'teleport') {
+            this.askDestination();
             return;
         }
         const faction = offSaveStore.character.faction;
@@ -409,6 +479,21 @@ export class OffWorldScene extends Phaser.Scene {
             },
         };
         openOverlay(this, OFF_CONFIRM_SCENE_KEY, data);
+    }
+
+    /** A city's teleport (Off-7A): which map to go to, over the world, which waits paused. */
+    private askDestination(): void {
+        if (this.window === 'inventory') {
+            this.scene.stop(OFF_INVENTORY_SCENE_KEY);
+            this.closeInventory();
+        }
+        if (this.window) return;
+        this.stopForWindow();
+        this.mover.cancel();
+        const data: Omit<OffTeleportSceneData, 'returnTo'> = {
+            onChoose: (place) => this.travel({ place, at: offArrivalIn(place, this.placeId), carried: this.carriedVitals() }),
+        };
+        openOverlay(this, OFF_TELEPORT_SCENE_KEY, data);
     }
 
     // ---- Doors (Off-5B) ----
@@ -447,11 +532,6 @@ export class OffWorldScene extends Phaser.Scene {
         this.scene.launch(OFF_STORE_SCENE_KEY, data);
     }
 
-    /** In Traveler Zone, by the portal of the city you come from. */
-    private travelerArrivalFor(from: OffPlaceId): TilePoint | undefined {
-        return OFF_PLACES.traveler.portals.find((p) => p.to.kind === 'city' && offCityOf(p.to.faction) === from)?.arrival;
-    }
-
     private carriedVitals(): OffCarriedVitals {
         return { hp: this.battle.hp, mana: this.battle.vitals.mana, stamina: this.battle.vitals.stamina, protection: this.battle.protection };
     }
@@ -459,9 +539,24 @@ export class OffWorldScene extends Phaser.Scene {
     /** Off to another place through its loading screen. */
     private travel(data: OffWorldSceneData): void {
         if (this.leaving) return;
+        // Off-7E: the next place right away, so closing the page while it loads doesn't leave it on the portal.
+        offSaveStore.setWhere(data.at ? { place: data.place, x: data.at.x, y: data.at.y } : { place: data.place });
         this.leaving = true;
         this.stopForWindow();
         startOffWorld(this, data);
+    }
+
+    /**
+     * Off-7E: remembers this place and tile for Play. Dead, its city instead (it comes back to life there). Nothing
+     * while leaving: travel() already saved the next place.
+     */
+    private saveWhere(): void {
+        if (this.leaving || !this.battle) return;
+        if (this.battle.dead) {
+            offSaveStore.setWhere({ place: offHomePlace(offSaveStore.character.faction) });
+            return;
+        }
+        offSaveStore.setWhere({ place: this.placeId, x: this.mover.nextTileX, y: this.mover.nextTileY });
     }
 
     /** Development (`check offportal`): goes through a place's portal at once, as stepping on it would. */
@@ -536,7 +631,7 @@ export class OffWorldScene extends Phaser.Scene {
 
     /** What the character wears now, on the sprite (items not downloaded yet appear when they arrive). */
     private dressCharacter(): void {
-        this.character.wear(offEquipmentLook(offSaveStore.character.equipment));
+        this.character.wear(offEquipmentLook(offSaveStore.character.equipment), offWeaponTint(offSaveStore.character.equipment));
     }
 
     /** A screen covers the world: the character stops and takes no orders; the HUD hides. */
@@ -659,7 +754,7 @@ export class OffWorldScene extends Phaser.Scene {
         level: number; exp: number; points: number; kills: number; monsters: Record<string, number>; target: string | undefined;
         weapon: string; attackMs: number; defense: number; gold: number; bag: string[]; ground: string[];
         spell: string; casts: number; fails: number; prepareMs: number; burning: number; slowed: number;
-        held: number; shield: string | undefined; padSpells: string[];
+        held: number; poisoned: number; shield: string | undefined; padSpells: string[];
     } {
         const monsters: Record<string, number> = {};
         for (const monster of this.battle.pits.monsters) {
@@ -700,10 +795,74 @@ export class OffWorldScene extends Phaser.Scene {
             burning: this.battle.pits.monsters.filter((m) => m.isAlive && m.isBurning).length,
             slowed: this.battle.pits.monsters.filter((m) => m.isAlive && m.isSlowed).length,
             held: this.battle.pits.monsters.filter((m) => m.isAlive && m.isHeld).length,
+            poisoned: this.battle.pits.monsters.filter((m) => m.isAlive && m.isPoisoned).length,
             shield: this.battle.protection ? `${this.battle.protection.spell} ${Math.ceil(this.battle.protection.leftMs / 1000)}s` : undefined,
             padSpells: offSaveStore.character.padSpells.map((k) => k ?? '-'),
             ground: this.battle.ground.items.map((g) => `${'gold' in g.content ? `${g.content.gold} gold` : g.content.item} at ${g.tileX},${g.tileY}`),
         };
+    }
+
+    /**
+     * Development (`check offlootlevel`, Off-7B): rolls `count` valuable drops of that monster and counts the items and
+     * the attributes (first and second) that came out.
+     */
+    public debugRollLoot(monster: string, count: number): { items: Record<string, number>; first: Record<string, number>; second: Record<string, number>; withSecond: number } {
+        const out = { items: {} as Record<string, number>, first: {} as Record<string, number>, second: {} as Record<string, number>, withSecond: 0 };
+        if (!isOffMonsterId(monster)) return out;
+        const add = (into: Record<string, number>, key: string) => { into[key] = (into[key] ?? 0) + 1; };
+        for (let i = 0; i < count; i++) {
+            for (const key of rollKillLoot(monster, 'valuable').items) {
+                if (!isOffGearKey(key)) continue;
+                add(out.items, offGearId(key));
+                const rolls = offGearRolls(key);
+                if (rolls.primary) add(out.first, `${rolls.primary}${rolls.primaryValue ?? ''}`);
+                if (rolls.secondary) {
+                    add(out.second, rolls.secondary);
+                    out.withSecond++;
+                }
+            }
+        }
+        return out;
+    }
+
+    /**
+     * Development (`check offfarm`, Off-7D): hunts that kind of monster for `seconds`, drinking the biggest health
+     * potion carried when health falls under `drinkBelow` (share of the maximum). Stops at the first death. Gives the
+     * totals and the rates per minute: kills, experience, gold and items dropped (picked up or not), damage taken.
+     */
+    public debugFarm(id: string, seconds: number, drinkBelow: number): Promise<Record<string, number | boolean>> {
+        const battle = this.battle;
+        const before = { ...battle.tally, kills: battle.kills, level: battle.level };
+        const start = performance.now();
+        return new Promise((resolve) => {
+            const tick = window.setInterval(() => {
+                const elapsed = (performance.now() - start) / 1000;
+                if (!battle.dead && battle.hp < battle.maxHp * drinkBelow) battle.drinkQuick('hp');
+                if (!battle.dead && !battle.target) this.debugFight(id);
+                if (!battle.dead && elapsed < seconds) return;
+                window.clearInterval(tick);
+                const perMinute = (value: number): number => Math.round((value / elapsed) * 60);
+                const t = battle.tally;
+                resolve({
+                    seconds: Math.round(elapsed),
+                    died: battle.dead,
+                    levelFrom: before.level,
+                    levelTo: battle.level,
+                    kills: battle.kills - before.kills,
+                    killsPerMin: Math.round(((battle.kills - before.kills) / elapsed) * 600) / 10,
+                    expPerMin: perMinute(t.exp - before.exp),
+                    goldPerMin: perMinute(t.gold - before.gold),
+                    potionsPerMin: Math.round(((t.potions - before.potions) / elapsed) * 600) / 10,
+                    valuablesPerMin: Math.round(((t.valuables - before.valuables) / elapsed) * 600) / 10,
+                    hurtPerMin: perMinute(t.hurt - before.hurt),
+                    absorbedPerMin: perMinute(t.absorbed - before.absorbed),
+                    hitsTaken: t.hits - before.hits,
+                    drunk: t.drunk - before.drunk,
+                    hpLeft: battle.hp,
+                    maxHp: battle.maxHp,
+                });
+            }, 100);
+        });
     }
 
     /** Development (`check offfight`): attacks the nearest monster of a kind (all of them, `id` undefined) and keeps on. */
@@ -814,10 +973,23 @@ export class OffWorldScene extends Phaser.Scene {
         this.clickTile(tile.x, tile.y);
     }
 
-    /** A click on a tile: there, or to the nearest free tile when it is blocked. */
+    /**
+     * A click on a tile: there, or to the nearest free tile when it is blocked. Off-7E: by the way round houses and
+     * walls when there is one; straight on, as the original, when there is none.
+     */
     private clickTile(x: number, y: number): void {
         const free = findFreeTile((tx, ty) => this.battle.isFreeForPlayer(tx, ty), x, y, OFF_MOVEMENT.clickSearchRadius);
-        if (free) this.mover.goTo(free.x, free.y);
+        if (!free) return;
+        // Round portals and doors on the way, except the one clicked and the one it stands in.
+        const from = { x: this.mover.nextTileX, y: this.mover.nextTileY };
+        const keep = [this.portalAt(free.x, free.y), this.doorAt(free.x, free.y), this.portalAt(from.x, from.y), this.doorAt(from.x, from.y)];
+        const avoid = (tx: number, ty: number) => {
+            const spot = this.portalAt(tx, ty) ?? this.doorAt(tx, ty);
+            return spot !== undefined && !keep.includes(spot);
+        };
+        const path = this.pathfinder.find(from, free, OFF_MOVEMENT.pathMaxTiles, avoid);
+        if (path && path.length > 0) this.mover.goAlong(path);
+        else this.mover.goTo(free.x, free.y);
     }
 
     /** World pixel and tile under the pointer. */
@@ -860,7 +1032,7 @@ function portalCentre(portal: OffPortalDef): { x: number; y: number } {
     return { x: portal.area.x + portal.area.width / 2, y: portal.area.y + portal.area.height / 2 };
 }
 
-/** In a city, by its portal back to Traveler Zone. */
+/** In a city, by its teleport. */
 function cityArrival(faction: OffFaction): TilePoint | undefined {
-    return OFF_PLACES[offCityOf(faction)].portals.find((p) => p.to.kind === 'traveler')?.arrival;
+    return OFF_PLACES[offCityOf(faction)].portals.find((p) => p.to.kind === 'teleport')?.arrival;
 }

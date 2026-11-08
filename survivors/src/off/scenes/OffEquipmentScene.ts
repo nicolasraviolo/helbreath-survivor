@@ -12,6 +12,7 @@
 // - Lo que te pones se guarda al momento (offSaveStore.equip). Ok, Esc, B, I o X cierran.
 // Teclado y mando como en Survivors: izquierda/derecha eligen hueco, abajo entra en la lista, Enter / A se lo pone.
 // Es una escena aparte (no un modo de EquipmentScene) porque aquella está atada a los personajes guardados de Survivors.
+import { setColouredTexture } from '../../hb/additiveTint';
 import Phaser from 'phaser';
 import {
     CHARACTER_INFO_BOXES,
@@ -45,31 +46,36 @@ import {
     itemPackTexture,
 } from '../../config/equipment';
 import { GAME_HEIGHT, GAME_WIDTH } from '../../config/gameConfig';
-import { EQUIP_SLOT_NAMES, itemIcon } from '../../data/items';
+import { EQUIP_SLOT_NAMES } from '../../data/items';
 import { PaperDoll } from '../../entities/PaperDoll';
 import { Action, InputSystem } from '../../systems/InputSystem';
 import { lookLoader } from '../../systems/LookLoader';
 import { OFF_EQUIPMENT_BOX } from '../config/offEquipment';
 import { OFF_LOOT_TEXT } from '../data/offLoot';
+import { OFF_BAG_TEXT } from '../data/offBag';
 import { OFF_STAT_IDS, offMaxHp, offMaxMana, offMaxStamina } from '../data/offCharacter';
 import {
     canEmptyOffSlot,
     OFF_FUTURE_SLOTS,
     OFF_GEAR_SLOT_IDS,
-    OFF_ITEMS,
     offBagGearFor,
+    offBagItemName,
+    offBagItemPicture,
+    offItemTint,
     offEquipmentLook,
-    offItem,
+    offGearDef,
+    offHandsClash,
     offNeedsText,
+    offStrToEquip,
     offWearCheck,
-    type OffItemId,
+    type OffGearKey,
     type OffSlotId,
     type OffWearer,
 } from '../data/offItems';
 import { OFF_LEVEL, offExpForLevel } from '../data/offLevel';
 import { OFF_NOVICE } from '../data/offWorld';
 import { offSaveStore } from '../systems/OffSaveStore';
-import { drawOffItemBox, offItemBoxLines } from '../ui/offItemBox';
+import { drawOffItemBox, offItemBoxLines, offItemNameColor } from '../ui/offItemBox';
 
 export const OFF_EQUIPMENT_SCENE_KEY = 'OffEquipment';
 
@@ -81,7 +87,7 @@ export interface OffEquipmentSceneData {
 }
 
 /** A row of the list: an item, or undefined for "Nothing" (empty the slot). */
-type Row = OffItemId | undefined;
+type Row = OffGearKey | undefined;
 
 interface RowView {
     index: number;
@@ -281,13 +287,14 @@ export class OffEquipmentScene extends Phaser.Scene {
         for (const [slot, { icon }] of this.slotBoxes) this.setIcon(icon, this.equipment[slot], EQUIPMENT_SLOTS.iconSize);
     }
 
-    private setIcon(image: Phaser.GameObjects.Image, id: OffItemId | undefined, size: number): void {
-        const frame = id ? itemIcon(OFF_ITEMS[id].look, offSaveStore.character.look.gender) : undefined;
+    private setIcon(image: Phaser.GameObjects.Image, id: OffGearKey | undefined, size: number): void {
+        const frame = id ? offBagItemPicture(id, offSaveStore.character.look.gender) : undefined;
         if (!frame || !this.iconsReady) {
             image.setVisible(false);
             return;
         }
-        image.setTexture(itemPackTexture(frame.sheet), frame.frame).setVisible(true);
+        setColouredTexture(image, itemPackTexture(frame.sheet), frame.frame, offItemTint(id));
+        image.setVisible(true);
         image.setScale(Math.min(1, size / Math.max(image.frame.width, image.frame.height)));
     }
 
@@ -324,7 +331,8 @@ export class OffEquipmentScene extends Phaser.Scene {
         const middle = y + (l.rowHeight - 2) / 2;
         const icon = this.add.image(x + l.iconSize / 2 + 4, middle, '__DEFAULT');
         this.setIcon(icon, id, l.iconSize);
-        const name = this.add.text(x + l.iconSize + 12, middle, id ? OFF_ITEMS[id].name : 'Nothing', EQUIPMENT_ROW_STYLE).setOrigin(0, 0.5);
+        const special = offItemNameColor(id);
+        const name = this.add.text(x + l.iconSize + 12, middle, id ? offBagItemName(id) : 'Nothing', { ...EQUIPMENT_ROW_STYLE, ...(special ? { color: special } : {}) }).setOrigin(0, 0.5);
         const objects: Phaser.GameObjects.GameObject[] = [icon, name];
         if (id) {
             objects.push(this.add.text(x + width - 6, middle, offNeedsText(id), {
@@ -357,7 +365,7 @@ export class OffEquipmentScene extends Phaser.Scene {
     // ---- Stat box (Off-3C) ----
 
     /** The item the box describes: the marked row's, or the worn one when a slot is marked. Null: no box. */
-    private boxItem(): { id: OffItemId | undefined } | null {
+    private boxItem(): { id: OffGearKey | undefined } | null {
         if (this.focus.kind === 'row') return { id: this.rows[this.focus.index] };
         if (this.focus.kind === 'slot') {
             const worn = this.equipment[this.slot];
@@ -378,9 +386,9 @@ export class OffEquipmentScene extends Phaser.Scene {
         const y = p.y + b.top;
         const id = shown.id;
         const worn = this.equipment[this.slot];
-        const title = id ? `${OFF_ITEMS[id].name}${id === worn ? '  (worn)' : ''}` : 'Nothing';
+        const title = id ? `${offBagItemName(id)}${id === worn ? '  (worn)' : ''}` : 'Nothing';
         const area = { x, y, width: p.width - p.padding * 2, height: okTop - b.bottomGap - y };
-        this.boxObjects = drawOffItemBox(this, area, title, offItemBoxLines(id, id === worn ? undefined : worn, this.wearer));
+        this.boxObjects = drawOffItemBox(this, area, title, offItemBoxLines(id, id === worn ? undefined : worn, this.wearer), offItemNameColor(id));
     }
 
     // ---- Focus and actions ----
@@ -407,14 +415,14 @@ export class OffEquipmentScene extends Phaser.Scene {
         if (this.focus.kind === 'slot') {
             const worn = this.equipment[this.slot];
             const more = this.rows.some((id) => id !== undefined && id !== worn) ? '' : ' Nothing else in your bag for it.';
-            return `${EQUIP_SLOT_NAMES[this.slot]}: ${worn ? OFF_ITEMS[worn].name : 'nothing'}.${more}`;
+            return `${EQUIP_SLOT_NAMES[this.slot]}: ${worn ? offBagItemName(worn) : 'nothing'}.${more}`;
         }
         const id = this.rows[this.focus.index];
         if (!id) return 'Take off what you wear in this slot.';
         if (this.isWorn(id)) return 'You wear it.';
         const check = offWearCheck(id, this.wearer);
-        if (check === 'level') return `Needs Level ${offItem(id).levelToEquip ?? 0}.`;
-        return check === 'ok' ? 'Enter or A puts it on.' : `Needs Str ${OFF_ITEMS[id].strToEquip}. Assign points in the Character window (C).`;
+        if (check === 'level') return `Needs Level ${offGearDef(id).levelToEquip ?? 0}.`;
+        return check === 'ok' ? 'Enter or A puts it on.' : `Needs Str ${offStrToEquip(id)}. Assign points in the Character window (C).`;
     }
 
     private moveSideways(dx: number): void {
@@ -445,7 +453,7 @@ export class OffEquipmentScene extends Phaser.Scene {
         return Math.max(0, this.rows.findIndex((id) => this.isWorn(id)));
     }
 
-    private isWorn(id: OffItemId | undefined): boolean {
+    private isWorn(id: OffGearKey | undefined): boolean {
         return this.equipment[this.slot] === id;
     }
 
@@ -460,6 +468,9 @@ export class OffEquipmentScene extends Phaser.Scene {
         if (index < 0 || index >= this.rows.length) return false;
         const id = this.rows[index];
         if (this.isWorn(id)) return false;
+        // Off-7E: what the other hand loses (a two-handed weapon and a shield don't go together).
+        const clash = id !== undefined ? offHandsClash(this.equipment, id) : undefined;
+        const tookOff = clash ? this.equipment[clash] : undefined;
         const result = offSaveStore.equip(this.slot, id);
         if (result !== 'ok') {
             this.helpText.setText(result === 'bagFull' ? OFF_LOOT_TEXT.bagFull : this.describeFocus());
@@ -470,6 +481,7 @@ export class OffEquipmentScene extends Phaser.Scene {
         this.showSlot(this.slot);
         // The rows move (what is worn goes first): the mark follows the item just put on.
         this.setFocus({ kind: 'row', index: this.wornRow() });
+        if (id !== undefined && tookOff) this.helpText.setText(OFF_BAG_TEXT.equippedTakingOff(offBagItemName(id), offBagItemName(tookOff)));
         return true;
     }
 

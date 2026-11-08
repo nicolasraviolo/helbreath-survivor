@@ -9,6 +9,7 @@ import Phaser from 'phaser';
 import { BODY_SHADOW_ALPHA, BODY_SHADOW_ROTATION, BODY_SHADOW_SCALE_Y, DEPTH_GROUND_SHADOWS, TILE_SIZE } from '../../config/gameConfig';
 import type { CharacterLook } from '../../data/appearance';
 import type { CharacterDef } from '../../data/characters';
+import type { WeaponAttribute } from '../../data/attributes';
 import type { SavedEquipment } from '../../data/items';
 import { CharacterSprite } from '../../entities/CharacterSprite';
 import type { Direction } from '../../hb/directions';
@@ -50,10 +51,11 @@ export class OffCharacter {
     }
 
     /** Dresses it in this equipment (drawn as Survivors items; off/data/offItems.ts → offEquipmentLook). */
-    public wear(equipment: Readonly<SavedEquipment>): void {
+    public wear(equipment: Readonly<SavedEquipment>, tint: Readonly<{ weapon?: WeaponAttribute }> = {}): void {
         // Weapon and shield only from the equipment: the novice's starting look holds a Dagger (Off-6B: empty hands show empty).
         for (const slot of DRESSED_SLOTS) this.body.setLayer(slot, HELD_SLOTS.has(slot) ? undefined : this.def.appearance[slot], false);
-        this.body.wearEquipment(equipment);
+        // Off-7B: a Sharp / Poison / Ancient weapon in its colour (offWeaponTint).
+        this.body.wearEquipment(equipment, tint);
     }
 
     /** True while an attack or a flinch is showing. */

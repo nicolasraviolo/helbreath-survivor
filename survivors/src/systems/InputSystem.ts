@@ -96,6 +96,9 @@ export enum Action {
     OffSpellKey6 = 'offSpellKey6',
     OffSpellKey7 = 'offSpellKey7',
     OffSpellKey8 = 'offSpellKey8',
+    /** Helbreath Off (Off-7B): quick potions, the biggest Health (Q, d-pad left) or Mana (E, d-pad right) potion carried. */
+    OffDrinkHealth = 'offDrinkHealth',
+    OffDrinkMana = 'offDrinkMana',
     /** Helbreath Off (Off-6C): held (RT), A/B/X/Y are spells; let go, the spell is cast at the target. Gamepad only. */
     OffCastTrigger = 'offCastTrigger',
     /** Helbreath Off (Off-6C): with RT held, the gamepad's spells (A, B, X, Y). Gamepad only. */
@@ -164,6 +167,9 @@ const KEYBOARD_ACTIONS: Record<Action, number[]> = {
     [Action.OffSwitchTab]: [KEY.TAB],
     // B is also DebugAddMagic in development, but that one only acts in Survivors' run.
     [Action.OffSpellBook]: [KEY.B],
+    // E is also OffOpenEquipment, but that one only acts in the Inventory (and the potions only with no window open).
+    [Action.OffDrinkHealth]: [KEY.Q],
+    [Action.OffDrinkMana]: [KEY.E],
     // Owner (7-nov-2026): the number keys 1–8, not F1–F8 (on a Mac the F keys need Fn and clash with the system).
     [Action.OffSpellKey1]: [KEY.ONE, KEY.NUMPAD_ONE],
     [Action.OffSpellKey2]: [KEY.TWO, KEY.NUMPAD_TWO],
@@ -215,6 +221,9 @@ const GAMEPAD_ACTIONS: Partial<Record<Action, number[]>> = {
     [Action.OffPadSpellB]: [GAMEPAD_BUTTON.B],
     [Action.OffPadSpellX]: [GAMEPAD_BUTTON.X],
     [Action.OffPadSpellY]: [GAMEPAD_BUTTON.Y],
+    // Off-7B: the d-pad doesn't walk in Off (setDpadMoves), so left / right are free for the potions.
+    [Action.OffDrinkHealth]: [GAMEPAD_BUTTON.DpadLeft],
+    [Action.OffDrinkMana]: [GAMEPAD_BUTTON.DpadRight],
 };
 
 /** Actions also triggered by a mouse click. */
@@ -256,6 +265,8 @@ export class InputSystem {
     private stickMenus = true;
     /** True: only the left stick (and the touch joystick) moves; keys and d-pad are left to a window (Off-4B). */
     private stickOnlyMove = false;
+    /** False: the d-pad doesn't walk (Helbreath Off, Off-7B: it drinks potions); only the left stick does. */
+    private dpadMoves = true;
 
     constructor(private readonly scene: Phaser.Scene) {
         const sync = () => {
@@ -316,6 +327,11 @@ export class InputSystem {
     /** Helbreath Off (Off-4B): movement only from the left stick, while a window uses the keys and the d-pad. */
     public setStickOnlyMove(on: boolean): void {
         this.stickOnlyMove = on;
+    }
+
+    /** Helbreath Off (Off-7B): whether the gamepad's d-pad walks (Survivors: yes; Off: no, it drinks potions). */
+    public setDpadMoves(on: boolean): void {
+        this.dpadMoves = on;
     }
 
     /** Call once per frame before reading actions. */
@@ -471,7 +487,7 @@ export class InputSystem {
         const pressed = (index: number) => pad.buttons[index]?.pressed === true;
         const dx = Number(pressed(GAMEPAD_BUTTON.DpadRight)) - Number(pressed(GAMEPAD_BUTTON.DpadLeft));
         const dy = Number(pressed(GAMEPAD_BUTTON.DpadDown)) - Number(pressed(GAMEPAD_BUTTON.DpadUp));
-        if (dx !== 0 || dy !== 0) {
+        if (this.dpadMoves && (dx !== 0 || dy !== 0)) {
             return { x: dx, y: dy };
         }
         const stick = applyRadialDeadzone(pad.axes[GAMEPAD_AXIS.LeftX] ?? 0, pad.axes[GAMEPAD_AXIS.LeftY] ?? 0, GAMEPAD_DEADZONE);

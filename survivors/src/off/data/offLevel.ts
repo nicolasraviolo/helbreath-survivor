@@ -6,12 +6,17 @@
 // Nuestro (propietario, 6-nov-2026): la experiencia se da entera al morir el monstruo (no por golpe) y morir nunca baja
 // de nivel. Multiplicador ×0,025 (propietario, 7-nov-2026, Off-5C; antes ×2): la experiencia de los monstruos sale de la
 // wiki (un servidor moderno: Slime 400–499) y no cuadra con la tabla de niveles del original; con ×0,025 hacen falta
-// 3 Slimes en el nivel 1, 5 Giant Ants en el 8, 10 Orcs en el 20 y 11 Giant Scorpions en el 30. Los 3 puntos de cada nivel se guardan para repartirlos en la Off-3.
+// 3 Slimes en el nivel 1, 5 Giant Ants en el 8, 10 Orcs en el 20 y 11 Giant Scorpions en el 30. Off-7D: ×0,02 (unas
+// 3,5 horas de caza hasta el 60, propietario 8-nov-2026), un 25 % más de muertes por nivel. Los 3 puntos de cada nivel se guardan para repartirlos en la Off-3.
 
 export const OFF_LEVEL = {
     max: 140,
-    /** Experience multiplier on top of the wiki's monster experience (propietario, 7-nov-2026: ×0.025; measured again in Off-7). */
-    expMultiplier: 0.025,
+    /**
+     * Experience multiplier on top of the wiki's monster experience (propietario, 7-nov-2026: ×0.025). Off-7D (owner,
+     * 8-nov-2026): about 3.5 hours of hunting from level 1 to 60; with the pits refilling as the original it took ×0.02
+     * (measured with `pnpm check offfarm1 … offbalance`, src/off/dev/offBalance.ts).
+     */
+    expMultiplier: 0.02,
     /** Stat points per level (original), kept until Off-3 lets you spend them. */
     pointsPerLevel: 3,
     /** Below this level, the original multiplies every monster's experience (see lowLevelBonus). */
