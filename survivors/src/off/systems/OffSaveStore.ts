@@ -21,9 +21,12 @@
 // Fase Off-7E (versión 10): también dónde está (`where`: mapa y casilla), para volver a aparecer ahí al darle a Play,
 // como el original al reconectar. Se guarda al llegar a un mapa, cada OFF_WHERE_SAVE_MS andando, al salir y al
 // esconder la página; muerto, se guarda su ciudad. Los guardados anteriores aparecen en su ciudad, como antes.
+// Select Character (8-nov-2026): hasta OFF_CHARACTER_SLOT_COUNT personajes, uno por hueco y cada uno en su clave: el hueco
+// 1 sigue en `hb-off.character` (el personaje de antes no se pierde) y los demás en `hb-off.character.2` … `.4`. El
+// hueco con el que se juega va en `hb-off.slot`; `character` y todo lo demás trabajan siempre con ese.
 // Lleva número de versión como los guardados de Survivors. Si el navegador no deja guardar, dura hasta cerrar la página.
 // Va en el código de traspaso (config/transfer.ts → TRANSFER_KEYS).
-// Desarrollo: ?offreset borra el personaje (Play vuelve a crear uno); ?offlevel=N pone al personaje al principio del
+// Desarrollo: ?offreset borra los personajes de todos los huecos (Play vuelve a crear uno); ?offlevel=N pone al personaje al principio del
 // nivel N, ya creado; ?offgear=longSword,leatherArmor le pone esos objetos; ?offgold=N le da ese oro;
 // ?offbag=shortSword,redPotion le llena la bolsa con eso; ?offwarehouse=cape,redPotion llena el almacén; ?offfaction=aresden|elvine|none le pone ese bando; ?offspells=all|magicMissile,heal le enseña esas magias (en las teclas 1–8 y en RT + A/B/X/Y, por orden) (debugStart.ts).
 import { DEBUG_START } from '../../config/debugStart';
@@ -47,6 +50,18 @@ import {
 } from '../data/offSpells';
 
 export const OFF_CHARACTER_STORAGE_KEY = 'hb-off.character';
+/** Which slot is played (Select Character, 8-nov-2026). */
+export const OFF_SLOT_STORAGE_KEY = 'hb-off.slot';
+/** Four slots, as the original's Select Character. */
+export const OFF_CHARACTER_SLOT_COUNT = 4;
+
+/** Storage key of each slot: the first one keeps the key of the single character there was before. */
+export function offCharacterStorageKey(slot: number): string {
+    return slot === 0 ? OFF_CHARACTER_STORAGE_KEY : `${OFF_CHARACTER_STORAGE_KEY}.${slot + 1}`;
+}
+
+/** Every key the slots use (for the transfer code). */
+export const OFF_SLOT_STORAGE_KEYS = Array.from({ length: OFF_CHARACTER_SLOT_COUNT }, (_, i) => offCharacterStorageKey(i));
 /** 1 (Off-2B): experience and unspent points. 2 (Off-3A): name, look, stats and whether it was created. 3 (Off-3C): equipment. 4 (Off-4A): gold and bag. 5 (Off-5A): faction. 6 (Off-5B): warehouse. 7 (Off-6A): spells and spell keys. 8 (Off-6C): gamepad spells. 9 (Off-7B): gear may carry its attributes ("longSword:sharp"; plain ids read as before). 10 (Off-7E): where it is. */
 const OFF_CHARACTER_VERSION = 10;
 
@@ -107,10 +122,16 @@ function noPadSpells(): OffPadSpells {
 }
 
 class OffSaveStoreImpl {
-    private data: OffSavedCharacter = load();
+    private slotIndex = loadSlot();
+    private data: OffSavedCharacter = load(this.slotIndex);
 
     constructor() {
-        if (DEBUG_START.offReset) this.data = blankCharacter();
+        if (DEBUG_START.offReset) {
+            for (let i = 0; i < OFF_CHARACTER_SLOT_COUNT; i++) removeKey(offCharacterStorageKey(i));
+            this.slotIndex = 0;
+            writeSlot(0);
+            this.data = blankCharacter();
+        }
         const level = DEBUG_START.offLevel;
         if (level !== undefined) this.data = { ...this.data, created: true, exp: offExpForLevel(level), points: (level - 1) * OFF_LEVEL.pointsPerLevel };
         const debugStats = { ...this.data.stats };
@@ -162,8 +183,46 @@ class OffSaveStoreImpl {
         return offLevelForExp(this.data.exp);
     }
 
-    /** Creation screen done: a new character at level 1. */
-    public create(name: string, look: CharacterLook, stats: OffStats): void {
+    /** The slot being played. */
+    public get slot(): number {
+        return this.slotIndex;
+    }
+
+    /** The character created in that slot (undefined = empty), for Select Character. */
+    public peek(slot: number): Readonly<OffSavedCharacter> | undefined {
+        const c = slot === this.slotIndex ? this.data : load(slot);
+        return c.created ? c : undefined;
+    }
+
+    /** True when any slot has a character. */
+    public get hasAny(): boolean {
+        return Array.from({ length: OFF_CHARACTER_SLOT_COUNT }, (_, i) => i).some((i) => this.peek(i) !== undefined);
+    }
+
+    /** First empty slot, or -1 when all four are in use. */
+    public get firstFree(): number {
+        for (let i = 0; i < OFF_CHARACTER_SLOT_COUNT; i++) if (!this.peek(i)) return i;
+        return -1;
+    }
+
+    /** Plays with the character in that slot from now on (Select Character). */
+    public select(slot: number): void {
+        if (slot < 0 || slot >= OFF_CHARACTER_SLOT_COUNT || slot === this.slotIndex) return;
+        this.slotIndex = slot;
+        this.data = load(slot);
+        writeSlot(slot);
+    }
+
+    /** Deletes the character in that slot for ever (Select Character, after Yes). */
+    public remove(slot: number): void {
+        if (slot < 0 || slot >= OFF_CHARACTER_SLOT_COUNT) return;
+        removeKey(offCharacterStorageKey(slot));
+        if (slot === this.slotIndex) this.data = blankCharacter();
+    }
+
+    /** Creation screen done: a new character at level 1, in that slot (default: the one being played), which becomes the one played. */
+    public create(name: string, look: CharacterLook, stats: OffStats, slot: number = this.slotIndex): void {
+        this.select(slot);
         this.data = { created: true, name, look: { ...look }, stats: { ...stats }, exp: 0, points: 0, equipment: { ...OFF_START_EQUIPMENT }, gold: 0, bag: [], faction: undefined, warehouse: [], spells: [], spellKeys: noSpellKeys(), padSpells: noPadSpells(), where: undefined };
         this.write();
     }
@@ -404,16 +463,41 @@ class OffSaveStoreImpl {
 
     private write(): void {
         try {
-            localStorage.setItem(OFF_CHARACTER_STORAGE_KEY, JSON.stringify({ version: OFF_CHARACTER_VERSION, ...this.data }));
+            localStorage.setItem(offCharacterStorageKey(this.slotIndex), JSON.stringify({ version: OFF_CHARACTER_VERSION, ...this.data }));
         } catch {
             // Storage blocked or full: it lasts until the page is closed.
         }
     }
 }
 
-function load(): OffSavedCharacter {
+function loadSlot(): number {
     try {
-        const data: unknown = JSON.parse(localStorage.getItem(OFF_CHARACTER_STORAGE_KEY) ?? 'null');
+        const n = Number(localStorage.getItem(OFF_SLOT_STORAGE_KEY));
+        return Number.isInteger(n) && n >= 0 && n < OFF_CHARACTER_SLOT_COUNT ? n : 0;
+    } catch {
+        return 0;
+    }
+}
+
+function writeSlot(slot: number): void {
+    try {
+        localStorage.setItem(OFF_SLOT_STORAGE_KEY, String(slot));
+    } catch {
+        // Storage blocked: it lasts until the page is closed.
+    }
+}
+
+function removeKey(key: string): void {
+    try {
+        localStorage.removeItem(key);
+    } catch {
+        // Storage blocked: nothing was kept anyway.
+    }
+}
+
+function load(slot: number): OffSavedCharacter {
+    try {
+        const data: unknown = JSON.parse(localStorage.getItem(offCharacterStorageKey(slot)) ?? 'null');
         if (!isRecord(data)) return blankCharacter();
         const blank = blankCharacter();
         // Version 1 had no creation: that character counts as created, with the blank one's name, look and stats.

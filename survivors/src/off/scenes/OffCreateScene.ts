@@ -7,9 +7,12 @@
 // - A la derecha, la vida, el maná y la estamina que tendrá en el nivel 1 (fórmulas del original).
 // - Create guarda el personaje (OffSaveStore) y lleva a Traveler Zone; con puntos sin gastar no deja y lo avisa.
 //   Cancel vuelve a la pantalla de Off.
+// Select Character (8-nov-2026): se abre desde ella con el hueco donde va el personaje (`slot`); Cancel vuelve allí si
+// queda algún personaje.
 // Teclado y mando: ↑/↓ eligen fila (5 de aspecto, 5 de stats y la de Warrior / Magician), ←/→ la cambian (en un stat,
 // → suma y ← resta), Enter / A crea, Esc / B cancela. Ratón: flechas, + y − y botones.
 import Phaser from 'phaser';
+import { OFF_SLOTS_SCENE_KEY } from './OffSlotsScene';
 import {
     SELECT_ARROW_HIT_PAD,
     SELECT_BACKGROUND,
@@ -68,6 +71,11 @@ import { startOffWorld } from './OffWorldScene';
 
 export const OFF_CREATE_SCENE_KEY = 'OffCreate';
 
+export interface OffCreateSceneData {
+    /** Slot the new character goes in (Select Character); default: the one being played. */
+    slot?: number;
+}
+
 const NAME_CURSOR = '_';
 const NAME_CURSOR_BLINK_MS = 500;
 
@@ -119,8 +127,15 @@ export class OffCreateScene extends Phaser.Scene {
     /** "Spend N more points first" shows until this time. */
     private warningUntil = 0;
 
+    /** Slot the new character goes in. */
+    private slot: number | undefined;
+
     constructor() {
         super(OFF_CREATE_SCENE_KEY);
+    }
+
+    init(data: OffCreateSceneData): void {
+        this.slot = data.slot;
     }
 
     create(): void {
@@ -406,12 +421,12 @@ export class OffCreateScene extends Phaser.Scene {
             this.refresh();
             return;
         }
-        offSaveStore.create(this.nameInput.value || OFF_CREATION.defaultName, this.look, this.stats);
+        offSaveStore.create(this.nameInput.value || OFF_CREATION.defaultName, this.look, this.stats, this.slot);
         startOffWorld(this);
     }
 
-    /** "Cancel": back to Off's home screen. */
+    /** "Cancel": back to Select Character, or to Off's home screen when there is no character. */
     private cancel(): void {
-        this.scene.start('OffHome');
+        this.scene.start(offSaveStore.hasAny ? OFF_SLOTS_SCENE_KEY : 'OffHome');
     }
 }

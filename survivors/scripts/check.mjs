@@ -15,6 +15,7 @@
 //       --eval="g.enemies.alive"       → además, evalúa esa expresión en la página y escribe el resultado (si es una promesa, la espera)
 //                                        (g = escena Game, game = window.__game)
 // Si el servidor de desarrollo (puerto 8090) no está en marcha, lo arranca y lo para al terminar.
+// CHECK_PORT=8091 pnpm check … usa otro puerto (para probar otra copia del repo mientras la principal ocupa el 8090).
 import { spawn } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -22,7 +23,8 @@ import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright-core';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const BASE_URL = 'http://localhost:8090/';
+const PORT = Number(process.env.CHECK_PORT ?? 8090);
+const BASE_URL = `http://localhost:${PORT}/`;
 const OUT_DIR = join(ROOT, '.check');
 const LOAD_TIMEOUT_MS = 90000;
 const PHONE = { width: 844, height: 390 };
@@ -85,6 +87,14 @@ const PRESETS = {
     // eval sale lo guardado y la escena a la que llega.
     offcreate: 'off=create&offreset',
     offcreated: 'off=create&offreset',
+    // Select Character de Off (8-nov-2026). offslots: la pantalla con un personaje de nivel 5 en el hueco 1.
+    // offslotsnew: Create New Character, crea un Warrior en el hueco 2 y vuelve (en eval: los huecos guardados).
+    // offslotsdelete: borra el del hueco 1 con Yes (en eval: lo que queda). offslotsold: un guardado de antes (un solo
+    // personaje en hb-off.character) sale en el hueco 1.
+    offslots: 'off=slots&offlevel=5&offgear=longSword,leatherArmor',
+    offslotsnew: 'off=slots&offlevel=5',
+    offslotsdelete: 'off=slots&offlevel=5',
+    offslotsold: 'off=slots',
     // Fase Off-3B: ventana Character. offchar la abre en el nivel 5 (12 puntos); offassign reparte 3 en Str y 2 en Vit
     // con los + y Ok (en eval: stats, puntos y máximos antes y después, y lo guardado). offstamina corre con 5 de
     // estamina (en eval: la estamina y el tiempo de cada paso por el camino). offregen deja vida, maná y estamina a 1
@@ -146,11 +156,11 @@ const PRESETS = {
     offlootview: 'off=world&offreset&offlevel=3&offdrop=all',
     // Fase Off-7E: offpath sale del teleport de Aresden y hace un solo clic en la puerta de la tienda (antes se atascaba
     // entre casas); en eval, si llega y se abre la tienda. offtwohand: con un Targe Shield puesto se pone la Claymore
-    // (el escudo vuelve a la bolsa) y luego el escudo (la Claymore vuelve). offresume anda por Promiseland, sale a la
-    // pantalla de Off y le da a Play: vuelve a la misma casilla. Los objetos del suelo grandes: offlootview.
+    // (el escudo vuelve a la bolsa) y luego el escudo (la Claymore vuelve). offresume anda un poco por Promiseland junto a la puerta de Aresden (lejos de los pits: si muere, se guarda su ciudad), sale a la
+    // pantalla de Off, le da a Play y entra con el personaje del hueco 1: vuelve a la misma casilla. Los objetos del suelo grandes: offlootview.
     offpath: 'off=world&offreset&offlevel=5&offfaction=aresden&offplace=aresden',
     offtwohand: 'off=world&offreset&offlevel=30&offstats=str:60&offgear=targeShield&offopen=bag&offbag=claymore,redPotion',
-    offresume: 'off=world&offreset&offlevel=60&offfaction=aresden&offplace=promiseland&offat=106,123',
+    offresume: 'off=world&offreset&offlevel=60&offfaction=aresden&offplace=promiseland',
     offloot: 'off=world&offreset&offlevel=3&offdrop=all',
     offbagfull: `off=world&offreset&offlevel=3&offdrop=valuable&offbag=${Array(50).fill('redPotion').join(',')}`,
     // Fase Off-5A: bandos. offportal pisa el portal de Aresden sin bando (sale "Do you want to join Aresden?");
@@ -488,7 +498,7 @@ const PRESET_EVAL = {
     // Fase Off-2B: 200 experience into level 10, dies (as a monster's last blow would); the experience before and after coming back.
     offpath: "new Promise((r) => { const start = o.debugState().tile; o.debugWalkTo(126, 166, true); const t0 = Date.now(); const t = setInterval(() => { const open = game.scene.isActive('OffStore'); const s = o.debugState(); if (open || Date.now() - t0 > 45000) { clearInterval(t); r({ start, open, tile: s.tile, moving: s.moving, seconds: Math.round((Date.now() - t0) / 1000) }); } }, 500); })",
     offtwohand: "new Promise((r) => setTimeout(() => { const inv = game.scene.getScene('OffInventory'); const claymore = inv.use(0); const one = (({ equipment, bag }) => ({ equipment, bag }))(JSON.parse(localStorage.getItem('hb-off.character'))); const shield = inv.use(inv.debugState().bag.indexOf('targeShield')); const two = (({ equipment, bag }) => ({ equipment, bag }))(JSON.parse(localStorage.getItem('hb-off.character'))); r({ claymore, one, shield, two }); }, 1000))",
-    offresume: "new Promise((r) => { o.debugWalkTo(112, 118, true); setTimeout(() => { const before = o.debugState().tile; o.scene.start('OffHome'); setTimeout(() => { const saved = JSON.parse(localStorage.getItem('hb-off.character')).where; game.scene.getScene('OffHome').play(); setTimeout(() => { const s = game.scene.getScene('OffWorld').debugState(); r({ before, saved, after: { place: s.place, tile: s.tile } }); }, 6000); }, 1000); }, 7000); })",
+    offresume: "new Promise((r) => { o.debugWalkTo(136, 216, true); setTimeout(() => { const before = o.debugState().tile; o.scene.start('OffHome'); setTimeout(() => { const saved = JSON.parse(localStorage.getItem('hb-off.character')).where; game.scene.getScene('OffHome').play(); setTimeout(() => game.scene.getScene('OffSlots').enter(0), 1000); setTimeout(() => { const s = game.scene.getScene('OffWorld').debugState(); r({ before, saved, after: { place: s.place, tile: s.tile } }); }, 6000); }, 1000); }, 7000); })",
     offportal: "o.debugWalkTo(81, 76), new Promise((r) => setTimeout(() => r({ confirm: game.scene.isActive('OffConfirm'), worldPaused: game.scene.isPaused('OffWorld'), state: o.debugState().place }), 3000))",
     offjoin: "o.debugWalkTo(81, 76), new Promise((r) => setTimeout(() => { const asked = game.scene.isActive('OffConfirm'); game.scene.getScene('OffConfirm').answer(true); setTimeout(() => { const s = o.debugState(); r({ asked, place: s.place, faction: s.faction, tile: s.tile, hp: s.hp, saved: JSON.parse(localStorage.getItem('hb-off.character')).faction }); }, 4000); }, 3000))",
     offcityback: "new Promise((r) => { const start = o.debugState().place; o.debugWalkTo(237, 140); setTimeout(() => { game.scene.getScene('OffTeleport').choose('traveler'); }, 2500); setTimeout(() => { const s = o.debugState(); const mid = [s.place, s.tile]; o.debugWalkTo(128, 79); setTimeout(() => { const e = o.debugState(); r({ start, mid, end: [e.place, e.tile], asked: game.scene.isActive('OffConfirm') }); }, 6000); }, 5000); })",
@@ -528,6 +538,8 @@ const PRESET_EVAL = {
     offcyclops: "new Promise((r) => { const log = []; const t = setInterval(() => { const s = o.debugState(); log.push(s.hp); }, 1000); setTimeout(() => { clearInterval(t); r(log); }, 15000); })",
     offtroll: "new Promise((r) => { const log = []; const t = setInterval(() => { if (!o.debugState().target) o.debugFight('troll'); log.push(o.debugState()); }, 1000); setTimeout(() => { clearInterval(t); const pick = (s) => s && ({ tile: s.tile, hp: [s.hp, s.maxHp], level: s.level, exp: s.exp, kills: s.kills, target: s.target, gold: s.gold, dead: s.dead }); r({ start: pick(log[0]), mid: pick(log[10]), end: pick(log[log.length - 1]) }); }, 20000); })",
     offdeath: "new Promise((r) => { o.battle.exp += 200; const start = o.debugState(); o.battle.hp = 0; o.battle.die(); setTimeout(() => r({ start, end: o.debugState() }), 4000); })",
+    offslotsnew: "new Promise((r) => { game.scene.getScene('OffSlots').newCharacter(); setTimeout(() => { const c = game.scene.getScene('OffCreate'); c.applyPreset('warrior'); c.createCharacter(); setTimeout(() => r({ world: game.scene.isActive('OffWorld'), slot: localStorage.getItem('hb-off.slot'), one: JSON.parse(localStorage.getItem('hb-off.character'))?.name, two: JSON.parse(localStorage.getItem('hb-off.character.2'))?.created }), 4000); }, 600); })",
+    offslotsdelete: "new Promise((r) => { const sl = game.scene.getScene('OffSlots'); sl.deleteFocused(); setTimeout(() => { const asked = game.scene.isActive('OffDelete'); game.scene.getScene('OffDelete').answer(true); setTimeout(() => r({ asked, left: localStorage.getItem('hb-off.character'), slotsActive: game.scene.isActive('OffSlots') }), 800); }, 600); })",
     offcreated: "new Promise((r) => { const c = game.scene.getScene('OffCreate'); c.changeStat('str', 1); const one = c.stats.str; c.createCharacter(); const blocked = game.scene.isActive('OffCreate'); c.applyPreset('warrior'); c.createCharacter(); setTimeout(() => r({ oneStr: one, blockedWithPointsLeft: blocked, saved: JSON.parse(localStorage.getItem('hb-off.character')), world: game.scene.isActive('OffWorld') }), 4000); })",
     offchar: "o.openCharacter(), new Promise((r) => setTimeout(() => r({ open: game.scene.isActive('CharacterInfo'), worldPaused: game.scene.isPaused('OffWorld'), state: o.debugState() }), 800))",
     offassign: "new Promise((r) => { const before = o.debugState(); o.openCharacter(); setTimeout(() => { const c = game.scene.getScene('CharacterInfo'); for (let i = 0; i < 3; i++) c.change('str', 1); c.change('vit', 1); c.change('vit', 1); c.change('chr', 1); c.confirm(); setTimeout(() => r({ before, after: o.debugState(), worldRunning: game.scene.isActive('OffWorld'), saved: JSON.parse(localStorage.getItem('hb-off.character')) }), 500); }, 500); })",
@@ -571,13 +583,13 @@ async function serverUp() {
 
 async function ensureServer() {
     if (await serverUp()) return undefined;
-    const child = spawn('pnpm', ['exec', 'vite'], { cwd: ROOT, shell: true, stdio: 'ignore' });
+    const child = spawn('pnpm', ['exec', 'vite', '--port', String(PORT)], { cwd: ROOT, shell: true, stdio: 'ignore' });
     for (let i = 0; i < 60; i++) {
         await new Promise((r) => setTimeout(r, 500));
         if (await serverUp()) return child;
     }
     child.kill();
-    throw new Error('The dev server did not start on port 8090');
+    throw new Error(`The dev server did not start on port ${PORT}`);
 }
 
 function stopServer(child) {
@@ -645,9 +657,13 @@ async function runScenario(browser, name) {
         await page.addInitScript(() => performance.setResourceTimingBufferSize(100000));
     }
 
+    // offslotsold: a save from before Select Character (one character, no hb-off.slot).
+    if (name === 'offslotsold') {
+        await page.addInitScript(() => localStorage.setItem('hb-off.character', JSON.stringify({ version: 8, created: true, name: 'Oldie', look: { gender: 'female', skin: 0, hairStyle: 1, hairColor: 2, underwear: 0 }, stats: { str: 14, vit: 12, dex: 14, int: 10, mag: 10 }, exp: 500, points: 0, equipment: {}, gold: 0, bag: [], warehouse: [], spells: [], spellKeys: [], padSpells: [] })));
+    }
     // ?open= (debugStart.ts) shows a menu screen: wait for it instead of the game.
     const openKey = { howtoplay: 'HowToPlay', settings: 'Settings', controls: 'Controls', credits: 'Credits', releasenotes: 'ReleaseNotes', achievements: 'Achievements', missions: 'Missions', slots: 'CharacterSlots', mapselect: 'MapSelect', town: 'Town', charinfo: 'CharacterInfo', equipment: 'Equipment', warehouse: 'Warehouse', runchoice: 'RunChoice', transfer: 'Transfer' }[params.get('open') ?? ''];
-    const target = params.has('loading') ? 'Preload' : params.get('town') === 'portal' ? 'MapSelect' : params.has('shop') ? 'Shop' : params.has('smith') ? 'Smith' : params.has('talk') ? 'NpcDialog' : params.get('off') === 'game' ? 'OffHome' : params.get('off') === 'world' ? 'OffWorld' : params.get('off') === 'create' ? 'OffCreate' : params.has('off') && !openKey ? 'GameSelect' : openKey ?? (query ? 'Game' : 'MainMenu');
+    const target = params.has('loading') ? 'Preload' : params.get('town') === 'portal' ? 'MapSelect' : params.has('shop') ? 'Shop' : params.has('smith') ? 'Smith' : params.has('talk') ? 'NpcDialog' : params.get('off') === 'game' ? 'OffHome' : params.get('off') === 'world' ? 'OffWorld' : params.get('off') === 'create' ? 'OffCreate' : params.get('off') === 'slots' ? 'OffSlots' : params.has('off') && !openKey ? 'GameSelect' : openKey ?? (query ? 'Game' : 'MainMenu');
     await page.goto(url);
     const t0 = Date.now();
     await page.waitForFunction((key) => window.__game?.scene.isActive(key), target, { timeout: LOAD_TIMEOUT_MS });

@@ -1,5 +1,6 @@
 // Escena de inicio de Helbreath Off (Fase Off-0): el título, Play y Back.
-// Play (Fase Off-1) carga Traveler Zone; sin personaje creado (Fase Off-3A), antes abre la pantalla de crearlo para andar por él (OffWorldScene). Back (clic, Enter/A, o Esc/B) vuelve a la
+// Play abre Select Character (OffSlotsScene, 8-nov-2026); sin ningún personaje, la pantalla de crearlo (Fase Off-3A).
+// Antes (Fase Off-1) Play cargaba Traveler Zone; sin personaje creado, antes abría la pantalla de crearlo para andar por él (OffWorldScene). Back (clic, Enter/A, o Esc/B) vuelve a la
 // pantalla de elegir juego. Las fases siguientes (docs/PLAN-OFF.md) la llenan.
 import Phaser from 'phaser';
 import { GAME_HEIGHT, GAME_WIDTH } from '../../config/gameConfig';
@@ -9,8 +10,8 @@ import { Action, InputSystem } from '../../systems/InputSystem';
 import { MenuList } from '../../ui/MenuList';
 import { OFF_HOME } from '../config/offHome';
 import { offSaveStore } from '../systems/OffSaveStore';
-import { OFF_CREATE_SCENE_KEY } from './OffCreateScene';
-import { startOffWorld } from './OffWorldScene';
+import { OFF_CREATE_SCENE_KEY, type OffCreateSceneData } from './OffCreateScene';
+import { OFF_SLOTS_SCENE_KEY } from './OffSlotsScene';
 
 export class OffHomeScene extends Phaser.Scene {
     private menuInput!: InputSystem;
@@ -52,8 +53,8 @@ export class OffHomeScene extends Phaser.Scene {
     }
 
     private play(): void {
-        if (offSaveStore.character.created) startOffWorld(this);
-        else this.scene.start(OFF_CREATE_SCENE_KEY);
+        if (offSaveStore.hasAny) this.scene.start(OFF_SLOTS_SCENE_KEY);
+        else this.scene.start(OFF_CREATE_SCENE_KEY, { slot: 0 } satisfies OffCreateSceneData);
     }
 
     private back(): void {

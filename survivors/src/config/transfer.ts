@@ -35,6 +35,11 @@ export const TRANSFER_KEYS = [
     'hb-survivors.uniques',
     // Fase Off-2B: el personaje de Helbreath Off (off/systems/OffSaveStore.ts).
     'hb-off.character',
+    // Select Character de Off (8-nov-2026): los huecos 2–4 y cuál se juega.
+    'hb-off.character.2',
+    'hb-off.character.3',
+    'hb-off.character.4',
+    'hb-off.slot',
 ] as const;
 export type TransferKey = (typeof TRANSFER_KEYS)[number];
 
