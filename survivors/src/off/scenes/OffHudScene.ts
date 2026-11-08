@@ -53,6 +53,9 @@ export interface OffHudState {
     spell: { name: string; ready: boolean } | undefined;
     /** The shield on and its seconds left (Off-6C). */
     shield: { name: string; secondsLeft: number } | undefined;
+    /** Critical Strike charges, and strikes launched (the orb shows pressed when it changes; Off-8A). */
+    critCharges: number;
+    critLaunched: number;
 }
 
 export interface OffHudSceneData {
@@ -123,8 +126,9 @@ export class OffHudScene extends Phaser.Scene {
             elapsedMs: 0,
             kills: state.kills,
             gold: state.gold,
-            skillOrb: undefined,
-            skillUses: 0,
+            // Off-8A: Survivors' red orb with the Critical Strike charges.
+            skillOrb: { text: String(state.critCharges), ready: state.critCharges > 0 },
+            skillUses: state.critLaunched,
             revive: undefined,
             infoLine: OFF_HUD_TEXT.infoLine(state.level, state.xpRatio, state.gold),
         };

@@ -99,6 +99,8 @@ export enum Action {
     /** Helbreath Off (Off-7B): quick potions, the biggest Health (Q, d-pad left) or Mana (E, d-pad right) potion carried. */
     OffDrinkHealth = 'offDrinkHealth',
     OffDrinkMana = 'offDrinkMana',
+    /** Helbreath Off (Off-8A): Critical Strike on the monster under the mouse, the marked one or the nearest (Alt, LT). */
+    OffCritStrike = 'offCritStrike',
     /** Helbreath Off (Off-6C): held (RT), A/B/X/Y are spells; let go, the spell is cast at the target. Gamepad only. */
     OffCastTrigger = 'offCastTrigger',
     /** Helbreath Off (Off-6C): with RT held, the gamepad's spells (A, B, X, Y). Gamepad only. */
@@ -170,6 +172,8 @@ const KEYBOARD_ACTIONS: Record<Action, number[]> = {
     // E is also OffOpenEquipment, but that one only acts in the Inventory (and the potions only with no window open).
     [Action.OffDrinkHealth]: [KEY.Q],
     [Action.OffDrinkMana]: [KEY.E],
+    // Off-8A: Alt, as the original's crit (captured, so the browser's menu does not open).
+    [Action.OffCritStrike]: [KEY.ALT],
     // Owner (7-nov-2026): the number keys 1–8, not F1–F8 (on a Mac the F keys need Fn and clash with the system).
     [Action.OffSpellKey1]: [KEY.ONE, KEY.NUMPAD_ONE],
     [Action.OffSpellKey2]: [KEY.TWO, KEY.NUMPAD_TWO],
@@ -224,6 +228,8 @@ const GAMEPAD_ACTIONS: Partial<Record<Action, number[]>> = {
     // Off-7B: the d-pad doesn't walk in Off (setDpadMoves), so left / right are free for the potions.
     [Action.OffDrinkHealth]: [GAMEPAD_BUTTON.DpadLeft],
     [Action.OffDrinkMana]: [GAMEPAD_BUTTON.DpadRight],
+    // Off-8A: LT (L2) is free in Off (RT is the spells' trigger).
+    [Action.OffCritStrike]: [GAMEPAD_BUTTON.L2],
 };
 
 /** Actions also triggered by a mouse click. */

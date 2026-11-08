@@ -141,6 +141,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Acierto y crítico (Helbreath Off, Fase Off-7C, 8-nov-2026)
 - Medir y ajustar: armadura, pits, experiencia y oro (Helbreath Off, Fase Off-7D, 8-nov-2026)
 - Guardado y pulido: caminos, suelo, dos manos y dónde estás (Helbreath Off, Fase Off-7E, 8-nov-2026)
+- Critical Strike con cargas (Helbreath Off, Fase Off-8A, 8-nov-2026)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -1575,6 +1576,15 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - **Dos manos:** `twoHanded` en `OFF_ITEMS` (Item.cfg columna "hueco" = 9), `offTwoHanded` / `offHandsClash` (`off/data/offItems.ts`). `OffSaveStore.equipFromBag` devuelve la otra pieza a la bolsa ('bagFull' si no cabe); `equipFromBagTaking` dice cuál, para el aviso ("The Targe Shield went back to your bag.") en la bolsa (`OffBattle.useBagItem`) y en Equipment. Al cargar, `tidyHands` pasa el escudo a la bolsa o al almacén. `?offgear` con las dos: gana la última. Cuadro: "Fastest with Str N · Two-handed, no shield". `check offtwohand`.
 - **Dónde estás:** guardado versión 10, `where` (`place`, `x`, `y`). `OffWorldScene.saveWhere`: al llegar, cada `OFF_WHERE_SAVE_MS` (5 s), al salir de la escena y con `visibilitychange` / `pagehide`; `travel` guarda ya el destino (cerrar mientras carga no te deja en el portal); muerto, tu ciudad sin casilla. `startOffWorld` sin datos usa `savedArrival()`. Aparecer encima de un portal o puerta no lo abre (`insidePortal` / `insideDoor` empiezan con lo que pisas). `?offfaction=` borra `where` (las pruebas con bando empiezan en casa); `?offplace` sigue mandando. `check offresume`.
 - **Lo que no se guarda (a propósito):** objetos del suelo, escudos mágicos activos, monstruos y la vida / maná a medias (se llenan al volver).
+## Critical Strike con cargas (Helbreath Off, Fase Off-8A, 8-nov-2026)
+- **Original** (`reference/Server.cpp`): cargas `m_iSuperAttackLeft`, máximo nivel/10, +1 cada 13 vueltas del temporizador (~L4117) y cada 14 golpes recibidos (~L54351); se gasta al atacar con `wType >= 20` (~L1170). Daño **+nivel %** (×1,1 a nivel 10, ×2,4 a nivel 140), +100 al acierto y extra por familia (espada larga +10 %, hacha y martillo +20 %; ~L53595). El atributo Critical del original solo sumaba daño en estos golpes.
+- **Off (propietario):** cargas y daño **de Survivors** (`data/critStrike.ts`: 1 + nivel/10, +1 cada 15 s y cada 15 golpes recibidos, × (2 + nivel/30)), +100 al acierto del original. Un solo monstruo, no el área de Survivors. No tira además el crítico al azar de la 7C. Sin extra por familia.
+- **Código:** `off/systems/OffCritStrike.ts` (cargas), `OffBattle.critPressed` / `critQueued` / `PendingBlow.crit` / `launchCritLook`, `OFF_CRIT_STRIKE` (`off/data/offCombat.ts`). Se gasta la carga al **empezar** el golpe; moverse o marcar otro monstruo anula el golpe pedido.
+- **Controles:** `Action.OffCritStrike` = **Alt** (capturada: el navegador no abre su menú) y **LT** (L2). B ya es la pausa en Off y RT las magias.
+- **HUD:** la esfera roja de Survivors (`HudBarState.skillOrb`, `skillUses` = lanzados) con `OffHudState.critCharges` / `critLaunched`.
+- **Guardado:** versión 11, `critCharges` (undefined = llenas). `?offcrit=N` empieza con N, aunque pase del máximo (el reloj no recarga mientras está por encima).
+- **Probar:** `check offcritstrike` (Level 30, 3 golpes y la recarga; en eval medias de daño y cargas guardadas) / `offcritnone`.
+
 ## Select Character en Helbreath Off (8-nov-2026)
 - Es la `CharacterSlotsScene` de Survivors copiada a `off/scenes/OffSlotsScene.ts`, con las mismas medidas (`config/characterSlots.ts`) y con crear y borrar como en la Fase 17A. Los textos van en `off/config/offSlots.ts`.
 - Guardado: un personaje por hueco y por clave. El hueco 1 conserva `hb-off.character` (así un guardado de antes no se pierde ni hay que migrarlo) y los demás van en `hb-off.character.2` … `.4`; `hb-off.slot` dice cuál se juega. `offSaveStore.character` y todos sus métodos trabajan siempre con el hueco elegido (`select(i)`); `peek(i)` lee otro sin cambiar de hueco. `?offreset` vacía los cuatro.

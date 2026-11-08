@@ -354,6 +354,8 @@ export class OffWorldScene extends Phaser.Scene {
             shield: battle.protection ? { name: OFF_SPELLS[battle.protection.spell].name, secondsLeft: Math.ceil(battle.protection.leftMs / 1000) } : undefined,
             kills: battle.kills,
             gold: offSaveStore.character.gold,
+            critCharges: battle.critStrike.charges,
+            critLaunched: battle.critStrike.launched,
         };
     }
 
@@ -883,11 +885,16 @@ export class OffWorldScene extends Phaser.Scene {
         // Under a window the buttons are the window's (A uses an item in the Inventory): read, but not acted on.
         const keys = this.window === undefined && this.windowClosedFrame !== this.game.loop.frame;
         const attack = !this.castTrigger && input.justPressed(Action.OffAttack);
+        const crit = input.justPressed(Action.OffCritStrike);
         const next = input.justPressed(Action.OffNextTarget);
         const previous = input.justPressed(Action.OffPrevTarget);
         if (keys && attack) {
             battle.spells.cancel();
             battle.attackPressed();
+        }
+        if (keys && crit) {
+            battle.spells.cancel();
+            battle.critPressed();
         }
         if (keys && next) battle.cycleTarget(1);
         if (keys && previous) battle.cycleTarget(-1);

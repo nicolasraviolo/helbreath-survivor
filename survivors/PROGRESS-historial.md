@@ -2,6 +2,13 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
+**Helbreath Off · Fase Off-8, bloque A: Critical Strike con cargas (2026-11-08).**
+- **Qué hace:** **Alt** (o **LT** en el mando) lanza el Critical Strike al monstruo bajo el ratón, al marcado o al más cercano (va hasta él si está lejos). Cargas como Survivors: 1 + nivel/10, +1 cada 15 s y cada 15 golpes recibidos; daño × (2 + nivel/30), casi sin fallar (+100 al acierto, del original). Grito C23/C24, chispas de Survivors, temblor y número naranja; esfera roja con las cargas en la barra. Las cargas se guardan.
+- **Decisiones del propietario:** el crítico al azar de la 7C se queda aparte (DECISIONES.md, 8-nov-2026, plan de Off-8 y Off-9). A criterio de Claude: LT en vez de B (B es la pausa), un solo monstruo como el original, no se suma al crítico al azar.
+- **Comprobado:** build; `check offcritstrike offcritnone offcrit crit` sin errores y a 60 FPS (3 golpes sin fallo, 5 → 2 cargas, +1 a los 15 s y guardada; media 13 frente a 5 de los golpes normales). **Probado por el propietario.**
+- **Cómo probar:** `?off=world&offcrit=5`, un monstruo bajo el ratón y Alt.
+- **Código:** `off/systems/OffCritStrike.ts`, `OffBattle.critPressed`, `OFF_CRIT_STRIKE`, `Action.OffCritStrike`, `OffSaveStore.setCritCharges` (versión 11), `?offcrit=N`. Ver NOTES.md, "Critical Strike con cargas".
+
 **Helbreath Off · Fase Off-7, bloque E: guardado y pulido (2026-11-08).**
 - **Qué hace:** un **clic busca camino** (A*) y rodea casas, muros, portales y puertas que no sean el destino; teclado, stick, clic mantenido y monstruos siguen como el original. Los **objetos del suelo** se ven un 50 % más grandes. Las **armas a dos manos** (Broad Sword, Claymore, Great Sword, Flameberge, Battle Axe, Hammer, Battle Hammer; Item.cfg) no dejan llevar escudo: ponerse una devuelve la otra pieza a la bolsa con aviso, y el cuadro dice "Two-handed, no shield". **Play te devuelve donde lo dejaste** (mapa y casilla; muerto, tu ciudad).
 - **Decisiones del propietario:** suelo solo más grande, sin brillo; volver donde lo dejaste (DECISIONES.md, 8-nov-2026, Off-7E).

@@ -14,7 +14,7 @@
 // - Atributos del equipo (Off-7B, off/data/offAttributes.ts; `gearEffects`): Sharp / Ancient suben el daño, Poison
 //   envenena (updatePoison, números verdes), Hitting Probability acierta más, Defense Ratio sube la defensa, Magic
 //   Resistance da la probabilidad de librarse de la magia de un monstruo, las absorciones quitan parte del golpe y
-//   Gold / Experience dan más. Critical aún no hace nada (no hay críticos en Off). Las Recovery, en OffVitals.
+//   Gold / Experience dan más. Critical da su % de golpe doble (Off-7C). Las Recovery, en OffVitals.
 // - Pociones rápidas (Off-7B): drinkQuick bebe la poción más grande de vida o de maná que lleves (Q / E, cruceta).
 // - Magias (Off-6B): las lanza OffSpells (`spells`); aquí su daño cae en el monstruo (spellHit) y pasa por lo mismo que
 //   un golpe (hurtMonster: número, muerte, botín, experiencia). El fuego deja quemadura y el hielo frena, como en
@@ -23,6 +23,10 @@
 //   tiempo (OFF_PROTECT: +40 de defensa, o el daño mágico a la mitad cuando haya monstruos que lancen magia); pasan de un
 //   sitio a otro por los portales (OffCarriedVitals). Mientras duran, cada uno deja su aura bajo los pies (`wornEffect`,
 //   propietario): Defense Shield la de Survivors (effect9) y Protection From Magic el círculo blanco del aura de viento. Hold Person y Paralyze los pone OffMonster.hold.
+// Critical Strike (Off-8A): Alt / LT pide el golpe especial al monstruo bajo el ratón, al marcado o al más cercano
+//   (critPressed). Gasta una carga al empezar el golpe (como el servidor), casi no falla (+100 al acierto), grita,
+//   echa las chispas de Survivors y tiembla; el daño × (2 + nivel/30) sale en naranja y no tira el crítico al azar.
+//   Las cargas, en OffCritStrike.
 // Los mensajes ("Level Up!" y la lista de abajo a la izquierda) van a OffHudScene por los eventos de la escena.
 import Phaser from 'phaser';
 import { DEBUG_START } from '../../config/debugStart';
@@ -40,7 +44,10 @@ import { HitParticles } from '../../systems/HitParticles';
 import { Pool } from '../../utils/Pool';
 import { OFF_MONSTER_LOOK } from '../config/offMonsterLook';
 import { OFF_REGEN_TEXT, OFF_STAT_IDS, offMaxHp, type OffStats } from '../data/offCharacter';
-import { OFF_COMBAT, offAttackMs, type OffWeaponDef } from '../data/offCombat';
+import { OFF_COMBAT, OFF_CRIT_STRIKE, offAttackMs, type OffWeaponDef } from '../data/offCombat';
+import { CRIT_SHOUT, critDamageMultiplier, maxCritCharges } from '../../data/critStrike';
+import { ScreenShake } from '../../systems/ScreenShake';
+import { OffCritStrike } from './OffCritStrike';
 import {
     isOffGearKey, offArmorDefense, offBagItemName, offPartAbsorb, offShieldAbsorb, offEquipmentEffects, offGearDef, offStrToEquip, offWeapon, type OffBagItemKey,
 } from '../data/offItems';
@@ -95,6 +102,8 @@ interface PendingBlow {
     monster: OffMonster;
     lands: boolean;
     leftMs: number;
+    /** A Critical Strike (Off-8A). */
+    crit: boolean;
 }
 
 export class OffBattle implements OffMonsterWorld, OffSpellHost {
@@ -110,6 +119,8 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost {
     public kills = 0;
     /** Critical blows so far (Off-7C; for `check offcrit`). */
     public criticalBlows = 0;
+    /** Critical Strikes landed so far (Off-8A; for `check offcritstrike`). */
+    public critStrikeBlows = 0;
     /** Development (`check offfarm`, Off-7D): what the hunt has given and cost since the world opened. */
     public readonly tally = { exp: 0, gold: 0, potions: 0, valuables: 0, hurt: 0, hits: 0, drunk: 0, absorbed: 0 };
     /** Monster chosen to attack (click, A, LB / RB). */
@@ -124,6 +135,8 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost {
     public readonly ground: OffGroundItems;
     /** Spells: preparing, casting and their effects (Off-6B). */
     public readonly spells: OffSpells;
+    /** Critical Strike charges (Off-8A). */
+    public readonly critStrike: OffCritStrike;
     private readonly numbers: DamageNumbers;
     private readonly particles: HitParticles;
     private readonly effects: Pool<Effect>;
@@ -134,6 +147,9 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost {
     private attackQueued = false;
     /** The button is held: attacks go on. */
     private attackHeld = false;
+    /** The next blow is a Critical Strike (Alt / LT, Off-8A). */
+    private critQueued = false;
+    private readonly screenShake: ScreenShake;
     private cooldownMs = 0;
     private blow: PendingBlow | undefined;
     private respawnLeftMs = 0;
@@ -156,6 +172,9 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost {
         this.points = saved.points;
         this.level = offLevelForExp(this.exp);
         this.hp = this.maxHp;
+        const charges = DEBUG_START.offCrit ?? saved.critCharges ?? maxCritCharges(this.level);
+        this.critStrike = new OffCritStrike(charges, (n) => offSaveStore.setCritCharges(n));
+        this.screenShake = new ScreenShake(scene.cameras.main);
         this.vitals = new OffVitals(this, (line) => this.scene.events.emit(EVENT_LIST_EVENT, line));
         if (carried) {
             this.hp = Math.min(this.maxHp, Math.max(1, carried.hp));
@@ -322,6 +341,8 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost {
     /** Attack this monster (a click on it): one blow, more while `held`. */
     public engage(monster: OffMonster, held: boolean): void {
         if (this.dead) return;
+        // Another monster: a Critical Strike asked for goes with the mark.
+        if (monster !== this.target) this.critQueued = false;
         this.target = monster;
         this.attackQueued = true;
         this.attackHeld = held;
@@ -336,6 +357,21 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost {
         if (this.target) this.attackQueued = true;
     }
 
+    /**
+     * Alt / LT (Off-8A): the next blow is a Critical Strike, on the monster under the mouse, the marked one or the
+     * nearest. Nothing happens with no charge or no monster near.
+     */
+    public critPressed(): void {
+        if (this.dead || this.critStrike.charges <= 0) return;
+        const hovered = this.hovered?.isAlive ? this.hovered : undefined;
+        const marked = this.target?.isAlive && this.distanceTo(this.target) <= OFF_COMBAT.targetRangeTiles ? this.target : undefined;
+        const monster = hovered ?? marked ?? this.nearbyMonsters()[0];
+        if (!monster) return;
+        this.target = monster;
+        this.attackQueued = true;
+        this.critQueued = true;
+    }
+
     /** Whether the attack button (or the click on a monster) is still held. */
     public setHeld(held: boolean): void {
         this.attackHeld = held;
@@ -345,6 +381,7 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost {
     public stopAttacking(): void {
         this.attackQueued = false;
         this.attackHeld = false;
+        this.critQueued = false;
     }
 
     /** A click on the ground: no target. */
@@ -377,6 +414,7 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost {
         else this.updateAttack(deltaMs);
         this.spells.update(deltaMs);
         this.vitals.update(deltaMs);
+        this.critStrike.update(deltaMs, this.level);
         this.updateProtection(deltaMs);
         this.hp = Math.min(this.hp, this.maxHp);
         for (const monster of this.pits.monsters) {
@@ -498,6 +536,7 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost {
         this.numbers.showColored(x, y, damage, OFF_MONSTER_LOOK.playerDamageColor, false, this.hp === 0);
         this.spawnEffect('fx.hit', x, y);
         this.audio.play('sfx.player.hurt');
+        this.critStrike.onHurt(this.level);
         if (this.hp === 0) {
             this.die();
             return;
@@ -537,15 +576,25 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost {
         const mover = this.mover;
         const direction = directionTowards(mover.tileX, mover.tileY, target.mover.tileX, target.mover.tileY) ?? mover.facing;
         mover.face(direction);
-        const hitRatio = this.hitRatio;
+        const crit = this.critQueued && this.critStrike.spend();
+        this.critQueued = false;
+        const hitRatio = this.hitRatio + (crit ? OFF_CRIT_STRIKE.hitBonus : 0);
         const behind = isFromBehind(direction, target.mover.facing);
         const lands = Math.random() < offHitChance(hitRatio, target.def.base.defenseRatio, behind);
         const attackMs = offAttackMs(this.weapon, this.stats.str);
         this.character.act(PlayerState.Melee, direction, attackMs);
         this.cooldownMs = attackMs;
-        this.blow = { monster: target, lands, leftMs: attackMs * OFF_COMBAT.hitShare };
+        this.blow = { monster: target, lands, leftMs: attackMs * OFF_COMBAT.hitShare, crit };
         this.attackQueued = false;
         this.audio.play('sfx.melee.swing');
+        if (crit) this.launchCritLook();
+    }
+
+    /** The Critical Strike's shout, sparks and shake (Off-8A, as Survivors' CritStrikeSystem.launch). */
+    private launchCritLook(): void {
+        this.audio.play(CRIT_SHOUT[offSaveStore.character.look.gender]);
+        this.screenShake.shake(OFF_CRIT_STRIKE.shakePx, OFF_CRIT_STRIKE.shakeMs);
+        this.spawnEffect('fx.crit.strike', this.character.x, this.character.y - OFF_CRIT_STRIKE.effectOffsetY);
     }
 
     private landBlow(blow: PendingBlow): void {
@@ -557,12 +606,15 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost {
             return;
         }
         const effects = this.gearEffects;
+        // Off-8A: a Critical Strike multiplies by its own factor and never rolls the random critical too.
         // Off-7C (owner): a Critical weapon has its value in % of doing double damage (orange number, as Survivors).
-        const critical = Math.random() < (effects.critical ?? 0);
-        const factor = (1 + (effects.damage ?? 0)) * (critical ? OFF_COMBAT.criticalDamage : 1);
+        const critical = blow.crit || Math.random() < (effects.critical ?? 0);
+        const multiplier = blow.crit ? critDamageMultiplier(this.level) : critical ? OFF_COMBAT.criticalDamage : 1;
+        const factor = (1 + (effects.damage ?? 0)) * multiplier;
         const damage = rollWeaponDamage(this.weapon, monster.def.size, this.stats.str, factor);
         this.audio.play('sfx.melee.hit');
-        if (critical) this.criticalBlows++;
+        if (critical && !blow.crit) this.criticalBlows++;
+        if (blow.crit) this.critStrikeBlows++;
         const killed = this.hurtMonster(monster, damage, undefined, critical);
         // Off-7B: a Poison weapon poisons what it hits (if it wasn't already), at a share of the blow (as Survivors).
         if (!killed && effects.poison) monster.poison(damage * effects.poison);
@@ -820,7 +872,7 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost {
         return false;
     }
 
-    private spawnEffect(key: 'fx.hit', x: number, y: number): void {
+    private spawnEffect(key: 'fx.hit' | 'fx.crit.strike', x: number, y: number): void {
         this.effects.acquire().play(key, x, y);
     }
 }
