@@ -2,6 +2,14 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
+**Helbreath Off · Fase Off-8, bloque B: Guerrero mercenario (2026-11-08).**
+- **Qué hace:** **William**, junto al teleport de Aresden y Elvine, contrata a **Gorn the Warrior** (Espacio / A o clic en él; ventana "Mercenaries" con Hire / Dismiss / Close). Pago único de 100 de oro × tu nivel; uno a la vez. Gorn (cuerpo del guerrero de Survivors, capa y botas carmesí) te sigue, aparece a tu lado si te alejas muchísimo, pelea con lo que os ataca, con lo que atacas tú o con lo más cercano, y a veces se lleva la atención de los monstruos (tanque). Equipo según tu nivel. A 0 de vida, "Down 45" y se levanta con media vida. Se cura fuera de combate, cruza portales y se guarda (save versión 12).
+- **Decisiones del propietario:** NPC junto al teleport, pago único por nivel, mitad de experiencia en sus muertes (oro y botín enteros), magias de apoyo con clic sobre él o con el stick derecho hacia él (flecha y aro). Tras probarlo: nombre (Gorn), capa y botas del mismo color, y que no dé vueltas a tu alrededor cuando te paras.
+- **Arreglo por el camino:** si no se acercaba en 2,5 s (casilla ocupada por ti, valla) se quedaba dando vueltas: ahora se para y replanifica, ignora 6 s al monstruo inalcanzable y nunca se queda en tu casilla.
+- **Comprobado:** build; `check offmerchire offmerc offmercaim offmercportal offteleport offcritstrike offcyclops play town` sin errores (mata 3 Orcs en 25 s, hasta 7 van a por él; con el stick lo cura a él, sin stick a ti). **Probado por el propietario.** Sin probar con un mando real.
+- **Cómo probar:** `?off&offfaction=aresden&offgold=5000` y hablar con William; `?off&offmerc` para empezar con él.
+- **Código:** `off/data/offMercenary.ts`, `off/entities/OffMercenary.ts`, `off/systems/OffMercenaryAI.ts`, `off/scenes/OffMercenaryScene.ts`, víctimas en `OffMonsterAI`, aliado en `OffSpells`, `OffBattle` (OffMercenaryWorld), `?offmerc`. Ver NOTES.md, "Mercenario (Off-8B)".
+
 **Helbreath Off · Fase Off-8, bloque A: Critical Strike con cargas (2026-11-08).**
 - **Qué hace:** **Alt** (o **LT** en el mando) lanza el Critical Strike al monstruo bajo el ratón, al marcado o al más cercano (va hasta él si está lejos). Cargas como Survivors: 1 + nivel/10, +1 cada 15 s y cada 15 golpes recibidos; daño × (2 + nivel/30), casi sin fallar (+100 al acierto, del original). Grito C23/C24, chispas de Survivors, temblor y número naranja; esfera roja con las cargas en la barra. Las cargas se guardan.
 - **Decisiones del propietario:** el crítico al azar de la 7C se queda aparte (DECISIONES.md, 8-nov-2026, plan de Off-8 y Off-9). A criterio de Claude: LT en vez de B (B es la pausa), un solo monstruo como el original, no se suma al crítico al azar.

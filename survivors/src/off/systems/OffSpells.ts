@@ -11,6 +11,8 @@
 // - Off-6C: Heal y escudos te los lanzas a ti (cualquier clic; OffSpellHost.healPlayer / protect), Hold Person y
 //   Paralyze paran al monstruo del clic si no la resiste (OffMonster.hold). Cada una con su efecto del original
 //   (`castEffect`). Con el mando: pressSpell + la escena suelta la magia sola al objetivo (OffWorldScene).
+// - Off-8B: Heal y escudos también van a tu mercenario (`ally` en release): clic sobre él, o con el mando el stick
+//   derecho apuntándole (OffWorldScene decide; aquí solo se lanzan).
 import Phaser from 'phaser';
 import { DEPTH_DAMAGE_NUMBERS, DEPTH_EFFECT_OFFSET, TILE_SIZE } from '../../config/gameConfig';
 import { EFFECTS, effectAnimationKey, type EffectDef, type EffectKey } from '../../config/effects';
@@ -58,6 +60,16 @@ export interface OffSpellHost {
     castFailed(): void;
     /** A line in the bottom-left list. */
     eventLine(line: string): void;
+}
+
+/** Someone else a support spell can go to (Off-8B: your mercenary). */
+export interface OffSpellAlly {
+    readonly x: number;
+    readonly y: number;
+    /** Heal / Great Heal on it. */
+    heal(amount: number): void;
+    /** A shield on it; false when it already has one (no effect). */
+    protect(spell: OffSpellId): boolean;
 }
 
 /** Where the spell is: nothing, being prepared, or ready for the click. */
@@ -221,7 +233,7 @@ export class OffSpells {
      * The click with a spell ready: at the monster (when the click was on one) or at the ground at (px, py). Returns
      * true when the click was taken by the spell (also while still preparing: the click does nothing else then).
      */
-    public release(px: number, py: number, monster: OffMonster | undefined): boolean {
+    public release(px: number, py: number, monster: OffMonster | undefined, ally?: OffSpellAlly): boolean {
         if (this.state === 'preparing') return true;
         if (this.state !== 'ready' || this.spell === undefined) return false;
         const id = this.spell;
@@ -233,7 +245,7 @@ export class OffSpells {
             this.host.eventLine(refusal);
             return true;
         }
-        if (offSpellOnSelf(def)) return this.castOnSelf(id, def);
+        if (offSpellOnSelf(def)) return this.castOnSelf(id, def, ally);
         const tileX = monster ? monster.mover.tileX : Math.floor(px / TILE_SIZE);
         const tileY = monster ? monster.mover.tileY : Math.floor(py / TILE_SIZE);
         const direction = directionTowards(this.mover.tileX, this.mover.tileY, tileX, tileY);
@@ -303,8 +315,8 @@ export class OffSpells {
         return undefined;
     }
 
-    /** Heal or a shield, on yourself (any click: Off has no one else to cast them on). */
-    private castOnSelf(id: OffSpellId, def: OffSpellDef): boolean {
+    /** Heal or a shield, on yourself or on `ally` (Off-8B). */
+    private castOnSelf(id: OffSpellId, def: OffSpellDef, ally: OffSpellAlly | undefined): boolean {
         this.cooldownMs = OFF_CASTING.betweenCastsMs;
         if (!rollCastWorks(def.circle, this.caster())) {
             this.fails++;
@@ -314,9 +326,18 @@ export class OffSpells {
         }
         this.casts++;
         this.host.spendMana(def.mana);
-        if (def.castEffect) this.effects.acquire().play(def.castEffect, this.character.x, this.character.y);
-        if (def.kind === 'heal' && def.direct) this.host.healPlayer(rollHeal(def.direct));
-        else if (def.kind === 'shield' && !this.host.protect(id)) this.host.eventLine(OFF_CAST_TEXT.noEffect);
+        if (ally) {
+            const direction = directionTowards(this.mover.tileX, this.mover.tileY, Math.floor(ally.x / TILE_SIZE), Math.floor(ally.y / TILE_SIZE));
+            if (direction !== undefined) this.mover.face(direction);
+        }
+        const at = ally ?? this.character;
+        if (def.castEffect) this.effects.acquire().play(def.castEffect, at.x, at.y);
+        if (def.kind === 'heal' && def.direct) {
+            if (ally) ally.heal(rollHeal(def.direct));
+            else this.host.healPlayer(rollHeal(def.direct));
+        } else if (def.kind === 'shield' && !(ally ? ally.protect(id) : this.host.protect(id))) {
+            this.host.eventLine(OFF_CAST_TEXT.noEffect);
+        }
         return true;
     }
 

@@ -8,6 +8,7 @@
 // la IA, el paso y la animación van a ese ritmo.
 // Fase Off-6C: Hold Person y Paralyze lo dejan quieto (`hold`, reloj a 0) hasta que acaba o le hacen daño (`hurt`).
 import Phaser from 'phaser';
+import type { OffVictim } from '../systems/OffMonsterAI';
 import {
     BODY_SHADOW_ALPHA, BODY_SHADOW_ROTATION, BODY_SHADOW_SCALE_Y, DEFAULT_ANIMATION_FRAME_RATE, DEPTH_DAMAGE_NUMBERS,
     DEPTH_EFFECT_OFFSET, DEPTH_GROUND_SHADOWS, ENEMY_HIT_FLASH_MS, GROUND_SHADOW, MONSTER_ATTACK, TILE_SIZE,
@@ -45,6 +46,8 @@ export class OffMonster implements Poolable {
     /** Experience it gives (rolled when it appears; used in Off-2B). */
     public exp = 0;
     public mode: OffMonsterMode = 'wander';
+    /** Who it goes for while attacking: you or your mercenary (Off-8B). */
+    public victim: OffVictim = 'player';
     /** Pit it belongs to (index in OFF_PITS). */
     public pit = 0;
     /** ATime plus its own 0–299 ms, rolled when it appears (server). */
@@ -144,6 +147,7 @@ export class OffMonster implements Poolable {
         this.actionTimeMs = actionTimeMs;
         this.bravery = bravery;
         this.mode = 'wander';
+        this.victim = 'player';
         this.waitMs = Phaser.Math.Between(0, actionTimeMs);
         this.turns = 0;
         this.fleeLeft = 0;

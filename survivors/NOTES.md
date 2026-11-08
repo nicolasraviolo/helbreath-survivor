@@ -1591,3 +1591,15 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - Los muñecos se visten con `dressOffBody` (`off/entities/OffCharacter.ts`), lo mismo que el personaje del mundo: arma y escudo solo si los lleva puestos.
 - En una copia aparte del repo (worktree) el script de comprobación puede usar otro puerto: `CHECK_PORT=8091 node scripts/check.mjs …`, con `./node_modules/.bin/vite --port 8091` en marcha. Ahí salen 7 errores 403 de las fuentes (`@fontsource`): Vite no deja leerlas desde fuera de esa copia. No pasa en la copia principal.
 
+
+## Mercenario (Off-8B)
+- Se llama Gorn (el guerrero de Survivors, con su cuerpo). Capa y Long Boots teñidas con `OFF_MERCENARY_DYE` (Crimson) en todos los niveles: `OffCharacter.wear(look, tint, colors)` pasa los tintes a `wearEquipment`.
+- Atascos: si al seguirte o perseguir no se acerca una casilla en `stallMs`, para y replanifica; el monstruo inalcanzable se ignora `ignoreMs`. Si tú ocupas su casilla de destino, se para; si acaba en tu casilla, da un paso al lado (antes se quedaba encima o daba vueltas).
+- `OffMercenary` (entities) dibuja y guarda su estado; `OffMercenaryAI.updateMercenary` decide (seguir, elegir monstruo, pegar) con la interfaz `OffMercenaryWorld`, que implementa `OffBattle`. Los Raiders (Off-9) deberían reutilizar esa cabeza con otro "dueño".
+- Los monstruos tienen `victim: 'player' | 'merc'`. `OffMonsterWorld.victimTile(victim)` sustituye a `playerTile()`; `rollHitOnVictim` / `monsterStrikes` / `monsterCasts` miran `monster.victim`. `provokeMonster(m, by)` fija la víctima solo si el monstruo paseaba.
+- El golpe del mercenario hace que el monstruo cambie a él con `OFF_MERCENARY.tauntChance` (si no, nunca tanquearía). Sus muertes dan `killExpShare` (la mitad) de experiencia: `hurtMonster(..., by)` / `killMonster(m, by)`.
+- El jugador **no** queda bloqueado por el mercenario (para no atascarse en pasillos); el mercenario y los monstruos sí evitan sus casillas.
+- William es el `Npc` de la ciudad de Survivors con `TOWN_NPCS.william` y `options: []`. Bloquea su casilla en el mapa **cacheado**: hay que `destroy(map)` al cerrar la escena (lo hace el SHUTDOWN de OffWorldScene). Se crea antes de colocar a nadie.
+- `E` en Off bebe maná, así que con William cerca se habla con Espacio / A (en vez de atacar).
+- Su cuerpo (`OFF_MERCENARY_BODY`, piel 1) y su equipo pueden no estar descargados: `startOffWorld` los mete en `worn` si está contratado, y al contratar se espera a `lookLoader.ensure` antes de crearlo.
+- Apuntar magias de apoyo con el stick derecho usa `InputSystem.getManualAim()` (en Off no hay `pointerAnchor`, así que solo cuenta el stick o `setForcedAim`). La flecha es `ui/AimArrow` de Survivors.

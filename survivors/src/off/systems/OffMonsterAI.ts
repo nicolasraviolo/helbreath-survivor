@@ -7,6 +7,8 @@
 // - Atacando: si está al lado, pega (el golpe se decide al empezar); si no, da un paso hacia él. A los 20 turnos lo deja.
 // - Con poca vida y poca valentía huye 10 acciones (MONSTER_AI, ya portado en Survivors).
 // - Off-7A: los que tienen magia (el Cyclops) la lanzan a veces cuando aún no te alcanzan (OFF_MONSTER_CAST).
+// - Off-8B: también van a por tu mercenario (`victim`). Paseando, se fijan en el más cercano de los dos que vean; si
+//   el suyo cae o se va, pasan al otro si lo ven, o vuelven a pasear. Quien les pega pasa a ser su objetivo si paseaban.
 // Paseo entre puntos al azar de su pit: el original andaba entre waypoints del mapa; el pit nos sirve de zona.
 import Phaser from 'phaser';
 import type { TileRect } from '../../data/maps';
@@ -22,19 +24,24 @@ import { directionTowards, type TilePoint } from './TileMover';
 const QUICK_MONSTER_ACTION_MS = 1000;
 const QUICK_MONSTER_NOTICE_DIE = 3;
 
+/** Who a monster goes for (Off-8B): the player or the player's mercenary. */
+export type OffVictim = 'player' | 'merc';
+
+const VICTIMS: readonly OffVictim[] = ['player', 'merc'];
+
 /** What a monster needs to know about the world. */
 export interface OffMonsterWorld {
-    /** The player's tile, or undefined while dead. */
-    playerTile(): TilePoint | undefined;
+    /** Where that victim stands, or undefined while dead, down or not there. */
+    victimTile(victim: OffVictim): TilePoint | undefined;
     /** Zone where it wanders (its pit plus a margin). */
     wanderArea(monster: OffMonster): TileRect;
     /** A tile it may walk onto. */
     isFree(x: number, y: number): boolean;
-    /** Rolls whether its blow will land on the player (decided when the attack starts). */
-    rollHitOnPlayer(monster: OffMonster): boolean;
-    /** Its blow lands now (`lands` false: a miss). */
+    /** Rolls whether its blow will land on its victim (decided when the attack starts). */
+    rollHitOnVictim(monster: OffMonster): boolean;
+    /** Its blow lands now on its victim (`lands` false: a miss). */
     monsterStrikes(monster: OffMonster, lands: boolean): void;
-    /** It casts its spell at the player's tile (Off-7A). */
+    /** It casts its spell at its victim's tile (Off-7A). */
     monsterCasts(monster: OffMonster, at: TilePoint): void;
 }
 
@@ -57,22 +64,39 @@ export function updateMonster(monster: OffMonster, deltaMs: number, world: OffMo
     else if (monster.mode === 'flee') flee(monster, world);
 }
 
-/** It was hit by the player: it goes after the player, even if neutral (server: the attacker becomes its target). */
-export function provokeMonster(monster: OffMonster): void {
+/** It was hit (by `by`): it goes after the attacker, even if neutral (server: the attacker becomes its target). */
+export function provokeMonster(monster: OffMonster, by: OffVictim = 'player'): void {
     if (monster.mode !== 'wander') return;
     monster.mode = 'attack';
+    monster.victim = by;
     monster.turns = 0;
 }
 
+/** The nearest victim it can see within its search range, if any. */
+function seenVictim(monster: OffMonster, world: OffMonsterWorld): OffVictim | undefined {
+    const mover = monster.mover;
+    let best: OffVictim | undefined;
+    let bestDistance = Number.POSITIVE_INFINITY;
+    for (const victim of VICTIMS) {
+        const tile = world.victimTile(victim);
+        if (!tile) continue;
+        const distance = tileDistance(mover.tileX, mover.tileY, tile.x, tile.y);
+        if (distance <= monster.def.searchRange && distance < bestDistance) {
+            best = victim;
+            bestDistance = distance;
+        }
+    }
+    return best;
+}
+
 function wander(monster: OffMonster, world: OffMonsterWorld): void {
-    const player = world.playerTile();
     const def = monster.def;
-    if (player && !def.neutral && def.searchRange > 0) {
-        const mover = monster.mover;
-        const seen = tileDistance(mover.tileX, mover.tileY, player.x, player.y) <= def.searchRange;
+    if (!def.neutral && def.searchRange > 0) {
+        const seen = seenVictim(monster, world);
         const notices = monster.actionTimeMs >= QUICK_MONSTER_ACTION_MS || rollDice(1, QUICK_MONSTER_NOTICE_DIE) === 1;
         if (seen && notices) {
             monster.mode = 'attack';
+            monster.victim = seen;
             monster.turns = 0;
             monster.waitMs = 0;
             return;
@@ -91,7 +115,15 @@ function wander(monster: OffMonster, world: OffMonsterWorld): void {
 }
 
 function attack(monster: OffMonster, world: OffMonsterWorld): void {
-    const player = world.playerTile();
+    let player = world.victimTile(monster.victim);
+    if (!player) {
+        // Its victim fell or left: the other one, if it can see it.
+        const other = seenVictim(monster, world);
+        if (other) {
+            monster.victim = other;
+            player = world.victimTile(other);
+        }
+    }
     monster.turns++;
     if (!player || monster.turns > OFF_COMBAT.giveUpTurns) {
         monster.mode = 'wander';
@@ -108,7 +140,7 @@ function attack(monster: OffMonster, world: OffMonsterWorld): void {
     const mover = monster.mover;
     if (tileDistance(mover.tileX, mover.tileY, player.x, player.y) <= monster.def.base.attackRange) {
         const towards = directionTowards(mover.tileX, mover.tileY, player.x, player.y) ?? mover.facing;
-        monster.startAttack(towards, world.rollHitOnPlayer(monster));
+        monster.startAttack(towards, world.rollHitOnVictim(monster));
         monster.waitMs = interval;
         return;
     }
@@ -123,7 +155,7 @@ function attack(monster: OffMonster, world: OffMonsterWorld): void {
 }
 
 function flee(monster: OffMonster, world: OffMonsterWorld): void {
-    const player = world.playerTile();
+    const player = world.victimTile(monster.victim);
     monster.fleeLeft--;
     if (!player || monster.fleeLeft <= 0) {
         monster.mode = player ? 'attack' : 'wander';

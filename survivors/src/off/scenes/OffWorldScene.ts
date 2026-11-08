@@ -32,6 +32,10 @@
 // la lanza (al monstruo o al suelo) en vez de andar o pegar, y el clic derecho, el stick o las flechas la cancelan.
 // Fase Off-6C: con RT pulsado, A/B/X/Y preparan las magias del mando (no atacan ni abren ventanas); al soltar RT, en
 // cuanto está lista, va al monstruo marcado o al más cercano (curar y escudos, a ti). `padCast` la sigue.
+// Fase Off-8B: en la ciudad, William (junto al teleport) contrata mercenarios: al acercarse sale "Talk" y Espacio, A o
+// un clic en él abren su ventana (OffMercenaryScene; lejos, el clic lleva hasta él). Heal y escudos van a tu mercenario
+// con un clic sobre él, o con el mando empujando el stick derecho hacia él mientras están listas (flecha a tus pies y
+// aro en él, como el apuntado de Survivors); sin stick, a ti.
 // Mapa, árboles que se transparentan, cámara, pasos y minimapa, como la ciudad de Survivors (scenes/TownScene.ts).
 import Phaser from 'phaser';
 import { CAMERA_LERP, DEPTH_DEBUG, GAME_WIDTH, TILE_SIZE } from '../../config/gameConfig';
@@ -82,6 +86,14 @@ import type { PauseSceneData } from '../../scenes/PauseScene';
 import type { MenuOverlayData } from '../../scenes/MenuOverlayScene';
 import { directionOffset, findFreeTile, TileMover, type TilePoint } from '../systems/TileMover';
 import { OffPathfinder } from '../systems/OffPathfinder';
+import { Npc } from '../../entities/Npc';
+import { TOWN_NPCS, TOWN_TALK, type NpcDef } from '../../data/town';
+import { AimArrow } from '../../ui/AimArrow';
+import { manualAimAngle } from '../../systems/Targeting';
+import { lookLoader } from '../../systems/LookLoader';
+import { OFF_MERCENARY, OFF_MERCENARY_BODY, OFF_MERCENARY_TEXT, offMercenaryGear, type OffMercenaryId } from '../data/offMercenary';
+import { OFF_MERCENARY_SCENE_KEY, type OffMercenarySceneData } from './OffMercenaryScene';
+import type { OffSpellAlly } from '../systems/OffSpells';
 
 export const OFF_WORLD_SCENE_KEY = 'OffWorld';
 
@@ -118,12 +130,18 @@ export function startOffWorld(scene: Phaser.Scene, data?: OffWorldSceneData): vo
         place: {
             ...def,
             sceneKey: OFF_WORLD_SCENE_KEY,
-            worn: runSprites(OFF_NOVICE, offSaveStore.character.look, offEquipmentLook(offSaveStore.character.equipment)),
+            worn: [...runSprites(OFF_NOVICE, offSaveStore.character.look, offEquipmentLook(offSaveStore.character.equipment)), ...mercenarySprites()],
             sounds: [def.music],
             sceneData,
         },
     };
     scene.scene.start('MapLoad', load);
+}
+
+/** Off-8B: the hired mercenary's body and gear at your level (nothing without one). */
+function mercenarySprites(): ReturnType<typeof runSprites> {
+    if (!offSaveStore.character.mercenary) return [];
+    return runSprites(OFF_NOVICE, OFF_MERCENARY_BODY, offEquipmentLook(offMercenaryGear(offSaveStore.level)));
 }
 
 /** Off-7E: the saved place and tile, as an arrival; its city with nothing saved. */
@@ -203,6 +221,12 @@ export class OffWorldScene extends Phaser.Scene {
      * would open the Inventory again right after closing it.
      */
     private windowClosedFrame = -1;
+    /** Off-8B: William, who hires mercenaries (cities only). */
+    private hirer: Npc | undefined;
+    /** Clicked William from afar: his window opens on getting near. */
+    private talkPending = false;
+    /** The arrow at the feet while the right stick aims a support spell (Off-8B). */
+    private aimArrow!: AimArrow;
 
     constructor() {
         super(OFF_WORLD_SCENE_KEY);
@@ -224,6 +248,9 @@ export class OffWorldScene extends Phaser.Scene {
         const area = place.playArea;
         this.mapView = new MapView(this, map, area, area);
         const isWalkable = (x: number, y: number) => map.isWalkableTile(x, y) && insideArea(area, x, y);
+        // Off-8B: William first, so his tile is blocked before anyone is placed.
+        this.hirer = this.createHirer(isWalkable);
+        this.talkPending = false;
         const home = findFreeTile(isWalkable, place.spawn.x, place.spawn.y, OFF_MOVEMENT.clickSearchRadius) ?? place.spawn;
         const at = this.arrival.at;
         const spawn = (at && findFreeTile(isWalkable, at.x, at.y, OFF_MOVEMENT.clickSearchRadius)) ?? home;
@@ -245,6 +272,8 @@ export class OffWorldScene extends Phaser.Scene {
             return findFreeTile((x, y) => this.battle.isFreeForPlayer(x, y), home.x, home.y, OFF_MOVEMENT.clickSearchRadius) ?? home;
         };
         this.battle = new OffBattle(this, this.mover, this.character, this.audio, isWalkable, respawnTile, place.pits, this.arrival.carried);
+        this.battle.findPath = (from, to, maxTiles) => this.pathfinder.find(from, to, maxTiles);
+        this.aimArrow = new AimArrow(this);
         this.leaving = false;
         this.whereSaveMs = 0;
         // Off-7E: saved on arriving, every few seconds, on leaving and when the page is hidden or closed.
@@ -256,6 +285,9 @@ export class OffWorldScene extends Phaser.Scene {
         document.addEventListener('visibilitychange', onHide);
         window.addEventListener('pagehide', onPageHide);
         this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+            // The map is cached for the next visit: William's tile is freed.
+            this.hirer?.destroy(map);
+            this.hirer = undefined;
             this.saveWhere();
             document.removeEventListener('visibilitychange', onHide);
             window.removeEventListener('pagehide', onPageHide);
@@ -410,9 +442,11 @@ export class OffWorldScene extends Phaser.Scene {
             if (drinkMana && !this.battle.dead) this.battle.drinkQuick('mana');
             if (padSpell >= 0) this.pressPadSpell(padSpell);
         }
+        this.updateHirer();
         this.updateCombatInput();
         this.updateDebugCast();
         this.updatePadCast();
+        this.updateSupportAim();
         if (!this.battle.dead && this.window !== 'cover') this.steer();
         const running = runMode && this.battle.vitals.canRun;
         if (this.battle.canMove) this.mover.update(delta, running ? OFF_STEP_MS.run : OFF_STEP_MS.walk);
@@ -535,7 +569,109 @@ export class OffWorldScene extends Phaser.Scene {
     }
 
     private carriedVitals(): OffCarriedVitals {
-        return { hp: this.battle.hp, mana: this.battle.vitals.mana, stamina: this.battle.vitals.stamina, protection: this.battle.protection };
+        const merc = this.battle.carriedMerc();
+        return { hp: this.battle.hp, mana: this.battle.vitals.mana, stamina: this.battle.vitals.stamina, protection: this.battle.protection, ...(merc ? { merc } : {}) };
+    }
+
+    // ---- William and the mercenary (Off-8B) ----
+
+    /** William on the walkable tile nearest to the place's mark (not on a portal or a door). */
+    private createHirer(isWalkable: (x: number, y: number) => boolean): Npc | undefined {
+        const hirer = this.place.hirer;
+        if (!hirer) return undefined;
+        const tile = findFreeTile((x, y) => isWalkable(x, y) && !this.portalAt(x, y) && !this.doorAt(x, y), hirer.near.x, hirer.near.y, OFF_MOVEMENT.clickSearchRadius);
+        if (!tile) return undefined;
+        const def: NpcDef = { ...TOWN_NPCS.william, name: OFF_MERCENARY_TEXT.npcName, tile, direction: hirer.direction, line: OFF_MERCENARY_TEXT.npcLine, options: [] };
+        return new Npc(this, 'william', def, this.map);
+    }
+
+    /** Close enough to William to talk (as the town of Survivors). */
+    private nearHirer(): boolean {
+        const hirer = this.hirer;
+        return hirer !== undefined && !this.battle.dead && hirer.distanceTo(this.character.x, this.character.y) <= TOWN_TALK.radiusPx;
+    }
+
+    /** "Talk" over William while near; a click from afar opens his window on arriving. */
+    private updateHirer(): void {
+        const hirer = this.hirer;
+        if (!hirer) return;
+        hirer.update();
+        const near = this.nearHirer();
+        hirer.setTalkable(near && this.window === undefined, this.time.now);
+        if (this.talkPending && near && !this.mover.isMoving) {
+            this.talkPending = false;
+            this.openMercenaries();
+        }
+    }
+
+    /** The point is on William's drawing. */
+    private onHirer(px: number, py: number): boolean {
+        const hirer = this.hirer;
+        return hirer !== undefined && Math.abs(px - hirer.x) <= HIRER_CLICK.halfWidth && py <= hirer.y + HIRER_CLICK.below && py >= hirer.y - HIRER_CLICK.height;
+    }
+
+    /** William's window over the world, which waits paused. */
+    public openMercenaries(): void {
+        if (!this.scene.isActive() || this.leaving) return;
+        if (this.window === 'inventory') {
+            this.scene.stop(OFF_INVENTORY_SCENE_KEY);
+            this.closeInventory();
+        }
+        if (this.window) return;
+        this.stopForWindow();
+        this.mover.cancel();
+        this.talkPending = false;
+        const data: Omit<OffMercenarySceneData, 'returnTo'> = {
+            onHire: (id, price) => this.hire(id, price),
+            onDismiss: () => this.battle.dismissMercenary(),
+        };
+        openOverlay(this, OFF_MERCENARY_SCENE_KEY, data);
+    }
+
+    /** Its body and gear are downloaded first (they may not be yet), then it appears at your side. */
+    private hire(id: OffMercenaryId, price: number): void {
+        if (offSaveStore.character.gold < price) {
+            this.battle.eventLine(OFF_MERCENARY_TEXT.noGold);
+            return;
+        }
+        const sprites = runSprites(OFF_NOVICE, OFF_MERCENARY_BODY, offEquipmentLook(offMercenaryGear(offSaveStore.level)));
+        void lookLoader.ensure(this, sprites).then(() => {
+            if (this.scene.isActive() && !this.leaving) this.battle.hireMercenary(id, price);
+        });
+    }
+
+    /**
+     * Who a support spell (Heal, shields) cast with the gamepad goes to: the mercenary while the right stick points
+     * at it (within OFF_MERCENARY.aimDegrees and aimRangeTiles), else you.
+     */
+    private padAlly(): OffSpellAlly | undefined {
+        const merc = this.battle.merc;
+        const aim = this.inputSystem.getManualAim();
+        if (!merc || merc.isDown || !aim) return undefined;
+        const from = this.character;
+        const tiles = Math.hypot(merc.x - from.x, merc.y - from.y) / TILE_SIZE;
+        if (tiles > OFF_MERCENARY.aimRangeTiles) return undefined;
+        const wanted = Math.atan2(merc.y - from.y, merc.x - from.x);
+        const diff = Math.abs(Phaser.Math.Angle.Wrap(manualAimAngle(aim, from.x, from.y) - wanted));
+        return diff <= Phaser.Math.DegToRad(OFF_MERCENARY.aimDegrees) ? this.battle.mercAlly() : undefined;
+    }
+
+    /** While a support spell waits: the arrow (stick) and the ring on the mercenary when it will go to it. */
+    private updateSupportAim(): void {
+        const spells = this.battle.spells;
+        const merc = this.battle.merc;
+        const support = spells.busy && spells.onSelf && !this.battle.dead;
+        const aim = support && this.padCast ? this.inputSystem.getManualAim() : undefined;
+        this.aimArrow.update(aim, this.character.x, this.character.y);
+        if (!merc) return;
+        let aimed = false;
+        if (support && this.padCast) aimed = this.padAlly() !== undefined;
+        else if (support) {
+            const pointer = this.input.activePointer;
+            const world = this.tileUnder(pointer);
+            aimed = !pointer.wasTouch && this.battle.mercAt(world.px, world.py) !== undefined;
+        }
+        merc.setAimed(aimed);
     }
 
     /** Off to another place through its loading screen. */
@@ -700,7 +836,7 @@ export class OffWorldScene extends Phaser.Scene {
         if (spells.state !== 'ready' || this.castTrigger) return;
         this.padCast = false;
         if (spells.onSelf) {
-            spells.release(this.character.x, this.character.y, undefined);
+            spells.release(this.character.x, this.character.y, undefined, this.padAlly());
             return;
         }
         const target = this.battle.spellTarget();
@@ -711,6 +847,26 @@ export class OffWorldScene extends Phaser.Scene {
             spells.cancel();
             this.battle.eventLine(OFF_CAST_TEXT.noMonster);
         }
+    }
+
+    /** Development (`check offmerc`): the mercenary falls unconscious now; with `standInMs`, it stands up that soon. */
+    public debugMercDown(standInMs?: number): void {
+        const merc = this.battle.merc;
+        if (!merc) return;
+        merc.fall();
+        if (standInMs !== undefined) merc.downLeftMs = standInMs;
+    }
+
+    /** Development (`check offmercheal`): the mercenary loses health down to `hp`. */
+    public debugMercHp(hp: number): void {
+        const merc = this.battle.merc;
+        if (merc) merc.hp = Math.max(1, Math.min(merc.maxHp, hp));
+    }
+
+    /** Development (`check offmercaim`): the right stick points towards the mercenary (or `undefined` lets it go). */
+    public debugAimAtMerc(on: boolean): void {
+        const merc = this.battle.merc;
+        this.inputSystem.setForcedAim(on && merc ? { x: merc.x - this.character.x, y: merc.y - this.character.y } : undefined);
     }
 
     /** Development (`check offpadcast`): RT + that button (0 A … 3 Y), let go at once: cast when ready. */
@@ -757,13 +913,21 @@ export class OffWorldScene extends Phaser.Scene {
         weapon: string; attackMs: number; defense: number; gold: number; bag: string[]; ground: string[];
         spell: string; casts: number; fails: number; prepareMs: number; burning: number; slowed: number;
         held: number; poisoned: number; shield: string | undefined; padSpells: string[];
+        merc: string | undefined; mercKills: number; mercDown: number; mercShield: string | undefined; onMerc: number; hirer: TilePoint | undefined;
     } {
         const monsters: Record<string, number> = {};
         for (const monster of this.battle.pits.monsters) {
             if (monster.isAlive) monsters[monster.id] = (monsters[monster.id] ?? 0) + 1;
         }
         const target = this.battle.target;
+        const merc = this.battle.merc;
         return {
+            merc: merc ? `${merc.id} lvl ${merc.level} ${merc.hp}/${merc.maxHp} at ${merc.mover.tileX},${merc.mover.tileY} ${merc.weapon.name}` : undefined,
+            mercKills: merc?.kills ?? 0,
+            mercDown: merc ? Math.ceil(merc.downLeftMs / 1000) : 0,
+            mercShield: merc?.protection ? merc.protection.spell : undefined,
+            onMerc: this.battle.pits.monsters.filter((m) => m.isAlive && m.mode === 'attack' && m.victim === 'merc').length,
+            hirer: this.hirer ? { ...this.hirer.def.tile } : undefined,
             tile: { x: this.mover.tileX, y: this.mover.tileY },
             moving: this.mover.isTravelling,
             running: runMode,
@@ -888,7 +1052,9 @@ export class OffWorldScene extends Phaser.Scene {
         const crit = input.justPressed(Action.OffCritStrike);
         const next = input.justPressed(Action.OffNextTarget);
         const previous = input.justPressed(Action.OffPrevTarget);
-        if (keys && attack) {
+        if (keys && attack && this.nearHirer()) {
+            this.openMercenaries();
+        } else if (keys && attack) {
             battle.spells.cancel();
             battle.attackPressed();
         }
@@ -927,6 +1093,7 @@ export class OffWorldScene extends Phaser.Scene {
         }
         this.steering = true;
         this.debugHold = false;
+        this.talkPending = false;
         this.battle.spells.cancel();
         this.battle.stopAttacking();
         const offset = directionOffset(direction);
@@ -953,8 +1120,10 @@ export class OffWorldScene extends Phaser.Scene {
         if (!pointer.leftButtonDown() || this.battle.dead) return;
         const tile = this.tileUnder(pointer);
         const monster = this.battle.monsterAt(tile.px, tile.py);
+        // Off-8B: Heal and shields clicked on the mercenary go to it.
+        const ally = this.battle.spells.onSelf && this.battle.mercAt(tile.px, tile.py) ? this.battle.mercAlly() : undefined;
         // A spell prepared or ready takes the click (Off-6B).
-        if (this.battle.spells.release(tile.px, tile.py, monster)) {
+        if (this.battle.spells.release(tile.px, tile.py, monster, ally)) {
             this.leftHeld = false;
             this.mouseAttack = false;
             this.battle.stopAttacking();
@@ -967,6 +1136,17 @@ export class OffWorldScene extends Phaser.Scene {
             return;
         }
         this.battle.clearTarget();
+        // Off-8B: a click on William talks to him (walking up to him first when far).
+        this.talkPending = false;
+        if (this.window === undefined && this.onHirer(tile.px, tile.py)) {
+            this.leftHeld = false;
+            if (this.nearHirer()) this.openMercenaries();
+            else if (this.hirer) {
+                this.talkPending = true;
+                this.clickTile(this.hirer.def.tile.x, this.hirer.def.tile.y);
+            }
+            return;
+        }
         this.leftHeld = true;
         this.clickTile(tile.x, tile.y);
     }
@@ -1026,6 +1206,9 @@ export class OffWorldScene extends Phaser.Scene {
         }
     }
 }
+
+/** Off-8B: the box around William's feet that a click on him hits (px). */
+const HIRER_CLICK = { halfWidth: 16, height: 80, below: 6 } as const;
 
 /** Time for the HUD to open before the arrival line is sent. */
 const ARRIVAL_MESSAGE_DELAY_MS = 300;
