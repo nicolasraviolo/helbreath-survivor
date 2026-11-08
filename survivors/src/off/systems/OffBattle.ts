@@ -14,7 +14,7 @@
 // - Atributos del equipo (Off-7B, off/data/offAttributes.ts; `gearEffects`): Sharp / Ancient suben el daño, Poison
 //   envenena (updatePoison, números verdes), Hitting Probability acierta más, Defense Ratio sube la defensa, Magic
 //   Resistance da la probabilidad de librarse de la magia de un monstruo, las absorciones quitan parte del golpe y
-//   Gold / Experience dan más. Critical aún no hace nada (no hay críticos en Off). Las Recovery, en OffVitals.
+//   Gold / Experience dan más. Critical da su % de golpe doble (Off-7C). Las Recovery, en OffVitals.
 // - Pociones rápidas (Off-7B): drinkQuick bebe la poción más grande de vida o de maná que lleves (Q / E, cruceta).
 // - Magias (Off-6B): las lanza OffSpells (`spells`); aquí su daño cae en el monstruo (spellHit) y pasa por lo mismo que
 //   un golpe (hurtMonster: número, muerte, botín, experiencia). El fuego deja quemadura y el hielo frena, como en
@@ -23,6 +23,19 @@
 //   tiempo (OFF_PROTECT: +40 de defensa, o el daño mágico a la mitad cuando haya monstruos que lancen magia); pasan de un
 //   sitio a otro por los portales (OffCarriedVitals). Mientras duran, cada uno deja su aura bajo los pies (`wornEffect`,
 //   propietario): Defense Shield la de Survivors (effect9) y Protection From Magic el círculo blanco del aura de viento. Hold Person y Paralyze los pone OffMonster.hold.
+// Critical Strike (Off-8A): Alt / LT pide el golpe especial al monstruo bajo el ratón, al marcado o al más cercano
+//   (critPressed). Gasta una carga al empezar el golpe (como el servidor), casi no falla (+100 al acierto), grita,
+//   echa las chispas de Survivors y tiembla; el daño × (2 + nivel/30) sale en naranja y no tira el crítico al azar.
+//   Las cargas, en OffCritStrike.
+// Mercenario (Off-8B, OffMercenary + OffMercenaryAI): uno a la vez. Los monstruos van a por ti o a por él (`victim`);
+//   sus golpes pasan por su defensa y su armadura como los tuyos. Su golpe hace que el monstruo vaya a por él a veces
+//   (tanque). Lo que mata te da la mitad de experiencia (OFF_MERCENARY.killExpShare) y su botín entero. A 0 de vida cae
+//   inconsciente 45 s. Tus Heal y escudos le llegan por `mercAlly`. Pasa por los portales contigo (OffCarriedVitals).
+// Berserk (Off-8C): `berserkLeftMs` en ti y en el mercenario; los golpes normales hacen OFF_BERSERK.damageFactor (×2,
+//   como el servidor) y el Critical Strike no. Brillo rojo mientras dura. La maga mercenaria lanza con su propio
+//   OffSpells (OffMercenarySpells, `mercSpells`, uno por batalla que pasa de una maga a la siguiente); su maná se
+//   recarga poco a poco (OFF_MERCENARY_CASTER) y lo que matan sus magias da la mitad de experiencia, como Gorn.
+// Off-8D: tras su cabeza, sus frases (OffMercenaryTalk); al contratarlo dice "At your service!".
 // Los mensajes ("Level Up!" y la lista de abajo a la izquierda) van a OffHudScene por los eventos de la escena.
 import Phaser from 'phaser';
 import { DEBUG_START } from '../../config/debugStart';
@@ -39,20 +52,23 @@ import { DamageNumbers } from '../../systems/DamageNumbers';
 import { HitParticles } from '../../systems/HitParticles';
 import { Pool } from '../../utils/Pool';
 import { OFF_MONSTER_LOOK } from '../config/offMonsterLook';
-import { OFF_REGEN_TEXT, OFF_STAT_IDS, offMaxHp, type OffStats } from '../data/offCharacter';
-import { OFF_COMBAT, offAttackMs, type OffWeaponDef } from '../data/offCombat';
+import { OFF_REGEN_TEXT, OFF_STAT_IDS, offManaRegen, offMaxHp, type OffStats } from '../data/offCharacter';
+import { OFF_COMBAT, OFF_CRIT_STRIKE, offAttackMs, type OffWeaponDef } from '../data/offCombat';
+import { CRIT_SHOUT, critDamageMultiplier, maxCritCharges } from '../../data/critStrike';
+import { ScreenShake } from '../../systems/ScreenShake';
+import { OffCritStrike } from './OffCritStrike';
 import {
     isOffGearKey, offArmorDefense, offBagItemName, offPartAbsorb, offShieldAbsorb, offEquipmentEffects, offGearDef, offStrToEquip, offWeapon, type OffBagItemKey,
 } from '../data/offItems';
 import { OFF_ATTRIBUTES, type OffAttributeEffects } from '../data/offAttributes';
-import { isOffGoodId, OFF_GOODS, offGood, type OffPotionRestores } from '../data/offGoods';
+import { isOffGoodId, OFF_GOODS, offGood, offRollRestore, type OffPotionRestores } from '../data/offGoods';
 import { OFF_BAG_TEXT } from '../data/offBag';
 import { OFF_LOOT_TEXT } from '../data/offLoot';
 import type { OffGroundContent } from '../entities/OffGroundItem';
 import { OFF_LEVEL, OFF_LEVEL_TEXT, offDeathExpLoss, offKillExp, offLevelForExp } from '../data/offLevel';
 import type { OffCharacter } from '../entities/OffCharacter';
 import type { OffMonster } from '../entities/OffMonster';
-import { isFromBehind, offArmorAbsorbed, offBlowPart, offHitChance, offPlayerHitRatio, offShieldSkill, rollMonsterDamage, rollWeaponDamage, tileDistance } from './OffCombatRules';
+import { isFromBehind, offArmorAbsorbed, offBlowPart, offHitChance, offPlayerHitRatio, offShieldSkill, rollMonsterDamage, rollWeaponDamage, tileDistance, weaponDamageRange } from './OffCombatRules';
 import { rollSpellDamage } from './OffSpellRules';
 import { provokeMonster, updateMonster, type OffMonsterWorld } from './OffMonsterAI';
 import { OffGroundItems } from './OffGroundItems';
@@ -62,10 +78,18 @@ import type { OffPitDef } from '../data/offPits';
 import { offSaveStore, type OffEquipResult } from './OffSaveStore';
 import { OffVitals } from './OffVitals';
 import { OffSpells, type OffSpellHost } from './OffSpells';
-import { OFF_CAST_TEXT, OFF_CAST_WORDS, OFF_CASTING, OFF_PROTECT, OFF_SPELLS, type OffSpellId } from '../data/offSpells';
+import { OFF_BERSERK, OFF_CAST_TEXT, OFF_CAST_WORDS, OFF_CASTING, OFF_PROTECT, OFF_SPELLS, type OffSpellId } from '../data/offSpells';
+import { BUFFS, BUFF_OVERLAY_ALPHA } from '../../data/pickups';
+import { OffMercenarySpells, type OffMercenaryCastWorld } from './OffMercenarySpells';
 import { OFF_HEAL_NUMBER_COLOR, OFF_WORN_ALPHA } from '../config/offSpellLook';
 import { EFFECTS, type EffectDef, type EffectKey } from '../../config/effects';
-import { directionTowards, type TileMover, type TilePoint } from './TileMover';
+import { directionTowards, findFreeTile, type TileMover, type TilePoint } from './TileMover';
+import { OffMercenary, type OffCarriedMercenary } from '../entities/OffMercenary';
+import { OFF_MERCENARIES, OFF_MERCENARY, OFF_MERCENARY_CASTER, OFF_MERCENARY_LOOK, OFF_MERCENARY_TEXT, type OffMercenaryId } from '../data/offMercenary';
+import { updateMercenary, type OffMercenaryWorld, type OffOwnerNeeds } from './OffMercenaryAI';
+import { updateMercenaryTalk } from './OffMercenaryTalk';
+import type { OffVictim } from './OffMonsterAI';
+import type { OffSpellAlly } from './OffSpells';
 
 /** What using or dropping a bag item did, and the line that says so (also when it was refused). */
 /** Health, mana and stamina carried through a portal (Off-5A). */
@@ -75,6 +99,10 @@ export interface OffCarriedVitals {
     stamina: number;
     /** A shield spell still on (Off-6C). */
     protection?: OffProtection;
+    /** The mercenary's health and time down (Off-8B). */
+    merc?: OffCarriedMercenary;
+    /** Berserk's time left (Off-8C). */
+    berserkLeftMs?: number;
 }
 
 /** Defense Shield or Protection From Magic on the player, and the time it has left. */
@@ -95,9 +123,11 @@ interface PendingBlow {
     monster: OffMonster;
     lands: boolean;
     leftMs: number;
+    /** A Critical Strike (Off-8A). */
+    crit: boolean;
 }
 
-export class OffBattle implements OffMonsterWorld, OffSpellHost {
+export class OffBattle implements OffMonsterWorld, OffSpellHost, OffMercenaryWorld, OffMercenaryCastWorld {
     /** Mana, stamina and the self-healing batches (Off-3B). */
     public readonly vitals: OffVitals;
     public hp: number;
@@ -110,7 +140,11 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost {
     public kills = 0;
     /** Critical blows so far (Off-7C; for `check offcrit`). */
     public criticalBlows = 0;
+    /** Critical Strikes landed so far (Off-8A; for `check offcritstrike`). */
+    public critStrikeBlows = 0;
     /** Development (`check offfarm`, Off-7D): what the hunt has given and cost since the world opened. */
+    /** Development (`check offberserk`, Off-8C): normal blows' damage, with and without Berserk. */
+    public readonly debugBlows = { plain: { sum: 0, count: 0 }, berserk: { sum: 0, count: 0 } };
     public readonly tally = { exp: 0, gold: 0, potions: 0, valuables: 0, hurt: 0, hits: 0, drunk: 0, absorbed: 0 };
     /** Monster chosen to attack (click, A, LB / RB). */
     public target: OffMonster | undefined;
@@ -119,11 +153,19 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost {
     public dead = false;
     /** Defense Shield or Protection From Magic (Off-6C; one at a time, as the server). */
     public protection: OffProtection | undefined;
+    /** Off-8C: Berserk on you for this long (0 = none), and whether its glow is showing. */
+    public berserkLeftMs = 0;
+    private glowing = false;
+    /** Off-8C: the Mage's spells (made with the first Mage hired, then moved to each new one). */
+    private mercSpells: OffSpells | undefined;
+    private readonly ownerNeedsNow: OffOwnerNeeds = { hpShare: 1, shielded: false, berserk: false, casterNear: false, blowDamage: 1 };
     public readonly pits: OffPits;
     /** Loot lying on the ground (Off-4A). */
     public readonly ground: OffGroundItems;
     /** Spells: preparing, casting and their effects (Off-6B). */
     public readonly spells: OffSpells;
+    /** Critical Strike charges (Off-8A). */
+    public readonly critStrike: OffCritStrike;
     private readonly numbers: DamageNumbers;
     private readonly particles: HitParticles;
     private readonly effects: Pool<Effect>;
@@ -134,10 +176,20 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost {
     private attackQueued = false;
     /** The button is held: attacks go on. */
     private attackHeld = false;
+    /** The next blow is a Critical Strike (Alt / LT, Off-8A). */
+    private critQueued = false;
+    private readonly screenShake: ScreenShake;
     private cooldownMs = 0;
     private blow: PendingBlow | undefined;
     private respawnLeftMs = 0;
     private readonly playerAt: TilePoint = { x: 0, y: 0 };
+    private readonly mercTileAt: TilePoint = { x: 0, y: 0 };
+    /** Your mercenary (Off-8B), if one is hired. */
+    public merc: OffMercenary | undefined;
+    /** A way round houses and walls (the scene's pathfinder), for the mercenary. */
+    public findPath: OffMercenaryWorld['findPath'] = () => undefined;
+    /** The mercenary's pose: running this frame. */
+    private mercRunning = false;
 
     constructor(
         private readonly scene: Phaser.Scene,
@@ -156,12 +208,16 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost {
         this.points = saved.points;
         this.level = offLevelForExp(this.exp);
         this.hp = this.maxHp;
+        const charges = DEBUG_START.offCrit ?? saved.critCharges ?? maxCritCharges(this.level);
+        this.critStrike = new OffCritStrike(charges, (n) => offSaveStore.setCritCharges(n));
+        this.screenShake = new ScreenShake(scene.cameras.main);
         this.vitals = new OffVitals(this, (line) => this.scene.events.emit(EVENT_LIST_EVENT, line));
         if (carried) {
             this.hp = Math.min(this.maxHp, Math.max(1, carried.hp));
             this.vitals.mana = Math.min(this.vitals.maxMana, carried.mana);
             this.vitals.stamina = Math.min(this.vitals.maxStamina, carried.stamina);
             this.protection = carried.protection ? { ...carried.protection } : undefined;
+            this.berserkLeftMs = Math.max(0, carried.berserkLeftMs ?? 0);
         } else if (DEBUG_START.offHp !== undefined) {
             this.hp = Math.min(this.maxHp, Math.max(1, DEBUG_START.offHp));
         }
@@ -173,6 +229,280 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost {
         this.pits.fillAll();
         this.spells = new OffSpells(scene, this, mover, character, audio);
         this.ground = new OffGroundItems(scene, (content) => this.pickUp(content), (reason) => this.eventLine(reason === 'potionLimit' ? OFF_LOOT_TEXT.potionLimit : OFF_LOOT_TEXT.bagFull));
+        if (saved.mercenary) this.addMercenary(saved.mercenary, carried?.merc);
+    }
+
+    // ---- The mercenary (Off-8B) ----
+
+    /** Hires one (it replaces the one there was) for its price; false without the gold. */
+    public hireMercenary(id: OffMercenaryId, price: number): boolean {
+        if (!offSaveStore.hireMercenary(id, price)) {
+            this.eventLine(OFF_MERCENARY_TEXT.noGold);
+            return false;
+        }
+        this.removeMercenary();
+        this.addMercenary(id);
+        this.merc?.say('hired', true);
+        this.eventLine(OFF_MERCENARY_TEXT.hired(OFF_MERCENARIES[id].name));
+        return true;
+    }
+
+    public dismissMercenary(): void {
+        const merc = this.merc;
+        if (!merc) return;
+        offSaveStore.dismissMercenary();
+        this.removeMercenary();
+        this.eventLine(OFF_MERCENARY_TEXT.dismissed(merc.def.name));
+    }
+
+    /** It appears at your side (with what it brought through a portal). */
+    private addMercenary(id: OffMercenaryId, carried?: OffCarriedMercenary): void {
+        const tile = this.freeTileNear(this.mover.tileX, this.mover.tileY) ?? { x: this.mover.tileX, y: this.mover.tileY };
+        const merc = new OffMercenary(this.scene, id, (x, y) => this.isFreeForMerc(x, y), tile.x, tile.y, this.level);
+        if (carried) merc.carry(carried);
+        if (merc.isCaster) {
+            if (this.mercSpells) this.mercSpells.attach(merc.mover, merc.character);
+            else this.mercSpells = new OffSpells(this.scene, new OffMercenarySpells(this), merc.mover, merc.character, this.audio);
+            merc.spells = this.mercSpells;
+        }
+        this.merc = merc;
+    }
+
+    private removeMercenary(): void {
+        this.merc?.spells?.cancel();
+        this.merc?.destroy();
+        this.merc = undefined;
+        for (const monster of this.pits.monsters) {
+            if (monster.victim === 'merc') monster.victim = 'player';
+        }
+    }
+
+    /** What the mercenary takes through a portal. */
+    public carriedMerc(): OffCarriedMercenary | undefined {
+        return this.merc?.carried();
+    }
+
+    /** The mercenary standing (drawn) under a point of the world, if it is up. */
+    public mercAt(px: number, py: number): OffMercenary | undefined {
+        const merc = this.merc;
+        return merc && !merc.isDown && merc.contains(px, py) ? merc : undefined;
+    }
+
+    /** Your Heal and shields on the mercenary (Off-8B). */
+    public mercAlly(): OffSpellAlly | undefined {
+        const merc = this.merc;
+        if (!merc || merc.isDown) return undefined;
+        return {
+            x: merc.x,
+            y: merc.y,
+            heal: (amount) => this.healMerc(merc, amount),
+            protect: (spell) => this.protectMerc(merc, spell),
+            enrage: (ms) => this.enrageMerc(merc, ms),
+        };
+    }
+
+    public protectMerc(merc: OffMercenary, spell: OffSpellId): boolean {
+        if (merc.protection || merc.isDown) return false;
+        merc.protection = { spell, leftMs: (OFF_SPELLS[spell].durationSec ?? 0) * 1000 };
+        this.eventLine(OFF_MERCENARY_TEXT.shieldOn(OFF_SPELLS[spell].name, merc.def.name));
+        return true;
+    }
+
+    public enrageMerc(merc: OffMercenary, durationMs: number): boolean {
+        if (merc.isBerserk || merc.isDown) return false;
+        merc.berserkLeftMs = durationMs;
+        this.eventLine(OFF_MERCENARY_TEXT.berserkOn(merc.def.name));
+        return true;
+    }
+
+    // ---- OffMercenaryCastWorld (Off-8C, the Mage's spells) ----
+
+    public mercSpellHit(monster: OffMonster, damage: number, element: SpellElement | undefined): void {
+        if (this.spellLands(monster, damage, element, 'merc')) this.merc?.addKill();
+    }
+
+    public mercCastFailed(merc: OffMercenary): void {
+        this.numbers.showWord(merc.x, merc.y - PLAYER_BODY_OFFSET_Y, OFF_CAST_WORDS.failed);
+        merc.character.act(PlayerState.Hurt, merc.mover.facing, OFF_CASTING.failFlinchMs);
+    }
+
+    /** Off-8C: what the Mage looks at before casting on you (the same object every frame). */
+    public ownerNeeds(): OffOwnerNeeds | undefined {
+        if (this.dead) return undefined;
+        const needs = this.ownerNeedsNow;
+        needs.hpShare = this.hp / Math.max(1, this.maxHp);
+        needs.shielded = this.protection !== undefined;
+        needs.berserk = this.berserkLeftMs > 0;
+        // A monster that casts in the pit of any monster near you (the owner: by pit, so the shield is on before it comes).
+        const range = OFF_MERCENARY_CASTER.casterNearTiles;
+        const monsters = this.pits.monsters;
+        needs.casterNear = monsters.some((c) => c.isAlive && c.def.spell !== undefined
+            && monsters.some((m) => m.isAlive && m.pit === c.pit && this.distanceTo(m) <= range));
+        const { min, max } = weaponDamageRange(this.weapon, this.stats.str, 1 + (this.gearEffects.damage ?? 0));
+        needs.blowDamage = (min + max) / 2;
+        return needs;
+    }
+
+    /** Off-8C: loot near you that has lain on the ground a while, for the mercenary to pick up. */
+    public lootFor(merc: OffMercenary): TilePoint | undefined {
+        const owner = this.playerTile();
+        if (!owner) return undefined;
+        const item = this.ground.forMerc(merc.mover.tileX, merc.mover.tileY, owner, OFF_MERCENARY.lootWaitMs, OFF_MERCENARY.lootTiles);
+        return item ? { x: item.tileX, y: item.tileY } : undefined;
+    }
+
+    /** Off-8C: the mercenary takes what lies there for you (your bag and gold, with its line). */
+    public mercPicksUp(merc: OffMercenary, x: number, y: number): void {
+        this.ground.pickUpByMerc(x, y, (content) => this.pickUp(content, merc.def.name));
+    }
+
+    public mercGivesUpLoot(x: number, y: number): void {
+        this.ground.mercGivesUp(x, y);
+    }
+
+    /** Off-8C: you, as the target of the Mage's Heal, shields and Berserk. */
+    public ownerAlly(): OffSpellAlly | undefined {
+        if (this.dead) return undefined;
+        return {
+            x: this.character.x,
+            y: this.character.y,
+            heal: (amount) => this.healPlayer(amount),
+            protect: (spell) => this.protect(spell),
+            enrage: (ms) => this.enrage(ms),
+        };
+    }
+
+    public healMerc(merc: OffMercenary, amount: number): number {
+        if (merc.isDown) return 0;
+        const gained = Math.min(amount, merc.maxHp - merc.hp);
+        if (gained <= 0) return 0;
+        merc.hp += gained;
+        this.numbers.showColored(merc.x, merc.y - PLAYER_BODY_OFFSET_Y, gained, OFF_HEAL_NUMBER_COLOR);
+        return gained;
+    }
+
+    /** Off-8E: its batch of health or its own potion (with the drinking sound). */
+    public mercHeals(merc: OffMercenary, amount: number, drink: boolean): number {
+        if (drink) this.audio.play('sfx.drink');
+        return this.healMerc(merc, amount);
+    }
+
+    /** Tile the mercenary may step onto: walkable, no monster and not you. */
+    private isFreeForMerc(x: number, y: number): boolean {
+        if (!this.isWalkable(x, y) || this.monsterOn(x, y)) return false;
+        const mover = this.mover;
+        return !((mover.tileX === x && mover.tileY === y) || (mover.nextTileX === x && mover.nextTileY === y));
+    }
+
+    // ---- OffMercenaryWorld ----
+
+    public ownerTile(): TilePoint | undefined {
+        return this.playerTile();
+    }
+
+    public ownerTarget(): OffMonster | undefined {
+        return this.target?.isAlive ? this.target : undefined;
+    }
+
+    public get monsters(): readonly OffMonster[] {
+        return this.pits.monsters;
+    }
+
+    public mercCanStand(x: number, y: number): boolean {
+        return this.isFreeForMerc(x, y);
+    }
+
+    public freeTileNear(x: number, y: number): TilePoint | undefined {
+        return findFreeTile((tx, ty) => this.isFreeForMerc(tx, ty) && (tx !== x || ty !== y), x, y, OFF_MERCENARY.followStopTiles + 2);
+    }
+
+    public mercSwings(): void {
+        this.audio.play('sfx.melee.swing');
+    }
+
+    public mercStandsUp(merc: OffMercenary): void {
+        this.eventLine(OFF_MERCENARY_TEXT.up(merc.def.name));
+    }
+
+    /** Its brain, its blow on the way, its shield's time and its look. */
+    private updateMerc(deltaMs: number): void {
+        const merc = this.merc;
+        if (!merc) return;
+        if (merc.level !== this.level) merc.setLevel(this.level);
+        this.mercRunning = updateMercenary(merc, deltaMs, this);
+        // Off-8D: its lines ("Heal me!", "Zerk me!"...).
+        updateMercenaryTalk(merc, this);
+        const blow = merc.blow;
+        if (blow) {
+            blow.leftMs -= deltaMs;
+            if (blow.leftMs <= 0) {
+                merc.blow = undefined;
+                this.mercLandsBlow(merc, blow.monster, blow.lands);
+            }
+        }
+        const protection = merc.protection;
+        if (protection) {
+            protection.leftMs -= deltaMs;
+            if (protection.leftMs <= 0) merc.protection = undefined;
+        }
+        merc.berserkLeftMs = Math.max(0, merc.berserkLeftMs - deltaMs);
+        if (merc.isCaster && !merc.isDown) this.regenMercMana(merc, deltaMs);
+        merc.sync(deltaMs, this.mercRunning);
+    }
+
+    /** The Mage's mana comes back in batches of 1d(MAG), as a player's, but twice as often, also fighting (OFF_MERCENARY_CASTER). */
+    private regenMercMana(merc: OffMercenary, deltaMs: number): void {
+        if (merc.mana >= merc.maxMana) {
+            merc.manaRegenMs = 0;
+            return;
+        }
+        merc.manaRegenMs += deltaMs;
+        if (merc.manaRegenMs < OFF_MERCENARY_CASTER.manaRegenMs) return;
+        merc.manaRegenMs = 0;
+        merc.mana = Math.min(merc.maxMana, merc.mana + offManaRegen(merc.stats.mag));
+    }
+
+    /** Its blow lands: medium damage; the monster may turn on it (it tanks). */
+    private mercLandsBlow(merc: OffMercenary, monster: OffMonster, lands: boolean): void {
+        if (!monster.isAlive || merc.isDown) return;
+        if (!lands) {
+            this.numbers.showWord(monster.x, monster.y - monster.def.base.bodyOffsetY, 'Miss');
+            return;
+        }
+        // Off-8C: Berserk doubles its blows too.
+        const factor = merc.def.damageFactor * (merc.isBerserk ? OFF_BERSERK.damageFactor : 1);
+        const damage = rollWeaponDamage(merc.weapon, monster.def.size, merc.stats.str, factor);
+        this.audio.play('sfx.melee.hit');
+        const killed = this.hurtMonster(monster, damage, undefined, false, 'merc', false);
+        this.audio.play(killed ? monster.def.base.deathSound : monster.def.base.hitSound);
+        if (killed) {
+            merc.addKill();
+            return;
+        }
+        if (monster.victim === 'player' && Math.random() < OFF_MERCENARY.tauntChance) monster.victim = 'merc';
+    }
+
+    /** Health off the mercenary; at 0 it falls unconscious. */
+    private hurtMerc(merc: OffMercenary, damage: number): void {
+        if (damage <= 0 || merc.isDown) return;
+        merc.hp = Math.max(0, merc.hp - damage);
+        const y = merc.y - PLAYER_BODY_OFFSET_Y;
+        this.numbers.showColored(merc.x, y, damage, OFF_MERCENARY_LOOK.damageColor, false, merc.hp === 0);
+        this.spawnEffect('fx.hit', merc.x, y);
+        if (merc.hp === 0) {
+            merc.fall();
+            this.eventLine(OFF_MERCENARY_TEXT.down(merc.def.name));
+            return;
+        }
+        if (!merc.character.isActing && !merc.mover.isMoving) merc.character.act(PlayerState.Hurt, merc.mover.facing, OFF_COMBAT.playerHurtMs);
+    }
+
+    /** What is left of a monster's blow after the mercenary's armour and shield (as armorAbsorbed). */
+    private mercArmorAbsorbed(merc: OffMercenary, damage: number): number {
+        const slot = offBlowPart(Math.random());
+        const part = slot ? offPartAbsorb(merc.equipment, slot) : 0;
+        const shield = Phaser.Math.Between(1, 100) <= offShieldSkill(merc.stats.dex) ? offShieldAbsorb(merc.equipment) : 0;
+        return offArmorAbsorbed(damage, part, shield);
     }
 
     /** Original max health, which grows with the level. */
@@ -252,6 +582,26 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost {
 
     // ---- OffSpellHost (Off-6B) ----
 
+    public knows(id: OffSpellId): boolean {
+        return offSaveStore.character.spells.includes(id);
+    }
+
+    /** The server only lets a wand be held while casting (Off has none): empty hands. */
+    public handsRefusal(): string | undefined {
+        const equipment = offSaveStore.character.equipment;
+        if (equipment.weapon !== undefined) return OFF_CAST_TEXT.weapon;
+        if (equipment.shield !== undefined) return OFF_CAST_TEXT.shield;
+        return undefined;
+    }
+
+    /** Off-8C: Berserk on you (no effect while it is on). */
+    public enrage(durationMs: number): boolean {
+        if (this.dead || this.berserkLeftMs > 0) return false;
+        this.berserkLeftMs = durationMs;
+        this.eventLine(OFF_CAST_TEXT.berserkOn);
+        return true;
+    }
+
     public get mana(): number {
         return this.vitals.mana;
     }
@@ -266,11 +616,17 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost {
     }
 
     public spellHit(monster: OffMonster, damage: number, element: SpellElement | undefined): void {
-        const killed = this.hurtMonster(monster, damage, element);
+        this.spellLands(monster, damage, element, 'player');
+    }
+
+    /** A spell's damage, yours or the Mage's (`by`): sound, burn, ice. Returns whether it killed. */
+    private spellLands(monster: OffMonster, damage: number, element: SpellElement | undefined, by: OffVictim): boolean {
+        const killed = this.hurtMonster(monster, damage, element, false, by, true);
         this.audio.play(killed ? monster.def.base.deathSound : monster.def.base.hitSound);
-        if (killed) return;
+        if (killed) return true;
         if (element === 'fire') monster.burn(damage * BURN.shareOfHit);
         if (element === 'ice') monster.slow();
+        return false;
     }
 
     public spellResisted(monster: OffMonster): void {
@@ -322,6 +678,8 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost {
     /** Attack this monster (a click on it): one blow, more while `held`. */
     public engage(monster: OffMonster, held: boolean): void {
         if (this.dead) return;
+        // Another monster: a Critical Strike asked for goes with the mark.
+        if (monster !== this.target) this.critQueued = false;
         this.target = monster;
         this.attackQueued = true;
         this.attackHeld = held;
@@ -336,6 +694,21 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost {
         if (this.target) this.attackQueued = true;
     }
 
+    /**
+     * Alt / LT (Off-8A): the next blow is a Critical Strike, on the monster under the mouse, the marked one or the
+     * nearest. Nothing happens with no charge or no monster near.
+     */
+    public critPressed(): void {
+        if (this.dead || this.critStrike.charges <= 0) return;
+        const hovered = this.hovered?.isAlive ? this.hovered : undefined;
+        const marked = this.target?.isAlive && this.distanceTo(this.target) <= OFF_COMBAT.targetRangeTiles ? this.target : undefined;
+        const monster = hovered ?? marked ?? this.nearbyMonsters()[0];
+        if (!monster) return;
+        this.target = monster;
+        this.attackQueued = true;
+        this.critQueued = true;
+    }
+
     /** Whether the attack button (or the click on a monster) is still held. */
     public setHeld(held: boolean): void {
         this.attackHeld = held;
@@ -345,6 +718,7 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost {
     public stopAttacking(): void {
         this.attackQueued = false;
         this.attackHeld = false;
+        this.critQueued = false;
     }
 
     /** A click on the ground: no target. */
@@ -376,8 +750,12 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost {
         if (this.dead) this.updateDead(deltaMs);
         else this.updateAttack(deltaMs);
         this.spells.update(deltaMs);
+        this.mercSpells?.update(deltaMs);
+        this.updateMerc(deltaMs);
         this.vitals.update(deltaMs);
+        this.critStrike.update(deltaMs, this.level);
         this.updateProtection(deltaMs);
+        this.updateBerserk(deltaMs);
         this.hp = Math.min(this.hp, this.maxHp);
         for (const monster of this.pits.monsters) {
             this.updateBurn(monster, deltaMs);
@@ -410,6 +788,19 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost {
         this.updateWornLook();
     }
 
+    /** Berserk's time runs out (with its line); the red glow shows while it lasts (Off-8C). */
+    private updateBerserk(deltaMs: number): void {
+        if (this.berserkLeftMs > 0) {
+            this.berserkLeftMs = Math.max(0, this.berserkLeftMs - deltaMs);
+            if (this.berserkLeftMs === 0) this.eventLine(OFF_CAST_TEXT.berserkOff);
+        }
+        const on = this.berserkLeftMs > 0;
+        if (on !== this.glowing) {
+            this.glowing = on;
+            this.character.setGlow(on ? BUFFS.berserk.overlayTint : undefined, BUFF_OVERLAY_ALPHA);
+        }
+    }
+
     private updateWornLook(): void {
         const key = this.protection ? OFF_SPELLS[this.protection.spell].wornEffect : undefined;
         if (key !== this.wornLookKey) {
@@ -425,6 +816,15 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost {
 
     // ---- OffMonsterWorld ----
 
+    public victimTile(victim: OffVictim): TilePoint | undefined {
+        if (victim === 'player') return this.playerTile();
+        const merc = this.merc;
+        if (!merc || merc.isDown) return undefined;
+        this.mercTileAt.x = merc.mover.tileX;
+        this.mercTileAt.y = merc.mover.tileY;
+        return this.mercTileAt;
+    }
+
     public playerTile(): TilePoint | undefined {
         if (this.dead) return undefined;
         this.playerAt.x = this.mover.tileX;
@@ -436,20 +836,31 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost {
         return this.pits.wanderArea(monster.pit);
     }
 
-    /** Tile a monster may step onto: walkable, no monster and not the player. */
+    /** Tile a monster may step onto: walkable, no monster, not the player and not the mercenary. */
     public isFree(x: number, y: number): boolean {
         if (!this.isWalkable(x, y) || this.monsterOn(x, y)) return false;
+        const merc = this.merc?.mover;
+        if (merc && ((merc.tileX === x && merc.tileY === y) || (merc.nextTileX === x && merc.nextTileY === y))) return false;
         if (this.dead) return true;
         const mover = this.mover;
         return !((mover.tileX === x && mover.tileY === y) || (mover.nextTileX === x && mover.nextTileY === y));
     }
 
-    public rollHitOnPlayer(monster: OffMonster): boolean {
+    public rollHitOnVictim(monster: OffMonster): boolean {
         this.audio.play(monster.def.base.attackSound);
+        const merc = this.merc;
+        if (monster.victim === 'merc' && merc) return Math.random() < offHitChance(monster.def.base.hitRatio, merc.defense, isFromBehind(monster.mover.facing, merc.mover.facing));
         return Math.random() < offHitChance(monster.def.base.hitRatio, this.defense, isFromBehind(monster.mover.facing, this.mover.facing));
     }
 
     public monsterStrikes(monster: OffMonster, lands: boolean): void {
+        const merc = this.merc;
+        if (monster.victim === 'merc') {
+            if (!merc || merc.isDown) return;
+            if (!lands) this.numbers.showWord(merc.x, merc.y - PLAYER_BODY_OFFSET_Y, 'Miss');
+            else this.hurtMerc(merc, this.mercArmorAbsorbed(merc, rollMonsterDamage(monster.def.base.damageDice, merc.stats.vit)));
+            return;
+        }
         if (this.dead) return;
         const x = this.character.x;
         const y = this.character.y - PLAYER_BODY_OFFSET_Y;
@@ -468,8 +879,24 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost {
      */
     public monsterCasts(monster: OffMonster, at: TilePoint): void {
         const id = monster.def.spell;
-        if (!id || this.dead) return;
+        if (!id) return;
         const def = OFF_SPELLS[id];
+        const merc = this.merc;
+        if (monster.victim === 'merc') {
+            if (!merc || merc.isDown) return;
+            this.spells.monsterCast(def, monster.x, monster.y, merc.x, merc.y - PLAYER_BODY_OFFSET_Y, () => {
+                if (merc.isDown || this.merc !== merc) return;
+                const distance = tileDistance(merc.mover.tileX, merc.mover.tileY, at.x, at.y);
+                let damage = 0;
+                if (def.direct && distance === 0) damage += rollSpellDamage(def.direct, 0, 'neutral');
+                if (def.area && def.areaRange !== undefined && distance <= def.areaRange) damage += rollSpellDamage(def.area, 0, 'neutral');
+                const power = merc.protection ? OFF_SPELLS[merc.protection.spell].power ?? 0 : 0;
+                const factor = OFF_PROTECT.magicHalvedPowers.includes(power) ? OFF_PROTECT.magicDamageFactor : 1;
+                if (damage > 0) this.hurtMerc(merc, Math.max(1, Math.round(damage * factor)));
+            });
+            return;
+        }
+        if (this.dead) return;
         const toX = this.character.x;
         const toY = this.character.y - PLAYER_BODY_OFFSET_Y;
         this.spells.monsterCast(def, monster.x, monster.y, toX, toY, () => {
@@ -498,6 +925,7 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost {
         this.numbers.showColored(x, y, damage, OFF_MONSTER_LOOK.playerDamageColor, false, this.hp === 0);
         this.spawnEffect('fx.hit', x, y);
         this.audio.play('sfx.player.hurt');
+        this.critStrike.onHurt(this.level);
         if (this.hp === 0) {
             this.die();
             return;
@@ -537,15 +965,25 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost {
         const mover = this.mover;
         const direction = directionTowards(mover.tileX, mover.tileY, target.mover.tileX, target.mover.tileY) ?? mover.facing;
         mover.face(direction);
-        const hitRatio = this.hitRatio;
+        const crit = this.critQueued && this.critStrike.spend();
+        this.critQueued = false;
+        const hitRatio = this.hitRatio + (crit ? OFF_CRIT_STRIKE.hitBonus : 0);
         const behind = isFromBehind(direction, target.mover.facing);
         const lands = Math.random() < offHitChance(hitRatio, target.def.base.defenseRatio, behind);
         const attackMs = offAttackMs(this.weapon, this.stats.str);
         this.character.act(PlayerState.Melee, direction, attackMs);
         this.cooldownMs = attackMs;
-        this.blow = { monster: target, lands, leftMs: attackMs * OFF_COMBAT.hitShare };
+        this.blow = { monster: target, lands, leftMs: attackMs * OFF_COMBAT.hitShare, crit };
         this.attackQueued = false;
         this.audio.play('sfx.melee.swing');
+        if (crit) this.launchCritLook();
+    }
+
+    /** The Critical Strike's shout, sparks and shake (Off-8A, as Survivors' CritStrikeSystem.launch). */
+    private launchCritLook(): void {
+        this.audio.play(CRIT_SHOUT[offSaveStore.character.look.gender]);
+        this.screenShake.shake(OFF_CRIT_STRIKE.shakePx, OFF_CRIT_STRIKE.shakeMs);
+        this.spawnEffect('fx.crit.strike', this.character.x, this.character.y - OFF_CRIT_STRIKE.effectOffsetY);
     }
 
     private landBlow(blow: PendingBlow): void {
@@ -557,13 +995,23 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost {
             return;
         }
         const effects = this.gearEffects;
+        // Off-8A: a Critical Strike multiplies by its own factor and never rolls the random critical too.
         // Off-7C (owner): a Critical weapon has its value in % of doing double damage (orange number, as Survivors).
-        const critical = Math.random() < (effects.critical ?? 0);
-        const factor = (1 + (effects.damage ?? 0)) * (critical ? OFF_COMBAT.criticalDamage : 1);
+        const critical = blow.crit || Math.random() < (effects.critical ?? 0);
+        const multiplier = blow.crit ? critDamageMultiplier(this.level) : critical ? OFF_COMBAT.criticalDamage : 1;
+        // Off-8C: Berserk doubles normal blows, never the Critical Strike (server: iAttackMode < 20).
+        const berserk = !blow.crit && this.berserkLeftMs > 0 ? OFF_BERSERK.damageFactor : 1;
+        const factor = (1 + (effects.damage ?? 0)) * multiplier * berserk;
         const damage = rollWeaponDamage(this.weapon, monster.def.size, this.stats.str, factor);
+        if (!critical) {
+            const tally = berserk > 1 ? this.debugBlows.berserk : this.debugBlows.plain;
+            tally.sum += damage;
+            tally.count++;
+        }
         this.audio.play('sfx.melee.hit');
-        if (critical) this.criticalBlows++;
-        const killed = this.hurtMonster(monster, damage, undefined, critical);
+        if (critical && !blow.crit) this.criticalBlows++;
+        if (blow.crit) this.critStrikeBlows++;
+        const killed = this.hurtMonster(monster, damage, undefined, critical, 'player', false);
         // Off-7B: a Poison weapon poisons what it hits (if it wasn't already), at a share of the blow (as Survivors).
         if (!killed && effects.poison) monster.poison(damage * effects.poison);
         this.audio.play(killed ? monster.def.base.deathSound : monster.def.base.hitSound);
@@ -573,25 +1021,27 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost {
      * Damage on a monster, from a blow or a spell (`element`: its number's colour): the number, and the death with its
      * loot and experience. Returns whether it died.
      */
-    private hurtMonster(monster: OffMonster, damage: number, element: SpellElement | undefined, critical = false): boolean {
+    private hurtMonster(monster: OffMonster, damage: number, element: SpellElement | undefined, critical: boolean, by: OffVictim, magic: boolean): boolean {
         const bodyY = monster.y - monster.def.base.bodyOffsetY;
-        monster.hurt(damage);
-        provokeMonster(monster);
+        monster.hurt(damage, magic);
+        provokeMonster(monster, by);
         const killed = monster.hp <= 0;
         this.numbers.show(monster.x, bodyY, damage, critical, killed, element);
-        if (killed) this.killMonster(monster);
-        else this.particles.hit(monster.x, bodyY, this.character.x, this.character.y);
+        const from = by === 'merc' && this.merc ? this.merc : this.character;
+        if (killed) this.killMonster(monster, by);
+        else this.particles.hit(monster.x, bodyY, from.x, from.y);
         return killed;
     }
 
-    /** It dies: falls, drops its loot and gives its experience. */
-    private killMonster(monster: OffMonster): void {
+    /** It dies: falls, drops its loot and gives its experience (half when the mercenary killed it, Off-8B). */
+    private killMonster(monster: OffMonster, by: OffVictim = 'player'): void {
         const bodyY = monster.y - monster.def.base.bodyOffsetY;
         monster.kill();
         this.particles.death(monster.x, monster.y, bodyY);
         this.kills++;
         this.dropLoot(monster);
-        this.gainExp(Math.floor(offKillExp(monster.exp, this.level) * (1 + (this.gearEffects.experience ?? 0))), monster.x, bodyY);
+        const share = by === 'merc' ? OFF_MERCENARY.killExpShare : 1;
+        this.gainExp(Math.floor(offKillExp(monster.exp, this.level) * (1 + (this.gearEffects.experience ?? 0)) * share), monster.x, bodyY);
     }
 
     /** A poisoned monster's tick (Off-7B): green numbers; it may kill. */
@@ -638,15 +1088,17 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost {
     }
 
     /** Something picked up from the ground; anything but 'ok' means it stays there (bag full, potion limit). */
-    private pickUp(content: OffGroundContent): OffEquipResult {
+    private pickUp(content: OffGroundContent, mercName?: string): OffEquipResult {
         if ('gold' in content) {
             offSaveStore.addGold(content.gold);
-            this.eventLine(OFF_LOOT_TEXT.gotGold(content.gold));
+            this.eventLine(mercName ? OFF_MERCENARY_TEXT.pickedGold(mercName, content.gold) : OFF_LOOT_TEXT.gotGold(content.gold));
         } else {
             const result = offSaveStore.addToBag(content.item);
             if (result !== 'ok') return result;
-            this.eventLine(OFF_LOOT_TEXT.gotItem(offBagItemName(content.item)));
+            const name = offBagItemName(content.item);
+            this.eventLine(mercName ? OFF_MERCENARY_TEXT.pickedItem(mercName, name) : OFF_LOOT_TEXT.gotItem(name));
         }
+        if (mercName && this.merc) this.merc.picked++;
         this.audio.play('sfx.pickup');
         return 'ok';
     }
@@ -675,10 +1127,7 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost {
         if (this.dead) return { done: false };
         const [now, max] = this.barOf(restores.what);
         if (now >= max) return { done: false, line: OFF_BAG_TEXT.alreadyFull(restores.what) };
-        const [count, sides, bonus] = restores.dice;
-        let roll = bonus;
-        for (let i = 0; i < count; i++) roll += Phaser.Math.Between(1, sides);
-        const gained = Math.min(roll, max - now);
+        const gained = Math.min(offRollRestore(restores.dice), max - now);
         if (restores.what === 'hp') this.hp += gained;
         else if (restores.what === 'mana') this.vitals.mana += gained;
         else this.vitals.stamina += gained;
@@ -722,7 +1171,7 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost {
         if (!tile) return { done: false };
         const id = offSaveStore.takeFromBag(index);
         if (id === undefined) return { done: false };
-        this.ground.drop({ item: id }, tile.x, tile.y);
+        this.ground.drop({ item: id }, tile.x, tile.y, true);
         this.audio.play('sfx.itemDrop');
         const line = OFF_BAG_TEXT.dropped(offBagItemName(id));
         this.eventLine(line);
@@ -767,8 +1216,9 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost {
     private die(): void {
         this.dead = true;
         this.spells.cancel();
-        // Dying takes the shield off.
+        // Dying takes the shield and Berserk off.
         this.protection = undefined;
+        this.berserkLeftMs = 0;
         this.blow = undefined;
         this.clearTarget();
         this.mover.cancel();
@@ -820,7 +1270,7 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost {
         return false;
     }
 
-    private spawnEffect(key: 'fx.hit', x: number, y: number): void {
+    private spawnEffect(key: 'fx.hit' | 'fx.crit.strike', x: number, y: number): void {
         this.effects.acquire().play(key, x, y);
     }
 }

@@ -100,6 +100,11 @@ export class TileMover {
         return this.moving || this.destination !== undefined;
     }
 
+    /** Where it is heading (undefined: nowhere). */
+    public get goal(): Readonly<TilePoint> | undefined {
+        return this.destination;
+    }
+
     /** Time the step under way (or the last one) takes, in milliseconds. */
     public get currentStepMs(): number {
         return this.stepMs;

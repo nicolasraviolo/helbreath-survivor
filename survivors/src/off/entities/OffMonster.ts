@@ -7,7 +7,10 @@
 // data/elements.ts BURN y data/activeSpells.ts ICE_SLOW). Frenado o aturdido, su reloj corre más despacio (`timeScale`):
 // la IA, el paso y la animación van a ese ritmo.
 // Fase Off-6C: Hold Person y Paralyze lo dejan quieto (`hold`, reloj a 0) hasta que acaba o le hacen daño (`hurt`).
+// Fase Off-8C: como el servidor, un golpe solo quita Hold Person; Paralyze aguanta los golpes (los monstruos de más de
+// 50 de HitDice se libran a veces) y solo la quita una magia que hace daño (OFF_HOLD).
 import Phaser from 'phaser';
+import type { OffVictim } from '../systems/OffMonsterAI';
 import {
     BODY_SHADOW_ALPHA, BODY_SHADOW_ROTATION, BODY_SHADOW_SCALE_Y, DEFAULT_ANIMATION_FRAME_RATE, DEPTH_DAMAGE_NUMBERS,
     DEPTH_EFFECT_OFFSET, DEPTH_GROUND_SHADOWS, ENEMY_HIT_FLASH_MS, GROUND_SHADOW, MONSTER_ATTACK, TILE_SIZE,
@@ -26,6 +29,7 @@ import { smoothSprite } from '../../hb/XbrPipeline';
 import type { Poolable } from '../../utils/Pool';
 import { OFF_MONSTER_LOOK } from '../config/offMonsterLook';
 import { OFF_COMBAT } from '../data/offCombat';
+import { OFF_HOLD } from '../data/offSpells';
 import type { OffMonsterDef, OffMonsterId } from '../data/offMonsters';
 import { TileMover, type TilePoint } from '../systems/TileMover';
 
@@ -45,6 +49,8 @@ export class OffMonster implements Poolable {
     /** Experience it gives (rolled when it appears; used in Off-2B). */
     public exp = 0;
     public mode: OffMonsterMode = 'wander';
+    /** Who it goes for while attacking: you or your mercenary (Off-8B). */
+    public victim: OffVictim = 'player';
     /** Pit it belongs to (index in OFF_PITS). */
     public pit = 0;
     /** ATime plus its own 0–299 ms, rolled when it appears (server). */
@@ -95,8 +101,9 @@ export class OffMonster implements Poolable {
     private slowFactor = 1;
     private slowMs = 0;
     private stunMs = 0;
-    /** Hold Person / Paralyze (Off-6C): stopped for `holdMs`; any damage ends it (server). */
+    /** Hold Person / Paralyze (Off-6C): stopped for `holdMs`; `holdPower` is the spell's v4 (1 Hold Person, 2 Paralyze). */
     private holdMs = 0;
+    private holdPower = 0;
 
     constructor(scene: Phaser.Scene, public readonly id: OffMonsterId, public readonly def: OffMonsterDef, isFree: (x: number, y: number) => boolean) {
         const base = def.base;
@@ -144,6 +151,7 @@ export class OffMonster implements Poolable {
         this.actionTimeMs = actionTimeMs;
         this.bravery = bravery;
         this.mode = 'wander';
+        this.victim = 'player';
         this.waitMs = Phaser.Math.Between(0, actionTimeMs);
         this.turns = 0;
         this.fleeLeft = 0;
@@ -179,13 +187,18 @@ export class OffMonster implements Poolable {
         this.actionLeftMs = this.play(MonsterState.Attack, true);
     }
 
-    /** Takes a blow: flashes, and flinches if it is standing (no death here: see kill). */
-    public hurt(damage: number): void {
+    /**
+     * Takes a blow or a spell's damage (`magic`): flashes, and flinches if it is standing (no death here: see kill).
+     * Spell damage ends any hold; a blow only Hold Person, or Paralyze on a big monster now and then (OFF_HOLD).
+     */
+    public hurt(damage: number, magic: boolean): void {
         this.hp = Math.max(0, this.hp - damage);
-        this.holdMs = 0;
+        if (this.holdMs > 0 && (magic || this.holdPower <= OFF_HOLD.breaksOnBlow
+            || (this.def.hitDice > OFF_HOLD.strongHitDice && Math.random() < OFF_HOLD.strongBreakChance))) this.holdMs = 0;
+        const held = this.holdMs > 0;
         this.flashLeftMs = ENEMY_HIT_FLASH_MS;
         this.sprite.setTintFill(0xffffff);
-        if (this.hp > 0 && !this.mover.isMoving && this.state !== MonsterState.Attack) {
+        if (this.hp > 0 && !held && !this.mover.isMoving && this.state !== MonsterState.Attack) {
             this.actionLeftMs = this.play(MonsterState.TakeDamage, true);
         }
     }
@@ -237,10 +250,16 @@ export class OffMonster implements Poolable {
         return this.holdMs > 0;
     }
 
+    /** Off-8D: held by Paralyze (a blow doesn't break it, OFF_HOLD), so it is worth walking behind it. */
+    public get isParalyzed(): boolean {
+        return this.holdMs > 0 && this.holdPower > OFF_HOLD.breaksOnBlow;
+    }
+
     /** Hold Person / Paralyze: it neither walks nor attacks for `ms` (false: already held, no effect, as the server). */
-    public hold(ms: number): boolean {
+    public hold(ms: number, power: number): boolean {
         if (!this.isAlive || this.holdMs > 0) return false;
         this.holdMs = ms;
+        this.holdPower = power;
         return true;
     }
 

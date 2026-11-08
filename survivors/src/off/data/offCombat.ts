@@ -122,3 +122,18 @@ export const OFF_COMBAT = {
     /** Gamepad and Space: A picks the nearest monster this many tiles away or nearer; LB / RB cycle among them. Ours. */
     targetRangeTiles: 8,
 } as const;
+
+/**
+ * Critical Strike (Off-8A, owner, 8-nov-2026): the original's "crit" (Alt), with Survivors' charges and damage
+ * (data/critStrike.ts: 1 + level/10 charges, +1 every CRIT_STRIKE.rechargeMs and every CRIT_STRIKE.hitsPerCharge
+ * blows taken, damage × (2 + level/30)). It is apart from the random critical of a Critical weapon (Off-7C).
+ */
+export const OFF_CRIT_STRIKE = {
+    /** Added to the hit ratio of the strike (server, iCalculateAttackEffect: iAttackerHitRatio += 100). */
+    hitBonus: 100,
+    /** Camera shake when it is launched (as Survivors). */
+    shakePx: 4,
+    shakeMs: 200,
+    /** The sparks (fx.crit.strike) are drawn this far above the feet (px; as Survivors). */
+    effectOffsetY: 24,
+} as const;

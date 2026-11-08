@@ -12,6 +12,8 @@
 // - Off-7A: el teleport de la ciudad deja elegir el mapa (OffTeleportScene; propietario, 8-nov-2026, como el portal de
 //   Survivors): Traveler Zone o Promiseland. Promiseland tiene las dos puertas del original (casillas de teleport del
 //   2ndmiddle.amd): la de arriba lleva a Elvine y la de abajo a Aresden, y por la de tu ciudad se llega y se vuelve.
+// - Off-8B: en cada ciudad, William (el funcionario del ayuntamiento del original) junto al teleport contrata
+//   mercenarios (`hirer`; la escena lo pone en la casilla andable más cercana a `near`).
 import type { MapKey, MinimapKey, SoundKey, SpriteKey } from '../../config/assetManifest';
 import type { TileRect } from '../../data/maps';
 import type { TilePoint } from '../systems/TileMover';
@@ -57,6 +59,8 @@ export interface OffPlaceDef {
     portals: readonly OffPortalDef[];
     /** Doors of the shop, the blacksmith and the warehouse (cities only). */
     doors: readonly OffDoorDef[];
+    /** Off-8B: the NPC who hires mercenaries (cities only): near that tile, looking that way (0 = N … 4 = S … 6 = W). */
+    hirer?: { near: TilePoint; direction: number };
 }
 
 /**
@@ -102,7 +106,7 @@ export const OFF_PLACES: Record<OffPlaceId, OffPlaceDef> = {
         playArea: { x: 0, y: 0, width: 300, height: 300 },
         spawn: { x: 140, y: 210 },
         music: 'music.aresden',
-        sprites: [...WORLD_SPRITES, 'fx.effect11', ...pitSprites(ARESDEN_PITS)],
+        sprites: [...WORLD_SPRITES, 'fx.effect11', 'npc.william', ...pitSprites(ARESDEN_PITS)],
         pits: ARESDEN_PITS,
         portals: [
             // On the original's round platform with red posts, by the owner's mark.
@@ -116,6 +120,7 @@ export const OFF_PLACES: Record<OffPlaceId, OffPlaceDef> = {
             { kind: 'warehouse', area: rect(102, 184, 102, 184) },
             { kind: 'warehouse', area: rect(107, 185, 107, 185) },
         ],
+        hirer: { near: { x: 143, y: 209 }, direction: 6 },
     },
     elvine: {
         name: 'Elvine',
@@ -127,7 +132,7 @@ export const OFF_PLACES: Record<OffPlaceId, OffPlaceDef> = {
         playArea: { x: 0, y: 0, width: 300, height: 300 },
         spawn: { x: 237, y: 142 },
         music: 'music.elvine',
-        sprites: [...WORLD_SPRITES, 'fx.effect11', ...pitSprites(ELVINE_PITS)],
+        sprites: [...WORLD_SPRITES, 'fx.effect11', 'npc.william', ...pitSprites(ELVINE_PITS)],
         pits: ELVINE_PITS,
         portals: [
             { area: rect(237, 140, 237, 140), to: { kind: 'teleport' }, drawn: true, arrival: { x: 237, y: 142 } },
@@ -140,6 +145,7 @@ export const OFF_PLACES: Record<OffPlaceId, OffPlaceDef> = {
             { kind: 'warehouse', area: rect(198, 128, 198, 128) },
             { kind: 'warehouse', area: rect(203, 129, 203, 129) },
         ],
+        hirer: { near: { x: 240, y: 141 }, direction: 6 },
     },
     promiseland: {
         name: 'Promiseland',

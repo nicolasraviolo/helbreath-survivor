@@ -136,7 +136,8 @@ export function offItemNameColor(key: OffBagItemKey | undefined): string | undef
     return key !== undefined && isOffSpecial(key) ? OFF_ATTRIBUTES.nameColor : undefined;
 }
 
-const SHIELD_EFFECT: Partial<Record<OffSpellId, string>> = { defenseShield: 'Defense up', protectionFromMagic: 'Magic resistance up' };
+/** What a shield (Off-6C) or Berserk (Off-8C) does, in the box. */
+const SHIELD_EFFECT: Partial<Record<OffSpellId, string>> = { defenseShield: 'Defense up', protectionFromMagic: 'Magic resistance up', berserk: 'Double damage with blows' };
 
 /** What the box says about a spell (Off-6A): mana, what it does, element and the INT it needs (red if short). */
 export function offSpellBoxLines(id: OffSpellId, int: number): OffBoxLine[] {

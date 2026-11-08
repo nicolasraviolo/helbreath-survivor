@@ -15,6 +15,7 @@ import Phaser from 'phaser';
 import { GAME_WIDTH } from '../../config/gameConfig';
 import { ANNOUNCE_EVENT, EVENT_LIST_EVENT, HUD_ANNOUNCE, HUD_BUFF, HUD_DEPTH_TEXT, HUD_EVENT_LIST } from '../../config/hud';
 import { OFF_SPELL_HUD } from '../config/offSpellLook';
+import { OFF_SPELLS } from '../data/offSpells';
 import { formatGold } from '../../data/gold';
 import { SpriteText } from '../../hb/SpriteText';
 import { SETTINGS_CHANGED, settings } from '../../systems/Settings';
@@ -53,6 +54,11 @@ export interface OffHudState {
     spell: { name: string; ready: boolean } | undefined;
     /** The shield on and its seconds left (Off-6C). */
     shield: { name: string; secondsLeft: number } | undefined;
+    /** Berserk's seconds left (Off-8C), or undefined. */
+    berserk: number | undefined;
+    /** Critical Strike charges, and strikes launched (the orb shows pressed when it changes; Off-8A). */
+    critCharges: number;
+    critLaunched: number;
 }
 
 export interface OffHudSceneData {
@@ -68,7 +74,7 @@ export class OffHudScene extends Phaser.Scene {
     private announce!: SpriteText;
     private announceLeftMs = 0;
     private eventLines!: EventLineList;
-    /** Bottom right: [0] the shield, [1] the spell (Off-6C). */
+    /** Bottom right, from the bottom: Berserk (Off-8C), the shield and the spell (Off-6C); no gaps. */
     private statusTexts: SpriteText[] = [];
 
     constructor() {
@@ -86,7 +92,7 @@ export class OffHudScene extends Phaser.Scene {
         this.announce.container.setScale(HUD_ANNOUNCE.scale).setDepth(HUD_DEPTH_TEXT).setVisible(false);
         this.announceLeftMs = 0;
         this.eventLines = new EventLineList(this);
-        this.statusTexts = [0, 1].map(() => {
+        this.statusTexts = [0, 1, 2].map(() => {
             const text = new SpriteText(this, GAME_WIDTH - HUD_BUFF.right, 0, '', 0xffffff, 'right');
             text.container.setScale(HUD_BUFF.scale).setDepth(HUD_DEPTH_TEXT).setVisible(false);
             return text;
@@ -123,8 +129,9 @@ export class OffHudScene extends Phaser.Scene {
             elapsedMs: 0,
             kills: state.kills,
             gold: state.gold,
-            skillOrb: undefined,
-            skillUses: 0,
+            // Off-8A: Survivors' red orb with the Critical Strike charges.
+            skillOrb: { text: String(state.critCharges), ready: state.critCharges > 0 },
+            skillUses: state.critLaunched,
             revive: undefined,
             infoLine: OFF_HUD_TEXT.infoLine(state.level, state.xpRatio, state.gold),
         };
@@ -144,9 +151,10 @@ export class OffHudScene extends Phaser.Scene {
         this.bar = this.barStyle === 'classic' ? new ClassicHud(this, actions) : new CompactHud(this, actions);
     }
 
-    /** The shield (lowest line) and the spell above it; a missing one leaves no gap. */
+    /** Berserk (lowest line), the shield and the spell above; a missing one leaves no gap. */
     private showStatus(state: OffHudState): void {
         const lines: { text: string; color: number }[] = [];
+        if (state.berserk !== undefined) lines.push({ text: OFF_SPELL_HUD.shield(OFF_SPELLS.berserk.name, state.berserk), color: OFF_SPELL_HUD.berserkColor });
         if (state.shield) lines.push({ text: OFF_SPELL_HUD.shield(state.shield.name, state.shield.secondsLeft), color: OFF_SPELL_HUD.shieldColor });
         if (state.spell) {
             lines.push(state.spell.ready

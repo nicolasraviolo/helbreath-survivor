@@ -21,6 +21,9 @@
 // Fase Off-7E (versión 10): también dónde está (`where`: mapa y casilla), para volver a aparecer ahí al darle a Play,
 // como el original al reconectar. Se guarda al llegar a un mapa, cada OFF_WHERE_SAVE_MS andando, al salir y al
 // esconder la página; muerto, se guarda su ciudad. Los guardados anteriores aparecen en su ciudad, como antes.
+// Fase Off-8A (versión 11): también las cargas del Critical Strike (`critCharges`); sin ellas (personaje nuevo o
+// guardado anterior), llenas.
+// Fase Off-8B (versión 12): también el mercenario contratado (`mercenary`); sin él, ninguno.
 // Select Character (8-nov-2026): hasta OFF_CHARACTER_SLOT_COUNT personajes, uno por hueco y cada uno en su clave: el hueco
 // 1 sigue en `hb-off.character` (el personaje de antes no se pierde) y los demás en `hb-off.character.2` … `.4`. El
 // hueco con el que se juega va en `hb-off.slot`; `character` y todo lo demás trabajan siempre con ese.
@@ -44,6 +47,7 @@ import { OFF_LOOT } from '../data/offLoot';
 import { OFF_STORE, offPrice, offSellPrice } from '../data/offStore';
 import { OFF_LEVEL, offExpForLevel, offLevelForExp } from '../data/offLevel';
 import { OFF_NOVICE_LOOK } from '../data/offWorld';
+import { isOffMercenaryId, type OffMercenaryId } from '../data/offMercenary';
 import { isOffFaction, isOffPlaceId, type OffFaction, type OffPlaceId } from '../data/offPlaces';
 import {
     isOffSpellId, OFF_PAD_SPELL_COUNT, OFF_SPELL_IDS, OFF_SPELL_KEY_COUNT, OFF_SPELLS, type OffLearnResult, type OffPadSpells, type OffSpellId, type OffSpellKeys,
@@ -62,8 +66,8 @@ export function offCharacterStorageKey(slot: number): string {
 
 /** Every key the slots use (for the transfer code). */
 export const OFF_SLOT_STORAGE_KEYS = Array.from({ length: OFF_CHARACTER_SLOT_COUNT }, (_, i) => offCharacterStorageKey(i));
-/** 1 (Off-2B): experience and unspent points. 2 (Off-3A): name, look, stats and whether it was created. 3 (Off-3C): equipment. 4 (Off-4A): gold and bag. 5 (Off-5A): faction. 6 (Off-5B): warehouse. 7 (Off-6A): spells and spell keys. 8 (Off-6C): gamepad spells. 9 (Off-7B): gear may carry its attributes ("longSword:sharp"; plain ids read as before). 10 (Off-7E): where it is. */
-const OFF_CHARACTER_VERSION = 10;
+/** 1 (Off-2B): experience and unspent points. 2 (Off-3A): name, look, stats and whether it was created. 3 (Off-3C): equipment. 4 (Off-4A): gold and bag. 5 (Off-5A): faction. 6 (Off-5B): warehouse. 7 (Off-6A): spells and spell keys. 8 (Off-6C): gamepad spells. 9 (Off-7B): gear may carry its attributes ("longSword:sharp"; plain ids read as before). 10 (Off-7E): where it is. 11 (Off-8A): Critical Strike charges. */
+const OFF_CHARACTER_VERSION = 12;
 
 /** Off-7E: where the character was last seen; no tile = the place's usual arrival. */
 export interface OffWhere {
@@ -100,6 +104,10 @@ export interface OffSavedCharacter {
     padSpells: OffPadSpells;
     /** Off-7E: where Play puts it back; undefined = its city (or Traveler Zone with no faction). */
     where: OffWhere | undefined;
+    /** Off-8A: Critical Strike charges left; undefined = full (a new character, or a save from before). */
+    critCharges: number | undefined;
+    /** Off-8B: the mercenary hired (one at a time); undefined = none. */
+    mercenary: OffMercenaryId | undefined;
 }
 
 /** What a bag or equipment change gave: done, nothing to do, short of STR or level, no room, too many potions. */
@@ -110,7 +118,7 @@ export type OffTradeResult = 'ok' | 'none' | 'gold' | 'bagFull' | 'potionLimit' 
 
 /** The character before anyone creates one (also what ?offreset leaves). */
 function blankCharacter(): OffSavedCharacter {
-    return { created: false, name: OFF_CREATION.defaultName, look: { ...OFF_NOVICE_LOOK }, stats: { ...OFF_OLD_SAVE_STATS }, exp: 0, points: 0, equipment: { ...OFF_START_EQUIPMENT }, gold: 0, bag: [], faction: undefined, warehouse: [], spells: [], spellKeys: noSpellKeys(), padSpells: noPadSpells(), where: undefined };
+    return { created: false, name: OFF_CREATION.defaultName, look: { ...OFF_NOVICE_LOOK }, stats: { ...OFF_OLD_SAVE_STATS }, exp: 0, points: 0, equipment: { ...OFF_START_EQUIPMENT }, gold: 0, bag: [], faction: undefined, warehouse: [], spells: [], spellKeys: noSpellKeys(), padSpells: noPadSpells(), where: undefined, critCharges: undefined, mercenary: undefined };
 }
 
 function noSpellKeys(): OffSpellKeys {
@@ -172,7 +180,9 @@ class OffSaveStoreImpl {
             const padSpells = noPadSpells().map((_, i) => spells[i]);
             this.data = { ...this.data, spells, spellKeys, padSpells };
         }
-        if (spells.length > 0 || DEBUG_START.offReset || level !== undefined || gear.length > 0 || statsChanged || DEBUG_START.offGold !== undefined || bag.length > 0 || faction !== undefined || warehouse.length > 0) this.write();
+        // Off-8B: ?offmerc starts with the Warrior hired (?offmerc=mage, the Mage; Off-8C).
+        if (DEBUG_START.offMerc) this.data = { ...this.data, mercenary: DEBUG_START.offMerc };
+        if (DEBUG_START.offMerc || spells.length > 0 || DEBUG_START.offReset || level !== undefined || gear.length > 0 || statsChanged || DEBUG_START.offGold !== undefined || bag.length > 0 || faction !== undefined || warehouse.length > 0) this.write();
     }
 
     public get character(): Readonly<OffSavedCharacter> {
@@ -223,7 +233,7 @@ class OffSaveStoreImpl {
     /** Creation screen done: a new character at level 1, in that slot (default: the one being played), which becomes the one played. */
     public create(name: string, look: CharacterLook, stats: OffStats, slot: number = this.slotIndex): void {
         this.select(slot);
-        this.data = { created: true, name, look: { ...look }, stats: { ...stats }, exp: 0, points: 0, equipment: { ...OFF_START_EQUIPMENT }, gold: 0, bag: [], faction: undefined, warehouse: [], spells: [], spellKeys: noSpellKeys(), padSpells: noPadSpells(), where: undefined };
+        this.data = { created: true, name, look: { ...look }, stats: { ...stats }, exp: 0, points: 0, equipment: { ...OFF_START_EQUIPMENT }, gold: 0, bag: [], faction: undefined, warehouse: [], spells: [], spellKeys: noSpellKeys(), padSpells: noPadSpells(), where: undefined, critCharges: undefined, mercenary: undefined };
         this.write();
     }
 
@@ -454,6 +464,28 @@ class OffSaveStoreImpl {
         this.write();
     }
 
+    /** Off-8A: the Critical Strike charges left (written only when they changed). */
+    public setCritCharges(charges: number): void {
+        if (this.data.critCharges === charges) return;
+        this.data = { ...this.data, critCharges: charges };
+        this.write();
+    }
+
+    /** Off-8B: hires a mercenary for `price` gold (it replaces the one there was). False without the gold. */
+    public hireMercenary(id: OffMercenaryId, price: number): boolean {
+        if (this.data.gold < price) return false;
+        this.data = { ...this.data, gold: this.data.gold - price, mercenary: id };
+        this.write();
+        return true;
+    }
+
+    /** Off-8B: the mercenary leaves (nothing is paid back). */
+    public dismissMercenary(): void {
+        if (this.data.mercenary === undefined) return;
+        this.data = { ...this.data, mercenary: undefined };
+        this.write();
+    }
+
     /** Joins a city for ever (Off-5A). Nothing changes once the character has one. */
     public joinFaction(faction: OffFaction): void {
         if (this.data.faction !== undefined) return;
@@ -515,6 +547,8 @@ function load(slot: number): OffSavedCharacter {
             faction: isOffFaction(data.faction) ? data.faction : undefined,
             ...readSpells(data.spells, data.spellKeys, data.padSpells),
             where: readWhere(data.where),
+            critCharges: typeof data.critCharges === 'number' ? nonNegative(data.critCharges) : undefined,
+            mercenary: isOffMercenaryId(data.mercenary) ? data.mercenary : undefined,
         };
     } catch {
         return blankCharacter();

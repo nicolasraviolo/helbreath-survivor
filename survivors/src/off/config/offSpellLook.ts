@@ -1,5 +1,6 @@
 import type { EffectKey } from '../../config/effects';
 import { AURA_RING_ALPHA } from '../../data/passiveMagic';
+import { BUFFS } from '../../data/pickups';
 
 // Helbreath Off (Fase Off-6B): el nombre de la magia sobre la cabeza al empezar a prepararla, como el cliente original
 // (reference/Client.cpp: mensaje de tipo 41 "Nombre!", dibujado con PutString_SprFont3 tipo 0 = la letra de las cartas
@@ -24,6 +25,8 @@ export const OFF_HEAL_NUMBER_COLOR = '#5cff6a';
  */
 export const OFF_SPELL_HUD = {
     shieldColor: 0x8ad8ff,
+    /** Off-8C: Berserk's line, in the red of Survivors' Berserk buff. */
+    berserkColor: BUFFS.berserk.color,
     preparingColor: 0xb0a080,
     readyColor: 0xffd860,
     preparing: (name: string) => `${name}...`,

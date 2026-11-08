@@ -8,6 +8,7 @@
 import Phaser from 'phaser';
 import { BODY_SHADOW_ALPHA, BODY_SHADOW_ROTATION, BODY_SHADOW_SCALE_Y, DEPTH_GROUND_SHADOWS, TILE_SIZE } from '../../config/gameConfig';
 import type { CharacterLook } from '../../data/appearance';
+import type { WornColors } from '../../data/dyes';
 import type { CharacterDef } from '../../data/characters';
 import type { WeaponAttribute } from '../../data/attributes';
 import type { SavedEquipment } from '../../data/items';
@@ -26,11 +27,14 @@ const DRESSED_SLOTS: readonly GearSlot[] = ['hauberk', 'leggings', 'boots', 'hel
 const HELD_SLOTS: ReadonlySet<GearSlot> = new Set(['weapon', 'shield']);
 
 /** Dresses an Off body in this equipment over the novice's starting clothes (also Select Character's figures). */
-export function dressOffBody(body: CharacterSprite, def: CharacterDef, equipment: Readonly<SavedEquipment>, tint: Readonly<{ weapon?: WeaponAttribute }> = {}): void {
+export function dressOffBody(
+    body: CharacterSprite, def: CharacterDef, equipment: Readonly<SavedEquipment>, tint: Readonly<{ weapon?: WeaponAttribute }> = {}, colors: Readonly<WornColors> = {},
+): void {
     // Weapon and shield only from the equipment: the novice's starting look holds a Dagger (Off-6B: empty hands show empty).
     for (const slot of DRESSED_SLOTS) body.setLayer(slot, HELD_SLOTS.has(slot) ? undefined : def.appearance[slot], false);
     // Off-7B: a Sharp / Poison / Ancient weapon in its colour (offWeaponTint).
-    body.wearEquipment(equipment, tint);
+    // Off-8B: dyed clothes (the mercenary's cape and boots).
+    body.wearEquipment(equipment, tint, colors);
 }
 
 export class OffCharacter {
@@ -59,8 +63,13 @@ export class OffCharacter {
     }
 
     /** Dresses it in this equipment (drawn as Survivors items; off/data/offItems.ts → offEquipmentLook). */
-    public wear(equipment: Readonly<SavedEquipment>, tint: Readonly<{ weapon?: WeaponAttribute }> = {}): void {
-        dressOffBody(this.body, this.def, equipment, tint);
+    public wear(equipment: Readonly<SavedEquipment>, tint: Readonly<{ weapon?: WeaponAttribute }> = {}, colors: Readonly<WornColors> = {}): void {
+        dressOffBody(this.body, this.def, equipment, tint, colors);
+    }
+
+    /** A coloured glow added over the whole body (Off-8C: Berserk's red, as Survivors' buff), or none. */
+    public setGlow(color: number | undefined, alpha = 1): void {
+        this.body.setGlow(color, alpha);
     }
 
     /** True while an attack or a flinch is showing. */
@@ -120,6 +129,11 @@ export class OffCharacter {
         this.body.update(deltaMs);
         this.container.setPosition(this.x, this.y).setDepth(this.y);
         this.syncShadow();
+    }
+
+    /** Removes the shadow (the container is destroyed by its owner; Off-8B, a mercenary leaving). */
+    public destroyShadow(): void {
+        this.shadow.destroy();
     }
 
     /** Box around the drawn character (for fading the trees in front of it). */
