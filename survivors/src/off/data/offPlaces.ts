@@ -61,6 +61,8 @@ export interface OffPlaceDef {
     doors: readonly OffDoorDef[];
     /** Off-8B: the NPC who hires mercenaries (cities only): near that tile, looking that way (0 = N … 4 = S … 6 = W). */
     hirer?: { near: TilePoint; direction: number };
+    /** Off-9A: Raiders of the other city come here now and then (Promiseland only). */
+    raids?: true;
 }
 
 /**
@@ -159,6 +161,7 @@ export const OFF_PLACES: Record<OffPlaceId, OffPlaceDef> = {
         music: 'music.middleland',
         sprites: [...WORLD_SPRITES, 'fx.effect11', ...pitSprites(PROMISELAND_PITS)],
         pits: PROMISELAND_PITS,
+        raids: true,
         portals: [
             // The original's two gates: north to Elvine, south to Aresden. Their tiles show nothing on the map: our portal
             // effect marks them (also on the minimap).

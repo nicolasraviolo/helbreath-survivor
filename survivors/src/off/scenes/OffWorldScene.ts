@@ -79,6 +79,7 @@ import { isOffGoodId } from '../data/offGoods';
 import { isOffGearKey, offEquipmentLook, offGearId, offGearRolls, offWeaponTint } from '../data/offItems';
 import { rollKillLoot } from '../systems/OffLootRoller';
 import { isOffMonsterId, OFF_MONSTERS, type OffMonsterId } from '../data/offMonsters';
+import { OFF_RAIDS } from '../data/offRaiders';
 import { offHitChance, offPlayerHitRatio } from '../systems/OffCombatRules';
 import { offAttackMs } from '../data/offCombat';
 import { OFF_EQUIPMENT_SCENE_KEY, type OffEquipmentSceneData } from './OffEquipmentScene';
@@ -277,7 +278,7 @@ export class OffWorldScene extends Phaser.Scene {
             }
             return findFreeTile((x, y) => this.battle.isFreeForPlayer(x, y), home.x, home.y, OFF_MOVEMENT.clickSearchRadius) ?? home;
         };
-        this.battle = new OffBattle(this, this.mover, this.character, this.audio, isWalkable, respawnTile, place.pits, this.arrival.carried);
+        this.battle = new OffBattle(this, this.mover, this.character, this.audio, isWalkable, respawnTile, place.pits, this.arrival.carried, place.raids === true);
         this.battle.findPath = (from, to, maxTiles) => this.pathfinder.find(from, to, maxTiles);
         this.aimArrow = new AimArrow(this);
         this.leaving = false;
@@ -456,7 +457,14 @@ export class OffWorldScene extends Phaser.Scene {
         this.updateSupportAim();
         if (!this.battle.dead && this.window !== 'cover') this.steer();
         const running = runMode && this.battle.vitals.canRun;
-        if (this.battle.canMove) this.mover.update(delta, running ? OFF_STEP_MS.run : OFF_STEP_MS.walk);
+        if (this.battle.canMove) {
+            this.mover.update(delta, running ? OFF_STEP_MS.run : OFF_STEP_MS.walk);
+        } else if (this.battle.isHeld && !this.battle.dead) {
+            // Off-9A, held (Hold Person / Paralyze): it finishes the tile it was stepping onto and then stands still,
+            // whatever you press (the owner, 9-nov-2026: it ran on the spot).
+            this.mover.cancel();
+            this.mover.update(delta, this.mover.currentStepMs);
+        }
         const stepRunning = this.mover.currentStepMs === OFF_STEP_MS.run;
         this.character.update(this.mover, stepRunning, delta);
         this.battle.update(delta);
@@ -967,10 +975,11 @@ export class OffWorldScene extends Phaser.Scene {
         mana: number; maxMana: number; stamina: number; maxStamina: number; stats: Readonly<Record<string, number>>;
         level: number; exp: number; points: number; kills: number; monsters: Record<string, number>; target: string | undefined;
         weapon: string; attackMs: number; defense: number; gold: number; bag: string[]; ground: string[];
-        spell: string; casts: number; fails: number; prepareMs: number; burning: number; slowed: number;
+        spell: string; casts: number; fails: number; interrupts: number; prepareMs: number; burning: number; slowed: number;
         held: number; poisoned: number; shield: string | undefined; padSpells: string[];
         merc: string | undefined; mercKills: number; mercDown: number; mercShield: string | undefined; onMerc: number; hirer: TilePoint | undefined;
         mercPicked: number; mercTarget: string | undefined; mercLoot: string | undefined; berserk: number; mercBerserk: number; mercMana: string | undefined; mercCasts: Record<string, number>; mercSaid: Record<string, number>; mercSaying: string | undefined; mercPotion: number; mercDrunk: number; mercFleeing: boolean; mercFlees: number; mercBatch: number; mercBehind: number; blowAvg: { plain: number; berserk: number };
+        raiders: ReturnType<OffBattle['debugRaiders']>; raids: OffBattle['raidTally']; raidIn: number; heldMs: number; heldTimes: number;
     } {
         const monsters: Record<string, number> = {};
         for (const monster of this.battle.pits.monsters) {
@@ -984,7 +993,7 @@ export class OffWorldScene extends Phaser.Scene {
             mercDown: merc ? Math.ceil(merc.downLeftMs / 1000) : 0,
             mercShield: merc?.protection ? merc.protection.spell : undefined,
             mercPicked: merc?.picked ?? 0,
-            mercTarget: merc?.target ? `${merc.target.id} ${merc.target.mode} at ${merc.target.mover.tileX},${merc.target.mover.tileY}` : undefined,
+            mercTarget: merc?.target ? `${merc.target.kind === 'person' ? `raider ${merc.target.def.name}` : `${merc.target.id} ${merc.target.mode}`} at ${merc.target.mover.tileX},${merc.target.mover.tileY}` : undefined,
             mercLoot: merc?.lootTile ? `${merc.lootTile.x},${merc.lootTile.y}` : undefined,
             berserk: Math.ceil(this.battle.berserkLeftMs / 1000),
             mercBerserk: merc ? Math.ceil(merc.berserkLeftMs / 1000) : 0,
@@ -1024,7 +1033,13 @@ export class OffWorldScene extends Phaser.Scene {
             points: this.battle.points,
             kills: this.battle.kills,
             monsters,
-            target: target ? `${target.id} ${target.hp}/${target.maxHp} at ${target.mover.tileX},${target.mover.tileY}` : undefined,
+            target: target ? `${target.kind === 'person' ? `raider ${target.def.name}` : target.id} ${target.hp}/${target.maxHp} at ${target.mover.tileX},${target.mover.tileY}` : undefined,
+            // Off-9A: the Raiders here, what raids have brought, and the seconds to the next roll.
+            raiders: this.battle.debugRaiders(),
+            raids: { ...this.battle.raidTally },
+            raidIn: Math.ceil((OFF_RAIDS.everyMs - this.battle.raidClockMs) / 1000),
+            heldMs: this.battle.heldLeftMs,
+            heldTimes: this.battle.heldTimes,
             weapon: this.battle.weapon.name,
             attackMs: offAttackMs(this.battle.weapon, this.battle.stats.str),
             defense: this.battle.defense,
@@ -1033,6 +1048,7 @@ export class OffWorldScene extends Phaser.Scene {
             spell: `${this.battle.spells.state}${this.battle.spells.spell ? ` ${this.battle.spells.spell}` : ''}`,
             casts: this.battle.spells.casts,
             fails: this.battle.spells.fails,
+            interrupts: this.battle.spells.interrupts,
             prepareMs: this.battle.spells.prepareMs,
             burning: this.battle.pits.monsters.filter((m) => m.isAlive && m.isBurning).length,
             slowed: this.battle.pits.monsters.filter((m) => m.isAlive && m.isSlowed).length,
@@ -1111,6 +1127,16 @@ export class OffWorldScene extends Phaser.Scene {
     public debugFight(id?: string): void {
         const near = this.battle.pits.monsters
             .filter((m) => m.isAlive && (id === undefined || m.id === id))
+            .sort((a, b) => Math.hypot(a.x - this.character.x, a.y - this.character.y) - Math.hypot(b.x - this.character.x, b.y - this.character.y));
+        const first = near[0];
+        if (!first) return;
+        this.debugHold = true;
+        this.battle.engage(first, true);
+    }
+
+    /** Development (`check offraid...`, Off-9A): attacks the nearest Raider, holding the button. */
+    public debugFightRaider(): void {
+        const near = [...this.battle.raiders]
             .sort((a, b) => Math.hypot(a.x - this.character.x, a.y - this.character.y) - Math.hypot(b.x - this.character.x, b.y - this.character.y));
         const first = near[0];
         if (!first) return;

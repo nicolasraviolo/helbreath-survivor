@@ -13,6 +13,8 @@ function readOffAccess(): OffAccess {
     const params = new URLSearchParams(window.location.search);
     if (!params.has('off')) return 'hidden';
     const value = params.get('off');
+    // Off-9A: ?off=raiders is the world (debugStart puts you in Promiseland with ?offraid).
+    if (value === 'raiders') return 'world';
     return value === 'game' || value === 'world' || value === 'create' || value === 'slots' ? value : 'select';
 }
 

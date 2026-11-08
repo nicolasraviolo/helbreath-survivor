@@ -113,7 +113,22 @@ export const OFF_HOLD = {
     breaksOnBlow: 1,
     strongHitDice: 50,
     strongBreakChance: 0.1,
+    /**
+     * Off-9A (the owner, 9-nov-2026): on a person (you, your mercenary, a Raider) a hold lasts this long instead, by its
+     * power (1 Hold Person, 2 Paralyze): 30 s and 50 s still is unplayable for a player. A blow ends Hold Person, as on a
+     * monster, but **spell damage ends none** (unlike a monster): a mage holds you and casts at you from afar (the owner).
+     */
+    personMs: { 1: 4000, 2: 6000 } as Readonly<Record<number, number>>,
+    /** A person's chance (1–100 scale, as a monster's magicResist) of shrugging a hold off; a Magic Resistance attribute adds its own. */
+    personResist: 20,
+    /** The tint over a held person (pale blue). */
+    personTint: 0x8fc8ff,
 } as const;
+
+/** Off-9A: how long a hold of that power keeps a person still. */
+export function offPersonHoldMs(power: number): number {
+    return OFF_HOLD.personMs[power] ?? OFF_HOLD.personMs[1] ?? 0;
+}
 
 /**
  * Berserk (Off-8C, server: iAP_SM × 2 when the attacker is berserk and the attack mode is a normal one): what normal
@@ -228,6 +243,12 @@ export const OFF_CAST_TEXT = {
     shield: 'Take off your shield to cast.',
     tooSoon: 'Too soon to cast again.',
     failed: 'The spell failed!',
+    /** Off-9A: hit while preparing a spell or holding it ready (the owner, 8-nov-2026). */
+    interrupted: 'Your spell was interrupted!',
+    /** Off-9A: a Raider Mage's Hold Person / Paralyze on you, and when it wears off. */
+    held: (spell: string) => `${spell}! You can't move.`,
+    heldOff: 'You can move again.',
+    resistedHold: (spell: string) => `You resisted ${spell}.`,
     noTarget: 'Click on a monster or the ground to cast.',
     /** Gamepad: nothing marked and no monster near for a spell that needs one. */
     noMonster: 'No monster near to cast on.',

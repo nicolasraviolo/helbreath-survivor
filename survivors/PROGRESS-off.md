@@ -3,9 +3,9 @@
 Léelo solo en sesiones de Helbreath Off (después de `PROGRESS.md`). Plan: `docs/PLAN-OFF.md`. Detalle de cada bloque hecho: `PROGRESS-historial.md` (grep). Atajos y situaciones del `check`: `CHECK.md`, sección "Helbreath Off".
 
 ## Estado
-- **Ninguna fase en curso.** Off-0 a Off-8 ✅ (etiquetas `fase-Off-0` … `fase-Off-8`), fusionadas en `master` y escondidas tras `?off`.
-- **Última: Off-8 Critical Strike y mercenarios** ✅ (8-nov-2026): 8A Critical Strike con cargas (Alt / LT), 8B Gorn el Guerrero (William, junto al teleport), 8C Kaila la Maga y Berserk, 8D frases y golpes por la espalda, 8E vida por tandas, poción propia (30 % → cura el 40 %) y huir (25 %, vuelve al 50 %). La versión final de la 8E, **sin probar por el propietario** (probó la primera). NOTES.md: "Mercenario (Off-8B)" … "Mercenario que aguanta (Off-8E)".
-- **Siguiente: Off-9 Raiders** (plan aprobado el 8-nov-2026, `docs/PLAN-OFF.md`): `/fase Off-9`.
+- **Fase en curso: Off-9 Raiders** (rama `fase-Off-9`). **9A Aparecer y atacar ✅** (9-nov-2026, probada por el propietario): Raiders en Promiseland (Guerrero con Critical Strike, Mago que paraliza y lanza de lejos), estamina, "Enemy Kill!!", oro; golpes que interrumpen magias y parálisis al jugador. Detalle en el historial.
+- **Siguiente: 9B Invisibles y Enemy Kills** (`docs/PLAN-OFF.md`): a veces llegan invisibles hasta que atacan; +1 EK por cada uno que matas, guardado y en la casilla "Enemy Kills" de la ventana Character. Luego 9C (medir y ajustar).
+- Off-0 a Off-8 ✅ (etiquetas `fase-Off-0` … `fase-Off-8`), fusionadas en `master` y escondidas tras `?off`.
 
 ## A vigilar
 - Sin probar con un **mando real**: lanzar con RT + A/B/X/Y, Critical Strike con LT.
@@ -21,4 +21,5 @@ Léelo solo en sesiones de Helbreath Off (después de `PROGRESS.md`). Plan: `doc
 ## Pistas para trabajar
 - Select Character de Off: `off/scenes/OffSlotsScene.ts`, `OffDeleteScene.ts`, `off/config/offSlots.ts`, huecos en `OffSaveStore` (`hb-off.character`, `.2`–`.4`, `hb-off.slot`). Cada hueco guarda su propio sitio. NOTES.md, "Select Character en Helbreath Off".
 - Mercenarios: `off/data/offMercenary.ts`, `OffMercenaryAI`, `off/systems/OffMercenarySpells.ts`, `OffMercenaryTalk.ts`.
+- Raiders: `off/data/offRaiders.ts`, `OffRaiderAI`, `OffBattle.updateRaids`, `OffFoe`; NOTES.md "Raiders (Off-9A)". Los números (frecuencia, vida, críticos, parálisis) se ajustan en la 9C.
 - Lo demás: NOTES.md, secciones "... (Off-N)" (grep `Off-`).

@@ -42,6 +42,8 @@ const POISON_CLOUD_EFFECT = 'fx.poison.cloud';
 export type OffMonsterMode = 'wander' | 'attack' | 'flee' | 'dead';
 
 export class OffMonster implements Poolable {
+    /** Off-9A: a monster (a Raider is a 'person', OffFoe). */
+    public readonly kind = 'monster' as const;
     public poolIndex = -1;
     public mover: TileMover;
     public hp = 1;

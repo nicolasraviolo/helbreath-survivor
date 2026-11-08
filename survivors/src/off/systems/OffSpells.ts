@@ -16,6 +16,9 @@
 // - Off-8C: Berserk se lanza como Heal (a ti o a tu mercenario: `enrage`). La maga mercenaria usa otra copia de esta
 //   clase con su propio `host` (OffMercenarySpells): sabe sus magias y no lleva arma, así que `knows` y `handsRefusal`
 //   los pone el host en vez de mirar tu guardado.
+// - Off-9A: lo que se golpea es un OffFoe (un monstruo o un Raider). Un Raider Mago usa otra copia con su host y lanza
+//   a una persona (tú o tu mercenario) con `releaseAt`: el mismo preparar, fallar, maná y vuelo, y al llegar la
+//   batalla pone el daño (como la magia del Cyclops).
 import Phaser from 'phaser';
 import { DEPTH_DAMAGE_NUMBERS, DEPTH_EFFECT_OFFSET, TILE_SIZE } from '../../config/gameConfig';
 import { EFFECTS, effectAnimationKey, type EffectDef, type EffectKey } from '../../config/effects';
@@ -27,10 +30,10 @@ import { SpriteText } from '../../hb/SpriteText';
 import { smoothSprite } from '../../hb/XbrPipeline';
 import type { AudioSystem } from '../../systems/AudioSystem';
 import { Pool, type Poolable } from '../../utils/Pool';
-import { OFF_CAST_TEXT, OFF_CASTING, OFF_SPELLS, offSpellOnSelf, type OffSpellDef, type OffSpellDice, type OffSpellId } from '../data/offSpells';
+import { OFF_CAST_TEXT, OFF_CASTING, OFF_SPELLS, offPersonHoldMs, offSpellOnSelf, type OffSpellDef, type OffSpellDice, type OffSpellId } from '../data/offSpells';
 import type { OffStats } from '../data/offCharacter';
 import type { OffCharacter } from '../entities/OffCharacter';
-import type { OffMonster } from '../entities/OffMonster';
+import { foeBodyY, foeElement, foeMagicResist, type OffFoe } from './OffFoe';
 import { OFF_SPELL_NAME_LOOK } from '../config/offSpellLook';
 import { offSaveStore } from './OffSaveStore';
 import { offElementMatch, offMagicHit, offPrepareMs, rollCastWorks, rollHeal, rollResisted, rollSpellDamage, type OffCaster } from './OffSpellRules';
@@ -51,12 +54,12 @@ export interface OffSpellHost {
     /** Mana now; spending it. */
     readonly mana: number;
     spendMana(amount: number): void;
-    /** Alive monsters within `range` tiles of a tile (a square, as the server's area). */
-    monstersAround(tileX: number, tileY: number, range: number): OffMonster[];
-    /** A spell's damage lands on a monster (number, burn, ice, kill). */
-    spellHit(monster: OffMonster, damage: number, element: SpellElement | undefined): void;
+    /** Alive monsters (and, Off-9A, Raiders) within `range` tiles of a tile (a square, as the server's area). */
+    monstersAround(tileX: number, tileY: number, range: number): OffFoe[];
+    /** A spell's damage lands on a monster or a Raider (number, burn, ice, kill). */
+    spellHit(monster: OffFoe, damage: number, element: SpellElement | undefined): void;
     /** The monster resisted the spell. */
-    spellResisted(monster: OffMonster): void;
+    spellResisted(monster: OffFoe): void;
     /** Heal / Great Heal on the player (Off-6C). */
     healPlayer(amount: number): void;
     /** Defense Shield / Protection From Magic on the player; false when one is already on (no effect). */
@@ -64,7 +67,7 @@ export interface OffSpellHost {
     /** Berserk on the caster for that long (Off-8C); false when it is already on (no effect). */
     enrage(durationMs: number): boolean;
     /** Hold Person / Paralyze took hold of a monster. */
-    spellHeld(monster: OffMonster): void;
+    spellHeld(monster: OffFoe): void;
     /** "Failed!" over the player, and its flinch. */
     castFailed(): void;
     /** A line in the bottom-left list. */
@@ -160,6 +163,8 @@ export class OffSpells {
     /** Spells cast and failed (development: `check`). */
     public casts = 0;
     public fails = 0;
+    /** Off-9A: spells dropped by a hit (checks). */
+    public interrupts = 0;
     private prepareLeftMs = 0;
     /** Time left before another spell may start (server: 1 s between spells). */
     private cooldownMs = 0;
@@ -239,6 +244,18 @@ export class OffSpells {
         return this.spell !== undefined && offSpellOnSelf(OFF_SPELLS[this.spell]);
     }
 
+    /**
+     * Off-9A (the owner, 8-nov-2026): a blow or a spell that hurts the caster while it prepares the spell or holds it
+     * ready drops it (no mana spent). True when there was one to drop.
+     */
+    public interrupt(): boolean {
+        if (this.state === 'idle') return false;
+        this.cancel();
+        this.cooldownMs = OFF_CASTING.betweenCastsMs;
+        this.interrupts++;
+        return true;
+    }
+
     /** Right click, moving or dying: the spell is dropped (no mana spent). */
     public cancel(): void {
         if (this.state === 'idle') return;
@@ -252,7 +269,7 @@ export class OffSpells {
      * The click with a spell ready: at the monster (when the click was on one) or at the ground at (px, py). Returns
      * true when the click was taken by the spell (also while still preparing: the click does nothing else then).
      */
-    public release(px: number, py: number, monster: OffMonster | undefined, ally?: OffSpellAlly): boolean {
+    public release(px: number, py: number, monster: OffFoe | undefined, ally?: OffSpellAlly): boolean {
         if (this.state === 'preparing') return true;
         if (this.state !== 'ready' || this.spell === undefined) return false;
         const id = this.spell;
@@ -285,9 +302,41 @@ export class OffSpells {
             return true;
         }
         const toX = monster ? monster.x : px;
-        const toY = monster ? monster.y - monster.def.base.bodyOffsetY : py;
+        const toY = monster ? foeBodyY(monster) : py;
         const arriveMs = this.showSpell(def, toX, toY);
         this.later(arriveMs, () => this.resolve(def, hit, monster, tileX, tileY));
+        return true;
+    }
+
+    /**
+     * Off-9A, a Raider Mage: the spell ready goes at a person's body at (toX, toY). The same checks, failing and mana as
+     * `release`; on arrival `onArrive` gets the spell and its hit (the battle rolls the damage there). Self spells go
+     * through `release` as always. False when nothing was cast (not ready, refused, failed).
+     */
+    public releaseAt(toX: number, toY: number, onArrive: (def: OffSpellDef, hit: number) => void): boolean {
+        if (this.state !== 'ready' || this.spell === undefined) return false;
+        const id = this.spell;
+        const def = OFF_SPELLS[id];
+        this.cancel();
+        if (this.refusal(id, def, true)) return false;
+        const direction = directionTowards(this.mover.tileX, this.mover.tileY, Math.floor(toX / TILE_SIZE), Math.floor(toY / TILE_SIZE));
+        if (direction !== undefined) this.mover.face(direction);
+        this.cooldownMs = OFF_CASTING.betweenCastsMs;
+        const caster = this.caster();
+        if (!rollCastWorks(def.circle, caster)) {
+            this.fails++;
+            this.host.castFailed();
+            return false;
+        }
+        this.casts++;
+        this.host.spendMana(def.mana);
+        const hit = offMagicHit(def.circle, caster);
+        if (def.kind === 'hold') {
+            if (def.castEffect) this.effects.acquire().play(def.castEffect, toX, toY);
+            onArrive(def, hit);
+            return true;
+        }
+        this.later(this.showSpell(def, toX, toY), () => onArrive(def, hit));
         return true;
     }
 
@@ -363,17 +412,19 @@ export class OffSpells {
     }
 
     /** Hold Person / Paralyze on the clicked monster: it may resist; a held one, or the ground, has no effect. */
-    private castHold(def: OffSpellDef, hit: number, monster: OffMonster | undefined): void {
+    private castHold(def: OffSpellDef, hit: number, monster: OffFoe | undefined): void {
         if (!monster?.isAlive) {
             this.host.eventLine(OFF_CAST_TEXT.noEffect);
             return;
         }
         if (def.castEffect) this.effects.acquire().play(def.castEffect, monster.x, monster.y);
-        if (rollResisted(hit, monster.def.magicResist)) {
+        if (rollResisted(hit, foeMagicResist(monster))) {
             this.host.spellResisted(monster);
             return;
         }
-        if (monster.hold((def.durationSec ?? 0) * 1000, def.power ?? 0)) this.host.spellHeld(monster);
+        // Off-9A: on a Raider (a person) it lasts much less (OFF_HOLD.personMs).
+        const ms = monster.kind === 'person' ? offPersonHoldMs(def.power ?? 0) : (def.durationSec ?? 0) * 1000;
+        if (monster.hold(ms, def.power ?? 0)) this.host.spellHeld(monster);
         else this.host.eventLine(OFF_CAST_TEXT.noEffect);
     }
 
@@ -383,7 +434,7 @@ export class OffSpells {
     }
 
     /** The spell arrives: direct roll on the target, then a roll on every monster of the area (the target too). */
-    private resolve(def: OffSpellDef, hit: number, target: OffMonster | undefined, tileX: number, tileY: number): void {
+    private resolve(def: OffSpellDef, hit: number, target: OffFoe | undefined, tileX: number, tileY: number): void {
         const centreX = target?.isAlive ? target.mover.tileX : tileX;
         const centreY = target?.isAlive ? target.mover.tileY : tileY;
         if (def.direct && target?.isAlive) this.strike(def, def.direct, hit, target);
@@ -392,13 +443,13 @@ export class OffSpells {
         }
     }
 
-    private strike(def: OffSpellDef, dice: OffSpellDice, hit: number, monster: OffMonster): void {
+    private strike(def: OffSpellDef, dice: OffSpellDice, hit: number, monster: OffFoe): void {
         if (!monster.isAlive) return;
-        if (rollResisted(hit, monster.def.magicResist)) {
+        if (rollResisted(hit, foeMagicResist(monster))) {
             this.host.spellResisted(monster);
             return;
         }
-        const damage = rollSpellDamage(dice, this.host.stats.mag, offElementMatch(def, monster.def.base.element));
+        const damage = rollSpellDamage(dice, this.host.stats.mag, offElementMatch(def, foeElement(monster)));
         this.host.spellHit(monster, damage, def.element);
     }
 

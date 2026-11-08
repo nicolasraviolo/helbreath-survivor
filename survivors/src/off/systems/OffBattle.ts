@@ -36,10 +36,15 @@
 //   OffSpells (OffMercenarySpells, `mercSpells`, uno por batalla que pasa de una maga a la siguiente); su maná se
 //   recarga poco a poco (OFF_MERCENARY_CASTER) y lo que matan sus magias da la mitad de experiencia, como Gorn.
 // Off-8D: tras su cabeza, sus frases (OffMercenaryTalk); al contratarlo dice "At your service!".
+// Raiders (Off-9A, OffRaiderAI): solo donde el sitio los tiene (Promiseland, `raids`). Cada OFF_RAIDS.everyMs, si no
+//   hay ninguno, una tirada trae 1 o 2 de la otra ciudad, fuera de la pantalla. Se les pega como a un monstruo (OffFoe:
+//   clic, mando, magias, Critical Strike) y tu mercenario va primero a por ellos. Ellos van a por ti o a por él. Los
+//   monstruos también les atacan (`raider0` / `raider1` en su `victim`), pero ellos no se distraen. Al morir sueltan
+//   oro (nivel × OFF_RAIDS.goldPerLevel), sin experiencia. Si mueres, se van.
 // Los mensajes ("Level Up!" y la lista de abajo a la izquierda) van a OffHudScene por los eventos de la escena.
 import Phaser from 'phaser';
 import { DEBUG_START } from '../../config/debugStart';
-import { DEPTH_GROUND_SHADOWS, PLAYER_BODY_OFFSET_Y, TILE_SIZE } from '../../config/gameConfig';
+import { DEPTH_DAMAGE_NUMBERS, DEPTH_GROUND_SHADOWS, PLAYER_BODY_OFFSET_Y, TILE_SIZE } from '../../config/gameConfig';
 import { smoothSprite } from '../../hb/XbrPipeline';
 import { ANNOUNCE_EVENT, EVENT_LIST_EVENT } from '../../config/hud';
 import { GENDER_SOUNDS } from '../../data/appearance';
@@ -78,7 +83,7 @@ import type { OffPitDef } from '../data/offPits';
 import { offSaveStore, type OffEquipResult } from './OffSaveStore';
 import { OffVitals } from './OffVitals';
 import { OffSpells, type OffSpellHost } from './OffSpells';
-import { OFF_BERSERK, OFF_CAST_TEXT, OFF_CAST_WORDS, OFF_CASTING, OFF_PROTECT, OFF_SPELLS, type OffSpellId } from '../data/offSpells';
+import { OFF_BERSERK, OFF_CAST_TEXT, OFF_CAST_WORDS, OFF_CASTING, OFF_HOLD, OFF_PROTECT, OFF_SPELLS, offPersonHoldMs, type OffSpellId } from '../data/offSpells';
 import { BUFFS, BUFF_OVERLAY_ALPHA } from '../../data/pickups';
 import { OffMercenarySpells, type OffMercenaryCastWorld } from './OffMercenarySpells';
 import { OFF_HEAL_NUMBER_COLOR, OFF_WORN_ALPHA } from '../config/offSpellLook';
@@ -88,10 +93,21 @@ import { OffMercenary, type OffCarriedMercenary } from '../entities/OffMercenary
 import { OFF_MERCENARIES, OFF_MERCENARY, OFF_MERCENARY_CASTER, OFF_MERCENARY_LOOK, OFF_MERCENARY_TEXT, type OffMercenaryId } from '../data/offMercenary';
 import { updateMercenary, type OffMercenaryWorld, type OffOwnerNeeds } from './OffMercenaryAI';
 import { updateMercenaryTalk } from './OffMercenaryTalk';
-import type { OffVictim } from './OffMonsterAI';
+import { OFF_RAIDER_SLOTS, type OffRaiderSlot, type OffVictim } from './OffMonsterAI';
 import type { OffSpellAlly } from './OffSpells';
+import { foeBodyY, foeDefense, foeSize, isRaider, type OffFoe } from './OffFoe';
+import { updateRaider, type OffRaiderWorld } from './OffRaiderAI';
+import { OffRaiderSpells, type OffRaiderCastWorld } from './OffRaiderSpells';
+import { OFF_RAIDER, OFF_RAIDER_BODIES, OFF_RAIDER_CRIT, OFF_RAIDER_LOOK, OFF_RAIDER_MAGE, OFF_RAIDER_NAMES, OFF_RAIDER_TEXT, OFF_RAIDS, offRaiderDef } from '../data/offRaiders';
+import type { OffRaidVictim } from '../entities/OffMercenary';
+import type { OffSpellDef } from '../data/offSpells';
+import type { Direction } from '../../hb/directions';
+import { rollResisted } from './OffSpellRules';
+import type { OffFaction } from '../data/offPlaceIds';
 
-/** What using or dropping a bag item did, and the line that says so (also when it was refused). */
+/** Off-9A, ?offraid: the first raid comes this long after arriving. */
+const OFF_RAID_DEBUG_MS = 3000;
+
 /** Health, mana and stamina carried through a portal (Off-5A). */
 export interface OffCarriedVitals {
     hp: number;
@@ -120,14 +136,23 @@ export interface OffUseResult {
 
 /** The player's blow on the way: it lands on `monster` after `leftMs`. */
 interface PendingBlow {
-    monster: OffMonster;
+    monster: OffFoe;
     lands: boolean;
     leftMs: number;
     /** A Critical Strike (Off-8A). */
     crit: boolean;
 }
 
-export class OffBattle implements OffMonsterWorld, OffSpellHost, OffMercenaryWorld, OffMercenaryCastWorld {
+/** Off-9A: a Raider slot: the one there (alive, or fallen until `goneLeftMs`), its spells (made once, reused) and its tile. */
+interface RaiderSlot {
+    raider: OffMercenary | undefined;
+    goneLeftMs: number;
+    spells: OffSpells | undefined;
+    host: OffRaiderSpells | undefined;
+    readonly tile: TilePoint;
+}
+
+export class OffBattle implements OffMonsterWorld, OffSpellHost, OffMercenaryWorld, OffMercenaryCastWorld, OffRaiderWorld, OffRaiderCastWorld {
     /** Mana, stamina and the self-healing batches (Off-3B). */
     public readonly vitals: OffVitals;
     public hp: number;
@@ -146,16 +171,26 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost, OffMercenaryWor
     /** Development (`check offberserk`, Off-8C): normal blows' damage, with and without Berserk. */
     public readonly debugBlows = { plain: { sum: 0, count: 0 }, berserk: { sum: 0, count: 0 } };
     public readonly tally = { exp: 0, gold: 0, potions: 0, valuables: 0, hurt: 0, hits: 0, drunk: 0, absorbed: 0 };
-    /** Monster chosen to attack (click, A, LB / RB). */
-    public target: OffMonster | undefined;
-    /** Monster under the mouse (its name shows). */
-    public hovered: OffMonster | undefined;
+    /** Monster (or Raider, Off-9A) chosen to attack (click, A, LB / RB). */
+    public target: OffFoe | undefined;
+    /** Monster (or Raider) under the mouse (its name shows). */
+    public hovered: OffFoe | undefined;
+    /** Off-9A: the Raider slots (OFF_RAIDER_SLOTS), the Raiders alive now, the time towards the next roll, and counts (checks). */
+    private readonly raidSlots: RaiderSlot[] = OFF_RAIDER_SLOTS.map(() => ({ raider: undefined, goneLeftMs: 0, spells: undefined, host: undefined, tile: { x: 0, y: 0 } }));
+    private readonly raiderList: OffMercenary[] = [];
+    public raidClockMs = 0;
+    private debugRaidPending = false;
+    public readonly raidTally = { raids: 0, raiders: 0, killed: 0, byMonsters: 0, gold: 0 };
     public dead = false;
     /** Defense Shield or Protection From Magic (Off-6C; one at a time, as the server). */
     public protection: OffProtection | undefined;
-    /** Off-8C: Berserk on you for this long (0 = none), and whether its glow is showing. */
+    /** Off-8C: Berserk on you for this long (0 = none), and the glow showing (Off-9A: a hold's blue, or Berserk's red). */
     public berserkLeftMs = 0;
-    private glowing = false;
+    private glowing: number | undefined;
+    /** Off-9A: held by a Raider Mage's Hold Person / Paralyze for this long; its power (1 / 2), and holds you got (checks). */
+    public heldLeftMs = 0;
+    private heldPower = 0;
+    public heldTimes = 0;
     /** Off-8C: the Mage's spells (made with the first Mage hired, then moved to each new one). */
     private mercSpells: OffSpells | undefined;
     private readonly ownerNeedsNow: OffOwnerNeeds = { hpShare: 1, shielded: false, berserk: false, casterNear: false, blowDamage: 1 };
@@ -202,6 +237,8 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost, OffMercenaryWor
         pits: readonly OffPitDef[],
         /** Health, mana and stamina brought from the place before (Off-5A: a portal does not heal); full without it. */
         carried?: OffCarriedVitals,
+        /** Off-9A: Raiders come here (Promiseland). */
+        private readonly raidsHere = false,
     ) {
         const saved = offSaveStore.character;
         this.exp = saved.exp;
@@ -230,6 +267,11 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost, OffMercenaryWor
         this.spells = new OffSpells(scene, this, mover, character, audio);
         this.ground = new OffGroundItems(scene, (content) => this.pickUp(content), (reason) => this.eventLine(reason === 'potionLimit' ? OFF_LOOT_TEXT.potionLimit : OFF_LOOT_TEXT.bagFull));
         if (saved.mercenary) this.addMercenary(saved.mercenary, carried?.merc);
+        // Off-9A, ?offraid: the first raid comes a few seconds after arriving (and surely).
+        if (DEBUG_START.offRaid && raidsHere) {
+            this.raidClockMs = OFF_RAIDS.everyMs - OFF_RAID_DEBUG_MS;
+            this.debugRaidPending = true;
+        }
     }
 
     // ---- The mercenary (Off-8B) ----
@@ -275,6 +317,7 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost, OffMercenaryWor
         for (const monster of this.pits.monsters) {
             if (monster.victim === 'merc') monster.victim = 'player';
         }
+        for (const raider of this.raiderList) raider.victim = 'player';
     }
 
     /** What the mercenary takes through a portal. */
@@ -317,7 +360,7 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost, OffMercenaryWor
 
     // ---- OffMercenaryCastWorld (Off-8C, the Mage's spells) ----
 
-    public mercSpellHit(monster: OffMonster, damage: number, element: SpellElement | undefined): void {
+    public mercSpellHit(monster: OffFoe, damage: number, element: SpellElement | undefined): void {
         if (this.spellLands(monster, damage, element, 'merc')) this.merc?.addKill();
     }
 
@@ -387,9 +430,9 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost, OffMercenaryWor
         return this.healMerc(merc, amount);
     }
 
-    /** Tile the mercenary may step onto: walkable, no monster and not you. */
+    /** Tile the mercenary may step onto: walkable, no monster, no Raider and not you. */
     private isFreeForMerc(x: number, y: number): boolean {
-        if (!this.isWalkable(x, y) || this.monsterOn(x, y)) return false;
+        if (!this.isWalkable(x, y) || this.monsterOn(x, y) || this.raiderOn(x, y)) return false;
         const mover = this.mover;
         return !((mover.tileX === x && mover.tileY === y) || (mover.nextTileX === x && mover.nextTileY === y));
     }
@@ -400,12 +443,17 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost, OffMercenaryWor
         return this.playerTile();
     }
 
-    public ownerTarget(): OffMonster | undefined {
+    public ownerTarget(): OffFoe | undefined {
         return this.target?.isAlive ? this.target : undefined;
     }
 
     public get monsters(): readonly OffMonster[] {
         return this.pits.monsters;
+    }
+
+    /** Off-9A: the Raiders alive here now. */
+    public get raiders(): readonly OffMercenary[] {
+        return this.raiderList;
     }
 
     public mercCanStand(x: number, y: number): boolean {
@@ -463,16 +511,21 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost, OffMercenaryWor
     }
 
     /** Its blow lands: medium damage; the monster may turn on it (it tanks). */
-    private mercLandsBlow(merc: OffMercenary, monster: OffMonster, lands: boolean): void {
+    private mercLandsBlow(merc: OffMercenary, monster: OffFoe, lands: boolean): void {
         if (!monster.isAlive || merc.isDown) return;
         if (!lands) {
-            this.numbers.showWord(monster.x, monster.y - monster.def.base.bodyOffsetY, 'Miss');
+            this.numbers.showWord(monster.x, foeBodyY(monster), 'Miss');
             return;
         }
         // Off-8C: Berserk doubles its blows too.
         const factor = merc.def.damageFactor * (merc.isBerserk ? OFF_BERSERK.damageFactor : 1);
-        const damage = rollWeaponDamage(merc.weapon, monster.def.size, merc.stats.str, factor);
+        const damage = rollWeaponDamage(merc.weapon, foeSize(monster), merc.stats.str, factor);
         this.audio.play('sfx.melee.hit');
+        // Off-9A: on a Raider (it may turn on Gorn, OFF_RAIDER.switchChance).
+        if (isRaider(monster)) {
+            if (this.hurtRaider(monster, damage, 'merc', false)) merc.addKill();
+            return;
+        }
         const killed = this.hurtMonster(monster, damage, undefined, false, 'merc', false);
         this.audio.play(killed ? monster.def.base.deathSound : monster.def.base.hitSound);
         if (killed) {
@@ -483,9 +536,12 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost, OffMercenaryWor
     }
 
     /** Health off the mercenary; at 0 it falls unconscious. */
-    private hurtMerc(merc: OffMercenary, damage: number): void {
+    private hurtMerc(merc: OffMercenary, damage: number, magic = false): void {
         if (damage <= 0 || merc.isDown) return;
+        merc.hitBreaksHold(magic);
         merc.hp = Math.max(0, merc.hp - damage);
+        // Off-9A: hurt while casting (Kaila), the spell is lost.
+        if (merc.spells?.interrupt()) merc.castFor = undefined;
         const y = merc.y - PLAYER_BODY_OFFSET_Y;
         this.numbers.showColored(merc.x, y, damage, OFF_MERCENARY_LOOK.damageColor, false, merc.hp === 0);
         this.spawnEffect('fx.hit', merc.x, y);
@@ -577,7 +633,45 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost, OffMercenaryWor
 
     /** The player may start a step (not while swinging or preparing a spell, not dead). */
     public get canMove(): boolean {
-        return !this.dead && !this.character.isActing;
+        return !this.dead && !this.character.isActing && !this.isHeld;
+    }
+
+    /** Off-9A: held by Hold Person / Paralyze: no walking, no blows (potions and spells still go). */
+    public get isHeld(): boolean {
+        return this.heldLeftMs > 0;
+    }
+
+    /**
+     * Off-9A: a Raider Mage's hold on you (`power` 1 Hold Person, 2 Paralyze), for OFF_HOLD.personMs. You may shrug it
+     * off (OFF_HOLD.personResist against its hit, and a Magic Resistance attribute). False when it had no effect.
+     */
+    private holdPlayer(spell: OffSpellDef, hit: number): boolean {
+        if (this.dead || this.isHeld) return false;
+        const effects = this.gearEffects;
+        if (rollResisted(hit, OFF_HOLD.personResist) || (effects.magicResistance && Math.random() < effects.magicResistance)) {
+            this.numbers.showWord(this.character.x, this.character.y - PLAYER_BODY_OFFSET_Y, 'Resist');
+            this.eventLine(OFF_CAST_TEXT.resistedHold(spell.name));
+            return false;
+        }
+        this.heldLeftMs = offPersonHoldMs(spell.power ?? 0);
+        this.heldPower = spell.power ?? 0;
+        this.heldTimes++;
+        this.blow = undefined;
+        this.stopAttacking();
+        this.mover.cancel();
+        this.numbers.showWord(this.character.x, this.character.y - PLAYER_BODY_OFFSET_Y, OFF_CAST_WORDS.held);
+        this.eventLine(OFF_CAST_TEXT.held(spell.name));
+        return true;
+    }
+
+    /** Off-9A: a hold on you ends early only with a blow, and only Hold Person (spells don't end it on a person, OFF_HOLD). */
+    private breakPlayerHold(magic: boolean): void {
+        if (this.isHeld && !magic && this.heldPower <= OFF_HOLD.breaksOnBlow) this.freePlayer();
+    }
+
+    private freePlayer(): void {
+        this.heldLeftMs = 0;
+        this.eventLine(OFF_CAST_TEXT.heldOff);
     }
 
     // ---- OffSpellHost (Off-6B) ----
@@ -610,17 +704,20 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost, OffMercenaryWor
         this.vitals.mana = Math.max(0, this.vitals.mana - amount);
     }
 
-    public monstersAround(tileX: number, tileY: number, range: number): OffMonster[] {
-        return this.pits.monsters.filter((m) => m.isAlive
-            && Math.abs(m.mover.tileX - tileX) <= range && Math.abs(m.mover.tileY - tileY) <= range);
+    /** Monsters and (Off-9A) Raiders in a spell's area. */
+    public monstersAround(tileX: number, tileY: number, range: number): OffFoe[] {
+        const near = (m: OffFoe) => m.isAlive && Math.abs(m.mover.tileX - tileX) <= range && Math.abs(m.mover.tileY - tileY) <= range;
+        return [...this.pits.monsters.filter(near), ...this.raiderList.filter(near)];
     }
 
-    public spellHit(monster: OffMonster, damage: number, element: SpellElement | undefined): void {
+    public spellHit(monster: OffFoe, damage: number, element: SpellElement | undefined): void {
         this.spellLands(monster, damage, element, 'player');
     }
 
     /** A spell's damage, yours or the Mage's (`by`): sound, burn, ice. Returns whether it killed. */
-    private spellLands(monster: OffMonster, damage: number, element: SpellElement | undefined, by: OffVictim): boolean {
+    private spellLands(monster: OffFoe, damage: number, element: SpellElement | undefined, by: OffVictim): boolean {
+        // Off-9A: a Raider only takes the damage (no burn or ice on people for now).
+        if (isRaider(monster)) return this.hurtRaider(monster, damage, by === 'merc' ? 'merc' : 'player', true, element);
         const killed = this.hurtMonster(monster, damage, element, false, by, true);
         this.audio.play(killed ? monster.def.base.deathSound : monster.def.base.hitSound);
         if (killed) return true;
@@ -629,9 +726,9 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost, OffMercenaryWor
         return false;
     }
 
-    public spellResisted(monster: OffMonster): void {
-        provokeMonster(monster);
-        this.numbers.showWord(monster.x, monster.y - monster.def.base.bodyOffsetY, OFF_CAST_WORDS.resisted);
+    public spellResisted(monster: OffFoe): void {
+        if (!isRaider(monster)) provokeMonster(monster);
+        this.numbers.showWord(monster.x, foeBodyY(monster), OFF_CAST_WORDS.resisted);
     }
 
     public healPlayer(amount: number): void {
@@ -650,9 +747,9 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost, OffMercenaryWor
         return true;
     }
 
-    public spellHeld(monster: OffMonster): void {
-        provokeMonster(monster);
-        this.numbers.showWord(monster.x, monster.y - monster.def.base.bodyOffsetY, OFF_CAST_WORDS.held);
+    public spellHeld(monster: OffFoe): void {
+        if (!isRaider(monster)) provokeMonster(monster);
+        this.numbers.showWord(monster.x, foeBodyY(monster), OFF_CAST_WORDS.held);
     }
 
     public castFailed(): void {
@@ -666,17 +763,20 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost, OffMercenaryWor
 
     // ---- What the scene tells it ----
 
-    /** Alive monster drawn under a point of the world (the one in front when several overlap), if any. */
-    public monsterAt(px: number, py: number): OffMonster | undefined {
-        let best: OffMonster | undefined;
+    /** Alive monster (or Raider, Off-9A) drawn under a point of the world (the one in front when several overlap), if any. */
+    public monsterAt(px: number, py: number): OffFoe | undefined {
+        let best: OffFoe | undefined;
         for (const monster of this.pits.monsters) {
             if (monster.isAlive && monster.contains(px, py) && (!best || monster.y > best.y)) best = monster;
+        }
+        for (const raider of this.raiderList) {
+            if (raider.contains(px, py) && (!best || raider.y > best.y)) best = raider;
         }
         return best;
     }
 
     /** Attack this monster (a click on it): one blow, more while `held`. */
-    public engage(monster: OffMonster, held: boolean): void {
+    public engage(monster: OffFoe, held: boolean): void {
         if (this.dead) return;
         // Another monster: a Critical Strike asked for goes with the mark.
         if (monster !== this.target) this.critQueued = false;
@@ -736,14 +836,14 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost, OffMercenaryWor
     }
 
     /** A gamepad spell's monster (Off-6C): the marked one if it is alive, else the nearest within reach. */
-    public spellTarget(): OffMonster | undefined {
+    public spellTarget(): OffFoe | undefined {
         if (this.target?.isAlive) return this.target;
         return this.nearbyMonsters()[0];
     }
 
     /** Tile the player may step onto: walkable and nobody there. */
     public isFreeForPlayer(x: number, y: number): boolean {
-        return this.isWalkable(x, y) && !this.monsterOn(x, y);
+        return this.isWalkable(x, y) && !this.monsterOn(x, y) && !this.raiderOn(x, y);
     }
 
     public update(deltaMs: number): void {
@@ -752,6 +852,7 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost, OffMercenaryWor
         this.spells.update(deltaMs);
         this.mercSpells?.update(deltaMs);
         this.updateMerc(deltaMs);
+        this.updateRaids(deltaMs);
         this.vitals.update(deltaMs);
         this.critStrike.update(deltaMs, this.level);
         this.updateProtection(deltaMs);
@@ -794,10 +895,15 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost, OffMercenaryWor
             this.berserkLeftMs = Math.max(0, this.berserkLeftMs - deltaMs);
             if (this.berserkLeftMs === 0) this.eventLine(OFF_CAST_TEXT.berserkOff);
         }
-        const on = this.berserkLeftMs > 0;
-        if (on !== this.glowing) {
-            this.glowing = on;
-            this.character.setGlow(on ? BUFFS.berserk.overlayTint : undefined, BUFF_OVERLAY_ALPHA);
+        // Off-9A: a hold on you runs out too.
+        if (this.heldLeftMs > 0) {
+            this.heldLeftMs = Math.max(0, this.heldLeftMs - deltaMs);
+            if (this.heldLeftMs === 0) this.freePlayer();
+        }
+        const glow = this.isHeld ? OFF_HOLD.personTint : this.berserkLeftMs > 0 ? BUFFS.berserk.overlayTint : undefined;
+        if (glow !== this.glowing) {
+            this.glowing = glow;
+            this.character.setGlow(glow, BUFF_OVERLAY_ALPHA);
         }
     }
 
@@ -818,6 +924,15 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost, OffMercenaryWor
 
     public victimTile(victim: OffVictim): TilePoint | undefined {
         if (victim === 'player') return this.playerTile();
+        if (victim !== 'merc') {
+            // Off-9A: a Raider, by its slot.
+            const slot = this.raidSlots[OFF_RAIDER_SLOTS.indexOf(victim)];
+            const raider = slot?.raider;
+            if (!slot || !raider?.isAlive) return undefined;
+            slot.tile.x = raider.mover.tileX;
+            slot.tile.y = raider.mover.tileY;
+            return slot.tile;
+        }
         const merc = this.merc;
         if (!merc || merc.isDown) return undefined;
         this.mercTileAt.x = merc.mover.tileX;
@@ -836,9 +951,9 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost, OffMercenaryWor
         return this.pits.wanderArea(monster.pit);
     }
 
-    /** Tile a monster may step onto: walkable, no monster, not the player and not the mercenary. */
+    /** Tile a monster may step onto: walkable, no monster, no Raider, not the player and not the mercenary. */
     public isFree(x: number, y: number): boolean {
-        if (!this.isWalkable(x, y) || this.monsterOn(x, y)) return false;
+        if (!this.isWalkable(x, y) || this.monsterOn(x, y) || this.raiderOn(x, y)) return false;
         const merc = this.merc?.mover;
         if (merc && ((merc.tileX === x && merc.tileY === y) || (merc.nextTileX === x && merc.nextTileY === y))) return false;
         if (this.dead) return true;
@@ -848,12 +963,22 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost, OffMercenaryWor
 
     public rollHitOnVictim(monster: OffMonster): boolean {
         this.audio.play(monster.def.base.attackSound);
+        const raider = this.raiderOfVictim(monster.victim);
+        if (raider) return Math.random() < offHitChance(monster.def.base.hitRatio, raider.defense, isFromBehind(monster.mover.facing, raider.mover.facing));
         const merc = this.merc;
         if (monster.victim === 'merc' && merc) return Math.random() < offHitChance(monster.def.base.hitRatio, merc.defense, isFromBehind(monster.mover.facing, merc.mover.facing));
         return Math.random() < offHitChance(monster.def.base.hitRatio, this.defense, isFromBehind(monster.mover.facing, this.mover.facing));
     }
 
     public monsterStrikes(monster: OffMonster, lands: boolean): void {
+        if (monster.victim !== 'player' && monster.victim !== 'merc') {
+            // Off-9A: on a Raider (through its armour, as on your mercenary).
+            const raider = this.raiderOfVictim(monster.victim);
+            if (!raider) return;
+            if (!lands) this.numbers.showWord(raider.x, raider.y - PLAYER_BODY_OFFSET_Y, 'Miss');
+            else this.hurtRaider(raider, this.mercArmorAbsorbed(raider, rollMonsterDamage(monster.def.base.damageDice, raider.stats.vit)), 'monster', false);
+            return;
+        }
         const merc = this.merc;
         if (monster.victim === 'merc') {
             if (!merc || merc.isDown) return;
@@ -882,6 +1007,20 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost, OffMercenaryWor
         if (!id) return;
         const def = OFF_SPELLS[id];
         const merc = this.merc;
+        if (monster.victim !== 'player' && monster.victim !== 'merc') {
+            // Off-9A: at a Raider (the Cyclops), as at your mercenary.
+            const raider = this.raiderOfVictim(monster.victim);
+            if (!raider) return;
+            this.spells.monsterCast(def, monster.x, monster.y, raider.x, raider.y - PLAYER_BODY_OFFSET_Y, () => {
+                if (!raider.isAlive) return;
+                const distance = tileDistance(raider.mover.tileX, raider.mover.tileY, at.x, at.y);
+                let damage = 0;
+                if (def.direct && distance === 0) damage += rollSpellDamage(def.direct, 0, 'neutral');
+                if (def.area && def.areaRange !== undefined && distance <= def.areaRange) damage += rollSpellDamage(def.area, 0, 'neutral');
+                if (damage > 0) this.hurtRaider(raider, Math.max(1, Math.round(damage * this.personMagicFactor(raider))), 'monster', true);
+            });
+            return;
+        }
         if (monster.victim === 'merc') {
             if (!merc || merc.isDown) return;
             this.spells.monsterCast(def, monster.x, monster.y, merc.x, merc.y - PLAYER_BODY_OFFSET_Y, () => {
@@ -892,7 +1031,7 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost, OffMercenaryWor
                 if (def.area && def.areaRange !== undefined && distance <= def.areaRange) damage += rollSpellDamage(def.area, 0, 'neutral');
                 const power = merc.protection ? OFF_SPELLS[merc.protection.spell].power ?? 0 : 0;
                 const factor = OFF_PROTECT.magicHalvedPowers.includes(power) ? OFF_PROTECT.magicDamageFactor : 1;
-                if (damage > 0) this.hurtMerc(merc, Math.max(1, Math.round(damage * factor)));
+                if (damage > 0) this.hurtMerc(merc, Math.max(1, Math.round(damage * factor)), true);
             });
             return;
         }
@@ -910,18 +1049,21 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost, OffMercenaryWor
             let damage = 0;
             if (def.direct && distance === 0) damage += rollSpellDamage(def.direct, 0, 'neutral');
             if (def.area && def.areaRange !== undefined && distance <= def.areaRange) damage += rollSpellDamage(def.area, 0, 'neutral');
-            if (damage > 0) this.hurtPlayer(this.absorbed(Math.max(1, Math.round(damage * this.magicDamageFactor)), effects.magicAbsorption));
+            if (damage > 0) this.hurtPlayer(this.absorbed(Math.max(1, Math.round(damage * this.magicDamageFactor)), effects.magicAbsorption), true);
         });
     }
 
     /** Health off the player, with its number, blood and cry; it dies at 0. */
-    private hurtPlayer(damage: number): void {
+    private hurtPlayer(damage: number, magic = false): void {
         if (damage <= 0 || this.dead) return;
+        this.breakPlayerHold(magic);
         this.tally.hurt += Math.min(damage, this.hp);
         this.tally.hits++;
         const x = this.character.x;
         const y = this.character.y - PLAYER_BODY_OFFSET_Y;
         this.hp = Math.max(0, this.hp - damage);
+        // Off-9A: hurt while casting, the spell is lost.
+        if (this.hp > 0 && this.spells.interrupt()) this.eventLine(OFF_CAST_TEXT.interrupted);
         this.numbers.showColored(x, y, damage, OFF_MONSTER_LOOK.playerDamageColor, false, this.hp === 0);
         this.spawnEffect('fx.hit', x, y);
         this.audio.play('sfx.player.hurt');
@@ -948,7 +1090,7 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost, OffMercenaryWor
             }
         }
         const target = this.target;
-        if (!target || !target.isAlive || !(this.attackQueued || this.attackHeld)) return;
+        if (!target || !target.isAlive || !(this.attackQueued || this.attackHeld) || this.isHeld) return;
         const range = this.weapon.range;
         if (this.distanceTo(target) > range) {
             // Walk up to it (the mover stops when it is in reach).
@@ -961,7 +1103,7 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost, OffMercenaryWor
         this.swingAt(target);
     }
 
-    private swingAt(target: OffMonster): void {
+    private swingAt(target: OffFoe): void {
         const mover = this.mover;
         const direction = directionTowards(mover.tileX, mover.tileY, target.mover.tileX, target.mover.tileY) ?? mover.facing;
         mover.face(direction);
@@ -969,7 +1111,7 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost, OffMercenaryWor
         this.critQueued = false;
         const hitRatio = this.hitRatio + (crit ? OFF_CRIT_STRIKE.hitBonus : 0);
         const behind = isFromBehind(direction, target.mover.facing);
-        const lands = Math.random() < offHitChance(hitRatio, target.def.base.defenseRatio, behind);
+        const lands = Math.random() < offHitChance(hitRatio, foeDefense(target), behind);
         const attackMs = offAttackMs(this.weapon, this.stats.str);
         this.character.act(PlayerState.Melee, direction, attackMs);
         this.cooldownMs = attackMs;
@@ -989,7 +1131,7 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost, OffMercenaryWor
     private landBlow(blow: PendingBlow): void {
         const monster = blow.monster;
         if (!monster.isAlive) return;
-        const bodyY = monster.y - monster.def.base.bodyOffsetY;
+        const bodyY = foeBodyY(monster);
         if (!blow.lands) {
             this.numbers.showWord(monster.x, bodyY, 'Miss');
             return;
@@ -1002,7 +1144,7 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost, OffMercenaryWor
         // Off-8C: Berserk doubles normal blows, never the Critical Strike (server: iAttackMode < 20).
         const berserk = !blow.crit && this.berserkLeftMs > 0 ? OFF_BERSERK.damageFactor : 1;
         const factor = (1 + (effects.damage ?? 0)) * multiplier * berserk;
-        const damage = rollWeaponDamage(this.weapon, monster.def.size, this.stats.str, factor);
+        const damage = rollWeaponDamage(this.weapon, foeSize(monster), this.stats.str, factor);
         if (!critical) {
             const tally = berserk > 1 ? this.debugBlows.berserk : this.debugBlows.plain;
             tally.sum += damage;
@@ -1011,6 +1153,11 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost, OffMercenaryWor
         this.audio.play('sfx.melee.hit');
         if (critical && !blow.crit) this.criticalBlows++;
         if (blow.crit) this.critStrikeBlows++;
+        // Off-9A: on a Raider (no poison on people for now; its own cry is in hurtRaider).
+        if (isRaider(monster)) {
+            this.hurtRaider(monster, damage, 'player', false, undefined, critical);
+            return;
+        }
         const killed = this.hurtMonster(monster, damage, undefined, critical, 'player', false);
         // Off-7B: a Poison weapon poisons what it hits (if it wasn't already), at a share of the blow (as Survivors).
         if (!killed && effects.poison) monster.poison(damage * effects.poison);
@@ -1219,6 +1366,7 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost, OffMercenaryWor
         // Dying takes the shield and Berserk off.
         this.protection = undefined;
         this.berserkLeftMs = 0;
+        this.heldLeftMs = 0;
         this.blow = undefined;
         this.clearTarget();
         this.mover.cancel();
@@ -1247,17 +1395,383 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost, OffMercenaryWor
         this.character.revive();
     }
 
+    // ---- Raiders (Off-9A) ----
+
+    /** Their brains, blows, shields, mana and looks; the fallen go away; with none here, the clock towards the next raid. */
+    private updateRaids(deltaMs: number): void {
+        if (!this.raidsHere) return;
+        for (const slot of this.raidSlots) {
+            const raider = slot.raider;
+            slot.spells?.update(deltaMs);
+            if (!raider) continue;
+            if (!raider.isAlive) {
+                slot.goneLeftMs -= deltaMs;
+                raider.sync(deltaMs, false);
+                if (slot.goneLeftMs <= 0) this.removeRaider(slot);
+                continue;
+            }
+            // You died: they go away.
+            if (this.dead) {
+                this.removeRaider(slot);
+                continue;
+            }
+            const running = updateRaider(raider, deltaMs, this);
+            const blow = raider.raidBlow;
+            if (blow) {
+                blow.leftMs -= deltaMs;
+                if (blow.leftMs <= 0) {
+                    raider.raidBlow = undefined;
+                    this.landRaidBlow(raider, blow.victim, blow.lands, blow.crit);
+                }
+            }
+            const protection = raider.protection;
+            if (protection) {
+                protection.leftMs -= deltaMs;
+                if (protection.leftMs <= 0) raider.protection = undefined;
+            }
+            raider.berserkLeftMs = Math.max(0, raider.berserkLeftMs - deltaMs);
+            raider.crit?.update(deltaMs, raider.level);
+            if (raider.isCaster) this.regenMercMana(raider, deltaMs);
+            raider.sync(deltaMs, running);
+        }
+        this.refreshRaiders();
+        if (this.dead || this.raidSlots.some((slot) => slot.raider)) return;
+        this.raidClockMs += deltaMs;
+        if (this.raidClockMs < OFF_RAIDS.everyMs) return;
+        this.raidClockMs = 0;
+        const forced = this.debugRaidPending;
+        if (!forced && Math.random() >= OFF_RAIDS.chance) return;
+        // No tile for them now (walls all round you): another try soon.
+        if (this.startRaid(forced ? DEBUG_START.offRaid : undefined)) this.debugRaidPending = false;
+        else this.raidClockMs = OFF_RAIDS.everyMs - OFF_RAIDS.retryMs;
+    }
+
+    /** The Raiders alive now, in their slots' order. */
+    private refreshRaiders(): void {
+        this.raiderList.length = 0;
+        for (const slot of this.raidSlots) if (slot.raider?.isAlive) this.raiderList.push(slot.raider);
+    }
+
+    /**
+     * 1 or 2 Raiders of the other city (`forced`, ?offraid: that kind, or two), out of sight, coming for you. False when
+     * no tile was found for them.
+     */
+    public startRaid(forced?: 'any' | 'warrior' | 'mage' | 'pair'): boolean {
+        if (this.dead || !this.raidsHere) return false;
+        const raids = OFF_RAIDS;
+        const pair = forced === 'pair' || (forced === undefined && Math.random() < raids.pairChance);
+        const near = this.raidSpawnTile();
+        if (!near) return false;
+        const faction = this.enemyFaction();
+        const names = Phaser.Utils.Array.Shuffle([...OFF_RAIDER_NAMES[faction]]);
+        const count = pair ? 2 : 1;
+        const spawned: OffMercenary[] = [];
+        for (let i = 0; i < count; i++) {
+            const kind: OffMercenaryId = forced === 'warrior' || forced === 'mage' ? forced : Math.random() < raids.warriorChance ? 'warrior' : 'mage';
+            const level = pair ? Math.max(1, this.level - raids.pairLevelsUnder) : Math.max(1, this.level + Phaser.Math.Between(-raids.levelSpread, raids.levelSpread));
+            const tile = i === 0 ? near : findFreeTile((x, y) => this.isFreeForRaider(undefined, x, y), near.x, near.y, raids.pairGapTiles + 2);
+            const slot = this.raidSlots[i];
+            if (!tile || !slot) continue;
+            spawned.push(this.spawnRaider(slot, kind, level, faction, names[i] ?? names[0] ?? 'Raider', tile));
+        }
+        this.refreshRaiders();
+        const first = spawned[0];
+        if (!first) return false;
+        this.raidTally.raids++;
+        this.raidTally.raiders += spawned.length;
+        // No warning that they come (the owner, 8-nov-2026): you see them arrive.
+        return true;
+    }
+
+    private spawnRaider(slot: RaiderSlot, kind: OffMercenaryId, level: number, faction: OffFaction, name: string, tile: TilePoint): OffMercenary {
+        if (slot.raider) this.removeRaider(slot);
+        const body = Phaser.Utils.Array.GetRandom([...OFF_RAIDER_BODIES]);
+        const holder: { raider?: OffMercenary } = {};
+        const raider = new OffMercenary(this.scene, kind, (x, y) => this.isFreeForRaider(holder.raider, x, y), tile.x, tile.y, level, { def: offRaiderDef(kind, name, body), faction });
+        holder.raider = raider;
+        raider.victim = 'player';
+        if (raider.isCaster) {
+            const host = slot.host ?? new OffRaiderSpells(this);
+            slot.host = host;
+            host.raider = raider;
+            if (slot.spells) slot.spells.attach(raider.mover, raider.character);
+            else slot.spells = new OffSpells(this.scene, host, raider.mover, raider.character, this.audio);
+            raider.spells = slot.spells;
+        }
+        slot.raider = raider;
+        slot.goneLeftMs = 0;
+        return raider;
+    }
+
+    private removeRaider(slot: RaiderSlot): void {
+        const raider = slot.raider;
+        if (!raider) return;
+        raider.spells?.cancel();
+        if (slot.host) slot.host.raider = undefined;
+        if (this.target === raider) this.clearTarget();
+        if (this.hovered === raider) this.hovered = undefined;
+        raider.destroy();
+        slot.raider = undefined;
+        this.refreshRaiders();
+    }
+
+    /** The other city (any one when you have none yet). */
+    private enemyFaction(): OffFaction {
+        const mine = offSaveStore.character.faction;
+        if (mine === 'aresden') return 'elvine';
+        if (mine === 'elvine') return 'aresden';
+        return Math.random() < 0.5 ? 'aresden' : 'elvine';
+    }
+
+    /** A free tile OFF_RAIDS.spawnTiles from you (out of sight) with a way to you, trying a few directions. */
+    private raidSpawnTile(): TilePoint | undefined {
+        const raids = OFF_RAIDS;
+        const from = { x: this.mover.tileX, y: this.mover.tileY };
+        const start = Math.random() * Math.PI * 2;
+        const tries = 8;
+        for (let i = 0; i < tries; i++) {
+            const angle = start + (i * Math.PI * 2) / tries;
+            const x = Math.round(from.x + Math.cos(angle) * raids.spawnTiles);
+            const y = Math.round(from.y + Math.sin(angle) * raids.spawnTiles);
+            const tile = findFreeTile((tx, ty) => this.isFreeForRaider(undefined, tx, ty), x, y, raids.spawnSearchTiles);
+            if (tile && this.findPath(tile, from, OFF_RAIDER.pathMaxTiles)) return tile;
+        }
+        return undefined;
+    }
+
+    /** Tile a Raider may step onto: walkable, no monster, no other Raider, not you and not your mercenary. */
+    private isFreeForRaider(raider: OffMercenary | undefined, x: number, y: number): boolean {
+        if (!this.isWalkable(x, y) || this.monsterOn(x, y) || this.raiderOn(x, y, raider)) return false;
+        const merc = this.merc?.mover;
+        if (merc && ((merc.tileX === x && merc.tileY === y) || (merc.nextTileX === x && merc.nextTileY === y))) return false;
+        const mover = this.mover;
+        return !((mover.tileX === x && mover.tileY === y) || (mover.nextTileX === x && mover.nextTileY === y));
+    }
+
+    /** The Raider a monster's victim slot points at, if it is alive. */
+    private raiderOfVictim(victim: OffVictim): OffMercenary | undefined {
+        if (victim === 'player' || victim === 'merc') return undefined;
+        const raider = this.raidSlots[OFF_RAIDER_SLOTS.indexOf(victim as OffRaiderSlot)]?.raider;
+        return raider?.isAlive ? raider : undefined;
+    }
+
+    /** What magic damage on a person is multiplied by: half with Protection From Magic (as yours). */
+    private personMagicFactor(person: OffMercenary): number {
+        const power = person.protection ? OFF_SPELLS[person.protection.spell].power ?? 0 : 0;
+        return OFF_PROTECT.magicHalvedPowers.includes(power) ? OFF_PROTECT.magicDamageFactor : 1;
+    }
+
+    /**
+     * Damage on a Raider (`by`: you, your mercenary or a monster): its number, a hold broken, and its death. Hit by the
+     * one it isn't after, it may turn on that one (OFF_RAIDER.switchChance). Returns whether it died.
+     */
+    private hurtRaider(raider: OffMercenary, damage: number, by: OffRaidVictim | 'monster', magic: boolean, element?: SpellElement, critical = false): boolean {
+        if (!raider.isAlive || damage <= 0) return false;
+        raider.hp = Math.max(0, raider.hp - damage);
+        raider.hitBreaksHold(magic);
+        // Hurt while casting (a Mage), the spell is lost; a Warrior's blows taken give it charges (as yours).
+        if (raider.spells?.interrupt()) raider.raidCast = undefined;
+        if (!magic) raider.crit?.onHurt(raider.level);
+        const y = raider.y - PLAYER_BODY_OFFSET_Y;
+        const killed = raider.hp === 0;
+        this.numbers.show(raider.x, y, damage, critical, killed, element);
+        if (killed) {
+            this.killRaider(raider, by);
+            return true;
+        }
+        const from = by === 'merc' ? this.merc : by === 'player' ? this.character : undefined;
+        if (from) this.particles.hit(raider.x, y, from.x, from.y);
+        else this.spawnEffect('fx.hit', raider.x, y);
+        if (by !== 'monster' && by !== raider.victim && this.raidVictimTile(by) && Math.random() < OFF_RAIDER.switchChance) {
+            raider.victim = by;
+            raider.raidBlow = undefined;
+        }
+        if (!raider.character.isActing && !raider.mover.isMoving && !raider.isHeld) raider.character.act(PlayerState.Hurt, raider.mover.facing, OFF_COMBAT.playerHurtMs);
+        return false;
+    }
+
+    /** "Enemy Kill!!" rising over a fallen Raider: big yellow letters with a black edge, as the original. */
+    private showEnemyKill(x: number, y: number): void {
+        const look = OFF_RAIDER_LOOK.killWord;
+        const text = this.scene.add.text(x, y, OFF_RAIDER_TEXT.enemyKill, {
+            fontFamily: look.fontFamily, fontSize: `${look.fontSize}px`, fontStyle: 'bold', color: look.color, stroke: look.stroke, strokeThickness: look.strokeThickness,
+        }).setOrigin(0.5, 1).setDepth(DEPTH_DAMAGE_NUMBERS);
+        this.scene.tweens.add({ targets: text, y: y - look.risePx, duration: look.showMs, ease: 'Quad.easeOut' });
+        this.scene.tweens.add({ targets: text, alpha: 0, delay: look.showMs - look.fadeMs, duration: look.fadeMs, onComplete: () => text.destroy() });
+    }
+
+    /** It dies: falls, cries, drops its gold (Off-9A: only gold, no experience) and its slot empties a little later. */
+    private killRaider(raider: OffMercenary, by: OffRaidVictim | 'monster'): void {
+        raider.die();
+        this.audio.play(GENDER_SOUNDS[raider.def.body.gender].death);
+        this.particles.death(raider.x, raider.y, raider.y - PLAYER_BODY_OFFSET_Y);
+        const gold = Math.floor(raider.level * OFF_RAIDS.goldPerLevel * (1 + (this.gearEffects.gold ?? 0)));
+        if (this.ground.dropLoot({ gold, items: [] }, raider.mover.tileX, raider.mover.tileY)) this.audio.play('sfx.itemDrop');
+        this.tally.gold += gold;
+        this.raidTally.gold += gold;
+        this.raidTally.killed++;
+        if (by === 'monster') this.raidTally.byMonsters++;
+        // You or your mercenary killed it: "Enemy Kill!!" over it, as the original (the owner's capture, 8-nov-2026).
+        if (by === 'monster') this.eventLine(OFF_RAIDER_TEXT.fell(raider.def.name));
+        else this.showEnemyKill(raider.x, raider.y - OFF_RAIDER_LOOK.killWord.aboveFeetPx);
+        const slot = this.raidSlots.find((s) => s.raider === raider);
+        if (slot) slot.goneLeftMs = OFF_COMBAT.corpseMs;
+        if (this.target === raider) this.clearTarget();
+        this.refreshRaiders();
+    }
+
+    /** A Raider's blow lands on you or your mercenary (through the armour, as a monster's). */
+    private landRaidBlow(raider: OffMercenary, victim: OffRaidVictim, lands: boolean, crit: boolean): void {
+        if (!raider.isAlive) return;
+        const merc = this.merc;
+        if (victim === 'merc' && (!merc || merc.isDown)) return;
+        if (victim === 'player' && this.dead) return;
+        const body = this.raidVictimBody(victim);
+        if (!lands) {
+            if (body) this.numbers.showWord(body.x, body.y, 'Miss');
+            return;
+        }
+        // A Critical Strike: × (2 + level/30), never with Berserk (as yours).
+        const factor = raider.def.damageFactor * (crit ? critDamageMultiplier(raider.level) : raider.isBerserk ? OFF_BERSERK.damageFactor : 1);
+        const damage = rollWeaponDamage(raider.weapon, 'small', raider.stats.str, factor);
+        this.audio.play('sfx.melee.hit');
+        if (victim === 'merc' && merc) this.hurtMerc(merc, this.mercArmorAbsorbed(merc, damage));
+        else this.hurtPlayer(this.armorAbsorbed(damage));
+    }
+
+    // ---- OffRaiderWorld / OffRaiderCastWorld (Off-9A) ----
+
+    public raidVictimTile(victim: OffRaidVictim): TilePoint | undefined {
+        return this.victimTile(victim);
+    }
+
+    public raidVictimBody(victim: OffRaidVictim): { x: number; y: number } | undefined {
+        if (victim === 'player') return this.dead ? undefined : { x: this.character.x, y: this.character.y - PLAYER_BODY_OFFSET_Y };
+        const merc = this.merc;
+        return merc && !merc.isDown ? { x: merc.x, y: merc.y - PLAYER_BODY_OFFSET_Y } : undefined;
+    }
+
+    public raidVictimFacing(victim: OffRaidVictim): Direction {
+        return victim === 'merc' && this.merc ? this.merc.mover.facing : this.mover.facing;
+    }
+
+    public raidVictimDefense(victim: OffRaidVictim): number {
+        return victim === 'merc' && this.merc ? this.merc.defense : this.defense;
+    }
+
+    public raidVictimHeldMs(victim: OffRaidVictim): number {
+        return victim === 'merc' ? this.merc?.holdLeftMs ?? 0 : this.heldLeftMs;
+    }
+
+    public raidVictimHpShare(victim: OffRaidVictim): number {
+        const merc = this.merc;
+        if (victim === 'merc') return merc ? merc.hp / Math.max(1, merc.maxHp) : 1;
+        return this.hp / Math.max(1, this.maxHp);
+    }
+
+    /** A Warrior Raider launches a Critical Strike: its shout, "Crit!" over it, the sparks and a shake (as yours). */
+    public raiderCrits(raider: OffMercenary): void {
+        this.audio.play(CRIT_SHOUT[raider.def.body.gender]);
+        this.numbers.showWord(raider.x, raider.y - PLAYER_BODY_OFFSET_Y - OFF_CRIT_STRIKE.effectOffsetY, OFF_RAIDER_CRIT.word);
+        this.spawnEffect('fx.crit.strike', raider.x, raider.y - OFF_CRIT_STRIKE.effectOffsetY);
+        this.screenShake.shake(OFF_CRIT_STRIKE.shakePx, OFF_CRIT_STRIKE.shakeMs);
+    }
+
+    public raiderCanStand(raider: OffMercenary, x: number, y: number): boolean {
+        return this.isFreeForRaider(raider, x, y);
+    }
+
+    /**
+     * A Mage Raider's damage spell arrives at `at`: the direct roll on whoever still stands there and the area roll on
+     * you and your mercenary within its range (its MAG adds, as yours). Each may shrug it off (OFF_RAIDER.magicResist;
+     * you, also with a Magic Resistance attribute) and Protection From Magic halves it.
+     */
+    public raiderSpellLands(raider: OffMercenary, def: OffSpellDef, hit: number, at: TilePoint, victim: OffRaidVictim): void {
+        // Hold Person / Paralyze: on its victim, for a few seconds (OFF_HOLD.personMs).
+        if (def.kind === 'hold') {
+            raider.holdTries++;
+            const merc = this.merc;
+            // Another hold only OFF_RAIDER_MAGE.holdEveryMs later (it attacks or heals in between).
+            raider.holdWaitMs = OFF_RAIDER_MAGE.holdEveryMs;
+            if (victim === 'player') {
+                if (this.holdPlayer(def, hit)) raider.holdsLanded++;
+            } else if (merc && !merc.isDown) {
+                if (rollResisted(hit, OFF_HOLD.personResist)) this.numbers.showWord(merc.x, merc.y - PLAYER_BODY_OFFSET_Y, 'Resist');
+                else if (merc.hold(offPersonHoldMs(def.power ?? 0), def.power ?? 0)) {
+                    raider.holdsLanded++;
+                    this.numbers.showWord(merc.x, merc.y - PLAYER_BODY_OFFSET_Y, OFF_CAST_WORDS.held);
+                }
+            }
+            return;
+        }
+        const roll = (tile: TilePoint | undefined): number => {
+            if (!tile) return 0;
+            const distance = tileDistance(tile.x, tile.y, at.x, at.y);
+            let damage = 0;
+            if (def.direct && distance === 0) damage += rollSpellDamage(def.direct, raider.stats.mag, 'neutral');
+            if (def.area && def.areaRange !== undefined && distance <= def.areaRange) damage += rollSpellDamage(def.area, raider.stats.mag, 'neutral');
+            return damage;
+        };
+        const playerDamage = roll(this.playerTile());
+        if (playerDamage > 0) {
+            const effects = this.gearEffects;
+            if (rollResisted(hit, OFF_RAIDER.magicResist) || (effects.magicResistance && Math.random() < effects.magicResistance)) {
+                this.numbers.showWord(this.character.x, this.character.y - PLAYER_BODY_OFFSET_Y, 'Resist');
+            } else {
+                this.hurtPlayer(this.absorbed(Math.max(1, Math.round(playerDamage * this.magicDamageFactor)), effects.magicAbsorption), true);
+            }
+        }
+        const merc = this.merc;
+        const mercDamage = merc && !merc.isDown ? roll(this.victimTile('merc')) : 0;
+        if (merc && mercDamage > 0) {
+            if (rollResisted(hit, OFF_RAIDER.magicResist)) this.numbers.showWord(merc.x, merc.y - PLAYER_BODY_OFFSET_Y, 'Resist');
+            else this.hurtMerc(merc, Math.max(1, Math.round(mercDamage * this.personMagicFactor(merc))), true);
+        }
+    }
+
+    public healRaider(raider: OffMercenary, amount: number): void {
+        if (!raider.isAlive) return;
+        const gained = Math.min(amount, raider.maxHp - raider.hp);
+        if (gained <= 0) return;
+        raider.hp += gained;
+        this.numbers.showColored(raider.x, raider.y - PLAYER_BODY_OFFSET_Y, gained, OFF_HEAL_NUMBER_COLOR);
+    }
+
+    public protectRaider(raider: OffMercenary, spell: OffSpellId): boolean {
+        if (raider.protection || !raider.isAlive) return false;
+        raider.protection = { spell, leftMs: (OFF_SPELLS[spell].durationSec ?? 0) * 1000 };
+        return true;
+    }
+
+    /** Development (`check offraid...`): the Raiders now, in short. */
+    public debugRaiders(): { name: string; kind: string; level: number; hp: number; maxHp: number; stamina: string; victim: OffRaidVictim; tile: string; casts: number; fleeing: boolean; flees: number; cornered: number; retreats: number; interrupts: number; held: boolean; crits: number; critCharges: number; holdTries: number; holdsLanded: number }[] {
+        return this.raiderList.map((r) => ({
+            name: r.def.name, kind: r.def.kind, level: r.level, hp: r.hp, maxHp: r.maxHp, stamina: `${r.stamina}/${r.maxStamina}`, victim: r.victim, flees: r.flees, cornered: r.cornered, retreats: r.retreats, interrupts: r.spells?.interrupts ?? 0, crits: r.crits, critCharges: r.crit?.charges ?? 0, holdTries: r.holdTries, holdsLanded: r.holdsLanded,
+            tile: `${r.mover.tileX},${r.mover.tileY}`, casts: Object.values(r.castCount).reduce((a, b) => a + (b ?? 0), 0), fleeing: r.fleeing, held: r.isHeld,
+        }));
+    }
+
     // ---- Helpers ----
 
-    private distanceTo(monster: OffMonster): number {
+    private distanceTo(monster: OffFoe): number {
         return tileDistance(this.mover.tileX, this.mover.tileY, monster.mover.tileX, monster.mover.tileY);
     }
 
-    /** Alive monsters within reach of the gamepad's targeting, nearest first. */
-    private nearbyMonsters(): OffMonster[] {
-        return this.pits.monsters
-            .filter((m) => m.isAlive && this.distanceTo(m) <= OFF_COMBAT.targetRangeTiles)
+    /** Alive monsters and (Off-9A) Raiders within reach of the gamepad's targeting, nearest first. */
+    private nearbyMonsters(): OffFoe[] {
+        const near = (m: OffFoe) => m.isAlive && this.distanceTo(m) <= OFF_COMBAT.targetRangeTiles;
+        return [...this.pits.monsters.filter(near), ...this.raiderList.filter(near)]
             .sort((a, b) => this.distanceTo(a) - this.distanceTo(b));
+    }
+
+    /** Off-9A: a Raider (alive) stands on (or steps onto) this tile; `except` doesn't count (itself). */
+    private raiderOn(x: number, y: number, except?: OffMercenary): boolean {
+        for (const raider of this.raiderList) {
+            if (raider === except) continue;
+            const mover = raider.mover;
+            if ((mover.tileX === x && mover.tileY === y) || (mover.nextTileX === x && mover.nextTileY === y)) return true;
+        }
+        return false;
     }
 
     /** An alive monster stands on (or steps onto) this tile. */

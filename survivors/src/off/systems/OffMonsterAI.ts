@@ -9,6 +9,8 @@
 // - Off-7A: los que tienen magia (el Cyclops) la lanzan a veces cuando aún no te alcanzan (OFF_MONSTER_CAST).
 // - Off-8B: también van a por tu mercenario (`victim`). Paseando, se fijan en el más cercano de los dos que vean; si
 //   el suyo cae o se va, pasan al otro si lo ven, o vuelven a pasear. Quien les pega pasa a ser su objetivo si paseaban.
+// - Off-9A: también van a por los Raiders que pasan cerca (`raider0`, `raider1`: uno por cada Raider a la vez, como
+//   mucho dos), igual que a por tu mercenario. Los Raiders no les devuelven el golpe.
 // Paseo entre puntos al azar de su pit: el original andaba entre waypoints del mapa; el pit nos sirve de zona.
 import Phaser from 'phaser';
 import type { TileRect } from '../../data/maps';
@@ -24,10 +26,14 @@ import { directionTowards, type TilePoint } from './TileMover';
 const QUICK_MONSTER_ACTION_MS = 1000;
 const QUICK_MONSTER_NOTICE_DIE = 3;
 
-/** Who a monster goes for (Off-8B): the player or the player's mercenary. */
-export type OffVictim = 'player' | 'merc';
+/** Who a monster goes for (Off-8B): the player or the player's mercenary; Off-9A: or a Raider (by its slot). */
+export type OffVictim = 'player' | 'merc' | OffRaiderSlot;
 
-const VICTIMS: readonly OffVictim[] = ['player', 'merc'];
+/** Off-9A: one per Raider here at once (at most two, OFF_RAIDS). */
+export type OffRaiderSlot = 'raider0' | 'raider1';
+export const OFF_RAIDER_SLOTS: readonly OffRaiderSlot[] = ['raider0', 'raider1'];
+
+const VICTIMS: readonly OffVictim[] = ['player', 'merc', ...OFF_RAIDER_SLOTS];
 
 /** What a monster needs to know about the world. */
 export interface OffMonsterWorld {
