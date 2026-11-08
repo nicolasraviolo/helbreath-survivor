@@ -61,6 +61,16 @@ Cada fase se hace por bloques, uno por sesión, y se espera el OK del propietari
 - **Off-6 · Magias:** tienda de magia, libro de magias, atajos F1–F8 y RT + botones, maná y tiempo de preparación. Bloques: 6A aprender ✅, 6B lanzar ✅, 6C curar, escudos, paralizar y mando ✅. ✅ (8-nov-2026: 14 magias de Magic.cfg, teclas 1–8 en vez de F1–F8, fallar según MAG y nivel, elementos de Survivors, escudos con aura bajo los pies; Off no irá al móvil).
 - **Off-7 · Promiseland y cierre:** (8-nov-2026: Promiseland en vez de la mazmorra `aresdend1` / `elvined1`). Bloques: 7A Promiseland (el teleport de la ciudad deja elegir mapa; Elvine llega arriba, Aresden abajo; 12 pits del original; oro de Nemesis), 7B pociones rápidas (Q / E, cruceta) y botín con atributos como Survivors, 7C acierto (habilidad = DEX × 2) y crítico simple ✅, 7D medir y ajustar experiencia, botín, oro, magias y Promiseland, 7E guardado y pulido. ✅ (8-nov-2026: armadura y pits como el original, experiencia ×0,02 = 3,5 h hasta el 60, el clic busca camino, dos manos sin escudo, vuelves donde lo dejaste).
 
+- **Off-8 · Critical Strike y mercenarios** (plan del 8-nov-2026, ver DECISIONES.md). Bloques:
+  - **8A Critical Strike con cargas**, como Survivors: 1 + nivel/10 cargas, +1 cada 15 s y +1 cada 15 golpes recibidos; daño × (2 + nivel/30), con grito y número grande. Se lanza con Alt o un botón del mando y se ve en la esfera roja del HUD. **El crítico pasivo de la 7C se queda**: son dos cosas distintas.
+  - **8B Guerrero mercenario y la Store**: un NPC de la ciudad lo contrata con oro. **Un mercenario a la vez.** Hace de tanque, con daño medio y equipo según tu nivel. Te sigue si te alejas y aparece a tu lado si te alejas muchísimo. Si cae, queda **inconsciente 45 s** y se levanta. Puedes curarle y lanzarle tus magias de apoyo.
+  - **8C Mago mercenario y la magia Berserk**: lanza Heal / Great Heal, Defense Shield, PFM, Berserk y alguna de daño, según tu nivel.
+  - **8D Frases y detalles**: con poca vida dice frases ("Heal me!", "Zerk me!"...). Contra un monstruo paralizado, el Guerrero le pega por la espalda. El mercenario contratado se guarda.
+- **Off-9 · Raiders** (plan del 8-nov-2026). Los Raiders usan **el mismo cerebro que los mercenarios**, en el bando contrario. Bloques:
+  - **9A Aparecer y atacar**: 1 o 2 personajes de la otra ciudad (Guerrero o Mago, nombre en rojo), de nivel parecido al tuyo; si son dos, cada uno algo más flojo. **Solo en Promiseland**, al azar. Van a por ti y a por tu mercenario. Al morir sueltan **oro** y nada más por ahora.
+  - **9B Invisibles y Enemy Kills**: a veces llegan invisibles hasta que atacan. Cada uno que matas da **+1 EK**; se guarda y sale en la casilla "Enemy Kills" de la ventana Character. Más adelante desbloquearán cosas.
+  - **9C Medir y ajustar** la dificultad con `pnpm check`.
+
 ## Pendiente de decidir más adelante
 
 - Pasar Off a una **app independiente** que se juegue sin conexión (idea del propietario, 7-nov-2026).
