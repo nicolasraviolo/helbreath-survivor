@@ -1,6 +1,6 @@
 // Helbreath Off (Fase Off-2): las fórmulas del combate del servidor original (ver off/data/offCombat.ts).
 import Phaser from 'phaser';
-import { OFF_COMBAT, type OffWeaponDef } from '../data/offCombat';
+import { OFF_ARMOR, OFF_COMBAT, type OffWeaponDef } from '../data/offCombat';
 
 /** `count` dice of `sides` sides, added (server iDice). 0 sides or count gives 0. */
 export function rollDice(count: number, sides: number): number {
@@ -67,4 +67,31 @@ export function rollMonsterDamage(dice: readonly [number, number], vit: number):
 /** Tiles between two tiles counting diagonals as one (server: the larger of the two distances). */
 export function tileDistance(ax: number, ay: number, bx: number, by: number): number {
     return Math.max(Math.abs(ax - bx), Math.abs(ay - by));
+}
+
+/** Off-7D: the body part (equipment slot) a monster's blow falls on, from a 0..1 roll; undefined = the arms (nothing yet). */
+export function offBlowPart(roll: number): 'body' | 'legs' | 'helm' | undefined {
+    let upTo = 0;
+    for (const part of OFF_ARMOR.parts) {
+        upTo += part.share;
+        if (roll < upTo) return part.slot;
+    }
+    return OFF_ARMOR.parts[OFF_ARMOR.parts.length - 1]?.slot;
+}
+
+/** Off-7D: shield skill (0–100), the chance in % that the shield takes away its share of a blow. */
+export function offShieldSkill(dex: number): number {
+    return Math.min(OFF_ARMOR.maxShieldSkill, dex * OFF_ARMOR.shieldSkillPerDex);
+}
+
+/**
+ * Off-7D: a monster's blow after the armour (server): the body part's % and the shield's %, each at most 80 %, are taken
+ * away separately (rounded down); never under 1.
+ */
+export function offArmorAbsorbed(damage: number, partPercent: number, shieldPercent: number): number {
+    if (damage <= 0) return damage;
+    const cap = OFF_ARMOR.maxAbsorbPercent;
+    const part = Math.floor((damage * Math.min(cap, partPercent)) / 100);
+    const shield = Math.floor((damage * Math.min(cap, shieldPercent)) / 100);
+    return Math.max(1, damage - part - shield);
 }

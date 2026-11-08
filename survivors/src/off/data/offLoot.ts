@@ -36,7 +36,11 @@ export const OFF_LOOT = {
     meleeShare: 0.8,
     /** Multiplies `dropChance` (1 = the original; capped at always). */
     dropMultiplier: 1,
-    /** Multiplies the gold of every gold drop (1 = Nemesis' amounts; Off-7C may lower it if the shops get too cheap). */
+    /**
+     * Multiplies the gold of every gold drop (1 = Nemesis' amounts). Off-7D (owner, 8-nov-2026: on reaching a level you
+     * can about buy its gear and your potions): measured, 1 is just that up to level 20; later the gold is more than the
+     * shops ask (`check offbalance`, goldForGear).
+     */
     goldMultiplier: 1,
     /** Multiplies `valuableShare` (1 = the original). */
     valuableMultiplier: 1,

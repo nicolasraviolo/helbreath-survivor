@@ -139,6 +139,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Promiseland (Helbreath Off, Fase Off-7A, 8-nov-2026)
 - Pociones rápidas y botín con atributos (Helbreath Off, Fase Off-7B, 8-nov-2026)
 - Acierto y crítico (Helbreath Off, Fase Off-7C, 8-nov-2026)
+- Medir y ajustar: armadura, pits, experiencia y oro (Helbreath Off, Fase Off-7D, 8-nov-2026)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -1558,3 +1559,10 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - **Crítico simple** (propietario): Critical = 1 % por punto (5–7 %) de golpe ×2 (`OFF_COMBAT.criticalDamage`), número naranja de `DamageNumbers.show(..., critical)`. El veneno de ese golpe también sale doble. Texto: "Critical Chance +N%". `OffBattle.criticalBlows` cuenta los críticos.
 - **Probar:** `check offhitrate` (tabla con 2000 tiradas), `offhitorc` (DEX 40 contra Orcs: 0 fallos en 22), `offcrit`.
 
+## Medir y ajustar: armadura, pits, experiencia y oro (Helbreath Off, Fase Off-7D, 8-nov-2026)
+- **Medir:** `pnpm check offfarm1 offfarm5 offfarm10 offfarm15 offfarm20 offfarm30 offfarm40 offfarm40z offfarm60 offfarm60clay offfarm60troll offfarm60cyclops offfarm60naked offbalance` (unos 15 min). Cada `offfarm*` es un guerrero típico de su nivel (`OFF_FARM` en `scripts/check.mjs`) que caza 60 s solo (`OffWorldScene.debugFarm`, contadores en `OffBattle.tally`) y guarda su resultado en `.check/offfarm.json`; `offbalance` carga `src/off/dev/offBalance.ts` dentro del juego (mismas tablas) y deja el informe en `.check/offbalance.json`: horas hasta cada nivel, `suggestedExpMultiplier` (para `TARGET_HOURS`), `goldForGear` (oro ganado desde el nivel anterior frente al equipo del nivel) y magias contra arma. **No editar archivos del juego mientras mide:** Vite recarga la página y la medida falla ("Execution context was destroyed").
+- **Armadura que absorbe** (original, `Server.cpp` ~L54055 y L32884): cada golpe cae en pecho 50 % / piernas 25 % / brazos 15 % / cabeza 10 % y la pieza de esa parte quita su `absorb` % (Item.cfg, valor 2: Leather 10, Scale 20, Chain 32, Plate 40, Chain Hose 10, Plate Leggings 20, Helmet 10, Full Helmet 20; tope 80 %). El escudo quita defensa − defensa/3 % si 1d100 ≤ habilidad de escudo = DEX × 2 (tope 100; en el original subía al usarlo). Las magias no se absorben. `OFF_ARMOR` (offCombat.ts), `offArmorAbsorbed` / `offBlowPart` (OffCombatRules.ts), `OffBattle.armorAbsorbed`; el atributo Physical Absorption se suma a la pieza. El cuadro del objeto dice "Defense +30 · Absorb 32%". `check offarmor`.
+- **Pits:** se rellenan cada 600 ms (1 de cada 3), como el `MobGenerator` del servidor; antes 2000 ms. Todos llenos siempre: dormir los lejanos no merecía la pena (60 FPS con ~80 monstruos y las imágenes se cargan igual). Duplica las muertes por minuto (10–15 → 25–30 en los pits bajos) y también los monstruos que te atacan a la vez.
+- **Medido (Level 60 con Flameberge, Tower Shield, Chain Mail, Plate Leggings y Full Helmet, 20 Big Red):** Skeletons 16 muertes/min sin beber; Clay Golems bien; Trolls aguanta 60 s con 14 pociones (la armadura quita ~45 %); Cyclops muere a los 38 s (es para más nivel). Sin armadura ni pociones muere a los 52 s con Skeletons.
+- **Experiencia ×0,02** (3,5 h de caza hasta el 60). **Oro ×1:** al llegar a los niveles 10–20 has ganado lo justo para su equipo; después sobra porque la tienda no tiene nada caro. **Botín y magias sin cambios** (los del original; el mago pega más que el guerrero mientras le dura el maná, unos 6 lanzamientos).
+- Informe para el propietario: https://claude.ai/artifact/RpPpCcn1hRKEt9N7rucf3d (con los números de antes de los cambios).

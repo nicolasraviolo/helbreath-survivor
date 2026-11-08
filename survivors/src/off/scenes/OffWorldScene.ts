@@ -777,6 +777,46 @@ export class OffWorldScene extends Phaser.Scene {
         return out;
     }
 
+    /**
+     * Development (`check offfarm`, Off-7D): hunts that kind of monster for `seconds`, drinking the biggest health
+     * potion carried when health falls under `drinkBelow` (share of the maximum). Stops at the first death. Gives the
+     * totals and the rates per minute: kills, experience, gold and items dropped (picked up or not), damage taken.
+     */
+    public debugFarm(id: string, seconds: number, drinkBelow: number): Promise<Record<string, number | boolean>> {
+        const battle = this.battle;
+        const before = { ...battle.tally, kills: battle.kills, level: battle.level };
+        const start = performance.now();
+        return new Promise((resolve) => {
+            const tick = window.setInterval(() => {
+                const elapsed = (performance.now() - start) / 1000;
+                if (!battle.dead && battle.hp < battle.maxHp * drinkBelow) battle.drinkQuick('hp');
+                if (!battle.dead && !battle.target) this.debugFight(id);
+                if (!battle.dead && elapsed < seconds) return;
+                window.clearInterval(tick);
+                const perMinute = (value: number): number => Math.round((value / elapsed) * 60);
+                const t = battle.tally;
+                resolve({
+                    seconds: Math.round(elapsed),
+                    died: battle.dead,
+                    levelFrom: before.level,
+                    levelTo: battle.level,
+                    kills: battle.kills - before.kills,
+                    killsPerMin: Math.round(((battle.kills - before.kills) / elapsed) * 600) / 10,
+                    expPerMin: perMinute(t.exp - before.exp),
+                    goldPerMin: perMinute(t.gold - before.gold),
+                    potionsPerMin: Math.round(((t.potions - before.potions) / elapsed) * 600) / 10,
+                    valuablesPerMin: Math.round(((t.valuables - before.valuables) / elapsed) * 600) / 10,
+                    hurtPerMin: perMinute(t.hurt - before.hurt),
+                    absorbedPerMin: perMinute(t.absorbed - before.absorbed),
+                    hitsTaken: t.hits - before.hits,
+                    drunk: t.drunk - before.drunk,
+                    hpLeft: battle.hp,
+                    maxHp: battle.maxHp,
+                });
+            }, 100);
+        });
+    }
+
     /** Development (`check offfight`): attacks the nearest monster of a kind (all of them, `id` undefined) and keeps on. */
     public debugFight(id?: string): void {
         const near = this.battle.pits.monsters

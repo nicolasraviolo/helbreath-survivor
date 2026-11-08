@@ -102,10 +102,11 @@ export function pitSprites(pits: readonly OffPitDef[]): SpriteKey[] {
 
 /**
  * Refilling a pit (server MobGenerator): while it has fewer than `max`, each check has a 1 in 3 chance of a new one.
- * How often the server checked is not in the code we have: every `checkMs` is ours.
+ * Off-7D (owner, 8-nov-2026): every 600 ms, as the server (reference/Server.cpp: MobGenerator runs every 600 ms, ~L47099;
+ * before it was 2000, ours). Every pit stays full, near the player or not (it costs nothing: 60 FPS with ~80 monsters).
  */
 export const OFF_PIT_RESPAWN = {
-    checkMs: 2000,
+    checkMs: 600,
     chance: 1 / 3,
     /** Wandering may take a monster this many tiles out of its pit (ours: the original walked between waypoints). */
     wanderMargin: 2,

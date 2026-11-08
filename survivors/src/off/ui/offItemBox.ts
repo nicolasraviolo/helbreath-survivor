@@ -12,7 +12,7 @@ import { OFF_EQUIPMENT_BOX, OFF_EQUIPMENT_BOX_STYLE, OFF_EQUIPMENT_BOX_TITLE_STY
 import { offBestSpeedStr, offSpeedLabel } from '../data/offCombat';
 import { offGood } from '../data/offGoods';
 import {
-    diceAverage, isOffGearKey, isOffSpecial, OFF_FISTS, offGearDef, offGearEffects, offGearId, offGearKind, offGearRolls, offNeedsText, offWearCheck,
+    diceAverage, isOffGearKey, isOffSpecial, OFF_FISTS, offGearDef, offGearEffects, offGearId, offGearKind, offGearRolls, offItemAbsorb, offNeedsText, offWearCheck,
     type OffBagItemKey, type OffGearKey, type OffItemDef, type OffWeaponItem, type OffWearer,
 } from '../data/offItems';
 import { OFF_ATTRIBUTES, offRollLines } from '../data/offAttributes';
@@ -83,7 +83,9 @@ export function offItemBoxLines(id: OffBagItemKey | undefined, worn: OffGearKey 
         const defense = item?.kind === 'armor' ? item.defense : 0;
         const otherDefense = other?.kind === 'armor' ? other.defense : 0;
         const now = comparing ? { text: `(now +${otherDefense})`, better: Math.sign(defense - otherDefense) } : undefined;
-        lines.push({ label: 'Defense', value: `+${defense}`, ...(now ? { now } : {}) });
+        // Off-7D: what it takes away of a blow on its body part (shields: when the shield skill roll works).
+        const absorb = item?.kind === 'armor' ? offItemAbsorb(item) : 0;
+        lines.push({ label: 'Defense', value: absorb > 0 ? `+${defense} · Absorb ${absorb}%` : `+${defense}`, ...(now ? { now } : {}) });
     }
     if (item && id !== undefined && isOffGearKey(id)) {
         const met = offWearCheck(id, who) === 'ok';

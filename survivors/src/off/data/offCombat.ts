@@ -68,6 +68,26 @@ export function offBestSpeedStr(weapon: Pick<OffWeaponDef, 'speed'>): number {
     return weapon.speed * OFF_ATTACK_SPEED.strPerStep;
 }
 
+/**
+ * Off-7D: armour that takes away part of a monster's blow, as the original (reference/Server.cpp, iCalculateAttackEffect
+ * ~L54055): each blow falls on one body part (body 50 %, legs 25 %, arms 15 %, head 10 %) and the piece worn there takes
+ * away its `absorb` % (at most 80 %). The shield takes away its own % (defence − defence / 3, at most 80 %) when 1d100 ≤
+ * the shield skill; Off has no skills, so shield skill = DEX × 2, up to 100 (owner, 8-nov-2026, as the weapon skill of
+ * Off-7C). Off has nothing for the arms yet (the original's Hauberk). Spells are not absorbed (only blows).
+ */
+export const OFF_ARMOR = {
+    /** Body part a blow falls on, and its share of the blows. */
+    parts: [
+        { slot: 'body', share: 0.5 },
+        { slot: 'legs', share: 0.25 },
+        { slot: undefined, share: 0.15 },
+        { slot: 'helm', share: 0.1 },
+    ] as ReadonlyArray<{ slot: 'body' | 'legs' | 'helm' | undefined; share: number }>,
+    maxAbsorbPercent: 80,
+    shieldSkillPerDex: 2,
+    maxShieldSkill: 100,
+} as const;
+
 export const OFF_COMBAT = {
     /** Hit chance limits, % (server DEF_MINIMUMHITRATIO / DEF_MAXIMUMHITRATIO). */
     minHitPercent: 15,

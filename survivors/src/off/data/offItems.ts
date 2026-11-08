@@ -49,6 +49,11 @@ export interface OffArmorItem {
     slot: Exclude<OffSlotId, 'weapon'>;
     /** Added to the defence (2 × DEX + the armour's). */
     defense: number;
+    /**
+     * Off-7D: % of a monster's blow it takes away when the blow falls on its body part (Item.cfg effect value 2; see
+     * OFF_ARMOR in offCombat.ts). Shields have none here: theirs comes from the defence (offShieldAbsorb).
+     */
+    absorb?: number;
     strToEquip: number;
     look: ArmorPieceId;
     price: number;
@@ -108,35 +113,35 @@ export const OFF_ITEMS = {
     towerShield: { kind: 'armor', slot: 'shield', name: 'Tower Shield', defense: 35, strToEquip: 40, price: 1800, look: 'towerShield' },
     // ---- Helms (Item2/Item3.cfg). ----
     // 600 Helm: 5, 800, 5200.
-    helmet: { kind: 'armor', slot: 'helm', name: 'Helmet', defense: 5, strToEquip: 52, price: 800, look: 'helmet' },
+    helmet: { kind: 'armor', slot: 'helm', name: 'Helmet', defense: 5, absorb: 10, strToEquip: 52, price: 800, look: 'helmet' },
     // 601 FullHelm: 10, 1500, 8500.
-    fullHelmet: { kind: 'armor', slot: 'helm', name: 'Full Helmet', defense: 10, strToEquip: 85, price: 1500, look: 'fullHelmet' },
+    fullHelmet: { kind: 'armor', slot: 'helm', name: 'Full Helmet', defense: 10, absorb: 20, strToEquip: 85, price: 1500, look: 'fullHelmet' },
     // 751 Wings-Helm: 15, 5000, 13000, Level 100.
-    wingedHelmet: { kind: 'armor', slot: 'helm', name: 'Winged Helmet', defense: 15, strToEquip: 130, price: 5000, levelToEquip: 100, look: 'wingedHelmet' },
+    wingedHelmet: { kind: 'armor', slot: 'helm', name: 'Winged Helmet', defense: 15, absorb: 22, strToEquip: 130, price: 5000, levelToEquip: 100, look: 'wingedHelmet' },
     // 750 Horned-Helm: 17, 4000, 16000, Level 120.
-    hornedHelmet: { kind: 'armor', slot: 'helm', name: 'Horned Helmet', defense: 17, strToEquip: 160, price: 4000, levelToEquip: 120, look: 'hornedHelmet' },
+    hornedHelmet: { kind: 'armor', slot: 'helm', name: 'Horned Helmet', defense: 17, absorb: 24, strToEquip: 160, price: 4000, levelToEquip: 120, look: 'hornedHelmet' },
     // 752 Wizard-Cap: 5, 1500, 1500, Level 90.
-    wizardCap: { kind: 'armor', slot: 'helm', name: 'Wizard Cap', defense: 5, strToEquip: 15, price: 1500, levelToEquip: 90, look: 'wizardCap' },
+    wizardCap: { kind: 'armor', slot: 'helm', name: 'Wizard Cap', defense: 5, absorb: 10, strToEquip: 15, price: 1500, levelToEquip: 90, look: 'wizardCap' },
     // 753 Wizard-Hat: 10, 3000, 1500, Level 120.
-    wizardHat: { kind: 'armor', slot: 'helm', name: 'Wizard Hat', defense: 10, strToEquip: 15, price: 3000, levelToEquip: 120, look: 'wizardHat' },
+    wizardHat: { kind: 'armor', slot: 'helm', name: 'Wizard Hat', defense: 10, absorb: 15, strToEquip: 15, price: 3000, levelToEquip: 120, look: 'wizardHat' },
     // ---- Body (Item2/Item3.cfg). ----
     // 455 LeatherArmor: 10, 500, 1500.
-    leatherArmor: { kind: 'armor', slot: 'body', name: 'Leather Armor', defense: 10, strToEquip: 15, price: 500, look: 'leatherArmor' },
+    leatherArmor: { kind: 'armor', slot: 'body', name: 'Leather Armor', defense: 10, absorb: 10, strToEquip: 15, price: 500, look: 'leatherArmor' },
     // 590 Robe: 12, 2000, 1000.
-    robe: { kind: 'armor', slot: 'body', name: 'Robe', defense: 12, strToEquip: 10, price: 2000, look: 'robe' },
+    robe: { kind: 'armor', slot: 'body', name: 'Robe', defense: 12, absorb: 1, strToEquip: 10, price: 2000, look: 'robe' },
     // 685 WizardRobe: 12, 3000, 1000, Level 80.
-    wizardRobe: { kind: 'armor', slot: 'body', name: 'Wizard Robe', defense: 12, strToEquip: 10, price: 3000, levelToEquip: 80, look: 'wizardRobe' },
+    wizardRobe: { kind: 'armor', slot: 'body', name: 'Wizard Robe', defense: 12, absorb: 1, strToEquip: 10, price: 3000, levelToEquip: 80, look: 'wizardRobe' },
     // 457 ScaleMail: 20, 900, 2000.
-    scaleMail: { kind: 'armor', slot: 'body', name: 'Scale Mail', defense: 20, strToEquip: 20, price: 900, look: 'scaleMail' },
+    scaleMail: { kind: 'armor', slot: 'body', name: 'Scale Mail', defense: 20, absorb: 20, strToEquip: 20, price: 900, look: 'scaleMail' },
     // 456 ChainMail: 30, 1200, 3000.
-    chainMail: { kind: 'armor', slot: 'body', name: 'Chain Mail', defense: 30, strToEquip: 30, price: 1200, look: 'chainMail' },
+    chainMail: { kind: 'armor', slot: 'body', name: 'Chain Mail', defense: 30, absorb: 32, strToEquip: 30, price: 1200, look: 'chainMail' },
     // 458 PlateMail: 37, 4500, 10000.
-    plateMail: { kind: 'armor', slot: 'body', name: 'Plate Mail', defense: 37, strToEquip: 100, price: 4500, look: 'plateMail' },
+    plateMail: { kind: 'armor', slot: 'body', name: 'Plate Mail', defense: 37, absorb: 40, strToEquip: 100, price: 4500, look: 'plateMail' },
     // ---- Legs, feet and back (Item2.cfg). ----
     // 461 ChainHose: 6, 400, 1000.
-    chainHose: { kind: 'armor', slot: 'legs', name: 'Chain Hose', defense: 6, strToEquip: 10, price: 400, look: 'chainHose' },
+    chainHose: { kind: 'armor', slot: 'legs', name: 'Chain Hose', defense: 6, absorb: 10, strToEquip: 10, price: 400, look: 'chainHose' },
     // 462 PlateLeggings: 12, 1000, 2000.
-    plateLeggings: { kind: 'armor', slot: 'legs', name: 'Plate Leggings', defense: 12, strToEquip: 20, price: 1000, look: 'plateLeggings' },
+    plateLeggings: { kind: 'armor', slot: 'legs', name: 'Plate Leggings', defense: 12, absorb: 20, strToEquip: 20, price: 1000, look: 'plateLeggings' },
     // 450 / 451: 1, 20 / 100, 200 / 500.
     shoes: { kind: 'armor', slot: 'boots', name: 'Shoes', defense: 1, strToEquip: 2, price: 20, look: 'shoes' },
     longBoots: { kind: 'armor', slot: 'boots', name: 'Long Boots', defense: 1, strToEquip: 5, price: 100, look: 'longBoots' },
@@ -289,6 +294,25 @@ export function offWeapon(equipment: Readonly<OffEquipment>): OffWeaponDef {
     const key = equipment.weapon;
     const item = key ? offGearDef(key) : undefined;
     return item?.kind === 'weapon' ? item : OFF_FISTS;
+}
+
+/** Off-7D: % of a blow the worn piece on that body part takes away (0 = nothing there). */
+export function offPartAbsorb(equipment: Readonly<OffEquipment>, slot: OffSlotId): number {
+    const key = equipment[slot];
+    const item = key ? offGearDef(key) : undefined;
+    return item?.kind === 'armor' ? item.absorb ?? 0 : 0;
+}
+
+/** Off-7D: % of a blow a piece takes away; a shield's (server: defence − defence / 3) only when its skill roll works. */
+export function offItemAbsorb(item: OffArmorItem): number {
+    return item.slot === 'shield' ? item.defense - Math.floor(item.defense / 3) : item.absorb ?? 0;
+}
+
+/** Off-7D: % of a blow the worn shield takes away when the shield skill roll works. */
+export function offShieldAbsorb(equipment: Readonly<OffEquipment>): number {
+    const key = equipment.shield;
+    const item = key ? offGearDef(key) : undefined;
+    return item?.kind === 'armor' ? offItemAbsorb(item) : 0;
 }
 
 /** Defence the worn armour adds. */

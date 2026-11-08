@@ -16,7 +16,7 @@
 //                                        (g = escena Game, game = window.__game)
 // Si el servidor de desarrollo (puerto 8090) no está en marcha, lo arranca y lo para al terminar.
 import { spawn } from 'node:child_process';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright-core';
@@ -33,6 +33,35 @@ const IGNORED_ERRORS = [/favicon\.ico/];
 /** Named situations; anything else is used as the address query as it is. */
 /** Off-4B: the bag of the inventory checks (index 1 = Long Sword, 2 = Helmet, 4 = Red Potion, then Blue Potion). */
 const OFF_TEST_BAG = 'shortSword,longSword,helmet,targeShield,redPotion,bluePotion,bigRedPotion,greenPotion,slimeJelly';
+// Fase Off-7D: medir la caza. Cada offfarm* es un guerrero típico de ese nivel (puntos: 3 por nivel sobre 10 de base en
+// STR / DEX / VIT), con el equipo que podría llevar y pociones, al lado de su pit. Caza 60 s (OFF_FARM_SECONDS) y bebe la
+// poción de vida más grande por debajo del 50 %; se para si muere. En eval: muertes, experiencia, oro y objetos que caen
+// por minuto, daño recibido y pociones bebidas (OffWorldScene.debugFarm). Ver scripts/off-balance.mjs.
+const OFF_FARM_SECONDS = 60;
+const potions = (id, n) => Array(n).fill(id).join(',');
+const OFF_FARM = {
+    offfarm1: { level: 1, stats: 'str:10,dex:10,vit:10', gear: 'dagger', bag: potions('redPotion', 5), place: 'traveler', at: '98,83', monster: 'slime' },
+    offfarm5: { level: 5, stats: 'str:14,dex:12,vit:16', gear: 'shortSword,woodShield', bag: potions('redPotion', 10), place: 'aresden', at: '128,243', monster: 'slime' },
+    offfarm10: { level: 10, stats: 'str:22,dex:18,vit:17', gear: 'longSword,woodShield,leatherArmor', bag: potions('redPotion', 10), place: 'aresden', at: '179,241', monster: 'giantAnt' },
+    offfarm15: { level: 15, stats: 'str:26,dex:24,vit:22', gear: 'falchion,targeShield,leatherArmor,chainHose', bag: potions('redPotion', 15), place: 'aresden', at: '214,241', monster: 'snake' },
+    offfarm20: { level: 20, stats: 'str:34,dex:30,vit:23', gear: 'broadSword,targeShield,chainMail,chainHose', bag: potions('bigRedPotion', 10), place: 'aresden', at: '243,201', monster: 'orc' },
+    offfarm30: { level: 30, stats: 'str:44,dex:40,vit:33', gear: 'claymore,ironShield,chainMail,plateLeggings', bag: potions('bigRedPotion', 15), place: 'promiseland', at: '45,92', monster: 'giantScorpion' },
+    offfarm40: { level: 40, stats: 'str:55,dex:50,vit:42', gear: 'greatSword,knightShield,chainMail,plateLeggings,helmet', bag: potions('bigRedPotion', 20), place: 'promiseland', at: '84,204', monster: 'skeleton' },
+    offfarm40z: { level: 40, stats: 'str:55,dex:50,vit:42', gear: 'greatSword,knightShield,chainMail,plateLeggings,helmet', bag: potions('bigRedPotion', 20), place: 'promiseland', at: '133,206', monster: 'zombie' },
+    offfarm60: { level: 60, stats: 'str:90,dex:60,vit:57', gear: 'flamberge,towerShield,chainMail,plateLeggings,fullHelmet', bag: potions('bigRedPotion', 20), place: 'promiseland', at: '84,204', monster: 'skeleton' },
+    offfarm60clay: { level: 60, stats: 'str:90,dex:60,vit:57', gear: 'flamberge,towerShield,chainMail,plateLeggings,fullHelmet', bag: potions('bigRedPotion', 20), place: 'promiseland', at: '197,114', monster: 'clayGolem' },
+    offfarm60troll: { level: 60, stats: 'str:90,dex:60,vit:57', gear: 'flamberge,towerShield,chainMail,plateLeggings,fullHelmet', bag: potions('bigRedPotion', 20), place: 'promiseland', at: '106,123', monster: 'troll' },
+    offfarm60cyclops: { level: 60, stats: 'str:90,dex:60,vit:57', gear: 'flamberge,towerShield,chainMail,plateLeggings,fullHelmet', bag: potions('bigRedPotion', 20), place: 'promiseland', at: '123,123', monster: 'cyclops' },
+    // Sin armadura ni pociones, como la medida de la 7A (para comparar).
+    offfarm60naked: { level: 60, stats: 'str:90,dex:60,vit:57', gear: 'flamberge', bag: '', place: 'promiseland', at: '84,204', monster: 'skeleton' },
+};
+const offFarmUrl = (f) => `off=world&offreset&offfaction=aresden&offlevel=${f.level}&offstats=${f.stats}&offgear=${f.gear}${f.bag ? `&offbag=${f.bag}` : ''}&offplace=${f.place}&offat=${f.at}`;
+const offFarmEval = (f) => `o.debugFarm('${f.monster}', ${OFF_FARM_SECONDS}, 0.5)`;
+// Cada offfarm* guarda su resultado en .check/offfarm.json; offbalance lo lee y lo pasa a la calculadora
+// (src/off/dev/offBalance.ts): minutos por nivel, oro frente a precios y magias. Informe en .check/offbalance.json.
+const OFF_FARM_FILE = 'offfarm.json';
+const readOffFarm = () => (existsSync(join(OUT_DIR, OFF_FARM_FILE)) ? JSON.parse(readFileSync(join(OUT_DIR, OFF_FARM_FILE), 'utf8')) : {});
+const offBalanceEval = () => `import('/src/off/dev/offBalance.ts').then((m) => m.offBalanceReport(${JSON.stringify(readOffFarm())}))`;
 
 const PRESETS = {
     menu: '',
@@ -104,6 +133,11 @@ const PRESETS = {
     // acierto real). offcrit pega a Slimes con una Long Sword Critical 7 (en eval: golpes y críticos; captura con
     // números naranjas).
     offhitrate: 'off=world&offreset',
+    offbalance: 'off=world&offreset',
+    // Off-7D: offarmor abre el inventario con Chain Mail, Tower Shield, Full Helmet y Plate Leggings y marca cada uno
+    // (en eval: los cuadros con "Absorb N%"; captura con el de la Chain Mail).
+    offarmor: 'off=world&offreset&offlevel=60&offstats=str:90,dex:60&offopen=bag&offbag=towerShield,fullHelmet,plateLeggings,chainMail',
+    ...Object.fromEntries(Object.entries(OFF_FARM).map(([k, f]) => [k, offFarmUrl(f)])),
     offhitorc: 'off=world&offlevel=20&offstats=str:30,dex:40&offgear=longSword&offfaction=aresden&offplace=aresden&offat=243,201',
     offcrit: 'off=world&offreset&offlevel=20&offstats=str:40,dex:40&offgear=longSword:critical7',
     // Fase Off-4A: botín. offlootview mata Slimes 14 s con ?offdrop=all y se para (captura con el botín en el suelo);
@@ -502,6 +536,8 @@ const PRESET_EVAL = {
     offspecialequip: "new Promise((r) => { o.openEquipment(); setTimeout(() => { const e = game.scene.getScene('OffEquipment'); e.debugMark('weapon', 3); r({ box: e.debugState().box }); }, 1500); })",
     offpoisoncloud: "new Promise((r) => { const t = setInterval(() => { if (!o.debugState().target) o.debugFight('slime'); const m = o.battle.pits.monsters.find((x) => x.isAlive && x.isPoisoned); if (m) { clearInterval(t); o.battle.stopAttacking(); r({ poisoned: o.debugState().poisoned, cloud: m.poisonCloud?.visible, anim: m.poisonCloud?.anims.currentAnim?.key }); } }, 200); setTimeout(() => { clearInterval(t); r({ poisoned: 0 }); }, 20000); })",
     offhitrate: "o.debugHitTable([20, 40, 60], 2000)",
+    offarmor: "new Promise((r) => setTimeout(() => { const inv = game.scene.getScene('OffInventory'); const boxes = []; for (const i of [0, 1, 2, 3]) { inv.debugMark(i); boxes.push(inv.debugState().box); } r(boxes); }, 1500))",
+    ...Object.fromEntries(Object.entries(OFF_FARM).map(([k, f]) => [k, offFarmEval(f)])),
     offhitorc: "new Promise((r) => { const b = o.battle; const st = { swings: 0, misses: 0 }; const land = b.landBlow.bind(b); b.landBlow = (blow) => { st.swings++; if (!blow.lands) st.misses++; land(blow); }; const t = setInterval(() => { if (!o.debugState().target) o.debugFight('orc'); }, 500); setTimeout(() => { clearInterval(t); r({ hitRatio: b.hitRatio, ...st, hitPercent: Math.round((1 - st.misses / Math.max(1, st.swings)) * 100), kills: b.kills, dead: o.debugState().dead }); }, 20000); })",
     offcrit: "new Promise((r) => { const b = o.battle; let swings = 0; const land = b.landBlow.bind(b); b.landBlow = (blow) => { if (blow.lands) swings++; land(blow); }; const t = setInterval(() => { if (!o.debugState().target) o.debugFight('slime'); }, 500); setTimeout(() => { clearInterval(t); r({ landed: swings, critical: b.criticalBlows, percent: Math.round((b.criticalBlows / Math.max(1, swings)) * 100), effects: b.gearEffects }); }, 25000); })",
     offpoison: "new Promise((r) => { const log = []; const t = setInterval(() => { if (!o.debugState().target) o.debugFight('slime'); const s = o.debugState(); log.push(s.poisoned); }, 1000); setTimeout(() => { clearInterval(t); const s = o.debugState(); r({ weapon: s.weapon, kills: s.kills, poisonedEachSecond: log.join(' ') }); }, 15000); })",
@@ -617,7 +653,7 @@ async function runScenario(browser, name) {
     await page.waitForTimeout(waitMs);
     const state = await page.evaluate(readState);
     // Not awaited yet: with a simulated run, the expression watches it while it plays.
-    const code = evalArg ?? PRESET_EVAL[name];
+    const code = evalArg ?? (name === 'offbalance' ? offBalanceEval() : PRESET_EVAL[name]);
     const evalPromise = code === undefined ? undefined : page.evaluate(async (code) => {
         const game = window.__game;
         const g = game?.scene.getScene('Game');
@@ -644,7 +680,14 @@ async function runScenario(browser, name) {
     if (state.off) console.log(`  off: tile ${state.off.tile} · ${state.off.moving ? 'moving' : 'standing'}`);
     if (state.run) console.log(`  run: ${Object.entries(state.run).map(([k, v]) => `${k} ${v}`).join(' · ')}`);
     if (state.error) console.log(`  ${state.error}`);
-    if (evalResult !== undefined) console.log(`  eval: ${evalResult}`);
+    if (evalResult !== undefined && name === 'offbalance') {
+        writeFileSync(join(OUT_DIR, 'offbalance.json'), JSON.stringify(JSON.parse(evalResult), null, 1));
+        console.log(`  eval: report in .check/offbalance.json`);
+    } else if (evalResult !== undefined) console.log(`  eval: ${evalResult}`);
+    if (evalResult !== undefined && OFF_FARM[name] && !evalResult.startsWith('error')) {
+        const { level, monster, gear } = OFF_FARM[name];
+        writeFileSync(join(OUT_DIR, OFF_FARM_FILE), JSON.stringify({ ...readOffFarm(), [name]: { level, monster, gear, ...JSON.parse(evalResult) } }, null, 1));
+    }
     if (loadTimes) {
         printLoadTimes(loadTimes, profile);
         writeFileSync(file.replace(/\.jpg$/, '.json'), JSON.stringify({ profile, ...loadTimes }, null, 1));
