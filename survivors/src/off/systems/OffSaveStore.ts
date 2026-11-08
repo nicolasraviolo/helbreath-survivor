@@ -18,6 +18,9 @@
 // empiezan sin magias.
 // Fase Off-6C (versión 8): también las 4 magias del mando (`padSpells`, RT + A/B/X/Y), elegidas en el libro. Al aprender
 // una va también al primer botón libre. Los guardados anteriores ponen ahí las de las teclas 1–4.
+// Fase Off-7E (versión 10): también dónde está (`where`: mapa y casilla), para volver a aparecer ahí al darle a Play,
+// como el original al reconectar. Se guarda al llegar a un mapa, cada OFF_WHERE_SAVE_MS andando, al salir y al
+// esconder la página; muerto, se guarda su ciudad. Los guardados anteriores aparecen en su ciudad, como antes.
 // Lleva número de versión como los guardados de Survivors. Si el navegador no deja guardar, dura hasta cerrar la página.
 // Va en el código de traspaso (config/transfer.ts → TRANSFER_KEYS).
 // Desarrollo: ?offreset borra el personaje (Play vuelve a crear uno); ?offlevel=N pone al personaje al principio del
@@ -30,7 +33,7 @@ import { cleanName, readLook } from '../../systems/CharacterStore';
 import { isRecord } from '../../systems/SaveStore';
 import { OFF_CREATION, OFF_OLD_SAVE_STATS, OFF_STAT_IDS, OFF_STAT_MAX, type OffStats } from '../data/offCharacter';
 import {
-    isOffGearKey, OFF_START_EQUIPMENT, readOffBagKey, readOffGearKey, offBagKeyId, offGearDef, offWearCheck, readOffEquipment, type OffBagItemId, type OffBagItemKey, type OffEquipment,
+    isOffGearKey, OFF_START_EQUIPMENT, readOffBagKey, readOffGearKey, offBagKeyId, offGearDef, offHandsClash, offTwoHanded, offWearCheck, readOffEquipment, type OffBagItemId, type OffBagItemKey, type OffEquipment,
     type OffGearKey, type OffSlotId,
 } from '../data/offItems';
 import { isOffPotion } from '../data/offGoods';
@@ -38,14 +41,21 @@ import { OFF_LOOT } from '../data/offLoot';
 import { OFF_STORE, offPrice, offSellPrice } from '../data/offStore';
 import { OFF_LEVEL, offExpForLevel, offLevelForExp } from '../data/offLevel';
 import { OFF_NOVICE_LOOK } from '../data/offWorld';
-import { isOffFaction, type OffFaction } from '../data/offPlaces';
+import { isOffFaction, isOffPlaceId, type OffFaction, type OffPlaceId } from '../data/offPlaces';
 import {
     isOffSpellId, OFF_PAD_SPELL_COUNT, OFF_SPELL_IDS, OFF_SPELL_KEY_COUNT, OFF_SPELLS, type OffLearnResult, type OffPadSpells, type OffSpellId, type OffSpellKeys,
 } from '../data/offSpells';
 
 export const OFF_CHARACTER_STORAGE_KEY = 'hb-off.character';
-/** 1 (Off-2B): experience and unspent points. 2 (Off-3A): name, look, stats and whether it was created. 3 (Off-3C): equipment. 4 (Off-4A): gold and bag. 5 (Off-5A): faction. 6 (Off-5B): warehouse. 7 (Off-6A): spells and spell keys. 8 (Off-6C): gamepad spells. 9 (Off-7B): gear may carry its attributes ("longSword:sharp"; plain ids read as before). */
-const OFF_CHARACTER_VERSION = 9;
+/** 1 (Off-2B): experience and unspent points. 2 (Off-3A): name, look, stats and whether it was created. 3 (Off-3C): equipment. 4 (Off-4A): gold and bag. 5 (Off-5A): faction. 6 (Off-5B): warehouse. 7 (Off-6A): spells and spell keys. 8 (Off-6C): gamepad spells. 9 (Off-7B): gear may carry its attributes ("longSword:sharp"; plain ids read as before). 10 (Off-7E): where it is. */
+const OFF_CHARACTER_VERSION = 10;
+
+/** Off-7E: where the character was last seen; no tile = the place's usual arrival. */
+export interface OffWhere {
+    place: OffPlaceId;
+    x?: number;
+    y?: number;
+}
 
 export interface OffSavedCharacter {
     /** False until the creation screen is done (Play opens it). */
@@ -73,6 +83,8 @@ export interface OffSavedCharacter {
     spellKeys: OffSpellKeys;
     /** Which spell RT + A, B, X, Y casts (Off-6C; always OFF_PAD_SPELL_COUNT long, undefined = none). */
     padSpells: OffPadSpells;
+    /** Off-7E: where Play puts it back; undefined = its city (or Traveler Zone with no faction). */
+    where: OffWhere | undefined;
 }
 
 /** What a bag or equipment change gave: done, nothing to do, short of STR or level, no room, too many potions. */
@@ -83,7 +95,7 @@ export type OffTradeResult = 'ok' | 'none' | 'gold' | 'bagFull' | 'potionLimit' 
 
 /** The character before anyone creates one (also what ?offreset leaves). */
 function blankCharacter(): OffSavedCharacter {
-    return { created: false, name: OFF_CREATION.defaultName, look: { ...OFF_NOVICE_LOOK }, stats: { ...OFF_OLD_SAVE_STATS }, exp: 0, points: 0, equipment: { ...OFF_START_EQUIPMENT }, gold: 0, bag: [], faction: undefined, warehouse: [], spells: [], spellKeys: noSpellKeys(), padSpells: noPadSpells() };
+    return { created: false, name: OFF_CREATION.defaultName, look: { ...OFF_NOVICE_LOOK }, stats: { ...OFF_OLD_SAVE_STATS }, exp: 0, points: 0, equipment: { ...OFF_START_EQUIPMENT }, gold: 0, bag: [], faction: undefined, warehouse: [], spells: [], spellKeys: noSpellKeys(), padSpells: noPadSpells(), where: undefined };
 }
 
 function noSpellKeys(): OffSpellKeys {
@@ -116,7 +128,12 @@ class OffSaveStoreImpl {
         const noWeapon = DEBUG_START.offGear.includes('noweapon');
         if (gear.length > 0 || noWeapon) {
             const equipment = { ...this.data.equipment };
-            for (const key of gear) equipment[offGearDef(key).slot] = key;
+            for (const key of gear) {
+                // Off-7E: the later one wins when a two-handed weapon and a shield clash.
+                const clash = offHandsClash(equipment, key);
+                if (clash) delete equipment[clash];
+                equipment[offGearDef(key).slot] = key;
+            }
             if (noWeapon) delete equipment.weapon;
             this.data = { ...this.data, equipment };
         }
@@ -124,7 +141,8 @@ class OffSaveStoreImpl {
         const bag = DEBUG_START.offBag.map(readOffBagKey).filter((key) => key !== undefined).slice(0, OFF_LOOT.bagSize);
         if (bag.length > 0) this.data = { ...this.data, bag };
         const faction = DEBUG_START.offFaction;
-        if (faction !== undefined) this.data = { ...this.data, faction: faction === 'none' ? undefined : faction };
+        // Off-7E: a faction given by hand starts at home, not where the last test left it.
+        if (faction !== undefined) this.data = { ...this.data, faction: faction === 'none' ? undefined : faction, where: undefined };
         const warehouse = DEBUG_START.offWarehouse.map(readOffBagKey).filter((key) => key !== undefined).slice(0, OFF_STORE.warehouseSize);
         if (warehouse.length > 0) this.data = { ...this.data, warehouse };
         const spells = DEBUG_START.offSpells === 'all' ? [...OFF_SPELL_IDS] : DEBUG_START.offSpells.filter(isOffSpellId);
@@ -146,7 +164,7 @@ class OffSaveStoreImpl {
 
     /** Creation screen done: a new character at level 1. */
     public create(name: string, look: CharacterLook, stats: OffStats): void {
-        this.data = { created: true, name, look: { ...look }, stats: { ...stats }, exp: 0, points: 0, equipment: { ...OFF_START_EQUIPMENT }, gold: 0, bag: [], faction: undefined, warehouse: [], spells: [], spellKeys: noSpellKeys(), padSpells: noPadSpells() };
+        this.data = { created: true, name, look: { ...look }, stats: { ...stats }, exp: 0, points: 0, equipment: { ...OFF_START_EQUIPMENT }, gold: 0, bag: [], faction: undefined, warehouse: [], spells: [], spellKeys: noSpellKeys(), padSpells: noPadSpells(), where: undefined };
         this.write();
     }
 
@@ -163,16 +181,38 @@ class OffSaveStoreImpl {
      * empties. 'str' (nothing changes) if the STR is short.
      */
     public equipFromBag(index: number): OffEquipResult {
+        return this.equipFromBagTaking(index).result;
+    }
+
+    /** Same as equipFromBag, also saying which gear came off the other hand (Off-7E: two hands and a shield). */
+    public equipFromBagTaking(index: number): { result: OffEquipResult; tookOff?: OffGearKey } {
+        const id = this.data.bag[index];
+        const clash = id !== undefined && isOffGearKey(id) ? offHandsClash(this.data.equipment, id) : undefined;
+        const tookOff = clash ? this.data.equipment[clash] : undefined;
+        const result = this.equipFromBagRaw(index);
+        return result === 'ok' && tookOff ? { result, tookOff } : { result };
+    }
+
+    private equipFromBagRaw(index: number): OffEquipResult {
         const id = this.data.bag[index];
         if (id === undefined || !isOffGearKey(id)) return 'none';
         const item = offGearDef(id);
         const check = offWearCheck(id, { str: this.data.stats.str, level: this.level });
         if (check !== 'ok') return check;
         const worn = this.data.equipment[item.slot];
+        // Off-7E: a two-handed weapon and a shield don't go together: the other one goes back to the bag, if it fits.
+        const clash = offHandsClash(this.data.equipment, id);
+        const clashing = clash ? this.data.equipment[clash] : undefined;
+        if (clashing && worn && this.data.bag.length >= OFF_LOOT.bagSize) return 'bagFull';
         const bag = [...this.data.bag];
         if (worn) bag[index] = worn;
         else bag.splice(index, 1);
-        this.data = { ...this.data, equipment: { ...this.data.equipment, [item.slot]: id }, bag };
+        const equipment = { ...this.data.equipment, [item.slot]: id };
+        if (clash && clashing) {
+            delete equipment[clash];
+            bag.push(clashing);
+        }
+        this.data = { ...this.data, equipment, bag };
         this.write();
         return 'ok';
     }
@@ -344,6 +384,17 @@ class OffSaveStoreImpl {
         this.write();
     }
 
+    /**
+     * Off-7E: remembers where it is (written only when it changed). A tile out of the map's numbers is not
+     * checked here: the world puts it on the nearest free tile when it comes back.
+     */
+    public setWhere(where: OffWhere): void {
+        const old = this.data.where;
+        if (old && old.place === where.place && old.x === where.x && old.y === where.y) return;
+        this.data = { ...this.data, where: { ...where } };
+        this.write();
+    }
+
     /** Joins a city for ever (Off-5A). Nothing changes once the character has one. */
     public joinFaction(faction: OffFaction): void {
         if (this.data.faction !== undefined) return;
@@ -375,16 +426,37 @@ function load(): OffSavedCharacter {
             stats: readStats(data.stats) ?? blank.stats,
             exp: nonNegative(data.exp),
             points: nonNegative(data.points),
-            equipment: readOffEquipment(data.equipment),
+            ...tidyHands(readOffEquipment(data.equipment), readBag(data.bag), readBag(data.warehouse, OFF_STORE.warehouseSize)),
             gold: nonNegative(data.gold),
-            bag: readBag(data.bag),
             faction: isOffFaction(data.faction) ? data.faction : undefined,
-            warehouse: readBag(data.warehouse, OFF_STORE.warehouseSize),
             ...readSpells(data.spells, data.spellKeys, data.padSpells),
+            where: readWhere(data.where),
         };
     } catch {
         return blankCharacter();
     }
+}
+
+/**
+ * Off-7E: saves from before the two-hands rule may hold a two-handed weapon and a shield. The shield goes to the bag
+ * (or, if full, to the warehouse); with no room anywhere it stays on.
+ */
+function tidyHands(equipment: OffEquipment, bag: OffBagItemKey[], warehouse: OffBagItemKey[]): { equipment: OffEquipment; bag: OffBagItemKey[]; warehouse: OffBagItemKey[] } {
+    const shield = equipment.shield;
+    if (!shield || !equipment.weapon || !offTwoHanded(equipment.weapon)) return { equipment, bag, warehouse };
+    const rest = { ...equipment };
+    delete rest.shield;
+    if (bag.length < OFF_LOOT.bagSize) return { equipment: rest, bag: [...bag, shield], warehouse };
+    if (warehouse.length < OFF_STORE.warehouseSize) return { equipment: rest, bag, warehouse: [...warehouse, shield] };
+    return { equipment, bag, warehouse };
+}
+
+/** Off-7E: where it was, read back; anything odd = undefined (its city). */
+function readWhere(value: unknown): OffWhere | undefined {
+    if (!isRecord(value) || !isOffPlaceId(value.place)) return undefined;
+    const { x, y } = value;
+    if (typeof x === 'number' && typeof y === 'number' && Number.isInteger(x) && Number.isInteger(y) && x >= 0 && y >= 0) return { place: value.place, x, y };
+    return { place: value.place };
 }
 
 function readStats(value: unknown): OffStats | undefined {

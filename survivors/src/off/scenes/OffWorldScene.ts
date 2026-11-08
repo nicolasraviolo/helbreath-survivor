@@ -51,7 +51,7 @@ import { playAreaBottom } from '../../ui/hudLayout';
 import { setGameViewport, toGame, zoomWorldCamera } from '../../ui/renderScale';
 import { Pool } from '../../utils/Pool';
 import type { MapLoadSceneData } from '../../scenes/MapLoadScene';
-import { OFF_MOVEMENT, OFF_NOVICE, OFF_STEP_MS, TILES_PER_ANIMATION_CYCLE } from '../data/offWorld';
+import { OFF_MOVEMENT, OFF_NOVICE, OFF_STEP_MS, OFF_WHERE_SAVE_MS, TILES_PER_ANIMATION_CYCLE } from '../data/offWorld';
 import {
     OFF_PLACE_TEXT, OFF_PLACES, offArrivalIn, offCityOf, offHomePlace, type OffBuildingKind, type OffDoorDef, type OffFaction, type OffPlaceDef, type OffPlaceId, type OffPortalDef,
 } from '../data/offPlaces';
@@ -81,6 +81,7 @@ import { OFF_INVENTORY_SCENE_KEY, type OffInventorySceneData } from './OffInvent
 import type { PauseSceneData } from '../../scenes/PauseScene';
 import type { MenuOverlayData } from '../../scenes/MenuOverlayScene';
 import { directionOffset, findFreeTile, TileMover, type TilePoint } from '../systems/TileMover';
+import { OffPathfinder } from '../systems/OffPathfinder';
 
 export const OFF_WORLD_SCENE_KEY = 'OffWorld';
 
@@ -106,7 +107,8 @@ let debugPlacePending = true;
  * character's home (its city, or Traveler Zone without a faction).
  */
 export function startOffWorld(scene: Phaser.Scene, data?: OffWorldSceneData): void {
-    let sceneData: OffWorldSceneData = data ?? { place: offHomePlace(offSaveStore.character.faction) };
+    // Off-7E: Play puts the character back where it was (its city when nothing was saved).
+    let sceneData: OffWorldSceneData = data ?? savedArrival();
     if (debugPlacePending && data === undefined && DEBUG_START.offPlace !== undefined) {
         sceneData = { place: DEBUG_START.offPlace, at: DEBUG_START.offAt };
     }
@@ -124,6 +126,13 @@ export function startOffWorld(scene: Phaser.Scene, data?: OffWorldSceneData): vo
     scene.scene.start('MapLoad', load);
 }
 
+/** Off-7E: the saved place and tile, as an arrival; its city with nothing saved. */
+function savedArrival(): OffWorldSceneData {
+    const where = offSaveStore.character.where;
+    if (!where) return { place: offHomePlace(offSaveStore.character.faction) };
+    return where.x !== undefined && where.y !== undefined ? { place: where.place, at: { x: where.x, y: where.y } } : { place: where.place };
+}
+
 export class OffWorldScene extends Phaser.Scene {
     private placeId: OffPlaceId = 'traveler';
     private place: OffPlaceDef = OFF_PLACES.traveler;
@@ -139,6 +148,8 @@ export class OffWorldScene extends Phaser.Scene {
     private leaving = false;
     private mapView!: MapView;
     private mover!: TileMover;
+    /** Off-7E: finds the way round houses and walls for a click. */
+    private pathfinder!: OffPathfinder;
     private character!: OffCharacter;
     private inputSystem!: InputSystem;
     private audio!: AudioSystem;
@@ -182,6 +193,8 @@ export class OffWorldScene extends Phaser.Scene {
     /** The pace of the step under way decides the footsteps loop; it restarts when it changes. */
     private footstepsMs = 0;
     private lastTile: TilePoint = { x: 0, y: 0 };
+    /** Off-7E: time since `where` was last saved while walking. */
+    private whereSaveMs = 0;
     /** Window open over the world (Off-4B): the side Inventory, or a screen that covers it (Equipment, Character). */
     private window: 'inventory' | 'cover' | undefined;
     /**
@@ -216,6 +229,7 @@ export class OffWorldScene extends Phaser.Scene {
         const spawn = (at && findFreeTile(isWalkable, at.x, at.y, OFF_MOVEMENT.clickSearchRadius)) ?? home;
         // Monsters block the way too (the battle knows where they are).
         this.mover = new TileMover((x, y) => this.battle.isFreeForPlayer(x, y), spawn.x, spawn.y);
+        this.pathfinder = new OffPathfinder(map.width, map.height, isWalkable);
         this.lastTile = { x: spawn.x, y: spawn.y };
         this.character = new OffCharacter(this, OFF_NOVICE, offSaveStore.character.look, offEquipmentLook(offSaveStore.character.equipment));
         this.character.wear(offEquipmentLook(offSaveStore.character.equipment), offWeaponTint(offSaveStore.character.equipment));
@@ -232,6 +246,20 @@ export class OffWorldScene extends Phaser.Scene {
         };
         this.battle = new OffBattle(this, this.mover, this.character, this.audio, isWalkable, respawnTile, place.pits, this.arrival.carried);
         this.leaving = false;
+        this.whereSaveMs = 0;
+        // Off-7E: saved on arriving, every few seconds, on leaving and when the page is hidden or closed.
+        this.saveWhere();
+        const onHide = () => {
+            if (document.visibilityState === 'hidden') this.saveWhere();
+        };
+        const onPageHide = () => this.saveWhere();
+        document.addEventListener('visibilitychange', onHide);
+        window.addEventListener('pagehide', onPageHide);
+        this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+            this.saveWhere();
+            document.removeEventListener('visibilitychange', onHide);
+            window.removeEventListener('pagehide', onPageHide);
+        });
         this.portalSprites = place.portals.filter((p) => p.drawn).map((p) => {
             const centre = portalCentre(p);
             return new Portal(this, centre.x * TILE_SIZE, centre.y * TILE_SIZE, Number.POSITIVE_INFINITY);
@@ -336,6 +364,11 @@ export class OffWorldScene extends Phaser.Scene {
     }
 
     override update(_time: number, delta: number): void {
+        this.whereSaveMs += delta;
+        if (this.whereSaveMs >= OFF_WHERE_SAVE_MS) {
+            this.whereSaveMs = 0;
+            this.saveWhere();
+        }
         const input = this.inputSystem;
         input.update();
         // Read every frame, also under a window (a key pressed there must not act here once it closes).
@@ -506,9 +539,24 @@ export class OffWorldScene extends Phaser.Scene {
     /** Off to another place through its loading screen. */
     private travel(data: OffWorldSceneData): void {
         if (this.leaving) return;
+        // Off-7E: the next place right away, so closing the page while it loads doesn't leave it on the portal.
+        offSaveStore.setWhere(data.at ? { place: data.place, x: data.at.x, y: data.at.y } : { place: data.place });
         this.leaving = true;
         this.stopForWindow();
         startOffWorld(this, data);
+    }
+
+    /**
+     * Off-7E: remembers this place and tile for Play. Dead, its city instead (it comes back to life there). Nothing
+     * while leaving: travel() already saved the next place.
+     */
+    private saveWhere(): void {
+        if (this.leaving || !this.battle) return;
+        if (this.battle.dead) {
+            offSaveStore.setWhere({ place: offHomePlace(offSaveStore.character.faction) });
+            return;
+        }
+        offSaveStore.setWhere({ place: this.placeId, x: this.mover.nextTileX, y: this.mover.nextTileY });
     }
 
     /** Development (`check offportal`): goes through a place's portal at once, as stepping on it would. */
@@ -925,10 +973,23 @@ export class OffWorldScene extends Phaser.Scene {
         this.clickTile(tile.x, tile.y);
     }
 
-    /** A click on a tile: there, or to the nearest free tile when it is blocked. */
+    /**
+     * A click on a tile: there, or to the nearest free tile when it is blocked. Off-7E: by the way round houses and
+     * walls when there is one; straight on, as the original, when there is none.
+     */
     private clickTile(x: number, y: number): void {
         const free = findFreeTile((tx, ty) => this.battle.isFreeForPlayer(tx, ty), x, y, OFF_MOVEMENT.clickSearchRadius);
-        if (free) this.mover.goTo(free.x, free.y);
+        if (!free) return;
+        // Round portals and doors on the way, except the one clicked and the one it stands in.
+        const from = { x: this.mover.nextTileX, y: this.mover.nextTileY };
+        const keep = [this.portalAt(free.x, free.y), this.doorAt(free.x, free.y), this.portalAt(from.x, from.y), this.doorAt(from.x, from.y)];
+        const avoid = (tx: number, ty: number) => {
+            const spot = this.portalAt(tx, ty) ?? this.doorAt(tx, ty);
+            return spot !== undefined && !keep.includes(spot);
+        };
+        const path = this.pathfinder.find(from, free, OFF_MOVEMENT.pathMaxTiles, avoid);
+        if (path && path.length > 0) this.mover.goAlong(path);
+        else this.mover.goTo(free.x, free.y);
     }
 
     /** World pixel and tile under the pointer. */

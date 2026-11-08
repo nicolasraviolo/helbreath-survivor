@@ -40,6 +40,7 @@ export class OffGroundItem implements Poolable {
         if (!setColouredTexture(this.image, sheet, picture.frame, 'item' in content ? offItemTint(content.item) : undefined)) this.image.setTexture(sheet, picture.frame);
         this.image
             .setPosition((tileX + 0.5) * TILE_SIZE + shift[0], (tileY + 0.5) * TILE_SIZE + shift[1])
+            .setScale(OFF_LOOT.groundScale)
             .setAlpha(1).setActive(true).setVisible(true);
     }
 

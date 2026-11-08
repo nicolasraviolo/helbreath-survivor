@@ -70,7 +70,9 @@ export function offItemBoxLines(id: OffBagItemKey | undefined, worn: OffGearKey 
             lines.push({ label: 'Speed', value: speed.label });
         }
         // Range left out: every weapon so far reaches 1 tile (and the mobile box has no room for one more line).
-        lines.push({ label: '', value: best > 0 ? `Fastest with Str ${best}` : 'Fastest with any Str' });
+        // Off-7E: two-handed weapons say so on the same line (the box has no room for one more).
+        const fastest = best > 0 ? `Fastest with Str ${best}` : 'Fastest with any Str';
+        lines.push({ label: '', value: item.twoHanded ? `${fastest} · Two-handed, no shield` : fastest });
     } else if (!item && other?.kind === 'weapon') {
         // An empty hand (Off-6A): bare hands' damage, compared with the weapon held.
         const show = (w: Pick<OffWeaponItem, 'small' | 'large'>, factor = 1) => {

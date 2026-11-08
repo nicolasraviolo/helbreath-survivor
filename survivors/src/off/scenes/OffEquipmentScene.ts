@@ -52,6 +52,7 @@ import { Action, InputSystem } from '../../systems/InputSystem';
 import { lookLoader } from '../../systems/LookLoader';
 import { OFF_EQUIPMENT_BOX } from '../config/offEquipment';
 import { OFF_LOOT_TEXT } from '../data/offLoot';
+import { OFF_BAG_TEXT } from '../data/offBag';
 import { OFF_STAT_IDS, offMaxHp, offMaxMana, offMaxStamina } from '../data/offCharacter';
 import {
     canEmptyOffSlot,
@@ -63,6 +64,7 @@ import {
     offItemTint,
     offEquipmentLook,
     offGearDef,
+    offHandsClash,
     offNeedsText,
     offStrToEquip,
     offWearCheck,
@@ -466,6 +468,9 @@ export class OffEquipmentScene extends Phaser.Scene {
         if (index < 0 || index >= this.rows.length) return false;
         const id = this.rows[index];
         if (this.isWorn(id)) return false;
+        // Off-7E: what the other hand loses (a two-handed weapon and a shield don't go together).
+        const clash = id !== undefined ? offHandsClash(this.equipment, id) : undefined;
+        const tookOff = clash ? this.equipment[clash] : undefined;
         const result = offSaveStore.equip(this.slot, id);
         if (result !== 'ok') {
             this.helpText.setText(result === 'bagFull' ? OFF_LOOT_TEXT.bagFull : this.describeFocus());
@@ -476,6 +481,7 @@ export class OffEquipmentScene extends Phaser.Scene {
         this.showSlot(this.slot);
         // The rows move (what is worn goes first): the mark follows the item just put on.
         this.setFocus({ kind: 'row', index: this.wornRow() });
+        if (id !== undefined && tookOff) this.helpText.setText(OFF_BAG_TEXT.equippedTakingOff(offBagItemName(id), offBagItemName(tookOff)));
         return true;
     }
 

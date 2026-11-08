@@ -41,6 +41,8 @@ export interface OffWeaponItem extends OffWeaponDef {
     levelToEquip?: number;
     /** Its bag / ground picture when Survivors has none for `look` (Off-7B: the Rapier, Item.cfg sprite 1, frame 6). */
     icon?: ItemIconFrame;
+    /** Off-7E: held with both hands (Item.cfg slot 9), so no shield with it, as the original. */
+    twoHanded?: true;
 }
 
 export interface OffArmorItem {
@@ -81,23 +83,23 @@ export const OFF_ITEMS = {
     // 28: 1d12 / 2d7, 250, 2200, 6.
     falchion: { kind: 'weapon', slot: 'weapon', name: 'Falchion', small: [1, 12, 0], large: [2, 7, 0], range: 1, strToEquip: 22, speed: 6, price: 250, look: 'falchion' },
     // 38: 2d7 / 2d8, 250, 2800, 6.
-    broadSword: { kind: 'weapon', slot: 'weapon', name: 'Broad Sword', small: [2, 7, 0], large: [2, 8, 0], range: 1, strToEquip: 28, speed: 6, price: 250, look: 'broadSword' },
+    broadSword: { kind: 'weapon', slot: 'weapon', twoHanded: true, name: 'Broad Sword', small: [2, 7, 0], large: [2, 8, 0], range: 1, strToEquip: 28, speed: 6, price: 250, look: 'broadSword' },
     // 68: 3d3 / 3d3, 560, 3300, 5.
     doubleAxe: { kind: 'weapon', slot: 'weapon', name: 'Double Axe', small: [3, 3, 0], large: [3, 3, 0], range: 1, strToEquip: 33, speed: 5, price: 560, look: 'doubleAxe' },
     // 46: 2d9 / 2d10, 400, 4000, 7.
-    claymore: { kind: 'weapon', slot: 'weapon', name: 'Claymore', small: [2, 9, 0], large: [2, 10, 0], range: 1, strToEquip: 40, speed: 7, price: 400, look: 'claymore' },
+    claymore: { kind: 'weapon', slot: 'weapon', twoHanded: true, name: 'Claymore', small: [2, 9, 0], large: [2, 10, 0], range: 1, strToEquip: 40, speed: 7, price: 400, look: 'claymore' },
     // 71: 3d5 / 3d6, 700, 4400, 8.
     warAxe: { kind: 'weapon', slot: 'weapon', name: 'War Axe', small: [3, 5, 0], large: [3, 6, 0], range: 1, strToEquip: 44, speed: 8, price: 700, look: 'warAxe' },
     // 50: 2d10 / 2d11, 500, 5200, 8.
-    greatSword: { kind: 'weapon', slot: 'weapon', name: 'Great Sword', small: [2, 10, 0], large: [2, 11, 0], range: 1, strToEquip: 52, speed: 8, price: 500, look: 'greatSword' },
+    greatSword: { kind: 'weapon', slot: 'weapon', twoHanded: true, name: 'Great Sword', small: [2, 10, 0], large: [2, 11, 0], range: 1, strToEquip: 52, speed: 8, price: 500, look: 'greatSword' },
     // 54 Flameberge: 2d11 / 2d12, 700, 6000, 10.
-    flamberge: { kind: 'weapon', slot: 'weapon', name: 'Flameberge', small: [2, 11, 0], large: [2, 12, 0], range: 1, strToEquip: 60, speed: 10, price: 700, look: 'flamberge' },
+    flamberge: { kind: 'weapon', slot: 'weapon', twoHanded: true, name: 'Flameberge', small: [2, 11, 0], large: [2, 12, 0], range: 1, strToEquip: 60, speed: 10, price: 700, look: 'flamberge' },
     // 560 (Item2.cfg): 3d8 / 3d9, 3500, 9000, 13.
-    battleAxe: { kind: 'weapon', slot: 'weapon', name: 'Battle Axe', small: [3, 8, 0], large: [3, 9, 0], range: 1, strToEquip: 90, speed: 13, price: 3500, look: 'battleAxe' },
+    battleAxe: { kind: 'weapon', slot: 'weapon', twoHanded: true, name: 'Battle Axe', small: [3, 8, 0], large: [3, 9, 0], range: 1, strToEquip: 90, speed: 13, price: 3500, look: 'battleAxe' },
     // 760 (Item3.cfg): 3d7 / 3d9, 6000, 9000, 12.
-    hammer: { kind: 'weapon', slot: 'weapon', name: 'Hammer', small: [3, 7, 0], large: [3, 9, 0], range: 1, strToEquip: 90, speed: 12, price: 6000, look: 'hammer' },
+    hammer: { kind: 'weapon', slot: 'weapon', twoHanded: true, name: 'Hammer', small: [3, 7, 0], large: [3, 9, 0], range: 1, strToEquip: 90, speed: 12, price: 6000, look: 'hammer' },
     // 761 (Item3.cfg): 3d7+2 / 3d9+2, 9000, 12000, 14, Level 110.
-    battleHammer: { kind: 'weapon', slot: 'weapon', name: 'Battle Hammer', small: [3, 7, 2], large: [3, 9, 2], range: 1, strToEquip: 120, speed: 14, price: 9000, levelToEquip: 110, look: 'battleHammer' },
+    battleHammer: { kind: 'weapon', slot: 'weapon', twoHanded: true, name: 'Battle Hammer', small: [3, 7, 2], large: [3, 9, 2], range: 1, strToEquip: 120, speed: 14, price: 9000, levelToEquip: 110, look: 'battleHammer' },
     // ---- Shields. Item.cfg number: defence, price, weight. ----
     // 79: 8, 100, 800.
     woodShield: { kind: 'armor', slot: 'shield', name: 'Wood Shield', defense: 8, strToEquip: 8, price: 100, look: 'woodShield' },
@@ -353,6 +355,23 @@ export function offItemTint(key: OffBagItemKey | undefined): AddedColor | undefi
     if (key === undefined || !isOffGearKey(key)) return undefined;
     const primary = offGearRolls(key).primary;
     return primary === 'sharp' || primary === 'poison' || primary === 'ancient' ? attributeColor(primary) : undefined;
+}
+
+/** Off-7E: whether that gear is a weapon held with both hands. */
+export function offTwoHanded(key: OffGearKey): boolean {
+    const item = offGearDef(key);
+    return item.kind === 'weapon' && item.twoHanded === true;
+}
+
+/**
+ * Off-7E: the slot that has to come off when `key` goes on, as the original: a two-handed weapon takes off the shield,
+ * and a shield takes off a two-handed weapon. Undefined when both hands are fine.
+ */
+export function offHandsClash(equipment: OffEquipment, key: OffGearKey): 'weapon' | 'shield' | undefined {
+    const slot = offGearDef(key).slot;
+    if (slot === 'weapon' && offTwoHanded(key) && equipment.shield) return 'shield';
+    if (slot === 'shield' && equipment.weapon && offTwoHanded(equipment.weapon)) return 'weapon';
+    return undefined;
 }
 
 /** Equipment read back from a save: unknown items and items in the wrong slot are dropped (no weapon = bare hands). */

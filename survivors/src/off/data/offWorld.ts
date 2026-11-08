@@ -27,7 +27,15 @@ export const OFF_MOVEMENT = {
     clickSearchRadius: 50,
     /** The stick aims at a tile this far away, so a blocked step can go round the obstacle like a click does. */
     stickTargetTiles: 20,
+    /**
+     * Off-7E: a click looks for a way round houses and walls exploring at most this many tiles (a town is 300 × 300);
+     * past that it walks straight, as the original.
+     */
+    pathMaxTiles: 20_000,
 } as const;
+
+/** Off-7E: while in the world, where the character stands is saved this often (and on leaving or hiding the page). */
+export const OFF_WHERE_SAVE_MS = 5_000;
 
 /** The novice's look: a man with the default body, hair and underwear. */
 export const OFF_NOVICE_LOOK: CharacterLook = { gender: 'male', skin: 0, hairStyle: 0, hairColor: 7, underwear: 0 };

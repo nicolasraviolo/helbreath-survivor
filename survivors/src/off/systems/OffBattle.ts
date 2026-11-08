@@ -661,12 +661,14 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost {
         const id = offSaveStore.character.bag[index];
         if (id === undefined) return { done: false };
         if (isOffGearKey(id)) {
-            const result = offSaveStore.equipFromBag(index);
+            const { result, tookOff } = offSaveStore.equipFromBagTaking(index);
             if (result === 'str') return { done: false, line: OFF_BAG_TEXT.needsStr(offStrToEquip(id)) };
             if (result === 'level') return { done: false, line: OFF_BAG_TEXT.needsLevel(offGearDef(id).levelToEquip ?? 0) };
+            if (result === 'bagFull') return { done: false, line: OFF_BAG_TEXT.bagFull };
             if (result !== 'ok') return { done: false };
             this.audio.play('sfx.itemEquip');
-            return { done: true, line: OFF_BAG_TEXT.equipped(offBagItemName(id)), gear: true };
+            const line = tookOff ? OFF_BAG_TEXT.equippedTakingOff(offBagItemName(id), offBagItemName(tookOff)) : OFF_BAG_TEXT.equipped(offBagItemName(id));
+            return { done: true, line, gear: true };
         }
         const restores = offGood(id).restores;
         if (!restores) return { done: false, line: OFF_BAG_TEXT.cantUse(OFF_GOODS[id].name) };

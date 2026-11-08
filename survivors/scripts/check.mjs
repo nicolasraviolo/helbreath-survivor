@@ -144,6 +144,13 @@ const PRESETS = {
     // offloot, lo mismo y luego pisa las casillas con botín (en eval: suelo antes, oro y bolsa después). offbagfull
     // empieza con la bolsa llena (50 Red Potion) y ?offdrop=valuable: lo que pisa se queda en el suelo.
     offlootview: 'off=world&offreset&offlevel=3&offdrop=all',
+    // Fase Off-7E: offpath sale del teleport de Aresden y hace un solo clic en la puerta de la tienda (antes se atascaba
+    // entre casas); en eval, si llega y se abre la tienda. offtwohand: con un Targe Shield puesto se pone la Claymore
+    // (el escudo vuelve a la bolsa) y luego el escudo (la Claymore vuelve). offresume anda por Promiseland, sale a la
+    // pantalla de Off y le da a Play: vuelve a la misma casilla. Los objetos del suelo grandes: offlootview.
+    offpath: 'off=world&offreset&offlevel=5&offfaction=aresden&offplace=aresden',
+    offtwohand: 'off=world&offreset&offlevel=30&offstats=str:60&offgear=targeShield&offopen=bag&offbag=claymore,redPotion',
+    offresume: 'off=world&offreset&offlevel=60&offfaction=aresden&offplace=promiseland&offat=106,123',
     offloot: 'off=world&offreset&offlevel=3&offdrop=all',
     offbagfull: `off=world&offreset&offlevel=3&offdrop=valuable&offbag=${Array(50).fill('redPotion').join(',')}`,
     // Fase Off-5A: bandos. offportal pisa el portal de Aresden sin bando (sale "Do you want to join Aresden?");
@@ -479,6 +486,9 @@ const PRESET_EVAL = {
     // Fase Off-2B: kills Slimes for 20 s from level 1; level, experience and points before and after.
     offlevel: "new Promise((r) => { const start = o.debugState(); const t = setInterval(() => { if (!o.debugState().target) o.debugFight('slime'); }, 1000); setTimeout(() => { clearInterval(t); r({ start, end: o.debugState() }); }, 20000); })",
     // Fase Off-2B: 200 experience into level 10, dies (as a monster's last blow would); the experience before and after coming back.
+    offpath: "new Promise((r) => { const start = o.debugState().tile; o.debugWalkTo(126, 166, true); const t0 = Date.now(); const t = setInterval(() => { const open = game.scene.isActive('OffStore'); const s = o.debugState(); if (open || Date.now() - t0 > 45000) { clearInterval(t); r({ start, open, tile: s.tile, moving: s.moving, seconds: Math.round((Date.now() - t0) / 1000) }); } }, 500); })",
+    offtwohand: "new Promise((r) => setTimeout(() => { const inv = game.scene.getScene('OffInventory'); const claymore = inv.use(0); const one = (({ equipment, bag }) => ({ equipment, bag }))(JSON.parse(localStorage.getItem('hb-off.character'))); const shield = inv.use(inv.debugState().bag.indexOf('targeShield')); const two = (({ equipment, bag }) => ({ equipment, bag }))(JSON.parse(localStorage.getItem('hb-off.character'))); r({ claymore, one, shield, two }); }, 1000))",
+    offresume: "new Promise((r) => { o.debugWalkTo(112, 118, true); setTimeout(() => { const before = o.debugState().tile; o.scene.start('OffHome'); setTimeout(() => { const saved = JSON.parse(localStorage.getItem('hb-off.character')).where; game.scene.getScene('OffHome').play(); setTimeout(() => { const s = game.scene.getScene('OffWorld').debugState(); r({ before, saved, after: { place: s.place, tile: s.tile } }); }, 6000); }, 1000); }, 7000); })",
     offportal: "o.debugWalkTo(81, 76), new Promise((r) => setTimeout(() => r({ confirm: game.scene.isActive('OffConfirm'), worldPaused: game.scene.isPaused('OffWorld'), state: o.debugState().place }), 3000))",
     offjoin: "o.debugWalkTo(81, 76), new Promise((r) => setTimeout(() => { const asked = game.scene.isActive('OffConfirm'); game.scene.getScene('OffConfirm').answer(true); setTimeout(() => { const s = o.debugState(); r({ asked, place: s.place, faction: s.faction, tile: s.tile, hp: s.hp, saved: JSON.parse(localStorage.getItem('hb-off.character')).faction }); }, 4000); }, 3000))",
     offcityback: "new Promise((r) => { const start = o.debugState().place; o.debugWalkTo(237, 140); setTimeout(() => { game.scene.getScene('OffTeleport').choose('traveler'); }, 2500); setTimeout(() => { const s = o.debugState(); const mid = [s.place, s.tile]; o.debugWalkTo(128, 79); setTimeout(() => { const e = o.debugState(); r({ start, mid, end: [e.place, e.tile], asked: game.scene.isActive('OffConfirm') }); }, 6000); }, 5000); })",

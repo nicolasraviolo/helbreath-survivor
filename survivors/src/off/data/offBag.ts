@@ -13,6 +13,9 @@ export const OFF_BAG_TEXT = {
     potions: (count: number, limit: number) => `Potions: ${count} / ${limit}`,
     empty: 'Your bag is empty. Monsters drop gold, potions and gear: walk over them to pick them up.',
     equipped: (name: string) => `You put on the ${name}.`,
+    /** Off-7E: a two-handed weapon and a shield don't go together. */
+    equippedTakingOff: (name: string, off: string) => `You put on the ${name}. The ${off} went back to your bag.`,
+    bagFull: 'Your bag is full.',
     needsStr: (str: number) => `Not enough Str (needs ${str}).`,
     needsLevel: (level: number) => `Your level is too low (needs Level ${level}).`,
     alreadyFull: (what: OffPotionRestores) => `Your ${BAR_NAMES[what]} is already full.`,

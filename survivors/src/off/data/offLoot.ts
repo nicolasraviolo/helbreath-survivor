@@ -51,6 +51,8 @@ export const OFF_LOOT = {
     blinkPeriodMs: 250,
     /** Small shifts (px) of the items sharing a tile, so all of them show. */
     groundNudges: [[0, 0], [8, 4], [-8, 4], [0, -6]] as ReadonlyArray<readonly [number, number]>,
+    /** Off-7E: ground pictures drawn this much bigger than the original (owner: they looked too small; no glow). */
+    groundScale: 1.5,
     /** Most items in the bag (the original's DEF_MAXITEMS). */
     bagSize: 50,
     /**
