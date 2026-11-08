@@ -18,6 +18,8 @@ export const OFF_BAG_TEXT = {
     alreadyFull: (what: OffPotionRestores) => `Your ${BAR_NAMES[what]} is already full.`,
     cantUse: (name: string) => `${name} can't be used. Sell it in town.`,
     dropped: (name: string) => `You dropped the ${name}.`,
+    /** Quick potions (Off-7B): nothing of that kind to drink. */
+    noPotion: (what: 'hp' | 'mana') => `You have no ${what === 'hp' ? 'Health' : 'Mana'} potions.`,
     /** Help line under the grid, by device. */
     helpMouse: 'Double-click: use or wear · Del: drop · E: Equipment · I: close',
     helpPad: 'A: use or wear · Y: drop · X: close',

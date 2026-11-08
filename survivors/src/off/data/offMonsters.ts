@@ -77,6 +77,10 @@ export const OFF_MONSTERS: Record<OffMonsterId, OffMonsterDef> = {
 };
 
 /** Health of a new monster (server, at spawn). */
+export function isOffMonsterId(id: string): id is OffMonsterId {
+    return Object.prototype.hasOwnProperty.call(OFF_MONSTERS, id);
+}
+
 export function rollMonsterHp(hitDice: number, roll: (count: number, sides: number) => number): number {
     return hitDice <= 5 ? roll(hitDice, 4) + hitDice : hitDice * 4 + hitDice + roll(1, hitDice);
 }

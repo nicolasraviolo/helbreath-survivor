@@ -71,7 +71,9 @@ import { OffBattle } from '../systems/OffBattle';
 import { offSaveStore } from '../systems/OffSaveStore';
 import { OFF_HUD_SCENE_KEY, OFF_OPEN_CHARACTER_EVENT, OFF_OPEN_PAUSE_EVENT, type OffHudSceneData, type OffHudState } from './OffHudScene';
 import { offCharacterInfo } from './offCharacterInfo';
-import { offEquipmentLook } from '../data/offItems';
+import { isOffGearKey, offEquipmentLook, offGearId, offGearRolls, offWeaponTint } from '../data/offItems';
+import { rollKillLoot } from '../systems/OffLootRoller';
+import { isOffMonsterId } from '../data/offMonsters';
 import { offAttackMs } from '../data/offCombat';
 import { OFF_EQUIPMENT_SCENE_KEY, type OffEquipmentSceneData } from './OffEquipmentScene';
 import { OFF_INVENTORY_SCENE_KEY, type OffInventorySceneData } from './OffInventoryScene';
@@ -195,6 +197,7 @@ export class OffWorldScene extends Phaser.Scene {
         this.mover = new TileMover((x, y) => this.battle.isFreeForPlayer(x, y), spawn.x, spawn.y);
         this.lastTile = { x: spawn.x, y: spawn.y };
         this.character = new OffCharacter(this, OFF_NOVICE, offSaveStore.character.look, offEquipmentLook(offSaveStore.character.equipment));
+        this.character.wear(offEquipmentLook(offSaveStore.character.equipment), offWeaponTint(offSaveStore.character.equipment));
         this.character.update(this.mover, false, 0);
         this.audio = new AudioSystem(this);
         // Coming back to life: here, on the place's spawn, if this is home; otherwise off to the character's city.
@@ -241,6 +244,8 @@ export class OffWorldScene extends Phaser.Scene {
         this.minimap.setVisible(settings.current.showMinimap);
 
         this.inputSystem = new InputSystem(this);
+        // Off-7B: the d-pad drinks potions (left / right), so only the stick walks.
+        this.inputSystem.setDpadMoves(false);
         this.fitPlayArea();
         this.input.mouse?.disableContextMenu();
         this.input.on(Phaser.Input.Events.POINTER_DOWN, this.onPointerDown, this);
@@ -323,6 +328,8 @@ export class OffWorldScene extends Phaser.Scene {
         const toggleRun = input.justPressed(Action.ToggleRun);
         const spellBook = input.justPressed(Action.OffSpellBook);
         const spellKey = OFF_SPELL_KEY_ACTIONS.findIndex((action) => input.justPressed(action));
+        const drinkHealth = !trigger && input.justPressed(Action.OffDrinkHealth);
+        const drinkMana = !trigger && input.justPressed(Action.OffDrinkMana);
         if (!this.window && this.windowClosedFrame !== this.game.loop.frame) {
             if (pause) {
                 this.openPause();
@@ -342,6 +349,9 @@ export class OffWorldScene extends Phaser.Scene {
             }
             if (toggleRun) runMode = !runMode;
             if (spellKey >= 0) this.pressSpellKey(spellKey);
+            // Off-7B: quick potions (Q / E, d-pad left / right).
+            if (drinkHealth && !this.battle.dead) this.battle.drinkQuick('hp');
+            if (drinkMana && !this.battle.dead) this.battle.drinkQuick('mana');
             if (padSpell >= 0) this.pressPadSpell(padSpell);
         }
         this.updateCombatInput();
@@ -552,7 +562,7 @@ export class OffWorldScene extends Phaser.Scene {
 
     /** What the character wears now, on the sprite (items not downloaded yet appear when they arrive). */
     private dressCharacter(): void {
-        this.character.wear(offEquipmentLook(offSaveStore.character.equipment));
+        this.character.wear(offEquipmentLook(offSaveStore.character.equipment), offWeaponTint(offSaveStore.character.equipment));
     }
 
     /** A screen covers the world: the character stops and takes no orders; the HUD hides. */
@@ -675,7 +685,7 @@ export class OffWorldScene extends Phaser.Scene {
         level: number; exp: number; points: number; kills: number; monsters: Record<string, number>; target: string | undefined;
         weapon: string; attackMs: number; defense: number; gold: number; bag: string[]; ground: string[];
         spell: string; casts: number; fails: number; prepareMs: number; burning: number; slowed: number;
-        held: number; shield: string | undefined; padSpells: string[];
+        held: number; poisoned: number; shield: string | undefined; padSpells: string[];
     } {
         const monsters: Record<string, number> = {};
         for (const monster of this.battle.pits.monsters) {
@@ -716,10 +726,34 @@ export class OffWorldScene extends Phaser.Scene {
             burning: this.battle.pits.monsters.filter((m) => m.isAlive && m.isBurning).length,
             slowed: this.battle.pits.monsters.filter((m) => m.isAlive && m.isSlowed).length,
             held: this.battle.pits.monsters.filter((m) => m.isAlive && m.isHeld).length,
+            poisoned: this.battle.pits.monsters.filter((m) => m.isAlive && m.isPoisoned).length,
             shield: this.battle.protection ? `${this.battle.protection.spell} ${Math.ceil(this.battle.protection.leftMs / 1000)}s` : undefined,
             padSpells: offSaveStore.character.padSpells.map((k) => k ?? '-'),
             ground: this.battle.ground.items.map((g) => `${'gold' in g.content ? `${g.content.gold} gold` : g.content.item} at ${g.tileX},${g.tileY}`),
         };
+    }
+
+    /**
+     * Development (`check offlootlevel`, Off-7B): rolls `count` valuable drops of that monster and counts the items and
+     * the attributes (first and second) that came out.
+     */
+    public debugRollLoot(monster: string, count: number): { items: Record<string, number>; first: Record<string, number>; second: Record<string, number>; withSecond: number } {
+        const out = { items: {} as Record<string, number>, first: {} as Record<string, number>, second: {} as Record<string, number>, withSecond: 0 };
+        if (!isOffMonsterId(monster)) return out;
+        const add = (into: Record<string, number>, key: string) => { into[key] = (into[key] ?? 0) + 1; };
+        for (let i = 0; i < count; i++) {
+            for (const key of rollKillLoot(monster, 'valuable').items) {
+                if (!isOffGearKey(key)) continue;
+                add(out.items, offGearId(key));
+                const rolls = offGearRolls(key);
+                if (rolls.primary) add(out.first, `${rolls.primary}${rolls.primaryValue ?? ''}`);
+                if (rolls.secondary) {
+                    add(out.second, rolls.secondary);
+                    out.withSecond++;
+                }
+            }
+        }
+        return out;
     }
 
     /** Development (`check offfight`): attacks the nearest monster of a kind (all of them, `id` undefined) and keeps on. */

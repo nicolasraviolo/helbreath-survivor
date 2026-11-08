@@ -13,12 +13,17 @@
 // mínimo para ponérselo (Item.cfg, el valor que va tras la velocidad: Battle Hammer 110, Winged Helmet 100...).
 // Las piezas (M)/(W) del original son una sola: el dibujo cambia con el sexo (Survivors).
 import type { ArmorPieceId } from '../../data/armor';
+import { attributeColor, type WeaponAttribute } from '../../data/attributes';
+import type { AddedColor } from '../../hb/playerAppearance';
 import type { Gender } from '../../data/appearance';
 import { itemIcon, type SavedEquipment } from '../../data/items';
 import type { ItemIconFrame } from '../../data/itemTypes';
 import { isOffGoodId, OFF_GOODS, type OffGoodId } from './offGoods';
 import type { MeleeWeaponId } from '../../data/weapons';
 import type { OffWeaponDef } from './offCombat';
+import {
+    addOffEffects, hasOffRolls, offRollEffects, offRolledName, offRollsText, readOffRolls, type OffAttributeEffects, type OffRolls,
+} from './offAttributes';
 
 /** Slots that hold something, in the order of the Equipment screen. */
 export const OFF_GEAR_SLOT_IDS = ['weapon', 'shield', 'helm', 'body', 'legs', 'boots', 'cape'] as const;
@@ -34,6 +39,8 @@ export interface OffWeaponItem extends OffWeaponDef {
     price: number;
     /** Item.cfg minimum level to wear it; none if missing. */
     levelToEquip?: number;
+    /** Its bag / ground picture when Survivors has none for `look` (Off-7B: the Rapier, Item.cfg sprite 1, frame 6). */
+    icon?: ItemIconFrame;
 }
 
 export interface OffArmorItem {
@@ -57,7 +64,7 @@ export const OFF_ITEMS = {
     // 8: 1d6 / 1d5, 50, 800, 2.
     shortSword: { kind: 'weapon', slot: 'weapon', name: 'Short Sword', small: [1, 6, 0], large: [1, 5, 0], range: 1, strToEquip: 8, speed: 2, price: 50, look: 'shortSword' },
     // 34: 1d7 / 1d10, 300, 1100, 3.
-    rapier: { kind: 'weapon', slot: 'weapon', name: 'Rapier', small: [1, 7, 0], large: [1, 10, 0], range: 1, strToEquip: 11, speed: 3, price: 300, look: 'rapier' },
+    rapier: { kind: 'weapon', slot: 'weapon', name: 'Rapier', small: [1, 7, 0], large: [1, 10, 0], range: 1, strToEquip: 11, speed: 3, price: 300, look: 'rapier', icon: { sheet: 0, frame: 6 } },
     // 59: 1d6 / 1d7, 100, 1400, 3.
     lightAxe: { kind: 'weapon', slot: 'weapon', name: 'Light Axe', small: [1, 6, 0], large: [1, 7, 0], range: 1, strToEquip: 14, speed: 3, price: 100, look: 'lightAxe' },
     // 17: 1d9 / 1d10, 180, 1400, 6.
@@ -138,7 +145,13 @@ export const OFF_ITEMS = {
 } as const satisfies Record<string, OffItemDef>;
 
 export type OffItemId = keyof typeof OFF_ITEMS;
-export type OffEquipment = Partial<Record<OffSlotId, OffItemId>>;
+
+/**
+ * One piece of gear as it is kept (Off-7B): its id, or its id with its attributes ("longSword:sharp:hittingProbability4",
+ * off/data/offAttributes.ts). Normal items are only their id, so saves from before read as they are.
+ */
+export type OffGearKey = OffItemId | `${OffItemId}:${string}`;
+export type OffEquipment = Partial<Record<OffSlotId, OffGearKey>>;
 
 export function isOffItemId(id: string): id is OffItemId {
     return Object.prototype.hasOwnProperty.call(OFF_ITEMS, id);
@@ -146,6 +159,80 @@ export function isOffItemId(id: string): id is OffItemId {
 
 export function offItem(id: OffItemId): OffItemDef {
     return OFF_ITEMS[id];
+}
+
+/** Weapon or armour: which attribute lists it rolls from. */
+export function offGearKind(id: OffItemId): 'weapon' | 'armor' {
+    return OFF_ITEMS[id].kind;
+}
+
+/** The id of a gear key. */
+export function offGearId(key: OffGearKey): OffItemId {
+    return key.split(':')[0] as OffItemId;
+}
+
+/** The attributes of a gear key (none for a plain id). */
+export function offGearRolls(key: OffGearKey): OffRolls {
+    const [id, ...parts] = key.split(':');
+    if (parts.length === 0 || !id || !isOffItemId(id)) return {};
+    return readOffRolls(offGearKind(id), parts);
+}
+
+/** The key of that item with those attributes (the plain id when it has none). */
+export function offGearKey(id: OffItemId, rolls: Readonly<OffRolls> = {}): OffGearKey {
+    const text = offRollsText(rolls);
+    return text ? `${id}:${text.slice(1)}` : id;
+}
+
+/** Whether a text is a gear key we know, written as we write it (unknown attributes make it not one). */
+export function isOffGearKey(text: string): text is OffGearKey {
+    const id = text.split(':')[0] ?? '';
+    if (!isOffItemId(id)) return false;
+    return offGearKey(id, offGearRolls(text as OffGearKey)) === text;
+}
+
+/**
+ * A text read back (a save, ?offbag=) as a gear key: a known id, its attributes cleaned (unknown ones left out, values
+ * into their range). Undefined if the id is unknown.
+ */
+export function readOffGearKey(text: string): OffGearKey | undefined {
+    const id = text.split(':')[0] ?? '';
+    if (!isOffItemId(id)) return undefined;
+    return offGearKey(id, offGearRolls(text as OffGearKey));
+}
+
+/** The same for anything kept in the bag. */
+export function readOffBagKey(text: string): OffBagItemKey | undefined {
+    return isOffGoodId(text) ? text : readOffGearKey(text);
+}
+
+/** A gear key with attributes: a special item (green name, as the original). */
+export function isOffSpecial(key: OffBagItemKey): boolean {
+    return isOffGearKey(key) && hasOffRolls(offGearRolls(key));
+}
+
+/** The item's def, from its key. */
+export function offGearDef(key: OffGearKey): OffItemDef {
+    return OFF_ITEMS[offGearId(key)];
+}
+
+/** What a piece's attributes add. */
+export function offGearEffects(key: OffGearKey): OffAttributeEffects {
+    const id = offGearId(key);
+    return offRollEffects(offGearKind(id), offGearRolls(key));
+}
+
+/** What all the worn gear's attributes add together. */
+export function offEquipmentEffects(equipment: Readonly<OffEquipment>): OffAttributeEffects {
+    const effects: OffAttributeEffects = {};
+    for (const key of Object.values(equipment)) addOffEffects(effects, offGearEffects(key));
+    return effects;
+}
+
+/** STR it asks for: its own, less a Light attribute's share (original: −4 % of the weight per point). */
+export function offStrToEquip(key: OffGearKey): number {
+    const light = offGearEffects(key).light ?? 0;
+    return Math.max(1, Math.floor(offGearDef(key).strToEquip * (1 - light)));
 }
 
 /** Who wants to wear something: what its requirements are checked against. */
@@ -157,29 +244,30 @@ export interface OffWearer {
 /** Whether it can be worn: 'ok', or what falls short (the STR is told first). */
 export type OffWearCheck = 'ok' | 'str' | 'level';
 
-export function offWearCheck(id: OffItemId, who: OffWearer): OffWearCheck {
-    const item: OffItemDef = OFF_ITEMS[id];
-    if (item.strToEquip > who.str) return 'str';
+export function offWearCheck(key: OffGearKey, who: OffWearer): OffWearCheck {
+    const item: OffItemDef = offGearDef(key);
+    if (offStrToEquip(key) > who.str) return 'str';
     if ((item.levelToEquip ?? 0) > who.level) return 'level';
     return 'ok';
 }
 
 /** "Str 130 · Level 100" (the level only when it asks for one). */
-export function offNeedsText(id: OffItemId): string {
-    const item: OffItemDef = OFF_ITEMS[id];
-    return item.levelToEquip ? `Str ${item.strToEquip} · Level ${item.levelToEquip}` : `Str ${item.strToEquip}`;
+export function offNeedsText(key: OffGearKey): string {
+    const item: OffItemDef = offGearDef(key);
+    const str = offStrToEquip(key);
+    return item.levelToEquip ? `Str ${str} · Level ${item.levelToEquip}` : `Str ${str}`;
 }
 
 /** What a new character wears. */
 export const OFF_START_EQUIPMENT: Readonly<OffEquipment> = { weapon: 'dagger' };
 
-/** The gear in the bag for that slot (Off-4B), each kind once, lightest STR first. */
-export function offBagGearFor(bag: readonly OffBagItemId[], slot: OffSlotId): OffItemId[] {
-    const ids = new Set<OffItemId>();
-    for (const id of bag) {
-        if (isOffItemId(id) && OFF_ITEMS[id].slot === slot) ids.add(id);
+/** The gear in the bag for that slot (Off-4B), each one once (the same attributes = the same), lightest STR first. */
+export function offBagGearFor(bag: readonly OffBagItemKey[], slot: OffSlotId): OffGearKey[] {
+    const keys = new Set<OffGearKey>();
+    for (const key of bag) {
+        if (isOffGearKey(key) && offGearDef(key).slot === slot) keys.add(key);
     }
-    return [...ids].sort((a, b) => OFF_ITEMS[a].strToEquip - OFF_ITEMS[b].strToEquip);
+    return [...keys].sort((a, b) => offStrToEquip(a) - offStrToEquip(b));
 }
 
 /**
@@ -198,16 +286,16 @@ export const OFF_FISTS: OffWeaponDef = { name: 'Fists', small: [1, 2, 0], large:
 
 /** The weapon held, or bare hands. */
 export function offWeapon(equipment: Readonly<OffEquipment>): OffWeaponDef {
-    const id = equipment.weapon;
-    const item = id ? OFF_ITEMS[id] : undefined;
+    const key = equipment.weapon;
+    const item = key ? offGearDef(key) : undefined;
     return item?.kind === 'weapon' ? item : OFF_FISTS;
 }
 
 /** Defence the worn armour adds. */
 export function offArmorDefense(equipment: Readonly<OffEquipment>): number {
     let total = 0;
-    for (const id of Object.values(equipment)) {
-        const item = OFF_ITEMS[id];
+    for (const key of Object.values(equipment)) {
+        const item = offGearDef(key);
         if (item.kind === 'armor') total += item.defense;
     }
     return total;
@@ -217,10 +305,30 @@ export function offArmorDefense(equipment: Readonly<OffEquipment>): number {
 export function offEquipmentLook(equipment: Readonly<OffEquipment>): SavedEquipment {
     const look: SavedEquipment = {};
     for (const slot of OFF_GEAR_SLOT_IDS) {
-        const id = equipment[slot];
-        if (id) look[slot] = OFF_ITEMS[id].look;
+        const key = equipment[slot];
+        if (key) look[slot] = offGearDef(key).look;
     }
     return look;
+}
+
+/**
+ * The weapon's colour in the hand (Off-7B): Sharp, Poison and Ancient are tinted as in Survivors (and the original).
+ * Critical has no colour.
+ */
+export function offWeaponTint(equipment: Readonly<OffEquipment>): { weapon?: WeaponAttribute } {
+    const key = equipment.weapon;
+    const primary = key ? offGearRolls(key).primary : undefined;
+    return primary === 'sharp' || primary === 'poison' || primary === 'ancient' ? { weapon: primary } : {};
+}
+
+/**
+ * The colour added to an item's picture in the bag, the windows and on the ground (Off-7B): Sharp, Poison and Ancient,
+ * as Survivors (ownedItemColor). Undefined = its own colours.
+ */
+export function offItemTint(key: OffBagItemKey | undefined): AddedColor | undefined {
+    if (key === undefined || !isOffGearKey(key)) return undefined;
+    const primary = offGearRolls(key).primary;
+    return primary === 'sharp' || primary === 'poison' || primary === 'ancient' ? attributeColor(primary) : undefined;
 }
 
 /** Equipment read back from a save: unknown items and items in the wrong slot are dropped (no weapon = bare hands). */
@@ -228,8 +336,9 @@ export function readOffEquipment(value: unknown): OffEquipment {
     const equipment: OffEquipment = { ...OFF_START_EQUIPMENT };
     if (typeof value !== 'object' || value === null) return equipment;
     for (const slot of OFF_GEAR_SLOT_IDS) {
-        const id: unknown = (value as Record<string, unknown>)[slot];
-        if (typeof id === 'string' && isOffItemId(id) && OFF_ITEMS[id].slot === slot) equipment[slot] = id;
+        const text: unknown = (value as Record<string, unknown>)[slot];
+        const key = typeof text === 'string' ? readOffGearKey(text) : undefined;
+        if (key && offGearDef(key).slot === slot) equipment[slot] = key;
         else if (canEmptyOffSlot(slot)) delete equipment[slot];
     }
     return equipment;
@@ -242,14 +351,30 @@ export function isOffBagItemId(id: string): id is OffBagItemId {
     return isOffItemId(id) || isOffGoodId(id);
 }
 
-/** Name of anything in the bag. */
-export function offBagItemName(id: OffBagItemId): string {
-    return isOffItemId(id) ? OFF_ITEMS[id].name : OFF_GOODS[id].name;
+/** Anything kept in the bag or the warehouse (Off-7B): gear with its attributes, or a good. */
+export type OffBagItemKey = OffGearKey | OffGoodId;
+
+/** The plain id of what a bag key holds (its attributes left out). */
+export function offBagKeyId(key: OffBagItemKey): OffBagItemId {
+    return isOffGoodId(key) ? key : offGearId(key);
+}
+
+export function isOffBagItemKey(text: string): text is OffBagItemKey {
+    return isOffGoodId(text) || isOffGearKey(text);
+}
+
+/** Name of anything in the bag ("Sharp Long Sword" for a special one). */
+export function offBagItemName(key: OffBagItemKey): string {
+    if (isOffGoodId(key)) return OFF_GOODS[key].name;
+    const id = offGearId(key);
+    return offRolledName(offGearKind(id), OFF_ITEMS[id].name, offGearRolls(key));
 }
 
 /** Its picture (item-ground / item-pack sheet and frame), for that gender. */
-export function offBagItemPicture(id: OffBagItemId, gender: Gender): ItemIconFrame | undefined {
-    return isOffItemId(id) ? itemIcon(OFF_ITEMS[id].look, gender) : OFF_GOODS[id].picture;
+export function offBagItemPicture(key: OffBagItemKey, gender: Gender): ItemIconFrame | undefined {
+    if (isOffGoodId(key)) return OFF_GOODS[key].picture;
+    const item = offGearDef(key);
+    return (item.kind === 'weapon' ? item.icon : undefined) ?? itemIcon(item.look, gender);
 }
 
 /** Average of some dice (to tell which weapon hits harder). */

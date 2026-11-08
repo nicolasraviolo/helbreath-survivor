@@ -198,8 +198,12 @@ export const MELEE_WEAPONS = {
         range: 95, arcDegrees: 160, knockback: 270, sprite: { key: 'gear.hammers.battle', startSheet: 0 },
         equip: { str: 95 }, icon: { sheet: AXE_ICON_SHEET, frame: 8 }, crack: { damage: 42, length: 240 },
     },
-    // Desactivada (solo datos, sin ataque propio ni sprite cargado todavía). Números provisionales.
-    rapier: { name: 'Rapier', family: 'fencing', damage: 10, cooldownMs: 400, swingMs: 320, range: 90, arcDegrees: 25, knockback: 40 },
+    // Desactivada en Survivors (sin ataque propio). Números provisionales. Off-7B: su dibujo en la mano para Helbreath
+    // Off, el bloque 7 de msw.spr (Item.cfg 34, apariencia 7: bloque = apariencia − 1, 56 hojas cada uno).
+    rapier: {
+        name: 'Rapier', family: 'fencing', damage: 10, cooldownMs: 400, swingMs: 320, range: 90, arcDegrees: 25, knockback: 40,
+        sprite: { key: SWORD_SPRITE, startSheet: 336 },
+    },
     // Axes (bloque B, 25-oct-2026; 31-oct-2026): el golpe normal es un tajo en abanico como el de las espadas, con un poco
     // más de daño por segundo que la espada larga de Str parecida (algo menos de alcance); el golpe en círculo (AXE_SPIN)
     // queda para el Critical Strike, que es el de área más amplia. Requisitos aprobados por el propietario.

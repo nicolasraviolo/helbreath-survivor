@@ -21,27 +21,30 @@ export function isFromBehind(attackerFacing: number, targetFacing: number): bool
     return attackerFacing === targetFacing;
 }
 
-/** A weapon's damage: its dice for the target's size, then +1 % per 5 STR (never under 1). */
-export function rollWeaponDamage(weapon: OffWeaponDef, size: 'small' | 'large', str: number): number {
+/**
+ * A weapon's damage: its dice for the target's size, then +1 % per 5 STR (never under 1). `factor`: the weapon's
+ * attributes (Off-7B: Sharp 1.1, Ancient 1.2).
+ */
+export function rollWeaponDamage(weapon: OffWeaponDef, size: 'small' | 'large', str: number, factor = 1): number {
     const [count, sides, bonus] = size === 'small' ? weapon.small : weapon.large;
-    return strDamage(rollDice(count, sides) + bonus, str);
+    return strDamage(rollDice(count, sides) + bonus, str, factor);
 }
 
-/** The dice's result with the STR bonus. */
-function strDamage(base: number, str: number): number {
-    return Math.max(1, Math.floor(base * (1 + str / 500)));
+/** The dice's result with the STR bonus (and the attributes' factor). */
+function strDamage(base: number, str: number, factor = 1): number {
+    return Math.max(1, Math.floor(base * (1 + str / 500) * factor));
 }
 
 /**
  * Least and most damage of a normal blow with that STR (crits apart), against any monster: the lowest of the small and
  * large dice to the highest (Fase Off-3C: the owner wanted this instead of the dice, which were hard to read).
  */
-export function weaponDamageRange(weapon: Pick<OffWeaponDef, 'small' | 'large'>, str: number): { min: number; max: number } {
+export function weaponDamageRange(weapon: Pick<OffWeaponDef, 'small' | 'large'>, str: number, factor = 1): { min: number; max: number } {
     const low = ([count, , bonus]: readonly [number, number, number]) => count + bonus;
     const high = ([count, sides, bonus]: readonly [number, number, number]) => count * sides + bonus;
     return {
-        min: strDamage(Math.min(low(weapon.small), low(weapon.large)), str),
-        max: strDamage(Math.max(high(weapon.small), high(weapon.large)), str),
+        min: strDamage(Math.min(low(weapon.small), low(weapon.large)), str, factor),
+        max: strDamage(Math.max(high(weapon.small), high(weapon.large)), str, factor),
     };
 }
 

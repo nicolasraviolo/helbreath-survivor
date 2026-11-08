@@ -30,7 +30,8 @@ import { cleanName, readLook } from '../../systems/CharacterStore';
 import { isRecord } from '../../systems/SaveStore';
 import { OFF_CREATION, OFF_OLD_SAVE_STATS, OFF_STAT_IDS, OFF_STAT_MAX, type OffStats } from '../data/offCharacter';
 import {
-    isOffBagItemId, isOffItemId, OFF_ITEMS, OFF_START_EQUIPMENT, offWearCheck, readOffEquipment, type OffBagItemId, type OffEquipment, type OffItemId, type OffSlotId,
+    isOffGearKey, OFF_START_EQUIPMENT, readOffBagKey, readOffGearKey, offBagKeyId, offGearDef, offWearCheck, readOffEquipment, type OffBagItemId, type OffBagItemKey, type OffEquipment,
+    type OffGearKey, type OffSlotId,
 } from '../data/offItems';
 import { isOffPotion } from '../data/offGoods';
 import { OFF_LOOT } from '../data/offLoot';
@@ -43,8 +44,8 @@ import {
 } from '../data/offSpells';
 
 export const OFF_CHARACTER_STORAGE_KEY = 'hb-off.character';
-/** 1 (Off-2B): experience and unspent points. 2 (Off-3A): name, look, stats and whether it was created. 3 (Off-3C): equipment. 4 (Off-4A): gold and bag. 5 (Off-5A): faction. 6 (Off-5B): warehouse. 7 (Off-6A): spells and spell keys. 8 (Off-6C): gamepad spells. */
-const OFF_CHARACTER_VERSION = 8;
+/** 1 (Off-2B): experience and unspent points. 2 (Off-3A): name, look, stats and whether it was created. 3 (Off-3C): equipment. 4 (Off-4A): gold and bag. 5 (Off-5A): faction. 6 (Off-5B): warehouse. 7 (Off-6A): spells and spell keys. 8 (Off-6C): gamepad spells. 9 (Off-7B): gear may carry its attributes ("longSword:sharp"; plain ids read as before). */
+const OFF_CHARACTER_VERSION = 9;
 
 export interface OffSavedCharacter {
     /** False until the creation screen is done (Play opens it). */
@@ -61,11 +62,11 @@ export interface OffSavedCharacter {
     /** Gold carried (Off-4A). */
     gold: number;
     /** What the bag holds, in the order it came in (Off-4A; at most OFF_LOOT.bagSize). */
-    bag: OffBagItemId[];
+    bag: OffBagItemKey[];
     /** Aresden or Elvine, for ever (Off-5A); undefined until a portal of Traveler Zone is taken. */
     faction: OffFaction | undefined;
     /** What the city's warehouse keeps (Off-5B; at most OFF_STORE.warehouseSize), shared by both cities. */
-    warehouse: OffBagItemId[];
+    warehouse: OffBagItemKey[];
     /** Spells learned, in the order they were learned (Off-6A). */
     spells: OffSpellId[];
     /** Which spell each key 1–8 casts (Off-6A; always OFF_SPELL_KEY_COUNT long, undefined = none). */
@@ -110,21 +111,21 @@ class OffSaveStoreImpl {
             }
         }
         if (statsChanged) this.data = { ...this.data, stats: debugStats };
-        const gear = DEBUG_START.offGear.filter(isOffItemId);
+        const gear = DEBUG_START.offGear.map(readOffGearKey).filter((key) => key !== undefined);
         // Off-6B: `noweapon` leaves the hands empty (spells need them).
         const noWeapon = DEBUG_START.offGear.includes('noweapon');
         if (gear.length > 0 || noWeapon) {
             const equipment = { ...this.data.equipment };
-            for (const id of gear) equipment[OFF_ITEMS[id].slot] = id;
+            for (const key of gear) equipment[offGearDef(key).slot] = key;
             if (noWeapon) delete equipment.weapon;
             this.data = { ...this.data, equipment };
         }
         if (DEBUG_START.offGold !== undefined) this.data = { ...this.data, gold: DEBUG_START.offGold };
-        const bag = DEBUG_START.offBag.filter(isOffBagItemId).slice(0, OFF_LOOT.bagSize);
+        const bag = DEBUG_START.offBag.map(readOffBagKey).filter((key) => key !== undefined).slice(0, OFF_LOOT.bagSize);
         if (bag.length > 0) this.data = { ...this.data, bag };
         const faction = DEBUG_START.offFaction;
         if (faction !== undefined) this.data = { ...this.data, faction: faction === 'none' ? undefined : faction };
-        const warehouse = DEBUG_START.offWarehouse.filter(isOffBagItemId).slice(0, OFF_STORE.warehouseSize);
+        const warehouse = DEBUG_START.offWarehouse.map(readOffBagKey).filter((key) => key !== undefined).slice(0, OFF_STORE.warehouseSize);
         if (warehouse.length > 0) this.data = { ...this.data, warehouse };
         const spells = DEBUG_START.offSpells === 'all' ? [...OFF_SPELL_IDS] : DEBUG_START.offSpells.filter(isOffSpellId);
         if (spells.length > 0) {
@@ -163,8 +164,8 @@ class OffSaveStoreImpl {
      */
     public equipFromBag(index: number): OffEquipResult {
         const id = this.data.bag[index];
-        if (id === undefined || !isOffItemId(id)) return 'none';
-        const item = OFF_ITEMS[id];
+        if (id === undefined || !isOffGearKey(id)) return 'none';
+        const item = offGearDef(id);
         const check = offWearCheck(id, { str: this.data.stats.str, level: this.level });
         if (check !== 'ok') return check;
         const worn = this.data.equipment[item.slot];
@@ -192,14 +193,14 @@ class OffSaveStoreImpl {
      * Equipment screen: puts on that item from the bag, or empties the slot (undefined). Same results as above; an item
      * that is not in the bag gives 'none'.
      */
-    public equip(slot: OffSlotId, id: OffItemId | undefined): OffEquipResult {
+    public equip(slot: OffSlotId, id: OffGearKey | undefined): OffEquipResult {
         if (id === undefined) return this.unequip(slot);
-        if (OFF_ITEMS[id].slot !== slot) return 'none';
+        if (offGearDef(id).slot !== slot) return 'none';
         return this.equipFromBag(this.data.bag.indexOf(id));
     }
 
     /** Takes an item out of the bag (drunk or dropped, Off-4B). Undefined if the cell is empty. */
-    public takeFromBag(index: number): OffBagItemId | undefined {
+    public takeFromBag(index: number): OffBagItemKey | undefined {
         const id = this.data.bag[index];
         if (id === undefined) return undefined;
         const bag = [...this.data.bag];
@@ -231,7 +232,7 @@ class OffSaveStoreImpl {
      * An item into the bag (Off-4A). Nothing changes if the bag is full ('bagFull') or it is a potion and the potion
      * limit is reached ('potionLimit', Off-4B).
      */
-    public addToBag(id: OffBagItemId): OffEquipResult {
+    public addToBag(id: OffBagItemKey): OffEquipResult {
         const room = this.roomFor(id);
         if (room === 'bagFull' || room === 'potionLimit') return room;
         this.data = { ...this.data, bag: [...this.data.bag, id] };
@@ -240,7 +241,7 @@ class OffSaveStoreImpl {
     }
 
     /** Whether one more of that fits in the bag: 'ok', 'bagFull' or 'potionLimit'. */
-    public roomFor(id: OffBagItemId): OffTradeResult {
+    public roomFor(id: OffBagItemKey): OffTradeResult {
         if (this.data.bag.length >= OFF_LOOT.bagSize) return 'bagFull';
         if (isOffPotion(id) && this.potionCount >= OFF_LOOT.potionLimit) return 'potionLimit';
         return 'ok';
@@ -261,7 +262,7 @@ class OffSaveStoreImpl {
     public sell(index: number): number | undefined {
         const id = this.data.bag[index];
         if (id === undefined) return undefined;
-        const price = offSellPrice(id);
+        const price = offSellPrice(offBagKeyId(id));
         const bag = [...this.data.bag];
         bag.splice(index, 1);
         this.data = { ...this.data, gold: this.data.gold + price, bag };
@@ -398,9 +399,14 @@ function readStats(value: unknown): OffStats | undefined {
 }
 
 /** The bag (or the warehouse) read back from a save: unknown items are dropped. */
-function readBag(value: unknown, size: number = OFF_LOOT.bagSize): OffBagItemId[] {
+function readBag(value: unknown, size: number = OFF_LOOT.bagSize): OffBagItemKey[] {
     if (!Array.isArray(value)) return [];
-    return value.filter((id): id is OffBagItemId => typeof id === 'string' && isOffBagItemId(id)).slice(0, size);
+    const keys: OffBagItemKey[] = [];
+    for (const text of value) {
+        const key = typeof text === 'string' ? readOffBagKey(text) : undefined;
+        if (key) keys.push(key);
+    }
+    return keys.slice(0, size);
 }
 
 /** Spells and keys read back from a save: unknown spells, repeats and keys of spells not learned are dropped. */

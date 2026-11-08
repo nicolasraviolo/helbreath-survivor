@@ -4,6 +4,7 @@
 //   original). Un clic (o Enter / A) pasa el objeto al otro lado, al final. El oro va siempre contigo.
 // - Flechas o cruceta para moverse (de una rejilla se pasa a la otra por el borde); Tab o LB / RB cambian de lado.
 // - Al sacar algo cuentan la bolsa llena y el máximo de pociones, como al recogerlas del suelo.
+import { setColouredTexture } from '../../hb/additiveTint';
 import Phaser from 'phaser';
 import { itemPackTexture } from '../../config/equipment';
 import { GAME_WIDTH } from '../../config/gameConfig';
@@ -16,7 +17,8 @@ import {
     OFF_STORE_BUTTON_STYLE, OFF_STORE_HEADER_STYLE, OFF_STORE_MESSAGE_STYLE, OFF_STORE_PANEL, OFF_STORE_ROW_STYLE, OFF_STORE_SIDE, OFF_STORE_SMALL_STYLE,
     OFF_STORE_TITLE_STYLE, OFF_WAREHOUSE_GRID,
 } from '../config/offStore';
-import { offBagItemName, offBagItemPicture, type OffBagItemId } from '../data/offItems';
+import { offBagItemName, offBagItemPicture, offItemTint, type OffBagItemKey } from '../data/offItems';
+import { offItemNameColor } from '../ui/offItemBox';
 import { OFF_LOOT } from '../data/offLoot';
 import { OFF_STORE, OFF_STORE_TEXT } from '../data/offStore';
 import { offSaveStore, type OffTradeResult } from '../systems/OffSaveStore';
@@ -152,7 +154,7 @@ export class OffWarehouseScene extends Phaser.Scene {
         }
     }
 
-    private items(side: OffWarehouseSide): readonly OffBagItemId[] {
+    private items(side: OffWarehouseSide): readonly OffBagItemKey[] {
         return side === 'bag' ? offSaveStore.character.bag : offSaveStore.character.warehouse;
     }
 
@@ -168,7 +170,8 @@ export class OffWarehouseScene extends Phaser.Scene {
                     icon.setVisible(false);
                     return;
                 }
-                icon.setTexture(itemPackTexture(frame.sheet), frame.frame).setVisible(true);
+                setColouredTexture(icon, itemPackTexture(frame.sheet), frame.frame, offItemTint(id));
+                icon.setVisible(true);
                 icon.setScale(Math.min(1, g.iconSize / Math.max(icon.frame.width, icon.frame.height)));
             });
         }
@@ -183,6 +186,7 @@ export class OffWarehouseScene extends Phaser.Scene {
         if (box) this.focusFrame.setPosition(box.x - 2, box.y - 2).setSize(box.width + 4, box.height + 4);
         const id = this.items(focus.side)[focus.index];
         this.nameText.setText(id === undefined ? '' : offBagItemName(id));
+        this.nameText.setColor(offItemNameColor(id) ?? OFF_STORE_ROW_STYLE.color);
     }
 
     /** Arrows / d-pad around a grid; past the inner edge, into the other grid. */

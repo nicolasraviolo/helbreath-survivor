@@ -11,6 +11,11 @@
 // - Botín (Off-4A): al matar, lo que suelta el monstruo (OffLootRoller) cae en su casilla (OffGroundItems) y se recoge
 //   al pisarlo: el oro al contador, lo demás a la bolsa (OffSaveStore). Morir no hace perder ni oro ni bolsa.
 // - Inventario (Off-4B): usar un objeto de la bolsa (ponérselo o beberlo) y tirarlo a tus pies (useBagItem, dropBagItem).
+// - Atributos del equipo (Off-7B, off/data/offAttributes.ts; `gearEffects`): Sharp / Ancient suben el daño, Poison
+//   envenena (updatePoison, números verdes), Hitting Probability acierta más, Defense Ratio sube la defensa, Magic
+//   Resistance da la probabilidad de librarse de la magia de un monstruo, las absorciones quitan parte del golpe y
+//   Gold / Experience dan más. Critical aún no hace nada (no hay críticos en Off). Las Recovery, en OffVitals.
+// - Pociones rápidas (Off-7B): drinkQuick bebe la poción más grande de vida o de maná que lleves (Q / E, cruceta).
 // - Magias (Off-6B): las lanza OffSpells (`spells`); aquí su daño cae en el monstruo (spellHit) y pasa por lo mismo que
 //   un golpe (hurtMonster: número, muerte, botín, experiencia). El fuego deja quemadura y el hielo frena, como en
 //   Survivors. Un monstruo frenado o aturdido vive a su ritmo (OffMonster.timeScale).
@@ -36,8 +41,11 @@ import { Pool } from '../../utils/Pool';
 import { OFF_MONSTER_LOOK } from '../config/offMonsterLook';
 import { OFF_REGEN_TEXT, OFF_STAT_IDS, offMaxHp, type OffStats } from '../data/offCharacter';
 import { OFF_COMBAT, offAttackMs, type OffWeaponDef } from '../data/offCombat';
-import { isOffItemId, OFF_ITEMS, offArmorDefense, offBagItemName, offItem, offWeapon } from '../data/offItems';
-import { OFF_GOODS, offGood, type OffPotionRestores } from '../data/offGoods';
+import {
+    isOffGearKey, offArmorDefense, offBagItemName, offEquipmentEffects, offGearDef, offStrToEquip, offWeapon, type OffBagItemKey,
+} from '../data/offItems';
+import { OFF_ATTRIBUTES, type OffAttributeEffects } from '../data/offAttributes';
+import { isOffGoodId, OFF_GOODS, offGood, type OffPotionRestores } from '../data/offGoods';
 import { OFF_BAG_TEXT } from '../data/offBag';
 import { OFF_LOOT_TEXT } from '../data/offLoot';
 import type { OffGroundContent } from '../entities/OffGroundItem';
@@ -178,10 +186,25 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost {
         return offWeapon(offSaveStore.character.equipment);
     }
 
-    /** Defence against monsters: 2 × DEX and the worn armour (original), and Defense Shield's (Off-6C). */
+    /** What the worn gear's attributes add (Off-7B). */
+    public get gearEffects(): OffAttributeEffects {
+        return offEquipmentEffects(offSaveStore.character.equipment);
+    }
+
+    /**
+     * Defence against monsters: 2 × DEX and the worn armour (original), and Defense Shield's (Off-6C); all of it times
+     * a Defense Ratio attribute (Off-7B).
+     */
     public get defense(): number {
         const power = this.protection ? OFF_SPELLS[this.protection.spell].power ?? 0 : 0;
-        return this.stats.dex * 2 + offArmorDefense(offSaveStore.character.equipment) + (OFF_PROTECT.defenseByPower[power] ?? 0);
+        const base = this.stats.dex * 2 + offArmorDefense(offSaveStore.character.equipment) + (OFF_PROTECT.defenseByPower[power] ?? 0);
+        return Math.floor(base * (1 + (this.gearEffects.defenseRatio ?? 0)));
+    }
+
+    /** Share of a monster's blow (or spell) the gear's absorption takes away (Off-7B), never above the cap. */
+    private absorbed(damage: number, share: number | undefined): number {
+        if (damage <= 0 || !share) return damage;
+        return Math.max(1, Math.round(damage * (1 - Math.min(OFF_ATTRIBUTES.maxAbsorption, share))));
     }
 
     /** What magic damage on the player is multiplied by: half with Protection From Magic (server; the Cyclops, Off-7A). */
@@ -334,6 +357,7 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost {
         this.hp = Math.min(this.hp, this.maxHp);
         for (const monster of this.pits.monsters) {
             this.updateBurn(monster, deltaMs);
+            this.updatePoison(monster, deltaMs);
             // Slowed by ice or stunned by a burn: its clock runs slower (Off-6B).
             updateMonster(monster, deltaMs * monster.timeScale, this);
             monster.marked = monster.isAlive && (monster === this.target || monster === this.hovered);
@@ -409,13 +433,14 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost {
             this.numbers.showWord(x, y, 'Miss');
             return;
         }
-        this.hurtPlayer(rollMonsterDamage(monster.def.base.damageDice, this.stats.vit));
+        this.hurtPlayer(this.absorbed(rollMonsterDamage(monster.def.base.damageDice, this.stats.vit), this.gearEffects.physicalAbsorption));
     }
 
     /**
      * A monster's spell (Off-7A, the Cyclops): it flies to where the player was. On arrival, the direct roll if the
      * player is still on that tile and the area roll within its range (like the player's spells on monsters), each
-     * halved by Protection From Magic. The player has no magic resistance in Off yet: it always lands.
+     * halved by Protection From Magic. Off-7B: a Magic Resistance attribute is the chance it misses ("Resist"); Magic
+     * Absorption takes a share off.
      */
     public monsterCasts(monster: OffMonster, at: TilePoint): void {
         const id = monster.def.spell;
@@ -425,11 +450,16 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost {
         const toY = this.character.y - PLAYER_BODY_OFFSET_Y;
         this.spells.monsterCast(def, monster.x, monster.y, toX, toY, () => {
             if (this.dead) return;
+            const effects = this.gearEffects;
+            if (effects.magicResistance && Math.random() < effects.magicResistance) {
+                this.numbers.showWord(this.character.x, this.character.y - PLAYER_BODY_OFFSET_Y, 'Resist');
+                return;
+            }
             const distance = tileDistance(this.mover.tileX, this.mover.tileY, at.x, at.y);
             let damage = 0;
             if (def.direct && distance === 0) damage += rollSpellDamage(def.direct, 0, 'neutral');
             if (def.area && def.areaRange !== undefined && distance <= def.areaRange) damage += rollSpellDamage(def.area, 0, 'neutral');
-            if (damage > 0) this.hurtPlayer(Math.max(1, Math.round(damage * this.magicDamageFactor)));
+            if (damage > 0) this.hurtPlayer(this.absorbed(Math.max(1, Math.round(damage * this.magicDamageFactor)), effects.magicAbsorption));
         });
     }
 
@@ -481,7 +511,8 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost {
         const mover = this.mover;
         const direction = directionTowards(mover.tileX, mover.tileY, target.mover.tileX, target.mover.tileY) ?? mover.facing;
         mover.face(direction);
-        const hitRatio = OFF_COMBAT.noviceSkill + OFF_COMBAT.playerHitBonus;
+        // Off-7B: a Hitting Probability attribute raises the hit ratio.
+        const hitRatio = (OFF_COMBAT.noviceSkill + OFF_COMBAT.playerHitBonus) * (1 + (this.gearEffects.hitting ?? 0));
         const behind = isFromBehind(direction, target.mover.facing);
         const lands = Math.random() < offHitChance(hitRatio, target.def.base.defenseRatio, behind);
         const attackMs = offAttackMs(this.weapon, this.stats.str);
@@ -500,9 +531,12 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost {
             this.numbers.showWord(monster.x, bodyY, 'Miss');
             return;
         }
-        const damage = rollWeaponDamage(this.weapon, monster.def.size, this.stats.str);
+        const effects = this.gearEffects;
+        const damage = rollWeaponDamage(this.weapon, monster.def.size, this.stats.str, 1 + (effects.damage ?? 0));
         this.audio.play('sfx.melee.hit');
         const killed = this.hurtMonster(monster, damage, undefined);
+        // Off-7B: a Poison weapon poisons what it hits (if it wasn't already), at a share of the blow (as Survivors).
+        if (!killed && effects.poison) monster.poison(damage * effects.poison);
         this.audio.play(killed ? monster.def.base.deathSound : monster.def.base.hitSound);
     }
 
@@ -528,7 +562,20 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost {
         this.particles.death(monster.x, monster.y, bodyY);
         this.kills++;
         this.dropLoot(monster);
-        this.gainExp(offKillExp(monster.exp, this.level), monster.x, bodyY);
+        this.gainExp(Math.floor(offKillExp(monster.exp, this.level) * (1 + (this.gearEffects.experience ?? 0))), monster.x, bodyY);
+    }
+
+    /** A poisoned monster's tick (Off-7B): green numbers; it may kill. */
+    private updatePoison(monster: OffMonster, deltaMs: number): void {
+        if (!monster.isAlive || !monster.isPoisoned) return;
+        const damage = monster.tickPoison(deltaMs);
+        if (damage <= 0) return;
+        const killed = monster.hp <= 0;
+        this.numbers.showColored(monster.x, monster.y - monster.def.base.bodyOffsetY, damage, OFF_ATTRIBUTES.poisonNumberColor, false, killed);
+        if (killed) {
+            this.killMonster(monster);
+            this.audio.play(monster.def.base.deathSound);
+        }
     }
 
     /** The fire of a burning monster (Off-6B, as Survivors' CombatSystem.updateBurn): fire-coloured numbers, may stun or kill. */
@@ -551,6 +598,8 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost {
     /** What the monster drops falls on its tile. */
     private dropLoot(monster: OffMonster): void {
         const loot = rollKillLoot(monster.id, DEBUG_START.offDrop);
+        // Off-7B: a Gold attribute gives more of every gold drop.
+        if (loot.gold > 0) loot.gold = Math.floor(loot.gold * (1 + (this.gearEffects.gold ?? 0)));
         if (this.ground.dropLoot(loot, Math.floor(monster.x / TILE_SIZE), Math.floor(monster.y / TILE_SIZE))) this.audio.play('sfx.itemDrop');
     }
 
@@ -577,13 +626,13 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost {
     public useBagItem(index: number): OffUseResult {
         const id = offSaveStore.character.bag[index];
         if (id === undefined) return { done: false };
-        if (isOffItemId(id)) {
+        if (isOffGearKey(id)) {
             const result = offSaveStore.equipFromBag(index);
-            if (result === 'str') return { done: false, line: OFF_BAG_TEXT.needsStr(OFF_ITEMS[id].strToEquip) };
-            if (result === 'level') return { done: false, line: OFF_BAG_TEXT.needsLevel(offItem(id).levelToEquip ?? 0) };
+            if (result === 'str') return { done: false, line: OFF_BAG_TEXT.needsStr(offStrToEquip(id)) };
+            if (result === 'level') return { done: false, line: OFF_BAG_TEXT.needsLevel(offGearDef(id).levelToEquip ?? 0) };
             if (result !== 'ok') return { done: false };
             this.audio.play('sfx.itemEquip');
-            return { done: true, line: OFF_BAG_TEXT.equipped(OFF_ITEMS[id].name), gear: true };
+            return { done: true, line: OFF_BAG_TEXT.equipped(offBagItemName(id)), gear: true };
         }
         const restores = offGood(id).restores;
         if (!restores) return { done: false, line: OFF_BAG_TEXT.cantUse(OFF_GOODS[id].name) };
@@ -602,6 +651,32 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost {
         const line = restores.what === 'hp' ? OFF_REGEN_TEXT.hpUp(gained) : restores.what === 'mana' ? OFF_REGEN_TEXT.mpUp(gained) : OFF_REGEN_TEXT.spUp(gained);
         this.eventLine(line);
         return { done: true, line };
+    }
+
+    /**
+     * Quick potion (Off-7B, Q / E or the d-pad): drinks the biggest potion carried that fills that bar (health or
+     * mana), as if used from the bag. Nothing to drink gives its line.
+     */
+    public drinkQuick(what: 'hp' | 'mana'): OffUseResult {
+        const bag = offSaveStore.character.bag;
+        let best = -1;
+        let bestPrice = -1;
+        bag.forEach((key: OffBagItemKey, index) => {
+            if (!isOffGoodId(key)) return;
+            const good = offGood(key);
+            if (good.restores?.what === what && good.price > bestPrice) {
+                best = index;
+                bestPrice = good.price;
+            }
+        });
+        if (best < 0) {
+            const line = OFF_BAG_TEXT.noPotion(what);
+            this.eventLine(line);
+            return { done: false, line };
+        }
+        const result = this.useBagItem(best);
+        if (!result.done && result.line) this.eventLine(result.line);
+        return result;
     }
 
     /** Drops the item in that bag cell on the player's tile (not picked up again until the player comes back to it). */

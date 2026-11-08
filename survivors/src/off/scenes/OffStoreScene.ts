@@ -10,6 +10,7 @@
 // Fase Off-6A: la tienda tiene una tercera pestaña, **Magic** (la tienda de magia, de momento aquí): las 14 magias por
 // círculos (off/data/offSpells.ts). Learn la aprende (INT mínima + oro) y va sola a la primera tecla 1–8 libre. Una
 // magia que aún no puedes aprender por INT sale con el nombre en rojo; una que ya sabes, con "Learned" en vez de precio.
+import { setColouredTexture } from '../../hb/additiveTint';
 import Phaser from 'phaser';
 import { itemPackTexture } from '../../config/equipment';
 import { GAME_WIDTH } from '../../config/gameConfig';
@@ -22,11 +23,11 @@ import {
     OFF_STORE_BUTTON_STYLE, OFF_STORE_GOLD_STYLE, OFF_STORE_HEADER_STYLE, OFF_STORE_LIST, OFF_STORE_MESSAGE_STYLE, OFF_STORE_PANEL,
     OFF_STORE_ROW_STYLE, OFF_STORE_SIDE, OFF_STORE_SMALL_STYLE, OFF_STORE_TABS, OFF_STORE_TITLE_STYLE, OFF_STORE_UNMET_COLOR,
 } from '../config/offStore';
-import { isOffItemId, OFF_ITEMS, offBagItemName, offBagItemPicture, offNeedsText, offWearCheck, type OffBagItemId } from '../data/offItems';
+import { isOffGearKey, offBagItemName, offBagItemPicture, offItemTint, offBagKeyId, offGearDef, offNeedsText, offWearCheck, type OffBagItemId, type OffBagItemKey } from '../data/offItems';
 import { OFF_STORE_STOCK, OFF_STORE_TEXT, offPrice, offSellPrice, type OffStoreKind } from '../data/offStore';
 import { offSaveStore, type OffTradeResult } from '../systems/OffSaveStore';
 import { OFF_SPELL_IDS, OFF_SPELLS, offCircleTitle, type OffLearnResult, type OffSpellId } from '../data/offSpells';
-import { drawOffItemBox, offItemBoxLines, offSpellBoxLines } from '../ui/offItemBox';
+import { drawOffItemBox, offItemBoxLines, offItemNameColor, offSpellBoxLines } from '../ui/offItemBox';
 
 export const OFF_STORE_SCENE_KEY = 'OffStore';
 
@@ -42,7 +43,7 @@ export interface OffStoreSceneData {
 export type OffStoreTab = 'buy' | 'sell' | 'magic';
 
 /** A line of the list: a section title, an item (to buy, or the bag cell to sell) or a spell (Off-6A). */
-type Row = { kind: 'section'; title: string } | { kind: 'item'; id: OffBagItemId; bagIndex?: number } | { kind: 'spell'; id: OffSpellId };
+type Row = { kind: 'section'; title: string } | { kind: 'item'; id: OffBagItemKey; bagIndex?: number } | { kind: 'spell'; id: OffSpellId };
 
 /** The tabs of each store: only the shop has the magic shop (owner, 7-nov-2026). */
 const STORE_TABS: Record<OffStoreKind, readonly OffStoreTab[]> = { shop: ['buy', 'sell', 'magic'], smith: ['buy', 'sell'] };
@@ -271,19 +272,22 @@ export class OffStoreScene extends Phaser.Scene {
             const frame = this.iconsReady ? offBagItemPicture(row.id, offSaveStore.character.look.gender) : undefined;
             if (frame) {
                 const icon = this.add.image(a.x + 6 + l.iconSize / 2, middle, itemPackTexture(frame.sheet), frame.frame);
+                setColouredTexture(icon, itemPackTexture(frame.sheet), frame.frame, offItemTint(row.id));
                 icon.setScale(Math.min(1, l.iconSize / Math.max(icon.frame.width, icon.frame.height)));
                 objects.push(icon);
             }
-            const wearable = !isOffItemId(row.id) || offWearCheck(row.id, who) === 'ok';
+            const wearable = !isOffGearKey(row.id) || offWearCheck(row.id, who) === 'ok';
+            const special = offItemNameColor(row.id);
             objects.push(this.add.text(a.x + l.iconSize + 12, middle, offBagItemName(row.id), {
-                ...OFF_STORE_ROW_STYLE, ...(wearable ? {} : { color: OFF_STORE_UNMET_COLOR }),
+                ...OFF_STORE_ROW_STYLE, ...(wearable ? (special ? { color: special } : {}) : { color: OFF_STORE_UNMET_COLOR }),
             }).setOrigin(0, 0.5));
-            const price = this.tab === 'buy' ? offPrice(row.id) : offSellPrice(row.id);
+            const plain = offBagKeyId(row.id);
+            const price = this.tab === 'buy' ? offPrice(plain) : offSellPrice(plain);
             const priceText = this.add.text(a.x + a.width - 8, middle, price.toLocaleString('en-US'), {
                 ...OFF_STORE_ROW_STYLE, ...(this.tab === 'buy' && price > gold ? { color: OFF_STORE_UNMET_COLOR } : {}),
             }).setOrigin(1, 0.5);
             objects.push(priceText);
-            if (isOffItemId(row.id) && this.tab === 'buy') {
+            if (isOffGearKey(row.id) && this.tab === 'buy') {
                 objects.push(this.add.text(priceText.x - priceText.width - 14, middle, offNeedsText(row.id), {
                     ...OFF_STORE_SMALL_STYLE, ...(wearable ? {} : { color: OFF_STORE_UNMET_COLOR }),
                 }).setOrigin(1, 0.5));
@@ -328,12 +332,12 @@ export class OffStoreScene extends Phaser.Scene {
             return;
         }
         if (id === undefined) return;
-        const worn = isOffItemId(id) ? offSaveStore.character.equipment[OFF_ITEMS[id].slot] : undefined;
+        const worn = isOffGearKey(id) ? offSaveStore.character.equipment[offGearDef(id).slot] : undefined;
         const lines = offItemBoxLines(id, worn === id ? undefined : worn, { str: offSaveStore.character.stats.str, level: offSaveStore.level });
-        this.boxObjects = drawOffItemBox(this, this.boxArea, offBagItemName(id), lines);
+        this.boxObjects = drawOffItemBox(this, this.boxArea, offBagItemName(id), lines, offItemNameColor(id));
     }
 
-    private get markedId(): OffBagItemId | undefined {
+    private get markedId(): OffBagItemKey | undefined {
         const row = this.rows[this.marked];
         return row?.kind === 'item' ? row.id : undefined;
     }
@@ -392,7 +396,7 @@ export class OffStoreScene extends Phaser.Scene {
             return;
         }
         if (row?.kind !== 'item') return;
-        if (this.tab === 'buy') this.buy(row.id);
+        if (this.tab === 'buy') this.buy(offBagKeyId(row.id));
         else if (row.bagIndex !== undefined) this.sell(row.bagIndex);
     }
 

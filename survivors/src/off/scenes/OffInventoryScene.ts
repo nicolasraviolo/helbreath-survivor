@@ -8,6 +8,7 @@
 // - Usar: la ropa y las armas se ponen (si tienes la STR; lo que llevabas vuelve a esa casilla), las pociones se beben
 //   (no si esa barra ya está llena). Tirar: cae a tus pies (OffBattle.useBagItem / dropBagItem).
 // - Lo que recoges mientras está abierta aparece al momento (la bolsa se vuelve a dibujar cuando cambia).
+import { setColouredTexture } from '../../hb/additiveTint';
 import Phaser from 'phaser';
 import { itemPackTexture } from '../../config/equipment';
 import { GAME_WIDTH } from '../../config/gameConfig';
@@ -28,11 +29,11 @@ import {
     OFF_INVENTORY_TITLE_STYLE,
 } from '../config/offInventory';
 import { OFF_BAG_TEXT } from '../data/offBag';
-import { isOffItemId, OFF_ITEMS, offBagItemName, offWearCheck, offBagItemPicture, type OffBagItemId } from '../data/offItems';
+import { isOffGearKey, offBagItemName, offGearDef, offWearCheck, offBagItemPicture, offItemTint, type OffBagItemKey } from '../data/offItems';
 import { OFF_LOOT } from '../data/offLoot';
 import type { OffBattle, OffUseResult } from '../systems/OffBattle';
 import { offSaveStore } from '../systems/OffSaveStore';
-import { drawOffItemBox, offItemBoxLines } from '../ui/offItemBox';
+import { drawOffItemBox, offItemBoxLines, offItemNameColor } from '../ui/offItemBox';
 
 export const OFF_INVENTORY_SCENE_KEY = 'OffInventory';
 
@@ -75,7 +76,7 @@ export class OffInventoryScene extends Phaser.Scene {
     private boxObjects: Phaser.GameObjects.GameObject[] = [];
     private boxArea = { x: 0, y: 0, width: 0, height: 0 };
     /** The bag drawn last (the save replaces the array on every change: a new one means redraw). */
-    private drawnBag: readonly OffBagItemId[] | undefined;
+    private drawnBag: readonly OffBagItemKey[] | undefined;
     private drawnGold = -1;
     private iconsReady = false;
     private lastClick = { index: -1, at: 0 };
@@ -183,7 +184,7 @@ export class OffInventoryScene extends Phaser.Scene {
         if (input.justPressed(Action.Pick)) this.press(this.focus.kind === 'button' ? this.focus.id : 'use');
     }
 
-    private get bag(): readonly OffBagItemId[] {
+    private get bag(): readonly OffBagItemKey[] {
         return offSaveStore.character.bag;
     }
 
@@ -221,14 +222,15 @@ export class OffInventoryScene extends Phaser.Scene {
         const g = OFF_INVENTORY_GRID;
         this.cells.forEach(({ box, icon }, index) => {
             const id = bag[index];
-            const short = id !== undefined && isOffItemId(id) && offWearCheck(id, who) !== 'ok';
+            const short = id !== undefined && isOffGearKey(id) && offWearCheck(id, who) !== 'ok';
             box.setFillStyle(short ? g.unmetColor : g.background);
             const frame = id !== undefined && this.iconsReady ? offBagItemPicture(id, offSaveStore.character.look.gender) : undefined;
             if (!frame) {
                 icon.setVisible(false);
                 return;
             }
-            icon.setTexture(itemPackTexture(frame.sheet), frame.frame).setVisible(true);
+            setColouredTexture(icon, itemPackTexture(frame.sheet), frame.frame, offItemTint(id));
+            icon.setVisible(true);
             icon.setScale(Math.min(1, g.iconSize / Math.max(icon.frame.width, icon.frame.height)));
         });
         this.infoText.setText(`${OFF_BAG_TEXT.gold(offSaveStore.character.gold)}     ${OFF_BAG_TEXT.potions(offSaveStore.potionCount, OFF_LOOT.potionLimit)}`);
@@ -265,9 +267,9 @@ export class OffInventoryScene extends Phaser.Scene {
             }
             return;
         }
-        const worn = isOffItemId(id) ? offSaveStore.character.equipment[OFF_ITEMS[id].slot] : undefined;
+        const worn = isOffGearKey(id) ? offSaveStore.character.equipment[offGearDef(id).slot] : undefined;
         const lines = offItemBoxLines(id, worn === id ? undefined : worn, { str: offSaveStore.character.stats.str, level: offSaveStore.level });
-        this.boxObjects = drawOffItemBox(this, this.boxArea, offBagItemName(id), lines);
+        this.boxObjects = drawOffItemBox(this, this.boxArea, offBagItemName(id), lines, offItemNameColor(id));
     }
 
     // ---- Moving and acting ----

@@ -137,6 +137,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Lanzar magias en Helbreath Off (Fase Off-6B)
 - Magias de apoyo y mando en Helbreath Off (Fase Off-6C)
 - Promiseland (Helbreath Off, Fase Off-7A, 8-nov-2026)
+- Pociones rápidas y botín con atributos (Helbreath Off, Fase Off-7B, 8-nov-2026)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -1534,3 +1535,16 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - **El teleport de la ciudad** abre `OffTeleportScene` (`OFF_TELEPORT_DESTINATIONS`); `offArrivalIn(sitio, ciudad)` da la casilla de llegada por el portal que lleva a tu ciudad.
 - **Dificultad (para la 7C):** un Level 60 (STR 100, VIT 80, DEX 60, Long Sword, sin armadura ni pociones, 410 de vida) muere en unos 30 s en el pit de Skeletons (salen varios a la vez) y en 20 s contra un Troll.
 - **Pendiente para la 7B:** en Nemesis los Skeletons sueltan armas de su nivel (Esterk, Sabre, Saxon Axe…); en Off todos los monstruos siguen con el botín de nivel 1.
+
+## Pociones rápidas y botín con atributos (Helbreath Off, Fase Off-7B, 8-nov-2026)
+- **Objetos con atributos = texto**: `"longSword:sharp:hittingProbability4"` (id, primero, segundo; el número pegado es el valor). Un objeto normal sigue siendo solo su id, así que las partidas de antes valen tal cual (versión 9 solo lo anota). Tipos `OffGearKey` / `OffBagItemKey` en `off/data/offItems.ts`; leer siempre con `readOffGearKey` / `readOffBagKey` (limpian valores y quitan atributos desconocidos). Dos objetos con los mismos atributos tienen el mismo texto: son iguales a todos los efectos.
+- **Atributos**: `off/data/offAttributes.ts`, separado de Survivors. El primero y el segundo salen de listas distintas, como el original (`Server.cpp:48718`): armas Sharp / Ancient / Poison / Critical + Hitting Probability / Gold / Experience; armaduras Light / Experience / Gold + Defense Ratio / Magic Resistance / HP-MP-SP Recovery / absorciones. Gold y Experience de arma tienen valor fijo (5 y 2) en el original; los de armadura, (v+1)/2 con tope 2 en monstruos de nivel ≤ 3.
+- **Efectos** (`OffBattle.gearEffects` = `offEquipmentEffects`): daño en `rollWeaponDamage(..., factor)`, veneno en `OffMonster.poison` / `tickPoison` (números verdes, se cura un 10 % por tic), acierto ×(1+x), defensa ×(1+x), Magic Resistance = probabilidad de "Resist" ante la magia de un monstruo (el jugador de Off no tenía resistencia), absorciones (tope 60 %), Recovery en `OffVitals` (cada tanda ×(1+x)), oro al caer y experiencia al matar. Light baja la STR para ponérselo (`offStrToEquip`). **Critical no hace nada**: Off no tiene críticos.
+- **Botín por nivel**: `OFF_MONSTER_LOOT[...].level` y `OFF_VALUABLE_DROPS` (1 / 2 / 3 / 5, del switch del original). Lo que no se dibuja va cambiado; los Golems sueltan Long Sword y Broad Sword en vez de Great Sword (propietario).
+- **La Rapier no existía en Survivors** (Fencing apagada: sin icono ni sprite en la mano). Off le pone el icono de bolsa del original (`icon`, hoja 0 dibujo 6, Item.cfg sprite 1 frame 6) y `data/weapons.ts` le da su dibujo en la mano: **bloque de msw.spr = apariencia de Item.cfg − 1, 56 hojas cada uno** (Dagger 1 → 0, Long Sword 3 → 112, Scimitar 6 → 280, Rapier 7 → 336). En Survivors sigue apagada.
+- **Color del atributo**: en la mano, `offWeaponTint` → `CharacterSprite.wearEquipment`; en la bolsa, equipo, tienda, almacén y suelo, `offItemTint` → `setColouredTexture` (hb/additiveTint.ts), como Survivors. Critical no tiene color.
+- **Nube de veneno**: `fx.poison.cloud` (effect9 hoja 15, 70 % opaca) sobre el monstruo envenenado, como `Enemy` de Survivors (`OffMonster.syncPoisonCloud`).
+- **Fallar mucho (pendiente de la 7C)**: en el original el acierto es la habilidad del arma (0–100, sube al usarla) + 50 (`Server.cpp:32485`). Off no tiene habilidades: siempre 50 (`OFF_COMBAT.noviceSkill` 0). Contra Defense Ratio 100 (Golems) = 25 %, 110 (Cyclops) = 22 %; con habilidad 100 serían 75 % y 68 %.
+- **Peso**: en Off solo sirve para la STR que pide un objeto (STR = peso / 100). No hay carga máxima (Max.Load sale vacío), así que Light solo baja esa STR.
+- **Pociones rápidas**: `Action.OffDrinkHealth` (Q, cruceta izquierda) y `OffDrinkMana` (E, cruceta derecha) → `OffBattle.drinkQuick` (la poción de más precio de esa barra = la grande). Solo sin ventanas abiertas (en el inventario, E sigue siendo Equipment). En Off la cruceta ya no anda: `InputSystem.setDpadMoves(false)`.
+- **Probar**: `check offquickdrink` / `offspecial` / `offspecialequip` / `offpoison` / `offpoisoncloud` / `offrapier` / `offtintbag` / `offlootlevel` (3000 tiradas por monstruo); `?offbag=longSword:sharp,chainMail:light5:hpRecovery3`, `?offgear=rapier:poison7`, `?offdrop=valuable`.
