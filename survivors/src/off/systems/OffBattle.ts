@@ -98,7 +98,9 @@ import type { OffSpellAlly } from './OffSpells';
 import { foeBodyY, foeDefense, foeSize, isRaider, type OffFoe } from './OffFoe';
 import { updateRaider, type OffRaiderWorld } from './OffRaiderAI';
 import { OffRaiderSpells, type OffRaiderCastWorld } from './OffRaiderSpells';
-import { OFF_RAIDER, OFF_RAIDER_BODIES, OFF_RAIDER_CRIT, OFF_RAIDER_LOOK, OFF_RAIDER_MAGE, OFF_RAIDER_NAMES, OFF_RAIDER_TEXT, OFF_RAIDS, offRaiderDef } from '../data/offRaiders';
+import { FOOTSTEPS_PER_RUN_CYCLE } from '../../data/audio';
+import { TILES_PER_ANIMATION_CYCLE } from '../data/offWorld';
+import { OFF_RAIDER, OFF_RAIDER_BODIES, OFF_RAIDER_CRIT, OFF_RAIDER_LOOK, OFF_RAIDER_MAGE, OFF_RAIDER_NAMES, OFF_RAIDER_STEPS, OFF_RAIDER_TEXT, OFF_RAIDS, offRaiderDef } from '../data/offRaiders';
 import type { OffRaidVictim } from '../entities/OffMercenary';
 import type { OffSpellDef } from '../data/offSpells';
 import type { Direction } from '../../hb/directions';
@@ -150,6 +152,9 @@ interface RaiderSlot {
     spells: OffSpells | undefined;
     host: OffRaiderSpells | undefined;
     readonly tile: TilePoint;
+    /** Off-9B: its footsteps loop (its own, beside yours) and the pace it plays at (0 = silent). */
+    readonly stepsLoop: string;
+    stepsMs: number;
 }
 
 export class OffBattle implements OffMonsterWorld, OffSpellHost, OffMercenaryWorld, OffMercenaryCastWorld, OffRaiderWorld, OffRaiderCastWorld {
@@ -176,11 +181,13 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost, OffMercenaryWor
     /** Monster (or Raider) under the mouse (its name shows). */
     public hovered: OffFoe | undefined;
     /** Off-9A: the Raider slots (OFF_RAIDER_SLOTS), the Raiders alive now, the time towards the next roll, and counts (checks). */
-    private readonly raidSlots: RaiderSlot[] = OFF_RAIDER_SLOTS.map(() => ({ raider: undefined, goneLeftMs: 0, spells: undefined, host: undefined, tile: { x: 0, y: 0 } }));
+    private readonly raidSlots: RaiderSlot[] = OFF_RAIDER_SLOTS.map((slot) => ({ raider: undefined, goneLeftMs: 0, spells: undefined, host: undefined, tile: { x: 0, y: 0 }, stepsLoop: `steps.${slot}`, stepsMs: 0 }));
     private readonly raiderList: OffMercenary[] = [];
+    /** Off-9B: the ones alive and seen (not invisible): the only ones you, your mercenary and the monsters can aim at. */
+    private readonly seenRaiderList: OffMercenary[] = [];
     public raidClockMs = 0;
     private debugRaidPending = false;
-    public readonly raidTally = { raids: 0, raiders: 0, killed: 0, byMonsters: 0, gold: 0 };
+    public readonly raidTally = { raids: 0, raiders: 0, killed: 0, byMonsters: 0, gold: 0, invisible: 0, enemyKills: 0 };
     public dead = false;
     /** Defense Shield or Protection From Magic (Off-6C; one at a time, as the server). */
     public protection: OffProtection | undefined;
@@ -451,9 +458,9 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost, OffMercenaryWor
         return this.pits.monsters;
     }
 
-    /** Off-9A: the Raiders alive here now. */
+    /** Off-9A: the Raiders alive here now that can be seen (Off-9B: not the invisible ones). */
     public get raiders(): readonly OffMercenary[] {
-        return this.raiderList;
+        return this.seenRaiderList;
     }
 
     public mercCanStand(x: number, y: number): boolean {
@@ -769,7 +776,7 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost, OffMercenaryWor
         for (const monster of this.pits.monsters) {
             if (monster.isAlive && monster.contains(px, py) && (!best || monster.y > best.y)) best = monster;
         }
-        for (const raider of this.raiderList) {
+        for (const raider of this.seenRaiderList) {
             if (raider.contains(px, py) && (!best || raider.y > best.y)) best = raider;
         }
         return best;
@@ -928,7 +935,8 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost, OffMercenaryWor
             // Off-9A: a Raider, by its slot.
             const slot = this.raidSlots[OFF_RAIDER_SLOTS.indexOf(victim)];
             const raider = slot?.raider;
-            if (!slot || !raider?.isAlive) return undefined;
+            // Off-9B: an invisible one isn't seen by the monsters.
+            if (!slot || !raider?.isAlive || !raider.isSeen) return undefined;
             slot.tile.x = raider.mover.tileX;
             slot.tile.y = raider.mover.tileY;
             return slot.tile;
@@ -1405,6 +1413,7 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost, OffMercenaryWor
             slot.spells?.update(deltaMs);
             if (!raider) continue;
             if (!raider.isAlive) {
+                this.stopRaiderSteps(slot);
                 slot.goneLeftMs -= deltaMs;
                 raider.sync(deltaMs, false);
                 if (slot.goneLeftMs <= 0) this.removeRaider(slot);
@@ -1433,6 +1442,7 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost, OffMercenaryWor
             raider.crit?.update(deltaMs, raider.level);
             if (raider.isCaster) this.regenMercMana(raider, deltaMs);
             raider.sync(deltaMs, running);
+            this.updateRaiderSteps(slot, raider);
         }
         this.refreshRaiders();
         if (this.dead || this.raidSlots.some((slot) => slot.raider)) return;
@@ -1446,10 +1456,47 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost, OffMercenaryWor
         else this.raidClockMs = OFF_RAIDS.everyMs - OFF_RAIDS.retryMs;
     }
 
-    /** The Raiders alive now, in their slots' order. */
+    /** The Raiders alive now, in their slots' order (and, Off-9B, the seen ones among them). */
     private refreshRaiders(): void {
         this.raiderList.length = 0;
-        for (const slot of this.raidSlots) if (slot.raider?.isAlive) this.raiderList.push(slot.raider);
+        this.seenRaiderList.length = 0;
+        for (const slot of this.raidSlots) {
+            const raider = slot.raider;
+            if (!raider?.isAlive) continue;
+            this.raiderList.push(raider);
+            if (raider.isSeen) this.seenRaiderList.push(raider);
+        }
+    }
+
+    /**
+     * Off-9B: a Raider's footsteps while it walks or runs (the owner, 9-nov-2026: all that gave an invisible one away),
+     * at its pace as yours, louder the nearer it is and from its side; silent when still or out of hearing.
+     */
+    private updateRaiderSteps(slot: RaiderSlot, raider: OffMercenary): void {
+        const steps = OFF_RAIDER_STEPS;
+        const mover = raider.mover;
+        const dx = raider.x - this.character.x;
+        const distance = Math.hypot(dx, raider.y - this.character.y) / TILE_SIZE;
+        if (!mover.isMoving || distance > steps.hearTiles) {
+            this.stopRaiderSteps(slot);
+            return;
+        }
+        const intervalMs = (mover.currentStepMs * TILES_PER_ANIMATION_CYCLE) / FOOTSTEPS_PER_RUN_CYCLE;
+        if (intervalMs !== slot.stepsMs || !this.audio.isLooping(slot.stepsLoop)) {
+            this.audio.stopLoop(slot.stepsLoop);
+            this.audio.startLoop('sfx.footsteps', intervalMs, slot.stepsLoop);
+            slot.stepsMs = intervalMs;
+        }
+        const near = 1 - distance / steps.hearTiles;
+        const volume = steps.volume * (steps.farVolume + (1 - steps.farVolume) * near);
+        const pan = Phaser.Math.Clamp(dx / (steps.hearTiles * TILE_SIZE), -1, 1) * steps.panMax;
+        this.audio.setLoopMix(slot.stepsLoop, volume, pan);
+    }
+
+    private stopRaiderSteps(slot: RaiderSlot): void {
+        if (slot.stepsMs === 0) return;
+        this.audio.stopLoop(slot.stepsLoop);
+        slot.stepsMs = 0;
     }
 
     /**
@@ -1464,6 +1511,8 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost, OffMercenaryWor
         if (!near) return false;
         const faction = this.enemyFaction();
         const names = Phaser.Utils.Array.Shuffle([...OFF_RAIDER_NAMES[faction]]);
+        // Off-9B: some come invisible (both of a pair); a raid forced by hand (?offraid) only with ?offraid=invisible.
+        const invisible = forced === undefined ? Math.random() < raids.invisibleChance : DEBUG_START.offRaidInvisible;
         const count = pair ? 2 : 1;
         const spawned: OffMercenary[] = [];
         for (let i = 0; i < count; i++) {
@@ -1472,13 +1521,16 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost, OffMercenaryWor
             const tile = i === 0 ? near : findFreeTile((x, y) => this.isFreeForRaider(undefined, x, y), near.x, near.y, raids.pairGapTiles + 2);
             const slot = this.raidSlots[i];
             if (!tile || !slot) continue;
-            spawned.push(this.spawnRaider(slot, kind, level, faction, names[i] ?? names[0] ?? 'Raider', tile));
+            const raider = this.spawnRaider(slot, kind, level, faction, names[i] ?? names[0] ?? 'Raider', tile);
+            if (invisible) raider.goInvisible();
+            spawned.push(raider);
         }
         this.refreshRaiders();
         const first = spawned[0];
         if (!first) return false;
         this.raidTally.raids++;
         this.raidTally.raiders += spawned.length;
+        if (invisible) this.raidTally.invisible += spawned.length;
         // No warning that they come (the owner, 8-nov-2026): you see them arrive.
         return true;
     }
@@ -1506,6 +1558,7 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost, OffMercenaryWor
     private removeRaider(slot: RaiderSlot): void {
         const raider = slot.raider;
         if (!raider) return;
+        this.stopRaiderSteps(slot);
         raider.spells?.cancel();
         if (slot.host) slot.host.raider = undefined;
         if (this.target === raider) this.clearTarget();
@@ -1613,7 +1666,12 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost, OffMercenaryWor
         if (by === 'monster') this.raidTally.byMonsters++;
         // You or your mercenary killed it: "Enemy Kill!!" over it, as the original (the owner's capture, 8-nov-2026).
         if (by === 'monster') this.eventLine(OFF_RAIDER_TEXT.fell(raider.def.name));
-        else this.showEnemyKill(raider.x, raider.y - OFF_RAIDER_LOOK.killWord.aboveFeetPx);
+        else {
+            this.showEnemyKill(raider.x, raider.y - OFF_RAIDER_LOOK.killWord.aboveFeetPx);
+            // Off-9B: +1 Enemy Kill, kept with the character (the Character window shows them).
+            offSaveStore.addEnemyKill();
+            this.raidTally.enemyKills++;
+        }
         const slot = this.raidSlots.find((s) => s.raider === raider);
         if (slot) slot.goneLeftMs = OFF_COMBAT.corpseMs;
         if (this.target === raider) this.clearTarget();
@@ -1744,8 +1802,9 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost, OffMercenaryWor
     }
 
     /** Development (`check offraid...`): the Raiders now, in short. */
-    public debugRaiders(): { name: string; kind: string; level: number; hp: number; maxHp: number; stamina: string; victim: OffRaidVictim; tile: string; casts: number; fleeing: boolean; flees: number; cornered: number; retreats: number; interrupts: number; held: boolean; crits: number; critCharges: number; holdTries: number; holdsLanded: number }[] {
+    public debugRaiders(): { name: string; kind: string; level: number; hp: number; maxHp: number; stamina: string; victim: OffRaidVictim; tile: string; casts: number; fleeing: boolean; flees: number; cornered: number; retreats: number; interrupts: number; held: boolean; crits: number; critCharges: number; holdTries: number; holdsLanded: number; seen: boolean; heard: boolean }[] {
         return this.raiderList.map((r) => ({
+            seen: r.isSeen, heard: (this.raidSlots.find((slot) => slot.raider === r)?.stepsMs ?? 0) > 0,
             name: r.def.name, kind: r.def.kind, level: r.level, hp: r.hp, maxHp: r.maxHp, stamina: `${r.stamina}/${r.maxStamina}`, victim: r.victim, flees: r.flees, cornered: r.cornered, retreats: r.retreats, interrupts: r.spells?.interrupts ?? 0, crits: r.crits, critCharges: r.crit?.charges ?? 0, holdTries: r.holdTries, holdsLanded: r.holdsLanded,
             tile: `${r.mover.tileX},${r.mover.tileY}`, casts: Object.values(r.castCount).reduce((a, b) => a + (b ?? 0), 0), fleeing: r.fleeing, held: r.isHeld,
         }));
@@ -1760,7 +1819,7 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost, OffMercenaryWor
     /** Alive monsters and (Off-9A) Raiders within reach of the gamepad's targeting, nearest first. */
     private nearbyMonsters(): OffFoe[] {
         const near = (m: OffFoe) => m.isAlive && this.distanceTo(m) <= OFF_COMBAT.targetRangeTiles;
-        return [...this.pits.monsters.filter(near), ...this.raiderList.filter(near)]
+        return [...this.pits.monsters.filter(near), ...this.seenRaiderList.filter(near)]
             .sort((a, b) => this.distanceTo(a) - this.distanceTo(b));
     }
 

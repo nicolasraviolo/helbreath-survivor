@@ -36,7 +36,7 @@ import type { OffFoe } from '../systems/OffFoe';
 import { OFF_HOLD } from '../data/offSpells';
 import { OffCritStrike } from '../systems/OffCritStrike';
 import { maxCritCharges } from '../../data/critStrike';
-import { OFF_RAIDER_LOOK, offRaiderColors } from '../data/offRaiders';
+import { OFF_RAIDER_INVISIBLE, OFF_RAIDER_LOOK, offRaiderColors } from '../data/offRaiders';
 import type { OffFaction } from '../data/offPlaceIds';
 
 /** Its blow on the way: it lands on `monster` (a monster or, Off-9A, a Raider) after `leftMs`. */
@@ -104,6 +104,12 @@ export class OffMercenary {
     public gone = false;
     /** Off-9A: Hold Person / Paralyze on it (a Raider): stopped for `holdLeftMs`; `holdPower` 1 Hold Person, 2 Paralyze. */
     public holdLeftMs = 0;
+    /**
+     * Off-9B: an invisible Raider (nothing of it shows: body, name, shadow) until its first blow or spell; then it fades
+     * in (`shown` 0 → 1) and stays seen. You, your mercenary and the monsters can't aim at it while unseen.
+     */
+    public invisible = false;
+    private shown = 1;
     private holdPower = 0;
     public readonly mover: TileMover;
     public readonly character: OffCharacter;
@@ -429,6 +435,31 @@ export class OffMercenary {
         this.say('up', true);
     }
 
+    /** Off-9B: comes invisible. */
+    public goInvisible(): void {
+        this.invisible = true;
+        this.shown = 0;
+        this.applyShown();
+    }
+
+    /** Off-9B: its first blow or spell: it shows (fading in, in sync) and stays seen. */
+    public reveal(): void {
+        this.invisible = false;
+    }
+
+    /** Off-9B: seen by you, your mercenary and the monsters (not invisible). */
+    public get isSeen(): boolean {
+        return !this.invisible;
+    }
+
+    private applyShown(): void {
+        const a = this.shown;
+        this.character.setAlpha(a);
+        this.nameText.setAlpha(a);
+        this.sayText.setAlpha(a);
+        this.wornLook.setAlpha(a * (this.wornLookKey ? OFF_WORN_ALPHA[this.wornLookKey] ?? 1 : 1));
+    }
+
     /** The point is on its drawn body (a click on it). */
     public contains(px: number, py: number): boolean {
         return this.character.getVisualBounds().contains(px, py);
@@ -442,6 +473,11 @@ export class OffMercenary {
     /** Body, name, bar, "Down N", ring and shield aura where the mover is. */
     public sync(deltaMs: number, running: boolean): void {
         this.character.update(this.mover, running, deltaMs);
+        // Off-9B: fading in once seen.
+        if (!this.invisible && this.shown < 1) {
+            this.shown = Math.min(1, this.shown + deltaMs / OFF_RAIDER_INVISIBLE.fadeInMs);
+            this.applyShown();
+        }
         const look = OFF_MERCENARY_LOOK;
         const top = this.y - look.headHeight;
         const bar = look.bar;
@@ -482,7 +518,7 @@ export class OffMercenary {
         const key = this.protection ? OFF_SPELLS[this.protection.spell].wornEffect : undefined;
         if (key !== this.wornLookKey) {
             this.wornLookKey = key;
-            if (key && this.scene.anims.exists(key)) this.wornLook.setVisible(true).setAlpha(OFF_WORN_ALPHA[key] ?? 1).play(key);
+            if (key && this.scene.anims.exists(key)) this.wornLook.setVisible(true).setAlpha((OFF_WORN_ALPHA[key] ?? 1) * this.shown).play(key);
             else this.wornLook.setVisible(false).stop();
         }
         if (this.wornLook.visible && key) {

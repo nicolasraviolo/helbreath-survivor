@@ -147,6 +147,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Frases del mercenario y golpes por la espalda (Off-8D)
 - Mercenario que aguanta: vida, poción y huir (Off-8E)
 - Raiders (Off-9A)
+- Raiders invisibles y Enemy Kills (Off-9B)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -1648,3 +1649,10 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - **Raider Guerrero con Critical Strike** (propietario: esencial): `raider.crit` es un `OffCritStrike` (tus reglas de cargas; `onHurt` con los golpes que recibe). Golpe crítico `OFF_RAIDER_CRIT.chance` de las veces con carga, y siempre si su víctima está bajo `finishBelow`; +100 al acierto, × `critDamageMultiplier`, sin Berserk; `raiderCrits`: grito, "Crit!", chispas y temblor.
 - Si mueres, se van (`removeRaider`). Al morir: oro (nivel × `goldPerLevel`, con el atributo Gold), sin experiencia; el cuerpo queda `OFF_COMBAT.corpseMs`.
 - Pruebas: `check offraid` / `offraidmage` / `offraidpair` (con Gorn) / `offraidflee` (al 20 % sin poción: huye, se cansa y pelea) / `offraidcast` (tú preparas magias y te pegan) / `offraidmagehit` (le pegas a un Mago Raider) / `offraidhold` (el Mago te paraliza) / `offraidcrit` (captura con el "Crit!" del Guerrero) / `offraidmobs` (el Raider puesto junto a los Trolls). Atajos: `?offraid[=warrior|mage|pair]` (llegan a los 3 s) y `?off=raiders` (Promiseland + `?offraid`). `debugState()` trae `raiders`, `raids` y `raidIn`; `o.debugFightRaider()`, `o.battle.startRaid('pair')`.
+
+## Raiders invisibles y Enemy Kills (Off-9B)
+- **Invisible** = `OffMercenary.invisible` (`goInvisible()` al aparecer, `reveal()` en `OffRaiderAI` con el primer golpe —`raidBlow`— o al empezar una magia —`raiderCast`—). `sync` sube `shown` de 0 a 1 en `OFF_RAIDER_INVISIBLE.fadeInMs` y lo pasa a cuerpo y sombra (`OffCharacter.setAlpha`), nombre, frase y aura.
+- **Quién lo ve**: `OffBattle` guarda `raiderList` (todos, para chocar, actualizar y hechizos de área) y `seenRaiderList` (los visibles). `battle.raiders` (lo que usa el mercenario), `monsterAt` (clic / ratón) y `nearbyMonsters` (mando) usan solo los visibles; `victimTile` da `undefined` a los monstruos para uno invisible. Las magias de área sí le hacen daño (sale el número en el aire) pero no lo destapan.
+- **Pasos** (`updateRaiderSteps`, `OFF_RAIDER_STEPS`): cada hueco de Raider tiene su propio bucle (`steps.raider0/1`) del mismo `sfx.footsteps` que el jugador, al ritmo de su paso. `AudioSystem.startLoop` acepta ya un `id` para repetir el mismo sonido a la vez, y `setLoopMix(id, volumen, pan)` lo coloca: volumen según distancia (hasta `hearTiles`, mínimo `farVolume`) y lado con `setPan` (solo Web Audio). Los bucles se cortan al pausar la escena o esconder la pestaña; `isLooping` hace que se vuelvan a poner solos.
+- **Enemy Kills**: `OffSaveStore.addEnemyKill()` en `killRaider` si no lo mataron los monstruos; campo `enemyKills` (versión 13). La casilla del original se llama **"EK.Count"** (`CHARACTER_INFO_BOXES.kills`, la que en Survivors cuenta muertes de la partida).
+- Pruebas: `check offraidinvis` / `offraidinvismage` (con Gorn; a los 3 s de verse se le deja con 1 de vida y sin poción para matarlo) / `offek`.

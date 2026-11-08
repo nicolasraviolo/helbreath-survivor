@@ -24,6 +24,8 @@
 // Fase Off-8A (versión 11): también las cargas del Critical Strike (`critCharges`); sin ellas (personaje nuevo o
 // guardado anterior), llenas.
 // Fase Off-8B (versión 12): también el mercenario contratado (`mercenary`); sin él, ninguno.
+// Fase Off-9B (versión 13): también los Enemy Kills (`enemyKills`, Raiders que matasteis tú o tu mercenario); los
+// guardados anteriores empiezan con 0.
 // Select Character (8-nov-2026): hasta OFF_CHARACTER_SLOT_COUNT personajes, uno por hueco y cada uno en su clave: el hueco
 // 1 sigue en `hb-off.character` (el personaje de antes no se pierde) y los demás en `hb-off.character.2` … `.4`. El
 // hueco con el que se juega va en `hb-off.slot`; `character` y todo lo demás trabajan siempre con ese.
@@ -67,7 +69,7 @@ export function offCharacterStorageKey(slot: number): string {
 /** Every key the slots use (for the transfer code). */
 export const OFF_SLOT_STORAGE_KEYS = Array.from({ length: OFF_CHARACTER_SLOT_COUNT }, (_, i) => offCharacterStorageKey(i));
 /** 1 (Off-2B): experience and unspent points. 2 (Off-3A): name, look, stats and whether it was created. 3 (Off-3C): equipment. 4 (Off-4A): gold and bag. 5 (Off-5A): faction. 6 (Off-5B): warehouse. 7 (Off-6A): spells and spell keys. 8 (Off-6C): gamepad spells. 9 (Off-7B): gear may carry its attributes ("longSword:sharp"; plain ids read as before). 10 (Off-7E): where it is. 11 (Off-8A): Critical Strike charges. */
-const OFF_CHARACTER_VERSION = 12;
+const OFF_CHARACTER_VERSION = 13;
 
 /** Off-7E: where the character was last seen; no tile = the place's usual arrival. */
 export interface OffWhere {
@@ -108,6 +110,8 @@ export interface OffSavedCharacter {
     critCharges: number | undefined;
     /** Off-8B: the mercenary hired (one at a time); undefined = none. */
     mercenary: OffMercenaryId | undefined;
+    /** Off-9B: Raiders you or your mercenary killed (the Character window's "Enemy Kills"). */
+    enemyKills: number;
 }
 
 /** What a bag or equipment change gave: done, nothing to do, short of STR or level, no room, too many potions. */
@@ -118,7 +122,7 @@ export type OffTradeResult = 'ok' | 'none' | 'gold' | 'bagFull' | 'potionLimit' 
 
 /** The character before anyone creates one (also what ?offreset leaves). */
 function blankCharacter(): OffSavedCharacter {
-    return { created: false, name: OFF_CREATION.defaultName, look: { ...OFF_NOVICE_LOOK }, stats: { ...OFF_OLD_SAVE_STATS }, exp: 0, points: 0, equipment: { ...OFF_START_EQUIPMENT }, gold: 0, bag: [], faction: undefined, warehouse: [], spells: [], spellKeys: noSpellKeys(), padSpells: noPadSpells(), where: undefined, critCharges: undefined, mercenary: undefined };
+    return { created: false, name: OFF_CREATION.defaultName, look: { ...OFF_NOVICE_LOOK }, stats: { ...OFF_OLD_SAVE_STATS }, exp: 0, points: 0, equipment: { ...OFF_START_EQUIPMENT }, gold: 0, bag: [], faction: undefined, warehouse: [], spells: [], spellKeys: noSpellKeys(), padSpells: noPadSpells(), where: undefined, critCharges: undefined, mercenary: undefined, enemyKills: 0 };
 }
 
 function noSpellKeys(): OffSpellKeys {
@@ -182,7 +186,9 @@ class OffSaveStoreImpl {
         }
         // Off-8B: ?offmerc starts with the Warrior hired (?offmerc=mage, the Mage; Off-8C).
         if (DEBUG_START.offMerc) this.data = { ...this.data, mercenary: DEBUG_START.offMerc };
-        if (DEBUG_START.offMerc || spells.length > 0 || DEBUG_START.offReset || level !== undefined || gear.length > 0 || statsChanged || DEBUG_START.offGold !== undefined || bag.length > 0 || faction !== undefined || warehouse.length > 0) this.write();
+        // Off-9B: ?offek=N starts with N Enemy Kills.
+        if (DEBUG_START.offEnemyKills !== undefined) this.data = { ...this.data, enemyKills: DEBUG_START.offEnemyKills };
+        if (DEBUG_START.offEnemyKills !== undefined || DEBUG_START.offMerc || spells.length > 0 || DEBUG_START.offReset || level !== undefined || gear.length > 0 || statsChanged || DEBUG_START.offGold !== undefined || bag.length > 0 || faction !== undefined || warehouse.length > 0) this.write();
     }
 
     public get character(): Readonly<OffSavedCharacter> {
@@ -233,7 +239,7 @@ class OffSaveStoreImpl {
     /** Creation screen done: a new character at level 1, in that slot (default: the one being played), which becomes the one played. */
     public create(name: string, look: CharacterLook, stats: OffStats, slot: number = this.slotIndex): void {
         this.select(slot);
-        this.data = { created: true, name, look: { ...look }, stats: { ...stats }, exp: 0, points: 0, equipment: { ...OFF_START_EQUIPMENT }, gold: 0, bag: [], faction: undefined, warehouse: [], spells: [], spellKeys: noSpellKeys(), padSpells: noPadSpells(), where: undefined, critCharges: undefined, mercenary: undefined };
+        this.data = { created: true, name, look: { ...look }, stats: { ...stats }, exp: 0, points: 0, equipment: { ...OFF_START_EQUIPMENT }, gold: 0, bag: [], faction: undefined, warehouse: [], spells: [], spellKeys: noSpellKeys(), padSpells: noPadSpells(), where: undefined, critCharges: undefined, mercenary: undefined, enemyKills: 0 };
         this.write();
     }
 
@@ -471,6 +477,12 @@ class OffSaveStoreImpl {
         this.write();
     }
 
+    /** Off-9B: one more Enemy Kill (a Raider you or your mercenary killed). */
+    public addEnemyKill(): void {
+        this.data = { ...this.data, enemyKills: this.data.enemyKills + 1 };
+        this.write();
+    }
+
     /** Off-8B: hires a mercenary for `price` gold (it replaces the one there was). False without the gold. */
     public hireMercenary(id: OffMercenaryId, price: number): boolean {
         if (this.data.gold < price) return false;
@@ -549,6 +561,7 @@ function load(slot: number): OffSavedCharacter {
             where: readWhere(data.where),
             critCharges: typeof data.critCharges === 'number' ? nonNegative(data.critCharges) : undefined,
             mercenary: isOffMercenaryId(data.mercenary) ? data.mercenary : undefined,
+            enemyKills: nonNegative(data.enemyKills),
         };
     } catch {
         return blankCharacter();

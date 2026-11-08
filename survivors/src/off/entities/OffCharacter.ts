@@ -48,6 +48,8 @@ export class OffCharacter {
     /** An attack or a flinch is showing for this long, ms. */
     private actionLeftMs = 0;
     private dead = false;
+    /** Off-9B: how much of it shows (0 = invisible Raider, 1 = whole). */
+    private alpha = 1;
 
     constructor(scene: Phaser.Scene, private readonly def: CharacterDef, look: CharacterLook, equipment: Readonly<SavedEquipment> = {}) {
         this.body = new CharacterSprite(scene, def, look);
@@ -131,6 +133,14 @@ export class OffCharacter {
         this.syncShadow();
     }
 
+    /** Off-9B: how much of the body and its shadow show (0 = invisible). */
+    public setAlpha(alpha: number): void {
+        if (alpha === this.alpha) return;
+        this.alpha = alpha;
+        this.container.setAlpha(alpha);
+        this.shadow.setAlpha(BODY_SHADOW_ALPHA * alpha);
+    }
+
     /** Removes the shadow (the container is destroyed by its owner; Off-8B, a mercenary leaving). */
     public destroyShadow(): void {
         this.shadow.destroy();
@@ -144,7 +154,7 @@ export class OffCharacter {
     /** Copies the body's frame onto the shadow and pins it to the frame's bottom centre (sp-client ShadowManager). */
     private syncShadow(): void {
         const frame = this.body.bodyFrame();
-        this.shadow.setVisible(frame !== undefined && !this.dead);
+        this.shadow.setVisible(frame !== undefined && !this.dead && this.alpha > 0);
         if (!frame) return;
         if (this.shadow.frame !== frame) {
             this.shadow.setTexture(frame.texture.key, frame.name);

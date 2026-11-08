@@ -155,6 +155,8 @@ function fight(raider: OffMercenary, victim: OffRaidVictim, at: TilePoint, world
     raider.character.act(PlayerState.Melee, direction, attackMs);
     raider.cooldownMs = attackMs;
     raider.raidBlow = { victim, lands, leftMs: attackMs * OFF_COMBAT.hitShare, crit };
+    // Off-9B: its first blow shows it, if it came invisible.
+    raider.reveal();
     world.mercSwings();
     if (crit) {
         raider.crits++;
@@ -196,14 +198,14 @@ function castFight(raider: OffMercenary, victim: OffRaidVictim, at: TilePoint, w
     // While you are held it heals more readily: it uses the time.
     const heal = bestHeal(raider);
     if (heal && raider.hp / Math.max(1, raider.maxHp) < (held ? mage.heldHealBelow : caster.healBelow)) {
-        if (startCast(raider, heal, undefined, undefined)) raider.raidCast = 'self';
+        if (raiderCast(raider, heal, undefined)) raider.raidCast = 'self';
         return;
     }
     // Paralyze (or Hold Person) first, as mages do (the owner, 8-nov-2026), when it knows one and you are in reach.
     const hold = held || raider.holdWaitMs > 0 ? undefined : bestHold(raider);
     if (hold && distance <= mage.castTiles && !mover.isMoving) {
         mover.cancel();
-        if (startCast(raider, hold, undefined, at)) raider.raidCast = victim;
+        if (raiderCast(raider, hold, at)) raider.raidCast = victim;
         return;
     }
     // From afar, never at your side (it only comes as close as castTiles); no Defense Shield: it doesn't waste the time.
@@ -215,7 +217,14 @@ function castFight(raider: OffMercenary, victim: OffRaidVictim, at: TilePoint, w
     mover.cancel();
     // While you are held it attacks from afar (spells don't free a person, OFF_HOLD.personMs).
     const spell = bestDamage(raider);
-    if (spell && startCast(raider, spell, undefined, at)) raider.raidCast = victim;
+    if (spell && raiderCast(raider, spell, at)) raider.raidCast = victim;
+}
+
+/** Starts a spell (on `at`, or itself); Off-9B: a spell shows it, if it came invisible. */
+function raiderCast(raider: OffMercenary, spell: OffSpellId, at: TilePoint | undefined): boolean {
+    if (!startCast(raider, spell, undefined, at)) return false;
+    raider.reveal();
+    return true;
 }
 
 /** Paralyze if it knows it and has the mana, else Hold Person (none: undefined). */

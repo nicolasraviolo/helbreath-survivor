@@ -2,6 +2,15 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
+**Helbreath Off · Fase Off-9, bloque B: Raiders invisibles y Enemy Kills (2026-11-09).**
+- **Qué hace:** **1 de cada 3 incursiones llegan invisibles** (las dos si son pareja): sin cuerpo, nombre, sombra ni aura; no se les puede hacer clic ni apuntar, y ni tu mercenario ni los monstruos los persiguen. Se dejan ver (aparecen en 0,3 s) con su **primer golpe o su primera magia** y ya no desaparecen.
+- **Pasos:** todos los Raiders (visibles o no) suenan al andar y al correr, al ritmo de su paso, más fuerte cuanto más cerca (hasta 12 casillas) y del lado en que están; sin polvo al correr. Idea del propietario: era lo único que delataba a un invisible.
+- **Enemy Kills:** +1 al matar a un Raider tú o tu mercenario (no si lo matan los monstruos), guardado con el personaje (versión 13) y en la casilla **"EK.Count"** de la ventana Character.
+- **Decisiones del propietario:** plan aprobado el 9-nov-2026, añadiendo los pasos. Detect Invisibility queda para más adelante (PLAN-OFF, "Pendiente").
+- **Comprobado:** build; `check offraidinvis offraidinvismage offek offraid offraidmage offraidpair play` sin errores (invisible: sin clics ni perseguidores ni golpes antes de verse, pasos al entrar en 12 casillas, se ve a 1 casilla el Guerrero y a 8 la Maga, EK guardado). **Pendiente de que lo pruebe el propietario** (sobre todo cómo suenan los pasos).
+- **Cómo probar:** `?off=raiders&offraid=invisible` con sonido; `?off=world&offek=12` y la ventana Character.
+- **Código:** `off/data/offRaiders.ts` (`invisibleChance`, `OFF_RAIDER_INVISIBLE`, `OFF_RAIDER_STEPS`), `OffMercenary` (`invisible`, `goInvisible`, `reveal`, `isSeen`), `OffCharacter.setAlpha`, `OffRaiderAI` (`reveal` al golpear, `raiderCast`), `OffBattle` (`seenRaiderList`, `updateRaiderSteps`, EK en `killRaider`), `AudioSystem` (bucles con `id`, `setLoopMix`, `isLooping`), `OffSaveStore.addEnemyKill`, `CharacterInfoScene`, `debugStart` (`offinvis`, `offek`). NOTES.md "Raiders invisibles y Enemy Kills (Off-9B)".
+
 **Helbreath Off · Fase Off-9, bloque A: Raiders, aparecer y atacar (2026-11-09).**
 - **Qué hace:** en **Promiseland**, cada 3 min (50 %) llegan sin aviso **1 o 2 Raiders de la otra ciudad** (Guerrero o Mago; uno de tu nivel ±2, o dos 3 niveles por debajo), fuera de la pantalla y buscando camino hasta ti. Solo se ve su **nombre en rojo** (sin barra de vida); capa y botas del color de su ciudad. Usan la cabeza de los mercenarios en el bando contrario: van a por ti o a por tu mercenario, **beben su poción en silencio**, tienen **estamina como tú** (sin ella andan), huyen como mucho 6 s y luego se dan la vuelta. Se les pega como a un monstruo (clic, mando, magias, Critical Strike); Gorn y Kaila van primero a por ellos. **Los monstruos les atacan**, pero ellos no se distraen. Al matarlos sale **"Enemy Kill!!"** amarillo encima y sueltan **oro** (nivel × 20), sin experiencia. Si mueres, se van.
 - **Guerrero Raider:** pega como Gorn y usa **Critical Strike** con tus mismas cargas (grito, "Crit!", chispas, temblor).

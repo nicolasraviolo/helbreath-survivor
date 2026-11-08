@@ -75,6 +75,7 @@ Cada fase se hace por bloques, uno por sesión, y se espera el OK del propietari
 ## Pendiente de decidir más adelante
 
 - **Absolute Magic Protection** (Magic.cfg 65: círculo 7, INT 112, 90 de maná, 13.500 de oro): añadirla cuando haya más magias; Kaila la usará en vez de Protection From Magic (propietario, 8-nov-2026).
+- **Detect Invisibility** (Magic.cfg: círculo 3, 1.200 de oro; quita la invisibilidad alrededor): para ver a los Raiders invisibles de la 9B (propietario, 9-nov-2026: fuera de la 9B).
 - Pasar Off a una **app independiente** que se juegue sin conexión (idea del propietario, 7-nov-2026).
 
 - Qué valor tiene el multiplicador de experiencia: se mide en Off-2 y Off-7.

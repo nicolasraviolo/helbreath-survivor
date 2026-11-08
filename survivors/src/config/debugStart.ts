@@ -119,6 +119,8 @@
 //   ?offmerc → Helbreath Off: el personaje empieza con el Guerrero mercenario contratado (Off-8B); ?offmerc=mage, con la maga Kaila (Off-8C)
 //   ?offraid → Helbreath Off: donde hay Raiders (Promiseland), llegan a los 3 s (Off-9A); ?offraid=warrior, mage o pair (dos)
 //   ?off=raiders → Helbreath Off: directo a Promiseland con ?offraid (Off-9A)
+//   ?offraid=invisible → Helbreath Off: el Raider de ?offraid llega invisible (o &offinvis junto a =warrior, mage, pair) (Off-9B)
+//   ?offek=12 → Helbreath Off: el personaje empieza con 12 Enemy Kills (Off-9B)
 //   ?offdrop=all → Helbreath Off: todos los monstruos sueltan algo; ?offdrop=valuable, siempre un arma o escudo (Off-4A)
 //   ?metrics=send    → enviar las métricas de esta partida al servidor de verdad (en desarrollo no se envían; Fase 14A)
 //   Se combina con ?ui=compact (interfaz de móvil).
@@ -231,6 +233,10 @@ interface DebugStart {
     offMerc: 'warrior' | 'mage' | undefined;
     /** ?offraid[=warrior|mage|pair]: Raiders come 3 s after arriving where they raid (Off-9A); ?off=raiders sets it too. */
     offRaid: 'any' | 'warrior' | 'mage' | 'pair' | undefined;
+    /** Off-9B: the raid ?offraid brings comes invisible (`?offraid=invisible`, or `&offinvis` with a kind or pair). */
+    offRaidInvisible: boolean;
+    /** Off-9B: ?offek=N starts with N Enemy Kills. */
+    offEnemyKills: number | undefined;
     /** ?offgold=N: Helbreath Off's character has that gold (Fase Off-4A). */
     offGold: number | undefined;
     /** ?offbag=a,b: Helbreath Off's bag holds those items (Fase Off-4A). */
@@ -293,7 +299,7 @@ function readDebugStart(): DebugStart {
     const none: DebugStart = {
         play: false, character: undefined, actions: [], trees: undefined, open: undefined, achievements: undefined, characters: undefined,
         sendMetrics: false, spells: { auto: undefined, active: undefined }, openClass: undefined, openSlot: undefined, slash: undefined,
-        holdLoading: false, gear: [], settingsTab: undefined, attribute: undefined, attributeValue: undefined, secondary: undefined, secondaryValue: undefined, unlocks: undefined, unlockCounts: {}, map: undefined, maps: undefined, rescued: undefined, kills: {}, unique: undefined, offLevel: undefined, offReset: false, offGear: [], offStats: {}, offGold: undefined, offHp: undefined, offCrit: undefined, offMerc: undefined, offRaid: undefined, offBag: [], offWarehouse: [], offOpen: undefined, offSpells: [], offDrop: 'normal', offFaction: undefined, offPlace: undefined, offAt: undefined, townSpot: undefined, townTalk: false, townShop: false, townDye: false, townMissions: false, townSmith: undefined,
+        holdLoading: false, gear: [], settingsTab: undefined, attribute: undefined, attributeValue: undefined, secondary: undefined, secondaryValue: undefined, unlocks: undefined, unlockCounts: {}, map: undefined, maps: undefined, rescued: undefined, kills: {}, unique: undefined, offLevel: undefined, offReset: false, offGear: [], offStats: {}, offGold: undefined, offHp: undefined, offCrit: undefined, offMerc: undefined, offRaid: undefined, offRaidInvisible: false, offEnemyKills: undefined, offBag: [], offWarehouse: [], offOpen: undefined, offSpells: [], offDrop: 'normal', offFaction: undefined, offPlace: undefined, offAt: undefined, townSpot: undefined, townTalk: false, townShop: false, townDye: false, townMissions: false, townSmith: undefined,
         gold: undefined, weapon: undefined, upgrade: undefined, xelima: undefined, level: undefined, build: undefined, kit: 'best', simBot: 'circle',
     };
     if (!import.meta.env.DEV) return none;
@@ -354,6 +360,8 @@ function readDebugStart(): DebugStart {
         offCrit: parseOffGold(params.get('offcrit')),
         offMerc: params.has('offmerc') ? (params.get('offmerc') === 'mage' ? 'mage' : 'warrior') : undefined,
         offRaid: parseOffRaid(params),
+        offRaidInvisible: params.get('offraid') === 'invisible' || params.has('offinvis'),
+        offEnemyKills: parseCount(params.get('offek')),
         offBag: (params.get('offbag') ?? '').split(',').map((g) => g.trim()).filter((g) => g.length > 0),
         offWarehouse: (params.get('offwarehouse') ?? '').split(',').map((g) => g.trim()).filter((g) => g.length > 0),
         offOpen: parseOffOpen(params.get('offopen')),
@@ -439,6 +447,12 @@ function parseOffRaid(params: URLSearchParams): 'any' | 'warrior' | 'mage' | 'pa
     const value = params.get('offraid');
     if (value === 'warrior' || value === 'mage' || value === 'pair') return value;
     return params.has('offraid') || params.get('off') === 'raiders' ? 'any' : undefined;
+}
+
+/** A whole number of 0 or more (undefined when missing or wrong). */
+function parseCount(value: string | null): number | undefined {
+    const n = Number(value);
+    return value !== null && value !== '' && Number.isInteger(n) && n >= 0 ? n : undefined;
 }
 
 function parseOffLevel(value: string | null): number | undefined {

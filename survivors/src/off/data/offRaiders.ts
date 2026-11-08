@@ -5,6 +5,9 @@
 //   en el bando contrario: van a por ti y a por tu mercenario.
 // - Los monstruos **sí** les atacan, pero ellos no se distraen: siguen a por ti o tu mercenario (8-nov-2026).
 // - Al morir sueltan **oro** y nada más por ahora. Si mueres o te vas de Promiseland, desaparecen.
+// Off-9B (propietario, 9-nov-2026): a veces llegan **invisibles** (sin cuerpo, nombre ni sombra) hasta que dan su
+// primer golpe o lanzan su primera magia; solo se les **oyen los pasos**, como en el original. Cada uno que matáis tú
+// o tu mercenario da **+1 Enemy Kill** (guardado, en la ventana Character).
 // Números nuestros; se ajustan en la 9C.
 import type { CharacterLook } from '../../data/appearance';
 import type { DyeColorId, WornColors } from '../../data/dyes';
@@ -35,6 +38,28 @@ export const OFF_RAIDS = {
     retryMs: 2000,
     /** Gold they drop: this much × their level (Off-9A: only gold). */
     goldPerLevel: 20,
+    /** Off-9B: this share of raids come invisible (both of a pair). */
+    invisibleChance: 1 / 3,
+} as const;
+
+/** Off-9B: an invisible Raider shows up (its first blow or spell) fading in over this long (ms). */
+export const OFF_RAIDER_INVISIBLE = {
+    fadeInMs: 300,
+} as const;
+
+/**
+ * Off-9B (the owner, 9-nov-2026: the only way to know an invisible one was near): a Raider's footsteps, walking or
+ * running, louder the nearer it is and from its side. No dust when it runs: only the sound gives it away.
+ */
+export const OFF_RAIDER_STEPS = {
+    /** Heard up to this many tiles away (silent farther)... */
+    hearTiles: 12,
+    /** ...at this share of your own steps' volume when right next to you... */
+    volume: 0.9,
+    /** ...and at least this share of that at the edge of hearing (it fades out, not off). */
+    farVolume: 0.15,
+    /** Left / right: this much at most (0–1), when it is `hearTiles` to a side. */
+    panMax: 0.7,
 } as const;
 
 /** How they fight (tiles, ms and shares). The rest, as the mercenaries (OFF_MERCENARY, _CASTER, _POTION, _FLEE). */
