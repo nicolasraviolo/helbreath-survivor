@@ -99,6 +99,13 @@ const PRESETS = {
     offpoisoncloud: 'off=world&offreset&offlevel=5&offstats=str:10&offgear=dagger:poison7',
     offpoison: 'off=world&offreset&offlevel=10&offstats=str:30&offgear=rapier:poison7',
     offlootlevel: 'off=world&offreset',
+    // Fase Off-7C: acierto y crítico. offhitrate tira 2000 golpes contra cada monstruo con DEX 20 / 40 / 60 (habilidad
+    // DEX × 2 + 50 + DEX sobre 50, ÷ defensa × 50). offhitorc pelea 20 s con Orcs con DEX 40 (en eval: golpes, Miss y
+    // acierto real). offcrit pega a Slimes con una Long Sword Critical 7 (en eval: golpes y críticos; captura con
+    // números naranjas).
+    offhitrate: 'off=world&offreset',
+    offhitorc: 'off=world&offlevel=20&offstats=str:30,dex:40&offgear=longSword&offfaction=aresden&offplace=aresden&offat=243,201',
+    offcrit: 'off=world&offreset&offlevel=20&offstats=str:40,dex:40&offgear=longSword:critical7',
     // Fase Off-4A: botín. offlootview mata Slimes 14 s con ?offdrop=all y se para (captura con el botín en el suelo);
     // offloot, lo mismo y luego pisa las casillas con botín (en eval: suelo antes, oro y bolsa después). offbagfull
     // empieza con la bolsa llena (50 Red Potion) y ?offdrop=valuable: lo que pisa se queda en el suelo.
@@ -494,6 +501,9 @@ const PRESET_EVAL = {
     offspecial: "new Promise((r) => setTimeout(() => { const inv = game.scene.getScene('OffInventory'); const boxes = []; for (const i of [4, 3, 2, 1]) { inv.debugMark(i); boxes.push(inv.debugState().box); } inv.debugMark(0); boxes.push(inv.debugState().box); r({ bag: inv.debugState().bag, boxes }); }, 1500))",
     offspecialequip: "new Promise((r) => { o.openEquipment(); setTimeout(() => { const e = game.scene.getScene('OffEquipment'); e.debugMark('weapon', 3); r({ box: e.debugState().box }); }, 1500); })",
     offpoisoncloud: "new Promise((r) => { const t = setInterval(() => { if (!o.debugState().target) o.debugFight('slime'); const m = o.battle.pits.monsters.find((x) => x.isAlive && x.isPoisoned); if (m) { clearInterval(t); o.battle.stopAttacking(); r({ poisoned: o.debugState().poisoned, cloud: m.poisonCloud?.visible, anim: m.poisonCloud?.anims.currentAnim?.key }); } }, 200); setTimeout(() => { clearInterval(t); r({ poisoned: 0 }); }, 20000); })",
+    offhitrate: "o.debugHitTable([20, 40, 60], 2000)",
+    offhitorc: "new Promise((r) => { const b = o.battle; const st = { swings: 0, misses: 0 }; const land = b.landBlow.bind(b); b.landBlow = (blow) => { st.swings++; if (!blow.lands) st.misses++; land(blow); }; const t = setInterval(() => { if (!o.debugState().target) o.debugFight('orc'); }, 500); setTimeout(() => { clearInterval(t); r({ hitRatio: b.hitRatio, ...st, hitPercent: Math.round((1 - st.misses / Math.max(1, st.swings)) * 100), kills: b.kills, dead: o.debugState().dead }); }, 20000); })",
+    offcrit: "new Promise((r) => { const b = o.battle; let swings = 0; const land = b.landBlow.bind(b); b.landBlow = (blow) => { if (blow.lands) swings++; land(blow); }; const t = setInterval(() => { if (!o.debugState().target) o.debugFight('slime'); }, 500); setTimeout(() => { clearInterval(t); r({ landed: swings, critical: b.criticalBlows, percent: Math.round((b.criticalBlows / Math.max(1, swings)) * 100), effects: b.gearEffects }); }, 25000); })",
     offpoison: "new Promise((r) => { const log = []; const t = setInterval(() => { if (!o.debugState().target) o.debugFight('slime'); const s = o.debugState(); log.push(s.poisoned); }, 1000); setTimeout(() => { clearInterval(t); const s = o.debugState(); r({ weapon: s.weapon, kills: s.kills, poisonedEachSecond: log.join(' ') }); }, 15000); })",
     offlootlevel: "Object.fromEntries(['slime', 'orc', 'clayGolem', 'cyclops'].map((m) => [m, o.debugRollLoot(m, 3000)]))",
     offpause: "o.openPause(), new Promise((r) => setTimeout(() => r({ pause: game.scene.isActive('Pause'), worldPaused: game.scene.isPaused('OffWorld'), hudPaused: game.scene.isPaused('OffHud') }), 800))",

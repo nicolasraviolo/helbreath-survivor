@@ -19,6 +19,10 @@ import type { StatId } from '../../data/stats';
 /** Off's stats, in the original window's order (Charisma left out). */
 export const OFF_STAT_IDS = ['str', 'vit', 'dex', 'int', 'mag'] as const satisfies readonly StatId[];
 export type OffStatId = (typeof OFF_STAT_IDS)[number];
+
+export function isOffStatId(id: string): id is OffStatId {
+    return (OFF_STAT_IDS as readonly string[]).includes(id);
+}
 export type OffStats = Record<OffStatId, number>;
 
 export const OFF_CREATION = {
@@ -126,10 +130,13 @@ export const OFF_CREATE_TEXT = {
 export const OFF_STAT_HELP: Readonly<Record<OffStatId, string>> = {
     str: 'Strength: more damage, faster weapons, more stamina and a little more health',
     vit: 'Vitality: more health, faster health and stamina recovery, less damage taken',
-    dex: 'Dexterity: harder to hit',
+    dex: 'Dexterity: hit more often, harder to hit',
     int: 'Intelligence: a little more mana; spells will need it',
     mag: 'Magic: more mana and faster mana recovery',
 };
+
+/** DEX's help with the hit ratio it gives (Off-7C: weapon skill DEX × 2 and the DEX bonus). */
+export const OFF_DEX_HELP = (hitRatio: number): string => `Dexterity: hit more often (Hit Ratio ${hitRatio}), harder to hit`;
 
 /** The batch lines at the bottom left, as the original ("SP" is stamina). */
 export const OFF_REGEN_TEXT = {

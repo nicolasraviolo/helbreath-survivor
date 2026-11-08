@@ -74,8 +74,16 @@ export const OFF_COMBAT = {
     maxHitPercent: 99,
     /** Added to the player's hit ratio on every attack (server: iAttackerHitRatio += 50). */
     playerHitBonus: 50,
-    /** The novice's weapon skill (mastery) until there are skills: the hit ratio before the bonus. Ours. */
-    noviceSkill: 0,
+    /**
+     * Off-7C (owner, 8-nov-2026): Off has no skills, so the weapon skill (mastery) is always at its original cap,
+     * DEX × 2, up to 100 (as the Magic skill is MAG × 2). Server: hit ratio = skill + 50, + (DEX − 50) above DEX 50.
+     */
+    skillPerDex: 2,
+    maxSkill: 100,
+    /** DEX above this adds to the hit ratio, point by point (server, iCalculateAttackEffect). */
+    dexBonusFrom: 50,
+    /** Off-7C (owner): a critical blow does this many times the damage (orange number, as Survivors). */
+    criticalDamage: 2,
     /** Share of the attack animation when the blow lands (ours; sp-client plays the hit on frame 2–3 of 8). */
     hitShare: 0.4,
     /** Monsters: attack turns before giving up a chase and wandering again (server NpcBehavior_Attack). */

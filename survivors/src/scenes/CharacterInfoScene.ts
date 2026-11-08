@@ -85,8 +85,8 @@ export interface CharacterInfoOff {
     statMax: number;
     /** Health, mana and stamina boxes ("now/max") with these stats. */
     values: (stats: Readonly<Stats>) => { health: string; mana: string; stamina: string };
-    /** What each shown stat does, under the window. */
-    statHelp: Readonly<Partial<Record<StatId, string>>>;
+    /** What a shown stat does, under the window, with these stats (Off-7C: DEX shows the hit ratio it gives). */
+    statHelp: (id: StatId, stats: Readonly<Stats>) => string | undefined;
     /** Ok with points added (only the added ones, the rest at 0). */
     assign: (added: Readonly<Stats>) => void;
     /** After the window closes (the world itself is `returnTo`). */
@@ -474,6 +474,9 @@ export class CharacterInfoScene extends Phaser.Scene {
             this.stepper.plus.setAlpha(pointsLeft > 0 && stats[id] < this.statCap ? 1 : b.disabledAlpha);
             this.stepper.minus.setAlpha(this.pending[id] > 0 ? 1 : b.disabledAlpha);
         }
+        const focus = this.focus;
+        const offHelp = focus.kind === 'stat' ? this.params.off?.statHelp(focus.id, stats) : undefined;
+        if (offHelp) this.helpText.setText(`${offHelp}.`);
         this.pointsText?.setText(`Points left: ${pointsLeft}`).setColor(pointsLeft > 0 ? CHARACTER_INFO_POINTS_COLOR : CHARACTER_INFO_POINTS_STYLE.color);
     }
 
@@ -488,7 +491,7 @@ export class CharacterInfoScene extends Phaser.Scene {
             const s = CHARACTER_INFO_SCALE;
             this.focusFrame.setPosition(this.sx(box.x) - 1, this.sy(box.y) - 1).setSize(box.width * s + 2, box.height * s + 2).setVisible(true);
             const info = STAT_INFO[focus.id];
-            const offHelp = this.params.off?.statHelp[focus.id];
+            const offHelp = this.params.off?.statHelp(focus.id, this.shownStats);
             this.helpText.setText(offHelp ? `${offHelp}.` : `${info.name}: ${info.effect}.`);
             if (this.stepper && this.stepper.stat !== focus.id) {
                 this.stepper.stat = focus.id;

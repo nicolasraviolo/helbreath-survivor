@@ -9,6 +9,16 @@ export function rollDice(count: number, sides: number): number {
     return total;
 }
 
+/**
+ * The player's hit ratio with a weapon (Off-7C; reference/Server.cpp, iCalculateAttackEffect): weapon skill (DEX × 2,
+ * up to 100) + 50, + DEX above 50, then × the Hitting Probability attribute (`hitting`, Off-7B).
+ */
+export function offPlayerHitRatio(dex: number, hitting = 0): number {
+    const skill = Math.min(OFF_COMBAT.maxSkill, dex * OFF_COMBAT.skillPerDex);
+    const dexBonus = Math.max(0, dex - OFF_COMBAT.dexBonusFrom);
+    return Math.floor((skill + OFF_COMBAT.playerHitBonus + dexBonus) * (1 + hitting));
+}
+
 /** Chance (0..1) that an attack lands: hit / defence × 50 %, defence halved from behind, within the limits. */
 export function offHitChance(hitRatio: number, defenseRatio: number, fromBehind: boolean): number {
     const defense = Math.max(1, fromBehind ? Math.floor(defenseRatio / 2) : defenseRatio);

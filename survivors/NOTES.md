@@ -138,6 +138,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Magias de apoyo y mando en Helbreath Off (Fase Off-6C)
 - Promiseland (Helbreath Off, Fase Off-7A, 8-nov-2026)
 - Pociones rápidas y botín con atributos (Helbreath Off, Fase Off-7B, 8-nov-2026)
+- Acierto y crítico (Helbreath Off, Fase Off-7C, 8-nov-2026)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -1544,7 +1545,16 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - **La Rapier no existía en Survivors** (Fencing apagada: sin icono ni sprite en la mano). Off le pone el icono de bolsa del original (`icon`, hoja 0 dibujo 6, Item.cfg sprite 1 frame 6) y `data/weapons.ts` le da su dibujo en la mano: **bloque de msw.spr = apariencia de Item.cfg − 1, 56 hojas cada uno** (Dagger 1 → 0, Long Sword 3 → 112, Scimitar 6 → 280, Rapier 7 → 336). En Survivors sigue apagada.
 - **Color del atributo**: en la mano, `offWeaponTint` → `CharacterSprite.wearEquipment`; en la bolsa, equipo, tienda, almacén y suelo, `offItemTint` → `setColouredTexture` (hb/additiveTint.ts), como Survivors. Critical no tiene color.
 - **Nube de veneno**: `fx.poison.cloud` (effect9 hoja 15, 70 % opaca) sobre el monstruo envenenado, como `Enemy` de Survivors (`OffMonster.syncPoisonCloud`).
-- **Fallar mucho (pendiente de la 7C)**: en el original el acierto es la habilidad del arma (0–100, sube al usarla) + 50 (`Server.cpp:32485`). Off no tiene habilidades: siempre 50 (`OFF_COMBAT.noviceSkill` 0). Contra Defense Ratio 100 (Golems) = 25 %, 110 (Cyclops) = 22 %; con habilidad 100 serían 75 % y 68 %.
+- **Fallar mucho**: resuelto en la 7C (abajo, "Acierto y crítico").
 - **Peso**: en Off solo sirve para la STR que pide un objeto (STR = peso / 100). No hay carga máxima (Max.Load sale vacío), así que Light solo baja esa STR.
 - **Pociones rápidas**: `Action.OffDrinkHealth` (Q, cruceta izquierda) y `OffDrinkMana` (E, cruceta derecha) → `OffBattle.drinkQuick` (la poción de más precio de esa barra = la grande). Solo sin ventanas abiertas (en el inventario, E sigue siendo Equipment). En Off la cruceta ya no anda: `InputSystem.setDpadMoves(false)`.
 - **Probar**: `check offquickdrink` / `offspecial` / `offspecialequip` / `offpoison` / `offpoisoncloud` / `offrapier` / `offtintbag` / `offlootlevel` (3000 tiradas por monstruo); `?offbag=longSword:sharp,chainMail:light5:hpRecovery3`, `?offgear=rapier:poison7`, `?offdrop=valuable`.
+
+## Acierto y crítico (Helbreath Off, Fase Off-7C, 8-nov-2026)
+- **Fórmula del original** (`reference/Server.cpp`, `iCalculateAttackEffect` ~L53440–53945): acierto = habilidad del arma (`m_cSkillMastery`, vía `m_iHitRatio`) + 50 + (DEX − 50 si DEX > 50) + atributos; % = acierto ÷ defensa del objetivo × 50 (defensa ÷ 2 por la espalda), entre 15 y 99. Depende del monstruo por su defensa (Slime 10, Orc 40, Skeleton 65, Clay Golem / Troll 100, Stone Golem / Cyclops 110).
+- **Habilidad = DEX × 2, tope 100** (propietario: subirla al pegar como el original era lento y complejo). Es el tope del original para las habilidades de arma. `offPlayerHitRatio` en `OffCombatRules.ts`, números en `OFF_COMBAT` (`skillPerDex`, `maxSkill`, `dexBonusFrom`). DEX 20 / 40 / 60 → acierto 90 / 130 / 160: contra Cyclops 38 / 61 / 71 %, contra Clay Golem 46 / 66 / 80 %.
+- **Cómo subía en el original** (por si se quiere más adelante): una habilidad por familia (7 Short Sword, 8 Long Sword, 9 Fencing, 10 Axe, 14 Hammer, 5 mano), solo al acertar (`CalculateSSN_ItemIndex`, ~L54661): +1 por golpe, 1d(HitDice) al matar. Pasar de M a M+1 pide más de M+1 puntos (el doble desde 50; ~8.800 de 0 a 100). Tope DEX × 2 (mano: STR × 2). Con 0 no sube; el valor inicial no está en el servidor.
+- **Ventana Character:** la ayuda de DEX dice el acierto ("Hit Ratio N") y cambia al repartir puntos (`CharacterInfoOff.statHelp` es ahora una función de los stats). Las casillas libres de la imagen (Max.Load, Enemy Kills) llevan rótulo pintado, por eso no se usan.
+- **Crítico simple** (propietario): Critical = 1 % por punto (5–7 %) de golpe ×2 (`OFF_COMBAT.criticalDamage`), número naranja de `DamageNumbers.show(..., critical)`. El veneno de ese golpe también sale doble. Texto: "Critical Chance +N%". `OffBattle.criticalBlows` cuenta los críticos.
+- **Probar:** `check offhitrate` (tabla con 2000 tiradas), `offhitorc` (DEX 40 contra Orcs: 0 fallos en 22), `offcrit`.
+

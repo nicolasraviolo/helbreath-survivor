@@ -53,7 +53,8 @@ export const OFF_WEAPON_PRIMARY = {
     sharp: { name: 'Sharp', weight: 10, effect: 'damage', fixed: 0.1, prefix: 'Sharp' },
     ancient: { name: 'Ancient', weight: 1, effect: 'damage', fixed: 0.2, prefix: 'Ancient' },
     poison: { name: 'Poison', weight: 5, effect: 'poison', base: 0.2, perValue: 0.05, minValue: 4, prefix: 'Poisoning' },
-    critical: { name: 'Critical', weight: 9, effect: 'critical', perValue: 1, minValue: 5, prefix: 'Critical' },
+    // Off-7C (owner, 8-nov-2026): simple criticals, 1 % per point of a blow doing double damage (OFF_COMBAT.criticalDamage).
+    critical: { name: 'Critical', weight: 9, effect: 'critical', perValue: 0.01, minValue: 5, prefix: 'Critical' },
 } as const satisfies Record<string, OffAttributeDef>;
 
 /** First attribute of an armour piece or shield. */
@@ -284,7 +285,7 @@ function line(def: OffAttributeDef, value: number | undefined): string {
     switch (def.effect) {
         case 'damage': return `Damage +${percent(amount)}`;
         case 'poison': return `Poison ${value ?? ''}: poisons what you hit`;
-        case 'critical': return `Critical Damage +${value ?? 0}`;
+        case 'critical': return `Critical Chance +${percent(amount)}`;
         case 'light': return `Weight -${percent(amount)}`;
         default: return `${def.name} +${percent(amount)}`;
     }

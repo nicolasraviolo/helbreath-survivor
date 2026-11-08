@@ -1,14 +1,15 @@
 // Helbreath Off (Fase Off-3B): lo que la ventana Character de Survivors (scenes/CharacterInfoScene.ts, modo `off`)
 // necesita del personaje de Off: nombre, nivel, experiencia, stats, puntos por repartir, vida / maná / estamina
 // (lo que tiene y el máximo con los stats que se están repartiendo) y qué hacer al pulsar Ok.
-import type { Stats } from '../../data/stats';
+import type { StatId, Stats } from '../../data/stats';
 import type { CharacterInfoOff, CharacterInfoSceneData } from '../../scenes/CharacterInfoScene';
 import type { MenuOverlayData } from '../../scenes/MenuOverlayScene';
-import { OFF_STAT_HELP, OFF_STAT_IDS, OFF_STAT_MAX, offMaxHp, offMaxMana, offMaxStamina, type OffStats } from '../data/offCharacter';
+import { isOffStatId, OFF_DEX_HELP, OFF_STAT_HELP, OFF_STAT_IDS, OFF_STAT_MAX, offMaxHp, offMaxMana, offMaxStamina, type OffStats } from '../data/offCharacter';
 import { offEquipmentLook } from '../data/offItems';
 import { OFF_LEVEL, offExpForLevel } from '../data/offLevel';
 import { OFF_NOVICE } from '../data/offWorld';
 import type { OffBattle } from '../systems/OffBattle';
+import { offPlayerHitRatio } from '../systems/OffCombatRules';
 import { offSaveStore } from '../systems/OffSaveStore';
 
 /** Data to launch 'CharacterInfo' over Off's world (`worldKey`, paused: the window resumes it). */
@@ -36,11 +37,18 @@ export function offCharacterInfo(battle: OffBattle, worldKey: string, onClose: (
                 stamina: `${Math.ceil(battle.vitals.stamina)}/${offMaxStamina(s)}`,
             };
         },
-        statHelp: OFF_STAT_HELP,
+        statHelp: (id, stats) => offStatHelp(id, stats, battle),
         assign: (added) => battle.assignPoints(offStats(added)),
         onClose,
     };
     return { characterUid: undefined, classId: 'warrior', off, returnTo: worldKey };
+}
+
+/** A stat's help line; DEX also says the hit ratio it gives (Off-7C), Hitting Probability included. */
+function offStatHelp(id: StatId, stats: Readonly<Stats>, battle: OffBattle): string | undefined {
+    if (!isOffStatId(id)) return undefined;
+    if (id !== 'dex') return OFF_STAT_HELP[id];
+    return OFF_DEX_HELP(offPlayerHitRatio(stats.dex, battle.gearEffects.hitting ?? 0));
 }
 
 function offStats(stats: Readonly<Stats>): OffStats {

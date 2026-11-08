@@ -73,7 +73,8 @@ import { OFF_HUD_SCENE_KEY, OFF_OPEN_CHARACTER_EVENT, OFF_OPEN_PAUSE_EVENT, type
 import { offCharacterInfo } from './offCharacterInfo';
 import { isOffGearKey, offEquipmentLook, offGearId, offGearRolls, offWeaponTint } from '../data/offItems';
 import { rollKillLoot } from '../systems/OffLootRoller';
-import { isOffMonsterId } from '../data/offMonsters';
+import { isOffMonsterId, OFF_MONSTERS, type OffMonsterId } from '../data/offMonsters';
+import { offHitChance, offPlayerHitRatio } from '../systems/OffCombatRules';
 import { offAttackMs } from '../data/offCombat';
 import { OFF_EQUIPMENT_SCENE_KEY, type OffEquipmentSceneData } from './OffEquipmentScene';
 import { OFF_INVENTORY_SCENE_KEY, type OffInventorySceneData } from './OffInventoryScene';
@@ -146,6 +147,26 @@ export class OffWorldScene extends Phaser.Scene {
     private battle!: OffBattle;
     /** The left button went down on a monster and is still held: the character keeps hitting it. */
     private mouseAttack = false;
+    /**
+     * Development (`check offhitrate`, Off-7C): hit chance (%) of the player's blows against every monster, from the
+     * front, for each DEX (no Hitting Probability), rolled `count` times as a real blow would.
+     */
+    public debugHitTable(dexes: readonly number[], count: number): Record<string, Record<string, { ratio: number; percent: number }>> {
+        const out: Record<string, Record<string, { ratio: number; percent: number }>> = {};
+        for (const dex of dexes) {
+            const ratio = offPlayerHitRatio(dex);
+            const row: Record<string, { ratio: number; percent: number }> = {};
+            for (const id of Object.keys(OFF_MONSTERS) as OffMonsterId[]) {
+                const chance = offHitChance(ratio, OFF_MONSTERS[id].base.defenseRatio, false);
+                let hits = 0;
+                for (let i = 0; i < count; i++) if (Math.random() < chance) hits++;
+                row[id] = { ratio, percent: Math.round((hits / count) * 100) };
+            }
+            out[`dex${dex}`] = row;
+        }
+        return out;
+    }
+
     /** Development (`check offfight`): attacks go on as if the button were held, until a click or the stick. */
     private debugHold = false;
     /** Development (`debugCast`): the kind of monster the spell goes to once ready ('' = any). */

@@ -52,7 +52,7 @@ import type { OffGroundContent } from '../entities/OffGroundItem';
 import { OFF_LEVEL, OFF_LEVEL_TEXT, offDeathExpLoss, offKillExp, offLevelForExp } from '../data/offLevel';
 import type { OffCharacter } from '../entities/OffCharacter';
 import type { OffMonster } from '../entities/OffMonster';
-import { isFromBehind, offHitChance, rollMonsterDamage, rollWeaponDamage, tileDistance } from './OffCombatRules';
+import { isFromBehind, offHitChance, offPlayerHitRatio, rollMonsterDamage, rollWeaponDamage, tileDistance } from './OffCombatRules';
 import { rollSpellDamage } from './OffSpellRules';
 import { provokeMonster, updateMonster, type OffMonsterWorld } from './OffMonsterAI';
 import { OffGroundItems } from './OffGroundItems';
@@ -108,6 +108,8 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost {
     public points: number;
     /** Monsters killed since the world opened. */
     public kills = 0;
+    /** Critical blows so far (Off-7C; for `check offcrit`). */
+    public criticalBlows = 0;
     /** Monster chosen to attack (click, A, LB / RB). */
     public target: OffMonster | undefined;
     /** Monster under the mouse (its name shows). */
@@ -189,6 +191,11 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost {
     /** What the worn gear's attributes add (Off-7B). */
     public get gearEffects(): OffAttributeEffects {
         return offEquipmentEffects(offSaveStore.character.equipment);
+    }
+
+    /** Hit ratio of the player's blows (Off-7C): DEX's weapon skill and bonus, times Hitting Probability. */
+    public get hitRatio(): number {
+        return offPlayerHitRatio(this.stats.dex, this.gearEffects.hitting ?? 0);
     }
 
     /**
@@ -511,8 +518,7 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost {
         const mover = this.mover;
         const direction = directionTowards(mover.tileX, mover.tileY, target.mover.tileX, target.mover.tileY) ?? mover.facing;
         mover.face(direction);
-        // Off-7B: a Hitting Probability attribute raises the hit ratio.
-        const hitRatio = (OFF_COMBAT.noviceSkill + OFF_COMBAT.playerHitBonus) * (1 + (this.gearEffects.hitting ?? 0));
+        const hitRatio = this.hitRatio;
         const behind = isFromBehind(direction, target.mover.facing);
         const lands = Math.random() < offHitChance(hitRatio, target.def.base.defenseRatio, behind);
         const attackMs = offAttackMs(this.weapon, this.stats.str);
@@ -532,9 +538,13 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost {
             return;
         }
         const effects = this.gearEffects;
-        const damage = rollWeaponDamage(this.weapon, monster.def.size, this.stats.str, 1 + (effects.damage ?? 0));
+        // Off-7C (owner): a Critical weapon has its value in % of doing double damage (orange number, as Survivors).
+        const critical = Math.random() < (effects.critical ?? 0);
+        const factor = (1 + (effects.damage ?? 0)) * (critical ? OFF_COMBAT.criticalDamage : 1);
+        const damage = rollWeaponDamage(this.weapon, monster.def.size, this.stats.str, factor);
         this.audio.play('sfx.melee.hit');
-        const killed = this.hurtMonster(monster, damage, undefined);
+        if (critical) this.criticalBlows++;
+        const killed = this.hurtMonster(monster, damage, undefined, critical);
         // Off-7B: a Poison weapon poisons what it hits (if it wasn't already), at a share of the blow (as Survivors).
         if (!killed && effects.poison) monster.poison(damage * effects.poison);
         this.audio.play(killed ? monster.def.base.deathSound : monster.def.base.hitSound);
@@ -544,12 +554,12 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost {
      * Damage on a monster, from a blow or a spell (`element`: its number's colour): the number, and the death with its
      * loot and experience. Returns whether it died.
      */
-    private hurtMonster(monster: OffMonster, damage: number, element: SpellElement | undefined): boolean {
+    private hurtMonster(monster: OffMonster, damage: number, element: SpellElement | undefined, critical = false): boolean {
         const bodyY = monster.y - monster.def.base.bodyOffsetY;
         monster.hurt(damage);
         provokeMonster(monster);
         const killed = monster.hp <= 0;
-        this.numbers.show(monster.x, bodyY, damage, false, killed, element);
+        this.numbers.show(monster.x, bodyY, damage, critical, killed, element);
         if (killed) this.killMonster(monster);
         else this.particles.hit(monster.x, bodyY, this.character.x, this.character.y);
         return killed;
