@@ -9,6 +9,9 @@
 //   a pensar; al monstruo al que no llega lo deja un rato (ignoreMs). Nunca se queda en tu casilla.
 // Off-8C, recoger: sin pelea, va a por lo que lleva OFF_MERCENARY.lootWaitMs en el suelo cerca de ti y te lo da (no lo
 //   que tiraste tú). Va antes que atacar a un monstruo que solo pasea, pero después de los que os atacan y del tuyo.
+// Off-8D, por la espalda: contra un monstruo paralizado (Paralyze no se rompe al pegarle; Hold Person sí), el Guerrero
+//   va a la casilla de detrás (la contraria a donde mira) y le pega desde ahí, con su defensa a la mitad como el
+//   original. Si esa casilla está ocupada o no se acerca en OFF_MERCENARY.flankStallMs, le pega desde donde esté.
 // Fase Off-8C, la maga (`merc.isCaster`): no pega. Con una magia a medias espera quieta y, lista, la suelta. Si no,
 // por orden: te cura si te queda poca vida (OFF_MERCENARY_CASTER.healBelow), se cura ella, y en pelea te pone Defense
 // Shield (Protection From Magic si en el pit hay monstruos que lanzan magia), Berserk, Paralyze al monstruo que atacas
@@ -24,7 +27,7 @@ import type { OffMercenary } from '../entities/OffMercenary';
 import type { OffMonster } from '../entities/OffMonster';
 import { PlayerState } from '../../hb/playerAppearance';
 import { isFromBehind, offHitChance, tileDistance } from './OffCombatRules';
-import { directionTowards, type TilePoint } from './TileMover';
+import { directionOffset, directionTowards, type TilePoint } from './TileMover';
 
 /** Off-8C: what the Mage looks at about you before casting on you. */
 export interface OffOwnerNeeds {
@@ -136,6 +139,7 @@ function pickTarget(merc: OffMercenary, owner: TilePoint, world: OffMercenaryWor
 function fight(merc: OffMercenary, target: OffMonster, world: OffMercenaryWorld, deltaMs: number): void {
     const mover = merc.mover;
     const range = merc.weapon.range;
+    if (flank(merc, target, world, deltaMs)) return;
     const distance = tileDistance(mover.tileX, mover.tileY, target.mover.tileX, target.mover.tileY);
     if (distance > range) {
         if (stalled(merc, distance, deltaMs)) {
@@ -156,12 +160,50 @@ function fight(merc: OffMercenary, target: OffMonster, world: OffMercenaryWorld,
     if (merc.cooldownMs > 0 || merc.character.isActing || merc.blow) return;
     const direction = directionTowards(mover.tileX, mover.tileY, target.mover.tileX, target.mover.tileY) ?? mover.facing;
     mover.face(direction);
-    const lands = Math.random() < offHitChance(merc.hitRatio, target.def.base.defenseRatio, isFromBehind(direction, target.mover.facing));
+    const behind = isFromBehind(direction, target.mover.facing);
+    if (behind) merc.behindBlows++;
+    const lands = Math.random() < offHitChance(merc.hitRatio, target.def.base.defenseRatio, behind);
     const attackMs = offAttackMs(merc.weapon, merc.stats.str);
     merc.character.act(PlayerState.Melee, direction, attackMs);
     merc.cooldownMs = attackMs;
     merc.blow = { monster: target, lands, leftMs: attackMs * OFF_COMBAT.hitShare };
     world.mercSwings();
+}
+
+/**
+ * Off-8D: a paralysed monster: walks to the tile behind it. True while on the way (fight waits); false once there, or
+ * when the tile is taken or it gave up on this monster (then it hits from where it is).
+ */
+function flank(merc: OffMercenary, target: OffMonster, world: OffMercenaryWorld, deltaMs: number): boolean {
+    const mover = merc.mover;
+    if (!target.isParalyzed) {
+        if (merc.flankGaveUp === target) merc.flankGaveUp = undefined;
+        return false;
+    }
+    if (merc.flankGaveUp === target) return false;
+    const facing = directionOffset(target.mover.facing);
+    const back = { x: target.mover.tileX - facing.x, y: target.mover.tileY - facing.y };
+    if (mover.tileX === back.x && mover.tileY === back.y) {
+        if (mover.isTravelling) mover.cancel();
+        return false;
+    }
+    if (!world.mercCanStand(back.x, back.y)) return false;
+    const goal = mover.goal;
+    if (!mover.isTravelling || !goal || goal.x !== back.x || goal.y !== back.y) {
+        resetChase(merc);
+        if (merc.character.isActing || merc.blow) return true;
+        const path = world.findPath({ x: mover.tileX, y: mover.tileY }, back, OFF_MERCENARY.pathMaxTiles);
+        if (path && path.length > 0) mover.goAlong(path);
+        else mover.goTo(back.x, back.y);
+        return true;
+    }
+    if (stalled(merc, tileDistance(mover.tileX, mover.tileY, back.x, back.y), deltaMs, OFF_MERCENARY.flankStallMs)) {
+        merc.flankGaveUp = target;
+        mover.cancel();
+        resetChase(merc);
+        return false;
+    }
+    return true;
 }
 
 // ---- The Mage (Off-8C) ----
@@ -405,15 +447,15 @@ function follow(merc: OffMercenary, owner: TilePoint | undefined, world: OffMerc
     else mover.approach(owner.x, owner.y, OFF_MERCENARY.followStopTiles);
 }
 
-/** True once it has gone OFF_MERCENARY.stallMs without getting a tile closer to where it is going. */
-function stalled(merc: OffMercenary, gap: number, deltaMs: number): boolean {
+/** True once it has gone `limitMs` (OFF_MERCENARY.stallMs) without getting a tile closer to where it is going. */
+function stalled(merc: OffMercenary, gap: number, deltaMs: number, limitMs: number = OFF_MERCENARY.stallMs): boolean {
     if (gap < merc.chaseBest) {
         merc.chaseBest = gap;
         merc.chaseStallMs = 0;
         return false;
     }
     merc.chaseStallMs += deltaMs;
-    return merc.chaseStallMs >= OFF_MERCENARY.stallMs;
+    return merc.chaseStallMs >= limitMs;
 }
 
 function resetChase(merc: OffMercenary): void {

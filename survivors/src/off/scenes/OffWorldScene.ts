@@ -898,6 +898,21 @@ export class OffWorldScene extends Phaser.Scene {
         return result;
     }
 
+    /**
+     * Development (`check offmercbehind`, Off-8D): Paralyze (as the spell, its own time) on the monster the mercenary
+     * fights, or else the nearest one. Returns the monster's tile and where it looks.
+     */
+    public debugParalyze(): string | undefined {
+        const merc = this.battle.merc;
+        const monster = merc?.target?.isAlive ? merc.target : this.battle.pits.monsters
+            .filter((m) => m.isAlive)
+            .sort((a, b) => Math.hypot(a.x - this.character.x, a.y - this.character.y) - Math.hypot(b.x - this.character.x, b.y - this.character.y))[0];
+        if (!monster) return undefined;
+        const def = OFF_SPELLS.paralyze;
+        monster.hold((def.durationSec ?? 0) * 1000, def.power ?? 0);
+        return `${monster.id} at ${monster.mover.tileX},${monster.mover.tileY} facing ${monster.mover.facing}`;
+    }
+
     /** Development (`check offmercheal`): the mercenary loses health down to `hp`. */
     public debugMercHp(hp: number): void {
         const merc = this.battle.merc;
@@ -955,7 +970,7 @@ export class OffWorldScene extends Phaser.Scene {
         spell: string; casts: number; fails: number; prepareMs: number; burning: number; slowed: number;
         held: number; poisoned: number; shield: string | undefined; padSpells: string[];
         merc: string | undefined; mercKills: number; mercDown: number; mercShield: string | undefined; onMerc: number; hirer: TilePoint | undefined;
-        mercPicked: number; mercTarget: string | undefined; mercLoot: string | undefined; berserk: number; mercBerserk: number; mercMana: string | undefined; mercCasts: Record<string, number>; blowAvg: { plain: number; berserk: number };
+        mercPicked: number; mercTarget: string | undefined; mercLoot: string | undefined; berserk: number; mercBerserk: number; mercMana: string | undefined; mercCasts: Record<string, number>; mercSaid: Record<string, number>; mercSaying: string | undefined; mercBehind: number; blowAvg: { plain: number; berserk: number };
     } {
         const monsters: Record<string, number> = {};
         for (const monster of this.battle.pits.monsters) {
@@ -975,6 +990,9 @@ export class OffWorldScene extends Phaser.Scene {
             mercBerserk: merc ? Math.ceil(merc.berserkLeftMs / 1000) : 0,
             mercMana: merc?.isCaster ? `${merc.mana}/${merc.maxMana}` : undefined,
             mercCasts: { ...(merc?.castCount ?? {}) },
+            mercSaid: { ...(merc?.saidCount ?? {}) },
+            mercSaying: merc?.saying,
+            mercBehind: merc?.behindBlows ?? 0,
             blowAvg: {
                 plain: Math.round(this.battle.debugBlows.plain.sum / Math.max(1, this.battle.debugBlows.plain.count) * 10) / 10,
                 berserk: Math.round(this.battle.debugBlows.berserk.sum / Math.max(1, this.battle.debugBlows.berserk.count) * 10) / 10,

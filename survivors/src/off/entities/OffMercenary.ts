@@ -3,6 +3,8 @@
 // tumbado con "Down N" encima hasta levantarse. Qué hace lo decide OffMercenaryAI; el daño, OffBattle.
 // Fase Off-8C: la maga lleva maná (fórmula del original con sus stats) y su propio OffSpells (`spells`, lo pone
 // OffBattle). Cualquiera de los dos puede estar en Berserk (`berserkLeftMs`): brillo rojo como el buff de Survivors.
+// Fase Off-8D: dice frases encima del nombre (`say`, texto blanco OFF_MERCENARY_TALK.showMs); cuándo, OffMercenaryTalk.
+// Al caer dice "Ugh..." y al levantarse "I'm back!" sin esperar turno.
 import Phaser from 'phaser';
 import { DEPTH_DAMAGE_NUMBERS, DEPTH_GROUND_SHADOWS } from '../../config/gameConfig';
 import { EFFECTS, type EffectDef, type EffectKey } from '../../config/effects';
@@ -13,7 +15,7 @@ import { OFF_MONSTER_LOOK } from '../config/offMonsterLook';
 import { offMaxHp, offMaxMana, type OffStats } from '../data/offCharacter';
 import { BUFFS, BUFF_OVERLAY_ALPHA } from '../../data/pickups';
 import {
-    OFF_MERCENARIES, OFF_MERCENARY, OFF_MERCENARY_COLORS, OFF_MERCENARY_LOOK, OFF_MERCENARY_TEXT, offMercenaryGear, offMercenaryStats, type OffMercenaryDef, type OffMercenaryId,
+    OFF_MERCENARIES, OFF_MERCENARY, OFF_MERCENARY_COLORS, OFF_MERCENARY_LINES, OFF_MERCENARY_TALK, OFF_MERCENARY_LOOK, OFF_MERCENARY_TEXT, offMercenaryGear, offMercenaryStats, type OffMercenaryDef, type OffMercenaryId, type OffMercenaryLineId,
 } from '../data/offMercenary';
 import { offArmorDefense, offEquipmentLook, offWeapon, type OffEquipment } from '../data/offItems';
 import type { OffWeaponDef } from '../data/offCombat';
@@ -85,6 +87,17 @@ export class OffMercenary {
     public ignoredLeftMs = 0;
     /** Monsters it has killed (for `check offmerc`). */
     public kills = 0;
+    /** Off-8D: blows it started from behind a monster (for `check offmercbehind`), and the paralysed monster it gave up flanking. */
+    public behindBlows = 0;
+    public flankGaveUp: OffMonster | undefined;
+    /** Off-8D: its talk: a clock, when each line was last said, the time since the last one and how long the shown one stays. */
+    public talkClockMs = 0;
+    public talkSinceMs: number = OFF_MERCENARY_TALK.gapMs;
+    private readonly saidAt: Partial<Record<OffMercenaryLineId, number>> = {};
+    /** Times each line was said (for `check offmercsay`). */
+    public readonly saidCount: Partial<Record<OffMercenaryLineId, number>> = {};
+    private sayLeftMs = 0;
+    private readonly sayText: Phaser.GameObjects.Text;
     private readonly nameText: Phaser.GameObjects.Text;
     private readonly downText: Phaser.GameObjects.Text;
     private readonly bar: Phaser.GameObjects.Graphics;
@@ -102,6 +115,9 @@ export class OffMercenary {
         this.nameText = scene.add.text(0, 0, this.def.name, { ...OFF_MONSTER_LOOK.nameStyle, color: look.nameColor }).setOrigin(0.5, 1).setDepth(DEPTH_DAMAGE_NUMBERS - 1);
         this.downText = scene.add.text(0, 0, '', { ...OFF_MONSTER_LOOK.nameStyle, color: look.downColor }).setOrigin(0.5, 1).setDepth(DEPTH_DAMAGE_NUMBERS - 1).setVisible(false);
         this.bar = scene.add.graphics().setDepth(DEPTH_DAMAGE_NUMBERS - 1);
+        const talk = OFF_MERCENARY_TALK;
+        this.sayText = scene.add.text(0, 0, '', { ...OFF_MONSTER_LOOK.nameStyle, color: talk.color, stroke: talk.stroke, strokeThickness: talk.strokeThickness })
+            .setOrigin(0.5, 1).setDepth(DEPTH_DAMAGE_NUMBERS - 1).setVisible(false);
         this.ring = scene.add.graphics().setVisible(false);
         const ring = look.ring;
         this.ring.lineStyle(ring.lineWidth, ring.color, ring.alpha).strokeEllipse(0, 0, ring.radiusX * 2, ring.radiusY * 2);
@@ -191,6 +207,29 @@ export class OffMercenary {
         };
     }
 
+    /**
+     * Off-8D: says that line over its head, unless it is not one of its own, it said it within OFF_MERCENARY_TALK.repeatMs,
+     * or (without `now`) another one within gapMs. True when it said it.
+     */
+    public say(line: OffMercenaryLineId, now = false): boolean {
+        const text = OFF_MERCENARY_LINES[this.id][line];
+        if (text === undefined) return false;
+        const talk = OFF_MERCENARY_TALK;
+        const last = this.saidAt[line];
+        if (!now && (this.talkSinceMs < talk.gapMs || (last !== undefined && this.talkClockMs - last < talk.repeatMs))) return false;
+        this.saidAt[line] = this.talkClockMs;
+        this.saidCount[line] = (this.saidCount[line] ?? 0) + 1;
+        this.talkSinceMs = 0;
+        this.sayLeftMs = talk.showMs;
+        this.sayText.setText(text);
+        return true;
+    }
+
+    /** The line shown now, if any (for checks). */
+    public get saying(): string | undefined {
+        return this.sayLeftMs > 0 ? this.sayText.text : undefined;
+    }
+
     /** It (or, for the Mage, one of its spells) killed a monster. */
     public addKill(): void {
         this.kills++;
@@ -208,6 +247,7 @@ export class OffMercenary {
         this.spells?.cancel();
         this.mover.cancel();
         this.character.die(this.mover.facing);
+        this.say('down', true);
     }
 
     /** Stands up with part of its health. */
@@ -215,6 +255,7 @@ export class OffMercenary {
         this.downLeftMs = 0;
         this.hp = Math.max(1, Math.round(this.maxHp * OFF_MERCENARY.standUpHpShare));
         this.character.revive();
+        this.say('up', true);
     }
 
     /** The point is on its drawn body (a click on it). */
@@ -245,6 +286,14 @@ export class OffMercenary {
             this.downText.setText(OFF_MERCENARY_TEXT.downLabel(Math.ceil(this.downLeftMs / 1000)));
             this.downText.setPosition(this.x, barY - look.nameGap - this.nameText.height);
         }
+        this.talkClockMs += deltaMs;
+        this.talkSinceMs += deltaMs;
+        this.sayLeftMs = Math.max(0, this.sayLeftMs - deltaMs);
+        this.sayText.setVisible(this.sayLeftMs > 0);
+        if (this.sayLeftMs > 0) {
+            const above = this.isDown ? this.downText.height : 0;
+            this.sayText.setPosition(this.x, barY - look.nameGap - this.nameText.height - above - OFF_MERCENARY_TALK.gap);
+        }
         this.ring.setVisible(this.aimed && !this.isDown).setPosition(this.x, this.y).setDepth(DEPTH_GROUND_SHADOWS + 2);
         this.syncWornLook();
         // Off-8C: Berserk's red glow (only set when it changes: setGlow redraws every layer).
@@ -273,6 +322,7 @@ export class OffMercenary {
         this.character.destroyShadow();
         this.nameText.destroy();
         this.downText.destroy();
+        this.sayText.destroy();
         this.bar.destroy();
         this.ring.destroy();
         this.wornLook.destroy();

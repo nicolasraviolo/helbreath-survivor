@@ -250,6 +250,11 @@ export class OffMonster implements Poolable {
         return this.holdMs > 0;
     }
 
+    /** Off-8D: held by Paralyze (a blow doesn't break it, OFF_HOLD), so it is worth walking behind it. */
+    public get isParalyzed(): boolean {
+        return this.holdMs > 0 && this.holdPower > OFF_HOLD.breaksOnBlow;
+    }
+
     /** Hold Person / Paralyze: it neither walks nor attacks for `ms` (false: already held, no effect, as the server). */
     public hold(ms: number, power: number): boolean {
         if (!this.isAlive || this.holdMs > 0) return false;

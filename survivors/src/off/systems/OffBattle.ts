@@ -35,6 +35,7 @@
 //   como el servidor) y el Critical Strike no. Brillo rojo mientras dura. La maga mercenaria lanza con su propio
 //   OffSpells (OffMercenarySpells, `mercSpells`, uno por batalla que pasa de una maga a la siguiente); su maná se
 //   recarga poco a poco (OFF_MERCENARY_CASTER) y lo que matan sus magias da la mitad de experiencia, como Gorn.
+// Off-8D: tras su cabeza, sus frases (OffMercenaryTalk); al contratarlo dice "At your service!".
 // Los mensajes ("Level Up!" y la lista de abajo a la izquierda) van a OffHudScene por los eventos de la escena.
 import Phaser from 'phaser';
 import { DEBUG_START } from '../../config/debugStart';
@@ -86,6 +87,7 @@ import { directionTowards, findFreeTile, type TileMover, type TilePoint } from '
 import { OffMercenary, type OffCarriedMercenary } from '../entities/OffMercenary';
 import { OFF_MERCENARIES, OFF_MERCENARY, OFF_MERCENARY_CASTER, OFF_MERCENARY_LOOK, OFF_MERCENARY_TEXT, type OffMercenaryId } from '../data/offMercenary';
 import { updateMercenary, type OffMercenaryWorld, type OffOwnerNeeds } from './OffMercenaryAI';
+import { updateMercenaryTalk } from './OffMercenaryTalk';
 import type { OffVictim } from './OffMonsterAI';
 import type { OffSpellAlly } from './OffSpells';
 
@@ -240,6 +242,7 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost, OffMercenaryWor
         }
         this.removeMercenary();
         this.addMercenary(id);
+        this.merc?.say('hired', true);
         this.eventLine(OFF_MERCENARY_TEXT.hired(OFF_MERCENARIES[id].name));
         return true;
     }
@@ -420,6 +423,8 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost, OffMercenaryWor
         if (!merc) return;
         if (merc.level !== this.level) merc.setLevel(this.level);
         this.mercRunning = updateMercenary(merc, deltaMs, this);
+        // Off-8D: its lines ("Heal me!", "Zerk me!"...).
+        updateMercenaryTalk(merc, this);
         const blow = merc.blow;
         if (blow) {
             blow.leftMs -= deltaMs;

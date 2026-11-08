@@ -150,6 +150,52 @@ export const OFF_MERCENARY_CASTER = {
     attackersTiles: 3,
 } as const;
 
+/**
+ * Off-8D: what it says over its head (white, as the original's chat), by line. A line missing for one of them is never
+ * said by it (Gorn has no mana; Kaila needs no Berserk: she casts it herself).
+ */
+export type OffMercenaryLineId = 'healMe' | 'zerkMe' | 'noMana' | 'ownerLow' | 'down' | 'up' | 'hired';
+
+export const OFF_MERCENARY_LINES: Readonly<Record<OffMercenaryId, Readonly<Partial<Record<OffMercenaryLineId, string>>>>> = {
+    warrior: {
+        healMe: 'Heal me!',
+        zerkMe: 'Zerk me!',
+        ownerLow: 'Drink a potion!',
+        down: 'Ugh...',
+        up: 'I\'m back!',
+        hired: 'At your service!',
+    },
+    mage: {
+        healMe: 'Heal me!',
+        noMana: 'I\'m out of mana!',
+        ownerLow: 'Hold on!',
+        down: 'Ugh...',
+        up: 'I\'m back!',
+        hired: 'At your service!',
+    },
+};
+
+/** When it talks (ms and shares; our numbers, the owner's plan of 8-nov-2026). */
+export const OFF_MERCENARY_TALK = {
+    /** A line stays over its head this long... */
+    showMs: 3000,
+    /** ...at least this long passes between two lines (falling, standing up and being hired don't wait)... */
+    gapMs: 6000,
+    /** ...and the same line is not said again for this long. */
+    repeatMs: 20_000,
+    /** "Heal me!" under this share of its health (Kaila only when she has no mana for a Heal herself). */
+    healMeBelow: 0.35,
+    /** "Drink a potion!" / "Hold on!" when you are under this share of your health. */
+    ownerLowBelow: 0.25,
+    /** "Zerk me!" (you know Berserk) on a monster with health for at least this many of your normal blows. */
+    zerkMinBlows: 6,
+    /** Its text over the name: font as the name's, white with a dark edge. */
+    color: '#ffffff',
+    stroke: '#000000',
+    strokeThickness: 3,
+    gap: 2,
+} as const;
+
 /** How it behaves (tiles, ms and shares). */
 export const OFF_MERCENARY = {
     /** Farther than this from you (tiles) and with nothing to fight, it walks back to you. */
@@ -184,6 +230,8 @@ export const OFF_MERCENARY = {
      */
     stallMs: 2500,
     ignoreMs: 6000,
+    /** Off-8D: walking round a paralysed monster to its back, it gives up (and hits from where it is) after this long without getting closer. */
+    flankStallMs: 4000,
     /** Pathfinding when following (tiles of search). */
     pathMaxTiles: 60,
     /**
