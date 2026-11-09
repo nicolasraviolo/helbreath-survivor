@@ -147,6 +147,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Frases del mercenario y golpes por la espalda (Off-8D)
 - Mercenario que aguanta: vida, poción y huir (Off-8E)
 - Farms de Off (Off-10A)
+- Pits de las Farms (Off-10B, 9-nov-2026)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
