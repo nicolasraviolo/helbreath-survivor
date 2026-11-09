@@ -118,9 +118,12 @@ export const OFF_MERCENARIES: Readonly<Record<OffMercenaryId, OffMercenaryDef>> 
  * Heal and Magic Missile at your level 1, Energy Bolt 4, Defense Shield, Fire Ball and Hold Person 5, Great Heal 7,
  * Protection From Magic 10, Fire Strike 11, Paralyze 13, Lightning 21, Berserk 30.
  */
+// Off-11B (propietario, 9-nov-2026): también Lightning Bolt (INT 58) y Energy Strike (INT 67) para atacar, y Absolute
+// Magic Protection (INT 112, hacia tu nivel 70), que usa en vez de Protection From Magic.
 export const OFF_MERCENARY_SPELLS: readonly OffSpellId[] = [
     'heal', 'magicMissile', 'energyBolt', 'defenseShield', 'fireBall', 'holdPerson', 'greatHeal',
     'protectionFromMagic', 'fireStrike', 'paralyze', 'lightning', 'berserk',
+    'lightningBolt', 'energyStrike', 'absoluteMagicProtection',
 ];
 
 /** Every spell the Mage knows with that INT. */

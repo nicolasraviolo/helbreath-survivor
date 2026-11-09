@@ -16,7 +16,7 @@ import {
     OFF_WAND, offManaCost, type OffBagItemKey, type OffEquipment, type OffGearKey, type OffItemDef, type OffWandPower, type OffWeaponItem, type OffWearer,
 } from '../data/offItems';
 import { OFF_ATTRIBUTES, offRollLines } from '../data/offAttributes';
-import { OFF_ELEMENT_NAMES, OFF_SPELLS, offDiceRange, type OffSpellId } from '../data/offSpells';
+import { OFF_ELEMENT_NAMES, OFF_SPELL_LINE, OFF_SPELLS, offDiceBounds, offDiceRange, type OffSpellId } from '../data/offSpells';
 import { weaponDamageRange } from '../systems/OffCombatRules';
 
 /** A line of the stat box: label, value, and how the worn item compares. */
@@ -142,7 +142,7 @@ export function offItemNameColor(key: OffBagItemKey | undefined): string | undef
 }
 
 /** What a shield (Off-6C) or Berserk (Off-8C) does, in the box. */
-const SHIELD_EFFECT: Partial<Record<OffSpellId, string>> = { defenseShield: 'Defense up', protectionFromMagic: 'Magic resistance up', berserk: 'Double damage with blows' };
+const SHIELD_EFFECT: Partial<Record<OffSpellId, string>> = { defenseShield: 'Defense up', protectionFromMagic: 'Magic resistance up', absoluteMagicProtection: 'Immune to monster spells', berserk: 'Double damage with blows' };
 
 /** What the box says about a spell (Off-6A): mana, what it does, element and the INT it needs (red if short). */
 /** Off-11A: "20%", and what the Berserk and Kloness wands add. */
@@ -159,12 +159,19 @@ export function offSpellBoxLines(id: OffSpellId, int: number, equipment?: Readon
     const lines: OffBoxLine[] = [cost === spell.mana
         ? { label: 'Mana', value: `${spell.mana}` }
         : { label: 'Mana', value: `${cost}`, now: { text: `(${spell.mana} without the wand)`, better: Math.sign(spell.mana - cost) } }];
-    if (spell.kind === 'damage' && spell.direct) {
-        lines.push({ label: 'Damage', value: offDiceRange(spell.direct) });
+    if (spell.kind === 'damage' && spell.shape === 'wave' && spell.direct && spell.area) {
+        // Off-11B, Earth Shock Wave: both rolls on everyone along the line.
+        const [lowA, highA] = offDiceBounds(spell.area);
+        const [lowD, highD] = offDiceBounds(spell.direct);
+        lines.push({ label: 'Line', value: `${OFF_SPELL_LINE.lastStep} tiles, ${lowA + lowD} – ${highA + highD} each` });
+    } else if (spell.kind === 'damage' && (spell.direct || spell.area)) {
+        if (spell.direct) lines.push({ label: 'Damage', value: offDiceRange(spell.direct) });
+        if (spell.area && spell.shape === 'bolt') lines.push({ label: 'Line', value: `${offDiceRange(spell.area)} on the way` });
         if (spell.area && spell.areaRange) {
             const side = spell.areaRange * 2 + 1;
             lines.push({ label: 'Area', value: `${side} × ${side} tiles, ${offDiceRange(spell.area)} each` });
         }
+        if (spell.freezeSec) lines.push({ label: 'Freezes', value: `${spell.freezeSec} seconds` });
     } else if (spell.kind === 'heal' && spell.direct) {
         lines.push({ label: 'Heals', value: `${offDiceRange(spell.direct)} health` });
     } else {

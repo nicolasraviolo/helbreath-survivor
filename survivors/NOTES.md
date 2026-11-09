@@ -150,6 +150,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Pits de las Farms (Off-10B, 9-nov-2026)
 - La Farm como casa y Select Map de Off (Off-10C, 9-nov-2026)
 - Varitas de Off (Off-11A)
+- Magias de los círculos 6–10 en Off (Off-11B)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -1658,3 +1659,10 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - **Servidor (Server.cpp ~17586 y ~17678):** se lanza con la mano derecha vacía o con Appr 34–39 (varitas); escudo o arma a dos manos, no. Coste = maná − maná × MS / 100, truncado, mínimo 1; MS = varita + collar, tope 80. La Berserk Wand (Appr 34) suma 20 de maná y +1/3 de daño. Los `*= (int)1.3f` / `(int)1.2` de Berserk y Dark Mage en Effect_Damage_Spot_Type2 son 1 (no hacen nada). Kloness suma reputación / 100 (5–15): Off usa Level / 10.
 - **Dibujo:** Off dibuja con las `WandId` de Survivors (`data/wands.ts`). mstaff1 (Appr 35: Magic Wand MS30 y Dark Mage Magic Wand) y mremagicwand no están registrados: esas dos van con el dibujo de la Magic Wand. Para ponerlas con el suyo habría que añadir `gear.wand.staff1.m/.w` al manifest y una `WandId` nueva (que saldría también en Survivors).
 - Las varitas tiran atributos de arma como las demás (Sharp, Poison... solo afectan al golpe, no a las magias).
+
+## Magias de los círculos 6–10 en Off (Off-11B)
+- **Tipos del servidor** (Magic.cfg, 3.ª columna; PlayerMagicHandler): 1 DAMAGE_SPOT (solo el objetivo; Mass Lightning Arrow es de un solo objetivo aunque el cliente dibuje cuatro flechas), 3 DAMAGE_AREA (directo + cuadrado), 19 DAMAGE_LINEAR (Lightning Bolt: casillas 2 a 9 desde ti hacia el objetivo, cada una con sus 4 vecinas, para al llegar a 1 casilla; luego el cuadrado y el directo), 21 DAMAGE_AREA_NOSPOT (Energy Strike, Lightning Strike: solo el cuadrado, con v7–v9), 23 ICE (Ice Strike, Chill Wind, Mass Chill Wind: v4–v6 a cada uno del cuadrado y congelado **v10 segundos**), 30 DAMAGE_LINEAR_SPDOWN (Earth Shock Wave: la línea de 9, dos tiradas por víctima, v7–v9 y v4–v6, también más allá del objetivo). Off: `shape` ('spot' / 'bolt' / 'wave') y `freezeSec` en `off/data/offSpells.ts`; la línea, `offSpellLine` en `OffSpellRules.ts`. Chill Wind sigue como en la Off-6B (directo + área, 3 s).
+- **Absolute Magic Protection** = protect 5: `bCheckResistingMagicSuccess` devuelve "resistida" antes de todo, así que ninguna magia hace nada (no la mitad como Protection From Magic). `OFF_PROTECT.magicImmunePowers`; en Off sale "Resisted" sobre ti o el mercenario. Dibujo de sp-client: burbuja effect7 hoja 8 al lanzar, aura effect9 hoja 13 mientras dura (pivote distinto a la hoja 14: `offsetX 98, offsetY 138`, medido en captura).
+- **Dibujos** (`off/config/offSpellLook.ts`): `OFF_EXTRA_LOOKS` son hechizos de Survivors retocados (4 Lightning Arrow seguidas, 8 gotas de Chill Wind, 5 rayos del cielo); Ice Strike usa los trozos de `ICE_SHARD_LOOK` y Earth Shock Wave el chorro y polvo de `LINE_SPELL_LOOKS.earthShock`, dibujados en `OffSpells` (`rainShards`, `showWave`). `showSpell` ya entiende `shots` con `shotIntervalMs` y `aim: 'scatter'`.
+- **Ojo, cargas:** una clave repetida en `sprites` de un sitio de Off (p. ej. `fx.effect11` en WORLD_SPRITES y otra vez en el sitio) **deja la carga colgada** sin error en consola. Off-11B añadió `fx.effect3` y `fx.effect11` a WORLD_SPRITES y quitó los repetidos.
+- Pruebas: `check offboltline` / `offmassarrow` / `officestrike` / `offenergystrike` / `offmasschill` / `offlightningstrike` / `offearthshock` (las 8 en 1–8, INT y MAG 200, junto a los Giant Scorpion de Aresden; `wounded` en debugState = vivos heridos) y `offamp`. Con MAG 200 casi todo muere de un golpe: para ver el frenado, `offstats=int:200,mag:10`.

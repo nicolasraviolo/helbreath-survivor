@@ -37,6 +37,7 @@
 import type { SpellElement } from '../../data/elements';
 import type { SpellId } from '../../data/spells';
 import type { EffectKey } from '../../config/effects';
+import type { OffExtraLookId } from '../config/offSpellLook';
 
 export type OffSpellId =
     | 'magicMissile' | 'heal'
@@ -44,9 +45,26 @@ export type OffSpellId =
     | 'fireBall' | 'greatHeal' | 'holdPerson'
     | 'fireStrike' | 'lightningArrow' | 'paralyze' | 'protectionFromMagic'
     | 'tripleEnergyBolt' | 'chillWind' | 'lightning'
-    | 'berserk';
+    | 'berserk'
+    | 'lightningBolt' | 'massLightningArrow' | 'iceStrike'
+    | 'energyStrike' | 'massChillWind' | 'absoluteMagicProtection'
+    | 'lightningStrike'
+    | 'earthShockWave';
 
 export type OffSpellKind = 'damage' | 'heal' | 'shield' | 'hold' | 'berserk';
+
+/**
+ * Where a damage spell hits (Off-11B, server PlayerMagicHandler):
+ * - spot (default): `direct` on the target, `area` on every monster of the square around it.
+ * - bolt (DAMAGE_LINEAR, Lightning Bolt): `direct` on the target, `area` on every monster of the line from you to it
+ *   (each step and its four neighbours) and of the square around it, once each.
+ * - wave (DAMAGE_LINEAR_SPDOWN, Earth Shock Wave): `area` and `direct` on every monster of the line, `lineSteps` tiles
+ *   long, also past the target.
+ */
+export type OffSpellShape = 'spot' | 'bolt' | 'wave';
+
+/** Lines (Off-11B, server GetPoint2 from 2 to 9): the first and last step from the caster. */
+export const OFF_SPELL_LINE = { firstStep: 2, lastStep: 9 } as const;
 
 /** Dice as in the cfg: count, sides, bonus (2 6 2 = 2d6 + 2). */
 export type OffSpellDice = readonly [number, number, number];
@@ -72,8 +90,12 @@ export interface OffSpellDef {
     /** Strength of a shield or a hold (v4 in the cfg: 3 Defense Shield, 2 Protection From Magic, OFF_PROTECT; 1 Hold Person, 2 Paralyze, OFF_HOLD). */
     power?: number;
     element?: SpellElement;
-    /** Survivors' spell whose flight, explosions and sounds it shows (data/spells.ts); only damage spells. */
-    look?: SpellId;
+    /** Off-11B: where it hits (default spot). */
+    shape?: OffSpellShape;
+    /** Off-11B: ice spells, seconds the monster stays slowed (the cfg's v10; default ICE_SLOW.normal). */
+    freezeSec?: number;
+    /** Survivors' spell whose flight, explosions and sounds it shows (data/spells.ts), or Off's own (OFF_EXTRA_LOOKS). */
+    look?: SpellId | OffExtraLookId;
     /** Heal, shields and holds (Off-6C): the original's effect where it lands (config/effects.ts). */
     castEffect?: EffectKey;
     /** Shields (Off-6C): drawn in a loop under the player's feet while it lasts. */
@@ -102,6 +124,21 @@ export const OFF_SPELLS: Record<OffSpellId, OffSpellDef> = {
     lightning: { name: 'Lightning', magicId: 43, circle: 5, kind: 'damage', mana: 44, reqInt: 47, price: 1700, direct: [4, 7, 12], element: 'lightning', look: 'lightningBolt' },
     // ---- Circle 6 (Off-8C) ----
     berserk: { name: 'Berserk', magicId: 50, circle: 6, kind: 'berserk', mana: 57, reqInt: 59, price: 2200, durationSec: 40, castEffect: 'fx.berserk.cast' },
+    // ---- Off-11B: circles 6–8 and 10 (Magic.cfg; ice v10 = seconds frozen) ----
+    lightningBolt: { name: 'Lightning Bolt', magicId: 51, circle: 6, kind: 'damage', mana: 58, reqInt: 58, price: 2500, direct: [4, 5, 18], area: [4, 2, 6], areaRange: 2, shape: 'bolt', element: 'lightning', look: 'lightningBolt' },
+    // Server: one target only (DAMAGE_SPOT); the client draws four arrows to it.
+    massLightningArrow: { name: 'Mass Lightning Arrow', magicId: 56, circle: 6, kind: 'damage', mana: 55, reqInt: 53, price: 3000, direct: [5, 6, 20], element: 'lightning', look: 'massLightningArrow' },
+    // Server ICE: the v4 dice on every monster of the square (no separate direct roll), then frozen v10 s.
+    iceStrike: { name: 'Ice Strike', magicId: 57, circle: 6, kind: 'damage', mana: 59, reqInt: 60, price: 4200, area: [5, 6, 12], areaRange: 2, freezeSec: 4, element: 'ice', look: 'iceStrike' },
+    // Server DAMAGE_AREA_NOSPOT: only the square.
+    energyStrike: { name: 'Energy Strike', magicId: 60, circle: 7, kind: 'damage', mana: 65, reqInt: 67, price: 5000, area: [7, 6, 17], areaRange: 2, element: 'lightning', look: 'energyStrike' },
+    massChillWind: { name: 'Mass Chill Wind', magicId: 63, circle: 7, kind: 'damage', mana: 90, reqInt: 93, price: 9800, area: [3, 8, 6], areaRange: 2, freezeSec: 10, element: 'ice', look: 'massChillWind' },
+    // Server: protect 5 = every monster spell is resisted (OFF_PROTECT.magicImmunePowers). Shares the shields' slot.
+    absoluteMagicProtection: { name: 'Absolute Magic Protection', magicId: 65, circle: 7, kind: 'shield', mana: 90, reqInt: 112, price: 13500, durationSec: 60, power: 5, castEffect: 'fx.amp.cast', wornEffect: 'fx.amp.aura' },
+    lightningStrike: { name: 'Lightning Strike', magicId: 74, circle: 8, kind: 'damage', mana: 90, reqInt: 123, price: 35000, area: [7, 7, 20], areaRange: 2, element: 'lightning', look: 'lightningStrike' },
+    // Owner (9-nov-2026): INT 190 and 185 mana (helbreath.net and the wiki; the cfg says 200 and 180) and sold at the
+    // shop for 50.000 (the original only gave it by talent or manual).
+    earthShockWave: { name: 'Earth Shock Wave', magicId: 96, circle: 10, kind: 'damage', mana: 185, reqInt: 190, price: 50000, direct: [5, 1, 20], area: [7, 8, 16], shape: 'wave', element: 'earth', look: 'earthShockWave' },
 };
 
 /**
@@ -138,7 +175,9 @@ export function offSpellOnSelf(def: OffSpellDef): boolean {
  */
 export const OFF_PROTECT = {
     defenseByPower: { 3: 40, 4: 100 } as Readonly<Record<number, number>>,
-    magicHalvedPowers: [2, 5] as readonly number[],
+    magicHalvedPowers: [2] as readonly number[],
+    /** Off-11B (server bCheckResistingMagicSuccess): Absolute Magic Protection resists every spell. */
+    magicImmunePowers: [5] as readonly number[],
     magicDamageFactor: 0.5,
 } as const;
 
@@ -162,9 +201,15 @@ export function offCircleTitle(circle: number): string {
     return `Circle ${circle}`;
 }
 
+/** Lowest and highest roll of some dice. */
+export function offDiceBounds([count, sides, bonus]: OffSpellDice): readonly [number, number] {
+    return [count + bonus, count * sides + bonus];
+}
+
 /** "2 – 8" from some dice. */
-export function offDiceRange([count, sides, bonus]: OffSpellDice): string {
-    return `${count + bonus} – ${count * sides + bonus}`;
+export function offDiceRange(dice: OffSpellDice): string {
+    const [low, high] = offDiceBounds(dice);
+    return `${low} – ${high}`;
 }
 
 /** The gamepad's spells (Off-6C): RT + A, B, X, Y. */

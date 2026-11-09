@@ -17,7 +17,7 @@ export interface OffMercenaryCastWorld {
     readonly merc: OffMercenary | undefined;
     monstersAround(tileX: number, tileY: number, range: number): OffMonster[];
     /** Her spell's damage lands (as yours, but the kill is hers). */
-    mercSpellHit(monster: OffMonster, damage: number, element: SpellElement | undefined): void;
+    mercSpellHit(monster: OffMonster, damage: number, element: SpellElement | undefined, freezeMs?: number): void;
     spellResisted(monster: OffMonster): void;
     spellHeld(monster: OffMonster): void;
     healMerc(merc: OffMercenary, amount: number): void;
@@ -76,8 +76,8 @@ export class OffMercenarySpells implements OffSpellHost {
         return this.world.monstersAround(tileX, tileY, range);
     }
 
-    public spellHit(monster: OffMonster, damage: number, element: SpellElement | undefined): void {
-        this.world.mercSpellHit(monster, damage, element);
+    public spellHit(monster: OffMonster, damage: number, element: SpellElement | undefined, freezeMs?: number): void {
+        this.world.mercSpellHit(monster, damage, element, freezeMs);
     }
 
     public spellResisted(monster: OffMonster): void {

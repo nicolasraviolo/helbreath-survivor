@@ -318,8 +318,8 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost, OffMercenaryWor
 
     // ---- OffMercenaryCastWorld (Off-8C, the Mage's spells) ----
 
-    public mercSpellHit(monster: OffMonster, damage: number, element: SpellElement | undefined): void {
-        if (this.spellLands(monster, damage, element, 'merc')) this.merc?.addKill();
+    public mercSpellHit(monster: OffMonster, damage: number, element: SpellElement | undefined, freezeMs?: number): void {
+        if (this.spellLands(monster, damage, element, 'merc', freezeMs)) this.merc?.addKill();
     }
 
     public mercCastFailed(merc: OffMercenary): void {
@@ -563,6 +563,12 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost, OffMercenaryWor
     }
 
     /** What magic damage on the player is multiplied by: half with Protection From Magic (server; the Cyclops, Off-7A). */
+    /** Off-11B: Absolute Magic Protection is on (monster spells do nothing). */
+    public get magicImmune(): boolean {
+        const power = this.protection ? OFF_SPELLS[this.protection.spell].power ?? 0 : 0;
+        return OFF_PROTECT.magicImmunePowers.includes(power);
+    }
+
     public get magicDamageFactor(): number {
         const power = this.protection ? OFF_SPELLS[this.protection.spell].power ?? 0 : 0;
         return OFF_PROTECT.magicHalvedPowers.includes(power) ? OFF_PROTECT.magicDamageFactor : 1;
@@ -626,17 +632,17 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost, OffMercenaryWor
             && Math.abs(m.mover.tileX - tileX) <= range && Math.abs(m.mover.tileY - tileY) <= range);
     }
 
-    public spellHit(monster: OffMonster, damage: number, element: SpellElement | undefined): void {
-        this.spellLands(monster, damage, element, 'player');
+    public spellHit(monster: OffMonster, damage: number, element: SpellElement | undefined, freezeMs?: number): void {
+        this.spellLands(monster, damage, element, 'player', freezeMs);
     }
 
     /** A spell's damage, yours or the Mage's (`by`): sound, burn, ice. Returns whether it killed. */
-    private spellLands(monster: OffMonster, damage: number, element: SpellElement | undefined, by: OffVictim): boolean {
+    private spellLands(monster: OffMonster, damage: number, element: SpellElement | undefined, by: OffVictim, freezeMs?: number): boolean {
         const killed = this.hurtMonster(monster, damage, element, false, by, true);
         this.audio.play(killed ? monster.def.base.deathSound : monster.def.base.hitSound);
         if (killed) return true;
         if (element === 'fire') monster.burn(damage * BURN.shareOfHit);
-        if (element === 'ice') monster.slow();
+        if (element === 'ice') monster.slow(freezeMs);
         return false;
     }
 
@@ -897,6 +903,11 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost, OffMercenaryWor
             if (!merc || merc.isDown) return;
             this.spells.monsterCast(def, monster.x, monster.y, merc.x, merc.y - PLAYER_BODY_OFFSET_Y, () => {
                 if (merc.isDown || this.merc !== merc) return;
+                const mercPower = merc.protection ? OFF_SPELLS[merc.protection.spell].power ?? 0 : 0;
+                if (OFF_PROTECT.magicImmunePowers.includes(mercPower)) {
+                    this.numbers.showWord(merc.x, merc.y - PLAYER_BODY_OFFSET_Y, OFF_CAST_WORDS.resisted);
+                    return;
+                }
                 const distance = tileDistance(merc.mover.tileX, merc.mover.tileY, at.x, at.y);
                 let damage = 0;
                 if (def.direct && distance === 0) damage += rollSpellDamage(def.direct, 0, 'neutral');
@@ -913,6 +924,11 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost, OffMercenaryWor
         this.spells.monsterCast(def, monster.x, monster.y, toX, toY, () => {
             if (this.dead) return;
             const effects = this.gearEffects;
+            // Off-11B: Absolute Magic Protection resists every spell (server bCheckResistingMagicSuccess, protect 5).
+            if (this.magicImmune) {
+                this.numbers.showWord(this.character.x, this.character.y - PLAYER_BODY_OFFSET_Y, OFF_CAST_WORDS.resisted);
+                return;
+            }
             if (effects.magicResistance && Math.random() < effects.magicResistance) {
                 this.numbers.showWord(this.character.x, this.character.y - PLAYER_BODY_OFFSET_Y, 'Resist');
                 return;

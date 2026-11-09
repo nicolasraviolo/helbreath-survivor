@@ -1012,7 +1012,7 @@ export class OffWorldScene extends Phaser.Scene {
         mana: number; maxMana: number; stamina: number; maxStamina: number; stats: Readonly<Record<string, number>>;
         level: number; exp: number; points: number; kills: number; monsters: Record<string, number>; target: string | undefined;
         weapon: string; attackMs: number; defense: number; gold: number; bag: string[]; ground: string[];
-        spell: string; casts: number; fails: number; prepareMs: number; burning: number; slowed: number;
+        spell: string; casts: number; fails: number; prepareMs: number; burning: number; slowed: number; wounded: number;
         held: number; poisoned: number; shield: string | undefined; padSpells: string[];
         merc: string | undefined; mercKills: number; mercDown: number; mercShield: string | undefined; onMerc: number; hirer: TilePoint | undefined; npcs: { id: string; opens: string; x: number; y: number }[];
         mercPicked: number; mercTarget: string | undefined; mercLoot: string | undefined; berserk: number; mercBerserk: number; mercMana: string | undefined; mercCasts: Record<string, number>; mercSaid: Record<string, number>; mercSaying: string | undefined; mercPotion: number; mercDrunk: number; mercFleeing: boolean; mercFlees: number; mercBatch: number; mercBehind: number; blowAvg: { plain: number; berserk: number };
@@ -1082,6 +1082,8 @@ export class OffWorldScene extends Phaser.Scene {
             prepareMs: this.battle.spells.prepareMs,
             burning: this.battle.pits.monsters.filter((m) => m.isAlive && m.isBurning).length,
             slowed: this.battle.pits.monsters.filter((m) => m.isAlive && m.isSlowed).length,
+            // Off-11B: monsters alive and hurt (how many a spell reached).
+            wounded: this.battle.pits.monsters.filter((m) => m.isAlive && m.hp < m.maxHp).length,
             held: this.battle.pits.monsters.filter((m) => m.isAlive && m.isHeld).length,
             poisoned: this.battle.pits.monsters.filter((m) => m.isAlive && m.isPoisoned).length,
             shield: this.battle.protection ? `${this.battle.protection.spell} ${Math.ceil(this.battle.protection.leftMs / 1000)}s` : undefined,
