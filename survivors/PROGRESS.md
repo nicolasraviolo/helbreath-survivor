@@ -7,7 +7,7 @@
 Sin leer enteros (grep): `CHECK.md` (situaciones del check y atajos), `PROGRESS-historial.md` (bloques hechos), `NOTES.md`, `docs/DECISIONES.md`.
 
 ## Estado
-- **Helbreath Off:** Off-9 Raiders en curso (rama `fase-Off-9`): 9A ✅, 9B ✅ (9-nov-2026). **Siguiente: 9C Medir y ajustar** (`/fase Off-9`).
+- **Helbreath Off:** Off-9 Raiders en curso (rama `fase-Off-9`): 9A ✅, 9B ✅, 9C ✅ (9-nov-2026). **Siguiente: que el propietario pruebe y cerrar la fase** (`/checkpoint fase`).
 - **Survivors:** en pausa. Fase 30 ✅ (28-oct-2026). Siguiente: Fase 31, Aresden y Elvine.
 
 **Fases completadas** (✅):

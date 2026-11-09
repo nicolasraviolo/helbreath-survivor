@@ -72,6 +72,7 @@ import { OffCharacter } from '../entities/OffCharacter';
 import { offLevelProgress } from '../data/offLevel';
 import { OFF_CAST_TEXT, OFF_SPELLS } from '../data/offSpells';
 import { OffBattle } from '../systems/OffBattle';
+import { OffDuel, type OffDuelKind, type OffDuelReport } from '../dev/offDuel';
 import { offSaveStore } from '../systems/OffSaveStore';
 import { OFF_HUD_SCENE_KEY, OFF_OPEN_CHARACTER_EVENT, OFF_OPEN_PAUSE_EVENT, type OffHudSceneData, type OffHudState } from './OffHudScene';
 import { offCharacterInfo } from './offCharacterInfo';
@@ -205,6 +206,8 @@ export class OffWorldScene extends Phaser.Scene {
 
     /** Development (`check offfight`): attacks go on as if the button were held, until a click or the stick. */
     private debugHold = false;
+    /** Development (`check offduel*`, Off-9C): the test fights running, if any. */
+    private duel: OffDuel | undefined;
     /** Development (`debugCast`): the kind of monster the spell goes to once ready ('' = any). */
     private debugCastAt: string | undefined;
     /** A spell started with RT + A/B/X/Y: cast at the target once it is ready and RT is let go (Off-6C). */
@@ -406,6 +409,14 @@ export class OffWorldScene extends Phaser.Scene {
     }
 
     override update(_time: number, delta: number): void {
+        // Off-9C, ?offfast=N: the world runs N steps per frame (to measure long fights with `check offduel*`).
+        for (let i = 0; i < DEBUG_START.offFast; i++) {
+            this.tick(delta);
+            if (this.duel && !this.duel.update(delta)) this.duel = undefined;
+        }
+    }
+
+    private tick(delta: number): void {
         this.whereSaveMs += delta;
         if (this.whereSaveMs >= OFF_WHERE_SAVE_MS) {
             this.whereSaveMs = 0;
@@ -1120,6 +1131,23 @@ export class OffWorldScene extends Phaser.Scene {
                     maxHp: battle.maxHp,
                 });
             }, 100);
+        });
+    }
+
+    /**
+     * Development (`check offduel*`, Off-9C): `fights` fights in a row against that raid (OffDuel), in game time; the
+     * report when they are over.
+     */
+    public debugDuel(kind: OffDuelKind, fights: number, invisible = false, drinkBelow = 0.4, maxSeconds = 150, maxRealMs = 600_000): Promise<OffDuelReport> {
+        return new Promise((resolve) => {
+            const duel = new OffDuel({ battle: this.battle, fightRaider: () => this.debugFightRaider(), place: () => this.placeId }, { kind, invisible, fights, drinkBelow, maxSeconds }, resolve);
+            this.duel = duel;
+            // Stuck (a tab in the background, a raid with nowhere to come from): what it has so far.
+            window.setTimeout(() => {
+                if (this.duel !== duel) return;
+                this.duel = undefined;
+                resolve(duel.report());
+            }, maxRealMs);
         });
     }
 

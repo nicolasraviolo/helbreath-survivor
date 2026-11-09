@@ -148,6 +148,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Mercenario que aguanta: vida, poción y huir (Off-8E)
 - Raiders (Off-9A)
 - Raiders invisibles y Enemy Kills (Off-9B)
+- Medir los Raiders (Off-9C)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -1656,3 +1657,12 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - **Pasos** (`updateRaiderSteps`, `OFF_RAIDER_STEPS`): cada hueco de Raider tiene su propio bucle (`steps.raider0/1`) del mismo `sfx.footsteps` que el jugador, al ritmo de su paso. `AudioSystem.startLoop` acepta ya un `id` para repetir el mismo sonido a la vez, y `setLoopMix(id, volumen, pan)` lo coloca: volumen según distancia (hasta `hearTiles`, mínimo `farVolume`) y lado con `setPan` (solo Web Audio). Los bucles se cortan al pausar la escena o esconder la pestaña; `isLooping` hace que se vuelvan a poner solos.
 - **Enemy Kills**: `OffSaveStore.addEnemyKill()` en `killRaider` si no lo mataron los monstruos; campo `enemyKills` (versión 13). La casilla del original se llama **"EK.Count"** (`CHARACTER_INFO_BOXES.kills`, la que en Survivors cuenta muertes de la partida).
 - Pruebas: `check offraidinvis` / `offraidinvismage` (con Gorn; a los 3 s de verse se le deja con 1 de vida y sin poción para matarlo) / `offek`.
+
+## Medir los Raiders (Off-9C)
+- **Peleas de prueba**: `check offduel<nivel><clase>` (niveles 10, 30, 50; clases `w` Guerrero, `m` Mago, `p` pareja con Gorn, `i` Guerrero invisible). `OffWorldScene.debugDuel` crea un `OffDuel` (`src/off/dev/offDuel.ts`) que pelea 10 veces seguidas en tiempo de juego: pega al Raider visible más cercano, usa Critical Strike con carga y bebe por debajo del 40 %. Entre peleas `OffBattle.debugEndRaid` + `debugFreshStart` (vida, maná, cargas, Gorn y pociones de la bolsa como al principio, mismo nivel). Si deja el mapa (una salida), la prueba acaba con `left`.
+- **`?offfast=N`** (1–8): `OffWorldScene.update` repite el paso del mundo N veces por fotograma. Funciona porque todo Off va con `delta` (golpes, magias, proyectiles, pasos); solo las animaciones de Phaser y los tweens del texto van a velocidad normal. Dos `check` a la vez van bien; con cuatro se cuelgan (el navegador se queda sin fotogramas).
+- **Trampa de equipo**: las armas de dos manos con escudo no se ponen (Off-7E), y el personaje pelea con **los puños**. `offfarm30` y `offfarm40` llevan Claymore / Great Sword con escudo: sus medidas de la 7D eran a puñetazos. Los `offduel` van sin escudo.
+- **Sitio**: junto a la llegada de Promiseland (140,224) está la salida a Aresden (fila 228) y el pit de Zombies; el Raider que huía te llevaba por la salida. Los `offduel` pelean en 90,80: lo más abierto lejos de pits (93 % libre en 15 casillas, a 26 del pit más cercano); en 90,150 había rocas y el jugador no llegaba al Mago.
+- **Fuerza por nivel** (`OFF_RAIDER_POWER`, `offRaiderPower`): multiplica vida, golpes y magias de daño (`OffMercenaryDef.spellFactor`, solo Raiders) en línea recta del nivel 10 al 50.
+- **Resultado** (ronda limpia, 9-nov-2026): 0 muertes en 120 peleas; peleas de 30–60 s (Mago de nivel 30 a veces empate a 150 s), 1–8 pociones. **Las pociones no tienen espera**: con 15–20 encima y bebiendo bajo el 40 % (una cada 0,4 s) no mueres; para matarte un Raider tendría que pegar 3–4 veces más (críticos de un golpe). El propietario lo deja así (no tocar pociones). Medidas anteriores con muertes estaban contaminadas por monstruos (pit de Zombies, monstruos acumulados al perseguir).
+

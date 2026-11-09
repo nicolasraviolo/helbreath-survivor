@@ -2,6 +2,15 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
+**Helbreath Off · Fase Off-9, bloque C: medir y ajustar los Raiders (2026-11-09).**
+- **Qué hace:** los Raiders llegan **mucho menos** (una tirada cada 12 min en Promiseland, 50 %; antes cada 3 min) y su fuerza **crece con su nivel** (`OFF_RAIDER_POWER`: vida ×1–1,2, golpes ×1–3,2, magias de daño ×0,65–2,2, del nivel 10 al 50). El Mago se deja alcanzar más (se aparta cada 4,5 s, paraliza cada 16 s, se cura con parálisis solo bajo el 50 %). La pareja llega 2 niveles por debajo (antes 3).
+- **Peleas de prueba:** `check offduel<10|30|50><w|m|p|i>` (Guerrero, Mago, pareja con Gorn, invisible): 10 peleas seguidas con `?offfast=8` (el mundo de Off N veces más rápido), un jugador "de mentira" que pega, usa Critical Strike y bebe bajo el 40 % (una poción cada 0,4 s). Pelea en 90,80, vuelve a su sitio y nivel cada pelea, y caen los monstruos cercanos.
+- **Lo que salió:** en pelea limpia un Raider de tu nivel no te mata (las pociones no tienen espera); peleas de 30–60 s y 1–8 pociones. Las medidas con muertes de antes estaban contaminadas (pit de Zombies junto a la llegada, monstruos acumulados al perseguir, salida a Aresden, rocas). Además: con espada de dos manos y escudo el personaje pelea a puñetazos (`offfarm30/40` de la 7D se midieron así).
+- **Decisiones del propietario:** más duros (3–4 muertes de 10) y una tirada cada 10–15 min; tras medir, **no tocar las pociones**: "puedes escapar de un raider, en algún momento lo matarás o te quedarás sin pociones".
+- **Comprobado:** build; `check menu play offraid offraidinvis` sin errores; 5 rondas de las 12 `offduel*`. **Pendiente de que lo pruebe el propietario.**
+- **Cómo probar:** `?off=raiders`, `?off=raiders&offraid=mage`, `?off=raiders&offraid=invisible`.
+- **Código:** `off/data/offRaiders.ts` (`OFF_RAIDS.everyMs`, `OFF_RAIDER_POWER`, `offRaiderPower`, `offRaiderDef(..., level)`), `OffMercenaryDef.spellFactor`, `OffBattle` (`raiderSpellLands`, `startRaid(forced, invisible)`, `debugEndRaid`, `debugFreshStart`, `debugRaiderList`), `OffCritStrike.addCharge`, `off/dev/offDuel.ts`, `OffWorldScene` (`tick`, `debugDuel`), `debugStart` (`offfast`), `scripts/check.mjs` (`OFF_DUEL`). NOTES.md "Medir los Raiders (Off-9C)".
+
 **Helbreath Off · Fase Off-9, bloque B: Raiders invisibles y Enemy Kills (2026-11-09).**
 - **Qué hace:** **1 de cada 3 incursiones llegan invisibles** (las dos si son pareja): sin cuerpo, nombre, sombra ni aura; no se les puede hacer clic ni apuntar, y ni tu mercenario ni los monstruos los persiguen. Se dejan ver (aparecen en 0,3 s) con su **primer golpe o su primera magia** y ya no desaparecen.
 - **Pasos:** todos los Raiders (visibles o no) suenan al andar y al correr, al ritmo de su paso, más fuerte cuanto más cerca (hasta 12 casillas) y del lado en que están; sin polvo al correr. Idea del propietario: era lo único que delataba a un invisible.

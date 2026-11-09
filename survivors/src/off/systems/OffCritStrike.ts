@@ -41,6 +41,11 @@ export class OffCritStrike {
         if (this.held < maxCritCharges(level)) this.set(this.held + 1);
     }
 
+    /** Development (`check offduel*`, Off-9C): one more charge, up to this level's maximum. */
+    public addCharge(level: number): void {
+        if (this.held < maxCritCharges(level)) this.set(this.held + 1);
+    }
+
     /** Spends one charge; false when there is none. */
     public spend(): boolean {
         if (this.held <= 0) return false;

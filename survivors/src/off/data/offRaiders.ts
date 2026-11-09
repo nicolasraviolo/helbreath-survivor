@@ -16,14 +16,17 @@ import type { OffFaction } from './offPlaceIds';
 
 /** When and how many come (ms, shares and levels). */
 export const OFF_RAIDS = {
-    /** Every this long in a place with raids (Promiseland), a roll... */
-    everyMs: 180_000,
+    /**
+     * Every this long in a place with raids (Promiseland), a roll... (the owner, 9-nov-2026, Off-9C: far fewer, to also
+     * train in peace; a roll every 10–15 min. It was 3 min.)
+     */
+    everyMs: 720_000,
     /** ...that brings them this often. */
     chance: 0.5,
     /** Of the raids, this share are two Raiders instead of one... */
     pairChance: 1 / 3,
     /** ...each this many levels under yours. */
-    pairLevelsUnder: 3,
+    pairLevelsUnder: 2,
     /** A lone one is your level, give or take this many. */
     levelSpread: 2,
     /** Warrior or Mage: this share are Warriors. */
@@ -101,16 +104,16 @@ export const OFF_RAIDER_MAGE = {
      * ...at most this often (ms), so it gets its spell out in between (first try: it walked away again and again and
      * cast once in 45 s).
      */
-    retreatEveryMs: 2500,
+    retreatEveryMs: 4500,
     /** It runs away under this share of its health (a Warrior, OFF_MERCENARY_FLEE.below), with or without mana to heal. */
     fleeBelow: 0.4,
     /** While you are held, it heals itself under this share of its health (it uses the time). */
-    heldHealBelow: 0.8,
+    heldHealBelow: 0.5,
     /**
      * After a hold took, it casts another one only this long later (ms): first try, it held you again the moment you
      * were free and never hurt you.
      */
-    holdEveryMs: 12_000,
+    holdEveryMs: 16_000,
 } as const;
 
 /** Off-9A (the owner, 9-nov-2026: essential): a Warrior Raider uses Critical Strike, with your charges' rules. */
@@ -170,7 +173,35 @@ export const OFF_RAIDER_TEXT = {
     fell: (name: string) => `${name} fell to the monsters!`,
 } as const;
 
-/** A raider's own def: the mercenary's of that kind, with its name, body and raider factors. */
-export function offRaiderDef(kind: OffMercenaryId, name: string, body: CharacterLook): OffMercenaryDef {
-    return { ...OFF_MERCENARIES[kind], ...OFF_RAIDER_FACTORS[kind], name, body };
+/**
+ * Off-9C (the owner, 9-nov-2026: harder, a Raider of your level kills you 3 or 4 times in 10): how strong they are by
+ * their level, times OFF_RAIDER_FACTORS. At `fromLevel` and under, the first number; at `toLevel` and over, the second;
+ * in between, a straight line. Measured with `pnpm check offduel*` (all at 1 they were as hard at 10 as at 50; now a
+ * fight at your level lasts 30–60 s and drinks 1–8 potions). Clean 1-to-1 they never kill you: potions have no wait
+ * (the owner, 9-nov-2026: leave it so; you can run away, and in the end you kill it or run out of potions).
+ */
+export const OFF_RAIDER_POWER = {
+    fromLevel: 10,
+    toLevel: 50,
+    /** Their health... */
+    hp: [1, 1.2],
+    /** ...their blows... */
+    damage: [1, 3.2],
+    /** ...and their damage spells. */
+    spells: [0.65, 2.2],
+} as const;
+
+/** OFF_RAIDER_POWER at that level. */
+export function offRaiderPower(level: number): { hp: number; damage: number; spells: number } {
+    const p = OFF_RAIDER_POWER;
+    const t = Math.min(1, Math.max(0, (level - p.fromLevel) / (p.toLevel - p.fromLevel)));
+    const at = (pair: readonly [number, number]): number => pair[0] + (pair[1] - pair[0]) * t;
+    return { hp: at(p.hp), damage: at(p.damage), spells: at(p.spells) };
+}
+
+/** A raider's own def: the mercenary's of that kind, with its name, body and raider factors for its level. */
+export function offRaiderDef(kind: OffMercenaryId, name: string, body: CharacterLook, level: number): OffMercenaryDef {
+    const factors = OFF_RAIDER_FACTORS[kind];
+    const power = offRaiderPower(level);
+    return { ...OFF_MERCENARIES[kind], ...factors, hpFactor: factors.hpFactor * power.hp, damageFactor: factors.damageFactor * power.damage, spellFactor: power.spells, name, body };
 }

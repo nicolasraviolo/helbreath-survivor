@@ -121,6 +121,7 @@
 //   ?off=raiders → Helbreath Off: directo a Promiseland con ?offraid (Off-9A)
 //   ?offraid=invisible → Helbreath Off: el Raider de ?offraid llega invisible (o &offinvis junto a =warrior, mage, pair) (Off-9B)
 //   ?offek=12 → Helbreath Off: el personaje empieza con 12 Enemy Kills (Off-9B)
+//   ?offfast=4 → Helbreath Off: el mundo va 4 veces más rápido (1–8), para medir peleas largas con `check offduel*` (Off-9C)
 //   ?offdrop=all → Helbreath Off: todos los monstruos sueltan algo; ?offdrop=valuable, siempre un arma o escudo (Off-4A)
 //   ?metrics=send    → enviar las métricas de esta partida al servidor de verdad (en desarrollo no se envían; Fase 14A)
 //   Se combina con ?ui=compact (interfaz de móvil).
@@ -237,6 +238,8 @@ interface DebugStart {
     offRaidInvisible: boolean;
     /** Off-9B: ?offek=N starts with N Enemy Kills. */
     offEnemyKills: number | undefined;
+    /** Off-9C: ?offfast=N runs Helbreath Off's world N times per frame (1–8), to measure long fights quickly. */
+    offFast: number;
     /** ?offgold=N: Helbreath Off's character has that gold (Fase Off-4A). */
     offGold: number | undefined;
     /** ?offbag=a,b: Helbreath Off's bag holds those items (Fase Off-4A). */
@@ -299,7 +302,7 @@ function readDebugStart(): DebugStart {
     const none: DebugStart = {
         play: false, character: undefined, actions: [], trees: undefined, open: undefined, achievements: undefined, characters: undefined,
         sendMetrics: false, spells: { auto: undefined, active: undefined }, openClass: undefined, openSlot: undefined, slash: undefined,
-        holdLoading: false, gear: [], settingsTab: undefined, attribute: undefined, attributeValue: undefined, secondary: undefined, secondaryValue: undefined, unlocks: undefined, unlockCounts: {}, map: undefined, maps: undefined, rescued: undefined, kills: {}, unique: undefined, offLevel: undefined, offReset: false, offGear: [], offStats: {}, offGold: undefined, offHp: undefined, offCrit: undefined, offMerc: undefined, offRaid: undefined, offRaidInvisible: false, offEnemyKills: undefined, offBag: [], offWarehouse: [], offOpen: undefined, offSpells: [], offDrop: 'normal', offFaction: undefined, offPlace: undefined, offAt: undefined, townSpot: undefined, townTalk: false, townShop: false, townDye: false, townMissions: false, townSmith: undefined,
+        holdLoading: false, gear: [], settingsTab: undefined, attribute: undefined, attributeValue: undefined, secondary: undefined, secondaryValue: undefined, unlocks: undefined, unlockCounts: {}, map: undefined, maps: undefined, rescued: undefined, kills: {}, unique: undefined, offLevel: undefined, offReset: false, offGear: [], offStats: {}, offGold: undefined, offHp: undefined, offCrit: undefined, offMerc: undefined, offRaid: undefined, offRaidInvisible: false, offEnemyKills: undefined, offFast: 1, offBag: [], offWarehouse: [], offOpen: undefined, offSpells: [], offDrop: 'normal', offFaction: undefined, offPlace: undefined, offAt: undefined, townSpot: undefined, townTalk: false, townShop: false, townDye: false, townMissions: false, townSmith: undefined,
         gold: undefined, weapon: undefined, upgrade: undefined, xelima: undefined, level: undefined, build: undefined, kit: 'best', simBot: 'circle',
     };
     if (!import.meta.env.DEV) return none;
@@ -362,6 +365,7 @@ function readDebugStart(): DebugStart {
         offRaid: parseOffRaid(params),
         offRaidInvisible: params.get('offraid') === 'invisible' || params.has('offinvis'),
         offEnemyKills: parseCount(params.get('offek')),
+        offFast: Math.max(1, Math.min(8, parseCount(params.get('offfast')) ?? 1)),
         offBag: (params.get('offbag') ?? '').split(',').map((g) => g.trim()).filter((g) => g.length > 0),
         offWarehouse: (params.get('offwarehouse') ?? '').split(',').map((g) => g.trim()).filter((g) => g.length > 0),
         offOpen: parseOffOpen(params.get('offopen')),

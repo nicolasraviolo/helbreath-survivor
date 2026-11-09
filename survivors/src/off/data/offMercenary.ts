@@ -54,6 +54,8 @@ export interface OffMercenaryDef {
     damageFactor: number;
     /** Extra defence on top of 2 × DEX and its armour. */
     defenseBonus: number;
+    /** Off-9C, Raiders only: its damage spells' damage, times this (OFF_RAIDER_POWER; 1 when missing). */
+    spellFactor?: number;
     /** Its gear by your level (OFF_MERCENARY_GEAR). */
     gear: readonly { fromLevel: number; equipment: Readonly<OffEquipment> }[];
 }

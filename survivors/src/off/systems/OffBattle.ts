@@ -157,6 +157,9 @@ interface RaiderSlot {
     stepsMs: number;
 }
 
+/** Development (`check offduel*`, Off-9C): monsters this near the test fights' tile fall before each fight. */
+const OFF_DUEL_CLEAR_TILES = 16;
+
 export class OffBattle implements OffMonsterWorld, OffSpellHost, OffMercenaryWorld, OffMercenaryCastWorld, OffRaiderWorld, OffRaiderCastWorld {
     /** Mana, stamina and the self-healing batches (Off-3B). */
     public readonly vitals: OffVitals;
@@ -1503,7 +1506,7 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost, OffMercenaryWor
      * 1 or 2 Raiders of the other city (`forced`, ?offraid: that kind, or two), out of sight, coming for you. False when
      * no tile was found for them.
      */
-    public startRaid(forced?: 'any' | 'warrior' | 'mage' | 'pair'): boolean {
+    public startRaid(forced?: 'any' | 'warrior' | 'mage' | 'pair', forcedInvisible = DEBUG_START.offRaidInvisible): boolean {
         if (this.dead || !this.raidsHere) return false;
         const raids = OFF_RAIDS;
         const pair = forced === 'pair' || (forced === undefined && Math.random() < raids.pairChance);
@@ -1512,7 +1515,7 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost, OffMercenaryWor
         const faction = this.enemyFaction();
         const names = Phaser.Utils.Array.Shuffle([...OFF_RAIDER_NAMES[faction]]);
         // Off-9B: some come invisible (both of a pair); a raid forced by hand (?offraid) only with ?offraid=invisible.
-        const invisible = forced === undefined ? Math.random() < raids.invisibleChance : DEBUG_START.offRaidInvisible;
+        const invisible = forced === undefined ? Math.random() < raids.invisibleChance : forcedInvisible;
         const count = pair ? 2 : 1;
         const spawned: OffMercenary[] = [];
         for (let i = 0; i < count; i++) {
@@ -1539,7 +1542,7 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost, OffMercenaryWor
         if (slot.raider) this.removeRaider(slot);
         const body = Phaser.Utils.Array.GetRandom([...OFF_RAIDER_BODIES]);
         const holder: { raider?: OffMercenary } = {};
-        const raider = new OffMercenary(this.scene, kind, (x, y) => this.isFreeForRaider(holder.raider, x, y), tile.x, tile.y, level, { def: offRaiderDef(kind, name, body), faction });
+        const raider = new OffMercenary(this.scene, kind, (x, y) => this.isFreeForRaider(holder.raider, x, y), tile.x, tile.y, level, { def: offRaiderDef(kind, name, body, level), faction });
         holder.raider = raider;
         raider.victim = 'player';
         if (raider.isCaster) {
@@ -1770,20 +1773,22 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost, OffMercenaryWor
             if (def.area && def.areaRange !== undefined && distance <= def.areaRange) damage += rollSpellDamage(def.area, raider.stats.mag, 'neutral');
             return damage;
         };
+        // Off-9C: stronger the higher its level (OFF_RAIDER_POWER).
+        const spellFactor = raider.def.spellFactor ?? 1;
         const playerDamage = roll(this.playerTile());
         if (playerDamage > 0) {
             const effects = this.gearEffects;
             if (rollResisted(hit, OFF_RAIDER.magicResist) || (effects.magicResistance && Math.random() < effects.magicResistance)) {
                 this.numbers.showWord(this.character.x, this.character.y - PLAYER_BODY_OFFSET_Y, 'Resist');
             } else {
-                this.hurtPlayer(this.absorbed(Math.max(1, Math.round(playerDamage * this.magicDamageFactor)), effects.magicAbsorption), true);
+                this.hurtPlayer(this.absorbed(Math.max(1, Math.round(playerDamage * spellFactor * this.magicDamageFactor)), effects.magicAbsorption), true);
             }
         }
         const merc = this.merc;
         const mercDamage = merc && !merc.isDown ? roll(this.victimTile('merc')) : 0;
         if (merc && mercDamage > 0) {
             if (rollResisted(hit, OFF_RAIDER.magicResist)) this.numbers.showWord(merc.x, merc.y - PLAYER_BODY_OFFSET_Y, 'Resist');
-            else this.hurtMerc(merc, Math.max(1, Math.round(mercDamage * this.personMagicFactor(merc))), true);
+            else this.hurtMerc(merc, Math.max(1, Math.round(mercDamage * spellFactor * this.personMagicFactor(merc))), true);
         }
     }
 
@@ -1799,6 +1804,56 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost, OffMercenaryWor
         if (raider.protection || !raider.isAlive) return false;
         raider.protection = { spell, leftMs: (OFF_SPELLS[spell].durationSec ?? 0) * 1000 };
         return true;
+    }
+
+    /** Development (`check offduel*`, Off-9C): the Raiders of this raid, also the fallen not yet gone. */
+    public debugRaiderList(): OffMercenary[] {
+        return this.raidSlots.flatMap((slot) => (slot.raider ? [slot.raider] : []));
+    }
+
+    /** Development (`check offduel*`, Off-9C): the raid ends now (Raiders gone) and the clock starts again. */
+    public debugEndRaid(): void {
+        for (const slot of this.raidSlots) this.removeRaider(slot);
+        this.raidClockMs = 0;
+    }
+
+    /**
+     * Development (`check offduel*`, Off-9C): back to full health, mana and stamina where you stand (also from dead),
+     * free, with full Critical Strike charges; your mercenary up and full, with its potion. With `at`, back on that
+     * tile, and the monsters after you or near it fall (chasing a Raider that ran took you to a pit: they piled up).
+     */
+    public debugFreshStart(at?: TilePoint): void {
+        if (at) {
+            this.mover.cancel();
+            this.mover.place(at.x, at.y);
+            for (const monster of this.pits.monsters) {
+                if (!monster.isAlive) continue;
+                const near = tileDistance(monster.mover.tileX, monster.mover.tileY, at.x, at.y) <= OFF_DUEL_CLEAR_TILES;
+                if (near || (monster.mode === 'attack' && monster.victim === 'player')) monster.kill();
+            }
+        }
+        if (this.dead) {
+            this.dead = false;
+            this.respawnLeftMs = 0;
+            this.character.revive();
+        }
+        this.spells.cancel();
+        this.heldLeftMs = 0;
+        this.blow = undefined;
+        this.cooldownMs = 0;
+        this.protection = undefined;
+        this.berserkLeftMs = 0;
+        this.clearTarget();
+        this.hp = this.maxHp;
+        this.vitals.fill();
+        while (this.critStrike.charges < maxCritCharges(this.level)) this.critStrike.addCharge(this.level);
+        const merc = this.merc;
+        if (merc) {
+            if (merc.isDown) merc.standUp();
+            merc.hp = merc.maxHp;
+            merc.mana = merc.maxMana;
+            merc.potionLeftMs = 0;
+        }
     }
 
     /** Development (`check offraid...`): the Raiders now, in short. */

@@ -69,8 +69,8 @@ Cada fase se hace por bloques, uno por sesión, y se espera el OK del propietari
   - **8E Huir, poción y recuperar vida ✅** (8-nov-2026; ajustado por el propietario tras probarlo): el mercenario recupera vida como un jugador (una tanda cada 15 s, también peleando, número verde). **Poción propia** que se rellena a los 60 s, **sin icono**: bajo el 30 % se la bebe, cura el 40 % de su vida y dice "I drank my potion!". **Sin poción huye** bajo el 25 % ("Heal me!", lejos de los monstruos y hacia ti) y vuelve a pelear al pasar del 50 % o tras 8 s sin que nadie lo persiga. Kaila igual, pero solo huye sin maná para curarse.
 - **Off-9 · Raiders** (plan del 8-nov-2026). Los Raiders usan **el mismo cerebro que los mercenarios**, en el bando contrario. Bloques:
   - **9A Aparecer y atacar ✅** (9-nov-2026; ajustes del propietario: estamina y huida corta, sin avisos, "Enemy Kill!!", Mago que paraliza y lanza de lejos, Guerrero con Critical Strike, golpes que interrumpen magias, sin barra de vida): 1 o 2 personajes de la otra ciudad (Guerrero o Mago, nombre en rojo), de nivel parecido al tuyo; si son dos, cada uno algo más flojo. **Solo en Promiseland**, al azar. Van a por ti y a por tu mercenario. Al morir sueltan **oro** y nada más por ahora.
-  - **9B Invisibles y Enemy Kills**: a veces llegan invisibles hasta que atacan. Cada uno que matas da **+1 EK**; se guarda y sale en la casilla "Enemy Kills" de la ventana Character. Más adelante desbloquearán cosas.
-  - **9C Medir y ajustar** la dificultad con `pnpm check`.
+  - **9B Invisibles y Enemy Kills ✅**: a veces llegan invisibles hasta que atacan. Cada uno que matas da **+1 EK**; se guarda y sale en la casilla "Enemy Kills" de la ventana Character. Más adelante desbloquearán cosas.
+  - **9C Medir y ajustar ✅** (9-nov-2026): peleas de prueba `check offduel*` (niveles 10/30/50 × Guerrero, Mago, pareja, invisible). Una tirada cada 12 min; fuerza por nivel (`OFF_RAIDER_POWER`); Mago más alcanzable. Las pociones no se tocan: un Raider solo te mata si te quedas sin pociones o te pilla bajo.
 
 ## Pendiente de decidir más adelante
 

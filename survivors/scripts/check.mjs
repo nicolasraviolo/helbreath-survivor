@@ -59,6 +59,30 @@ const OFF_FARM = {
 };
 const offFarmUrl = (f) => `off=world&offreset&offfaction=aresden&offlevel=${f.level}&offstats=${f.stats}&offgear=${f.gear}${f.bag ? `&offbag=${f.bag}` : ''}&offplace=${f.place}&offat=${f.at}`;
 const offFarmEval = (f) => `o.debugFarm('${f.monster}', ${OFF_FARM_SECONDS}, 0.5)`;
+// Fase Off-9C: medir los Raiders. offduel<nivel><clase> pelea OFF_DUEL_FIGHTS veces seguidas (OffDuel, con ?offfast
+// para ir más rápido) un guerrero típico de ese nivel (los de offfarm; el 50, entre el 40 y el 60) contra: w Guerrero,
+// m Mago, p pareja (con Gorn), i Guerrero invisible. Bebe la poción más grande por debajo del 40 % y usa Critical
+// Strike cuando tiene carga. En eval: muertes, empates (más de 150 s), segundos, vida más baja, pociones, críticos y
+// parálisis recibidos, y la lista de peleas. Objetivo (propietario, 9-nov-2026): mueres 3 o 4 de cada 10.
+const OFF_DUEL_FIGHTS = 10;
+const OFF_DUEL_FAST = 8;
+// Lejos de pits y de las salidas: junto a la llegada (140,224), el Raider que huía te llevaba por la salida a Aresden.
+const OFF_DUEL_AT = '90,80';
+// Ojo: las espadas de dos manos no dejan llevar escudo (Off-7E), y con las dos el juego no pone el arma: offfarm30 y
+// offfarm40 pelean con los puños. Aquí, sin escudo.
+const OFF_DUEL_BUILDS = {
+    10: OFF_FARM.offfarm10,
+    30: { level: 30, stats: 'str:44,dex:40,vit:33', gear: 'claymore,chainMail,plateLeggings', bag: potions('bigRedPotion', 15) },
+    50: { level: 50, stats: 'str:72,dex:55,vit:50', gear: 'greatSword,chainMail,plateLeggings,helmet', bag: potions('bigRedPotion', 20) },
+};
+const OFF_DUEL_KINDS = { w: ['warrior', false, ''], m: ['mage', false, ''], p: ['pair', false, '&offmerc'], i: ['warrior', true, ''] };
+const OFF_DUEL = Object.fromEntries(Object.entries(OFF_DUEL_BUILDS).flatMap(([level, b]) => Object.entries(OFF_DUEL_KINDS).map(([k, [kind, invisible, extra]]) => [
+    `offduel${level}${k}`,
+    {
+        url: `off=world&offreset&offfaction=aresden&offlevel=${b.level}&offstats=${b.stats}&offgear=${b.gear}&offbag=${b.bag}&offplace=promiseland&offat=${OFF_DUEL_AT}&offfast=${OFF_DUEL_FAST}${extra}`,
+        eval: `o.debugDuel('${kind}', ${OFF_DUEL_FIGHTS}, ${invisible})`,
+    },
+])));
 // Cada offfarm* guarda su resultado en .check/offfarm.json; offbalance lo lee y lo pasa a la calculadora
 // (src/off/dev/offBalance.ts): minutos por nivel, oro frente a precios y magias. Informe en .check/offbalance.json.
 const OFF_FARM_FILE = 'offfarm.json';
@@ -239,6 +263,7 @@ const PRESETS = {
     // (en eval: los cuadros con "Absorb N%"; captura con el de la Chain Mail).
     offarmor: 'off=world&offreset&offlevel=60&offstats=str:90,dex:60&offopen=bag&offbag=towerShield,fullHelmet,plateLeggings,chainMail',
     ...Object.fromEntries(Object.entries(OFF_FARM).map(([k, f]) => [k, offFarmUrl(f)])),
+    ...Object.fromEntries(Object.entries(OFF_DUEL).map(([k, d]) => [k, d.url])),
     offhitorc: 'off=world&offlevel=20&offstats=str:30,dex:40&offgear=longSword&offfaction=aresden&offplace=aresden&offat=243,201',
     offcrit: 'off=world&offreset&offlevel=20&offstats=str:40,dex:40&offgear=longSword:critical7',
     // Fase Off-4A: botín. offlootview mata Slimes 14 s con ?offdrop=all y se para (captura con el botín en el suelo);
@@ -654,6 +679,7 @@ const PRESET_EVAL = {
     offhitrate: "o.debugHitTable([20, 40, 60], 2000)",
     offarmor: "new Promise((r) => setTimeout(() => { const inv = game.scene.getScene('OffInventory'); const boxes = []; for (const i of [0, 1, 2, 3]) { inv.debugMark(i); boxes.push(inv.debugState().box); } r(boxes); }, 1500))",
     ...Object.fromEntries(Object.entries(OFF_FARM).map(([k, f]) => [k, offFarmEval(f)])),
+    ...Object.fromEntries(Object.entries(OFF_DUEL).map(([k, d]) => [k, d.eval])),
     offhitorc: "new Promise((r) => { const b = o.battle; const st = { swings: 0, misses: 0 }; const land = b.landBlow.bind(b); b.landBlow = (blow) => { st.swings++; if (!blow.lands) st.misses++; land(blow); }; const t = setInterval(() => { if (!o.debugState().target) o.debugFight('orc'); }, 500); setTimeout(() => { clearInterval(t); r({ hitRatio: b.hitRatio, ...st, hitPercent: Math.round((1 - st.misses / Math.max(1, st.swings)) * 100), kills: b.kills, dead: o.debugState().dead }); }, 20000); })",
     offcritstrike: "new Promise((r) => { const b = o.battle; const st = { normal: [], strike: [], misses: 0 }; let cur = false; const land = b.landBlow.bind(b); b.landBlow = (blow) => { cur = blow.crit; if (!blow.lands) st.misses++; land(blow); }; const hurt = b.hurtMonster.bind(b); b.hurtMonster = (m, d, e, c) => { if (e === undefined) (cur ? st.strike : st.normal).push(d); return hurt(m, d, e, c); }; const avg = (a) => a.length ? Math.round(a.reduce((x, y) => x + y, 0) / a.length) : 0; const start = b.critStrike.charges; const t = setInterval(() => { if (!o.debugState().target) o.debugFight('slime'); }, 300); let n = 0; const c = setInterval(() => { if (n++ < 3) b.critPressed(); }, 1500); setTimeout(() => { const afterStrikes = b.critStrike.charges; setTimeout(() => { clearInterval(t); clearInterval(c); const saved = JSON.parse(localStorage.getItem('hb-off.character')).critCharges; r({ level: b.level, start, afterStrikes, afterWait: b.critStrike.charges, saved, launched: b.critStrike.launched, strikesLanded: b.critStrikeBlows, misses: st.misses, normalAvg: avg(st.normal), strikeAvg: avg(st.strike), normalBlows: st.normal.length }); }, 16000); }, 6000); })",
     offmerchire: "new Promise((r) => { const h = o.debugState().hirer; const before = o.debugState().gold; o.debugWalkTo(h.x - 1, h.y + 1, false); setTimeout(() => { o.openMercenaries(); setTimeout(() => { const asked = game.scene.isActive('OffMercenary'); game.scene.getScene('OffMercenary').hire('warrior'); setTimeout(() => { const s = o.debugState(); r({ hirer: h, tile: s.tile, asked, goldBefore: before, goldAfter: s.gold, merc: s.merc, saved: JSON.parse(localStorage.getItem('hb-off.character')).mercenary }); }, 3000); }, 800); }, 4000); })",
