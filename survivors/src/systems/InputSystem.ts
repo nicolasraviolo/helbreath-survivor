@@ -101,7 +101,7 @@ export enum Action {
     OffDrinkMana = 'offDrinkMana',
     /** Helbreath Off (Off-8A): Critical Strike on the monster under the mouse, the marked one or the nearest (Alt, LT). */
     OffCritStrike = 'offCritStrike',
-    /** Helbreath Off (Off-6C): held (RT), A/B/X/Y are spells; let go, the spell is cast at the target. Gamepad only. */
+    /** Helbreath Off (Off-6C): held (RT), A/B/X/Y are spells, cast as soon as ready (RT may stay held). Gamepad only. */
     OffCastTrigger = 'offCastTrigger',
     /** Helbreath Off (Off-6C): with RT held, the gamepad's spells (A, B, X, Y). Gamepad only. */
     OffPadSpellA = 'offPadSpellA',
@@ -255,11 +255,11 @@ export class InputSystem {
     private pointerWasDown = false;
     private pointerJustPressed = false;
     private lastDevice: InputDevice = 'none';
-    private readonly manualAim: ManualAim = { dirX: 0, dirY: 0, point: undefined };
+    private readonly manualAim: ManualAim = { dirX: 0, dirY: 0, point: undefined, strength: 1 };
     private readonly aimPoint = { x: 0, y: 0 };
     private aiming = false;
     /** Development: aim this way all the time (?debug=aim), to check it without a mouse. */
-    private forcedAim: { x: number; y: number } | undefined;
+    private forcedAim: { x: number; y: number; strength?: number } | undefined;
     /**
      * The next update only records what is held, without "just pressed": a button still held from the previous
      * screen, or pressed while this scene was paused (it doesn't update then), must not trigger anything here.
@@ -377,8 +377,8 @@ export class InputSystem {
         return this.aiming ? this.manualAim : undefined;
     }
 
-    /** Development (?debug=aim): aim towards (x, y) all the time; undefined = stop. */
-    public setForcedAim(direction: { x: number; y: number } | undefined): void {
+    /** Development (?debug=aim): aim towards (x, y) all the time (`strength`: how far the stick is pushed); undefined = stop. */
+    public setForcedAim(direction: { x: number; y: number; strength?: number } | undefined): void {
         this.forcedAim = direction;
     }
 
@@ -524,14 +524,14 @@ export class InputSystem {
         aim.point = undefined;
         this.aiming = true;
         if (stick.x !== 0 || stick.y !== 0) {
-            this.setAimDirection(stick.x, stick.y);
+            this.setAimDirection(stick.x, stick.y, Math.min(1, Math.hypot(stick.x, stick.y)));
             this.lastDevice = 'gamepad';
             return;
         }
         const touch = this.aimStick;
         if (touch?.pushed) {
             // Resting back in the centre keeps the last direction until the finger is lifted.
-            if (touch.vector.x !== 0 || touch.vector.y !== 0) this.setAimDirection(touch.vector.x, touch.vector.y);
+            if (touch.vector.x !== 0 || touch.vector.y !== 0) this.setAimDirection(touch.vector.x, touch.vector.y, Math.min(1, Math.hypot(touch.vector.x, touch.vector.y)));
             this.lastDevice = 'touch';
             return;
         }
@@ -548,16 +548,17 @@ export class InputSystem {
             return;
         }
         if (this.forcedAim) {
-            this.setAimDirection(this.forcedAim.x, this.forcedAim.y);
+            this.setAimDirection(this.forcedAim.x, this.forcedAim.y, this.forcedAim.strength ?? 1);
             return;
         }
         this.aiming = false;
     }
 
-    private setAimDirection(x: number, y: number): void {
+    private setAimDirection(x: number, y: number, strength = 1): void {
         const length = Math.hypot(x, y);
         this.manualAim.dirX = x / length;
         this.manualAim.dirY = y / length;
+        this.manualAim.strength = strength;
     }
 }
 

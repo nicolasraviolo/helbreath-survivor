@@ -151,6 +151,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - La Farm como casa y Select Map de Off (Off-10C, 9-nov-2026)
 - Varitas de Off (Off-11A)
 - Magias de los círculos 6–10 en Off (Off-11B)
+- Lanzar magias en Off: pararse, mirilla y cruz de RT (9-nov-2026)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -1666,3 +1667,9 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - **Dibujos** (`off/config/offSpellLook.ts`): `OFF_EXTRA_LOOKS` son hechizos de Survivors retocados (4 Lightning Arrow seguidas, 8 gotas de Chill Wind, 5 rayos del cielo); Ice Strike usa los trozos de `ICE_SHARD_LOOK` y Earth Shock Wave el chorro y polvo de `LINE_SPELL_LOOKS.earthShock`, dibujados en `OffSpells` (`rainShards`, `showWave`). `showSpell` ya entiende `shots` con `shotIntervalMs` y `aim: 'scatter'`.
 - **Ojo, cargas:** una clave repetida en `sprites` de un sitio de Off (p. ej. `fx.effect11` en WORLD_SPRITES y otra vez en el sitio) **deja la carga colgada** sin error en consola. Off-11B añadió `fx.effect3` y `fx.effect11` a WORLD_SPRITES y quitó los repetidos.
 - Pruebas: `check offboltline` / `offmassarrow` / `officestrike` / `offenergystrike` / `offmasschill` / `offlightningstrike` / `offearthshock` (las 8 en 1–8, INT y MAG 200, junto a los Giant Scorpion de Aresden; `wounded` en debugState = vivos heridos) y `offamp`. Con MAG 200 casi todo muere de un golpe: para ver el frenado, `offstats=int:200,mag:10`.
+
+## Lanzar magias en Off: pararse, mirilla y cruz de RT (9-nov-2026)
+- **Pararse al lanzar:** al empezar una magia (1–8 o RT + botón) `OffWorldScene.holdStillIfCasting` corta el camino y pone `holdStill`: el stick o las flechas que sigan pulsados no mueven hasta soltarlos (antes la orden de andar cancelaba la magia o seguía andando al acabar). Si se empieza a mitad de un paso, el paso termina durante el lanzamiento (`mover.update` también con `spells.busy`): antes se quedaba congelado y se deslizaba al acabar.
+- **Mirilla:** `ManualAim.strength` (0..1 tras la zona muerta) dice cuánto se empuja el stick derecho; `padAimPoint` pone el punto a `OFF_PAD_AIM.minTiles`–`maxTiles` casillas, dentro de la pantalla, y se pega a un monstruo vivo a `snapTiles` o menos. Se ve (`off/ui/OffAimReticle.ts`, roja sobre un monstruo) con RT pulsado o con una magia del mando esperando; Heal y escudos siguen con la flecha del mercenario.
+- **Cruz de RT:** `off/ui/OffPadCross.ts` en `OffHudScene` (`OffHudState.padCross`), medidas en `OFF_PAD_CROSS`. Atenuada si no hay magia en el botón o falta maná. La magia del mando sale en cuanto está lista, aunque RT siga pulsado.
+- Pruebas: `check offcastrun` (debe dar `stillAfterCast` y `walksAgain` true), `offpadaim` (mirilla a 1,5 y 9 casillas; hacia abajo, recortada al borde) y `offpadcross` (captura con la cruz y la mirilla). Atajos: `debugStick`, `debugPadAim`, `debugCastTrigger`, `debugPadState`.

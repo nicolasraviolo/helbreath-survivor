@@ -1,4 +1,6 @@
 import type { EffectKey } from '../../config/effects';
+import { byDevice } from '../../config/device';
+import { UI_TEXT } from '../../config/ui';
 import { ICE_SHARD_LOOK, LINE_SPELL_LOOKS } from '../../data/activeSpells';
 import { AURA_RING_ALPHA } from '../../data/passiveMagic';
 import { BUFFS } from '../../data/pickups';
@@ -80,3 +82,40 @@ export const OFF_SPELL_HUD = {
  * (el anillo, como el aura de Survivors).
  */
 export const OFF_WORN_ALPHA: Partial<Record<EffectKey, number>> = { 'fx.aura.ring': AURA_RING_ALPHA };
+
+/** The mark on the ground where a gamepad spell will fall (right stick, OFF_PAD_AIM). */
+export const OFF_PAD_RETICLE = {
+    radius: 14,
+    lineWidth: 2,
+    /** The cross in the middle, half its size. */
+    crossHalf: 5,
+    color: 0xfff2c0,
+    /** Over a monster: it will take the spell. */
+    monsterColor: 0xff7050,
+    alpha: 0.85,
+} as const;
+
+/**
+ * Holding RT (propietario, 9-nov-2026): the four gamepad spells as a cross, like the buttons (Y up, A down, X left,
+ * B right), bottom centre over the HUD bar. A box per button with its letter and the spell.
+ */
+export const OFF_PAD_CROSS = {
+    /** Centre of the cross: this far above the bottom of the play area. */
+    bottomGap: byDevice(78, 92),
+    /** Distance from the centre to each box's centre. */
+    spreadX: byDevice(112, 128),
+    spreadY: byDevice(40, 46),
+    boxWidth: byDevice(150, 172),
+    boxHeight: byDevice(30, 34),
+    boxColor: 0x14100a,
+    boxAlpha: 0.78,
+    borderColor: 0x8a7444,
+    /** Without the mana for it, or no spell on that button. */
+    dimAlpha: 0.45,
+    letterRadius: byDevice(10, 11),
+    /** A, B, X, Y in the usual colours. */
+    letterColors: [0x3fae49, 0xd8423a, 0x3d7fd6, 0xe0b52c],
+    letterStyle: { ...UI_TEXT, fontSize: byDevice('13px', '15px'), fontStyle: 'bold', color: '#ffffff' },
+    nameStyle: { ...UI_TEXT, fontSize: byDevice('13px', '15px'), color: '#e8d9a8' },
+    empty: '-',
+} as const;

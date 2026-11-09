@@ -18,8 +18,9 @@
 // - Hold Person / Paralyze: el monstruo no anda ni ataca durante `durationSec`; puede resistirla como el daño, y
 //   cualquier golpe o magia que le haga daño la rompía (corregido en la Off-8C: ver abajo). El fuego que arde no.
 // - Curar y escudos te los lanzas a ti: en Off juegas solo, así que cualquier clic sirve (decisión de Claude, aceptada).
-// - Mando (propietario): RT + A/B/X/Y preparan las 4 magias del mando (elegidas en el libro); soltar RT la lanza al
-//   monstruo marcado o, sin él, al más cercano.
+// - Mando (propietario): RT + A/B/X/Y preparan las 4 magias del mando (elegidas en el libro); al estar lista sale sola
+//   (desde el 9-nov-2026 sin soltar RT) donde apunta el stick derecho (OFF_PAD_AIM) o, sin stick, al monstruo marcado o
+//   al más cercano.
 // Fase Off-6B, lanzar (OFF_CASTING; fórmulas en off/systems/OffSpellRules.ts):
 // - Off no tiene habilidades. Propietario (7-nov-2026): la habilidad "Magic" del original (0–100) sale de la MAG:
 //   MAG × 2, tope 100 (con MAG 50 se lanza como un mago entrenado). Lo demás, con las tablas del servidor.
@@ -227,6 +228,20 @@ export function offPadSpellName(index: number): string {
 export function offSpellKeyName(index: number): string {
     return `${index + 1}`;
 }
+
+/**
+ * Aiming a gamepad spell with the right stick (propietario, 9-nov-2026): the spell falls where the stick points, nearer
+ * or farther with how far it is pushed (0..1 after the deadzone), always inside the screen.
+ */
+export const OFF_PAD_AIM = {
+    /** Tiles from you with the stick barely pushed, and pushed to the edge. */
+    minTiles: 1.5,
+    maxTiles: 9,
+    /** Kept this many pixels inside the edges of what the camera shows. */
+    screenMarginPx: 24,
+    /** A living monster this close to the mark (tiles) takes the spell itself (as a click on it). */
+    snapTiles: 1.2,
+} as const;
 
 /**
  * Casting (Off-6B), from the server (reference/Server.cpp, PlayerMagicHandler) unless said otherwise.
