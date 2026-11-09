@@ -46,6 +46,9 @@ export const EFFECTS = {
     // Ice Storm (Fase 30B, único de Icebound): el remolino del original (sp-client EFFECT_WHIRLWIND, effect3 hoja 0, 15 fps).
     'fx.iceStorm.whirlwind': { sprite: 'fx.effect3', sheet: 0, frameRate: 15, loop: false, fadeFromFrame: 8 },
     'fx.explosion4': { sprite: 'fx.effect11', sheet: 8, frameRate: 15, loop: false },
+    // Mass Magic Missile de Helbreath Off (Off-11C): el misil del cliente original (Client.cpp efecto 182, m_pEffectSpr[98]
+    // = effect11 hoja 9, dibujado con brillo); explota con fx.explosion3 (el propietario lo recordaba así).
+    'fx.massMagicMissile.fly': { sprite: 'fx.effect11', sheet: 9, frameRate: 15, loop: true, additive: true },
     // Buffs del cofre (sp-client Berserk / Defense Shield / Defense Shield Buff).
     'fx.berserk.cast': { sprite: 'fx.effect8', sheet: 1, frameRate: 10, loop: false, depthOffset: -1 },
     'fx.defenseShield.cast': { sprite: 'fx.effect8', sheet: 6, frameRate: 10, loop: false, depthOffset: -1 },

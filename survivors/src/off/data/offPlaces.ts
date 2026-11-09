@@ -99,8 +99,10 @@ export interface OffPlaceDef {
  */
 // Off-6C: effect7 (Heal), effect8 (Defense Shield) and effect9 (its aura) too.
 // Off-11B: effect3 (Energy Strike's explosions) and effect11 (Earth Shock Wave's torrent).
+// Off-11C: crueffect1 (Meteor Strike); effect11 also has Mass Magic Missile's missile, effect7 Blizzard's shards.
 const WORLD_SPRITES: readonly SpriteKey[] = [
     'fx.effect2', 'fx.effect', 'item.ground', 'fx.effect5', 'fx.effect4', 'fx.effect7', 'fx.effect8', 'fx.effect9', 'fx.effect3', 'fx.effect11',
+    'fx.crueffect1',
 ];
 
 /** The sellers of the Farms (Off-10A): Survivors' town NPCs. */

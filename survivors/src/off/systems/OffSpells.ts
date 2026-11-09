@@ -18,20 +18,26 @@
 //   los pone el host en vez de mirar tu guardado.
 import Phaser from 'phaser';
 import { DEPTH_DAMAGE_NUMBERS, DEPTH_EFFECT_OFFSET, TILE_SIZE } from '../../config/gameConfig';
+import type { SoundKey } from '../../config/assetManifest';
 import { EFFECTS, effectAnimationKey, type EffectDef, type EffectKey } from '../../config/effects';
 import type { SpellElement } from '../../data/elements';
+import { ACTIVE_SPELLS, METEOR_LOOK, type MeteorSpellDef } from '../../data/activeSpells';
 import { CAST_SOUND, getSpell, type SpellBurst, type SpellDef, type SpellId } from '../../data/spells';
 import { Effect } from '../../entities/Effect';
 import { LightningArc } from '../../entities/LightningArc';
+import { Meteor } from '../../entities/Meteor';
 import { SpriteText } from '../../hb/SpriteText';
 import { smoothSprite } from '../../hb/XbrPipeline';
 import type { AudioSystem } from '../../systems/AudioSystem';
+import { ScreenShake } from '../../systems/ScreenShake';
 import { Pool, type Poolable } from '../../utils/Pool';
 import { OFF_CAST_TEXT, OFF_CASTING, OFF_SPELLS, offSpellOnSelf, type OffSpellDef, type OffSpellDice, type OffSpellId } from '../data/offSpells';
 import type { OffStats } from '../data/offCharacter';
 import type { OffCharacter } from '../entities/OffCharacter';
 import type { OffMonster } from '../entities/OffMonster';
-import { OFF_EARTH_SHOCK_LOOK, OFF_EXTRA_LOOKS, OFF_ICE_STRIKE_LOOK, OFF_SPELL_NAME_LOOK } from '../config/offSpellLook';
+import {
+    OFF_BLIZZARD_LOOK, OFF_EARTH_SHOCK_LOOK, OFF_EXTRA_LOOKS, OFF_ICE_STRIKE_LOOK, OFF_MASS_ICE_STRIKE_LOOK, OFF_SPELL_NAME_LOOK,
+} from '../config/offSpellLook';
 import { offSaveStore } from './OffSaveStore';
 import {
     offElementMatch, offMagicHit, offOnSpellLine, offPrepareMs, offSpellLine, rollCastWorks, rollHeal, rollResisted, rollSpellDamage, type OffCaster,
@@ -46,10 +52,16 @@ const OFF_SPELL_REACH = 10;
 
 type OffTile = { x: number; y: number };
 
+/** Off-11C: Survivors' Meteor Strike (its sounds, shake and falling meteor; the damage is Off's). */
+const OFF_METEOR = ACTIVE_SPELLS.meteorStrike as MeteorSpellDef;
+
+/** Looks drawn by OffSpells' own code (OffDrawnLookId), not as a projectile. */
+const DRAWN_LOOKS: ReadonlySet<string> = new Set(['iceStrike', 'earthShockWave', 'massIceStrike', 'meteorStrike', 'blizzard']);
+
 /** The projectile look of a spell: Survivors' (data/spells.ts) or Off's own (OFF_EXTRA_LOOKS); none for drawn ones. */
 function offSpellLook(def: OffSpellDef): SpellDef | undefined {
     const id = def.look;
-    if (id === undefined || id === 'iceStrike' || id === 'earthShockWave') return undefined;
+    if (id === undefined || DRAWN_LOOKS.has(id)) return undefined;
     if (id in OFF_EXTRA_LOOKS) return OFF_EXTRA_LOOKS[id as keyof typeof OFF_EXTRA_LOOKS];
     return getSpell(id as SpellId);
 }
@@ -199,6 +211,8 @@ export class OffSpells {
     private readonly shots: Pool<OffSpellShot>;
     private readonly effects: Pool<Effect>;
     private readonly lightnings: Pool<LightningArc>;
+    private readonly meteors: Pool<Meteor>;
+    private readonly screenShake: ScreenShake;
     private readonly timers: OffSpellTimer[] = [];
 
     constructor(
@@ -214,6 +228,8 @@ export class OffSpells {
         this.shots = new Pool(() => new OffSpellShot(scene));
         this.effects = new Pool(() => new Effect(scene));
         this.lightnings = new Pool(() => new LightningArc(scene));
+        this.meteors = new Pool(() => new Meteor(scene, METEOR_LOOK));
+        this.screenShake = new ScreenShake(scene.cameras.main);
     }
 
     /** Off-8C: casts from another body from now on (the Mage's spells move to the next Mage hired; pools are kept). */
@@ -318,7 +334,10 @@ export class OffSpells {
         // Off-11B: line spells sweep from the caster's tile (Lightning Bolt up to the target, Earth Shock Wave past it).
         const shape = def.shape ?? 'spot';
         const line = shape === 'spot' ? [] : offSpellLine(this.mover.tileX, this.mover.tileY, tileX, tileY, shape === 'bolt');
-        const arriveMs = shape === 'wave' ? this.showWave(line) : this.showSpell(def, toX, toY);
+        let arriveMs: number;
+        if (shape === 'wave') arriveMs = this.showWave(line);
+        else if (def.look === 'blizzard') arriveMs = this.showBlizzard(line, toX, toY);
+        else arriveMs = this.showSpell(def, toX, toY);
         this.later(arriveMs, () => this.resolve(def, hit, monster, tileX, tileY, line));
         return true;
     }
@@ -350,6 +369,18 @@ export class OffSpells {
         }
         for (const lightning of [...this.lightnings.active]) {
             if (!lightning.update(deltaMs)) this.lightnings.release(lightning);
+        }
+        for (const meteor of [...this.meteors.active]) {
+            if (meteor.update(deltaMs)) {
+                if ((meteor.smokeWaitMs -= deltaMs) <= 0) {
+                    meteor.smokeWaitMs += METEOR_LOOK.smokeEveryMs;
+                    this.effects.acquire().play(METEOR_LOOK.smoke, meteor.x, meteor.y);
+                }
+                continue;
+            }
+            this.landMeteor(meteor);
+            meteor.deactivate();
+            this.meteors.release(meteor);
         }
     }
 
@@ -464,7 +495,9 @@ export class OffSpells {
 
     /** Draws the spell flying (or falling from the sky) to (toX, toY) from the character (or `from`); returns when it arrives, ms. */
     private showSpell(def: OffSpellDef, toX: number, toY: number, from?: { x: number; y: number }): number {
-        if (def.look === 'iceStrike') return this.rainShards(toX, toY);
+        if (def.look === 'iceStrike') return this.rainShards(OFF_ICE_STRIKE_LOOK, toX, toY);
+        if (def.look === 'massIceStrike') return this.rainShards(OFF_MASS_ICE_STRIKE_LOOK, toX, toY);
+        if (def.look === 'meteorStrike') return this.dropMeteor(toX, toY);
         const look = offSpellLook(def);
         if (!look) return 0;
         if (look.castSound) this.audio.play(look.castSound);
@@ -493,9 +526,8 @@ export class OffSpells {
         return arriveMs;
     }
 
-    /** Off-11B, Ice Strike: shards fall all at once around (x, y) and break as they land; returns when the last lands. */
-    private rainShards(x: number, y: number): number {
-        const look = OFF_ICE_STRIKE_LOOK;
+    /** Off-11B, Ice Strike (and Mass Ice Strike, 11C): shards fall all at once around (x, y) and break as they land; returns when the last lands. */
+    private rainShards(look: typeof OFF_ICE_STRIKE_LOOK | typeof OFF_MASS_ICE_STRIKE_LOOK, x: number, y: number): number {
         const total = look.largeShards + look.smallShards;
         let lastMs = 0;
         for (let i = 0; i < total; i++) {
@@ -505,14 +537,64 @@ export class OffSpells {
             const shardY = y + Math.sin(angle) * distance;
             const fallMs = Phaser.Math.Between(look.fallMs[0], look.fallMs[1]);
             const fallPx = Phaser.Math.Between(look.fallPx[0], look.fallPx[1]);
-            this.effects.acquire().play(i < look.largeShards ? look.largeShard : look.smallShard, shardX, shardY, fallPx, fallMs);
-            this.later(fallMs, () => {
-                this.effects.acquire().play(look.impact, shardX, shardY);
-                this.audio.play(look.impactSound);
-            });
+            this.dropShard(i < look.largeShards ? look.largeShard : look.smallShard, look.impact, look.impactSound, shardX, shardY, fallPx, fallMs);
             lastMs = Math.max(lastMs, fallMs);
         }
         return lastMs;
+    }
+
+    /** One ice shard falling `fallPx` onto (x, y) in `fallMs`, breaking with its sound as it lands. */
+    private dropShard(key: EffectKey, impact: EffectKey, sound: SoundKey, x: number, y: number, fallPx: number, fallMs: number): void {
+        this.effects.acquire().play(key, x, y, fallPx, fallMs);
+        this.later(fallMs, () => {
+            this.effects.acquire().play(impact, x, y);
+            this.audio.play(sound);
+        });
+    }
+
+    /**
+     * Off-11C, Blizzard: Survivors' line of falling ice, one step per tile of the line and a last one on the target,
+     * with more shards and a wider spread each step. Returns when the last step's first shards land (the damage).
+     */
+    private showBlizzard(line: readonly OffTile[], toX: number, toY: number): number {
+        const look = OFF_BLIZZARD_LOOK;
+        const points = [...line.map((tile) => ({ x: (tile.x + 0.5) * TILE_SIZE, y: (tile.y + 0.5) * TILE_SIZE })), { x: toX, y: toY }];
+        points.forEach((point, index) => {
+            const share = (index + 1) / points.length;
+            const count = Math.max(1, Math.round(share * look.maxShards));
+            const spread = look.minSpread + (look.maxSpread - look.minSpread) * share;
+            this.later(index * look.stepMs, () => {
+                for (let i = 0; i < count; i++) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const distance = Math.sqrt(Math.random()) * spread;
+                    const key = look.shards[Phaser.Math.Between(0, look.shards.length - 1)] ?? look.shards[0];
+                    this.dropShard(
+                        key, look.impact, look.impactSound, point.x + Math.cos(angle) * distance, point.y + Math.sin(angle) * distance,
+                        Phaser.Math.Between(look.fallPx[0], look.fallPx[1]), Phaser.Math.Between(look.fallMs[0], look.fallMs[1]),
+                    );
+                }
+            });
+        });
+        return (points.length - 1) * look.stepMs + look.fallMs[0];
+    }
+
+    /** Off-11C, Meteor Strike: Survivors' meteor falls onto (x, y); returns when it lands (the damage). */
+    private dropMeteor(x: number, y: number): number {
+        if (OFF_METEOR.castSound) this.audio.play(OFF_METEOR.castSound);
+        this.meteors.acquire().launch(OFF_METEOR, 1, x, y);
+        return (Math.hypot(METEOR_LOOK.fromDx, METEOR_LOOK.fromDy) / METEOR_LOOK.speed) * 1000;
+    }
+
+    /** The meteor lands: its explosions, small blasts around, the sound and the shake (as Survivors' WeaponSystem). */
+    private landMeteor(meteor: Meteor): void {
+        const { targetX: x, targetY: y } = meteor;
+        for (const key of METEOR_LOOK.impact) this.effects.acquire().play(key, x, y);
+        const spread = METEOR_LOOK.burstSpread;
+        for (let i = 0; i < METEOR_LOOK.burstCount; i++) {
+            this.effects.acquire().play(METEOR_LOOK.burst, x + Phaser.Math.Between(-spread, spread), y + Phaser.Math.Between(-spread, spread));
+        }
+        this.audio.play(OFF_METEOR.impactSound);
+        this.screenShake.shake(OFF_METEOR.shakePx, OFF_METEOR.shakeMs);
     }
 
     /** Off-11B, Earth Shock Wave: a rock torrent and its dust on each tile of the line; the damage as it starts. */

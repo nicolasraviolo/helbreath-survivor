@@ -49,15 +49,16 @@ export type OffSpellId =
     | 'berserk'
     | 'lightningBolt' | 'massLightningArrow' | 'iceStrike'
     | 'energyStrike' | 'massChillWind' | 'absoluteMagicProtection'
-    | 'lightningStrike'
-    | 'earthShockWave';
+    | 'lightningStrike' | 'massIceStrike'
+    | 'meteorStrike' | 'massMagicMissile'
+    | 'earthShockWave' | 'blizzard';
 
 export type OffSpellKind = 'damage' | 'heal' | 'shield' | 'hold' | 'berserk';
 
 /**
  * Where a damage spell hits (Off-11B, server PlayerMagicHandler):
  * - spot (default): `direct` on the target, `area` on every monster of the square around it.
- * - bolt (DAMAGE_LINEAR, Lightning Bolt): `direct` on the target, `area` on every monster of the line from you to it
+ * - bolt (DAMAGE_LINEAR, Lightning Bolt; ICE_LINEAR, Blizzard, Off-11C): `direct` on the target, `area` on every monster of the line from you to it
  *   (each step and its four neighbours) and of the square around it, once each.
  * - wave (DAMAGE_LINEAR_SPDOWN, Earth Shock Wave): `area` and `direct` on every monster of the line, `lineSteps` tiles
  *   long, also past the target.
@@ -137,9 +138,19 @@ export const OFF_SPELLS: Record<OffSpellId, OffSpellDef> = {
     // Server: protect 5 = every monster spell is resisted (OFF_PROTECT.magicImmunePowers). Shares the shields' slot.
     absoluteMagicProtection: { name: 'Absolute Magic Protection', magicId: 65, circle: 7, kind: 'shield', mana: 90, reqInt: 112, price: 13500, durationSec: 60, power: 5, castEffect: 'fx.amp.cast', wornEffect: 'fx.amp.aura' },
     lightningStrike: { name: 'Lightning Strike', magicId: 74, circle: 8, kind: 'damage', mana: 90, reqInt: 123, price: 35000, area: [7, 7, 20], areaRange: 2, element: 'lightning', look: 'lightningStrike' },
+    // ---- Off-11C: circles 8–10 (Magic.cfg) ----
+    // Server ICE, as Ice Strike: 7d8+25 on every monster of the 5 × 5 square, frozen 7 s.
+    massIceStrike: { name: 'Mass Ice Strike', magicId: 72, circle: 8, kind: 'damage', mana: 120, reqInt: 133, price: 21000, area: [7, 8, 25], areaRange: 2, freezeSec: 7, element: 'ice', look: 'massIceStrike' },
+    // Server DAMAGE_AREA_NOSPOT: only the square (its v4–v6, 6 8 12, are never read).
+    meteorStrike: { name: 'Meteor Strike', magicId: 81, circle: 9, kind: 'damage', mana: 120, reqInt: 169, price: 40000, area: [7, 12, 18], areaRange: 2, element: 'fire', look: 'meteorStrike' },
+    // Server DAMAGE_AREA_NOSPOT on a 7 × 7 square.
+    massMagicMissile: { name: 'Mass Magic Missile', magicId: 82, circle: 9, kind: 'damage', mana: 160, reqInt: 185, price: 45000, area: [7, 7, 30], areaRange: 3, element: 'lightning', look: 'massMagicMissile' },
     // Owner (9-nov-2026): INT 190 and 185 mana (helbreath.net and the wiki; the cfg says 200 and 180) and sold at the
     // shop for 50.000 (the original only gave it by talent or manual).
     earthShockWave: { name: 'Earth Shock Wave', magicId: 96, circle: 10, kind: 'damage', mana: 185, reqInt: 190, price: 50000, direct: [5, 1, 20], area: [7, 8, 16], shape: 'wave', element: 'earth', look: 'earthShockWave' },
+    // Server ICE_LINEAR: Lightning Bolt's line (up to the target) and a 7 × 7 square with v7–v9, v4–v6 on the target,
+    // and all of them frozen 2 s.
+    blizzard: { name: 'Blizzard', magicId: 91, circle: 10, kind: 'damage', mana: 170, reqInt: 195, price: 43000, direct: [5, 1, 20], area: [7, 8, 16], areaRange: 3, shape: 'bolt', freezeSec: 2, element: 'ice', look: 'blizzard' },
 };
 
 /**

@@ -120,10 +120,14 @@ export const OFF_MERCENARIES: Readonly<Record<OffMercenaryId, OffMercenaryDef>> 
  */
 // Off-11B (propietario, 9-nov-2026): también Lightning Bolt (INT 58) y Energy Strike (INT 67) para atacar, y Absolute
 // Magic Protection (INT 112, hacia tu nivel 70), que usa en vez de Protection From Magic.
+// Off-11C (propietario, 9-nov-2026): también las cuatro de los círculos 8–10, cuando le llega la INT: Mass Ice Strike
+// (133, hacia tu nivel 87), Meteor Strike (169, 115), Mass Magic Missile (185, 127) y Blizzard (195, 135). Como
+// siempre, usa la de círculo más alto que pueda pagar guardando maná para curar.
 export const OFF_MERCENARY_SPELLS: readonly OffSpellId[] = [
     'heal', 'magicMissile', 'energyBolt', 'defenseShield', 'fireBall', 'holdPerson', 'greatHeal',
     'protectionFromMagic', 'fireStrike', 'paralyze', 'lightning', 'berserk',
     'lightningBolt', 'energyStrike', 'absoluteMagicProtection',
+    'massIceStrike', 'meteorStrike', 'massMagicMissile', 'blizzard',
 ];
 
 /** Every spell the Mage knows with that INT. */

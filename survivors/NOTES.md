@@ -152,6 +152,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Varitas de Off (Off-11A)
 - Magias de los círculos 6–10 en Off (Off-11B)
 - Lanzar magias en Off: pararse, mirilla y cruz de RT (9-nov-2026)
+- Magias de los círculos 8–10 en Off (Off-11C)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -1673,3 +1674,11 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - **Mirilla:** `ManualAim.strength` (0..1 tras la zona muerta) dice cuánto se empuja el stick derecho; `padAimPoint` pone el punto a `OFF_PAD_AIM.minTiles`–`maxTiles` casillas, dentro de la pantalla, y se pega a un monstruo vivo a `snapTiles` o menos. Se ve (`off/ui/OffAimReticle.ts`, roja sobre un monstruo) con RT pulsado o con una magia del mando esperando; Heal y escudos siguen con la flecha del mercenario.
 - **Cruz de RT:** `off/ui/OffPadCross.ts` en `OffHudScene` (`OffHudState.padCross`), medidas en `OFF_PAD_CROSS`. Atenuada si no hay magia en el botón o falta maná. La magia del mando sale en cuanto está lista, aunque RT siga pulsado.
 - Pruebas: `check offcastrun` (debe dar `stillAfterCast` y `walksAgain` true), `offpadaim` (mirilla a 1,5 y 9 casillas; hacia abajo, recortada al borde) y `offpadcross` (captura con la cruz y la mirilla). Atajos: `debugStick`, `debugPadAim`, `debugCastTrigger`, `debugPadState`.
+
+## Magias de los círculos 8–10 en Off (Off-11C)
+- **Servidor** (Magic.cfg y PlayerMagicHandler): Mass Ice Strike = tipo 23 ICE como Ice Strike (7d8+25 en el 5 × 5, congelado 7 s). Meteor Strike y Mass Magic Missile = tipo 21 DAMAGE_AREA_NOSPOT (solo el cuadrado con v7–v9; las v4–v6 del Meteor, 6 8 12, no se leen; Mass Magic Missile en 7 × 7). Blizzard = tipo 26 ICE_LINEAR: **igual que la línea del Lightning Bolt** (casillas 2–9, para al llegar a 1 casilla del objetivo, `abs(tX-dX)<=1`, Server.cpp 18503) más el cuadrado 7 × 7 con v7–v9, v4–v6 en el objetivo y todos congelados v10 = 2 s. En Off es `shape: 'bolt'` + `freezeSec`. El `Last=20` del Blizzard no se usa en el servidor. El tipo 21 empuja (DamageMove) en el original; Off no empuja con ninguna magia.
+- **Dibujos** (`OffSpells`): Mass Ice Strike = `rainShards` con `OFF_MASS_ICE_STRIKE_LOOK` (los números del Mass Ice Strike activo de Survivors); Meteor Strike = `entities/Meteor.ts` con `METEOR_LOOK` en un pool propio de OffSpells (`dropMeteor` / `landMeteor`, sonidos y temblor del hechizo activo); Blizzard = `showBlizzard`, trozos de `LINE_SPELL_LOOKS.blizzard` en cada casilla de la línea y uno último en el objetivo, más y más abiertos según avanza. Mass Magic Missile = `OFF_EXTRA_LOOKS.massMagicMissile`: el misil del original (Client.cpp efecto 182, `fx.massMagicMissile.fly` = effect11 hoja 9, una sola imagen con brillo) con chispas `fx.meteor.burst` y cuatro **Explosion 3** (effect3 hoja 5) en los desplazamientos del original; el original usa effect hoja 6 y effect11 hoja 8 para ellas, pero el propietario la recordaba así.
+- **Carga:** `fx.crueffect1` añadido a WORLD_SPRITES (el meteoro). effect7 y effect11 ya estaban.
+- **Kaila** sabe las cuatro (`OFF_MERCENARY_SPELLS`); como usa la de círculo más alto, a partir de tu nivel 135 casi siempre lanza Blizzard.
+- **Congelado comprobado** (9-nov-2026, monstruos con vida subida en el eval): Mass Ice Strike frena ~7 s y Blizzard ~2 s. Es el mismo camino que Mass Chill Wind (10 s), que en la 11B no se llegó a ver.
+- Pruebas: `check offmassicestrike` / `offmeteor` / `offmassmissile` / `offblizzard` (teclas 1–4, INT y MAG 200, Giant Scorpion de Aresden) y `offmercmagehigh` (Kaila a Level 140, 20 s: `mercCasts`).
