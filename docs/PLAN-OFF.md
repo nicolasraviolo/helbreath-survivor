@@ -76,6 +76,7 @@ Cada fase se hace por bloques, uno por sesión, y se espera el OK del propietari
   - **10A Farms con vendedores**: `arefarm.amd` / `elvfarm.amd` enteras, con Shop Keeper, Tom, Howard y William de pie, que abren las ventanas de la tienda, el herrero, el almacén y los mercenarios.
   - **10B Pits de las Farms**: los del original (sin Crop), con un Snake cambiado por Orc en cada Farm.
   - **10C La Farm como casa**: unirse al bando, Play y morir llevan a tu Farm; su teleport ofrece City, Traveler Zone y Promiseland; el de la ciudad añade Farm; las puertas de Promiseland llevan a tu Farm.
+  - ✅ (9-nov-2026: 10A–10C; Play sigue volviendo donde lo dejaste, el portal de tu bando en Traveler Zone también lleva a la Farm, y el teleport abre una Select Map como la de Survivors).
 
 ## Pendiente de decidir más adelante
 
