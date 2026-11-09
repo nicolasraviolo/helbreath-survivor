@@ -243,6 +243,9 @@ const PRESETS = {
     offelvinefarm: 'off=world&offlevel=5&offfaction=elvine&offplace=elvineFarm',
     // offbase: pisa la base con estandartes de la Farm de Aresden (sale la elección de mapa). offbarracks: en la Farm de
     // Elvine entra por la puerta de los Barracks y sale por la de dentro (vuelve delante de la puerta).
+    // Fase Off-10B: los pits de cada Farm, junto a su pit de Slimes. En eval: monstruos vivos de cada tipo al entrar y a los 8 s (se van llenando).
+    offaresdenfarmpits: 'off=world&offlevel=5&offfaction=aresden&offplace=aresdenFarm&offat=127,86',
+    offelvinefarmpits: 'off=world&offlevel=5&offfaction=elvine&offplace=elvineFarm&offat=138,125',
     offbase: 'off=world&offlevel=5&offfaction=aresden&offplace=aresdenFarm&offat=45,105',
     offbarracks: 'off=world&offlevel=5&offfaction=elvine&offplace=elvineFarm&offat=96,152',
     // Fase Off-5B: tienda, herrero y almacén. offshop / offsmith / offwarehouse los abren (captura); en eval offshop
@@ -602,6 +605,8 @@ const PRESET_EVAL = {
     offbarracks: "o.debugWalkTo(96, 149, false), new Promise((r) => setTimeout(() => { const w = game.scene.getScene('OffWorld'); const inside = { place: w.debugState().place, tile: w.debugState().tile }; w.debugWalkTo(67, 71, false); setTimeout(() => { const s = game.scene.getScene('OffWorld').debugState(); r({ inside, back: { place: s.place, tile: s.tile } }); }, 6000); }, 6000))",
     offaresdenfarm: "new Promise((r) => setTimeout(() => { const s = o.debugState(); const n = s.npcs.find((t) => t.id === 'shopKeeper'); o.debugWalkTo(n.x, n.y + 1, true); setTimeout(() => { const near = o.nearestNpc(); if (near) o.talkTo(near); setTimeout(() => r({ place: s.place, start: s.tile, npcs: s.npcs, tile: o.debugState().tile, near: near && near.npc.id, store: game.scene.isActive('OffStore'), warehouse: game.scene.isActive('OffWarehouse') }), 1200); }, 8000); }, 1500))",
     offelvinefarm: "new Promise((r) => setTimeout(() => { const s = o.debugState(); const n = s.npcs.find((t) => t.id === 'howard'); o.debugWalkTo(n.x, n.y + 1, true); setTimeout(() => { const near = o.nearestNpc(); if (near) o.talkTo(near); setTimeout(() => r({ place: s.place, start: s.tile, npcs: s.npcs, tile: o.debugState().tile, near: near && near.npc.id, store: game.scene.isActive('OffStore'), warehouse: game.scene.isActive('OffWarehouse') }), 1200); }, 8000); }, 1500))",
+    offaresdenfarmpits: "new Promise((r) => setTimeout(() => { const first = o.debugState().monsters; setTimeout(() => { const s = o.debugState(); r({ place: s.place, tile: s.tile, first, monsters: s.monsters }); }, 8000); }, 1500))",
+    offelvinefarmpits: "new Promise((r) => setTimeout(() => { const first = o.debugState().monsters; setTimeout(() => { const s = o.debugState(); r({ place: s.place, tile: s.tile, first, monsters: s.monsters }); }, 8000); }, 1500))",
     offcitypits: "new Promise((r) => setTimeout(() => { const s = o.debugState(); r({ place: s.place, tile: s.tile, monsters: s.monsters }); }, 1500))",
     offelvinepits: "new Promise((r) => setTimeout(() => { const s = o.debugState(); r({ place: s.place, tile: s.tile, monsters: s.monsters }); }, 1500))",
     offorc: "new Promise((r) => { const log = []; const t = setInterval(() => { if (!o.debugState().target) o.debugFight('orc'); log.push(o.debugState()); }, 1000); setTimeout(() => { clearInterval(t); const pick = (s) => s && ({ tile: s.tile, hp: [s.hp, s.maxHp], level: s.level, exp: s.exp, kills: s.kills, target: s.target, monsters: s.monsters, gold: s.gold, dead: s.dead }); r({ start: pick(log[0]), mid: pick(log[10]), end: pick(log[log.length - 1]) }); }, 20000); })",

@@ -2,6 +2,13 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
+**Helbreath Off · Fase Off-10, bloque B: los pits de las Farms (2026-11-09).**
+- **Qué hace:** cada Farm tiene los 7 pits del original (helbreathnemesis.com mapas 2 y 3, casilla = px × 0,5). Aresden: 2 Slime, 1 Giant Ant, 1 Snake, 1 Orc, 2 Giant Scorpion. Elvine: 1 Slime, 1 Giant Ant, 1 Snake, 1 Orc, 3 Giant Scorpion.
+- **Decisiones del propietario:** sin el pit de Crop; el Snake más lejano a la llegada pasa a Orc; **el doble de monstruos** que en la ciudad (16 por pit, 12 los Scorpions).
+- **Comprobado:** build; `check offaresdenfarmpits offelvinefarmpits offaresdenfarm offelvinefarm`, sin errores, ~112–116 monstruos y ~120 FPS; captura del pit de Slimes. **Probado por el propietario.**
+- **Cómo probar:** `?off=world&offfaction=aresden&offplace=aresdenFarm&offat=127,86` / `?off=world&offfaction=elvine&offplace=elvineFarm&offat=138,125`.
+- **Código:** `ARESDEN_FARM_PITS` / `ELVINE_FARM_PITS` en `off/data/offPits.ts`, enchufados en `offPlaces.ts`.
+
 **Helbreath Off · Fase Off-10, bloque A: las Farms con sus vendedores (2026-11-09).**
 - **Qué hace:** dos sitios nuevos, **Aresden Farm** y **Elvine Farm** (`arefarm.amd` / `elvfarm.amd` enteras, 250×250), con **Shop Keeper** (tienda y magias), **Tom** (herrero), **Howard** (almacén) y **William** (mercenarios) de pie: al acercarse sale "Talk"; clic o botón de atacar abre la misma ventana que las puertas de la ciudad. **Teleport** = la base de piedra con estandartes del original (sin dibujo nuestro; pisarla abre la elección de mapa). La **puerta de los Barracks** lleva a los Barracks de Survivors (`elvbrk11.amd`, vacíos de momento) y su puerta de dentro devuelve a la Farm. **El herrero ya no sale cortado** (las 2 ciudades, las 2 Farms y la ciudad de Survivors): se ignoran las tiras del objeto 429.
 - **Decisiones del propietario:** plan de la Off-10 el 9-nov-2026 (DECISIONES.md): Farm entera con sus pits del original (sin Crop, un Snake → Orc), la ciudad sin tocar. Tras probarla: William 2 casillas más abajo, teleport en la base de estandartes, puerta de los Barracks.

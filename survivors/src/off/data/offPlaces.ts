@@ -27,7 +27,7 @@ import type { MapKey, MinimapKey, SoundKey, SpriteKey } from '../../config/asset
 import type { TileRect } from '../../data/maps';
 import type { NpcId } from '../../data/town';
 import type { TilePoint } from '../systems/TileMover';
-import { ARESDEN_PITS, ELVINE_PITS, pitSprites, PROMISELAND_PITS, TRAVELER_PITS, type OffPitDef } from './offPits';
+import { ARESDEN_FARM_PITS, ARESDEN_PITS, ELVINE_FARM_PITS, ELVINE_PITS, pitSprites, PROMISELAND_PITS, TRAVELER_PITS, type OffPitDef } from './offPits';
 import type { OffFaction, OffPlaceId } from './offPlaceIds';
 
 export { isOffFaction, isOffPlaceId, OFF_FACTIONS, OFF_PLACE_IDS, type OffFaction, type OffPlaceId } from './offPlaceIds';
@@ -205,8 +205,8 @@ export const OFF_PLACES: Record<OffPlaceId, OffPlaceDef> = {
         // The lawn between the shop, the warehouse and the blacksmith.
         spawn: { x: 53, y: 78 },
         music: 'music.aresden',
-        sprites: [...WORLD_SPRITES, 'fx.effect11', ...FARM_NPC_SPRITES],
-        pits: [],
+        sprites: [...WORLD_SPRITES, 'fx.effect11', ...FARM_NPC_SPRITES, ...pitSprites(ARESDEN_FARM_PITS)],
+        pits: ARESDEN_FARM_PITS,
         portals: [
             // The original's stone base with banners (propietario, 9-nov-2026).
             { area: rect(44, 101, 45, 102), to: { kind: 'teleport' }, drawn: false, arrival: { x: 45, y: 104 } },
@@ -230,8 +230,8 @@ export const OFF_PLACES: Record<OffPlaceId, OffPlaceDef> = {
         // Survivors' town (data/town.ts): the same arrival.
         spawn: { x: 93, y: 186 },
         music: 'music.elvine',
-        sprites: [...WORLD_SPRITES, 'fx.effect11', ...FARM_NPC_SPRITES],
-        pits: [],
+        sprites: [...WORLD_SPRITES, 'fx.effect11', ...FARM_NPC_SPRITES, ...pitSprites(ELVINE_FARM_PITS)],
+        pits: ELVINE_FARM_PITS,
         portals: [
             { area: rect(116, 157, 117, 158), to: { kind: 'teleport' }, drawn: false, arrival: { x: 117, y: 160 } },
             // As Survivors' town: TOWN.barracksDoor / barracksExit.
