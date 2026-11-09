@@ -98,7 +98,12 @@ export interface OffPlaceDef {
  * the spells (Off-6B): the casting circle (fx.effect5) and Chill Wind's drops (fx.effect4).
  */
 // Off-6C: effect7 (Heal), effect8 (Defense Shield) and effect9 (its aura) too.
-const WORLD_SPRITES: readonly SpriteKey[] = ['fx.effect2', 'fx.effect', 'item.ground', 'fx.effect5', 'fx.effect4', 'fx.effect7', 'fx.effect8', 'fx.effect9'];
+// Off-11B: effect3 (Energy Strike's explosions) and effect11 (Earth Shock Wave's torrent).
+// Off-11C: crueffect1 (Meteor Strike); effect11 also has Mass Magic Missile's missile, effect7 Blizzard's shards.
+const WORLD_SPRITES: readonly SpriteKey[] = [
+    'fx.effect2', 'fx.effect', 'item.ground', 'fx.effect5', 'fx.effect4', 'fx.effect7', 'fx.effect8', 'fx.effect9', 'fx.effect3', 'fx.effect11',
+    'fx.crueffect1',
+];
 
 /** The sellers of the Farms (Off-10A): Survivors' town NPCs. */
 const FARM_NPC_SPRITES: readonly SpriteKey[] = ['npc.shopKeeper', 'npc.william', 'npc.howard', 'npc.tom'];
@@ -142,7 +147,7 @@ export const OFF_PLACES: Record<OffPlaceId, OffPlaceDef> = {
         playArea: { x: 0, y: 0, width: 300, height: 300 },
         spawn: { x: 140, y: 210 },
         music: 'music.aresden',
-        sprites: [...WORLD_SPRITES, 'fx.effect11', 'npc.william', ...pitSprites(ARESDEN_PITS)],
+        sprites: [...WORLD_SPRITES, 'npc.william', ...pitSprites(ARESDEN_PITS)],
         pits: ARESDEN_PITS,
         portals: [
             // On the original's round platform with red posts, by the owner's mark.
@@ -169,7 +174,7 @@ export const OFF_PLACES: Record<OffPlaceId, OffPlaceDef> = {
         playArea: { x: 0, y: 0, width: 300, height: 300 },
         spawn: { x: 237, y: 142 },
         music: 'music.elvine',
-        sprites: [...WORLD_SPRITES, 'fx.effect11', 'npc.william', ...pitSprites(ELVINE_PITS)],
+        sprites: [...WORLD_SPRITES, 'npc.william', ...pitSprites(ELVINE_PITS)],
         pits: ELVINE_PITS,
         portals: [
             { area: rect(237, 140, 237, 140), to: { kind: 'teleport' }, drawn: true, arrival: { x: 237, y: 142 } },
@@ -195,7 +200,7 @@ export const OFF_PLACES: Record<OffPlaceId, OffPlaceDef> = {
         spawn: { x: 140, y: 224 },
         // Middleland's theme (Survivors loads it before the menu).
         music: 'music.middleland',
-        sprites: [...WORLD_SPRITES, 'fx.effect11', ...pitSprites(PROMISELAND_PITS)],
+        sprites: [...WORLD_SPRITES, ...pitSprites(PROMISELAND_PITS)],
         pits: PROMISELAND_PITS,
         portals: [
             // The original's two gates: north to Elvine, south to Aresden. Their tiles show nothing on the map: our portal
@@ -216,7 +221,7 @@ export const OFF_PLACES: Record<OffPlaceId, OffPlaceDef> = {
         // The lawn between the shop, the warehouse and the blacksmith.
         spawn: { x: 53, y: 78 },
         music: 'music.aresden',
-        sprites: [...WORLD_SPRITES, 'fx.effect11', ...FARM_NPC_SPRITES, ...pitSprites(ARESDEN_FARM_PITS)],
+        sprites: [...WORLD_SPRITES, ...FARM_NPC_SPRITES, ...pitSprites(ARESDEN_FARM_PITS)],
         pits: ARESDEN_FARM_PITS,
         portals: [
             // The original's stone base with banners (propietario, 9-nov-2026).
@@ -242,7 +247,7 @@ export const OFF_PLACES: Record<OffPlaceId, OffPlaceDef> = {
         // Survivors' town (data/town.ts): the same arrival.
         spawn: { x: 93, y: 186 },
         music: 'music.elvine',
-        sprites: [...WORLD_SPRITES, 'fx.effect11', ...FARM_NPC_SPRITES, ...pitSprites(ELVINE_FARM_PITS)],
+        sprites: [...WORLD_SPRITES, ...FARM_NPC_SPRITES, ...pitSprites(ELVINE_FARM_PITS)],
         pits: ELVINE_FARM_PITS,
         portals: [
             { area: rect(116, 157, 117, 158), to: { kind: 'teleport' }, drawn: false, arrival: { x: 117, y: 160 } },

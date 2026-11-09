@@ -78,9 +78,15 @@ Cada fase se hace por bloques, uno por sesión, y se espera el OK del propietari
   - **10C La Farm como casa**: unirse al bando, Play y morir llevan a tu Farm; su teleport ofrece City, Traveler Zone y Promiseland; el de la ciudad añade Farm; las puertas de Promiseland llevan a tu Farm.
   - ✅ (9-nov-2026: 10A–10C; Play sigue volviendo donde lo dejaste, el portal de tu bando en Traveler Zone también lleva a la Farm, y el teleport abre una Select Map como la de Survivors).
 
+- **Off-11 · Varitas y magias de círculos altos** (plan del 9-nov-2026, ver DECISIONES.md). Bloques:
+  - **11A Varitas**: las 12 del original (fuera Resurrection y M.Shield); se lanza con varita; ahorran maná; Tom vende 5, las raras caen de los monstruos. ✅ (9-nov-2026).
+  - **11B Círculos 6–7** con dibujos de Survivors: Lightning Bolt, Mass Lightning Arrow, Ice Strike, Energy Strike, Mass Chill Wind y Absolute Magic Protection (Kaila la usa en vez de Protection From Magic). Propietario (9-nov-2026): también **Lightning Strike** y **Earth Shock Wave** (en la tienda, 50.000 de oro, INT 190); Kaila aprende Lightning Bolt y Energy Strike. ✅ (9-nov-2026).
+  - **11C Círculos 8–10** con dibujos de Survivors: Mass Ice Strike, Meteor Strike, Mass Magic Missile y Blizzard. Propietario (9-nov-2026): Mass Magic Missile estalla con Explosion 3; Kaila aprende las cuatro. ✅ (9-nov-2026).
+  - **11D Magias sin dibujo** (copiar de sp-client): Spike Field, Cloud Kill, Mass Poison, Earthworm Strike, Armor Break. **Pendiente:** el propietario cerró la Off-11 sin él (9-nov-2026).
+  - Mass Fire Strike, Bloody Shock Wave, Ice Storm y Haste: libros que caen muy poco (Earth Shock Wave pasó a la tienda en la 11B). Fuera: Confusion, Illusion, Cancellation, Inhibition Casting, Scan, Resurrection.
+
 ## Pendiente de decidir más adelante
 
-- **Absolute Magic Protection** (Magic.cfg 65: círculo 7, INT 112, 90 de maná, 13.500 de oro): añadirla cuando haya más magias; Kaila la usará en vez de Protection From Magic (propietario, 8-nov-2026).
 - Pasar Off a una **app independiente** que se juegue sin conexión (idea del propietario, 7-nov-2026).
 
 - Qué valor tiene el multiplicador de experiencia: se mide en Off-2 y Off-7.

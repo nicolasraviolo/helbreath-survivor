@@ -6,7 +6,7 @@
 import type { SpellElement } from '../../data/elements';
 import { offMercenarySpells } from '../data/offMercenary';
 import type { OffStats } from '../data/offCharacter';
-import type { OffSpellId } from '../data/offSpells';
+import type { OffSpellDef, OffSpellId } from '../data/offSpells';
 import type { OffMercenary } from '../entities/OffMercenary';
 import type { OffMonster } from '../entities/OffMonster';
 import type { OffSpellHost } from './OffSpells';
@@ -17,7 +17,7 @@ export interface OffMercenaryCastWorld {
     readonly merc: OffMercenary | undefined;
     monstersAround(tileX: number, tileY: number, range: number): OffMonster[];
     /** Her spell's damage lands (as yours, but the kill is hers). */
-    mercSpellHit(monster: OffMonster, damage: number, element: SpellElement | undefined): void;
+    mercSpellHit(monster: OffMonster, damage: number, element: SpellElement | undefined, freezeMs?: number): void;
     spellResisted(monster: OffMonster): void;
     spellHeld(monster: OffMonster): void;
     healMerc(merc: OffMercenary, amount: number): void;
@@ -58,6 +58,15 @@ export class OffMercenarySpells implements OffSpellHost {
         return undefined;
     }
 
+    /** She holds no wand: the spell's own mana and damage. */
+    public manaCost(def: OffSpellDef): number {
+        return def.mana;
+    }
+
+    public wandDamage(damage: number): number {
+        return damage;
+    }
+
     public spendMana(amount: number): void {
         const merc = this.world.merc;
         if (merc) merc.mana = Math.max(0, merc.mana - amount);
@@ -67,8 +76,8 @@ export class OffMercenarySpells implements OffSpellHost {
         return this.world.monstersAround(tileX, tileY, range);
     }
 
-    public spellHit(monster: OffMonster, damage: number, element: SpellElement | undefined): void {
-        this.world.mercSpellHit(monster, damage, element);
+    public spellHit(monster: OffMonster, damage: number, element: SpellElement | undefined, freezeMs?: number): void {
+        this.world.mercSpellHit(monster, damage, element, freezeMs);
     }
 
     public spellResisted(monster: OffMonster): void {

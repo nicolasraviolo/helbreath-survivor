@@ -59,6 +59,7 @@ import { ScreenShake } from '../../systems/ScreenShake';
 import { OffCritStrike } from './OffCritStrike';
 import {
     isOffGearKey, offArmorDefense, offBagItemName, offPartAbsorb, offShieldAbsorb, offEquipmentEffects, offGearDef, offStrToEquip, offWeapon, type OffBagItemKey,
+    offManaCost, offWand, offWandDamage,
 } from '../data/offItems';
 import { OFF_ATTRIBUTES, type OffAttributeEffects } from '../data/offAttributes';
 import { isOffGoodId, OFF_GOODS, offGood, offRollRestore, type OffPotionRestores } from '../data/offGoods';
@@ -78,7 +79,7 @@ import type { OffPitDef } from '../data/offPits';
 import { offSaveStore, type OffEquipResult } from './OffSaveStore';
 import { OffVitals } from './OffVitals';
 import { OffSpells, type OffSpellHost } from './OffSpells';
-import { OFF_BERSERK, OFF_CAST_TEXT, OFF_CAST_WORDS, OFF_CASTING, OFF_PROTECT, OFF_SPELLS, type OffSpellId } from '../data/offSpells';
+import { OFF_BERSERK, OFF_CAST_TEXT, OFF_CAST_WORDS, OFF_CASTING, OFF_PROTECT, OFF_SPELLS, type OffSpellDef, type OffSpellId } from '../data/offSpells';
 import { BUFFS, BUFF_OVERLAY_ALPHA } from '../../data/pickups';
 import { OffMercenarySpells, type OffMercenaryCastWorld } from './OffMercenarySpells';
 import { OFF_HEAL_NUMBER_COLOR, OFF_WORN_ALPHA } from '../config/offSpellLook';
@@ -317,8 +318,8 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost, OffMercenaryWor
 
     // ---- OffMercenaryCastWorld (Off-8C, the Mage's spells) ----
 
-    public mercSpellHit(monster: OffMonster, damage: number, element: SpellElement | undefined): void {
-        if (this.spellLands(monster, damage, element, 'merc')) this.merc?.addKill();
+    public mercSpellHit(monster: OffMonster, damage: number, element: SpellElement | undefined, freezeMs?: number): void {
+        if (this.spellLands(monster, damage, element, 'merc', freezeMs)) this.merc?.addKill();
     }
 
     public mercCastFailed(merc: OffMercenary): void {
@@ -562,6 +563,12 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost, OffMercenaryWor
     }
 
     /** What magic damage on the player is multiplied by: half with Protection From Magic (server; the Cyclops, Off-7A). */
+    /** Off-11B: Absolute Magic Protection is on (monster spells do nothing). */
+    public get magicImmune(): boolean {
+        const power = this.protection ? OFF_SPELLS[this.protection.spell].power ?? 0 : 0;
+        return OFF_PROTECT.magicImmunePowers.includes(power);
+    }
+
     public get magicDamageFactor(): number {
         const power = this.protection ? OFF_SPELLS[this.protection.spell].power ?? 0 : 0;
         return OFF_PROTECT.magicHalvedPowers.includes(power) ? OFF_PROTECT.magicDamageFactor : 1;
@@ -586,12 +593,22 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost, OffMercenaryWor
         return offSaveStore.character.spells.includes(id);
     }
 
-    /** The server only lets a wand be held while casting (Off has none): empty hands. */
+    /** The server only lets a wand be held while casting (Off-11A), or empty hands. */
     public handsRefusal(): string | undefined {
         const equipment = offSaveStore.character.equipment;
-        if (equipment.weapon !== undefined) return OFF_CAST_TEXT.weapon;
+        if (equipment.weapon !== undefined && !offWand(equipment)) return OFF_CAST_TEXT.weapon;
         if (equipment.shield !== undefined) return OFF_CAST_TEXT.shield;
         return undefined;
+    }
+
+    /** Off-11A: the held wand saves mana. */
+    public manaCost(def: OffSpellDef): number {
+        return offManaCost(def.mana, offSaveStore.character.equipment);
+    }
+
+    /** Off-11A: the Berserk and Kloness wands add damage. */
+    public wandDamage(damage: number): number {
+        return offWandDamage(damage, offSaveStore.character.equipment, this.level);
     }
 
     /** Off-8C: Berserk on you (no effect while it is on). */
@@ -615,17 +632,17 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost, OffMercenaryWor
             && Math.abs(m.mover.tileX - tileX) <= range && Math.abs(m.mover.tileY - tileY) <= range);
     }
 
-    public spellHit(monster: OffMonster, damage: number, element: SpellElement | undefined): void {
-        this.spellLands(monster, damage, element, 'player');
+    public spellHit(monster: OffMonster, damage: number, element: SpellElement | undefined, freezeMs?: number): void {
+        this.spellLands(monster, damage, element, 'player', freezeMs);
     }
 
     /** A spell's damage, yours or the Mage's (`by`): sound, burn, ice. Returns whether it killed. */
-    private spellLands(monster: OffMonster, damage: number, element: SpellElement | undefined, by: OffVictim): boolean {
+    private spellLands(monster: OffMonster, damage: number, element: SpellElement | undefined, by: OffVictim, freezeMs?: number): boolean {
         const killed = this.hurtMonster(monster, damage, element, false, by, true);
         this.audio.play(killed ? monster.def.base.deathSound : monster.def.base.hitSound);
         if (killed) return true;
         if (element === 'fire') monster.burn(damage * BURN.shareOfHit);
-        if (element === 'ice') monster.slow();
+        if (element === 'ice') monster.slow(freezeMs);
         return false;
     }
 
@@ -886,6 +903,11 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost, OffMercenaryWor
             if (!merc || merc.isDown) return;
             this.spells.monsterCast(def, monster.x, monster.y, merc.x, merc.y - PLAYER_BODY_OFFSET_Y, () => {
                 if (merc.isDown || this.merc !== merc) return;
+                const mercPower = merc.protection ? OFF_SPELLS[merc.protection.spell].power ?? 0 : 0;
+                if (OFF_PROTECT.magicImmunePowers.includes(mercPower)) {
+                    this.numbers.showWord(merc.x, merc.y - PLAYER_BODY_OFFSET_Y, OFF_CAST_WORDS.resisted);
+                    return;
+                }
                 const distance = tileDistance(merc.mover.tileX, merc.mover.tileY, at.x, at.y);
                 let damage = 0;
                 if (def.direct && distance === 0) damage += rollSpellDamage(def.direct, 0, 'neutral');
@@ -902,6 +924,11 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost, OffMercenaryWor
         this.spells.monsterCast(def, monster.x, monster.y, toX, toY, () => {
             if (this.dead) return;
             const effects = this.gearEffects;
+            // Off-11B: Absolute Magic Protection resists every spell (server bCheckResistingMagicSuccess, protect 5).
+            if (this.magicImmune) {
+                this.numbers.showWord(this.character.x, this.character.y - PLAYER_BODY_OFFSET_Y, OFF_CAST_WORDS.resisted);
+                return;
+            }
             if (effects.magicResistance && Math.random() < effects.magicResistance) {
                 this.numbers.showWord(this.character.x, this.character.y - PLAYER_BODY_OFFSET_Y, 'Resist');
                 return;

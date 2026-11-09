@@ -13,6 +13,8 @@ export interface ManualAim {
     dirX: number;
     dirY: number;
     point: { x: number; y: number } | undefined;
+    /** How far the stick is pushed, 0..1 after the deadzone (1 for the mouse and ?debug=aim). Off aims by distance with it. */
+    strength: number;
 }
 
 /** Angle (radians) of a manual aim seen from (fromX, fromY): towards the cursor if there is one, else its direction. */

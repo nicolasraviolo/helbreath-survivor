@@ -328,7 +328,7 @@ export class OffStoreScene extends Phaser.Scene {
         act?.box.setAlpha(alpha);
         act?.label.setAlpha(alpha);
         if (spellId !== undefined) {
-            this.boxObjects = drawOffItemBox(this, this.boxArea, OFF_SPELLS[spellId].name, offSpellBoxLines(spellId, offSaveStore.character.stats.int));
+            this.boxObjects = drawOffItemBox(this, this.boxArea, OFF_SPELLS[spellId].name, offSpellBoxLines(spellId, offSaveStore.character.stats.int, offSaveStore.character.equipment));
             return;
         }
         if (id === undefined) return;

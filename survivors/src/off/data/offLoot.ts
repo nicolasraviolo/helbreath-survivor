@@ -32,8 +32,14 @@ export const OFF_LOOT = {
     valuableShare: 0.1,
     /** Of a valuable drop, the share that is a weapon (the rest is a shield). */
     weaponShare: 0.6,
-    /** Of a weapon drop, the share that is melee (the rest would be a wand: nothing until there are wands). */
+    /** Of a weapon drop, the share that is melee (the rest is the level's wand, Off-11A; level 1 has none: nothing). */
     meleeShare: 0.8,
+    /**
+     * Off-11A (Claude, adjustable): a rare wand (Magic Wand MS30, Dark Mage, Berserk, Kloness) on top of the rest, from
+     * monsters of these loot levels. The original's odds were one in millions; this is one in `rareWandOneIn` kills.
+     */
+    rareWandOneIn: 1500,
+    rareWandLevels: [5] as readonly number[],
     /** Multiplies `dropChance` (1 = the original; capped at always). */
     dropMultiplier: 1,
     /**
@@ -80,15 +86,15 @@ export type OffLootLevel = 1 | 2 | 3 | 5;
  * Valuable drops by loot level (original lists, with our stand-ins; see the top). Each entry equally likely within its
  * group, as the original's iDice; a stand-in that appears twice is twice as likely (two original items became it).
  */
-export const OFF_VALUABLE_DROPS: Readonly<Record<OffLootLevel, { weapons: readonly OffItemId[]; armor: readonly OffItemId[] }>> = {
-    // Dagger, ShortSword, LightAxe · WoodShield, TargeShield.
-    1: { weapons: ['dagger', 'shortSword', 'lightAxe'], armor: ['woodShield', 'targeShield'] },
+export const OFF_VALUABLE_DROPS: Readonly<Record<OffLootLevel, { weapons: readonly OffItemId[]; wands: readonly OffItemId[]; armor: readonly OffItemId[] }>> = {
+    // Dagger, ShortSword, LightAxe · no wand · WoodShield, TargeShield.
+    1: { weapons: ['dagger', 'shortSword', 'lightAxe'], wands: [], armor: ['woodShield', 'targeShield'] },
     // MainGauche, Gradius, SexonAxe, Tomahoc, Sabre, Esterk · WoodShield, TargeShield.
-    2: { weapons: ['shortSword', 'shortSword', 'lightAxe', 'tomahawk', 'scimitar', 'rapier'], armor: ['woodShield', 'targeShield'] },
+    2: { weapons: ['shortSword', 'shortSword', 'lightAxe', 'tomahawk', 'scimitar', 'rapier'], wands: ['magicWandMS0'], armor: ['woodShield', 'targeShield'] },
     // (GreatSword → Long Sword and Broad Sword, owner), DoubleAxe, Sabre, Esterk · LagiShield, Hauberk, ChainHose.
-    3: { weapons: ['longSword', 'broadSword', 'doubleAxe', 'scimitar', 'rapier'], armor: ['leatherShield', 'chainMail', 'chainHose'] },
+    3: { weapons: ['longSword', 'broadSword', 'doubleAxe', 'scimitar', 'rapier'], wands: ['magicWandMS0'], armor: ['leatherShield', 'chainMail', 'chainHose'] },
     // Esterk, Rapier, WarAxe+1, BlackShadowSword · LeatherArmor, TowerShield, Hauberk, ChainHose.
-    5: { weapons: ['rapier', 'rapier', 'warAxe', 'rapier'], armor: ['leatherArmor', 'towerShield', 'chainMail', 'chainHose'] },
+    5: { weapons: ['rapier', 'rapier', 'warAxe', 'rapier'], wands: ['magicWandMS10'], armor: ['leatherArmor', 'towerShield', 'chainMail', 'chainHose'] },
 };
 
 export interface OffMonsterLoot {

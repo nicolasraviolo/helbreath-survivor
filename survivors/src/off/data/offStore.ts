@@ -6,7 +6,7 @@
 // - Almacén: 120 huecos, como el banco del original (DEF_MAXBANKITEMS). El oro va siempre contigo.
 // - La tienda de magia (Off-6A) es la pestaña Magic de la tienda (propietario, 7-nov-2026); las magias, en offSpells.ts.
 import { OFF_GOODS, type OffGoodId } from './offGoods';
-import { OFF_ITEMS, type OffItemId, type OffSlotId } from './offItems';
+import { OFF_ITEMS, type OffItemDef, type OffItemId, type OffSlotId } from './offItems';
 import type { OffBuildingKind } from './offPlaces';
 
 export const OFF_STORE = {
@@ -22,8 +22,10 @@ export type OffStoreKind = Exclude<OffBuildingKind, 'warehouse'>;
 const SHOP_GOODS: readonly OffGoodId[] = ['redPotion', 'bigRedPotion', 'bluePotion', 'bigBluePotion', 'greenPotion', 'bigGreenPotion'];
 
 /** The blacksmith's sections, in this order; each with its items cheapest STR first (then price). */
-const SMITH_SECTIONS: readonly { title: string; slots: readonly OffSlotId[] }[] = [
+// Off-11A: the wands in their own section, after the weapons; the rare ones (negative Item.cfg price) are not sold.
+const SMITH_SECTIONS: readonly { title: string; slots: readonly OffSlotId[]; wands?: true }[] = [
     { title: 'Weapons', slots: ['weapon'] },
+    { title: 'Wands', slots: ['weapon'], wands: true },
     { title: 'Shields', slots: ['shield'] },
     { title: 'Armor', slots: ['helm', 'body', 'legs', 'boots', 'cape'] },
 ];
@@ -35,10 +37,12 @@ export interface OffStoreSection<T extends string> {
 
 function smithSections(): OffStoreSection<OffItemId>[] {
     const ids = Object.keys(OFF_ITEMS) as OffItemId[];
-    return SMITH_SECTIONS.map(({ title, slots }) => ({
+    const isWand = (id: OffItemId): boolean => { const item: OffItemDef = OFF_ITEMS[id]; return item.kind === 'weapon' && item.wand !== undefined; };
+    const isRare = (id: OffItemId): boolean => { const item: OffItemDef = OFF_ITEMS[id]; return item.rare === true; };
+    return SMITH_SECTIONS.map(({ title, slots, wands }) => ({
         title,
         items: ids
-            .filter((id) => slots.includes(OFF_ITEMS[id].slot))
+            .filter((id) => slots.includes(OFF_ITEMS[id].slot) && !isRare(id) && isWand(id) === (wands === true))
             .sort((a, b) => slots.indexOf(OFF_ITEMS[a].slot) - slots.indexOf(OFF_ITEMS[b].slot)
                 || OFF_ITEMS[a].strToEquip - OFF_ITEMS[b].strToEquip
                 || OFF_ITEMS[a].price - OFF_ITEMS[b].price),

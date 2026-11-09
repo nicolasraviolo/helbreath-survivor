@@ -38,6 +38,10 @@
 // aro en él, como el apuntado de Survivors); sin stick, a ti.
 // Fase Off-10C: tu Farm es tu casa: unirte, los portales de tu bando y morir llevan allí. El teleport (de la Farm o de la
 // ciudad) abre una Select Map como la de Survivors (OffMapSelectScene) con el mundo en pausa debajo.
+// 9-nov-2026 (propietario): al empezar una magia el personaje se para y no anda aunque sigas empujando el stick o las
+// flechas, hasta soltarlos (`holdStill`). Con RT pulsado sale la cruz de las cuatro magias del mando (HUD) y la magia se
+// lanza en cuanto está lista, sin soltar RT. El stick derecho pone una mirilla en el suelo (más lejos cuanto más se
+// empuja, OFF_PAD_AIM) y la magia cae ahí, o en el monstruo de al lado; sin stick, al marcado o al más cercano.
 // Mapa, árboles que se transparentan, cámara, pasos y minimapa, como la ciudad de Survivors (scenes/TownScene.ts).
 import Phaser from 'phaser';
 import { CAMERA_LERP, DEPTH_DEBUG, GAME_WIDTH, TILE_SIZE } from '../../config/gameConfig';
@@ -72,7 +76,9 @@ import { OFF_MAP_SELECT_SCENE_KEY, type OffMapSelectSceneData } from './OffMapSe
 import type { OffCarriedVitals } from '../systems/OffBattle';
 import { OffCharacter } from '../entities/OffCharacter';
 import { offLevelProgress } from '../data/offLevel';
-import { OFF_CAST_TEXT, OFF_SPELLS } from '../data/offSpells';
+import { OFF_CAST_TEXT, OFF_PAD_AIM, OFF_SPELLS } from '../data/offSpells';
+import { OffAimReticle } from '../ui/OffAimReticle';
+import type { OffMonster } from '../entities/OffMonster';
 import { OffBattle } from '../systems/OffBattle';
 import { offSaveStore } from '../systems/OffSaveStore';
 import { OFF_HUD_SCENE_KEY, OFF_OPEN_CHARACTER_EVENT, OFF_OPEN_PAUSE_EVENT, type OffHudSceneData, type OffHudState } from './OffHudScene';
@@ -214,10 +220,21 @@ export class OffWorldScene extends Phaser.Scene {
     private padCast = false;
     /** RT is held this frame (A/B/X/Y are spells then). */
     private castTrigger = false;
+    /** Development (`debugCastTrigger`): RT counts as held. */
+    private debugTrigger = false;
+    /** Development (`debugStick`): the left stick held this way. */
+    private debugMove: { x: number; y: number } | undefined;
+    /** Development (`debugPadState`): where the last gamepad spell went, in tiles from you, and to whom. */
+    private lastPadRelease: string | undefined;
     /** The left button went down on the world and is still held: the character follows the cursor. */
     private leftHeld = false;
     /** The stick or the keys were steering last frame (letting go stops the character). */
     private steering = false;
+    /**
+     * A spell was started while the stick or the keys were held: the character stands still until they are let go
+     * (propietario, 9-nov-2026: once you cast, you stop). Pushing again afterwards walks and drops a spell still waiting.
+     */
+    private holdStill = false;
     /** The pace of the step under way decides the footsteps loop; it restarts when it changes. */
     private footstepsMs = 0;
     private lastTile: TilePoint = { x: 0, y: 0 };
@@ -237,6 +254,8 @@ export class OffWorldScene extends Phaser.Scene {
     private talkPending: TalkNpc | undefined;
     /** The arrow at the feet while the right stick aims a support spell (Off-8B). */
     private aimArrow!: AimArrow;
+    /** The mark on the ground where a gamepad spell aimed with the right stick will fall (9-nov-2026). */
+    private reticle!: OffAimReticle;
 
     constructor() {
         super(OFF_WORLD_SCENE_KEY);
@@ -284,6 +303,7 @@ export class OffWorldScene extends Phaser.Scene {
         this.battle = new OffBattle(this, this.mover, this.character, this.audio, isWalkable, respawnTile, place.pits, this.arrival.carried);
         this.battle.findPath = (from, to, maxTiles) => this.pathfinder.find(from, to, maxTiles);
         this.aimArrow = new AimArrow(this);
+        this.reticle = new OffAimReticle(this);
         this.leaving = false;
         this.whereSaveMs = 0;
         // Off-7E: saved on arriving, every few seconds, on leaving and when the page is hidden or closed.
@@ -318,6 +338,7 @@ export class OffWorldScene extends Phaser.Scene {
         this.padCast = false;
         this.castTrigger = false;
         this.steering = false;
+        this.holdStill = false;
         this.footstepsMs = 0;
         this.window = undefined;
         this.windowClosedFrame = -1;
@@ -399,6 +420,7 @@ export class OffWorldScene extends Phaser.Scene {
             gold: offSaveStore.character.gold,
             critCharges: battle.critStrike.charges,
             critLaunched: battle.critStrike.launched,
+            padCross: this.castTrigger && !battle.dead && this.window === undefined ? this.padCrossSlots() : undefined,
         };
     }
 
@@ -418,7 +440,7 @@ export class OffWorldScene extends Phaser.Scene {
         input.update();
         // Read every frame, also under a window (a key pressed there must not act here once it closes).
         // RT held (Off-6C): A/B/X/Y are spells, not attack, pause (B), Character (Y) or Inventory (X).
-        const trigger = input.isHeld(Action.OffCastTrigger);
+        const trigger = input.isHeld(Action.OffCastTrigger) || this.debugTrigger;
         this.castTrigger = trigger;
         const padSpell = trigger ? OFF_PAD_SPELL_ACTIONS.findIndex((action) => input.justPressed(action)) : -1;
         const pause = input.justPressed(Action.Pause) || (!trigger && input.justPressed(Action.Back));
@@ -458,9 +480,11 @@ export class OffWorldScene extends Phaser.Scene {
         this.updateDebugCast();
         this.updatePadCast();
         this.updateSupportAim();
+        this.updateReticle();
         if (!this.battle.dead && this.window !== 'cover') this.steer();
         const running = runMode && this.battle.vitals.canRun;
-        if (this.battle.canMove) this.mover.update(delta, running ? OFF_STEP_MS.run : OFF_STEP_MS.walk);
+        // A spell started halfway through a step: the step ends now, not after the cast (no slide once it is over).
+        if (this.battle.canMove || (this.mover.isMoving && this.battle.spells.busy)) this.mover.update(delta, running ? OFF_STEP_MS.run : OFF_STEP_MS.walk);
         const stepRunning = this.mover.currentStepMs === OFF_STEP_MS.run;
         this.character.update(this.mover, stepRunning, delta);
         this.battle.update(delta);
@@ -860,14 +884,23 @@ export class OffWorldScene extends Phaser.Scene {
         this.stopForSpell();
         this.padCast = false;
         this.battle.spells.press(index);
+        this.holdStillIfCasting();
     }
 
-    /** RT + A/B/X/Y (Off-6C): prepares that button's spell; it is cast by itself once RT is let go (updatePadCast). */
+    /** RT + A/B/X/Y (Off-6C): prepares that button's spell; it is cast by itself once ready (updatePadCast). */
     private pressPadSpell(index: number): void {
         const id = offSaveStore.character.padSpells[index];
         if (this.battle.dead || id === undefined) return;
         this.stopForSpell();
         this.padCast = this.battle.spells.pressSpell(id);
+        this.holdStillIfCasting();
+    }
+
+    /** A spell started: the character stops where it is, and the stick or keys still held don't move it (holdStill). */
+    private holdStillIfCasting(): void {
+        if (!this.battle.spells.busy) return;
+        this.mover.cancel();
+        this.holdStill = true;
     }
 
     private stopForSpell(): void {
@@ -877,7 +910,57 @@ export class OffWorldScene extends Phaser.Scene {
         this.battle.stopAttacking();
     }
 
-    /** A gamepad spell: once ready and RT is up, at the marked monster, else the nearest (Heal and shields: on you). */
+    /** The four gamepad spells for the cross shown while RT is held (A, B, X, Y). */
+    private padCrossSlots(): { name: string | undefined; usable: boolean }[] {
+        const battle = this.battle;
+        return [0, 1, 2, 3].map((index) => {
+            const id = offSaveStore.character.padSpells[index];
+            if (id === undefined) return { name: undefined, usable: false };
+            const def = OFF_SPELLS[id];
+            return { name: def.name, usable: battle.vitals.mana >= battle.manaCost(def) };
+        });
+    }
+
+    /**
+     * Where the right stick aims a gamepad spell (9-nov-2026): that way from you, nearer or farther with how far it
+     * is pushed (OFF_PAD_AIM), inside the screen; on a living monster when one is close to that spot. Undefined
+     * without the stick.
+     */
+    private padAimPoint(): { x: number; y: number; monster: OffMonster | undefined } | undefined {
+        const aim = this.inputSystem.getManualAim();
+        if (!aim) return undefined;
+        const from = this.character;
+        const tiles = OFF_PAD_AIM.minTiles + (OFF_PAD_AIM.maxTiles - OFF_PAD_AIM.minTiles) * aim.strength;
+        const view = this.cameras.main.worldView;
+        const margin = OFF_PAD_AIM.screenMarginPx;
+        const x = Phaser.Math.Clamp(from.x + aim.dirX * tiles * TILE_SIZE, view.left + margin, view.right - margin);
+        const y = Phaser.Math.Clamp(from.y + aim.dirY * tiles * TILE_SIZE, view.top + margin, view.bottom - margin);
+        let monster: OffMonster | undefined;
+        let best = OFF_PAD_AIM.snapTiles * TILE_SIZE;
+        for (const m of this.battle.pits.monsters) {
+            if (!m.isAlive) continue;
+            const distance = Math.hypot(m.x - x, m.y - y);
+            if (distance <= best) {
+                best = distance;
+                monster = m;
+            }
+        }
+        return { x, y, monster };
+    }
+
+    /** The mark on the ground while RT is held or a gamepad spell waits, and the right stick aims (not Heal or shields). */
+    private updateReticle(): void {
+        const spells = this.battle.spells;
+        const waiting = this.padCast && spells.busy && !spells.onSelf;
+        const choosing = this.castTrigger && !spells.busy;
+        const point = (waiting || choosing) && !this.battle.dead && this.window !== 'cover' ? this.padAimPoint() : undefined;
+        this.reticle.update(point && { x: point.monster?.x ?? point.x, y: point.monster?.y ?? point.y, onMonster: point.monster !== undefined });
+    }
+
+    /**
+     * A gamepad spell, as soon as it is ready (9-nov-2026: RT may still be held): where the right stick aims, else at
+     * the marked monster, else the nearest (Heal and shields: on you, or the mercenary the stick points at).
+     */
     private updatePadCast(): void {
         const spells = this.battle.spells;
         if (!this.padCast) return;
@@ -885,10 +968,18 @@ export class OffWorldScene extends Phaser.Scene {
             this.padCast = false;
             return;
         }
-        if (spells.state !== 'ready' || this.castTrigger) return;
+        if (spells.state !== 'ready') return;
         this.padCast = false;
         if (spells.onSelf) {
             spells.release(this.character.x, this.character.y, undefined, this.padAlly());
+            return;
+        }
+        const aimed = this.padAimPoint();
+        if (aimed) {
+            const tiles = (v: number) => Math.round((v / TILE_SIZE) * 10) / 10;
+            this.lastPadRelease = `${tiles(aimed.x - this.character.x)},${tiles(aimed.y - this.character.y)} ${aimed.monster?.id ?? 'ground'}`;
+            if (aimed.monster) this.battle.target = aimed.monster;
+            spells.release(aimed.x, aimed.y, aimed.monster);
             return;
         }
         const target = this.battle.spellTarget();
@@ -970,7 +1061,40 @@ export class OffWorldScene extends Phaser.Scene {
         this.inputSystem.setForcedAim(on && merc ? { x: merc.x - this.character.x, y: merc.y - this.character.y } : undefined);
     }
 
-    /** Development (`check offpadcast`): RT + that button (0 A … 3 Y), let go at once: cast when ready. */
+    /**
+     * Development (`check offpadaim`): the right stick pushed towards (x, y) by `strength` (0..1), or let go with
+     * undefined.
+     */
+    public debugPadAim(x: number | undefined, y = 0, strength = 1): void {
+        this.inputSystem.setForcedAim(x === undefined ? undefined : { x, y, strength });
+    }
+
+    /** Development (`check offcastrun`): the left stick held towards (x, y), or let go with undefined. */
+    public debugStick(x: number | undefined, y = 0): void {
+        this.debugMove = x === undefined ? undefined : { x, y };
+    }
+
+    /** Development (`check offpadaim` / `offpadcross`): the mark, the cross and the last gamepad spell. */
+    public debugPadState(): { tile: TilePoint; trigger: boolean; spell: string; reticle: string | undefined; cross: string[] | undefined; lastRelease: string | undefined } {
+        const point = this.padAimPoint();
+        const tiles = (v: number) => Math.round((v / TILE_SIZE) * 10) / 10;
+        const cross = this.hudState().padCross;
+        return {
+            tile: { x: this.mover.tileX, y: this.mover.tileY },
+            trigger: this.castTrigger,
+            spell: `${this.battle.spells.spell ?? '-'} ${this.battle.spells.state}`,
+            reticle: point ? `${tiles(point.x - this.character.x)},${tiles(point.y - this.character.y)} ${point.monster?.id ?? 'ground'}` : undefined,
+            cross: cross?.map((slot) => `${slot.name ?? '-'}${slot.usable ? '' : ' (dim)'}`),
+            lastRelease: this.lastPadRelease,
+        };
+    }
+
+    /** Development (`check offpadcross`): RT counts as held (true) or not, as if the trigger were pressed. */
+    public debugCastTrigger(on: boolean): void {
+        this.debugTrigger = on;
+    }
+
+    /** Development (`check offpadcast`): RT + that button (0 A … 3 Y): cast when ready. */
     public debugPadCast(index: number): void {
         this.pressPadSpell(index);
     }
@@ -1012,7 +1136,7 @@ export class OffWorldScene extends Phaser.Scene {
         mana: number; maxMana: number; stamina: number; maxStamina: number; stats: Readonly<Record<string, number>>;
         level: number; exp: number; points: number; kills: number; monsters: Record<string, number>; target: string | undefined;
         weapon: string; attackMs: number; defense: number; gold: number; bag: string[]; ground: string[];
-        spell: string; casts: number; fails: number; prepareMs: number; burning: number; slowed: number;
+        spell: string; casts: number; fails: number; prepareMs: number; burning: number; slowed: number; wounded: number;
         held: number; poisoned: number; shield: string | undefined; padSpells: string[];
         merc: string | undefined; mercKills: number; mercDown: number; mercShield: string | undefined; onMerc: number; hirer: TilePoint | undefined; npcs: { id: string; opens: string; x: number; y: number }[];
         mercPicked: number; mercTarget: string | undefined; mercLoot: string | undefined; berserk: number; mercBerserk: number; mercMana: string | undefined; mercCasts: Record<string, number>; mercSaid: Record<string, number>; mercSaying: string | undefined; mercPotion: number; mercDrunk: number; mercFleeing: boolean; mercFlees: number; mercBatch: number; mercBehind: number; blowAvg: { plain: number; berserk: number };
@@ -1082,6 +1206,8 @@ export class OffWorldScene extends Phaser.Scene {
             prepareMs: this.battle.spells.prepareMs,
             burning: this.battle.pits.monsters.filter((m) => m.isAlive && m.isBurning).length,
             slowed: this.battle.pits.monsters.filter((m) => m.isAlive && m.isSlowed).length,
+            // Off-11B: monsters alive and hurt (how many a spell reached).
+            wounded: this.battle.pits.monsters.filter((m) => m.isAlive && m.hp < m.maxHp).length,
             held: this.battle.pits.monsters.filter((m) => m.isAlive && m.isHeld).length,
             poisoned: this.battle.pits.monsters.filter((m) => m.isAlive && m.isPoisoned).length,
             shield: this.battle.protection ? `${this.battle.protection.spell} ${Math.ceil(this.battle.protection.leftMs / 1000)}s` : undefined,
@@ -1207,13 +1333,15 @@ export class OffWorldScene extends Phaser.Scene {
             else if (direction !== undefined) this.mover.steer(direction, { x: cursor.x, y: cursor.y });
             return;
         }
-        const move = this.inputSystem.getMove();
+        const move = this.debugMove ?? this.inputSystem.getMove();
         const direction = directionFromVector(move.x, move.y);
         if (direction === undefined) {
             if (this.steering) this.mover.cancel();
             this.steering = false;
+            this.holdStill = false;
             return;
         }
+        if (this.holdStill) return;
         this.steering = true;
         this.debugHold = false;
         this.talkPending = undefined;

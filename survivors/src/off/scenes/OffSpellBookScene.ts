@@ -21,6 +21,7 @@ import {
     OFF_STORE_SIDE, OFF_STORE_SMALL_STYLE, OFF_STORE_TITLE_STYLE,
 } from '../config/offStore';
 import { OFF_PAD_SPELL_COUNT, OFF_SPELL_IDS, OFF_SPELL_KEY_COUNT, OFF_SPELLS, offCircleTitle, offPadSpellName, offSpellKeyName, type OffSpellId } from '../data/offSpells';
+import { offManaCost } from '../data/offItems';
 import { offSaveStore } from '../systems/OffSaveStore';
 import { drawOffItemBox, offSpellBoxLines } from '../ui/offItemBox';
 
@@ -195,7 +196,7 @@ export class OffSpellBookScene extends Phaser.Scene {
                 if (this.ready()) this.mark(index);
             });
             const spell = OFF_SPELLS[row.id];
-            const mana = this.add.text(a.x + a.width - 8, middle, `${spell.mana}`, OFF_STORE_ROW_STYLE).setOrigin(1, 0.5);
+            const mana = this.add.text(a.x + a.width - 8, middle, `${offManaCost(spell.mana, offSaveStore.character.equipment)}`, OFF_STORE_ROW_STYLE).setOrigin(1, 0.5);
             const key = keys.indexOf(row.id);
             this.listObjects.push(
                 background,
@@ -210,7 +211,7 @@ export class OffSpellBookScene extends Phaser.Scene {
         this.sideObjects.forEach((o) => o.destroy());
         this.sideObjects = [];
         const id = this.markedSpell;
-        if (id !== undefined) this.sideObjects = drawOffItemBox(this, this.boxArea, OFF_SPELLS[id].name, offSpellBoxLines(id, offSaveStore.character.stats.int));
+        if (id !== undefined) this.sideObjects = drawOffItemBox(this, this.boxArea, OFF_SPELLS[id].name, offSpellBoxLines(id, offSaveStore.character.stats.int, offSaveStore.character.equipment));
         const k = OFF_SPELL_BOOK_KEYS;
         const x = this.boxArea.x;
         const width = this.boxArea.width;
