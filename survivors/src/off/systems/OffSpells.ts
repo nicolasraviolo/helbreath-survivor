@@ -51,6 +51,10 @@ export interface OffSpellHost {
     /** Mana now; spending it. */
     readonly mana: number;
     spendMana(amount: number): void;
+    /** Off-11A: what that spell costs this caster (less with a wand). */
+    manaCost(def: OffSpellDef): number;
+    /** Off-11A: one roll of spell damage with the caster's wand bonus (Berserk, Kloness). */
+    wandDamage(damage: number): number;
     /** Alive monsters within `range` tiles of a tile (a square, as the server's area). */
     monstersAround(tileX: number, tileY: number, range: number): OffMonster[];
     /** A spell's damage lands on a monster (number, burn, ice, kill). */
@@ -278,7 +282,7 @@ export class OffSpells {
             return true;
         }
         this.casts++;
-        this.host.spendMana(def.mana);
+        this.host.spendMana(this.host.manaCost(def));
         const hit = offMagicHit(def.circle, caster);
         if (def.kind === 'hold') {
             this.castHold(def, hit, monster);
@@ -328,7 +332,7 @@ export class OffSpells {
         if (!this.host.knows(id)) return OFF_CAST_TEXT.unknown(def.name);
         const hands = this.host.handsRefusal();
         if (hands) return hands;
-        if (this.host.mana < def.mana) return OFF_CAST_TEXT.noMana;
+        if (this.host.mana < this.host.manaCost(def)) return OFF_CAST_TEXT.noMana;
         if (!releasing && this.cooldownMs > 0) return OFF_CAST_TEXT.tooSoon;
         return undefined;
     }
@@ -343,7 +347,7 @@ export class OffSpells {
             return true;
         }
         this.casts++;
-        this.host.spendMana(def.mana);
+        this.host.spendMana(this.host.manaCost(def));
         if (ally) {
             const direction = directionTowards(this.mover.tileX, this.mover.tileY, Math.floor(ally.x / TILE_SIZE), Math.floor(ally.y / TILE_SIZE));
             if (direction !== undefined) this.mover.face(direction);
@@ -398,7 +402,7 @@ export class OffSpells {
             this.host.spellResisted(monster);
             return;
         }
-        const damage = rollSpellDamage(dice, this.host.stats.mag, offElementMatch(def, monster.def.base.element));
+        const damage = this.host.wandDamage(rollSpellDamage(dice, this.host.stats.mag, offElementMatch(def, monster.def.base.element)));
         this.host.spellHit(monster, damage, def.element);
     }
 

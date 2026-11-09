@@ -149,6 +149,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Farms de Off (Off-10A)
 - Pits de las Farms (Off-10B, 9-nov-2026)
 - La Farm como casa y Select Map de Off (Off-10C, 9-nov-2026)
+- Varitas de Off (Off-11A)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -1651,3 +1652,9 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - **Llegadas:** `offArrivalIn(place, faction)` = junto al teleport del sitio (ciudad, Farm) o, si no tiene, junto al portal de tu bando (`offGateArrival`, Traveler Zone, Promiseland). Con `?offplace` sin `offat`, el mundo usa solo `offGateArrival` (la Farm sigue saliendo en su césped, `spawn`).
 - **Select Map de Off:** `off/scenes/OffMapSelectScene.ts`, copia reducida de `scenes/MapSelectScene.ts` con sus mismas medidas (`config/mapSelect.ts`): sin flechas ni carrusel (3 tarjetas como mucho), sin Level ni candados. Cada tarjeta: minimapa recortado al `playArea`, `name` y `blurb` (`OffPlaceDef.blurb`). Se abre con `openOverlay` (mundo en pausa); `choose(place)` y `debugPlaces()` para pruebas. Tarjetas: `offTeleportDestinations(from, faction)`. Sustituye a `OffTeleportScene` (borrada).
 - **Ojo con los checks:** sin `offplace`, una URL con `offfaction` ahora empieza en la Farm. Las situaciones viejas que daban por hecha la ciudad llevan ya `&offplace=aresden|elvine`. Nuevas: `offmapselect`, `offfarmteleport`, `offtravelerhome`.
+
+## Varitas de Off (Off-11A)
+- **Item.cfg:** las varitas tienen efecto 13 (ATTACK_MANASAVE), el % de ahorro en el valor 4, dados en valores 1–3, peso 1000 (Str 10), velocidad 3, Level tras la velocidad. Precio negativo = no se vende (raras). El servidor carga también los valores 4–6 como dados contra grandes (una MS20 daría "20d0"): Off usa los mismos dados contra pequeños y grandes.
+- **Servidor (Server.cpp ~17586 y ~17678):** se lanza con la mano derecha vacía o con Appr 34–39 (varitas); escudo o arma a dos manos, no. Coste = maná − maná × MS / 100, truncado, mínimo 1; MS = varita + collar, tope 80. La Berserk Wand (Appr 34) suma 20 de maná y +1/3 de daño. Los `*= (int)1.3f` / `(int)1.2` de Berserk y Dark Mage en Effect_Damage_Spot_Type2 son 1 (no hacen nada). Kloness suma reputación / 100 (5–15): Off usa Level / 10.
+- **Dibujo:** Off dibuja con las `WandId` de Survivors (`data/wands.ts`). mstaff1 (Appr 35: Magic Wand MS30 y Dark Mage Magic Wand) y mremagicwand no están registrados: esas dos van con el dibujo de la Magic Wand. Para ponerlas con el suyo habría que añadir `gear.wand.staff1.m/.w` al manifest y una `WandId` nueva (que saldría también en Survivors).
+- Las varitas tiran atributos de arma como las demás (Sharp, Poison... solo afectan al golpe, no a las magias).

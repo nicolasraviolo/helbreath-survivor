@@ -224,7 +224,7 @@ export const OFF_CASTING = {
 export const OFF_CAST_TEXT = {
     unknown: (name: string) => `You don't know ${name}.`,
     noMana: 'Not enough mana.',
-    weapon: 'Take off your weapon to cast.',
+    weapon: 'Hold a wand or take off your weapon to cast.',
     shield: 'Take off your shield to cast.',
     tooSoon: 'Too soon to cast again.',
     failed: 'The spell failed!',

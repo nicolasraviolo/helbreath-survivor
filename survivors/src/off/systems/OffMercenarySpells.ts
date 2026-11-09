@@ -6,7 +6,7 @@
 import type { SpellElement } from '../../data/elements';
 import { offMercenarySpells } from '../data/offMercenary';
 import type { OffStats } from '../data/offCharacter';
-import type { OffSpellId } from '../data/offSpells';
+import type { OffSpellDef, OffSpellId } from '../data/offSpells';
 import type { OffMercenary } from '../entities/OffMercenary';
 import type { OffMonster } from '../entities/OffMonster';
 import type { OffSpellHost } from './OffSpells';
@@ -56,6 +56,15 @@ export class OffMercenarySpells implements OffSpellHost {
     /** She never holds a weapon or a shield. */
     public handsRefusal(): string | undefined {
         return undefined;
+    }
+
+    /** She holds no wand: the spell's own mana and damage. */
+    public manaCost(def: OffSpellDef): number {
+        return def.mana;
+    }
+
+    public wandDamage(damage: number): number {
+        return damage;
     }
 
     public spendMana(amount: number): void {

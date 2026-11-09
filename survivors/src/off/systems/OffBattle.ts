@@ -59,6 +59,7 @@ import { ScreenShake } from '../../systems/ScreenShake';
 import { OffCritStrike } from './OffCritStrike';
 import {
     isOffGearKey, offArmorDefense, offBagItemName, offPartAbsorb, offShieldAbsorb, offEquipmentEffects, offGearDef, offStrToEquip, offWeapon, type OffBagItemKey,
+    offManaCost, offWand, offWandDamage,
 } from '../data/offItems';
 import { OFF_ATTRIBUTES, type OffAttributeEffects } from '../data/offAttributes';
 import { isOffGoodId, OFF_GOODS, offGood, offRollRestore, type OffPotionRestores } from '../data/offGoods';
@@ -78,7 +79,7 @@ import type { OffPitDef } from '../data/offPits';
 import { offSaveStore, type OffEquipResult } from './OffSaveStore';
 import { OffVitals } from './OffVitals';
 import { OffSpells, type OffSpellHost } from './OffSpells';
-import { OFF_BERSERK, OFF_CAST_TEXT, OFF_CAST_WORDS, OFF_CASTING, OFF_PROTECT, OFF_SPELLS, type OffSpellId } from '../data/offSpells';
+import { OFF_BERSERK, OFF_CAST_TEXT, OFF_CAST_WORDS, OFF_CASTING, OFF_PROTECT, OFF_SPELLS, type OffSpellDef, type OffSpellId } from '../data/offSpells';
 import { BUFFS, BUFF_OVERLAY_ALPHA } from '../../data/pickups';
 import { OffMercenarySpells, type OffMercenaryCastWorld } from './OffMercenarySpells';
 import { OFF_HEAL_NUMBER_COLOR, OFF_WORN_ALPHA } from '../config/offSpellLook';
@@ -586,12 +587,22 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost, OffMercenaryWor
         return offSaveStore.character.spells.includes(id);
     }
 
-    /** The server only lets a wand be held while casting (Off has none): empty hands. */
+    /** The server only lets a wand be held while casting (Off-11A), or empty hands. */
     public handsRefusal(): string | undefined {
         const equipment = offSaveStore.character.equipment;
-        if (equipment.weapon !== undefined) return OFF_CAST_TEXT.weapon;
+        if (equipment.weapon !== undefined && !offWand(equipment)) return OFF_CAST_TEXT.weapon;
         if (equipment.shield !== undefined) return OFF_CAST_TEXT.shield;
         return undefined;
+    }
+
+    /** Off-11A: the held wand saves mana. */
+    public manaCost(def: OffSpellDef): number {
+        return offManaCost(def.mana, offSaveStore.character.equipment);
+    }
+
+    /** Off-11A: the Berserk and Kloness wands add damage. */
+    public wandDamage(damage: number): number {
+        return offWandDamage(damage, offSaveStore.character.equipment, this.level);
     }
 
     /** Off-8C: Berserk on you (no effect while it is on). */

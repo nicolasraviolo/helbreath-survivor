@@ -279,6 +279,13 @@ const PRESETS = {
     offcastice: 'off=world&offlevel=30&offstats=int:50,mag:50&offgear=noweapon&offspells=chillWind&offfaction=aresden&offplace=aresden&offat=101,52',
     offcastfail: 'off=world&offlevel=9&offstats=int:20,mag:10&offgear=noweapon&offspells=lightning',
     offcastshield: 'off=world&offlevel=30&offstats=int:50,mag:50&offgear=noweapon,targeShield&offspells=all',
+    // Fase Off-11A: varitas. offwandcast lanza Energy Bolt (15 de maná) con la Magic Wand (MS20) en la mano: gasta 12;
+    // offwandsword, con Long Sword no deja; offwandsmith abre Tom con la sección Wands; offwandbook, el libro con la
+    // Berserk Wand (MS20): cada magia cuesta un 20 % menos y 20 más.
+    offwandcast: 'off=world&offlevel=60&offstats=int:50,mag:50&offgear=magicWandMS20&offspells=all',
+    offwandsword: 'off=world&offlevel=60&offstats=int:50,mag:50,str:20&offgear=longSword&offspells=all',
+    offwandsmith: 'off=world&offlevel=40&offstats=str:14&offfaction=aresden&offplace=aresden&offgold=3000&offopen=smith',
+    offwandbook: 'off=world&offlevel=100&offstats=int:60&offfaction=aresden&offplace=aresden&offgear=berserkWandMS20&offspells=magicMissile,heal,fireBall,lightning,berserk&offopen=book',
     // Fase Off-6C: offheal empieza con 5 de vida y lanza Heal (tecla 1); offshield pone Defense Shield (2) y luego
     // intenta Protection From Magic (6): no hace nada (comparten hueco); offhold, Hold Person (3) a un Slime;
     // offpadcast, RT + B (Defense Shield) y RT + X (Hold Person) como el mando; offbookpad, el libro con los huecos del mando.
@@ -598,6 +605,9 @@ const PRESET_EVAL = {
     offcastfire: "new Promise((r) => setTimeout(() => { const pick = (st) => (({ mana, maxMana, spell, casts, fails, prepareMs, burning, slowed, kills, target }) => ({ mana, maxMana, spell, casts, fails, prepareMs, burning, slowed, kills, target }))(st); const before = pick(o.debugState()); o.debugCast(4, 'giantScorpion'); const preparing = pick(o.debugState()); setTimeout(() => r({ before, preparing, after: pick(o.debugState()) }), 1800); }, 1500))",
     offcastice: "new Promise((r) => setTimeout(() => { const pick = (st) => (({ mana, maxMana, spell, casts, fails, prepareMs, burning, slowed, kills, target }) => ({ mana, maxMana, spell, casts, fails, prepareMs, burning, slowed, kills, target }))(st); const before = pick(o.debugState()); o.debugCast(0, 'giantScorpion'); const preparing = pick(o.debugState()); setTimeout(() => r({ before, preparing, after: pick(o.debugState()) }), 1500); }, 1500))",
     offcastfail: "new Promise((r) => setTimeout(() => { const pick = (st) => (({ mana, spell, casts, fails, prepareMs, level }) => ({ mana, spell, casts, fails, prepareMs, level }))(st); const before = pick(o.debugState()); let n = 0; const t = setInterval(() => { if (o.debugState().spell === 'idle') { n++; o.debugCast(0, 'slime'); } }, 500); setTimeout(() => { clearInterval(t); r({ before, after: pick(o.debugState()) }); }, 11000); }, 1500))",
+    offwandcast: "new Promise((r) => setTimeout(() => { const before = o.debugState().mana; o.debugCast(2, 'slime'); setTimeout(() => r({ before, after: (({ mana, spell, casts, fails }) => ({ mana, spell, casts, fails }))(o.debugState()) }), 2600); }, 1500))",
+    offwandsword: "new Promise((r) => setTimeout(() => { const before = o.debugState().mana; o.debugCast(2, 'slime'); setTimeout(() => r({ before, after: (({ mana, spell, casts, fails }) => ({ mana, spell, casts, fails }))(o.debugState()) }), 500); }, 1500))",
+    offwandsmith: "new Promise((r) => setTimeout(() => { const st = game.scene.getScene('OffStore'); const rows = st.debugState().rows; st.mark(rows.indexOf('magicWandMS10')); st.act(); const bought = st.debugState(); st.mark(rows.indexOf('magicWandMS20')); r({ rows, bought: [bought.message, bought.gold], ms20Box: st.debugState().box, bag: JSON.parse(localStorage.getItem('hb-off.character')).bag }); }, 1000))",
     offcastshield: "new Promise((r) => setTimeout(() => { const before = o.debugState().mana; o.debugCast(2, 'slime'); setTimeout(() => r({ before, after: (({ mana, spell, casts, fails }) => ({ mana, spell, casts, fails }))(o.debugState()) }), 500); }, 1500))",
     offbookempty: "new Promise((r) => setTimeout(() => r(game.scene.getScene('OffSpellBook').debugState()), 1000))",
     offheal: "new Promise((r) => setTimeout(() => { const pick = () => (({ hp, maxHp, mana, spell, casts, fails, defense, shield, held, target }) => ({ hp, maxHp, mana, spell, casts, fails, defense, shield, held, target }))(o.debugState()); const before = pick(); o.debugCast(0); setTimeout(() => r({ before, after: pick() }), 2600); }, 1500))",
