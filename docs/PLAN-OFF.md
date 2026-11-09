@@ -72,6 +72,11 @@ Cada fase se hace por bloques, uno por sesión, y se espera el OK del propietari
   - **9B Invisibles y Enemy Kills**: a veces llegan invisibles hasta que atacan. Cada uno que matas da **+1 EK**; se guarda y sale en la casilla "Enemy Kills" de la ventana Character. Más adelante desbloquearán cosas.
   - **9C Medir y ajustar** la dificultad con `pnpm check`.
 
+- **Off-10 · Las Farms como centro** (plan del 9-nov-2026, ver DECISIONES.md). La ciudad no se toca. Bloques:
+  - **10A Farms con vendedores**: `arefarm.amd` / `elvfarm.amd` enteras, con Shop Keeper, Tom, Howard y William de pie, que abren las ventanas de la tienda, el herrero, el almacén y los mercenarios.
+  - **10B Pits de las Farms**: los del original (sin Crop), con un Snake cambiado por Orc en cada Farm.
+  - **10C La Farm como casa**: unirse al bando, Play y morir llevan a tu Farm; su teleport ofrece City, Traveler Zone y Promiseland; el de la ciudad añade Farm; las puertas de Promiseland llevan a tu Farm.
+
 ## Pendiente de decidir más adelante
 
 - **Absolute Magic Protection** (Magic.cfg 65: círculo 7, INT 112, 90 de maná, 13.500 de oro): añadirla cuando haya más magias; Kaila la usará en vez de Protection From Magic (propietario, 8-nov-2026).

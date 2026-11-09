@@ -146,6 +146,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Maga mercenaria y Berserk (Off-8C)
 - Frases del mercenario y golpes por la espalda (Off-8D)
 - Mercenario que aguanta: vida, poción y huir (Off-8E)
+- Farms de Off (Off-10A)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -1631,3 +1632,8 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - **Huir** (`OFF_MERCENARY_FLEE`, `keepsFleeing` + `flee` en `OffMercenaryAI`, antes que todo lo demás de su cabeza): sin poción y bajo `below` (25 %) (Kaila solo si `bestHeal` no encuentra magia con maná) deja de pegar, cancela su magia, dice "Heal me!" y corre: cada `replanMs` elige entre 8 casillas a `stepTiles` y una junto a ti la de más puntos = distancia al monstruo atacante más cercano × `awayWeight` − distancia a ti. Para al pasar de `backAbove` (50 %), si Kaila ya puede curarse, o tras `safeMs` sin un monstruo que vaya a por él a `chaserTiles`; en ese caso guarda `calmHp` y no vuelve a huir hasta que le hieran más (si no, huiría otra vez al instante).
 - Pruebas: `check offmercpotion` / `offmercflee` / `offmercfleesafe` / `offmercfleemage` / `offmercregen` / `offmerchard` (Gorn Level 25 con Trolls en Promiseland; el resultado varía mucho, a veces tu personaje muere). En `debugState`: `mercPotion`, `mercDrunk`, `mercFleeing`, `mercFlees`. `offmercsay` gasta antes la poción para oír "Heal me!".
 - `offRollRestore(dice)` (`data/offGoods.ts`) tira los dados de una poción; lo usa el inventario.
+
+## Farms de Off (Off-10A)
+- **Puertas de las Farms** (casillas de teleport `0x40` de los `.amd`, 250×250): **arefarm** tienda x59–60,y69–70 + (64,69) + (63,70), herrero x63–64,y92–93 (y su ala con el cartel "Blacksmith", x73–75,y86–87), almacén (35,89) y (40,90), Barracks x53–55,y132–133, base del teleport con estandartes x44–45,y101–102; **elvfarm** tienda x88–89,y178–179 + (93,178) + (92,179), herrero x111–112,y192–193, almacén (67,196) y (72,197), Barracks x95–97,y148–149, base del teleport x116–117,y157–158. Barracks (`elvbrk11.amd`): puerta de dentro x67–68,y70–71. Las dos Farms **no son espejo** ni traslación una de otra: cada edificio está desplazado distinto.
+- Los vendedores van en `OffPlaceDef.npcs` (`opens`: shop, smith, warehouse o mercenaries); la escena los pone en la casilla libre más cercana a `near` (el Shop Keeper de Elvine queda en 91,179). `check offaresdenfarm` / `offelvinefarm`.
+- **Herrero cortado:** el edificio del herrero (en las 2 ciudades y las 2 Farms) está pintado entero en el suelo (sprite 394/395) y encima lleva 18 tiras verticales (objeto 429, fila 86 en arefarm) que no encajan: quedan ~3 casillas más arriba y lo parten en dos. Se ignoran (`IGNORED_OBJECT_SPRITES` en `hb/HBMap.ts`, también en Survivors) y el suelo solo lo muestra bien. `check offbase` / `offbarracks`.

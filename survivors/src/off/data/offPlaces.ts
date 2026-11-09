@@ -13,17 +13,30 @@
 //   Survivors): Traveler Zone o Promiseland. Promiseland tiene las dos puertas del original (casillas de teleport del
 //   2ndmiddle.amd): la de arriba lleva a Elvine y la de abajo a Aresden, y por la de tu ciudad se llega y se vuelve.
 // - Off-8B: en cada ciudad, William (el funcionario del ayuntamiento del original) junto al teleport contrata
-//   mercenarios (`hirer`; la escena lo pone en la casilla andable más cercana a `near`).
+//   mercenarios (la escena lo pone en la casilla andable más cercana a `near`).
+// - Off-10A: las dos Farms enteras (`arefarm.amd` / `elvfarm.amd`, 250×250), el centro de Off (propietario, 9-nov-2026),
+//   con los vendedores de pie en vez de puertas: Shop Keeper (tienda y magias), Tom (herrero), Howard (almacén) y
+//   William (mercenarios). Los de Elvine, donde están en la ciudad de Survivors (data/town.ts); los de Aresden, en los
+//   mismos sitios de sus edificios (puertas = casillas de teleport del .amd: tienda x59–64,y69–70, almacén x35–40,y89–90,
+//   herrero x63–64,y92–93).
+//   El teleport es la base de piedra con estandartes del original (arefarm x44–45,y101–102; elvfarm x116–117,y157–158):
+//   sin dibujo nuestro, pisarla abre la elección de mapa. La puerta de los Barracks (arefarm x53–55,y132–133; elvfarm
+//   x95–97,y148–149) lleva a los Barracks de Survivors (`elvbrk11.amd`); su puerta de dentro (x67–68,y70–71) devuelve
+//   a la Farm de la que vienes.
 import type { MapKey, MinimapKey, SoundKey, SpriteKey } from '../../config/assetManifest';
 import type { TileRect } from '../../data/maps';
+import type { NpcId } from '../../data/town';
 import type { TilePoint } from '../systems/TileMover';
 import { ARESDEN_PITS, ELVINE_PITS, pitSprites, PROMISELAND_PITS, TRAVELER_PITS, type OffPitDef } from './offPits';
 import type { OffFaction, OffPlaceId } from './offPlaceIds';
 
 export { isOffFaction, isOffPlaceId, OFF_FACTIONS, OFF_PLACE_IDS, type OffFaction, type OffPlaceId } from './offPlaceIds';
 
-/** Where a portal leads: a faction's city (asks to join the first time) or a city's teleport, which lets you choose. */
-export type OffPortalTarget = { kind: 'city'; faction: OffFaction } | { kind: 'teleport' };
+/**
+ * Where a portal leads: a faction's city (asks to join the first time), a teleport (lets you choose the map), the
+ * Barracks (Off-10A) or back to the place you came from (the Barracks' door).
+ */
+export type OffPortalTarget = { kind: 'city'; faction: OffFaction } | { kind: 'teleport' } | { kind: 'barracks' } | { kind: 'back' };
 
 export interface OffPortalDef {
     /** Tiles that take you through when stepped on. */
@@ -44,6 +57,17 @@ export interface OffDoorDef {
     area: TileRect;
 }
 
+/** Off-10A: what talking to an NPC opens: a building's window, or William's mercenaries (Off-8B). */
+export type OffNpcOpens = OffBuildingKind | 'mercenaries';
+
+/** An NPC standing in a place: near that tile, looking that way (0 = N … 4 = S … 6 = W). */
+export interface OffNpcSpot {
+    id: NpcId;
+    near: TilePoint;
+    direction: number;
+    opens: OffNpcOpens;
+}
+
 export interface OffPlaceDef {
     name: string;
     asset: MapKey;
@@ -59,8 +83,8 @@ export interface OffPlaceDef {
     portals: readonly OffPortalDef[];
     /** Doors of the shop, the blacksmith and the warehouse (cities only). */
     doors: readonly OffDoorDef[];
-    /** Off-8B: the NPC who hires mercenaries (cities only): near that tile, looking that way (0 = N … 4 = S … 6 = W). */
-    hirer?: { near: TilePoint; direction: number };
+    /** NPCs you talk to (Off-8B William in the cities; Off-10A the sellers of the Farms). */
+    npcs: readonly OffNpcSpot[];
 }
 
 /**
@@ -69,6 +93,9 @@ export interface OffPlaceDef {
  */
 // Off-6C: effect7 (Heal), effect8 (Defense Shield) and effect9 (its aura) too.
 const WORLD_SPRITES: readonly SpriteKey[] = ['fx.effect2', 'fx.effect', 'item.ground', 'fx.effect5', 'fx.effect4', 'fx.effect7', 'fx.effect8', 'fx.effect9'];
+
+/** The sellers of the Farms (Off-10A): Survivors' town NPCs. */
+const FARM_NPC_SPRITES: readonly SpriteKey[] = ['npc.shopKeeper', 'npc.william', 'npc.howard', 'npc.tom'];
 
 /** Tiles x1..x2, y1..y2 inclusive. */
 function rect(x1: number, y1: number, x2: number, y2: number): TileRect {
@@ -94,6 +121,7 @@ export const OFF_PLACES: Record<OffPlaceId, OffPlaceDef> = {
             { area: rect(127, 78, 129, 79), to: { kind: 'city', faction: 'elvine' }, drawn: false, arrival: { x: 128, y: 82 } },
         ],
         doors: [],
+        npcs: [],
     },
     aresden: {
         name: 'Aresden',
@@ -120,7 +148,7 @@ export const OFF_PLACES: Record<OffPlaceId, OffPlaceDef> = {
             { kind: 'warehouse', area: rect(102, 184, 102, 184) },
             { kind: 'warehouse', area: rect(107, 185, 107, 185) },
         ],
-        hirer: { near: { x: 143, y: 209 }, direction: 6 },
+        npcs: [{ id: 'william', near: { x: 143, y: 209 }, direction: 6, opens: 'mercenaries' }],
     },
     elvine: {
         name: 'Elvine',
@@ -145,7 +173,7 @@ export const OFF_PLACES: Record<OffPlaceId, OffPlaceDef> = {
             { kind: 'warehouse', area: rect(198, 128, 198, 128) },
             { kind: 'warehouse', area: rect(203, 129, 203, 129) },
         ],
-        hirer: { near: { x: 240, y: 141 }, direction: 6 },
+        npcs: [{ id: 'william', near: { x: 240, y: 141 }, direction: 6, opens: 'mercenaries' }],
     },
     promiseland: {
         name: 'Promiseland',
@@ -166,6 +194,75 @@ export const OFF_PLACES: Record<OffPlaceId, OffPlaceDef> = {
             { area: rect(135, 228, 146, 228), to: { kind: 'city', faction: 'aresden' }, drawn: true, arrival: { x: 140, y: 224 } },
         ],
         doors: [],
+        npcs: [],
+    },
+    aresdenFarm: {
+        name: 'Aresden Farm',
+        asset: 'map.aresdenFarm',
+        minimap: 'minimap.aresdenFarm',
+        size: { width: 250, height: 250 },
+        playArea: { x: 0, y: 0, width: 250, height: 250 },
+        // The lawn between the shop, the warehouse and the blacksmith.
+        spawn: { x: 53, y: 78 },
+        music: 'music.aresden',
+        sprites: [...WORLD_SPRITES, 'fx.effect11', ...FARM_NPC_SPRITES],
+        pits: [],
+        portals: [
+            // The original's stone base with banners (propietario, 9-nov-2026).
+            { area: rect(44, 101, 45, 102), to: { kind: 'teleport' }, drawn: false, arrival: { x: 45, y: 104 } },
+            { area: rect(53, 132, 55, 133), to: { kind: 'barracks' }, drawn: false, arrival: { x: 54, y: 135 } },
+        ],
+        doors: [],
+        npcs: [
+            { id: 'shopKeeper', near: { x: 61, y: 70 }, direction: 4, opens: 'shop' },
+            // Two tiles lower than his place in Survivors' town: there the building cut him (propietario, 9-nov-2026).
+            { id: 'william', near: { x: 66, y: 69 }, direction: 4, opens: 'mercenaries' },
+            { id: 'howard', near: { x: 47, y: 86 }, direction: 3, opens: 'warehouse' },
+            { id: 'tom', near: { x: 63, y: 92 }, direction: 5, opens: 'smith' },
+        ],
+    },
+    elvineFarm: {
+        name: 'Elvine Farm',
+        asset: 'map.elvineFarm',
+        minimap: 'minimap.elvineFarm',
+        size: { width: 250, height: 250 },
+        playArea: { x: 0, y: 0, width: 250, height: 250 },
+        // Survivors' town (data/town.ts): the same arrival.
+        spawn: { x: 93, y: 186 },
+        music: 'music.elvine',
+        sprites: [...WORLD_SPRITES, 'fx.effect11', ...FARM_NPC_SPRITES],
+        pits: [],
+        portals: [
+            { area: rect(116, 157, 117, 158), to: { kind: 'teleport' }, drawn: false, arrival: { x: 117, y: 160 } },
+            // As Survivors' town: TOWN.barracksDoor / barracksExit.
+            { area: rect(95, 148, 97, 149), to: { kind: 'barracks' }, drawn: false, arrival: { x: 96, y: 151 } },
+        ],
+        doors: [],
+        npcs: [
+            { id: 'shopKeeper', near: { x: 90, y: 178 }, direction: 4, opens: 'shop' },
+            { id: 'william', near: { x: 95, y: 178 }, direction: 4, opens: 'mercenaries' },
+            { id: 'howard', near: { x: 79, y: 193 }, direction: 3, opens: 'warehouse' },
+            // Right of the anvil (110,193), looking at it, as in Survivors.
+            { id: 'tom', near: { x: 111, y: 192 }, direction: 5, opens: 'smith' },
+        ],
+    },
+    barracks: {
+        name: 'Barracks',
+        asset: 'map.barracks',
+        minimap: 'minimap.barracks',
+        size: { width: 150, height: 150 },
+        // Survivors' Barracks (data/maps.ts): the arena.
+        playArea: { x: 18, y: 29, width: 110, height: 94 },
+        // In front of its door, inside.
+        spawn: { x: 67, y: 74 },
+        music: 'music.middleland',
+        sprites: [...WORLD_SPRITES],
+        pits: [],
+        portals: [
+            { area: rect(67, 70, 68, 71), to: { kind: 'back' }, drawn: false, arrival: { x: 67, y: 74 } },
+        ],
+        doors: [],
+        npcs: [],
     },
 };
 

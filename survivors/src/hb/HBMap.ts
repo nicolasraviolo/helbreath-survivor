@@ -10,8 +10,12 @@ const HEADER_SIZE = 256;
 const FLAG_BLOCKED = 0x80;
 /** Ground sprite index used for water. Not flagged as blocked, but not walkable either. */
 export const WATER_SPRITE = 19;
-/** Object sprites the original never draws: leftover duplicates of ground tiles. */
-export const IGNORED_OBJECT_SPRITES: ReadonlySet<number> = new Set([6, 7, 9, 24]);
+/**
+ * Object sprites the original never draws: leftover duplicates of ground tiles.
+ * 429 (Off-10A): 18 strips over the blacksmith of both cities and both farms that do not match the building painted on
+ * the ground (they sit ~3 tiles too high and cut it in two); the ground alone shows it whole.
+ */
+export const IGNORED_OBJECT_SPRITES: ReadonlySet<number> = new Set([6, 7, 9, 24, 429]);
 
 export class HBMap {
     public readonly width: number;

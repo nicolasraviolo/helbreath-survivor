@@ -57,7 +57,7 @@ import { Pool } from '../../utils/Pool';
 import type { MapLoadSceneData } from '../../scenes/MapLoadScene';
 import { OFF_MOVEMENT, OFF_NOVICE, OFF_STEP_MS, OFF_WHERE_SAVE_MS, TILES_PER_ANIMATION_CYCLE } from '../data/offWorld';
 import {
-    OFF_PLACE_TEXT, OFF_PLACES, offArrivalIn, offCityOf, offHomePlace, type OffBuildingKind, type OffDoorDef, type OffFaction, type OffPlaceDef, type OffPlaceId, type OffPortalDef,
+    OFF_PLACE_TEXT, OFF_PLACES, offArrivalIn, offCityOf, offHomePlace, type OffBuildingKind, type OffDoorDef, type OffNpcOpens, type OffFaction, type OffPlaceDef, type OffPlaceId, type OffPortalDef,
 } from '../data/offPlaces';
 import { OFF_STORE_SCENE_KEY, type OffStoreSceneData, type OffStoreTab } from './OffStoreScene';
 import { OFF_SPELL_BOOK_SCENE_KEY, type OffSpellBookSceneData } from './OffSpellBookScene';
@@ -110,6 +110,8 @@ export interface OffWorldSceneData {
     carried?: OffCarriedVitals;
     /** A line for the bottom-left list on arriving. */
     message?: string;
+    /** Off-10A: the place left to come here (the Barracks' door takes you back there). */
+    from?: OffPlaceId;
 }
 
 /** ?offplace / ?offat apply to the first place opened only. */
@@ -227,10 +229,10 @@ export class OffWorldScene extends Phaser.Scene {
      * would open the Inventory again right after closing it.
      */
     private windowClosedFrame = -1;
-    /** Off-8B: William, who hires mercenaries (cities only). */
-    private hirer: Npc | undefined;
-    /** Clicked William from afar: his window opens on getting near. */
-    private talkPending = false;
+    /** NPCs you talk to: William, who hires mercenaries (Off-8B), and the Farms' sellers (Off-10A). */
+    private npcs: TalkNpc[] = [];
+    /** Clicked an NPC from afar: its window opens on getting near. */
+    private talkPending: TalkNpc | undefined;
     /** The arrow at the feet while the right stick aims a support spell (Off-8B). */
     private aimArrow!: AimArrow;
 
@@ -254,9 +256,9 @@ export class OffWorldScene extends Phaser.Scene {
         const area = place.playArea;
         this.mapView = new MapView(this, map, area, area);
         const isWalkable = (x: number, y: number) => map.isWalkableTile(x, y) && insideArea(area, x, y);
-        // Off-8B: William first, so his tile is blocked before anyone is placed.
-        this.hirer = this.createHirer(isWalkable);
-        this.talkPending = false;
+        // Off-8B: the NPCs first, so their tiles are blocked before anyone is placed.
+        this.npcs = this.createNpcs(isWalkable);
+        this.talkPending = undefined;
         const home = findFreeTile(isWalkable, place.spawn.x, place.spawn.y, OFF_MOVEMENT.clickSearchRadius) ?? place.spawn;
         const at = this.arrival.at;
         const spawn = (at && findFreeTile(isWalkable, at.x, at.y, OFF_MOVEMENT.clickSearchRadius)) ?? home;
@@ -291,9 +293,9 @@ export class OffWorldScene extends Phaser.Scene {
         document.addEventListener('visibilitychange', onHide);
         window.addEventListener('pagehide', onPageHide);
         this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
-            // The map is cached for the next visit: William's tile is freed.
-            this.hirer?.destroy(map);
-            this.hirer = undefined;
+            // The map is cached for the next visit: the NPCs' tiles are freed.
+            for (const talker of this.npcs) talker.npc.destroy(map);
+            this.npcs = [];
             this.saveWhere();
             document.removeEventListener('visibilitychange', onHide);
             window.removeEventListener('pagehide', onPageHide);
@@ -449,7 +451,7 @@ export class OffWorldScene extends Phaser.Scene {
             if (drinkMana && !this.battle.dead) this.battle.drinkQuick('mana');
             if (padSpell >= 0) this.pressPadSpell(padSpell);
         }
-        this.updateHirer();
+        this.updateNpcs();
         this.updateCombatInput();
         this.updateDebugCast();
         this.updatePadCast();
@@ -490,6 +492,17 @@ export class OffWorldScene extends Phaser.Scene {
         const to = portal.to;
         if (to.kind === 'teleport') {
             this.askDestination();
+            return;
+        }
+        if (to.kind === 'barracks') {
+            this.travel({ place: 'barracks', from: this.placeId, carried: this.carriedVitals() });
+            return;
+        }
+        if (to.kind === 'back') {
+            // Without where you came from (Play inside the Barracks), home.
+            const back = this.arrival.from ?? offHomePlace(offSaveStore.character.faction);
+            const at = OFF_PLACES[back].portals.find((p) => p.to.kind === 'barracks')?.arrival;
+            this.travel({ place: back, ...(at ? { at } : {}), carried: this.carriedVitals() });
             return;
         }
         const faction = offSaveStore.character.faction;
@@ -582,39 +595,66 @@ export class OffWorldScene extends Phaser.Scene {
 
     // ---- William and the mercenary (Off-8B) ----
 
-    /** William on the walkable tile nearest to the place's mark (not on a portal or a door). */
-    private createHirer(isWalkable: (x: number, y: number) => boolean): Npc | undefined {
-        const hirer = this.place.hirer;
-        if (!hirer) return undefined;
-        const tile = findFreeTile((x, y) => isWalkable(x, y) && !this.portalAt(x, y) && !this.doorAt(x, y), hirer.near.x, hirer.near.y, OFF_MOVEMENT.clickSearchRadius);
-        if (!tile) return undefined;
-        const def: NpcDef = { ...TOWN_NPCS.william, name: OFF_MERCENARY_TEXT.npcName, tile, direction: hirer.direction, line: OFF_MERCENARY_TEXT.npcLine, options: [] };
-        return new Npc(this, 'william', def, this.map);
-    }
-
-    /** Close enough to William to talk (as the town of Survivors). */
-    private nearHirer(): boolean {
-        const hirer = this.hirer;
-        return hirer !== undefined && !this.battle.dead && hirer.distanceTo(this.character.x, this.character.y) <= TOWN_TALK.radiusPx;
-    }
-
-    /** "Talk" over William while near; a click from afar opens his window on arriving. */
-    private updateHirer(): void {
-        const hirer = this.hirer;
-        if (!hirer) return;
-        hirer.update();
-        const near = this.nearHirer();
-        hirer.setTalkable(near && this.window === undefined, this.time.now);
-        if (this.talkPending && near && !this.mover.isMoving) {
-            this.talkPending = false;
-            this.openMercenaries();
+    /** Each NPC on the walkable tile nearest to its mark (not on a portal or a door). */
+    private createNpcs(isWalkable: (x: number, y: number) => boolean): TalkNpc[] {
+        const npcs: TalkNpc[] = [];
+        for (const spot of this.place.npcs) {
+            const tile = findFreeTile((x, y) => isWalkable(x, y) && !this.portalAt(x, y) && !this.doorAt(x, y), spot.near.x, spot.near.y, OFF_MOVEMENT.clickSearchRadius);
+            if (!tile) continue;
+            const base = TOWN_NPCS[spot.id];
+            // William hires mercenaries in Off (his own name and line); the others keep Survivors' name.
+            const words = spot.opens === 'mercenaries' ? { name: OFF_MERCENARY_TEXT.npcName, line: OFF_MERCENARY_TEXT.npcLine } : {};
+            const def: NpcDef = { ...base, ...words, tile, direction: spot.direction, options: [] };
+            npcs.push({ npc: new Npc(this, spot.id, def, this.map), opens: spot.opens });
         }
+        return npcs;
     }
 
-    /** The point is on William's drawing. */
-    private onHirer(px: number, py: number): boolean {
-        const hirer = this.hirer;
-        return hirer !== undefined && Math.abs(px - hirer.x) <= HIRER_CLICK.halfWidth && py <= hirer.y + HIRER_CLICK.below && py >= hirer.y - HIRER_CLICK.height;
+    /** Close enough to that NPC to talk (as the town of Survivors). */
+    private isNear(talker: TalkNpc): boolean {
+        return !this.battle.dead && talker.npc.distanceTo(this.character.x, this.character.y) <= TOWN_TALK.radiusPx;
+    }
+
+    /** The nearest NPC close enough to talk to. */
+    private nearestNpc(): TalkNpc | undefined {
+        let best: TalkNpc | undefined;
+        let bestDistance = Infinity;
+        for (const talker of this.npcs) {
+            const distance = talker.npc.distanceTo(this.character.x, this.character.y);
+            if (distance < bestDistance && this.isNear(talker)) {
+                best = talker;
+                bestDistance = distance;
+            }
+        }
+        return best;
+    }
+
+    /** "Talk" over the nearest NPC; a click from afar opens its window on arriving. */
+    private updateNpcs(): void {
+        if (this.npcs.length === 0) return;
+        const near = this.nearestNpc();
+        for (const talker of this.npcs) {
+            talker.npc.update();
+            talker.npc.setTalkable(talker === near && this.window === undefined, this.time.now);
+        }
+        const pending = this.talkPending;
+        if (pending && this.isNear(pending) && !this.mover.isMoving) this.talkTo(pending);
+    }
+
+    /** The NPC whose drawing is under that point. */
+    private npcAt(px: number, py: number): TalkNpc | undefined {
+        return this.npcs.find(({ npc }) => Math.abs(px - npc.x) <= NPC_CLICK.halfWidth && py <= npc.y + NPC_CLICK.below && py >= npc.y - NPC_CLICK.height);
+    }
+
+    /** Opens what the NPC offers: William's mercenaries, or the shop's, the blacksmith's or the warehouse's window. */
+    private talkTo(talker: TalkNpc): void {
+        this.talkPending = undefined;
+        if (talker.opens === 'mercenaries') {
+            this.openMercenaries();
+            return;
+        }
+        this.mover.cancel();
+        this.openBuilding(talker.opens);
     }
 
     /** William's window over the world, which waits paused. */
@@ -627,7 +667,7 @@ export class OffWorldScene extends Phaser.Scene {
         if (this.window) return;
         this.stopForWindow();
         this.mover.cancel();
-        this.talkPending = false;
+        this.talkPending = undefined;
         const data: Omit<OffMercenarySceneData, 'returnTo'> = {
             onHire: (id, price) => this.hire(id, price),
             onDismiss: () => this.battle.dismissMercenary(),
@@ -969,7 +1009,7 @@ export class OffWorldScene extends Phaser.Scene {
         weapon: string; attackMs: number; defense: number; gold: number; bag: string[]; ground: string[];
         spell: string; casts: number; fails: number; prepareMs: number; burning: number; slowed: number;
         held: number; poisoned: number; shield: string | undefined; padSpells: string[];
-        merc: string | undefined; mercKills: number; mercDown: number; mercShield: string | undefined; onMerc: number; hirer: TilePoint | undefined;
+        merc: string | undefined; mercKills: number; mercDown: number; mercShield: string | undefined; onMerc: number; hirer: TilePoint | undefined; npcs: { id: string; opens: string; x: number; y: number }[];
         mercPicked: number; mercTarget: string | undefined; mercLoot: string | undefined; berserk: number; mercBerserk: number; mercMana: string | undefined; mercCasts: Record<string, number>; mercSaid: Record<string, number>; mercSaying: string | undefined; mercPotion: number; mercDrunk: number; mercFleeing: boolean; mercFlees: number; mercBatch: number; mercBehind: number; blowAvg: { plain: number; berserk: number };
     } {
         const monsters: Record<string, number> = {};
@@ -1003,7 +1043,8 @@ export class OffWorldScene extends Phaser.Scene {
                 berserk: Math.round(this.battle.debugBlows.berserk.sum / Math.max(1, this.battle.debugBlows.berserk.count) * 10) / 10,
             },
             onMerc: this.battle.pits.monsters.filter((m) => m.isAlive && m.mode === 'attack' && m.victim === 'merc').length,
-            hirer: this.hirer ? { ...this.hirer.def.tile } : undefined,
+            hirer: hirerTile(this.npcs),
+            npcs: this.npcs.map(({ npc, opens }) => ({ id: npc.id, opens, ...npc.def.tile })),
             tile: { x: this.mover.tileX, y: this.mover.tileY },
             moving: this.mover.isTravelling,
             running: runMode,
@@ -1128,8 +1169,9 @@ export class OffWorldScene extends Phaser.Scene {
         const crit = input.justPressed(Action.OffCritStrike);
         const next = input.justPressed(Action.OffNextTarget);
         const previous = input.justPressed(Action.OffPrevTarget);
-        if (keys && attack && this.nearHirer()) {
-            this.openMercenaries();
+        const talker = keys && attack ? this.nearestNpc() : undefined;
+        if (talker) {
+            this.talkTo(talker);
         } else if (keys && attack) {
             battle.spells.cancel();
             battle.attackPressed();
@@ -1169,7 +1211,7 @@ export class OffWorldScene extends Phaser.Scene {
         }
         this.steering = true;
         this.debugHold = false;
-        this.talkPending = false;
+        this.talkPending = undefined;
         this.battle.spells.cancel();
         this.battle.stopAttacking();
         const offset = directionOffset(direction);
@@ -1212,14 +1254,15 @@ export class OffWorldScene extends Phaser.Scene {
             return;
         }
         this.battle.clearTarget();
-        // Off-8B: a click on William talks to him (walking up to him first when far).
-        this.talkPending = false;
-        if (this.window === undefined && this.onHirer(tile.px, tile.py)) {
+        // Off-8B: a click on an NPC talks to it (walking up to it first when far).
+        this.talkPending = undefined;
+        const clicked = this.window === undefined ? this.npcAt(tile.px, tile.py) : undefined;
+        if (clicked) {
             this.leftHeld = false;
-            if (this.nearHirer()) this.openMercenaries();
-            else if (this.hirer) {
-                this.talkPending = true;
-                this.clickTile(this.hirer.def.tile.x, this.hirer.def.tile.y);
+            if (this.isNear(clicked)) this.talkTo(clicked);
+            else {
+                this.talkPending = clicked;
+                this.clickTile(clicked.npc.def.tile.x, clicked.npc.def.tile.y);
             }
             return;
         }
@@ -1283,8 +1326,20 @@ export class OffWorldScene extends Phaser.Scene {
     }
 }
 
-/** Off-8B: the box around William's feet that a click on him hits (px). */
-const HIRER_CLICK = { halfWidth: 16, height: 80, below: 6 } as const;
+/** Off-8B: the box around an NPC's feet that a click on it hits (px). */
+const NPC_CLICK = { halfWidth: 16, height: 80, below: 6 } as const;
+
+/** An NPC of the place and what talking to it opens (Off-10A). */
+interface TalkNpc {
+    npc: Npc;
+    opens: OffNpcOpens;
+}
+
+/** William's tile (`check offmerchire`). */
+function hirerTile(npcs: readonly TalkNpc[]): TilePoint | undefined {
+    const william = npcs.find((t) => t.opens === 'mercenaries');
+    return william ? { ...william.npc.def.tile } : undefined;
+}
 
 /** Time for the HUD to open before the arrival line is sent. */
 const ARRIVAL_MESSAGE_DELAY_MS = 300;
