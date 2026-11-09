@@ -147,6 +147,8 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Frases del mercenario y golpes por la espalda (Off-8D)
 - Mercenario que aguanta: vida, poción y huir (Off-8E)
 - Farms de Off (Off-10A)
+- Pits de las Farms (Off-10B, 9-nov-2026)
+- La Farm como casa y Select Map de Off (Off-10C, 9-nov-2026)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -1637,3 +1639,15 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - **Puertas de las Farms** (casillas de teleport `0x40` de los `.amd`, 250×250): **arefarm** tienda x59–60,y69–70 + (64,69) + (63,70), herrero x63–64,y92–93 (y su ala con el cartel "Blacksmith", x73–75,y86–87), almacén (35,89) y (40,90), Barracks x53–55,y132–133, base del teleport con estandartes x44–45,y101–102; **elvfarm** tienda x88–89,y178–179 + (93,178) + (92,179), herrero x111–112,y192–193, almacén (67,196) y (72,197), Barracks x95–97,y148–149, base del teleport x116–117,y157–158. Barracks (`elvbrk11.amd`): puerta de dentro x67–68,y70–71. Las dos Farms **no son espejo** ni traslación una de otra: cada edificio está desplazado distinto.
 - Los vendedores van en `OffPlaceDef.npcs` (`opens`: shop, smith, warehouse o mercenaries); la escena los pone en la casilla libre más cercana a `near` (el Shop Keeper de Elvine queda en 91,179). `check offaresdenfarm` / `offelvinefarm`.
 - **Herrero cortado:** el edificio del herrero (en las 2 ciudades y las 2 Farms) está pintado entero en el suelo (sprite 394/395) y encima lleva 18 tiras verticales (objeto 429, fila 86 en arefarm) que no encajan: quedan ~3 casillas más arriba y lo parten en dos. Se ignoran (`IGNORED_OBJECT_SPRITES` en `hb/HBMap.ts`, también en Survivors) y el suelo solo lo muestra bien. `check offbase` / `offbarracks`.
+
+## Pits de las Farms (Off-10B, 9-nov-2026)
+- helbreathnemesis.com `action=map&id=2` es **Aresden Farm** y `id=3` **Elvine Farm** (imagen a 500 px de un mapa de 250: casilla = px × 0,5). Aresden: 2 Slime, 1 Giant Ant, 2 Snake, 2 Giant Scorpion. Elvine: 1 Slime, 1 Giant Ant, 2 Snake, 3 Giant Scorpion y 1 Crop (fuera).
+- Snake → Orc (el más lejano a la llegada): en Aresden el del sureste (181–190, 202–208); en Elvine el del norte (81–91, 41–47). `ARESDEN_FARM_PITS` / `ELVINE_FARM_PITS` en `off/data/offPits.ts`.
+- Con 16 por pit (12 Scorpions) hay ~112–116 monstruos vivos por Farm y sigue a ~120 FPS. `check offaresdenfarmpits` / `offelvinefarmpits` (junto al pit de Slimes).
+
+## La Farm como casa y Select Map de Off (Off-10C, 9-nov-2026)
+- **Casa = Farm:** `offHomePlace(faction)` devuelve `offFarmOf(faction)` (sin bando, Traveler Zone). Lo usan morir, unirse, el personaje sin sitio guardado y salir de los Barracks sin `from`. Play sigue volviendo a `where` (Off-7E): un guardado viejo en la ciudad vuelve a la ciudad.
+- **Portales de bando:** el tipo de portal `'city'` pasó a `'faction'` (Traveler Zone y puertas de Promiseland) y lleva a la Farm, junto a su base de estandartes (`offTeleportArrival`).
+- **Llegadas:** `offArrivalIn(place, faction)` = junto al teleport del sitio (ciudad, Farm) o, si no tiene, junto al portal de tu bando (`offGateArrival`, Traveler Zone, Promiseland). Con `?offplace` sin `offat`, el mundo usa solo `offGateArrival` (la Farm sigue saliendo en su césped, `spawn`).
+- **Select Map de Off:** `off/scenes/OffMapSelectScene.ts`, copia reducida de `scenes/MapSelectScene.ts` con sus mismas medidas (`config/mapSelect.ts`): sin flechas ni carrusel (3 tarjetas como mucho), sin Level ni candados. Cada tarjeta: minimapa recortado al `playArea`, `name` y `blurb` (`OffPlaceDef.blurb`). Se abre con `openOverlay` (mundo en pausa); `choose(place)` y `debugPlaces()` para pruebas. Tarjetas: `offTeleportDestinations(from, faction)`. Sustituye a `OffTeleportScene` (borrada).
+- **Ojo con los checks:** sin `offplace`, una URL con `offfaction` ahora empieza en la Farm. Las situaciones viejas que daban por hecha la ciudad llevan ya `&offplace=aresden|elvine`. Nuevas: `offmapselect`, `offfarmteleport`, `offtravelerhome`.

@@ -9,7 +9,7 @@
 //   personaje queda unido para siempre (propietario, 6-nov-2026). Ya unido, su portal lleva directo a su ciudad y el
 //   del otro bando no deja pasar.
 // - Al morir se vuelve a la ciudad propia; sin bando, a Traveler Zone.
-// - Off-7A: el teleport de la ciudad deja elegir el mapa (OffTeleportScene; propietario, 8-nov-2026, como el portal de
+// - Off-7A: el teleport de la ciudad deja elegir el mapa (entonces OffTeleportScene, desde la Off-10C OffMapSelectScene; propietario, 8-nov-2026, como el portal de
 //   Survivors): Traveler Zone o Promiseland. Promiseland tiene las dos puertas del original (casillas de teleport del
 //   2ndmiddle.amd): la de arriba lleva a Elvine y la de abajo a Aresden, y por la de tu ciudad se llega y se vuelve.
 // - Off-8B: en cada ciudad, William (el funcionario del ayuntamiento del original) junto al teleport contrata
@@ -23,20 +23,24 @@
 //   sin dibujo nuestro, pisarla abre la elección de mapa. La puerta de los Barracks (arefarm x53–55,y132–133; elvfarm
 //   x95–97,y148–149) lleva a los Barracks de Survivors (`elvbrk11.amd`); su puerta de dentro (x67–68,y70–71) devuelve
 //   a la Farm de la que vienes.
+// - Off-10C: **tu Farm es tu casa** (propietario, 9-nov-2026): al unirte a un bando, al morir y sin sitio guardado
+//   apareces allí (Play sigue volviendo donde lo dejaste, Off-7E). Los portales de tu bando (los de Traveler Zone y las
+//   puertas de Promiseland) llevan a tu Farm. El teleport abre una Select Map como la de Survivors (OffMapSelectScene):
+//   desde la Farm, tu ciudad, Traveler Zone y Promiseland; desde la ciudad, tu Farm, Traveler Zone y Promiseland.
 import type { MapKey, MinimapKey, SoundKey, SpriteKey } from '../../config/assetManifest';
 import type { TileRect } from '../../data/maps';
 import type { NpcId } from '../../data/town';
 import type { TilePoint } from '../systems/TileMover';
-import { ARESDEN_PITS, ELVINE_PITS, pitSprites, PROMISELAND_PITS, TRAVELER_PITS, type OffPitDef } from './offPits';
+import { ARESDEN_FARM_PITS, ARESDEN_PITS, ELVINE_FARM_PITS, ELVINE_PITS, pitSprites, PROMISELAND_PITS, TRAVELER_PITS, type OffPitDef } from './offPits';
 import type { OffFaction, OffPlaceId } from './offPlaceIds';
 
 export { isOffFaction, isOffPlaceId, OFF_FACTIONS, OFF_PLACE_IDS, type OffFaction, type OffPlaceId } from './offPlaceIds';
 
 /**
- * Where a portal leads: a faction's city (asks to join the first time), a teleport (lets you choose the map), the
- * Barracks (Off-10A) or back to the place you came from (the Barracks' door).
+ * Where a portal leads: a faction's home, its Farm (asks to join the first time; Off-10C, before that its city), a
+ * teleport (lets you choose the map), the Barracks (Off-10A) or back to the place you came from (the Barracks' door).
  */
-export type OffPortalTarget = { kind: 'city'; faction: OffFaction } | { kind: 'teleport' } | { kind: 'barracks' } | { kind: 'back' };
+export type OffPortalTarget = { kind: 'faction'; faction: OffFaction } | { kind: 'teleport' } | { kind: 'barracks' } | { kind: 'back' };
 
 export interface OffPortalDef {
     /** Tiles that take you through when stepped on. */
@@ -70,6 +74,8 @@ export interface OffNpcSpot {
 
 export interface OffPlaceDef {
     name: string;
+    /** One line under the name on its Select Map card (Off-10C). */
+    blurb: string;
     asset: MapKey;
     minimap: MinimapKey;
     size: { width: number; height: number };
@@ -105,6 +111,7 @@ function rect(x1: number, y1: number, x2: number, y2: number): TileRect {
 export const OFF_PLACES: Record<OffPlaceId, OffPlaceDef> = {
     traveler: {
         name: 'Traveler Zone',
+        blurb: 'Easy monsters for beginners.',
         asset: 'map.traveler',
         minimap: 'minimap.traveler',
         size: { width: 170, height: 170 },
@@ -117,14 +124,15 @@ export const OFF_PLACES: Record<OffPlaceId, OffPlaceDef> = {
         sprites: [...WORLD_SPRITES, ...pitSprites(TRAVELER_PITS)],
         pits: TRAVELER_PITS,
         portals: [
-            { area: rect(80, 75, 82, 76), to: { kind: 'city', faction: 'aresden' }, drawn: false, arrival: { x: 81, y: 79 } },
-            { area: rect(127, 78, 129, 79), to: { kind: 'city', faction: 'elvine' }, drawn: false, arrival: { x: 128, y: 82 } },
+            { area: rect(80, 75, 82, 76), to: { kind: 'faction', faction: 'aresden' }, drawn: false, arrival: { x: 81, y: 79 } },
+            { area: rect(127, 78, 129, 79), to: { kind: 'faction', faction: 'elvine' }, drawn: false, arrival: { x: 128, y: 82 } },
         ],
         doors: [],
         npcs: [],
     },
     aresden: {
         name: 'Aresden',
+        blurb: 'The city of Aresden: shops and monster pits.',
         asset: 'map.aresden',
         minimap: 'minimap.aresden',
         size: { width: 300, height: 300 },
@@ -152,6 +160,7 @@ export const OFF_PLACES: Record<OffPlaceId, OffPlaceDef> = {
     },
     elvine: {
         name: 'Elvine',
+        blurb: 'The city of Elvine: shops and monster pits.',
         asset: 'map.elvine',
         minimap: 'minimap.elvine',
         size: { width: 300, height: 300 },
@@ -177,6 +186,7 @@ export const OFF_PLACES: Record<OffPlaceId, OffPlaceDef> = {
     },
     promiseland: {
         name: 'Promiseland',
+        blurb: 'Strong monsters for experienced hunters.',
         asset: 'map.promiseland',
         minimap: 'minimap.promiseland',
         size: { width: 250, height: 250 },
@@ -190,14 +200,15 @@ export const OFF_PLACES: Record<OffPlaceId, OffPlaceDef> = {
         portals: [
             // The original's two gates: north to Elvine, south to Aresden. Their tiles show nothing on the map: our portal
             // effect marks them (also on the minimap).
-            { area: rect(121, 21, 131, 21), to: { kind: 'city', faction: 'elvine' }, drawn: true, arrival: { x: 126, y: 24 } },
-            { area: rect(135, 228, 146, 228), to: { kind: 'city', faction: 'aresden' }, drawn: true, arrival: { x: 140, y: 224 } },
+            { area: rect(121, 21, 131, 21), to: { kind: 'faction', faction: 'elvine' }, drawn: true, arrival: { x: 126, y: 24 } },
+            { area: rect(135, 228, 146, 228), to: { kind: 'faction', faction: 'aresden' }, drawn: true, arrival: { x: 140, y: 224 } },
         ],
         doors: [],
         npcs: [],
     },
     aresdenFarm: {
         name: 'Aresden Farm',
+        blurb: 'Your home: shops and monster pits.',
         asset: 'map.aresdenFarm',
         minimap: 'minimap.aresdenFarm',
         size: { width: 250, height: 250 },
@@ -205,8 +216,8 @@ export const OFF_PLACES: Record<OffPlaceId, OffPlaceDef> = {
         // The lawn between the shop, the warehouse and the blacksmith.
         spawn: { x: 53, y: 78 },
         music: 'music.aresden',
-        sprites: [...WORLD_SPRITES, 'fx.effect11', ...FARM_NPC_SPRITES],
-        pits: [],
+        sprites: [...WORLD_SPRITES, 'fx.effect11', ...FARM_NPC_SPRITES, ...pitSprites(ARESDEN_FARM_PITS)],
+        pits: ARESDEN_FARM_PITS,
         portals: [
             // The original's stone base with banners (propietario, 9-nov-2026).
             { area: rect(44, 101, 45, 102), to: { kind: 'teleport' }, drawn: false, arrival: { x: 45, y: 104 } },
@@ -223,6 +234,7 @@ export const OFF_PLACES: Record<OffPlaceId, OffPlaceDef> = {
     },
     elvineFarm: {
         name: 'Elvine Farm',
+        blurb: 'Your home: shops and monster pits.',
         asset: 'map.elvineFarm',
         minimap: 'minimap.elvineFarm',
         size: { width: 250, height: 250 },
@@ -230,8 +242,8 @@ export const OFF_PLACES: Record<OffPlaceId, OffPlaceDef> = {
         // Survivors' town (data/town.ts): the same arrival.
         spawn: { x: 93, y: 186 },
         music: 'music.elvine',
-        sprites: [...WORLD_SPRITES, 'fx.effect11', ...FARM_NPC_SPRITES],
-        pits: [],
+        sprites: [...WORLD_SPRITES, 'fx.effect11', ...FARM_NPC_SPRITES, ...pitSprites(ELVINE_FARM_PITS)],
+        pits: ELVINE_FARM_PITS,
         portals: [
             { area: rect(116, 157, 117, 158), to: { kind: 'teleport' }, drawn: false, arrival: { x: 117, y: 160 } },
             // As Survivors' town: TOWN.barracksDoor / barracksExit.
@@ -248,6 +260,7 @@ export const OFF_PLACES: Record<OffPlaceId, OffPlaceDef> = {
     },
     barracks: {
         name: 'Barracks',
+        blurb: 'Training grounds.',
         asset: 'map.barracks',
         minimap: 'minimap.barracks',
         size: { width: 150, height: 150 },
@@ -271,17 +284,44 @@ export function offCityOf(faction: OffFaction): OffPlaceId {
     return faction;
 }
 
-/** Where the character starts (Play) and comes back after dying: its city, or Traveler Zone without a faction. */
-export function offHomePlace(faction: OffFaction | undefined): OffPlaceId {
-    return faction === undefined ? 'traveler' : offCityOf(faction);
+/** A faction's Farm (Off-10A). */
+export function offFarmOf(faction: OffFaction): OffPlaceId {
+    return faction === 'aresden' ? 'aresdenFarm' : 'elvineFarm';
 }
 
-/** The maps a city's teleport offers (Off-7A, owner: choose the map, as Survivors' portal), in this order. */
-export const OFF_TELEPORT_DESTINATIONS: readonly OffPlaceId[] = ['traveler', 'promiseland'];
+/**
+ * Home (Off-10C, owner: the Farm is your home): where joining a faction, dying and a character with nothing saved
+ * take you. Its Farm, or Traveler Zone without a faction.
+ */
+export function offHomePlace(faction: OffFaction | undefined): OffPlaceId {
+    return faction === undefined ? 'traveler' : offFarmOf(faction);
+}
 
-/** Where you appear in `place` when you come from `from` (a city): by its portal that leads there. */
-export function offArrivalIn(place: OffPlaceId, from: OffPlaceId): TilePoint | undefined {
-    return OFF_PLACES[place].portals.find((p) => p.to.kind === 'city' && offCityOf(p.to.faction) === from)?.arrival;
+/**
+ * The maps a teleport offers (Off-10C), in this order: from the Farm, your city, Traveler Zone and Promiseland; from the
+ * city, your Farm instead of the city. Without a faction (only by hand, ?offplace), the two hunting maps.
+ */
+export function offTeleportDestinations(from: OffPlaceId, faction: OffFaction | undefined): OffPlaceId[] {
+    const hunting: OffPlaceId[] = ['traveler', 'promiseland'];
+    if (faction === undefined) return hunting;
+    const other = from === offCityOf(faction) ? offFarmOf(faction) : offCityOf(faction);
+    return [other, ...hunting];
+}
+
+/** By that place's teleport (the city and the Farm). */
+export function offTeleportArrival(place: OffPlaceId): TilePoint | undefined {
+    return OFF_PLACES[place].portals.find((p) => p.to.kind === 'teleport')?.arrival;
+}
+
+/** By your faction's portal or gate in that place (Traveler Zone, Promiseland); undefined where there is none. */
+export function offGateArrival(place: OffPlaceId, faction: OffFaction | undefined): TilePoint | undefined {
+    if (faction === undefined) return undefined;
+    return OFF_PLACES[place].portals.find((p) => p.to.kind === 'faction' && p.to.faction === faction)?.arrival;
+}
+
+/** Where you appear in `place` when you come by teleport or through a gate: by its teleport, or by your gate. */
+export function offArrivalIn(place: OffPlaceId, faction: OffFaction | undefined): TilePoint | undefined {
+    return offTeleportArrival(place) ?? offGateArrival(place, faction);
 }
 
 export const OFF_PLACE_TEXT = {
@@ -290,7 +330,8 @@ export const OFF_PLACE_TEXT = {
     joinWarning: 'You can never change it.',
     joined: (faction: OffFaction) => `You are now a citizen of ${OFF_PLACES[offCityOf(faction)].name}.`,
     otherCity: (faction: OffFaction) => `Only citizens of ${OFF_PLACES[offCityOf(faction)].name} can enter.`,
-    teleportTitle: 'Teleport',
-    teleportQuestion: 'Where do you want to go?',
-    teleportCancel: 'Cancel',
+    mapSelectTitle: 'Select Map',
+    mapSelectPlay: 'Play',
+    mapSelectBack: 'Back',
+    mapSelectHelp: (place: string) => `Press Play to go to ${place}.`,
 } as const;
