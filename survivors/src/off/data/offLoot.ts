@@ -48,8 +48,11 @@ export const OFF_LOOT = {
      * shops ask (`check offbalance`, goldForGear).
      */
     goldMultiplier: 1,
-    /** Multiplies `valuableShare` (1 = the original). */
-    valuableMultiplier: 1,
+    /**
+     * Multiplies `valuableShare` (1 = the original). Owner (9-nov-2026: one item in 30 minutes): 2.5, a weapon or armour
+     * piece about every 30 kills instead of 70. Gold and potions stay as they were.
+     */
+    valuableMultiplier: 2.5,
     /** Time an item stays on the ground before it disappears. */
     groundLifeMs: 180_000,
     /** It blinks during its last seconds. */
