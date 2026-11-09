@@ -2,6 +2,13 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
+**Helbreath Off · Fase Off-10, bloque C: la Farm como casa y Select Map (2026-11-09).**
+- **Qué hace:** tu Farm es tu casa: unirte a un bando, morir, un personaje sin sitio guardado y los portales de tu bando (Traveler Zone, puertas de Promiseland) llevan a tu Farm, junto a su base de estandartes. El teleport (Farm o ciudad) abre una Select Map con la estructura de la de Survivors (tarjetas con minimapa, nombre y una línea; Play / Back; ←/→, Enter, Esc, mando). Desde la Farm: tu ciudad, Traveler Zone, Promiseland; desde la ciudad: tu Farm, Traveler Zone, Promiseland. Sustituye a la ventanita de la Off-7A (`OffTeleportScene`, borrada).
+- **Decisiones del propietario:** Play sigue volviendo donde lo dejaste (Off-7E); el portal de tu bando en Traveler Zone lleva a la Farm; Select Map como la de Survivors. A criterio de Claude: una línea en inglés por tarjeta, sin Level ni candados.
+- **Comprobado:** build; `check offmapselect offfarmteleport offteleport offtravelerhome offjoin offdeathhome offpromiselandback offcityback offbase` y 20 situaciones de Off más (ciudad, mercenario, tienda, herrero, almacén, magias, Farms, Barracks, offresume, offslots, portales), sin errores; captura de la Select Map. **Probado por el propietario.**
+- **Cómo probar:** `?off=world&offfaction=aresden&offplace=aresdenFarm` y pisar la base de estandartes; `?off=world&offreset&offlevel=5&offplace=traveler&offat=81,79` y unirse (aparece en Aresden Farm).
+- **Código:** `offHomePlace` / `offFarmOf` / `offTeleportDestinations` / `offArrivalIn` / `offGateArrival` / `OffPlaceDef.blurb` y portal `'faction'` en `off/data/offPlaces.ts`; `off/scenes/OffMapSelectScene.ts`; `OffWorldScene` (unirse, portales, teleport). Los checks con `offfaction` y sin `offplace` llevan ya `&offplace=` de su ciudad. NOTES.md, "La Farm como casa y Select Map de Off (Off-10C)".
+
 **Helbreath Off · Fase Off-10, bloque B: los pits de las Farms (2026-11-09).**
 - **Qué hace:** cada Farm tiene los 7 pits del original (helbreathnemesis.com mapas 2 y 3, casilla = px × 0,5). Aresden: 2 Slime, 1 Giant Ant, 1 Snake, 1 Orc, 2 Giant Scorpion. Elvine: 1 Slime, 1 Giant Ant, 1 Snake, 1 Orc, 3 Giant Scorpion.
 - **Decisiones del propietario:** sin el pit de Crop; el Snake más lejano a la llegada pasa a Orc; **el doble de monstruos** que en la ciudad (16 por pit, 12 los Scorpions).

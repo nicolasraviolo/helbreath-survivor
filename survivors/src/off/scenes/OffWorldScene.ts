@@ -22,7 +22,7 @@
 // portales. Pisar uno lleva al otro sitio con la vida, el maná y la estamina que tenías; el de una ciudad, sin bando,
 // pregunta antes si quieres unirte (OffConfirmScene, con el mundo en pausa). Al morir lejos de casa se reaparece en tu
 // ciudad (o en Traveler Zone sin bando).
-// Fase Off-7A: el teleport de la ciudad pregunta adónde ir (OffTeleportScene: Traveler Zone o Promiseland). En
+// Fase Off-7A: el teleport de la ciudad pregunta adónde ir (Traveler Zone o Promiseland; desde la Off-10C, OffMapSelectScene). En
 // Promiseland se llega por la puerta de tu ciudad (Elvine arriba, Aresden abajo) y por ella se vuelve.
 // Fase Off-5B: pisar la puerta de la tienda, el herrero o el almacén de tu ciudad abre su ventana (OffStoreScene /
 // OffWarehouseScene) encima del mundo, que sigue; como los portales, hay que salir de la puerta para que vuelva a abrir.
@@ -36,6 +36,8 @@
 // un clic en él abren su ventana (OffMercenaryScene; lejos, el clic lleva hasta él). Heal y escudos van a tu mercenario
 // con un clic sobre él, o con el mando empujando el stick derecho hacia él mientras están listas (flecha a tus pies y
 // aro en él, como el apuntado de Survivors); sin stick, a ti.
+// Fase Off-10C: tu Farm es tu casa: unirte, los portales de tu bando y morir llevan allí. El teleport (de la Farm o de la
+// ciudad) abre una Select Map como la de Survivors (OffMapSelectScene) con el mundo en pausa debajo.
 // Mapa, árboles que se transparentan, cámara, pasos y minimapa, como la ciudad de Survivors (scenes/TownScene.ts).
 import Phaser from 'phaser';
 import { CAMERA_LERP, DEPTH_DEBUG, GAME_WIDTH, TILE_SIZE } from '../../config/gameConfig';
@@ -57,7 +59,7 @@ import { Pool } from '../../utils/Pool';
 import type { MapLoadSceneData } from '../../scenes/MapLoadScene';
 import { OFF_MOVEMENT, OFF_NOVICE, OFF_STEP_MS, OFF_WHERE_SAVE_MS, TILES_PER_ANIMATION_CYCLE } from '../data/offWorld';
 import {
-    OFF_PLACE_TEXT, OFF_PLACES, offArrivalIn, offCityOf, offHomePlace, type OffBuildingKind, type OffDoorDef, type OffNpcOpens, type OffFaction, type OffPlaceDef, type OffPlaceId, type OffPortalDef,
+    OFF_PLACE_TEXT, OFF_PLACES, offArrivalIn, offFarmOf, offGateArrival, offHomePlace, offTeleportArrival, offTeleportDestinations, type OffBuildingKind, type OffDoorDef, type OffNpcOpens, type OffFaction, type OffPlaceDef, type OffPlaceId, type OffPortalDef,
 } from '../data/offPlaces';
 import { OFF_STORE_SCENE_KEY, type OffStoreSceneData, type OffStoreTab } from './OffStoreScene';
 import { OFF_SPELL_BOOK_SCENE_KEY, type OffSpellBookSceneData } from './OffSpellBookScene';
@@ -66,7 +68,7 @@ import { EVENT_LIST_EVENT } from '../../config/hud';
 import { Portal } from '../../entities/Portal';
 import { openOverlay } from '../../scenes/MenuOverlayScene';
 import { OFF_CONFIRM_SCENE_KEY, type OffConfirmSceneData } from './OffConfirmScene';
-import { OFF_TELEPORT_SCENE_KEY, type OffTeleportSceneData } from './OffTeleportScene';
+import { OFF_MAP_SELECT_SCENE_KEY, type OffMapSelectSceneData } from './OffMapSelectScene';
 import type { OffCarriedVitals } from '../systems/OffBattle';
 import { OffCharacter } from '../entities/OffCharacter';
 import { offLevelProgress } from '../data/offLevel';
@@ -119,10 +121,10 @@ let debugPlacePending = true;
 
 /**
  * Opens a place of Off through the map loading screen (almost unseen when it is already loaded). Without data: the
- * character's home (its city, or Traveler Zone without a faction).
+ * character's home (its Farm, or Traveler Zone without a faction).
  */
 export function startOffWorld(scene: Phaser.Scene, data?: OffWorldSceneData): void {
-    // Off-7E: Play puts the character back where it was (its city when nothing was saved).
+    // Off-7E: Play puts the character back where it was (home, its Farm since Off-10C, when nothing was saved).
     let sceneData: OffWorldSceneData = data ?? savedArrival();
     if (debugPlacePending && data === undefined && DEBUG_START.offPlace !== undefined) {
         sceneData = { place: DEBUG_START.offPlace, at: DEBUG_START.offAt };
@@ -152,7 +154,7 @@ function mercenaryLook(id: OffMercenaryId): ReturnType<typeof runSprites> {
     return runSprites(OFF_NOVICE, OFF_MERCENARIES[id].body, offEquipmentLook(offMercenaryGear(id, offSaveStore.level)));
 }
 
-/** Off-7E: the saved place and tile, as an arrival; its city with nothing saved. */
+/** Off-7E: the saved place and tile, as an arrival; home (its Farm, Off-10C) with nothing saved. */
 function savedArrival(): OffWorldSceneData {
     const where = offSaveStore.character.where;
     if (!where) return { place: offHomePlace(offSaveStore.character.faction) };
@@ -244,8 +246,8 @@ export class OffWorldScene extends Phaser.Scene {
         const home = offHomePlace(offSaveStore.character.faction);
         this.placeId = data?.place ?? home;
         this.place = OFF_PLACES[this.placeId];
-        // Without a tile (?offplace), by the gate of the character's city when the place has one (Promiseland, Off-7A).
-        const at = data?.at ?? offArrivalIn(this.placeId, home);
+        // Without a tile (?offplace), by the gate of the character's faction when the place has one (Promiseland, Off-7A).
+        const at = data?.at ?? offGateArrival(this.placeId, offSaveStore.character.faction);
         this.arrival = { ...data, place: this.placeId, ...(at ? { at } : {}) };
     }
 
@@ -270,7 +272,7 @@ export class OffWorldScene extends Phaser.Scene {
         this.character.wear(offEquipmentLook(offSaveStore.character.equipment), offWeaponTint(offSaveStore.character.equipment));
         this.character.update(this.mover, false, 0);
         this.audio = new AudioSystem(this);
-        // Coming back to life: here, on the place's spawn, if this is home; otherwise off to the character's city.
+        // Coming back to life: here, on the place's spawn, if this is home; otherwise off to the character's Farm (Off-10C).
         const respawnTile = (): TilePoint | undefined => {
             const homePlace = offHomePlace(offSaveStore.character.faction);
             if (homePlace !== this.placeId) {
@@ -507,7 +509,7 @@ export class OffWorldScene extends Phaser.Scene {
         }
         const faction = offSaveStore.character.faction;
         if (faction === to.faction) {
-            this.travel({ place: offCityOf(faction), at: cityArrival(faction), carried: this.carriedVitals() });
+            this.travel({ place: offFarmOf(faction), at: offTeleportArrival(offFarmOf(faction)), carried: this.carriedVitals() });
             return;
         }
         if (faction !== undefined) {
@@ -531,13 +533,14 @@ export class OffWorldScene extends Phaser.Scene {
             faction,
             onYes: () => {
                 offSaveStore.joinFaction(faction);
-                this.travel({ place: offCityOf(faction), at: cityArrival(faction), carried: this.carriedVitals(), message: OFF_PLACE_TEXT.joined(faction) });
+                // Off-10C: to your new home, the Farm.
+                this.travel({ place: offFarmOf(faction), at: offTeleportArrival(offFarmOf(faction)), carried: this.carriedVitals(), message: OFF_PLACE_TEXT.joined(faction) });
             },
         };
         openOverlay(this, OFF_CONFIRM_SCENE_KEY, data);
     }
 
-    /** A city's teleport (Off-7A): which map to go to, over the world, which waits paused. */
+    /** A teleport (Off-7A; Off-10C the Farm's too): Select Map, over the world, which waits paused. */
     private askDestination(): void {
         if (this.window === 'inventory') {
             this.scene.stop(OFF_INVENTORY_SCENE_KEY);
@@ -546,10 +549,12 @@ export class OffWorldScene extends Phaser.Scene {
         if (this.window) return;
         this.stopForWindow();
         this.mover.cancel();
-        const data: Omit<OffTeleportSceneData, 'returnTo'> = {
-            onChoose: (place) => this.travel({ place, at: offArrivalIn(place, this.placeId), carried: this.carriedVitals() }),
+        const faction = offSaveStore.character.faction;
+        const data: Omit<OffMapSelectSceneData, 'returnTo'> = {
+            places: offTeleportDestinations(this.placeId, faction),
+            onChoose: (place) => this.travel({ place, at: offArrivalIn(place, faction), carried: this.carriedVitals() }),
         };
-        openOverlay(this, OFF_TELEPORT_SCENE_KEY, data);
+        openOverlay(this, OFF_MAP_SELECT_SCENE_KEY, data);
     }
 
     // ---- Doors (Off-5B) ----
@@ -732,7 +737,7 @@ export class OffWorldScene extends Phaser.Scene {
     }
 
     /**
-     * Off-7E: remembers this place and tile for Play. Dead, its city instead (it comes back to life there). Nothing
+     * Off-7E: remembers this place and tile for Play. Dead, its home (the Farm) instead (it comes back to life there). Nothing
      * while leaving: travel() already saved the next place.
      */
     private saveWhere(): void {
@@ -1353,7 +1358,3 @@ function portalCentre(portal: OffPortalDef): { x: number; y: number } {
     return { x: portal.area.x + portal.area.width / 2, y: portal.area.y + portal.area.height / 2 };
 }
 
-/** In a city, by its teleport. */
-function cityArrival(faction: OffFaction): TilePoint | undefined {
-    return OFF_PLACES[offCityOf(faction)].portals.find((p) => p.to.kind === 'teleport')?.arrival;
-}

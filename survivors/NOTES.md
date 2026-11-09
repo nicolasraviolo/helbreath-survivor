@@ -148,6 +148,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Mercenario que aguanta: vida, poción y huir (Off-8E)
 - Farms de Off (Off-10A)
 - Pits de las Farms (Off-10B, 9-nov-2026)
+- La Farm como casa y Select Map de Off (Off-10C, 9-nov-2026)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -1643,3 +1644,10 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - helbreathnemesis.com `action=map&id=2` es **Aresden Farm** y `id=3` **Elvine Farm** (imagen a 500 px de un mapa de 250: casilla = px × 0,5). Aresden: 2 Slime, 1 Giant Ant, 2 Snake, 2 Giant Scorpion. Elvine: 1 Slime, 1 Giant Ant, 2 Snake, 3 Giant Scorpion y 1 Crop (fuera).
 - Snake → Orc (el más lejano a la llegada): en Aresden el del sureste (181–190, 202–208); en Elvine el del norte (81–91, 41–47). `ARESDEN_FARM_PITS` / `ELVINE_FARM_PITS` en `off/data/offPits.ts`.
 - Con 16 por pit (12 Scorpions) hay ~112–116 monstruos vivos por Farm y sigue a ~120 FPS. `check offaresdenfarmpits` / `offelvinefarmpits` (junto al pit de Slimes).
+
+## La Farm como casa y Select Map de Off (Off-10C, 9-nov-2026)
+- **Casa = Farm:** `offHomePlace(faction)` devuelve `offFarmOf(faction)` (sin bando, Traveler Zone). Lo usan morir, unirse, el personaje sin sitio guardado y salir de los Barracks sin `from`. Play sigue volviendo a `where` (Off-7E): un guardado viejo en la ciudad vuelve a la ciudad.
+- **Portales de bando:** el tipo de portal `'city'` pasó a `'faction'` (Traveler Zone y puertas de Promiseland) y lleva a la Farm, junto a su base de estandartes (`offTeleportArrival`).
+- **Llegadas:** `offArrivalIn(place, faction)` = junto al teleport del sitio (ciudad, Farm) o, si no tiene, junto al portal de tu bando (`offGateArrival`, Traveler Zone, Promiseland). Con `?offplace` sin `offat`, el mundo usa solo `offGateArrival` (la Farm sigue saliendo en su césped, `spawn`).
+- **Select Map de Off:** `off/scenes/OffMapSelectScene.ts`, copia reducida de `scenes/MapSelectScene.ts` con sus mismas medidas (`config/mapSelect.ts`): sin flechas ni carrusel (3 tarjetas como mucho), sin Level ni candados. Cada tarjeta: minimapa recortado al `playArea`, `name` y `blurb` (`OffPlaceDef.blurb`). Se abre con `openOverlay` (mundo en pausa); `choose(place)` y `debugPlaces()` para pruebas. Tarjetas: `offTeleportDestinations(from, faction)`. Sustituye a `OffTeleportScene` (borrada).
+- **Ojo con los checks:** sin `offplace`, una URL con `offfaction` ahora empieza en la Farm. Las situaciones viejas que daban por hecha la ciudad llevan ya `&offplace=aresden|elvine`. Nuevas: `offmapselect`, `offfarmteleport`, `offtravelerhome`.
