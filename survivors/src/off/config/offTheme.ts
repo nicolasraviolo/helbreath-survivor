@@ -165,6 +165,9 @@ export const OFF_THEME_SIZE = {
     /** Pill for LB / RB / Start: height, side padding. */
     pillHeight: 16,
     pillPadding: 5,
+    /** Pad hints row (Off-13B, as the question's): badge to its word, and between two hints. */
+    hintBadgeGap: 6,
+    hintGap: 18,
     /** Divider: the small diamond in the middle and the gap around it. */
     diamond: 3,
     diamondGap: 7,

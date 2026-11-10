@@ -82,6 +82,7 @@ import type { OffMonster } from '../entities/OffMonster';
 import { OffBattle } from '../systems/OffBattle';
 import { OffDuel, type OffDuelKind, type OffDuelReport } from '../dev/offDuel';
 import { offSaveStore } from '../systems/OffSaveStore';
+import { OFF_PAUSE_SCENE_KEY, type OffPauseSceneData } from './OffPauseScene';
 import { OFF_HUD_SCENE_KEY, OFF_OPEN_CHARACTER_EVENT, OFF_OPEN_PAUSE_EVENT, type OffHudSceneData, type OffHudState } from './OffHudScene';
 import { isOffGoodId } from '../data/offGoods';
 import { isOffGearKey, offEquipmentLook, offGearId, offGearRolls, offWeaponTint } from '../data/offItems';
@@ -91,8 +92,6 @@ import { OFF_RAIDS } from '../data/offRaiders';
 import { offHitChance, offPlayerHitRatio } from '../systems/OffCombatRules';
 import { offAttackMs } from '../data/offCombat';
 import { OFF_BAG_SCENE_KEY, type OffBagSceneData, type OffCharacterTab } from './OffBagScene';
-import type { PauseSceneData } from '../../scenes/PauseScene';
-import type { MenuOverlayData } from '../../scenes/MenuOverlayScene';
 import { directionOffset, findFreeTile, TileMover, type TilePoint } from '../systems/TileMover';
 import { OffPathfinder } from '../systems/OffPathfinder';
 import { Npc } from '../../entities/Npc';
@@ -596,6 +595,7 @@ export class OffWorldScene extends Phaser.Scene {
         this.mover.cancel();
         const faction = offSaveStore.character.faction;
         const data: Omit<OffMapSelectSceneData, 'returnTo'> = {
+            from: this.placeId,
             places: offTeleportDestinations(this.placeId, faction),
             onChoose: (place) => this.travel({ place, at: offArrivalIn(place, faction), carried: this.carriedVitals() }),
         };
@@ -796,11 +796,12 @@ export class OffWorldScene extends Phaser.Scene {
     public openPause(): void {
         if (!this.scene.isActive() || this.window) return;
         this.stopForWindow();
-        const data: PauseSceneData & MenuOverlayData = { gameSceneKey: OFF_WORLD_SCENE_KEY, returnTo: OFF_HUD_SCENE_KEY, quitTo: 'OffHome', hideHowToPlay: true };
+        // Off-13B: Off's own pause (OffPauseScene), no longer Survivors' PauseScene.
+        const data: OffPauseSceneData = { worldSceneKey: OFF_WORLD_SCENE_KEY, returnTo: OFF_HUD_SCENE_KEY, quitTo: 'OffHome' };
         this.scene.pause();
         this.scene.pause(OFF_HUD_SCENE_KEY);
-        this.scene.launch('Pause', data);
-        this.scene.bringToTop('Pause');
+        this.scene.launch(OFF_PAUSE_SCENE_KEY, data);
+        this.scene.bringToTop(OFF_PAUSE_SCENE_KEY);
     }
 
     /** C / Y: the character window on its Stats tab (Off-12C; before, Survivors' Character window in its Off mode). */

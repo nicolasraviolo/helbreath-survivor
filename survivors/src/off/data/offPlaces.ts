@@ -339,7 +339,8 @@ export const OFF_PLACE_TEXT = {
     joined: (faction: OffFaction) => `You are now a citizen of ${OFF_PLACES[offCityOf(faction)].name}.`,
     otherCity: (faction: OffFaction) => `Only citizens of ${OFF_PLACES[offCityOf(faction)].name} can enter.`,
     mapSelectTitle: 'Select Map',
-    mapSelectPlay: 'Play',
+    /** Off-13B: where you are now (the place you stand in is never a card). */
+    mapSelectHere: (place: string) => `You are in ${place}.`,
+    mapSelectTravel: 'Travel',
     mapSelectBack: 'Back',
-    mapSelectHelp: (place: string) => `Press Play to go to ${place}.`,
 } as const;

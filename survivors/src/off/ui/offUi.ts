@@ -668,6 +668,41 @@ export function offPadPill(scene: Phaser.Scene, x: number, cy: number, label: st
     return { pill: scene.add.container(x + width / 2, cy, [g, letters]), width };
 }
 
+/**
+ * Off-13B: the pad hints row of a window ("(A) Select   (B) Back"), centred on (cx, cy). Hidden at first: the window
+ * shows it while the pad is in use (its row is kept anyway, so the window doesn't change size).
+ */
+export function offPadHints(scene: Phaser.Scene, cx: number, cy: number, hints: readonly (readonly [OffPadButton, string])[]): Phaser.GameObjects.Container {
+    const parts: Phaser.GameObjects.GameObject[] = [];
+    let x = 0;
+    hints.forEach(([button, word], i) => {
+        if (i > 0) x += S.hintGap;
+        parts.push(offPadBadge(scene, x + S.badge / 2, 0, button));
+        x += S.badge + S.hintBadgeGap;
+        const t = offText(scene, x, 0, word, 'small', { originY: 0.5 });
+        parts.push(t);
+        x += t.width;
+    });
+    return scene.add.container(Math.round(cx - x / 2), cy, parts).setVisible(false);
+}
+
+// ---------------------------------------------------------------- tarjeta que se pulsa (Off-13B)
+
+/**
+ * A framed card that is itself the button (a map in Select Map): darker border at rest, bronze under the mouse, gold
+ * while it has the focus (plus the ring). Its contents are added by the window after it, on top.
+ */
+export function offCardControl(scene: Phaser.Scene, x: number, y: number, w: number, h: number, onClick: () => void): OffControl {
+    const g = scene.add.graphics();
+    const control = makeControl(scene, x, y, w, h, onClick, [g], (s) => {
+        g.clear();
+        g.fillStyle(hovering(s) || s.focused ? C.marked : C.card, 1).fillRect(x, y, w, h);
+        const border = !s.enabled ? C.line : s.focused ? C.gold : hovering(s) ? C.bronze : C.line;
+        g.lineStyle(1, border, 1).strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+    });
+    return control;
+}
+
 // ---------------------------------------------------------------- foco (Off-13A)
 
 export interface OffFocusGroup {

@@ -160,6 +160,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Ventana del personaje con la bolsa (Off-12B)
 - Pestañas Stats y Magic (Off-12C)
 - Ventana de pregunta (Off-13A)
+- Pausa, William y Select Map (Off-13B)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -1753,3 +1754,9 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - `off/scenes/OffDialogScene.ts` (clave `OffDialog`) sustituye a OffConfirmScene y OffDeleteScene: quien la abre (con `openOverlay`) pasa título, pregunta, aviso, botones (`label`, `variant`, `onPress`), cuál empieza marcado (`focus`) y cuál pulsan Esc / B (`cancel`). Medidas en `off/config/offDialog.ts`. Al pulsar un botón primero se cierra (lo de debajo se reanuda) y luego se llama a `onPress`; Select Character se reinicia al reanudarse, pero el reinicio va en cola, así que el borrado llega antes.
 - Pieza `offFocusGroup(controls, start)` en `off/ui/offUi.ts`: lleva el anillo por una fila o columna de `OffControl`, se salta los apagados (`isEnabled`) y el ratón mueve el anillo (`setOnHover`). Para la pausa (13B) y Select Character (13E).
 - **Ojo con el retardo de entrada**: el reloj de una escena (`this.time.now`) vale 0 en `create()` hasta su primer update, así que `openedAt = this.time.now` hace que el retardo no exista. Usar `this.game.loop.time`. Además, leer todas las pulsaciones cada frame aunque se ignoren: `justPressed` del teclado sigue "pulsado" hasta que se lee, y una tecla del retardo contestaría después. `MenuOverlayScene` (compartida con Survivors) y `OffBagScene` usan aún `this.time.now`: sin tocar.
+
+## Pausa, William y Select Map (Off-13B)
+- Off ya no usa `scenes/PauseScene.ts`: su pausa es `off/scenes/OffPauseScene.ts` (Settings sigue siendo el de Survivors, abierto con `openOverlay`). Quit pregunta con `OffDialogScene` (`calmWarning`: segunda línea en gris) y al parar `OffWorld` se guarda (su SHUTDOWN).
+- Una ventana que abre otra encima con `openOverlay` reinicia su retardo de entrada en `RESUME`; el listener se quita en `SHUTDOWN`, porque `scene.events` sobrevive entre aperturas y se acumularía.
+- Piezas nuevas en `offUi.ts`: `offPadHints` (fila de pistas A/B) y `offCardControl` (tarjeta que es botón, Select Map). Precios con `offGoldText` (`config/offMercenaryWindow.ts`).
+- Controls (`data/offControls.ts`) es una lista a mano: si cambia un control en `InputSystem` u `OffWorldScene`, hay que cambiarlo ahí.

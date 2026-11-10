@@ -34,6 +34,8 @@ export interface OffDialogSceneData extends MenuOverlayData {
     question: string;
     /** Second line in red (what can't be undone). */
     warning?: string;
+    /** Off-13B: the second line is reassuring, not a warning ("Your progress is saved."): grey instead of red. */
+    calmWarning?: boolean;
     /** Left to right. */
     buttons: readonly OffDialogButton[];
     /** The button marked when it opens. */
@@ -93,7 +95,7 @@ export class OffDialogScene extends Phaser.Scene {
         let blockH = question.height;
         let warning: Phaser.GameObjects.Text | undefined;
         if (this.params.warning) {
-            warning = offText(this, cx, 0, this.params.warning, 'body', { originX: 0.5, color: OFF_THEME_INK.bad, maxWidth: textW });
+            warning = offText(this, cx, 0, this.params.warning, 'body', { originX: 0.5, color: this.params.calmWarning ? OFF_THEME_INK.dim : OFF_THEME_INK.bad, maxWidth: textW });
             this.texts.push(warning);
             blockH += D.warningGap + warning.height;
         }
