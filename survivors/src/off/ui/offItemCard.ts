@@ -4,7 +4,7 @@
 //   Defense Ratio y Physical Absorption (armaduras) → Level → Required Str (con la STR de velocidad máxima).
 // Sin Endurance (Off no gasta objetos). La comparación con lo que llevas puesto va al final de la fila, en gris
 // "(now …)", con flecha ▲ / ▼ y color (offStatRow); ya cuenta Sharp, Ancient y tu STR.
-// El almacén la usa desde la Off-13C; la tienda sigue con el cuadro viejo (off/ui/offItemBox.ts) hasta la 13D.
+// El almacén la usa desde la Off-13C y la tienda y el herrero desde la Off-13D.
 import { offBestSpeedStr, offSpeedLabel } from '../data/offCombat';
 import { offGood } from '../data/offGoods';
 import {

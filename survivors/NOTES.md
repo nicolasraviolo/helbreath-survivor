@@ -162,6 +162,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Ventana de pregunta (Off-13A)
 - Pausa, William y Select Map (Off-13B)
 - Almacén y objetos apilados (Off-13C)
+- Tienda y herrero (Off-13D)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -1768,4 +1769,12 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - Las acciones sobre un montón (beber, tirar, guardar, sacar) usan su índice `last`: así la celda no se mueve mientras quedan. En la Bag, `stackOf` vuelve a encontrar el montón marcado si su primer objeto cambió de índice.
 - El límite de 20 pociones sigue contando objetos (no celdas).
 - Pieza `off/ui/offItemGrid.ts` (pozo + celdas + `show(stacks)` + `step`), usada por la Bag, el almacén y el muestrario. `offSetItemIcon` pinta un icono teñido. `offPadHints` acepta botones que no son A/B/X/Y ("LB / RB") como píldora.
-- La tienda (13D) aún lista cada poción en su fila al vender.
+- La tienda (13D) también junta los montones en Sell (una fila "Red Potion ×6") y vende el `last`.
+
+## Tienda y herrero (Off-13D)
+- Una escena para los dos (`off/scenes/OffStoreScene.ts`, medidas en `off/config/offStore.ts`, textos en `OFF_STORE_TEXT`). Lista con `offListRow` (Off-13D: parámetro `indent` para el dibujo del objeto antes del nombre), ficha `offItemCard` y, para magias, las líneas de `offSpellBoxLines` (lo único que queda de `off/ui/offItemBox.ts`, más `offItemNameColor`). `off/config/offEquipment.ts` se borró: era el cuadro viejo.
+- **Un solo hueco de avisos** bajo el botón (2 líneas): lo que acaba de pasar (verde), si no por qué el botón está apagado (rojo; "ya la sabes" en gris) y el gris "You couldn't wear it yet". En Off se puede comprar equipo que aún no puedes ponerte: solo frenan el oro, la bolsa llena y el máximo de pociones (`roomFor`).
+- En las filas el rojo es solo "no cumples el requisito"; un precio que no puedes pagar va en `dim`. El botón apagado (`offButton`) usa ahora `INK.dim` en todas las ventanas (con `faint` daba 3,3:1).
+- Armas del herrero por tipo (propietario): `WEAPON_FAMILY` en `off/data/offStore.ts`. **Un arma nueva hay que añadirla ahí**; si no, sale en "Other Weapons". Rapier va con las Short Swords.
+- Vender arma o armadura pregunta con `OffDialogScene` (`openOverlay` pausa la tienda y la reanuda al cerrar); el Sí llama a `sellMarked()`. Ojo en `check`: `scene.launch` no está activo hasta el siguiente fotograma, así que `isActive('OffDialog')` justo después de `act()` da false.
+- ↑ ↓ mantenidos repiten (`isHeld` + `repeatDelayMs` / `repeatMs`); las pestañas reservan siempre el hueco de las píldoras LB / RB para no moverse al cambiar de ratón a mando.

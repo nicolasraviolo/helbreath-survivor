@@ -67,7 +67,7 @@ export const OFF_THEME_INK = {
     dim: '#a8997a',
     /** "(now …)" comparisons and fine print. */
     note: '#978769',
-    /** Filler of empty slots and keys ("Empty"), and disabled buttons. */
+    /** Filler of empty slots and keys ("Empty"). Off-13D: disabled buttons use `dim` (faint gave 3.3:1). */
     faint: '#7d6a4a',
     gold: '#d8b46a',
     /** Section labels inside lists (CIRCLE 3). */

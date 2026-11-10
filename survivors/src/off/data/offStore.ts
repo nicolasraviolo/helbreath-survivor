@@ -21,10 +21,26 @@ export type OffStoreKind = Exclude<OffBuildingKind, 'warehouse'>;
 /** What the shop sells, in order. */
 const SHOP_GOODS: readonly OffGoodId[] = ['redPotion', 'bigRedPotion', 'bluePotion', 'bigBluePotion', 'greenPotion', 'bigGreenPotion'];
 
-/** The blacksmith's sections, in this order; each with its items cheapest STR first (then price). */
+/** Off-13D (propietario, 10-nov-2026): the weapons by kind, in this order. Rapier goes with the short swords. */
+export type OffWeaponFamily = 'shortSword' | 'longSword' | 'axe' | 'hammer';
+const WEAPON_FAMILY: Partial<Record<OffItemId, OffWeaponFamily>> = {
+    dagger: 'shortSword', shortSword: 'shortSword', rapier: 'shortSword',
+    longSword: 'longSword', scimitar: 'longSword', falchion: 'longSword', broadSword: 'longSword', claymore: 'longSword', greatSword: 'longSword', flamberge: 'longSword',
+    lightAxe: 'axe', tomahawk: 'axe', doubleAxe: 'axe', warAxe: 'axe', battleAxe: 'axe',
+    hammer: 'hammer', battleHammer: 'hammer',
+};
+
+/**
+ * The blacksmith's sections, in this order; each with its items cheapest STR first (then price). A weapon missing
+ * from WEAPON_FAMILY goes to "Other Weapons" (only shown when it has something).
+ */
 // Off-11A: the wands in their own section, after the weapons; the rare ones (negative Item.cfg price) are not sold.
-const SMITH_SECTIONS: readonly { title: string; slots: readonly OffSlotId[]; wands?: true }[] = [
-    { title: 'Weapons', slots: ['weapon'] },
+const SMITH_SECTIONS: readonly { title: string; slots: readonly OffSlotId[]; wands?: true; family?: OffWeaponFamily | 'other' }[] = [
+    { title: 'Short Swords', slots: ['weapon'], family: 'shortSword' },
+    { title: 'Long Swords', slots: ['weapon'], family: 'longSword' },
+    { title: 'Axes', slots: ['weapon'], family: 'axe' },
+    { title: 'Hammers', slots: ['weapon'], family: 'hammer' },
+    { title: 'Other Weapons', slots: ['weapon'], family: 'other' },
     { title: 'Wands', slots: ['weapon'], wands: true },
     { title: 'Shields', slots: ['shield'] },
     { title: 'Armor', slots: ['helm', 'body', 'legs', 'boots', 'cape'] },
@@ -39,14 +55,16 @@ function smithSections(): OffStoreSection<OffItemId>[] {
     const ids = Object.keys(OFF_ITEMS) as OffItemId[];
     const isWand = (id: OffItemId): boolean => { const item: OffItemDef = OFF_ITEMS[id]; return item.kind === 'weapon' && item.wand !== undefined; };
     const isRare = (id: OffItemId): boolean => { const item: OffItemDef = OFF_ITEMS[id]; return item.rare === true; };
-    return SMITH_SECTIONS.map(({ title, slots, wands }) => ({
+    const inFamily = (id: OffItemId, family: OffWeaponFamily | 'other' | undefined): boolean =>
+        family === undefined || (WEAPON_FAMILY[id] ?? 'other') === family;
+    return SMITH_SECTIONS.map(({ title, slots, wands, family }) => ({
         title,
         items: ids
-            .filter((id) => slots.includes(OFF_ITEMS[id].slot) && !isRare(id) && isWand(id) === (wands === true))
+            .filter((id) => slots.includes(OFF_ITEMS[id].slot) && !isRare(id) && isWand(id) === (wands === true) && (wands === true || inFamily(id, family)))
             .sort((a, b) => slots.indexOf(OFF_ITEMS[a].slot) - slots.indexOf(OFF_ITEMS[b].slot)
                 || OFF_ITEMS[a].strToEquip - OFF_ITEMS[b].strToEquip
                 || OFF_ITEMS[a].price - OFF_ITEMS[b].price),
-    }));
+    })).filter((section) => section.items.length > 0);
 }
 
 /** What each store sells, by sections. */
@@ -65,32 +83,61 @@ export function offSellPrice(id: OffGoodId | OffItemId): number {
     return Math.max(1, Math.floor(offPrice(id) * OFF_STORE.sellShare));
 }
 
+const gold = (n: number): string => n.toLocaleString('en-US');
+
+/** The store windows' words (Off-13D). The warehouse uses warehouseTitle, stored, taken, bagFull, potionLimit, warehouseFull. */
 export const OFF_STORE_TEXT = {
     title: { shop: 'Shop', smith: 'Blacksmith' } satisfies Record<OffStoreKind, string>,
+    subtitle: {
+        shop: 'Potions and spells · buys from your bag at half price',
+        smith: 'Weapons, shields and armor · buys from your bag at half price',
+    } satisfies Record<OffStoreKind, string>,
     warehouseTitle: 'Warehouse',
     tabs: { buy: 'Buy', sell: 'Sell', magic: 'Magic' },
-    /** The left button's label on each tab. */
+    goldLabel: 'Gold',
+    /** Column labels over the list (shown in capitals). */
+    columns: { item: 'Item', spell: 'Spell', needs: 'Needs', price: 'Price', youGet: 'You get' },
+    more: (n: number) => `${n} more`,
+    /** The card's button on each tab; a stack sells one by one. */
     actButton: { buy: 'Buy', sell: 'Sell', magic: 'Learn' },
+    sellOne: 'Sell one',
     learned: 'Learned',
-    learnt: (name: string, price: number) => `You learned ${name} for ${price.toLocaleString('en-US')} gold.`,
-    cantLearn: { known: 'You already know it.', int: 'Your Int is too low (in red).', gold: 'Not enough gold.' },
-    closeButton: 'Close',
-    itemHeader: 'ITEM',
-    priceHeader: 'PRICE',
-    gold: (amount: number) => `Gold: ${amount.toLocaleString('en-US')}`,
-    bought: (name: string, price: number) => `You bought the ${name} for ${price.toLocaleString('en-US')} gold.`,
-    sold: (name: string, price: number) => `You sold the ${name} for ${price.toLocaleString('en-US')} gold.`,
-    noGold: 'Not enough gold.',
+    /** The card's price row. */
+    priceLabel: { buy: 'Price', sell: 'You get', magic: 'Price' },
+    priceLabelOne: 'You get (one)',
+    potionsCarried: 'Potions carried',
+    inYourBag: 'In your bag',
+    sellAll: (n: number) => `All ${n} sell for`,
+    /** Why the button is off (red under it). */
+    noGold: (have: number) => `Not enough gold · you have ${gold(have)}`,
     bagFull: 'Your bag is full.',
     potionLimit: "You can't carry more potions.",
-    nothingToSell: 'Your bag is empty. What you wear is not for sale.',
-    cantWear: 'You could not wear it yet (in red).',
+    intShort: (need: number, have: number) => `Needs Int ${need} · you have ${have}`,
+    known: 'You already know this spell.',
+    /** Grey under the button: you may buy it, but not wear it yet. */
+    cantWearYet: (needs: string) => `You couldn't wear it yet (${needs})`,
+    bought: (name: string, price: number) => `You bought a ${name} for ${gold(price)} gold.`,
+    sold: (name: string, price: number) => `You sold a ${name} for ${gold(price)} gold.`,
+    learnt: (name: string, price: number) => `You learned ${name} for ${gold(price)} gold.`,
+    nothingToSell: 'Your bag is empty.',
+    nothingToSellCard: 'Nothing to sell.',
+    nothingToSellNote: "What you wear can't be sold: take it off first.",
+    pickHint: 'Pick something to see it here.',
+    /** Selling a weapon or armour asks first (owner, 10-nov-2026); potions and loot sell one by one. */
+    sellTitle: 'Sell',
+    sellQuestion: (name: string, price: number) => `Sell the ${name} for ${gold(price)} gold?`,
+    sellCalm: 'Shops buy at half price.',
+    sellSpecial: "Its attributes can't be bought back.",
+    /** Help line, by device: the verb of the tab, left out when the marked row can't be bought / sold / learned. */
+    helpMouse: (verb: string | undefined) => (verb
+        ? `Click: mark · Double-click or Enter: ${verb} · Wheel: scroll · Tab: change tab · Esc: close`
+        : 'Click: mark · Wheel: scroll · Tab: change tab · Esc: close'),
+    helpPad: (verb: string | undefined): readonly (readonly [string, string])[] => (verb
+        ? [['A', verb], ['LB / RB', 'Change tab'], ['B', 'Close']]
+        : [['LB / RB', 'Change tab'], ['B', 'Close']]),
     stored: (name: string) => `You stored the ${name}.`,
     taken: (name: string) => `You took the ${name}.`,
     warehouseFull: 'The warehouse is full.',
-    /** Help line, by device. */
-    storeHelpMouse: 'Click: mark · Double-click or Enter: buy / sell / learn · Tab: change tab · Esc: close',
-    storeHelpPad: 'A: buy / sell / learn · LB / RB: change tab · B: close',
 } as const;
 
 /** Off-13C: the warehouse window's words (stored / taken / full come from OFF_STORE_TEXT). */

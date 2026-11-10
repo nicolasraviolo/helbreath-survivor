@@ -270,7 +270,7 @@ export function offButton(
         const fill = main ? (hovering(s) ? C.goldLight : C.gold) : hovering(s) ? C.hover : C.button;
         g.fillStyle(fill, 1).fillRect(x, y, width, height);
         g.lineStyle(1, main ? C.goldLight : s.enabled ? C.bronze : C.line, 1).strokeRect(x + 0.5, y + 0.5, width - 1, height - 1);
-        text.setColor(!s.enabled ? INK.faint : main ? INK.onGold : current === 'danger' ? INK.bad : INK.text);
+        text.setColor(!s.enabled ? INK.dim : main ? INK.onGold : current === 'danger' ? INK.bad : INK.text);
         offFitText(text, 'body', width - S.textInset * 2);
     });
     return {
@@ -401,13 +401,16 @@ export interface OffListRow extends OffControl {
 /**
  * A selectable list row (spells, items): columns of text, a line under it; marked = gold bar on the left and darker
  * gold fill. The first column is the name: it takes the room the others leave and shrinks if needed.
+ * Off-13D: `indent` leaves room before the name (the store draws the item's picture there).
  */
-export function offListRow(scene: Phaser.Scene, x: number, y: number, width: number, columns: readonly OffListColumn[], onClick: () => void): OffListRow {
+export function offListRow(
+    scene: Phaser.Scene, x: number, y: number, width: number, columns: readonly OffListColumn[], onClick: () => void, indent = 0,
+): OffListRow {
     const h = S.listRowHeight;
     const pad = S.listRowPadding;
     const g = scene.add.graphics();
     const fixed = columns.slice(1).reduce((sum, c) => sum + (c.width ?? 0), 0);
-    const placed = columns.map((col, i) => ({ col, w: i === 0 ? width - pad * 2 - fixed : col.width ?? 0, left: x + pad }));
+    const placed = columns.map((col, i) => ({ col, w: i === 0 ? width - pad * 2 - fixed - indent : col.width ?? 0, left: x + pad + (i === 0 ? indent : 0) }));
     // The other columns sit side by side from the right edge, the last one at the far right.
     let cursor = x + width - pad;
     for (let i = placed.length - 1; i > 0; i -= 1) {
