@@ -109,7 +109,7 @@ export const OFF_STATS_PAGE = {
 export const OFF_MAGIC_PAGE = {
     x: 256,
     /** List panel width (a row fits "Absolute Magic Protection" with its key and mana); the card takes the rest. */
-    listW: 266,
+    listW: 268,
     gap: 12,
     labelGap: 24,
     /** Columns of a list row after the name. */

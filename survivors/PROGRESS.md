@@ -7,7 +7,7 @@
 Sin leer enteros (grep): `CHECK.md` (situaciones del check y atajos), `PROGRESS-historial.md` (bloques hechos), `NOTES.md`, `docs/DECISIONES.md`.
 
 ## Estado
-- **Helbreath Off:** Fase Off-12 (rediseño de ventanas) en curso, rama `fase-Off-12`: 12A, 12B y 12C ✅ (10-nov-2026). Siguiente: 12D, LB / RB y repaso (ver `PROGRESS-off.md`).
+- **Helbreath Off:** Fase Off-12 (rediseño de ventanas) en curso, rama `fase-Off-12`: 12A a 12D ✅ (10-nov-2026). Siguiente: cerrar la fase o llevar el estilo a tienda, almacén, etc. (ver `PROGRESS-off.md`).
 - **Survivors:** en pausa. Fase 30 ✅ (28-oct-2026). Siguiente: Fase 31, Aresden y Elvine.
 
 **Fases completadas** (✅):

@@ -44,7 +44,7 @@ import { OffStatsPage } from '../ui/offStatsPage';
 import type { OffWindowPage } from '../ui/offWindowPage';
 import {
     offBar, offBarHeight, offBox, offButton, offCell, offCloseButton, offDivider, offFitText, offFrame, offLabel,
-    offLayoutIssues, offRule, offStatRow, offTab, offText, type OffBar, type OffButton, type OffCell, type OffControl, type OffTab,
+    offLayoutIssues, offPadPill, offRule, offStatRow, offTab, offText, type OffBar, type OffButton, type OffCell, type OffControl, type OffTab,
 } from '../ui/offUi';
 
 export const OFF_BAG_SCENE_KEY = 'OffBag';
@@ -60,6 +60,8 @@ export interface OffBagSceneData {
     pending?: OffStats;
     /** Internal (tab change): no input delay, and the focus starts on the tab. */
     fromTab?: boolean;
+    /** Internal (tab change, Off-12D): the Bag's filter, marked item and cell, kept to come back to them. */
+    bagView?: OffBagView;
     /** Gear changed: the world dresses the character again. */
     onGearChange: () => void;
     /** After closing. */
@@ -95,11 +97,28 @@ type Selected = { kind: 'bag'; index: number } | { kind: 'slot'; slot: OffSlotId
 
 type MainAction = 'equip' | 'drink' | 'use' | 'remove';
 
+/** What the Bag tab looked like when the window left it (Off-12D). */
+interface OffBagView {
+    filter: OffBagFilter;
+    selected: Selected;
+    /** What the marked bag index held: if the world moved the bag meanwhile, the mark is not kept. */
+    selectedItem: OffBagItemKey | undefined;
+    cell: number | undefined;
+}
+
 export class OffBagScene extends Phaser.Scene {
     private params!: OffBagSceneData;
     private tab: OffCharacterTab = 'bag';
     private tabs: OffCharacterTab[] = [];
     private tabButtons: OffTab[] = [];
+    /** LB / RB hints beside the tabs, shown only while the pad is in use. */
+    private padPills: Phaser.GameObjects.Container[] = [];
+    /** Cell to go back to from the header (the one marked before leaving the Bag). */
+    private bagCell: number | undefined;
+    /** Points pending when the close warning went out (0 = none yet): the same points close at the next try. */
+    private warnedPoints = 0;
+    /** Development: the LB / RB hints shown without a pad. */
+    private forcePadHints = false;
     /** Stats or Magic (undefined on Bag, which the scene draws itself). */
     private page: OffWindowPage | undefined;
     private added: OffStats = noPoints();
@@ -145,6 +164,8 @@ export class OffBagScene extends Phaser.Scene {
         this.tabs = offSaveStore.character.spells.length > 0 ? ['bag', 'stats', 'magic'] : ['bag', 'stats'];
         this.tab = data.tab !== undefined && this.tabs.includes(data.tab) ? data.tab : 'bag';
         this.tabButtons = [];
+        this.padPills = [];
+        this.warnedPoints = 0;
         this.page = undefined;
         this.added = data.pending ?? noPoints();
         this.cells = [];
@@ -154,7 +175,8 @@ export class OffBagScene extends Phaser.Scene {
         this.cardRows = [];
         this.cardTexts = [];
         this.shown = [];
-        this.filter = 'all';
+        this.filter = data.bagView?.filter ?? 'all';
+        this.bagCell = data.bagView?.cell;
         this.focus = { kind: 'cell', i: 0 };
         this.selected = undefined;
         this.drawnBag = undefined;
@@ -186,7 +208,9 @@ export class OffBagScene extends Phaser.Scene {
         this.inputSystem = new InputSystem(this);
         // Every piece has its own click zone: the input system's own pointer moves nothing here.
         this.inputSystem.setPointerMaxY(-1);
-        this.selected = this.bag.length > 0 ? { kind: 'bag', index: 0 } : undefined;
+        // Back from another tab: what was marked, or nothing (the first item may be hidden by the kept filter).
+        if (this.params.bagView) this.selected = this.restoredSelection();
+        else this.selected = this.bag.length > 0 ? { kind: 'bag', index: 0 } : undefined;
         if (this.page) this.page.focusFirst();
         else this.focus = { kind: 'cell', i: 0 };
         if (this.params.fromTab) {
@@ -210,6 +234,8 @@ export class OffBagScene extends Phaser.Scene {
         this.updateBars();
         const input = this.inputSystem;
         input.update();
+        const pad = this.forcePadHints || input.getLastDevice() === 'gamepad';
+        for (const pill of this.padPills) pill.setVisible(pad);
         // Picked up, drunk or worn meanwhile (the world goes on): draw it all again.
         const saved = offSaveStore.character;
         if (this.drawnBag !== saved.bag || this.drawnEquipment !== saved.equipment || this.drawnGold !== saved.gold) this.refresh();
@@ -222,6 +248,12 @@ export class OffBagScene extends Phaser.Scene {
             return;
         }
         if (pageUsed) return;
+        // LB / RB (and Tab): previous / next tab, round the ends (Off-12D).
+        const tabStep = input.justPressed(Action.OffPrevTarget) ? -1 : input.justPressed(Action.OffNextTarget) || input.justPressed(Action.OffSwitchTab) ? 1 : 0;
+        if (tabStep !== 0) {
+            this.stepTab(tabStep);
+            return;
+        }
         if (input.justPressed(Action.MenuLeft)) this.move(-1, 0);
         else if (input.justPressed(Action.MenuRight)) this.move(1, 0);
         else if (input.justPressed(Action.MenuUp)) this.move(0, -1);
@@ -253,9 +285,18 @@ export class OffBagScene extends Phaser.Scene {
         const close = S.tabHeight;
         const tabY = top + (W.headerH - S.tabHeight) / 2;
         const count = this.tabs.length;
-        const tabX = right - close - S.textInset * 2 - count * W.tabW - (count - 1) * W.tabGap;
-        offText(this, x, top, saved.name, 'title', { maxWidth: tabX - x - S.padding });
-        offText(this, x, top + W.subtitleGap, OFF_BAG_TEXT.subtitle(city, offSaveStore.level), 'small', { maxWidth: tabX - x - S.padding });
+        // LB [tabs] RB ✕: the pills keep their room on every device, so nothing moves when the pad wakes up.
+        const lb = offPadPill(this, 0, tabY + S.tabHeight / 2, OFF_BAG_TEXT.prevTabPad);
+        const rb = offPadPill(this, 0, tabY + S.tabHeight / 2, OFF_BAG_TEXT.nextTabPad);
+        const rbX = right - close - W.tabGap - rb.width;
+        const tabX = rbX - W.tabGap - count * W.tabW - (count - 1) * W.tabGap;
+        const lbX = tabX - W.tabGap - lb.width;
+        lb.pill.setX(lbX + lb.width / 2);
+        rb.pill.setX(rbX + rb.width / 2);
+        this.padPills = [lb.pill, rb.pill];
+        for (const pill of this.padPills) pill.setVisible(false);
+        offText(this, x, top, saved.name, 'title', { maxWidth: lbX - x - S.padding });
+        offText(this, x, top + W.subtitleGap, OFF_BAG_TEXT.subtitle(city, offSaveStore.level), 'small', { maxWidth: lbX - x - S.padding });
         offRule(this, x, top + W.headerH, right - x, C.line);
         this.tabs.forEach((tab, i) => {
             const button = offTab(this, tabX + i * (W.tabW + W.tabGap), tabY, W.tabW, OFF_BAG_TEXT.tabs[tab], () => this.showTab(tab));
@@ -548,6 +589,7 @@ export class OffBagScene extends Phaser.Scene {
             const slot = SLOTS[focus.i];
             if (slot) this.selected = { kind: 'slot', slot };
         }
+        if (focus.kind === 'cell' && this.tab === 'bag') this.bagCell = focus.i;
         this.control(focus)?.setFocused(true);
         if (this.tab !== 'bag') return;
         this.drawCells();
@@ -629,7 +671,7 @@ export class OffBagScene extends Phaser.Scene {
         }
         if (dy <= 0) return;
         if (this.page) this.enterPage(this.page); else if (f.kind === 'close') this.setFocus({ kind: 'filter', i: 0 });
-        else this.setFocus({ kind: 'cell', i: G.columns - 1 });
+        else this.setFocus({ kind: 'cell', i: this.bagCell ?? G.columns - 1 });
     }
 
     /** The focus leaves the header for the page's own (the scene keeps a non-header focus it never draws). */
@@ -646,7 +688,29 @@ export class OffBagScene extends Phaser.Scene {
             this.setFocus({ kind: 'tab', i: this.tabs.indexOf(tab) });
             return;
         }
-        this.scene.restart({ ...this.params, tab, pending: this.added, fromTab: true });
+        const bagView = this.tab === 'bag' ? this.bagView() : this.params.bagView;
+        this.scene.restart({ ...this.params, tab, pending: this.added, fromTab: true, bagView });
+    }
+
+    /** LB / RB: the tab before or after this one, round the ends (2 or 3 tabs, by spells known). */
+    private stepTab(step: number): void {
+        const n = this.tabs.length;
+        this.showTab(this.tabs[(this.tabs.indexOf(this.tab) + step + n) % n]);
+    }
+
+    /** The Bag as it is now, to come back to it (the marked cell, or the one last left). */
+    private bagView(): OffBagView {
+        const cell = this.focus.kind === 'cell' ? this.focus.i : this.bagCell;
+        const selectedItem = this.selected?.kind === 'bag' ? this.bag[this.selected.index] : undefined;
+        return { filter: this.filter, selected: this.selected, selectedItem, cell };
+    }
+
+    /** The item marked before leaving the Bag, if it is still there and shown (the world may have changed it). */
+    private restoredSelection(): Selected {
+        const view = this.params.bagView;
+        const sel = view?.selected;
+        if (sel?.kind === 'bag') return this.bag[sel.index] === view?.selectedItem && this.passes(this.bag[sel.index]) ? sel : undefined;
+        return sel;
     }
 
     /** The slot at that side and row, or the lowest working one above it (the ring is still to come). */
@@ -749,6 +813,13 @@ export class OffBagScene extends Phaser.Scene {
     }
 
     public close(): void {
+        // Points spread and not confirmed: warn once, the next close drops them (Off-12D).
+        const pending = OFF_STAT_IDS.reduce((sum, id) => sum + this.added[id], 0);
+        if (pending > 0 && pending !== this.warnedPoints) {
+            this.warnedPoints = pending;
+            this.say(OFF_BAG_TEXT.unconfirmedClose);
+            return;
+        }
         this.scene.stop();
         this.params.onClose();
     }
@@ -776,10 +847,16 @@ export class OffBagScene extends Phaser.Scene {
     }
 
     /** Pad / arrows, for `check offbagpad`: 'left' | 'right' | 'up' | 'down' | 'a'. */
-    public debugInput(key: 'left' | 'right' | 'up' | 'down' | 'a'): string {
-        if (key === 'a') this.pressFocused();
+    public debugInput(key: 'left' | 'right' | 'up' | 'down' | 'a' | 'lb' | 'rb'): string {
+        if (key === 'lb' || key === 'rb') this.stepTab(key === 'lb' ? -1 : 1);
+        else if (key === 'a') this.pressFocused();
         else this.move(key === 'left' ? -1 : key === 'right' ? 1 : 0, key === 'up' ? -1 : key === 'down' ? 1 : 0);
         return this.focusName();
+    }
+
+    /** Shows the LB / RB hints as if a pad were in use (for the capture). */
+    public debugShowPadHints(): void {
+        this.forcePadHints = true;
     }
 
     private focusName(): string {
@@ -796,9 +873,10 @@ export class OffBagScene extends Phaser.Scene {
     /** What the window shows, in text. */
     public debugState(): {
         tab: OffCharacterTab; tabs: OffCharacterTab[]; page: Record<string, unknown> | undefined;
-        bag: string[]; info: string; message: string; box: string[]; filter: OffBagFilter; focus: string; main: string; issues: string[];
+        bag: string[]; info: string; message: string; box: string[]; filter: OffBagFilter; focus: string; main: string; padHints: boolean; issues: string[];
     } {
         return {
+            padHints: this.padPills.some((pill) => pill.visible),
             tab: this.tab,
             tabs: [...this.tabs],
             page: this.page?.debugState(),

@@ -8,6 +8,11 @@ const BAR_NAMES: Record<OffPotionRestores, string> = { hp: 'Health', mana: 'Mana
 export const OFF_BAG_TEXT = {
     /** The window's tabs (Off-12C: Magic only with a spell learned). */
     tabs: { bag: 'Bag', stats: 'Stats', magic: 'Magic' },
+    /** Pad hints beside the tabs (Off-12D). */
+    prevTabPad: 'LB',
+    nextTabPad: 'RB',
+    /** Off-12D: closing with points spread and not confirmed. */
+    unconfirmedClose: 'Your new points are not confirmed. Close again to drop them.',
     equipmentLabel: 'Equipment',
     /** Short names inside the empty slots (they must fit a 44 px slot). */
     slotNames: { weapon: 'Weapon', shield: 'Shield', helm: 'Helm', body: 'Body', legs: 'Legs', boots: 'Boots', cape: 'Cape', ring: 'Ring' },
