@@ -177,11 +177,11 @@ const PRESETS = {
     // William, oro antes / después y el mercenario; captura con él al lado). offmerc pelea 25 s con Orcs con el Guerrero
     // (en eval: muertes tuyas y suyas, su vida, monstruos que van a por él) y luego lo tumba 3 s (sale "Down" y se
     // levanta). offmercaim: con Heal en RT + A, el stick derecho hacia él lo cura a él; sin stick, a ti.
-    offmerchire: 'off=world&offreset&offlevel=20&offfaction=aresden&offgold=5000',
+    offmerchire: 'off=world&offreset&offlevel=20&offfaction=aresden&offplace=aresden&offgold=5000',
     offmerc: 'off=world&offreset&offlevel=20&offstats=str:30,vit:30,dex:30&offgear=longSword&offfaction=aresden&offplace=aresden&offat=243,201&offmerc',
     // offmercportal: con el Guerrero a medio vida, cruza el teleport a Promiseland (en eval: llega contigo, con esa vida).
-    offmercportal: 'off=world&offreset&offlevel=40&offfaction=aresden&offmerc',
-    offmercaim: 'off=world&offreset&offlevel=30&offstats=int:40,mag:40&offgear=noweapon&offspells=heal&offhp=20&offfaction=aresden&offmerc',
+    offmercportal: 'off=world&offreset&offlevel=40&offfaction=aresden&offplace=aresden&offmerc',
+    offmercaim: 'off=world&offreset&offlevel=30&offstats=int:40,mag:40&offgear=noweapon&offspells=heal&offhp=20&offfaction=aresden&offplace=aresden&offmerc',
     // Off-8C: maga mercenaria y Berserk. offmercmage pelea 25 s con Orcs con Kaila (Level 20) empezando con poca vida
     // (en eval: tu vida antes / después, sus magias por tipo, su maná, sus muertes). offmercmagezerk, igual a Level 30
     // durante 15 s: te pone Defense Shield y Berserk (en eval: tu Berserk y escudo; captura con el brillo rojo).
@@ -190,21 +190,21 @@ const PRESETS = {
     offmercmage: 'off=world&offreset&offlevel=20&offstats=str:30,vit:30,dex:30&offgear=longSword&offfaction=aresden&offplace=aresden&offat=243,201&offmerc=mage&offhp=30',
     offmercmagezerk: 'off=world&offreset&offlevel=30&offstats=str:35,vit:35,dex:35&offgear=longSword&offfaction=aresden&offplace=aresden&offat=243,201&offmerc=mage',
     // offmercwindow: abre la ventana de William (captura con las dos ofertas, Gorn y Kaila).
-    offmercwindow: 'off=world&offreset&offlevel=20&offfaction=aresden&offgold=5000',
+    offmercwindow: 'off=world&offreset&offlevel=20&offfaction=aresden&offplace=aresden&offgold=5000',
     // offholdblows (arreglo de Paralyze): Hold Person a un Clay Golem y le pegas con la Long Sword (en eval: se suelta);
     // luego Paralyze y le pegas 6 s (en eval: sigue quieto y su vida baja).
     offholdblows: 'off=world&offreset&offlevel=60&offstats=str:60,dex:60,int:60,mag:60&offgear=noweapon&offspells=holdPerson,paralyze&offbag=longSword&offfaction=aresden&offplace=promiseland&offat=197,114',
     // offmercparalyze: Kaila (Level 40) con Clay Golems 25 s (en eval: sus magias, incluida Paralyze; no tira daño a uno quieto).
     offmercparalyze: 'off=world&offreset&offlevel=40&offstats=str:60,vit:50,dex:50&offgear=longSword,chainMail&offbag=bigRedPotion,bigRedPotion,bigRedPotion&offfaction=aresden&offplace=promiseland&offat=197,114&offmerc=mage',
     // offmercslime: Kaila (Level 20) con Slimes y Ants 20 s (en eval: no gasta Paralyze en ellos).
-    offmercslime: 'off=world&offreset&offlevel=20&offstats=str:30,vit:30,dex:30&offgear=longSword&offfaction=aresden&offmerc=mage',
+    offmercslime: 'off=world&offreset&offlevel=20&offstats=str:30,vit:30,dex:30&offgear=longSword&offfaction=aresden&offplace=aresden&offmerc=mage',
     // Off-8C, el mercenario recoge el botín. offmercloot: junto al teleport, caen 250 de oro, una Long Sword y una Red
     // Potion a unas casillas de ti y te quedas quieto (en eval: a los 3 s siguen en el suelo; a los 15 s Gorn te los ha
     // dado: oro, bolsa, suelo vacío). offmercloot2, lo mismo con Kaila. En un pit con monstruos atacando, pelea primero.
     // offmercdropped: tiras una poción junto al teleport y esperas 10 s (en eval: sigue en el suelo, Gorn no la coge).
-    offmercloot: 'off=world&offreset&offlevel=20&offfaction=aresden&offmerc',
-    offmercloot2: 'off=world&offreset&offlevel=20&offfaction=aresden&offmerc=mage',
-    offmercdropped: 'off=world&offreset&offlevel=20&offfaction=aresden&offbag=redPotion&offmerc',
+    offmercloot: 'off=world&offreset&offlevel=20&offfaction=aresden&offplace=aresden&offmerc',
+    offmercloot2: 'off=world&offreset&offlevel=20&offfaction=aresden&offplace=aresden&offmerc=mage',
+    offmercdropped: 'off=world&offreset&offlevel=20&offfaction=aresden&offplace=aresden&offbag=redPotion&offmerc',
     // Off-8D, frases y por la espalda. offmercsay: Gorn con Orcs, tú sabes Berserk; pelea 8 s, se queda con poca vida y
     // a los 14 s cae y se levanta (en eval: lo que dijo y cuándo, en segundos, y cuántas veces cada frase; captura con "I'm back!").
     // offmercsaymage: lo mismo con Kaila sin maná ("I'm out of mana!", "Heal me!"). offmercbehind: Gorn; al
@@ -250,7 +250,7 @@ const PRESETS = {
     offmercregen: 'off=world&offreset&offlevel=20&offstats=str:30,vit:30,dex:30&offgear=longSword&offfaction=aresden&offplace=aresden&offat=243,201&offmerc',
     offmercpotion: 'off=world&offreset&offlevel=20&offstats=str:30,vit:30,dex:30&offgear=longSword&offfaction=aresden&offplace=aresden&offat=243,201&offmerc',
     offmercflee: 'off=world&offreset&offlevel=20&offstats=str:30,vit:30,dex:30&offgear=longSword&offfaction=aresden&offplace=aresden&offat=243,201&offmerc',
-    offmercfleesafe: 'off=world&offreset&offlevel=20&offfaction=aresden&offmerc',
+    offmercfleesafe: 'off=world&offreset&offlevel=20&offfaction=aresden&offplace=aresden&offmerc',
     // offmerchard: Gorn (Level 25) con Trolls en Promiseland, para verle beber y huir de verdad (en eval: su vida mínima, pociones, huidas).
     offmerchard: 'off=world&offreset&offlevel=25&offstats=str:60,vit:60,dex:50&offgear=longSword,chainMail&offbag=bigRedPotion,bigRedPotion,bigRedPotion,bigRedPotion,bigRedPotion,bigRedPotion,bigRedPotion,bigRedPotion&offfaction=aresden&offplace=promiseland&offat=106,123&offmerc',
     offmercfleemage: 'off=world&offreset&offlevel=20&offstats=str:30,vit:30,dex:30&offgear=longSword&offfaction=aresden&offplace=aresden&offat=243,201&offmerc=mage',
@@ -280,33 +280,50 @@ const PRESETS = {
     offloot: 'off=world&offreset&offlevel=3&offdrop=all',
     offbagfull: `off=world&offreset&offlevel=3&offdrop=valuable&offbag=${Array(50).fill('redPotion').join(',')}`,
     // Fase Off-5A: bandos. offportal pisa el portal de Aresden sin bando (sale "Do you want to join Aresden?");
-    // offjoin contesta Yes (en eval: sitio, bando y lo guardado; captura en Aresden). offaresden / offelvine abren la
+    // offjoin contesta Yes (en eval: sitio, bando y lo guardado; captura en Aresden Farm desde la Off-10C). offaresden / offelvine abren la
     // ciudad de cada bando (Play lleva a la tuya). offcityback, de Elvine: su teleport (eligiendo Traveler Zone, Off-7A) lleva allí y el portal
-    // de Elvine de allí vuelve sin preguntar. offotherportal: siendo de Elvine, el portal de Aresden no deja pasar.
-    // offdeathhome: de Aresden, muere en Traveler Zone y reaparece en Aresden.
+    // de Elvine de allí vuelve sin preguntar (a la Farm de Elvine desde la Off-10C). offotherportal: siendo de Elvine, el portal de Aresden no deja pasar.
+    // offdeathhome: de Aresden, muere en Traveler Zone y reaparece en Aresden Farm (Off-10C).
     offportal: 'off=world&offreset&offlevel=5&offplace=traveler&offat=81,79',
     offjoin: 'off=world&offreset&offlevel=5&offplace=traveler&offat=81,79',
-    offaresden: 'off=world&offlevel=5&offfaction=aresden',
-    offelvine: 'off=world&offlevel=5&offfaction=elvine',
-    offcityback: 'off=world&offlevel=5&offfaction=elvine',
+    offaresden: 'off=world&offlevel=5&offfaction=aresden&offplace=aresden',
+    offelvine: 'off=world&offlevel=5&offfaction=elvine&offplace=elvine',
+    offcityback: 'off=world&offlevel=5&offfaction=elvine&offplace=elvine',
     offotherportal: 'off=world&offlevel=5&offfaction=elvine&offplace=traveler&offat=81,79',
     offdeathhome: 'off=world&offlevel=5&offfaction=aresden&offplace=traveler',
+    // Fase Off-10A: las Farms enteras con sus vendedores. offaresdenfarm va hasta el Shop Keeper y habla (se abre la
+    // tienda); offelvinefarm, hasta Howard (el almacén). En eval: sitio, vendedores (id, qué abren, casilla) y ventana.
+    offaresdenfarm: 'off=world&offlevel=5&offfaction=aresden&offplace=aresdenFarm',
+    offelvinefarm: 'off=world&offlevel=5&offfaction=elvine&offplace=elvineFarm',
+    // offbase: pisa la base con estandartes de la Farm de Aresden (sale la elección de mapa). offbarracks: en la Farm de
+    // Elvine entra por la puerta de los Barracks y sale por la de dentro (vuelve delante de la puerta).
+    // Fase Off-10B: los pits de cada Farm, junto a su pit de Slimes. En eval: monstruos vivos de cada tipo al entrar y a los 8 s (se van llenando).
+    offaresdenfarmpits: 'off=world&offlevel=5&offfaction=aresden&offplace=aresdenFarm&offat=127,86',
+    offelvinefarmpits: 'off=world&offlevel=5&offfaction=elvine&offplace=elvineFarm&offat=138,125',
+    // Fase Off-10C: la Farm como casa. offfarmteleport pisa la base de la Farm de Aresden (Select Map con Aresden,
+    // Traveler Zone y Promiseland) y elige la ciudad (llega junto a su teleport). offtravelerhome: de Aresden, en Traveler
+    // Zone, pisa el portal de Aresden y llega a su Farm. offmapselect: captura de la Select Map abierta desde la Farm.
+    offfarmteleport: 'off=world&offlevel=5&offfaction=aresden&offplace=aresdenFarm&offat=45,105',
+    offtravelerhome: 'off=world&offlevel=5&offfaction=aresden&offplace=traveler&offat=81,79',
+    offmapselect: 'off=world&offlevel=5&offfaction=aresden&offplace=aresdenFarm&offat=45,105',
+    offbase: 'off=world&offlevel=5&offfaction=aresden&offplace=aresdenFarm&offat=45,105',
+    offbarracks: 'off=world&offlevel=5&offfaction=elvine&offplace=elvineFarm&offat=96,152',
     // Fase Off-5B: tienda, herrero y almacén. offshop / offsmith / offwarehouse los abren (captura); en eval offshop
     // compra una Red Potion, offsmith compra la Long Sword e intenta la Plate Mail (sin oro) y mira la Battle Hammer
     // (Level 110), offsell vende la Long Sword y la Slime Jelly a mitad de precio, offwarehouse guarda la Cape y saca la
     // Long Sword, offdoor pisa la puerta de la tienda de Aresden (se abre) y offelvinedoor la del herrero de Elvine.
-    offshop: 'off=world&offlevel=5&offfaction=aresden&offgold=500&offopen=shop&offbag=redPotion',
-    offsmith: 'off=world&offlevel=5&offstats=str:14&offfaction=aresden&offgold=2000&offopen=smith&offbag=redPotion',
-    offsell: 'off=world&offlevel=5&offfaction=aresden&offgold=100&offopen=shop&offbag=longSword,slimeJelly,redPotion',
-    offwarehouse: 'off=world&offlevel=5&offfaction=elvine&offopen=warehouse&offbag=cape,redPotion&offwarehouse=longSword,bluePotion',
+    offshop: 'off=world&offlevel=5&offfaction=aresden&offplace=aresden&offgold=500&offopen=shop&offbag=redPotion',
+    offsmith: 'off=world&offlevel=5&offstats=str:14&offfaction=aresden&offplace=aresden&offgold=2000&offopen=smith&offbag=redPotion',
+    offsell: 'off=world&offlevel=5&offfaction=aresden&offplace=aresden&offgold=100&offopen=shop&offbag=longSword,slimeJelly,redPotion',
+    offwarehouse: 'off=world&offlevel=5&offfaction=elvine&offplace=elvine&offopen=warehouse&offbag=cape,redPotion&offwarehouse=longSword,bluePotion',
     offdoor: 'off=world&offlevel=5&offfaction=aresden&offgold=300&offplace=aresden&offat=128,172',
-    offelvinedoor: 'off=world&offlevel=5&offfaction=elvine&offgold=300',
+    offelvinedoor: 'off=world&offlevel=5&offfaction=elvine&offplace=elvine&offgold=300',
     // Fase Off-6A: magias. offmagic abre la pestaña Magic de la tienda (Int 26, 600 de oro); en eval aprende Magic
     // Missile y Fire Ball, e intenta Energy Bolt (sin oro) y Great Heal (sin Int). offbook abre el libro con cuatro magias;
     // en eval pone Fire Ball en F1 (Magic Missile se queda sin tecla) y quita Lightning de su tecla. offbookempty, sin magias.
-    offmagic: 'off=world&offlevel=10&offstats=int:26&offfaction=aresden&offgold=600&offopen=magic',
-    offbook: 'off=world&offlevel=10&offstats=int:50&offfaction=aresden&offspells=magicMissile,heal,fireBall,lightning&offopen=book',
-    offbookempty: 'off=world&offreset&offlevel=3&offfaction=aresden&offopen=book',
+    offmagic: 'off=world&offlevel=10&offstats=int:26&offfaction=aresden&offplace=aresden&offgold=600&offopen=magic',
+    offbook: 'off=world&offlevel=10&offstats=int:50&offfaction=aresden&offplace=aresden&offspells=magicMissile,heal,fireBall,lightning&offopen=book',
+    offbookempty: 'off=world&offreset&offlevel=3&offfaction=aresden&offplace=aresden&offopen=book',
     // Fase Off-6B: lanzar magias (sin arma, todas aprendidas: F1 Magic Missile, F3 Energy Bolt, F5 Fire Ball, F8 Fire
     // Strike). offcast lanza Energy Bolt al Slime más cercano y en eval sale el maná, los lanzamientos y el Slime;
     // offcastfire, Fire Ball a un Giant Scorpion de Aresden (quemadura); offcastice, Chill Wind (frenado); offcastfail, MAG 10 y nivel 9 con Lightning
@@ -315,7 +332,33 @@ const PRESETS = {
     offcastfire: 'off=world&offlevel=30&offstats=int:50,mag:50&offgear=noweapon&offspells=all&offfaction=aresden&offplace=aresden&offat=101,52',
     offcastice: 'off=world&offlevel=30&offstats=int:50,mag:50&offgear=noweapon&offspells=chillWind&offfaction=aresden&offplace=aresden&offat=101,52',
     offcastfail: 'off=world&offlevel=9&offstats=int:20,mag:10&offgear=noweapon&offspells=lightning',
+    // Fase Off-11B: las 8 magias nuevas en las teclas 1–8, con INT y MAG 200, junto a los Giant Scorpion de Aresden.
+    // Cada una se lanza al monstruo más cercano; en eval, maná, lanzamientos, muertos, heridos (`wounded`) y frenados.
+    // offamp pone Absolute Magic Protection (tecla 1) y luego intenta Protection From Magic: comparten hueco.
+    offboltline: 'off=world&offlevel=180&offstats=int:200,mag:200&offgear=noweapon&offspells=lightningBolt,massLightningArrow,iceStrike,energyStrike,massChillWind,absoluteMagicProtection,lightningStrike,earthShockWave&offfaction=aresden&offplace=aresden&offat=101,52',
+    offmassarrow: 'off=world&offlevel=180&offstats=int:200,mag:200&offgear=noweapon&offspells=lightningBolt,massLightningArrow,iceStrike,energyStrike,massChillWind,absoluteMagicProtection,lightningStrike,earthShockWave&offfaction=aresden&offplace=aresden&offat=101,52',
+    officestrike: 'off=world&offlevel=180&offstats=int:200,mag:200&offgear=noweapon&offspells=lightningBolt,massLightningArrow,iceStrike,energyStrike,massChillWind,absoluteMagicProtection,lightningStrike,earthShockWave&offfaction=aresden&offplace=aresden&offat=101,52',
+    offenergystrike: 'off=world&offlevel=180&offstats=int:200,mag:200&offgear=noweapon&offspells=lightningBolt,massLightningArrow,iceStrike,energyStrike,massChillWind,absoluteMagicProtection,lightningStrike,earthShockWave&offfaction=aresden&offplace=aresden&offat=101,52',
+    offmasschill: 'off=world&offlevel=180&offstats=int:200,mag:200&offgear=noweapon&offspells=lightningBolt,massLightningArrow,iceStrike,energyStrike,massChillWind,absoluteMagicProtection,lightningStrike,earthShockWave&offfaction=aresden&offplace=aresden&offat=101,52',
+    offlightningstrike: 'off=world&offlevel=180&offstats=int:200,mag:200&offgear=noweapon&offspells=lightningBolt,massLightningArrow,iceStrike,energyStrike,massChillWind,absoluteMagicProtection,lightningStrike,earthShockWave&offfaction=aresden&offplace=aresden&offat=101,52',
+    offearthshock: 'off=world&offlevel=180&offstats=int:200,mag:200&offgear=noweapon&offspells=lightningBolt,massLightningArrow,iceStrike,energyStrike,massChillWind,absoluteMagicProtection,lightningStrike,earthShockWave&offfaction=aresden&offplace=aresden&offat=101,52',
+    // Fase Off-11C: las 4 magias de los círculos 8–10 en las teclas 1–4, con INT y MAG 200, junto a los Giant Scorpion
+    // de Aresden (como las de la 11B). En eval: maná, lanzamientos, muertos, heridos y frenados.
+    // offmercmagehigh: Kaila a Level 140 pelea 20 s con los Giant Scorpion (en eval: sus magias por nombre).
+    offmassicestrike: 'off=world&offlevel=140&offstats=int:200,mag:200&offgear=noweapon&offspells=massIceStrike,meteorStrike,massMagicMissile,blizzard&offfaction=aresden&offplace=aresden&offat=101,52',
+    offmeteor: 'off=world&offlevel=140&offstats=int:200,mag:200&offgear=noweapon&offspells=massIceStrike,meteorStrike,massMagicMissile,blizzard&offfaction=aresden&offplace=aresden&offat=101,52',
+    offmassmissile: 'off=world&offlevel=140&offstats=int:200,mag:200&offgear=noweapon&offspells=massIceStrike,meteorStrike,massMagicMissile,blizzard&offfaction=aresden&offplace=aresden&offat=101,52',
+    offblizzard: 'off=world&offlevel=140&offstats=int:200,mag:200&offgear=noweapon&offspells=massIceStrike,meteorStrike,massMagicMissile,blizzard&offfaction=aresden&offplace=aresden&offat=101,52',
+    offmercmagehigh: 'off=world&offreset&offlevel=140&offstats=str:100,vit:100,dex:100&offgear=longSword&offfaction=aresden&offplace=aresden&offat=101,52&offmerc=mage',
+    offamp: 'off=world&offlevel=180&offstats=int:200,mag:200&offgear=noweapon&offspells=absoluteMagicProtection,protectionFromMagic',
     offcastshield: 'off=world&offlevel=30&offstats=int:50,mag:50&offgear=noweapon,targeShield&offspells=all',
+    // Fase Off-11A: varitas. offwandcast lanza Energy Bolt (15 de maná) con la Magic Wand (MS20) en la mano: gasta 12;
+    // offwandsword, con Long Sword no deja; offwandsmith abre Tom con la sección Wands; offwandbook, el libro con la
+    // Berserk Wand (MS20): cada magia cuesta un 20 % menos y 20 más.
+    offwandcast: 'off=world&offlevel=60&offstats=int:50,mag:50&offgear=magicWandMS20&offspells=all',
+    offwandsword: 'off=world&offlevel=60&offstats=int:50,mag:50,str:20&offgear=longSword&offspells=all',
+    offwandsmith: 'off=world&offlevel=40&offstats=str:14&offfaction=aresden&offplace=aresden&offgold=3000&offopen=smith',
+    offwandbook: 'off=world&offlevel=100&offstats=int:60&offfaction=aresden&offplace=aresden&offgear=berserkWandMS20&offspells=magicMissile,heal,fireBall,lightning,berserk&offopen=book',
     // Fase Off-6C: offheal empieza con 5 de vida y lanza Heal (tecla 1); offshield pone Defense Shield (2) y luego
     // intenta Protection From Magic (6): no hace nada (comparten hueco); offhold, Hold Person (3) a un Slime;
     // offpadcast, RT + B (Defense Shield) y RT + X (Hold Person) como el mando; offbookpad, el libro con los huecos del mando.
@@ -327,20 +370,26 @@ const PRESETS = {
     offprotect: 'off=world&offlevel=30&offstats=int:50,mag:50&offgear=noweapon&offspells=heal,defenseShield,holdPerson,paralyze,greatHeal,protectionFromMagic',
     offhold: 'off=world&offlevel=30&offstats=int:50,mag:50&offgear=noweapon&offspells=heal,defenseShield,holdPerson,paralyze,greatHeal,protectionFromMagic',
     offpadcast: 'off=world&offlevel=30&offstats=int:50,mag:50&offgear=noweapon&offspells=heal,defenseShield,holdPerson,paralyze,greatHeal,protectionFromMagic',
-    offbookpad: 'off=world&offlevel=30&offstats=int:50&offfaction=aresden&offspells=heal,defenseShield,holdPerson,fireBall,lightning&offopen=book',
+    // 9-nov-2026 (propietario): offcastrun anda con el stick, lanza RT + A sin soltarlo (se queda quieto) y luego lo
+    // suelta y lo vuelve a empujar (anda); offpadaim mueve el stick derecho poco y del todo (mirilla cerca y lejos) y
+    // lanza hacia la derecha; offpadcross mantiene RT: sale la cruz y la magia se lanza sin soltar RT.
+    offcastrun: 'off=world&offlevel=30&offstats=int:50,mag:50&offgear=noweapon&offspells=magicMissile,fireBall,heal,lightning',
+    offpadaim: 'off=world&offlevel=30&offstats=int:50,mag:50&offgear=noweapon&offspells=magicMissile,fireBall,heal,lightning',
+    offpadcross: 'off=world&offlevel=30&offstats=int:50,mag:50&offgear=noweapon&offspells=magicMissile,fireBall,heal,lightning',
+    offbookpad: 'off=world&offlevel=30&offstats=int:50&offfaction=aresden&offplace=aresden&offspells=heal,defenseShield,holdPerson,fireBall,lightning&offopen=book',
     // Fase Off-5C: la ciudad entera. offcitypits / offelvinepits dan los monstruos vivos de cada tipo en Aresden / Elvine
     // (8 pits: 1 Slime, 2 Giant Ant, 2 Snake, 2 Orc, 1 Giant Scorpion); offorc pelea 20 s junto al pit de Orcs del
     // este de Aresden (Level 20, Long Sword); offscorpion, lo mismo con el Giant Scorpion del norte.
-    offcitypits: 'off=world&offlevel=5&offfaction=aresden',
-    offelvinepits: 'off=world&offlevel=5&offfaction=elvine',
+    offcitypits: 'off=world&offlevel=5&offfaction=aresden&offplace=aresden',
+    offelvinepits: 'off=world&offlevel=5&offfaction=elvine&offplace=elvine',
     offorc: 'off=world&offlevel=20&offstats=str:30&offgear=longSword&offfaction=aresden&offplace=aresden&offat=243,201',
     offscorpion: 'off=world&offlevel=20&offstats=str:30&offgear=longSword&offfaction=aresden&offplace=aresden&offat=101,52',
-    // Fase Off-7A: Promiseland. offteleport pisa el teleport de Aresden (sale la ventana con los mapas) y elige
+    // Fase Off-7A: Promiseland. offteleport pisa el teleport de Aresden (sale Select Map: Aresden Farm, Traveler Zone, Promiseland; Off-10C) y elige
     // Promiseland (en eval: sitio y casilla, abajo). offpromiseland / offpromiselandelvine abren Promiseland siendo de
     // Aresden (abajo) o de Elvine (arriba) y dan los monstruos vivos. offpromiselandback pisa la puerta de Aresden y
-    // vuelve a la ciudad; offpromiselandother pisa la de Elvine siendo de Aresden (no deja pasar). offskeleton y
+    // vuelve a la Farm (Off-10C); offpromiselandother pisa la de Elvine siendo de Aresden (no deja pasar). offskeleton y
     // offtroll pelean 20 s junto a su pit (Level 40 y 80, Long Sword).
-    offteleport: 'off=world&offlevel=40&offfaction=aresden',
+    offteleport: 'off=world&offlevel=40&offfaction=aresden&offplace=aresden',
     offpromiseland: 'off=world&offlevel=40&offfaction=aresden&offplace=promiseland',
     offpromiselandelvine: 'off=world&offlevel=40&offfaction=elvine&offplace=promiseland',
     offpromiselandback: 'off=world&offlevel=40&offfaction=aresden&offplace=promiseland',
@@ -620,7 +669,7 @@ const PRESET_EVAL = {
     offresume: "new Promise((r) => { o.debugWalkTo(136, 216, true); setTimeout(() => { const before = o.debugState().tile; o.scene.start('OffHome'); setTimeout(() => { const saved = JSON.parse(localStorage.getItem('hb-off.character')).where; game.scene.getScene('OffHome').play(); setTimeout(() => game.scene.getScene('OffSlots').enter(0), 1000); setTimeout(() => { const s = game.scene.getScene('OffWorld').debugState(); r({ before, saved, after: { place: s.place, tile: s.tile } }); }, 6000); }, 1000); }, 7000); })",
     offportal: "o.debugWalkTo(81, 76), new Promise((r) => setTimeout(() => r({ confirm: game.scene.isActive('OffConfirm'), worldPaused: game.scene.isPaused('OffWorld'), state: o.debugState().place }), 3000))",
     offjoin: "o.debugWalkTo(81, 76), new Promise((r) => setTimeout(() => { const asked = game.scene.isActive('OffConfirm'); game.scene.getScene('OffConfirm').answer(true); setTimeout(() => { const s = o.debugState(); r({ asked, place: s.place, faction: s.faction, tile: s.tile, hp: s.hp, saved: JSON.parse(localStorage.getItem('hb-off.character')).faction }); }, 4000); }, 3000))",
-    offcityback: "new Promise((r) => { const start = o.debugState().place; o.debugWalkTo(237, 140); setTimeout(() => { game.scene.getScene('OffTeleport').choose('traveler'); }, 2500); setTimeout(() => { const s = o.debugState(); const mid = [s.place, s.tile]; o.debugWalkTo(128, 79); setTimeout(() => { const e = o.debugState(); r({ start, mid, end: [e.place, e.tile], asked: game.scene.isActive('OffConfirm') }); }, 6000); }, 5000); })",
+    offcityback: "new Promise((r) => { const start = o.debugState().place; o.debugWalkTo(237, 140); setTimeout(() => { game.scene.getScene('OffMapSelect').choose('traveler'); }, 2500); setTimeout(() => { const s = o.debugState(); const mid = [s.place, s.tile]; o.debugWalkTo(128, 79); setTimeout(() => { const e = o.debugState(); r({ start, mid, end: [e.place, e.tile], asked: game.scene.isActive('OffConfirm') }); }, 6000); }, 5000); })",
     offotherportal: "o.debugWalkTo(81, 76), new Promise((r) => setTimeout(() => { const s = o.debugState(); r({ place: s.place, faction: s.faction, tile: s.tile, asked: game.scene.isActive('OffConfirm') }); }, 3500))",
     offdeathhome: "new Promise((r) => { const start = o.debugState().place; o.battle.hp = 0; o.battle.die(); setTimeout(() => { const s = o.debugState(); r({ start, end: s.place, tile: s.tile, dead: s.dead, hp: [s.hp, s.maxHp] }); }, 6000); })",
     offshop: "new Promise((r) => setTimeout(() => { const st = game.scene.getScene('OffStore'); const before = st.debugState(); st.mark(0); st.act(); setTimeout(() => r({ open: game.scene.isActive('OffStore'), hud: game.scene.isActive('OffHud'), before: { rows: before.rows, gold: before.gold }, after: st.debugState(), saved: (({ gold, bag }) => ({ gold, bag }))(JSON.parse(localStorage.getItem('hb-off.character'))) }), 300); }, 1000))",
@@ -635,6 +684,22 @@ const PRESET_EVAL = {
     offcastfire: "new Promise((r) => setTimeout(() => { const pick = (st) => (({ mana, maxMana, spell, casts, fails, prepareMs, burning, slowed, kills, target }) => ({ mana, maxMana, spell, casts, fails, prepareMs, burning, slowed, kills, target }))(st); const before = pick(o.debugState()); o.debugCast(4, 'giantScorpion'); const preparing = pick(o.debugState()); setTimeout(() => r({ before, preparing, after: pick(o.debugState()) }), 1800); }, 1500))",
     offcastice: "new Promise((r) => setTimeout(() => { const pick = (st) => (({ mana, maxMana, spell, casts, fails, prepareMs, burning, slowed, kills, target }) => ({ mana, maxMana, spell, casts, fails, prepareMs, burning, slowed, kills, target }))(st); const before = pick(o.debugState()); o.debugCast(0, 'giantScorpion'); const preparing = pick(o.debugState()); setTimeout(() => r({ before, preparing, after: pick(o.debugState()) }), 1500); }, 1500))",
     offcastfail: "new Promise((r) => setTimeout(() => { const pick = (st) => (({ mana, spell, casts, fails, prepareMs, level }) => ({ mana, spell, casts, fails, prepareMs, level }))(st); const before = pick(o.debugState()); let n = 0; const t = setInterval(() => { if (o.debugState().spell === 'idle') { n++; o.debugCast(0, 'slime'); } }, 500); setTimeout(() => { clearInterval(t); r({ before, after: pick(o.debugState()) }); }, 11000); }, 1500))",
+    offwandcast: "new Promise((r) => setTimeout(() => { const before = o.debugState().mana; o.debugCast(2, 'slime'); setTimeout(() => r({ before, after: (({ mana, spell, casts, fails }) => ({ mana, spell, casts, fails }))(o.debugState()) }), 2600); }, 1500))",
+    offwandsword: "new Promise((r) => setTimeout(() => { const before = o.debugState().mana; o.debugCast(2, 'slime'); setTimeout(() => r({ before, after: (({ mana, spell, casts, fails }) => ({ mana, spell, casts, fails }))(o.debugState()) }), 500); }, 1500))",
+    offwandsmith: "new Promise((r) => setTimeout(() => { const st = game.scene.getScene('OffStore'); const rows = st.debugState().rows; st.mark(rows.indexOf('magicWandMS10')); st.act(); const bought = st.debugState(); st.mark(rows.indexOf('magicWandMS20')); r({ rows, bought: [bought.message, bought.gold], ms20Box: st.debugState().box, bag: JSON.parse(localStorage.getItem('hb-off.character')).bag }); }, 1000))",
+    offboltline: "new Promise((r) => setTimeout(() => { const pick = () => (({ mana, maxMana, spell, casts, fails, kills, wounded, slowed, target }) => ({ mana, maxMana, spell, casts, fails, kills, wounded, slowed, target }))(o.debugState()); const before = pick(); o.debugCast(0, ''); setTimeout(() => r({ before, after: pick() }), 2500); }, 1500))",
+    offmassarrow: "new Promise((r) => setTimeout(() => { const pick = () => (({ mana, maxMana, spell, casts, fails, kills, wounded, slowed, target }) => ({ mana, maxMana, spell, casts, fails, kills, wounded, slowed, target }))(o.debugState()); const before = pick(); o.debugCast(1, ''); setTimeout(() => r({ before, after: pick() }), 2500); }, 1500))",
+    officestrike: "new Promise((r) => setTimeout(() => { const pick = () => (({ mana, maxMana, spell, casts, fails, kills, wounded, slowed, target }) => ({ mana, maxMana, spell, casts, fails, kills, wounded, slowed, target }))(o.debugState()); const before = pick(); o.debugCast(2, ''); setTimeout(() => r({ before, after: pick() }), 2500); }, 1500))",
+    offenergystrike: "new Promise((r) => setTimeout(() => { const pick = () => (({ mana, maxMana, spell, casts, fails, kills, wounded, slowed, target }) => ({ mana, maxMana, spell, casts, fails, kills, wounded, slowed, target }))(o.debugState()); const before = pick(); o.debugCast(3, ''); setTimeout(() => r({ before, after: pick() }), 2500); }, 1500))",
+    offmasschill: "new Promise((r) => setTimeout(() => { const pick = () => (({ mana, maxMana, spell, casts, fails, kills, wounded, slowed, target }) => ({ mana, maxMana, spell, casts, fails, kills, wounded, slowed, target }))(o.debugState()); const before = pick(); o.debugCast(4, ''); setTimeout(() => r({ before, after: pick() }), 2500); }, 1500))",
+    offlightningstrike: "new Promise((r) => setTimeout(() => { const pick = () => (({ mana, maxMana, spell, casts, fails, kills, wounded, slowed, target }) => ({ mana, maxMana, spell, casts, fails, kills, wounded, slowed, target }))(o.debugState()); const before = pick(); o.debugCast(6, ''); setTimeout(() => r({ before, after: pick() }), 2500); }, 1500))",
+    offearthshock: "new Promise((r) => setTimeout(() => { const pick = () => (({ mana, maxMana, spell, casts, fails, kills, wounded, slowed, target }) => ({ mana, maxMana, spell, casts, fails, kills, wounded, slowed, target }))(o.debugState()); const before = pick(); o.debugCast(7, ''); setTimeout(() => r({ before, after: pick() }), 2500); }, 1500))",
+    offmassicestrike: "new Promise((r) => setTimeout(() => { const pick = () => (({ mana, maxMana, spell, casts, fails, kills, wounded, slowed, target }) => ({ mana, maxMana, spell, casts, fails, kills, wounded, slowed, target }))(o.debugState()); const before = pick(); o.debugCast(0, ''); setTimeout(() => r({ before, after: pick() }), 2500); }, 1500))",
+    offmeteor: "new Promise((r) => setTimeout(() => { const pick = () => (({ mana, maxMana, spell, casts, fails, kills, wounded, slowed, target }) => ({ mana, maxMana, spell, casts, fails, kills, wounded, slowed, target }))(o.debugState()); const before = pick(); o.debugCast(1, ''); setTimeout(() => r({ before, after: pick() }), 2500); }, 1500))",
+    offmassmissile: "new Promise((r) => setTimeout(() => { const pick = () => (({ mana, maxMana, spell, casts, fails, kills, wounded, slowed, target }) => ({ mana, maxMana, spell, casts, fails, kills, wounded, slowed, target }))(o.debugState()); const before = pick(); o.debugCast(2, ''); setTimeout(() => r({ before, after: pick() }), 2500); }, 1500))",
+    offblizzard: "new Promise((r) => setTimeout(() => { const pick = () => (({ mana, maxMana, spell, casts, fails, kills, wounded, slowed, target }) => ({ mana, maxMana, spell, casts, fails, kills, wounded, slowed, target }))(o.debugState()); const before = pick(); o.debugCast(3, ''); setTimeout(() => r({ before, after: pick() }), 2500); }, 1500))",
+    offmercmagehigh: "new Promise((r) => { const t = setInterval(() => { if (!o.debugState().target) o.debugFight(); }, 500); setTimeout(() => { clearInterval(t); const s = o.debugState(); r({ hp: s.hp, dead: s.dead, merc: s.merc, mercCasts: s.mercCasts, mercMana: s.mercMana, mercKills: s.mercKills, kills: s.kills }); }, 20000); })",
+    offamp: "new Promise((r) => setTimeout(() => { const pick = () => (({ mana, casts, fails, shield }) => ({ mana, casts, fails, shield }))(o.debugState()); const before = pick(); o.debugCast(0); setTimeout(() => { const amp = pick(); o.debugCast(1); setTimeout(() => r({ before, amp, second: pick() }), 2600); }, 2600); }, 1500))",
     offcastshield: "new Promise((r) => setTimeout(() => { const before = o.debugState().mana; o.debugCast(2, 'slime'); setTimeout(() => r({ before, after: (({ mana, spell, casts, fails }) => ({ mana, spell, casts, fails }))(o.debugState()) }), 500); }, 1500))",
     offbookempty: "new Promise((r) => setTimeout(() => r(game.scene.getScene('OffSpellBook').debugState()), 1000))",
     offheal: "new Promise((r) => setTimeout(() => { const pick = () => (({ hp, maxHp, mana, spell, casts, fails, defense, shield, held, target }) => ({ hp, maxHp, mana, spell, casts, fails, defense, shield, held, target }))(o.debugState()); const before = pick(); o.debugCast(0); setTimeout(() => r({ before, after: pick() }), 2600); }, 1500))",
@@ -643,12 +708,24 @@ const PRESET_EVAL = {
     offprotect: "new Promise((r) => setTimeout(() => { o.debugCast(5); setTimeout(() => r((({ mana, casts, fails, shield }) => ({ mana, casts, fails, shield }))(o.debugState())), 2000); }, 1500))",
     offhold: "new Promise((r) => setTimeout(() => { const pick = () => (({ hp, maxHp, mana, spell, casts, fails, defense, shield, held, target }) => ({ hp, maxHp, mana, spell, casts, fails, defense, shield, held, target }))(o.debugState()); const before = pick(); o.debugCast(2, 'slime'); setTimeout(() => r({ before, after: pick() }), 2600); }, 1500))",
     offpadcast: "new Promise((r) => setTimeout(() => { const pick = () => (({ hp, maxHp, mana, spell, casts, fails, defense, shield, held, target }) => ({ hp, maxHp, mana, spell, casts, fails, defense, shield, held, target }))(o.debugState()); const before = pick(); o.debugPadCast(1); setTimeout(() => { const shield = pick(); o.debugPadCast(2); setTimeout(() => r({ before, shield, hold: pick(), pad: o.debugState().padSpells }), 2600); }, 2600); }, 1500))",
+    offcastrun: "new Promise((r) => { o.debugStick(1, 0); setTimeout(() => { const before = o.debugPadState().tile; o.debugPadCast(0); setTimeout(() => { const cast = o.debugPadState().tile; setTimeout(() => { const after = o.debugPadState(); o.debugStick(undefined); setTimeout(() => { o.debugStick(1, 0); setTimeout(() => { const again = o.debugPadState().tile; o.debugStick(undefined); r({ before, cast, afterCast: after.tile, stillAfterCast: cast.x === after.tile.x && cast.y === after.tile.y, casts: o.debugState().casts, walksAgain: again.x !== after.tile.x || again.y !== after.tile.y, again }); }, 1500); }, 300); }, 3000); }, 400); }, 1500); })",
+    offpadaim: "new Promise((r) => setTimeout(() => { o.debugCastTrigger(true); o.debugPadAim(1, 0, 0); setTimeout(() => { const near = o.debugPadState().reticle; o.debugPadAim(1, 0, 1); setTimeout(() => { const far = o.debugPadState().reticle; o.debugPadAim(0, 1, 1); setTimeout(() => { const down = o.debugPadState().reticle; o.debugPadAim(1, 0, 1); o.debugPadCast(0); setTimeout(() => { const s = o.debugPadState(); r({ near, far, downClamped: down, lastRelease: s.lastRelease, casts: o.debugState().casts }); }, 2600); }, 200); }, 200); }, 200); }, 1500))",
+    offpadcross: "new Promise((r) => setTimeout(() => { o.debugCastTrigger(true); setTimeout(() => { const held = o.debugPadState(); o.debugPadCast(1); setTimeout(() => { const s = o.debugPadState(); r({ cross: held.cross, triggerStillHeld: s.trigger, spell: s.spell, casts: o.debugState().casts }); o.debugPadAim(1, -0.3, 0.7); }, 2600); }, 300); }, 1500))",
     offbookpad: "new Promise((r) => setTimeout(() => { const b = game.scene.getScene('OffSpellBook'); const before = b.debugState(); b.mark(before.rows.indexOf('fireBall')); b.togglePad(3); const put = b.debugState(); b.togglePad(3); const off = b.debugState(); b.togglePad(0); r({ before: before.pad, put: { pad: put.pad, message: put.message }, off: { pad: off.pad, message: off.message }, end: b.debugState().pad, saved: JSON.parse(localStorage.getItem('hb-off.character')).padSpells }); }, 1000))",
+    offfarmteleport: "o.debugWalkTo(45, 102, false), new Promise((r) => setTimeout(() => { const ms = game.scene.getScene('OffMapSelect'); const places = game.scene.isActive('OffMapSelect') && ms.debugPlaces(); ms.choose('aresden'); setTimeout(() => { const s = o.debugState(); r({ places, place: s.place, tile: s.tile }); }, 6000); }, 4000))",
+    offtravelerhome: "o.debugWalkTo(81, 76), new Promise((r) => setTimeout(() => { const s = o.debugState(); r({ asked: game.scene.isActive('OffConfirm'), place: s.place, tile: s.tile }); }, 6000))",
+    offmapselect: "o.debugWalkTo(45, 102, false), new Promise((r) => setTimeout(() => r({ open: game.scene.isActive('OffMapSelect'), places: game.scene.getScene('OffMapSelect').debugPlaces() }), 4000))",
+    offbase: "o.debugWalkTo(45, 102, false), new Promise((r) => setTimeout(() => r({ place: o.debugState().place, tile: o.debugState().tile, teleport: game.scene.isActive('OffMapSelect'), places: game.scene.isActive('OffMapSelect') && game.scene.getScene('OffMapSelect').debugPlaces() }), 4000))",
+    offbarracks: "o.debugWalkTo(96, 149, false), new Promise((r) => setTimeout(() => { const w = game.scene.getScene('OffWorld'); const inside = { place: w.debugState().place, tile: w.debugState().tile }; w.debugWalkTo(67, 71, false); setTimeout(() => { const s = game.scene.getScene('OffWorld').debugState(); r({ inside, back: { place: s.place, tile: s.tile } }); }, 6000); }, 6000))",
+    offaresdenfarm: "new Promise((r) => setTimeout(() => { const s = o.debugState(); const n = s.npcs.find((t) => t.id === 'shopKeeper'); o.debugWalkTo(n.x, n.y + 1, true); setTimeout(() => { const near = o.nearestNpc(); if (near) o.talkTo(near); setTimeout(() => r({ place: s.place, start: s.tile, npcs: s.npcs, tile: o.debugState().tile, near: near && near.npc.id, store: game.scene.isActive('OffStore'), warehouse: game.scene.isActive('OffWarehouse') }), 1200); }, 8000); }, 1500))",
+    offelvinefarm: "new Promise((r) => setTimeout(() => { const s = o.debugState(); const n = s.npcs.find((t) => t.id === 'howard'); o.debugWalkTo(n.x, n.y + 1, true); setTimeout(() => { const near = o.nearestNpc(); if (near) o.talkTo(near); setTimeout(() => r({ place: s.place, start: s.tile, npcs: s.npcs, tile: o.debugState().tile, near: near && near.npc.id, store: game.scene.isActive('OffStore'), warehouse: game.scene.isActive('OffWarehouse') }), 1200); }, 8000); }, 1500))",
+    offaresdenfarmpits: "new Promise((r) => setTimeout(() => { const first = o.debugState().monsters; setTimeout(() => { const s = o.debugState(); r({ place: s.place, tile: s.tile, first, monsters: s.monsters }); }, 8000); }, 1500))",
+    offelvinefarmpits: "new Promise((r) => setTimeout(() => { const first = o.debugState().monsters; setTimeout(() => { const s = o.debugState(); r({ place: s.place, tile: s.tile, first, monsters: s.monsters }); }, 8000); }, 1500))",
     offcitypits: "new Promise((r) => setTimeout(() => { const s = o.debugState(); r({ place: s.place, tile: s.tile, monsters: s.monsters }); }, 1500))",
     offelvinepits: "new Promise((r) => setTimeout(() => { const s = o.debugState(); r({ place: s.place, tile: s.tile, monsters: s.monsters }); }, 1500))",
     offorc: "new Promise((r) => { const log = []; const t = setInterval(() => { if (!o.debugState().target) o.debugFight('orc'); log.push(o.debugState()); }, 1000); setTimeout(() => { clearInterval(t); const pick = (s) => s && ({ tile: s.tile, hp: [s.hp, s.maxHp], level: s.level, exp: s.exp, kills: s.kills, target: s.target, monsters: s.monsters, gold: s.gold, dead: s.dead }); r({ start: pick(log[0]), mid: pick(log[10]), end: pick(log[log.length - 1]) }); }, 20000); })",
     offscorpion: "new Promise((r) => { const log = []; const t = setInterval(() => { if (!o.debugState().target) o.debugFight('giantScorpion'); log.push(o.debugState()); }, 1000); setTimeout(() => { clearInterval(t); const pick = (s) => s && ({ tile: s.tile, hp: [s.hp, s.maxHp], level: s.level, exp: s.exp, kills: s.kills, target: s.target, monsters: s.monsters, gold: s.gold, dead: s.dead }); r({ start: pick(log[0]), mid: pick(log[10]), end: pick(log[log.length - 1]) }); }, 20000); })",
-    offteleport: "o.debugWalkTo(140, 207), new Promise((r) => setTimeout(() => { const asked = game.scene.isActive('OffTeleport'); const paused = game.scene.isPaused('OffWorld'); game.scene.getScene('OffTeleport').choose('promiseland'); setTimeout(() => { const s = o.debugState(); r({ asked, paused, place: s.place, tile: s.tile }); }, 6000); }, 4000))",
+    offteleport: "o.debugWalkTo(140, 207), new Promise((r) => setTimeout(() => { const asked = game.scene.isActive('OffMapSelect'); const places = game.scene.getScene('OffMapSelect').debugPlaces(); const paused = game.scene.isPaused('OffWorld'); game.scene.getScene('OffMapSelect').choose('promiseland'); setTimeout(() => { const s = o.debugState(); r({ asked, places, paused, place: s.place, tile: s.tile }); }, 6000); }, 4000))",
     offpromiseland: "new Promise((r) => setTimeout(() => { const s = o.debugState(); r({ place: s.place, tile: s.tile, monsters: s.monsters }); }, 2500))",
     offpromiselandelvine: "new Promise((r) => setTimeout(() => { const s = o.debugState(); r({ place: s.place, tile: s.tile, monsters: s.monsters }); }, 2500))",
     offpromiselandback: "o.debugWalkTo(140, 228), new Promise((r) => setTimeout(() => { const s = o.debugState(); r({ place: s.place, tile: s.tile }); }, 6000))",
@@ -684,7 +761,7 @@ const PRESET_EVAL = {
     offcritstrike: "new Promise((r) => { const b = o.battle; const st = { normal: [], strike: [], misses: 0 }; let cur = false; const land = b.landBlow.bind(b); b.landBlow = (blow) => { cur = blow.crit; if (!blow.lands) st.misses++; land(blow); }; const hurt = b.hurtMonster.bind(b); b.hurtMonster = (m, d, e, c) => { if (e === undefined) (cur ? st.strike : st.normal).push(d); return hurt(m, d, e, c); }; const avg = (a) => a.length ? Math.round(a.reduce((x, y) => x + y, 0) / a.length) : 0; const start = b.critStrike.charges; const t = setInterval(() => { if (!o.debugState().target) o.debugFight('slime'); }, 300); let n = 0; const c = setInterval(() => { if (n++ < 3) b.critPressed(); }, 1500); setTimeout(() => { const afterStrikes = b.critStrike.charges; setTimeout(() => { clearInterval(t); clearInterval(c); const saved = JSON.parse(localStorage.getItem('hb-off.character')).critCharges; r({ level: b.level, start, afterStrikes, afterWait: b.critStrike.charges, saved, launched: b.critStrike.launched, strikesLanded: b.critStrikeBlows, misses: st.misses, normalAvg: avg(st.normal), strikeAvg: avg(st.strike), normalBlows: st.normal.length }); }, 16000); }, 6000); })",
     offmerchire: "new Promise((r) => { const h = o.debugState().hirer; const before = o.debugState().gold; o.debugWalkTo(h.x - 1, h.y + 1, false); setTimeout(() => { o.openMercenaries(); setTimeout(() => { const asked = game.scene.isActive('OffMercenary'); game.scene.getScene('OffMercenary').hire('warrior'); setTimeout(() => { const s = o.debugState(); r({ hirer: h, tile: s.tile, asked, goldBefore: before, goldAfter: s.gold, merc: s.merc, saved: JSON.parse(localStorage.getItem('hb-off.character')).mercenary }); }, 3000); }, 800); }, 4000); })",
     offmerc: "new Promise((r) => { const t = setInterval(() => { if (!o.debugState().target) o.debugFight('orc'); }, 500); let maxOnMerc = 0; const w = setInterval(() => { maxOnMerc = Math.max(maxOnMerc, o.debugState().onMerc); }, 500); setTimeout(() => { clearInterval(t); clearInterval(w); const fought = o.debugState(); o.debugMercDown(3000); setTimeout(() => { const down = o.debugState(); setTimeout(() => { const up = o.debugState(); r({ kills: fought.kills, mercKills: fought.mercKills, merc: fought.merc, hp: fought.hp, dead: fought.dead, maxOnMerc, downSeconds: down.mercDown, mercAfterDown: up.merc, upAgain: up.mercDown === 0 }); }, 3500); }, 800); }, 25000); })",
-    offmercportal: "new Promise((r) => { o.debugMercHp(100); o.debugWalkTo(140, 207); setTimeout(() => { game.scene.getScene('OffTeleport').choose('promiseland'); setTimeout(() => { const w = game.scene.getScene('OffWorld'); const s = w.debugState(); r({ place: s.place, tile: s.tile, merc: s.merc }); }, 6000); }, 4000); })",
+    offmercportal: "new Promise((r) => { o.debugMercHp(100); o.debugWalkTo(140, 207); setTimeout(() => { game.scene.getScene('OffMapSelect').choose('promiseland'); setTimeout(() => { const w = game.scene.getScene('OffWorld'); const s = w.debugState(); r({ place: s.place, tile: s.tile, merc: s.merc }); }, 6000); }, 4000); })",
     offmercaim: "new Promise((r) => { o.debugMercHp(5); const m0 = o.debugState(); o.debugAimAtMerc(true); o.debugPadCast(0); setTimeout(() => { const m1 = o.debugState(); o.debugAimAtMerc(false); setTimeout(() => { o.debugPadCast(0); setTimeout(() => { const m2 = o.debugState(); r({ before: { hp: m0.hp, merc: m0.merc }, aimed: { hp: m1.hp, merc: m1.merc, casts: m1.casts, fails: m1.fails }, notAimed: { hp: m2.hp, merc: m2.merc, casts: m2.casts, fails: m2.fails } }); }, 4000); }, 1500); }, 4000); })",
     offmercsay: OFF_MERC_SAY_EVAL,
     offraid: "new Promise((r) => { setTimeout(() => { const s0 = o.debugState(); const at6s = { raiders: s0.raiders, raids: s0.raids, tile: s0.tile }; const t = setInterval(() => { const s = o.debugState(); if (s.hp < s.maxHp * 0.4) o.debugDrink('hp'); if (!s.target && s.raiders.length) o.debugFightRaider(); }, 500); let minHp = s0.hp; const w = setInterval(() => { minHp = Math.min(minHp, o.debugState().hp); }, 300); setTimeout(() => { clearInterval(t); clearInterval(w); const s = o.debugState(); r({ at6s, after: { raiders: s.raiders, raids: s.raids, gold: s.gold, hp: s.hp, maxHp: s.maxHp, minHp, dead: s.dead, merc: s.merc, mercTarget: s.mercTarget, ground: s.ground.length } }); }, 25000); }, 6000); })",

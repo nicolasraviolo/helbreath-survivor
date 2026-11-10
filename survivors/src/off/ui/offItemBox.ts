@@ -13,10 +13,10 @@ import { offBestSpeedStr, offSpeedLabel } from '../data/offCombat';
 import { offGood } from '../data/offGoods';
 import {
     diceAverage, isOffGearKey, isOffSpecial, OFF_FISTS, offGearDef, offGearEffects, offGearId, offGearKind, offGearRolls, offItemAbsorb, offNeedsText, offWearCheck,
-    type OffBagItemKey, type OffGearKey, type OffItemDef, type OffWeaponItem, type OffWearer,
+    OFF_WAND, offManaCost, type OffBagItemKey, type OffEquipment, type OffGearKey, type OffItemDef, type OffWandPower, type OffWeaponItem, type OffWearer,
 } from '../data/offItems';
 import { OFF_ATTRIBUTES, offRollLines } from '../data/offAttributes';
-import { OFF_ELEMENT_NAMES, OFF_SPELLS, offDiceRange, type OffSpellId } from '../data/offSpells';
+import { OFF_ELEMENT_NAMES, OFF_SPELL_LINE, OFF_SPELLS, offDiceBounds, offDiceRange, type OffSpellId } from '../data/offSpells';
 import { weaponDamageRange } from '../systems/OffCombatRules';
 
 /** A line of the stat box: label, value, and how the worn item compares. */
@@ -72,7 +72,12 @@ export function offItemBoxLines(id: OffBagItemKey | undefined, worn: OffGearKey 
         // Range left out: every weapon so far reaches 1 tile (and the mobile box has no room for one more line).
         // Off-7E: two-handed weapons say so on the same line (the box has no room for one more).
         const fastest = best > 0 ? `Fastest with Str ${best}` : 'Fastest with any Str';
-        lines.push({ label: '', value: item.twoHanded ? `${fastest} · Two-handed, no shield` : fastest });
+        if (item.wand) {
+            // Off-11A: a wand tells what it saves instead (the box has no room for both).
+            lines.push({ label: 'Mana Save', value: offWandText(item.wand) });
+        } else {
+            lines.push({ label: '', value: item.twoHanded ? `${fastest} · Two-handed, no shield` : fastest });
+        }
     } else if (!item && other?.kind === 'weapon') {
         // An empty hand (Off-6A): bare hands' damage, compared with the weapon held.
         const show = (w: Pick<OffWeaponItem, 'small' | 'large'>, factor = 1) => {
@@ -80,7 +85,7 @@ export function offItemBoxLines(id: OffBagItemKey | undefined, worn: OffGearKey 
             return `${r.min} – ${r.max}`;
         };
         lines.push({ label: 'Damage', value: show(OFF_FISTS), now: { text: `(now ${show(other, factorOf(worn))})`, better: -1 } });
-        lines.push({ label: '', value: 'Bare hands. Spells need an empty hand.' });
+        lines.push({ label: '', value: 'Bare hands. Spells need an empty hand or a wand.' });
     } else {
         const defense = item?.kind === 'armor' ? item.defense : 0;
         const otherDefense = other?.kind === 'armor' ? other.defense : 0;
@@ -137,18 +142,36 @@ export function offItemNameColor(key: OffBagItemKey | undefined): string | undef
 }
 
 /** What a shield (Off-6C) or Berserk (Off-8C) does, in the box. */
-const SHIELD_EFFECT: Partial<Record<OffSpellId, string>> = { defenseShield: 'Defense up', protectionFromMagic: 'Magic resistance up', berserk: 'Double damage with blows' };
+const SHIELD_EFFECT: Partial<Record<OffSpellId, string>> = { defenseShield: 'Defense up', protectionFromMagic: 'Magic resistance up', absoluteMagicProtection: 'Immune to monster spells', berserk: 'Double damage with blows' };
 
 /** What the box says about a spell (Off-6A): mana, what it does, element and the INT it needs (red if short). */
-export function offSpellBoxLines(id: OffSpellId, int: number): OffBoxLine[] {
+/** Off-11A: "20%", and what the Berserk and Kloness wands add. */
+function offWandText(wand: OffWandPower): string {
+    if (wand.berserk) return `${wand.manaSave}% · +${OFF_WAND.berserkExtraMana} mana, +1/3 spell damage`;
+    if (wand.kloness) return `${wand.manaSave}% · +${OFF_WAND.klonessMin}–${OFF_WAND.klonessMax} spell damage`;
+    return `${wand.manaSave}%`;
+}
+
+/** A spell's lines; with `equipment`, the mana it costs with the wand held (Off-11A). */
+export function offSpellBoxLines(id: OffSpellId, int: number, equipment?: Readonly<OffEquipment>): OffBoxLine[] {
     const spell = OFF_SPELLS[id];
-    const lines: OffBoxLine[] = [{ label: 'Mana', value: `${spell.mana}` }];
-    if (spell.kind === 'damage' && spell.direct) {
-        lines.push({ label: 'Damage', value: offDiceRange(spell.direct) });
+    const cost = equipment ? offManaCost(spell.mana, equipment) : spell.mana;
+    const lines: OffBoxLine[] = [cost === spell.mana
+        ? { label: 'Mana', value: `${spell.mana}` }
+        : { label: 'Mana', value: `${cost}`, now: { text: `(${spell.mana} without the wand)`, better: Math.sign(spell.mana - cost) } }];
+    if (spell.kind === 'damage' && spell.shape === 'wave' && spell.direct && spell.area) {
+        // Off-11B, Earth Shock Wave: both rolls on everyone along the line.
+        const [lowA, highA] = offDiceBounds(spell.area);
+        const [lowD, highD] = offDiceBounds(spell.direct);
+        lines.push({ label: 'Line', value: `${OFF_SPELL_LINE.lastStep} tiles, ${lowA + lowD} – ${highA + highD} each` });
+    } else if (spell.kind === 'damage' && (spell.direct || spell.area)) {
+        if (spell.direct) lines.push({ label: 'Damage', value: offDiceRange(spell.direct) });
+        if (spell.area && spell.shape === 'bolt') lines.push({ label: 'Line', value: `${offDiceRange(spell.area)} on the way` });
         if (spell.area && spell.areaRange) {
             const side = spell.areaRange * 2 + 1;
             lines.push({ label: 'Area', value: `${side} × ${side} tiles, ${offDiceRange(spell.area)} each` });
         }
+        if (spell.freezeSec) lines.push({ label: 'Freezes', value: `${spell.freezeSec} seconds` });
     } else if (spell.kind === 'heal' && spell.direct) {
         lines.push({ label: 'Heals', value: `${offDiceRange(spell.direct)} health` });
     } else {

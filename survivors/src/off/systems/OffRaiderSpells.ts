@@ -4,7 +4,7 @@
 // batalla (OffRaiderWorld.raiderSpellLands), así que aquí no golpean a nadie. Sus avisos no van a tu lista.
 import type { SpellElement } from '../../data/elements';
 import type { OffStats } from '../data/offCharacter';
-import type { OffSpellId } from '../data/offSpells';
+import type { OffSpellDef, OffSpellId } from '../data/offSpells';
 import type { OffMercenary } from '../entities/OffMercenary';
 import type { OffFoe } from './OffFoe';
 import { raiderKnows } from './OffRaiderAI';
@@ -49,6 +49,15 @@ export class OffRaiderSpells implements OffSpellHost {
     /** A Mage carries no weapon or shield. */
     public handsRefusal(): string | undefined {
         return undefined;
+    }
+
+    /** Off-11A: Raiders carry no wand (as the mercenaries): full cost, plain damage. */
+    public manaCost(def: OffSpellDef): number {
+        return def.mana;
+    }
+
+    public wandDamage(damage: number): number {
+        return damage;
     }
 
     public spendMana(amount: number): void {

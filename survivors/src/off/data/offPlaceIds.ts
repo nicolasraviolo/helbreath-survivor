@@ -4,7 +4,8 @@ export const OFF_FACTIONS = ['aresden', 'elvine'] as const;
 export type OffFaction = (typeof OFF_FACTIONS)[number];
 
 // Off-7A: Promiseland, el mapa de caza al que lleva el teleport de la ciudad.
-export const OFF_PLACE_IDS = ['traveler', 'aresden', 'elvine', 'promiseland'] as const;
+// Off-10A: las dos Farms, el centro de Off (propietario, 9-nov-2026), y los Barracks de Survivors, por su puerta.
+export const OFF_PLACE_IDS = ['traveler', 'aresden', 'elvine', 'promiseland', 'aresdenFarm', 'elvineFarm', 'barracks'] as const;
 export type OffPlaceId = (typeof OFF_PLACE_IDS)[number];
 
 export function isOffFaction(value: unknown): value is OffFaction {

@@ -12,6 +12,15 @@
 // magias), para el herrero. Cada objeto lleva su precio (Item.cfg, tras el número de dibujo) y, si lo pide, el Level
 // mínimo para ponérselo (Item.cfg, el valor que va tras la velocidad: Battle Hammer 110, Winged Helmet 100...).
 // Las piezas (M)/(W) del original son una sola: el dibujo cambia con el sexo (Survivors).
+// Fase Off-11A (propietario, 9-nov-2026): las varitas del original (Item.cfg / Item3.cfg, efecto 13 = ahorra maná).
+// - Con una varita en la mano se puede lanzar (server: mano derecha vacía o Appr 34–39). Gastan menos maná: el % del
+//   valor 4 de Item.cfg, sin bajar de 1 y como mucho un 80 % (OFF_WAND). Golpean con sus dados (2d4 o 1d6).
+// - Tom vende las cinco normales (Magic Wand MS0/10/20, Wizard Magic Wand MS10/20) con su Level de Item.cfg. Las de
+//   precio negativo en Item.cfg (raras) solo caen de los monstruos (offLoot.ts).
+// - Berserk Wand: +1/3 de daño mágico y 20 de maná más por magia (server). Kloness Wand: daño fijo de +5 a +15 en cada
+//   tirada; el original lo saca de la reputación, que Off no tiene: aquí, Level / 10 (Claude).
+// - Dibujo: el de la varita igual de Survivors. Magic Wand (MS30) y Dark Mage Magic Wand usan en el original mstaff1
+//   (Appr 35), que Survivors no tiene registrado: van con el de la Magic Wand. Resurrection Wand y M.Shield, fuera.
 import type { ArmorPieceId } from '../../data/armor';
 import { attributeColor, type WeaponAttribute } from '../../data/attributes';
 import type { AddedColor } from '../../hb/playerAppearance';
@@ -20,6 +29,7 @@ import { itemIcon, type SavedEquipment } from '../../data/items';
 import type { ItemIconFrame } from '../../data/itemTypes';
 import { isOffGoodId, OFF_GOODS, type OffGoodId } from './offGoods';
 import type { MeleeWeaponId } from '../../data/weapons';
+import type { WandId } from '../../data/wands';
 import type { OffWeaponDef } from './offCombat';
 import {
     addOffEffects, hasOffRolls, offRollEffects, offRolledName, offRollsText, readOffRolls, type OffAttributeEffects, type OffRolls,
@@ -31,10 +41,22 @@ export type OffSlotId = (typeof OFF_GEAR_SLOT_IDS)[number];
 /** Shown greyed under the others until there are items for them. */
 export const OFF_FUTURE_SLOTS = ['Ring'] as const;
 
+/** Off-11A: what a wand does when you cast with it. */
+export interface OffWandPower {
+    /** % of each spell's mana saved (Item.cfg value 4). */
+    manaSave: number;
+    /** Berserk Wand: more magic damage, more mana (OFF_WAND). */
+    berserk?: true;
+    /** Kloness Wand: flat damage on each roll (OFF_WAND). */
+    kloness?: true;
+}
+
 export interface OffWeaponItem extends OffWeaponDef {
     kind: 'weapon';
     slot: 'weapon';
-    look: MeleeWeaponId;
+    look: MeleeWeaponId | WandId;
+    /** Off-11A: a wand (spells can be cast holding it). */
+    wand?: OffWandPower;
     /** Item.cfg price in gold (shops buy it back for OFF_SELL_SHARE of it). */
     price: number;
     /** Item.cfg minimum level to wear it; none if missing. */
@@ -43,6 +65,8 @@ export interface OffWeaponItem extends OffWeaponDef {
     icon?: ItemIconFrame;
     /** Off-7E: held with both hands (Item.cfg slot 9), so no shield with it, as the original. */
     twoHanded?: true;
+    /** Off-11A: negative price in Item.cfg, so the smith doesn't sell it (monsters drop it). */
+    rare?: true;
 }
 
 export interface OffArmorItem {
@@ -60,6 +84,7 @@ export interface OffArmorItem {
     look: ArmorPieceId;
     price: number;
     levelToEquip?: number;
+    rare?: true;
 }
 
 export type OffItemDef = OffWeaponItem | OffArmorItem;
@@ -100,6 +125,29 @@ export const OFF_ITEMS = {
     hammer: { kind: 'weapon', slot: 'weapon', twoHanded: true, name: 'Hammer', small: [3, 7, 0], large: [3, 9, 0], range: 1, strToEquip: 90, speed: 12, price: 6000, look: 'hammer' },
     // 761 (Item3.cfg): 3d7+2 / 3d9+2, 9000, 12000, 14, Level 110.
     battleHammer: { kind: 'weapon', slot: 'weapon', twoHanded: true, name: 'Battle Hammer', small: [3, 7, 2], large: [3, 9, 2], range: 1, strToEquip: 120, speed: 14, price: 9000, levelToEquip: 110, look: 'battleHammer' },
+    // ---- Wands (Off-11A). Item.cfg number: dice, mana save %, price (rare: minus the price), Level. All: weight 1000, speed 3. ----
+    // 258 MagicWand(MS0): 2d4, 0 %, 1000, 30.
+    magicWandMS0: { kind: 'weapon', slot: 'weapon', name: 'Magic Wand (MS0)', small: [2, 4, 0], large: [2, 4, 0], range: 1, strToEquip: 10, speed: 3, price: 1000, levelToEquip: 30, look: 'magicWandMS0', wand: { manaSave: 0 } },
+    // 257 MagicWand(MS10): 2d4, 10 %, 2500, 40.
+    magicWandMS10: { kind: 'weapon', slot: 'weapon', name: 'Magic Wand (MS10)', small: [2, 4, 0], large: [2, 4, 0], range: 1, strToEquip: 10, speed: 3, price: 2500, levelToEquip: 40, look: 'magicWandMS10', wand: { manaSave: 10 } },
+    // 256 MagicWand(MS20): 2d4, 20 %, 5000, 50.
+    magicWandMS20: { kind: 'weapon', slot: 'weapon', name: 'Magic Wand (MS20)', small: [2, 4, 0], large: [2, 4, 0], range: 1, strToEquip: 10, speed: 3, price: 5000, levelToEquip: 50, look: 'magicWandMS20', wand: { manaSave: 20 } },
+    // 684 WizMagicWand(MS10): 1d6, 10 %, 5500, 90.
+    wizardWandMS10: { kind: 'weapon', slot: 'weapon', name: 'Wizard Magic Wand (MS10)', small: [1, 6, 0], large: [1, 6, 0], range: 1, strToEquip: 10, speed: 3, price: 5500, levelToEquip: 90, look: 'wizardStaffMS10', wand: { manaSave: 10 } },
+    // 683 WizMagicWand(MS20): 1d6, 20 %, 6000, 95.
+    wizardWandMS20: { kind: 'weapon', slot: 'weapon', name: 'Wizard Magic Wand (MS20)', small: [1, 6, 0], large: [1, 6, 0], range: 1, strToEquip: 10, speed: 3, price: 6000, levelToEquip: 95, look: 'wizardStaffMS20', wand: { manaSave: 20 } },
+    // 291 MagicWand(MS30-LLF): 2d4, 30 %, -10000, none (item-pack sheet 16, frame 0).
+    magicWandMS30: { kind: 'weapon', slot: 'weapon', rare: true, name: 'Magic Wand (MS30)', small: [2, 4, 0], large: [2, 4, 0], range: 1, strToEquip: 10, speed: 3, price: 10000, look: 'magicWandMS20', icon: { sheet: 16, frame: 0 }, wand: { manaSave: 30 } },
+    // 714 DarkMageMagicStaff: 1d6, 25 %, -6000, none.
+    darkMageStaff: { kind: 'weapon', slot: 'weapon', rare: true, name: 'Dark Mage Magic Staff', small: [1, 6, 0], large: [1, 6, 0], range: 1, strToEquip: 10, speed: 3, price: 6000, look: 'magicWandMS20', wand: { manaSave: 25 } },
+    // 738 DarkMageMagicWand: 1d6, 28 %, -6000, 120 (sheet 16, frame 0).
+    darkMageWand: { kind: 'weapon', slot: 'weapon', rare: true, name: 'Dark Mage Magic Wand', small: [1, 6, 0], large: [1, 6, 0], range: 1, strToEquip: 10, speed: 3, price: 6000, levelToEquip: 120, look: 'magicWandMS20', icon: { sheet: 16, frame: 0 }, wand: { manaSave: 28 } },
+    // 862 / 861 BerserkWand(MS.10 / MS.20): 1d6, 10 / 20 %, -12000, 100.
+    berserkWandMS10: { kind: 'weapon', slot: 'weapon', rare: true, name: 'Berserk Wand (MS10)', small: [1, 6, 0], large: [1, 6, 0], range: 1, strToEquip: 10, speed: 3, price: 12000, levelToEquip: 100, look: 'berserkWandMS10', wand: { manaSave: 10, berserk: true } },
+    berserkWandMS20: { kind: 'weapon', slot: 'weapon', rare: true, name: 'Berserk Wand (MS20)', small: [1, 6, 0], large: [1, 6, 0], range: 1, strToEquip: 10, speed: 3, price: 12000, levelToEquip: 100, look: 'berserkWandMS20', wand: { manaSave: 20, berserk: true } },
+    // 864 / 863 KlonessWand(MS.10 / MS.20): 1d6, 10 / 20 %, -14000, 120.
+    klonessWandMS10: { kind: 'weapon', slot: 'weapon', rare: true, name: 'Kloness Wand (MS10)', small: [1, 6, 0], large: [1, 6, 0], range: 1, strToEquip: 10, speed: 3, price: 14000, levelToEquip: 120, look: 'klonessWandMS10', wand: { manaSave: 10, kloness: true } },
+    klonessWandMS20: { kind: 'weapon', slot: 'weapon', rare: true, name: 'Kloness Wand (MS20)', small: [1, 6, 0], large: [1, 6, 0], range: 1, strToEquip: 10, speed: 3, price: 14000, levelToEquip: 120, look: 'klonessWandMS20', wand: { manaSave: 20, kloness: true } },
     // ---- Shields. Item.cfg number: defence, price, weight. ----
     // 79: 8, 100, 800.
     woodShield: { kind: 'armor', slot: 'shield', name: 'Wood Shield', defense: 8, strToEquip: 8, price: 100, look: 'woodShield' },
@@ -290,6 +338,50 @@ export function canEmptyOffSlot(_slot: OffSlotId): boolean {
  * fastest speed are ours.
  */
 export const OFF_FISTS: OffWeaponDef = { name: 'Fists', small: [1, 2, 0], large: [1, 2, 0], range: 1, strToEquip: 0, speed: 0 };
+
+/**
+ * Wands (Off-11A, server PlayerMagicHandler): saved mana is capped (with necklaces, when there are any) and a spell
+ * costs at least 1. The Berserk Wand adds mana and a third more damage; the Kloness Wand, Level / 10 between 5 and 15
+ * on each damage roll (ours: the original used the reputation).
+ */
+export const OFF_WAND = {
+    maxManaSave: 80,
+    minManaCost: 1,
+    berserkExtraMana: 20,
+    berserkDamageFactor: 4 / 3,
+    klonessPerLevel: 0.1,
+    klonessMin: 5,
+    klonessMax: 15,
+} as const;
+
+/** The wand held, or undefined (no weapon, or not a wand). */
+export function offWand(equipment: Readonly<OffEquipment>): OffWandPower | undefined {
+    const key = equipment.weapon;
+    const item = key ? offGearDef(key) : undefined;
+    return item?.kind === 'weapon' ? item.wand : undefined;
+}
+
+/** Off-11A: what a spell of that mana costs with the wand held (server: truncated, at least 1). */
+export function offManaCost(mana: number, equipment: Readonly<OffEquipment>): number {
+    const wand = offWand(equipment);
+    if (!wand) return mana;
+    const save = Math.min(OFF_WAND.maxManaSave, wand.manaSave);
+    const cost = Math.max(OFF_WAND.minManaCost, Math.trunc(mana - (mana * save) / 100));
+    return wand.berserk ? cost + OFF_WAND.berserkExtraMana : cost;
+}
+
+/** Off-11A: one roll of spell damage with the held wand's bonus (Berserk x4/3, Kloness flat). */
+export function offWandDamage(damage: number, equipment: Readonly<OffEquipment>, level: number): number {
+    const wand = offWand(equipment);
+    if (!wand) return damage;
+    let result = damage;
+    if (wand.berserk) result = Math.round(result * OFF_WAND.berserkDamageFactor);
+    if (wand.kloness) {
+        const flat = Math.floor(level * OFF_WAND.klonessPerLevel);
+        result += Math.min(OFF_WAND.klonessMax, Math.max(OFF_WAND.klonessMin, flat));
+    }
+    return result;
+}
 
 /** The weapon held, or bare hands. */
 export function offWeapon(equipment: Readonly<OffEquipment>): OffWeaponDef {

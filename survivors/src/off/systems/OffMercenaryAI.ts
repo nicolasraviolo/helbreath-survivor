@@ -292,7 +292,9 @@ function support(merc: OffMercenary, owner: TilePoint, fighting: boolean, world:
     if (heal && merc.hp / Math.max(1, merc.maxHp) < caster.healBelow) return startCast(merc, heal, { on: 'self' }, undefined);
     if (!fighting || !needs || !near) return false;
     if (!needs.shielded) {
-        const shield: OffSpellId = needs.casterNear ? 'protectionFromMagic' : 'defenseShield';
+        // Off-11B (owner): Absolute Magic Protection instead of Protection From Magic once she knows it.
+        const magicShield: OffSpellId = canCast(merc, 'absoluteMagicProtection') ? 'absoluteMagicProtection' : 'protectionFromMagic';
+        const shield: OffSpellId = needs.casterNear ? magicShield : 'defenseShield';
         if (canCast(merc, shield)) return startCast(merc, shield, { on: 'owner' }, owner);
     }
     if (!needs.berserk && canCast(merc, 'berserk')) return startCast(merc, 'berserk', { on: 'owner' }, owner);

@@ -351,10 +351,11 @@ export class OffMonster implements Poolable {
     }
 
     /** An ice spell's hit: its clock runs at ICE_SLOW's pace for a while, tinted blue. */
-    public slow(): void {
+    /** Off-11B: `ms` = how long (Ice Strike 4 s, Mass Chill Wind 10 s); Survivors' 3 s by default. */
+    public slow(ms: number = ICE_SLOW.normal.ms): void {
         if (!this.isAlive) return;
         this.slowFactor = ICE_SLOW.normal.factor;
-        this.slowMs = Math.max(this.slowMs, ICE_SLOW.normal.ms);
+        this.slowMs = Math.max(this.slowMs, ms);
         this.applyTint();
     }
 

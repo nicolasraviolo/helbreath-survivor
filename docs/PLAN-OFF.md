@@ -67,14 +67,26 @@ Cada fase se hace por bloques, uno por sesión, y se espera el OK del propietari
   - **8C Maga mercenaria y la magia Berserk ✅** (8-nov-2026): Kaila lanza Heal / Great Heal, Defense Shield, PFM, Berserk, Paralyze, Hold Person y magias de daño según su INT; Berserk en la tienda (golpes ×2, 40 s). Además: Paralyze aguanta los golpes como el original y los mercenarios recogen el botín olvidado.
   - **8D Frases y detalles ✅** (8-nov-2026; Gorn pega por detrás solo con Paralyze, que no se rompe al golpear): con poca vida dice frases ("Heal me!", "Zerk me!"...). Contra un monstruo paralizado, el Guerrero le pega por la espalda. El mercenario contratado se guarda.
   - **8E Huir, poción y recuperar vida ✅** (8-nov-2026; ajustado por el propietario tras probarlo): el mercenario recupera vida como un jugador (una tanda cada 15 s, también peleando, número verde). **Poción propia** que se rellena a los 60 s, **sin icono**: bajo el 30 % se la bebe, cura el 40 % de su vida y dice "I drank my potion!". **Sin poción huye** bajo el 25 % ("Heal me!", lejos de los monstruos y hacia ti) y vuelve a pelear al pasar del 50 % o tras 8 s sin que nadie lo persiga. Kaila igual, pero solo huye sin maná para curarse.
-- **Off-9 · Raiders** (plan del 8-nov-2026). Los Raiders usan **el mismo cerebro que los mercenarios**, en el bando contrario. Bloques:
+- **Off-9 · Raiders** ✅ (plan del 8-nov-2026; cerrada el 10-nov-2026 tras probarla el propietario). Los Raiders usan **el mismo cerebro que los mercenarios**, en el bando contrario. Bloques:
   - **9A Aparecer y atacar ✅** (9-nov-2026; ajustes del propietario: estamina y huida corta, sin avisos, "Enemy Kill!!", Mago que paraliza y lanza de lejos, Guerrero con Critical Strike, golpes que interrumpen magias, sin barra de vida): 1 o 2 personajes de la otra ciudad (Guerrero o Mago, nombre en rojo), de nivel parecido al tuyo; si son dos, cada uno algo más flojo. **Solo en Promiseland**, al azar. Van a por ti y a por tu mercenario. Al morir sueltan **oro** y nada más por ahora.
   - **9B Invisibles y Enemy Kills ✅**: a veces llegan invisibles hasta que atacan. Cada uno que matas da **+1 EK**; se guarda y sale en la casilla "Enemy Kills" de la ventana Character. Más adelante desbloquearán cosas.
   - **9C Medir y ajustar ✅** (9-nov-2026): peleas de prueba `check offduel*` (niveles 10/30/50 × Guerrero, Mago, pareja, invisible). Una tirada cada 12 min; fuerza por nivel (`OFF_RAIDER_POWER`); Mago más alcanzable. Las pociones no se tocan: un Raider solo te mata si te quedas sin pociones o te pilla bajo.
 
+- **Off-10 · Las Farms como centro** (plan del 9-nov-2026, ver DECISIONES.md). La ciudad no se toca. Bloques:
+  - **10A Farms con vendedores**: `arefarm.amd` / `elvfarm.amd` enteras, con Shop Keeper, Tom, Howard y William de pie, que abren las ventanas de la tienda, el herrero, el almacén y los mercenarios.
+  - **10B Pits de las Farms**: los del original (sin Crop), con un Snake cambiado por Orc en cada Farm.
+  - **10C La Farm como casa**: unirse al bando, Play y morir llevan a tu Farm; su teleport ofrece City, Traveler Zone y Promiseland; el de la ciudad añade Farm; las puertas de Promiseland llevan a tu Farm.
+  - ✅ (9-nov-2026: 10A–10C; Play sigue volviendo donde lo dejaste, el portal de tu bando en Traveler Zone también lleva a la Farm, y el teleport abre una Select Map como la de Survivors).
+
+- **Off-11 · Varitas y magias de círculos altos** (plan del 9-nov-2026, ver DECISIONES.md). Bloques:
+  - **11A Varitas**: las 12 del original (fuera Resurrection y M.Shield); se lanza con varita; ahorran maná; Tom vende 5, las raras caen de los monstruos. ✅ (9-nov-2026).
+  - **11B Círculos 6–7** con dibujos de Survivors: Lightning Bolt, Mass Lightning Arrow, Ice Strike, Energy Strike, Mass Chill Wind y Absolute Magic Protection (Kaila la usa en vez de Protection From Magic). Propietario (9-nov-2026): también **Lightning Strike** y **Earth Shock Wave** (en la tienda, 50.000 de oro, INT 190); Kaila aprende Lightning Bolt y Energy Strike. ✅ (9-nov-2026).
+  - **11C Círculos 8–10** con dibujos de Survivors: Mass Ice Strike, Meteor Strike, Mass Magic Missile y Blizzard. Propietario (9-nov-2026): Mass Magic Missile estalla con Explosion 3; Kaila aprende las cuatro. ✅ (9-nov-2026).
+  - **11D Magias sin dibujo** (copiar de sp-client): Spike Field, Cloud Kill, Mass Poison, Earthworm Strike, Armor Break. **Pendiente:** el propietario cerró la Off-11 sin él (9-nov-2026).
+  - Mass Fire Strike, Bloody Shock Wave, Ice Storm y Haste: libros que caen muy poco (Earth Shock Wave pasó a la tienda en la 11B). Fuera: Confusion, Illusion, Cancellation, Inhibition Casting, Scan, Resurrection.
+
 ## Pendiente de decidir más adelante
 
-- **Absolute Magic Protection** (Magic.cfg 65: círculo 7, INT 112, 90 de maná, 13.500 de oro): añadirla cuando haya más magias; Kaila la usará en vez de Protection From Magic (propietario, 8-nov-2026).
 - **Detect Invisibility** (Magic.cfg: círculo 3, 1.200 de oro; quita la invisibilidad alrededor): para ver a los Raiders invisibles de la 9B (propietario, 9-nov-2026: fuera de la 9B).
 - Pasar Off a una **app independiente** que se juegue sin conexión (idea del propietario, 7-nov-2026).
 

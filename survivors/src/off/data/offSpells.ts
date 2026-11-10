@@ -18,8 +18,9 @@
 // - Hold Person / Paralyze: el monstruo no anda ni ataca durante `durationSec`; puede resistirla como el daño, y
 //   cualquier golpe o magia que le haga daño la rompía (corregido en la Off-8C: ver abajo). El fuego que arde no.
 // - Curar y escudos te los lanzas a ti: en Off juegas solo, así que cualquier clic sirve (decisión de Claude, aceptada).
-// - Mando (propietario): RT + A/B/X/Y preparan las 4 magias del mando (elegidas en el libro); soltar RT la lanza al
-//   monstruo marcado o, sin él, al más cercano.
+// - Mando (propietario): RT + A/B/X/Y preparan las 4 magias del mando (elegidas en el libro); al estar lista sale sola
+//   (desde el 9-nov-2026 sin soltar RT) donde apunta el stick derecho (OFF_PAD_AIM) o, sin stick, al monstruo marcado o
+//   al más cercano.
 // Fase Off-6B, lanzar (OFF_CASTING; fórmulas en off/systems/OffSpellRules.ts):
 // - Off no tiene habilidades. Propietario (7-nov-2026): la habilidad "Magic" del original (0–100) sale de la MAG:
 //   MAG × 2, tope 100 (con MAG 50 se lanza como un mago entrenado). Lo demás, con las tablas del servidor.
@@ -37,6 +38,7 @@
 import type { SpellElement } from '../../data/elements';
 import type { SpellId } from '../../data/spells';
 import type { EffectKey } from '../../config/effects';
+import type { OffExtraLookId } from '../config/offSpellLook';
 
 export type OffSpellId =
     | 'magicMissile' | 'heal'
@@ -44,9 +46,27 @@ export type OffSpellId =
     | 'fireBall' | 'greatHeal' | 'holdPerson'
     | 'fireStrike' | 'lightningArrow' | 'paralyze' | 'protectionFromMagic'
     | 'tripleEnergyBolt' | 'chillWind' | 'lightning'
-    | 'berserk';
+    | 'berserk'
+    | 'lightningBolt' | 'massLightningArrow' | 'iceStrike'
+    | 'energyStrike' | 'massChillWind' | 'absoluteMagicProtection'
+    | 'lightningStrike' | 'massIceStrike'
+    | 'meteorStrike' | 'massMagicMissile'
+    | 'earthShockWave' | 'blizzard';
 
 export type OffSpellKind = 'damage' | 'heal' | 'shield' | 'hold' | 'berserk';
+
+/**
+ * Where a damage spell hits (Off-11B, server PlayerMagicHandler):
+ * - spot (default): `direct` on the target, `area` on every monster of the square around it.
+ * - bolt (DAMAGE_LINEAR, Lightning Bolt; ICE_LINEAR, Blizzard, Off-11C): `direct` on the target, `area` on every monster of the line from you to it
+ *   (each step and its four neighbours) and of the square around it, once each.
+ * - wave (DAMAGE_LINEAR_SPDOWN, Earth Shock Wave): `area` and `direct` on every monster of the line, `lineSteps` tiles
+ *   long, also past the target.
+ */
+export type OffSpellShape = 'spot' | 'bolt' | 'wave';
+
+/** Lines (Off-11B, server GetPoint2 from 2 to 9): the first and last step from the caster. */
+export const OFF_SPELL_LINE = { firstStep: 2, lastStep: 9 } as const;
 
 /** Dice as in the cfg: count, sides, bonus (2 6 2 = 2d6 + 2). */
 export type OffSpellDice = readonly [number, number, number];
@@ -72,8 +92,12 @@ export interface OffSpellDef {
     /** Strength of a shield or a hold (v4 in the cfg: 3 Defense Shield, 2 Protection From Magic, OFF_PROTECT; 1 Hold Person, 2 Paralyze, OFF_HOLD). */
     power?: number;
     element?: SpellElement;
-    /** Survivors' spell whose flight, explosions and sounds it shows (data/spells.ts); only damage spells. */
-    look?: SpellId;
+    /** Off-11B: where it hits (default spot). */
+    shape?: OffSpellShape;
+    /** Off-11B: ice spells, seconds the monster stays slowed (the cfg's v10; default ICE_SLOW.normal). */
+    freezeSec?: number;
+    /** Survivors' spell whose flight, explosions and sounds it shows (data/spells.ts), or Off's own (OFF_EXTRA_LOOKS). */
+    look?: SpellId | OffExtraLookId;
     /** Heal, shields and holds (Off-6C): the original's effect where it lands (config/effects.ts). */
     castEffect?: EffectKey;
     /** Shields (Off-6C): drawn in a loop under the player's feet while it lasts. */
@@ -102,6 +126,31 @@ export const OFF_SPELLS: Record<OffSpellId, OffSpellDef> = {
     lightning: { name: 'Lightning', magicId: 43, circle: 5, kind: 'damage', mana: 44, reqInt: 47, price: 1700, direct: [4, 7, 12], element: 'lightning', look: 'lightningBolt' },
     // ---- Circle 6 (Off-8C) ----
     berserk: { name: 'Berserk', magicId: 50, circle: 6, kind: 'berserk', mana: 57, reqInt: 59, price: 2200, durationSec: 40, castEffect: 'fx.berserk.cast' },
+    // ---- Off-11B: circles 6–8 and 10 (Magic.cfg; ice v10 = seconds frozen) ----
+    lightningBolt: { name: 'Lightning Bolt', magicId: 51, circle: 6, kind: 'damage', mana: 58, reqInt: 58, price: 2500, direct: [4, 5, 18], area: [4, 2, 6], areaRange: 2, shape: 'bolt', element: 'lightning', look: 'lightningBolt' },
+    // Server: one target only (DAMAGE_SPOT); the client draws four arrows to it.
+    massLightningArrow: { name: 'Mass Lightning Arrow', magicId: 56, circle: 6, kind: 'damage', mana: 55, reqInt: 53, price: 3000, direct: [5, 6, 20], element: 'lightning', look: 'massLightningArrow' },
+    // Server ICE: the v4 dice on every monster of the square (no separate direct roll), then frozen v10 s.
+    iceStrike: { name: 'Ice Strike', magicId: 57, circle: 6, kind: 'damage', mana: 59, reqInt: 60, price: 4200, area: [5, 6, 12], areaRange: 2, freezeSec: 4, element: 'ice', look: 'iceStrike' },
+    // Server DAMAGE_AREA_NOSPOT: only the square.
+    energyStrike: { name: 'Energy Strike', magicId: 60, circle: 7, kind: 'damage', mana: 65, reqInt: 67, price: 5000, area: [7, 6, 17], areaRange: 2, element: 'lightning', look: 'energyStrike' },
+    massChillWind: { name: 'Mass Chill Wind', magicId: 63, circle: 7, kind: 'damage', mana: 90, reqInt: 93, price: 9800, area: [3, 8, 6], areaRange: 2, freezeSec: 10, element: 'ice', look: 'massChillWind' },
+    // Server: protect 5 = every monster spell is resisted (OFF_PROTECT.magicImmunePowers). Shares the shields' slot.
+    absoluteMagicProtection: { name: 'Absolute Magic Protection', magicId: 65, circle: 7, kind: 'shield', mana: 90, reqInt: 112, price: 13500, durationSec: 60, power: 5, castEffect: 'fx.amp.cast', wornEffect: 'fx.amp.aura' },
+    lightningStrike: { name: 'Lightning Strike', magicId: 74, circle: 8, kind: 'damage', mana: 90, reqInt: 123, price: 35000, area: [7, 7, 20], areaRange: 2, element: 'lightning', look: 'lightningStrike' },
+    // ---- Off-11C: circles 8–10 (Magic.cfg) ----
+    // Server ICE, as Ice Strike: 7d8+25 on every monster of the 5 × 5 square, frozen 7 s.
+    massIceStrike: { name: 'Mass Ice Strike', magicId: 72, circle: 8, kind: 'damage', mana: 120, reqInt: 133, price: 21000, area: [7, 8, 25], areaRange: 2, freezeSec: 7, element: 'ice', look: 'massIceStrike' },
+    // Server DAMAGE_AREA_NOSPOT: only the square (its v4–v6, 6 8 12, are never read).
+    meteorStrike: { name: 'Meteor Strike', magicId: 81, circle: 9, kind: 'damage', mana: 120, reqInt: 169, price: 40000, area: [7, 12, 18], areaRange: 2, element: 'fire', look: 'meteorStrike' },
+    // Server DAMAGE_AREA_NOSPOT on a 7 × 7 square.
+    massMagicMissile: { name: 'Mass Magic Missile', magicId: 82, circle: 9, kind: 'damage', mana: 160, reqInt: 185, price: 45000, area: [7, 7, 30], areaRange: 3, element: 'lightning', look: 'massMagicMissile' },
+    // Owner (9-nov-2026): INT 190 and 185 mana (helbreath.net and the wiki; the cfg says 200 and 180) and sold at the
+    // shop for 50.000 (the original only gave it by talent or manual).
+    earthShockWave: { name: 'Earth Shock Wave', magicId: 96, circle: 10, kind: 'damage', mana: 185, reqInt: 190, price: 50000, direct: [5, 1, 20], area: [7, 8, 16], shape: 'wave', element: 'earth', look: 'earthShockWave' },
+    // Server ICE_LINEAR: Lightning Bolt's line (up to the target) and a 7 × 7 square with v7–v9, v4–v6 on the target,
+    // and all of them frozen 2 s.
+    blizzard: { name: 'Blizzard', magicId: 91, circle: 10, kind: 'damage', mana: 170, reqInt: 195, price: 43000, direct: [5, 1, 20], area: [7, 8, 16], areaRange: 3, shape: 'bolt', freezeSec: 2, element: 'ice', look: 'blizzard' },
 };
 
 /**
@@ -153,7 +202,9 @@ export function offSpellOnSelf(def: OffSpellDef): boolean {
  */
 export const OFF_PROTECT = {
     defenseByPower: { 3: 40, 4: 100 } as Readonly<Record<number, number>>,
-    magicHalvedPowers: [2, 5] as readonly number[],
+    magicHalvedPowers: [2] as readonly number[],
+    /** Off-11B (server bCheckResistingMagicSuccess): Absolute Magic Protection resists every spell. */
+    magicImmunePowers: [5] as readonly number[],
     magicDamageFactor: 0.5,
 } as const;
 
@@ -177,9 +228,15 @@ export function offCircleTitle(circle: number): string {
     return `Circle ${circle}`;
 }
 
+/** Lowest and highest roll of some dice. */
+export function offDiceBounds([count, sides, bonus]: OffSpellDice): readonly [number, number] {
+    return [count + bonus, count * sides + bonus];
+}
+
 /** "2 – 8" from some dice. */
-export function offDiceRange([count, sides, bonus]: OffSpellDice): string {
-    return `${count + bonus} – ${count * sides + bonus}`;
+export function offDiceRange(dice: OffSpellDice): string {
+    const [low, high] = offDiceBounds(dice);
+    return `${low} – ${high}`;
 }
 
 /** The gamepad's spells (Off-6C): RT + A, B, X, Y. */
@@ -197,6 +254,20 @@ export function offPadSpellName(index: number): string {
 export function offSpellKeyName(index: number): string {
     return `${index + 1}`;
 }
+
+/**
+ * Aiming a gamepad spell with the right stick (propietario, 9-nov-2026): the spell falls where the stick points, nearer
+ * or farther with how far it is pushed (0..1 after the deadzone), always inside the screen.
+ */
+export const OFF_PAD_AIM = {
+    /** Tiles from you with the stick barely pushed, and pushed to the edge. */
+    minTiles: 1.5,
+    maxTiles: 9,
+    /** Kept this many pixels inside the edges of what the camera shows. */
+    screenMarginPx: 24,
+    /** A living monster this close to the mark (tiles) takes the spell itself (as a click on it). */
+    snapTiles: 1.2,
+} as const;
 
 /**
  * Casting (Off-6B), from the server (reference/Server.cpp, PlayerMagicHandler) unless said otherwise.
@@ -239,7 +310,7 @@ export const OFF_CASTING = {
 export const OFF_CAST_TEXT = {
     unknown: (name: string) => `You don't know ${name}.`,
     noMana: 'Not enough mana.',
-    weapon: 'Take off your weapon to cast.',
+    weapon: 'Hold a wand or take off your weapon to cast.',
     shield: 'Take off your shield to cast.',
     tooSoon: 'Too soon to cast again.',
     failed: 'The spell failed!',

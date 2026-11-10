@@ -46,6 +46,9 @@ export const EFFECTS = {
     // Ice Storm (Fase 30B, único de Icebound): el remolino del original (sp-client EFFECT_WHIRLWIND, effect3 hoja 0, 15 fps).
     'fx.iceStorm.whirlwind': { sprite: 'fx.effect3', sheet: 0, frameRate: 15, loop: false, fadeFromFrame: 8 },
     'fx.explosion4': { sprite: 'fx.effect11', sheet: 8, frameRate: 15, loop: false },
+    // Mass Magic Missile de Helbreath Off (Off-11C): el misil del cliente original (Client.cpp efecto 182, m_pEffectSpr[98]
+    // = effect11 hoja 9, dibujado con brillo); explota con fx.explosion3 (el propietario lo recordaba así).
+    'fx.massMagicMissile.fly': { sprite: 'fx.effect11', sheet: 9, frameRate: 15, loop: true, additive: true },
     // Buffs del cofre (sp-client Berserk / Defense Shield / Defense Shield Buff).
     'fx.berserk.cast': { sprite: 'fx.effect8', sheet: 1, frameRate: 10, loop: false, depthOffset: -1 },
     'fx.defenseShield.cast': { sprite: 'fx.effect8', sheet: 6, frameRate: 10, loop: false, depthOffset: -1 },
@@ -130,6 +133,10 @@ export const EFFECTS = {
     'fx.heal.cast': { sprite: 'fx.effect7', sheet: 5, frameRate: 12.5, loop: false },
     'fx.hold.cast': { sprite: 'fx.effect5', sheet: 2, frameRate: 12.5, loop: false },
     'fx.aura.ring': { sprite: 'fx.effect5', sheet: 1, frameRate: 15, loop: true, depthOffset: -1 },
+    // Helbreath Off (Off-11B), Absolute Magic Protection (sp-client Effects.ts): la burbuja al lanzarla, effect7 hoja 8
+    // (Client.cpp: 22 frames a 70 ms), y su aura mientras dura, effect9 hoja 13 (pivote medido en la captura: 26 px más a la derecha y 33 más abajo que la hoja 14).
+    'fx.amp.cast': { sprite: 'fx.effect7', sheet: 8, frameRate: 14, loop: false },
+    'fx.amp.aura': { sprite: 'fx.effect9', sheet: 13, frameRate: 15, loop: true, offsetX: 98, offsetY: 138 },
     // Helbreath Off (Fase Off-6B): el círculo bajo los pies mientras se prepara una magia (sp-client EFFECT_CASTING_CIRCLE,
     // effect5 hoja 7, 10 fps, bajo el personaje).
     'fx.castingCircle': { sprite: 'fx.effect5', sheet: 7, frameRate: 10, loop: true, depthOffset: -1 },
