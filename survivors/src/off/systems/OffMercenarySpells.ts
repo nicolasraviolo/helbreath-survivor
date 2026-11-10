@@ -6,20 +6,20 @@
 import type { SpellElement } from '../../data/elements';
 import { offMercenarySpells } from '../data/offMercenary';
 import type { OffStats } from '../data/offCharacter';
-import type { OffSpellId } from '../data/offSpells';
+import type { OffSpellDef, OffSpellId } from '../data/offSpells';
 import type { OffMercenary } from '../entities/OffMercenary';
-import type { OffMonster } from '../entities/OffMonster';
+import type { OffFoe } from './OffFoe';
 import type { OffSpellHost } from './OffSpells';
 
 /** What the Mage's spells need from the battle. */
 export interface OffMercenaryCastWorld {
     /** The mercenary hired now (the Mage, while this host is in use). */
     readonly merc: OffMercenary | undefined;
-    monstersAround(tileX: number, tileY: number, range: number): OffMonster[];
+    monstersAround(tileX: number, tileY: number, range: number): OffFoe[];
     /** Her spell's damage lands (as yours, but the kill is hers). */
-    mercSpellHit(monster: OffMonster, damage: number, element: SpellElement | undefined): void;
-    spellResisted(monster: OffMonster): void;
-    spellHeld(monster: OffMonster): void;
+    mercSpellHit(monster: OffFoe, damage: number, element: SpellElement | undefined, freezeMs?: number): void;
+    spellResisted(monster: OffFoe): void;
+    spellHeld(monster: OffFoe): void;
     healMerc(merc: OffMercenary, amount: number): void;
     protectMerc(merc: OffMercenary, spell: OffSpellId): boolean;
     enrageMerc(merc: OffMercenary, durationMs: number): boolean;
@@ -58,20 +58,29 @@ export class OffMercenarySpells implements OffSpellHost {
         return undefined;
     }
 
+    /** She holds no wand: the spell's own mana and damage. */
+    public manaCost(def: OffSpellDef): number {
+        return def.mana;
+    }
+
+    public wandDamage(damage: number): number {
+        return damage;
+    }
+
     public spendMana(amount: number): void {
         const merc = this.world.merc;
         if (merc) merc.mana = Math.max(0, merc.mana - amount);
     }
 
-    public monstersAround(tileX: number, tileY: number, range: number): OffMonster[] {
+    public monstersAround(tileX: number, tileY: number, range: number): OffFoe[] {
         return this.world.monstersAround(tileX, tileY, range);
     }
 
-    public spellHit(monster: OffMonster, damage: number, element: SpellElement | undefined): void {
-        this.world.mercSpellHit(monster, damage, element);
+    public spellHit(monster: OffFoe, damage: number, element: SpellElement | undefined, freezeMs?: number): void {
+        this.world.mercSpellHit(monster, damage, element, freezeMs);
     }
 
-    public spellResisted(monster: OffMonster): void {
+    public spellResisted(monster: OffFoe): void {
         this.world.spellResisted(monster);
     }
 
@@ -91,7 +100,7 @@ export class OffMercenarySpells implements OffSpellHost {
         return merc ? this.world.enrageMerc(merc, durationMs) : false;
     }
 
-    public spellHeld(monster: OffMonster): void {
+    public spellHeld(monster: OffFoe): void {
         this.world.spellHeld(monster);
     }
 

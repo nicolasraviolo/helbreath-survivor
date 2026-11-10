@@ -29,6 +29,7 @@ export function offCharacterInfo(battle: OffBattle, worldKey: string, onClose: (
         stats: { ...saved.stats, chr: 0 },
         points: battle.points,
         statMax: OFF_STAT_MAX,
+        enemyKills: saved.enemyKills,
         values: (stats) => {
             const s = { ...offStats(stats), level };
             return {

@@ -16,7 +16,8 @@ export class AudioSystem {
     private readonly lastStart = new Map<SoundKey, number>();
     private total = 0;
     private skipped = 0;
-    private readonly loops = new Map<SoundKey, Phaser.Sound.BaseSound>();
+    /** Loops by id (the sound's key, or its own id: Off-9B, each Raider's footsteps), with their share of the volume. */
+    private readonly loops = new Map<string, { sound: Phaser.Sound.BaseSound; volume: number }>();
     /** One-shot sounds still playing (cut when the tab is hidden). */
     private readonly oneShots = new Set<Phaser.Sound.BaseSound>();
 
@@ -26,9 +27,7 @@ export class AudioSystem {
             for (const key of [...this.loops.keys()]) this.stopLoop(key);
         };
         const onSettings = () => {
-            for (const loop of this.loops.values()) {
-                if (loop instanceof Phaser.Sound.WebAudioSound || loop instanceof Phaser.Sound.HTML5AudioSound) loop.setVolume(sfxVolume());
-            }
+            for (const loop of this.loops.values()) setVolume(loop.sound, sfxVolume() * loop.volume);
         };
         const onVisibility = () => {
             if (document.visibilityState !== 'hidden') return;
@@ -85,19 +84,34 @@ export class AudioSystem {
     }
 
     /** Keeps a sound looping, each repetition lasting `durationMs`. Calling it again while it plays does nothing. */
-    public startLoop(key: SoundKey, durationMs: number): void {
-        if (this.loops.has(key) || !this.canPlay()) return;
+    /** A sound in a loop, each round lasting `durationMs`; `id` lets the same sound loop several times at once. */
+    public startLoop(key: SoundKey, durationMs: number, id: string = key): void {
+        if (this.loops.has(id) || !this.canPlay()) return;
         const sound = this.scene.sound.add(key, { volume: sfxVolume(), loop: true, rate: this.rateFor(key, durationMs) });
         sound.play();
-        this.loops.set(key, sound);
+        this.loops.set(id, { sound, volume: 1 });
     }
 
-    public stopLoop(key: SoundKey): void {
-        const sound = this.loops.get(key);
-        if (!sound) return;
-        sound.stop();
-        sound.destroy();
-        this.loops.delete(key);
+    public stopLoop(id: string): void {
+        const loop = this.loops.get(id);
+        if (!loop) return;
+        loop.sound.stop();
+        loop.sound.destroy();
+        this.loops.delete(id);
+    }
+
+    /** Off-9B: the loop is playing (loops stop when the scene pauses or the tab hides). */
+    public isLooping(id: string): boolean {
+        return this.loops.has(id);
+    }
+
+    /** Off-9B: a loop's share of the effects volume (0–1) and side (−1 left … 1 right), for sounds from a place. */
+    public setLoopMix(id: string, volume: number, pan: number): void {
+        const loop = this.loops.get(id);
+        if (!loop) return;
+        loop.volume = volume;
+        setVolume(loop.sound, sfxVolume() * volume);
+        if (loop.sound instanceof Phaser.Sound.WebAudioSound) loop.sound.setPan(pan);
     }
 
     /** False with the tab hidden or the browser's audio stopped: the sound would wait and play late. */
@@ -139,4 +153,8 @@ export class AudioSystem {
 /** Effect volume from data/audio.ts times the player's sound setting. */
 function sfxVolume(): number {
     return AUDIO.sfxVolume * settings.current.sfxVolume;
+}
+
+function setVolume(sound: Phaser.Sound.BaseSound, volume: number): void {
+    if (sound instanceof Phaser.Sound.WebAudioSound || sound instanceof Phaser.Sound.HTML5AudioSound) sound.setVolume(volume);
 }

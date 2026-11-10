@@ -95,6 +95,39 @@ export const PROMISELAND_PITS: readonly OffPitDef[] = [
     { monster: 'cyclops', area: rect(125, 108, 145, 138), max: BIG_PIT_MAX },
 ];
 
+// Fase Off-10B: los pits de las Farms (`arefarm.amd` / `elvfarm.amd`, 250×250), los del original en
+// https://helbreathnemesis.com/portal/index.php?action=map&id=2 (Aresden) y id=3 (Elvine); casilla = px × 0,5.
+// Decisiones del propietario (9-nov-2026): sin el pit de Crop de Elvine y, en cada Farm, el Snake más lejano a la
+// llegada pasa a Orc. Monstruos a la vez: el doble que en las ciudades (16, 12 en los de Scorpion).
+
+/** Monsters alive at once in a Farm pit (the Scorpion's, fewer). */
+const FARM_PIT_MAX = CITY_PIT_MAX * 2;
+const FARM_SCORPION_PIT_MAX = SCORPION_PIT_MAX * 2;
+
+/** Aresden Farm's pits (arrival 53,78). */
+export const ARESDEN_FARM_PITS: readonly OffPitDef[] = [
+    { monster: 'slime', area: rect(121, 89, 133, 97), max: FARM_PIT_MAX },
+    { monster: 'slime', area: rect(196, 107, 208, 115), max: FARM_PIT_MAX },
+    { monster: 'giantAnt', area: rect(162, 103, 169, 108), max: FARM_PIT_MAX },
+    { monster: 'snake', area: rect(207, 62, 217, 68), max: FARM_PIT_MAX },
+    // A Snake in the original: the farthest from the arrival.
+    { monster: 'orc', area: rect(181, 202, 190, 208), max: FARM_PIT_MAX },
+    { monster: 'giantScorpion', area: rect(69, 187, 84, 208), max: FARM_SCORPION_PIT_MAX },
+    { monster: 'giantScorpion', area: rect(143, 200, 158, 221), max: FARM_SCORPION_PIT_MAX },
+];
+
+/** Elvine Farm's pits (arrival 93,186). */
+export const ELVINE_FARM_PITS: readonly OffPitDef[] = [
+    { monster: 'slime', area: rect(132, 128, 144, 136), max: FARM_PIT_MAX },
+    { monster: 'giantAnt', area: rect(52, 163, 59, 168), max: FARM_PIT_MAX },
+    { monster: 'snake', area: rect(212, 206, 222, 212), max: FARM_PIT_MAX },
+    // A Snake in the original: the farthest from the arrival.
+    { monster: 'orc', area: rect(81, 41, 91, 47), max: FARM_PIT_MAX },
+    { monster: 'giantScorpion', area: rect(133, 195, 148, 216), max: FARM_SCORPION_PIT_MAX },
+    { monster: 'giantScorpion', area: rect(174, 192, 189, 213), max: FARM_SCORPION_PIT_MAX },
+    { monster: 'giantScorpion', area: rect(199, 93, 214, 114), max: FARM_SCORPION_PIT_MAX },
+];
+
 /** Sprites of the monsters of some pits (only those are loaded with the place). */
 export function pitSprites(pits: readonly OffPitDef[]): SpriteKey[] {
     return [...new Set(pits.map((pit) => OFF_MONSTERS[pit.monster].base.sprite))];

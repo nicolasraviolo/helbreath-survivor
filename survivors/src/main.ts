@@ -18,7 +18,7 @@ import { OffCreateScene } from './off/scenes/OffCreateScene';
 import { OffEquipmentScene } from './off/scenes/OffEquipmentScene';
 import { OffInventoryScene } from './off/scenes/OffInventoryScene';
 import { OffConfirmScene } from './off/scenes/OffConfirmScene';
-import { OffTeleportScene } from './off/scenes/OffTeleportScene';
+import { OffMapSelectScene } from './off/scenes/OffMapSelectScene';
 import { OffMercenaryScene } from './off/scenes/OffMercenaryScene';
 import { OffStoreScene } from './off/scenes/OffStoreScene';
 import { OffSpellBookScene } from './off/scenes/OffSpellBookScene';
@@ -76,7 +76,7 @@ function startGame(): void {
         plugins: { scene: [{ key: 'RenderScale', plugin: RenderScalePlugin, mapping: 'renderScale' }] },
         // HudScene, LevelUpScene y los menús que se abren encima (pausa, ajustes...) van después para dibujarse encima.
         scene: [
-            BootScene, PreloadScene, GameSelectScene, OffHomeScene, OffSlotsScene, OffDeleteScene, OffCreateScene, OffWorldScene, OffHudScene, OffEquipmentScene, OffInventoryScene, OffConfirmScene, OffTeleportScene, OffMercenaryScene, OffStoreScene, OffSpellBookScene, OffWarehouseScene, MainMenuScene, CharacterSlotsScene, TownScene, MapSelectScene, MapLoadScene, GameScene, HudScene, LevelUpScene, LootScene, GameOverScene,
+            BootScene, PreloadScene, GameSelectScene, OffHomeScene, OffSlotsScene, OffDeleteScene, OffCreateScene, OffWorldScene, OffHudScene, OffEquipmentScene, OffInventoryScene, OffConfirmScene, OffMapSelectScene, OffMercenaryScene, OffStoreScene, OffSpellBookScene, OffWarehouseScene, MainMenuScene, CharacterSlotsScene, TownScene, MapSelectScene, MapLoadScene, GameScene, HudScene, LevelUpScene, LootScene, GameOverScene,
             PauseScene, CharacterInfoScene, EquipmentScene, WarehouseScene, SettingsScene, ControlsScene, CreditsScene, RunChoiceScene, TransferScene, NpcDialogScene, ShopScene, DyeScene, SmithScene, ReleaseNotesScene, AchievementsScene, MissionsScene, HowToPlayScene, SpriteTestScene,
         ],
     });

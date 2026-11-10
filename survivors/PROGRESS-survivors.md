@@ -24,7 +24,7 @@ Léelo solo en sesiones de Survivors (después de `PROGRESS.md`). Plan: `docs/PL
 - Equipo: **solo lo que tienes** (equipo de salida + inventario; hechizos libres por Int); requisitos del original con stats **permanentes** y Level. Al continuar una partida mandan el arma y los hechizos equipados ahora. Morir sin Zem = se pierde la mitad del botín de esa partida (redondeando en contra); con Zem, nada (24A). El oro nunca se pierde. Las armas y armaduras normales no caen: se compran a Tom.
 - Mapas: Traveler Zone → Bleeding Isle → Elvine Garden → Middleland → Icebound; se abren al ganar el anterior o con su Level (1/10/25/40/…). Champion: usa las oleadas de cada mapa y nunca sale después del jefe final (en Traveler Zone, antes del minuto 7).
 - Abaddon's Blood: mejora **permanente** para los personajes, no un objeto; revive una vez por partida.
-- Clave de guardado nueva → **añadirla a `TRANSFER_KEYS`** (`config/transfer.ts`).
+- Clave de guardado nueva → **añadirla a `TRANSFER_KEYS`** (`config/transfer.ts`) y **volver a publicar el servidor** (`pnpm --dir survivors exec wrangler deploy --config metrics-server/wrangler.toml`): el publicado rechaza las claves que no conoce.
 
 ## Pistas para trabajar
 Cada línea: dónde está el código y la sección de `NOTES.md` (grep por el título).

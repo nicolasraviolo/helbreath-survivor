@@ -201,7 +201,7 @@ export class GameScene extends Phaser.Scene {
     private spellAimMarker!: SpellAimMarker;
     private spellDrag: DragDirection;
     /** The drag as a manual aim, for the arrow at the feet (reused every frame). */
-    private readonly spellDragAim: ManualAim = { dirX: 1, dirY: 0, point: undefined };
+    private readonly spellDragAim: ManualAim = { dirX: 1, dirY: 0, point: undefined, strength: 1 };
     private aimArrow!: AimArrow;
     private debug!: DebugSystem;
     /** ?debug=aim / debug key: aiming to the right by itself (reset at the start of each run). */

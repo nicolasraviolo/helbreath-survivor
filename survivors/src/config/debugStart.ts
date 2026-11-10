@@ -117,6 +117,11 @@
 //   ?offhp=5 → Helbreath Off: el personaje empieza con esa vida (para probar Heal; Off-6C)
 //   ?offcrit=5 → Helbreath Off: el personaje empieza con 5 cargas de Critical Strike, aunque su máximo sea menor (Off-8A)
 //   ?offmerc → Helbreath Off: el personaje empieza con el Guerrero mercenario contratado (Off-8B); ?offmerc=mage, con la maga Kaila (Off-8C)
+//   ?offraid → Helbreath Off: donde hay Raiders (Promiseland), llegan a los 3 s (Off-9A); ?offraid=warrior, mage o pair (dos)
+//   ?off=raiders → Helbreath Off: directo a Promiseland con ?offraid (Off-9A)
+//   ?offraid=invisible → Helbreath Off: el Raider de ?offraid llega invisible (o &offinvis junto a =warrior, mage, pair) (Off-9B)
+//   ?offek=12 → Helbreath Off: el personaje empieza con 12 Enemy Kills (Off-9B)
+//   ?offfast=4 → Helbreath Off: el mundo va 4 veces más rápido (1–8), para medir peleas largas con `check offduel*` (Off-9C)
 //   ?offdrop=all → Helbreath Off: todos los monstruos sueltan algo; ?offdrop=valuable, siempre un arma o escudo (Off-4A)
 //   ?metrics=send    → enviar las métricas de esta partida al servidor de verdad (en desarrollo no se envían; Fase 14A)
 //   Se combina con ?ui=compact (interfaz de móvil).
@@ -227,6 +232,14 @@ interface DebugStart {
     offCrit: number | undefined;
     /** ?offmerc: Helbreath Off's character starts with the Warrior mercenary hired (Off-8B); ?offmerc=mage, the Mage (Off-8C). */
     offMerc: 'warrior' | 'mage' | undefined;
+    /** ?offraid[=warrior|mage|pair]: Raiders come 3 s after arriving where they raid (Off-9A); ?off=raiders sets it too. */
+    offRaid: 'any' | 'warrior' | 'mage' | 'pair' | undefined;
+    /** Off-9B: the raid ?offraid brings comes invisible (`?offraid=invisible`, or `&offinvis` with a kind or pair). */
+    offRaidInvisible: boolean;
+    /** Off-9B: ?offek=N starts with N Enemy Kills. */
+    offEnemyKills: number | undefined;
+    /** Off-9C: ?offfast=N runs Helbreath Off's world N times per frame (1–8), to measure long fights quickly. */
+    offFast: number;
     /** ?offgold=N: Helbreath Off's character has that gold (Fase Off-4A). */
     offGold: number | undefined;
     /** ?offbag=a,b: Helbreath Off's bag holds those items (Fase Off-4A). */
@@ -289,7 +302,7 @@ function readDebugStart(): DebugStart {
     const none: DebugStart = {
         play: false, character: undefined, actions: [], trees: undefined, open: undefined, achievements: undefined, characters: undefined,
         sendMetrics: false, spells: { auto: undefined, active: undefined }, openClass: undefined, openSlot: undefined, slash: undefined,
-        holdLoading: false, gear: [], settingsTab: undefined, attribute: undefined, attributeValue: undefined, secondary: undefined, secondaryValue: undefined, unlocks: undefined, unlockCounts: {}, map: undefined, maps: undefined, rescued: undefined, kills: {}, unique: undefined, offLevel: undefined, offReset: false, offGear: [], offStats: {}, offGold: undefined, offHp: undefined, offCrit: undefined, offMerc: undefined, offBag: [], offWarehouse: [], offOpen: undefined, offSpells: [], offDrop: 'normal', offFaction: undefined, offPlace: undefined, offAt: undefined, townSpot: undefined, townTalk: false, townShop: false, townDye: false, townMissions: false, townSmith: undefined,
+        holdLoading: false, gear: [], settingsTab: undefined, attribute: undefined, attributeValue: undefined, secondary: undefined, secondaryValue: undefined, unlocks: undefined, unlockCounts: {}, map: undefined, maps: undefined, rescued: undefined, kills: {}, unique: undefined, offLevel: undefined, offReset: false, offGear: [], offStats: {}, offGold: undefined, offHp: undefined, offCrit: undefined, offMerc: undefined, offRaid: undefined, offRaidInvisible: false, offEnemyKills: undefined, offFast: 1, offBag: [], offWarehouse: [], offOpen: undefined, offSpells: [], offDrop: 'normal', offFaction: undefined, offPlace: undefined, offAt: undefined, townSpot: undefined, townTalk: false, townShop: false, townDye: false, townMissions: false, townSmith: undefined,
         gold: undefined, weapon: undefined, upgrade: undefined, xelima: undefined, level: undefined, build: undefined, kit: 'best', simBot: 'circle',
     };
     if (!import.meta.env.DEV) return none;
@@ -349,12 +362,16 @@ function readDebugStart(): DebugStart {
         offHp: parseOffGold(params.get('offhp')),
         offCrit: parseOffGold(params.get('offcrit')),
         offMerc: params.has('offmerc') ? (params.get('offmerc') === 'mage' ? 'mage' : 'warrior') : undefined,
+        offRaid: parseOffRaid(params),
+        offRaidInvisible: params.get('offraid') === 'invisible' || params.has('offinvis'),
+        offEnemyKills: parseCount(params.get('offek')),
+        offFast: Math.max(1, Math.min(8, parseCount(params.get('offfast')) ?? 1)),
         offBag: (params.get('offbag') ?? '').split(',').map((g) => g.trim()).filter((g) => g.length > 0),
         offWarehouse: (params.get('offwarehouse') ?? '').split(',').map((g) => g.trim()).filter((g) => g.length > 0),
         offOpen: parseOffOpen(params.get('offopen')),
         offSpells: params.get('offspells') === 'all' ? 'all' : (params.get('offspells') ?? '').split(',').map((g) => g.trim()).filter((g) => g.length > 0),
         offFaction: parseOffFaction(params.get('offfaction')),
-        offPlace: parseOffPlace(params.get('offplace')),
+        offPlace: parseOffPlace(params.get('offplace')) ?? (params.get('off') === 'raiders' ? 'promiseland' : undefined),
         offAt: parseOffAt(params.get('offat')),
         offDrop: params.get('offdrop') === 'all' ? 'all' : params.get('offdrop') === 'valuable' ? 'valuable' : 'normal',
         townSpot: parseTownSpot(params.get('town')),
@@ -429,6 +446,19 @@ function parseOffStats(value: string | null): Record<string, number> {
 }
 
 /** ?offlevel=N → N, between 1 and Off's top level (140, the same as Survivors' Level). */
+/** ?offraid[=warrior|mage|pair] (Off-9A); ?off=raiders brings any kind. */
+function parseOffRaid(params: URLSearchParams): 'any' | 'warrior' | 'mage' | 'pair' | undefined {
+    const value = params.get('offraid');
+    if (value === 'warrior' || value === 'mage' || value === 'pair') return value;
+    return params.has('offraid') || params.get('off') === 'raiders' ? 'any' : undefined;
+}
+
+/** A whole number of 0 or more (undefined when missing or wrong). */
+function parseCount(value: string | null): number | undefined {
+    const n = Number(value);
+    return value !== null && value !== '' && Number.isInteger(n) && n >= 0 ? n : undefined;
+}
+
 function parseOffLevel(value: string | null): number | undefined {
     const level = Number(value);
     return value !== null && Number.isInteger(level) ? Math.max(1, Math.min(CHARACTER_LEVEL_MAX, level)) : undefined;

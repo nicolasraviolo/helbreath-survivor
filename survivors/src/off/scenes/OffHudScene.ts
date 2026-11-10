@@ -11,10 +11,12 @@
 // Fase Off-4A: el oro que llevas va en la línea de texto, en vez de las muertes.
 // Fase Off-6C: abajo a la derecha, como los buffs de Survivors (HUD_BUFF), el escudo puesto con sus segundos y encima
 // la magia que se prepara o está lista (OFF_SPELL_HUD).
+// 9-nov-2026 (propietario): mientras se mantiene RT, las cuatro magias del mando en cruz (off/ui/OffPadCross.ts).
 import Phaser from 'phaser';
 import { GAME_WIDTH } from '../../config/gameConfig';
 import { ANNOUNCE_EVENT, EVENT_LIST_EVENT, HUD_ANNOUNCE, HUD_BUFF, HUD_DEPTH_TEXT, HUD_EVENT_LIST } from '../../config/hud';
 import { OFF_SPELL_HUD } from '../config/offSpellLook';
+import { OffPadCross, type OffPadCrossSlot } from '../ui/OffPadCross';
 import { OFF_SPELLS } from '../data/offSpells';
 import { formatGold } from '../../data/gold';
 import { SpriteText } from '../../hb/SpriteText';
@@ -59,6 +61,8 @@ export interface OffHudState {
     /** Critical Strike charges, and strikes launched (the orb shows pressed when it changes; Off-8A). */
     critCharges: number;
     critLaunched: number;
+    /** RT held: the four gamepad spells (A, B, X, Y) to show as a cross; undefined hides it. */
+    padCross: readonly OffPadCrossSlot[] | undefined;
 }
 
 export interface OffHudSceneData {
@@ -76,6 +80,7 @@ export class OffHudScene extends Phaser.Scene {
     private eventLines!: EventLineList;
     /** Bottom right, from the bottom: Berserk (Off-8C), the shield and the spell (Off-6C); no gaps. */
     private statusTexts: SpriteText[] = [];
+    private padCross!: OffPadCross;
 
     constructor() {
         super(OFF_HUD_SCENE_KEY);
@@ -92,6 +97,7 @@ export class OffHudScene extends Phaser.Scene {
         this.announce.container.setScale(HUD_ANNOUNCE.scale).setDepth(HUD_DEPTH_TEXT).setVisible(false);
         this.announceLeftMs = 0;
         this.eventLines = new EventLineList(this);
+        this.padCross = new OffPadCross(this);
         this.statusTexts = [0, 1, 2].map(() => {
             const text = new SpriteText(this, GAME_WIDTH - HUD_BUFF.right, 0, '', 0xffffff, 'right');
             text.container.setScale(HUD_BUFF.scale).setDepth(HUD_DEPTH_TEXT).setVisible(false);
@@ -137,6 +143,7 @@ export class OffHudScene extends Phaser.Scene {
         };
         this.bar.update(barState);
         this.showStatus(state);
+        this.padCross.update(state.padCross);
         this.updateAnnouncement(delta);
         this.eventLines.update(delta, false, overlayBottom() - HUD_EVENT_LIST.bottomGap);
     }

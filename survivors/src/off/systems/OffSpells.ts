@@ -16,28 +16,68 @@
 // - Off-8C: Berserk se lanza como Heal (a ti o a tu mercenario: `enrage`). La maga mercenaria usa otra copia de esta
 //   clase con su propio `host` (OffMercenarySpells): sabe sus magias y no lleva arma, así que `knows` y `handsRefusal`
 //   los pone el host en vez de mirar tu guardado.
+// - Off-9A: lo que se golpea es un OffFoe (un monstruo o un Raider). Un Raider Mago usa otra copia con su host y lanza
+//   a una persona (tú o tu mercenario) con `releaseAt`: el mismo preparar, fallar, maná y vuelo, y al llegar la
+//   batalla pone el daño (como la magia del Cyclops).
 import Phaser from 'phaser';
 import { DEPTH_DAMAGE_NUMBERS, DEPTH_EFFECT_OFFSET, TILE_SIZE } from '../../config/gameConfig';
+import type { SoundKey } from '../../config/assetManifest';
 import { EFFECTS, effectAnimationKey, type EffectDef, type EffectKey } from '../../config/effects';
 import type { SpellElement } from '../../data/elements';
-import { CAST_SOUND, getSpell, type SpellBurst, type SpellDef } from '../../data/spells';
+import { ACTIVE_SPELLS, METEOR_LOOK, type MeteorSpellDef } from '../../data/activeSpells';
+import { CAST_SOUND, getSpell, type SpellBurst, type SpellDef, type SpellId } from '../../data/spells';
 import { Effect } from '../../entities/Effect';
 import { LightningArc } from '../../entities/LightningArc';
+import { Meteor } from '../../entities/Meteor';
 import { SpriteText } from '../../hb/SpriteText';
 import { smoothSprite } from '../../hb/XbrPipeline';
 import type { AudioSystem } from '../../systems/AudioSystem';
+import { ScreenShake } from '../../systems/ScreenShake';
 import { Pool, type Poolable } from '../../utils/Pool';
-import { OFF_CAST_TEXT, OFF_CASTING, OFF_SPELLS, offSpellOnSelf, type OffSpellDef, type OffSpellDice, type OffSpellId } from '../data/offSpells';
+import { OFF_CAST_TEXT, OFF_CASTING, OFF_SPELLS, offPersonHoldMs, offSpellOnSelf, type OffSpellDef, type OffSpellDice, type OffSpellId } from '../data/offSpells';
 import type { OffStats } from '../data/offCharacter';
 import type { OffCharacter } from '../entities/OffCharacter';
-import type { OffMonster } from '../entities/OffMonster';
-import { OFF_SPELL_NAME_LOOK } from '../config/offSpellLook';
+import { foeBodyY, foeElement, foeMagicResist, type OffFoe } from './OffFoe';
+import {
+    OFF_BLIZZARD_LOOK, OFF_EARTH_SHOCK_LOOK, OFF_EXTRA_LOOKS, OFF_ICE_STRIKE_LOOK, OFF_MASS_ICE_STRIKE_LOOK, OFF_SPELL_NAME_LOOK,
+} from '../config/offSpellLook';
 import { offSaveStore } from './OffSaveStore';
-import { offElementMatch, offMagicHit, offPrepareMs, rollCastWorks, rollHeal, rollResisted, rollSpellDamage, type OffCaster } from './OffSpellRules';
+import {
+    offElementMatch, offMagicHit, offOnSpellLine, offPrepareMs, offSpellLine, rollCastWorks, rollHeal, rollResisted, rollSpellDamage, type OffCaster,
+} from './OffSpellRules';
 import { directionTowards, type TileMover } from './TileMover';
 
 /** The casting circle is drawn just under the character (config/effects.ts). */
 const CASTING_CIRCLE_DEPTH = EFFECTS['fx.castingCircle'].depthOffset;
+
+/** Off-11B: monsters a line can reach, in tiles from the caster (the line is 9 tiles, and one more to each side). */
+const OFF_SPELL_REACH = 10;
+
+type OffTile = { x: number; y: number };
+
+/** Off-11C: Survivors' Meteor Strike (its sounds, shake and falling meteor; the damage is Off's). */
+const OFF_METEOR = ACTIVE_SPELLS.meteorStrike as MeteorSpellDef;
+
+/** Looks drawn by OffSpells' own code (OffDrawnLookId), not as a projectile. */
+const DRAWN_LOOKS: ReadonlySet<string> = new Set(['iceStrike', 'earthShockWave', 'massIceStrike', 'meteorStrike', 'blizzard']);
+
+/** The projectile look of a spell: Survivors' (data/spells.ts) or Off's own (OFF_EXTRA_LOOKS); none for drawn ones. */
+function offSpellLook(def: OffSpellDef): SpellDef | undefined {
+    const id = def.look;
+    if (id === undefined || DRAWN_LOOKS.has(id)) return undefined;
+    if (id in OFF_EXTRA_LOOKS) return OFF_EXTRA_LOOKS[id as keyof typeof OFF_EXTRA_LOOKS];
+    return getSpell(id as SpellId);
+}
+
+/** Where shot `index` lands from the target: its pattern offset, a random point (scatter, or later sky strikes) or the target. */
+function shotOffset(look: SpellDef, index: number): readonly [number, number] {
+    if (look.aim === 'pattern' && look.pattern) return look.pattern[index] ?? [0, 0];
+    const radius = look.scatterRadius ?? 0;
+    if (radius <= 0 || (look.aim === 'sky' && index === 0)) return [0, 0];
+    const angle = Math.random() * Math.PI * 2;
+    const distance = Math.sqrt(Math.random()) * radius;
+    return [Math.cos(angle) * distance, Math.sin(angle) * distance];
+}
 
 /** What the spells need from the battle. */
 export interface OffSpellHost {
@@ -51,12 +91,16 @@ export interface OffSpellHost {
     /** Mana now; spending it. */
     readonly mana: number;
     spendMana(amount: number): void;
-    /** Alive monsters within `range` tiles of a tile (a square, as the server's area). */
-    monstersAround(tileX: number, tileY: number, range: number): OffMonster[];
-    /** A spell's damage lands on a monster (number, burn, ice, kill). */
-    spellHit(monster: OffMonster, damage: number, element: SpellElement | undefined): void;
+    /** Off-11A: what that spell costs this caster (less with a wand). */
+    manaCost(def: OffSpellDef): number;
+    /** Off-11A: one roll of spell damage with the caster's wand bonus (Berserk, Kloness). */
+    wandDamage(damage: number): number;
+    /** Alive monsters (and, Off-9A, Raiders) within `range` tiles of a tile (a square, as the server's area). */
+    monstersAround(tileX: number, tileY: number, range: number): OffFoe[];
+    /** A spell's damage lands on a monster or a Raider (number, burn, ice, kill); `freezeMs`: how long the ice slows it (Off-11B). */
+    spellHit(monster: OffFoe, damage: number, element: SpellElement | undefined, freezeMs?: number): void;
     /** The monster resisted the spell. */
-    spellResisted(monster: OffMonster): void;
+    spellResisted(monster: OffFoe): void;
     /** Heal / Great Heal on the player (Off-6C). */
     healPlayer(amount: number): void;
     /** Defense Shield / Protection From Magic on the player; false when one is already on (no effect). */
@@ -64,7 +108,7 @@ export interface OffSpellHost {
     /** Berserk on the caster for that long (Off-8C); false when it is already on (no effect). */
     enrage(durationMs: number): boolean;
     /** Hold Person / Paralyze took hold of a monster. */
-    spellHeld(monster: OffMonster): void;
+    spellHeld(monster: OffFoe): void;
     /** "Failed!" over the player, and its flinch. */
     castFailed(): void;
     /** A line in the bottom-left list. */
@@ -160,6 +204,8 @@ export class OffSpells {
     /** Spells cast and failed (development: `check`). */
     public casts = 0;
     public fails = 0;
+    /** Off-9A: spells dropped by a hit (checks). */
+    public interrupts = 0;
     private prepareLeftMs = 0;
     /** Time left before another spell may start (server: 1 s between spells). */
     private cooldownMs = 0;
@@ -170,6 +216,8 @@ export class OffSpells {
     private readonly shots: Pool<OffSpellShot>;
     private readonly effects: Pool<Effect>;
     private readonly lightnings: Pool<LightningArc>;
+    private readonly meteors: Pool<Meteor>;
+    private readonly screenShake: ScreenShake;
     private readonly timers: OffSpellTimer[] = [];
 
     constructor(
@@ -185,6 +233,8 @@ export class OffSpells {
         this.shots = new Pool(() => new OffSpellShot(scene));
         this.effects = new Pool(() => new Effect(scene));
         this.lightnings = new Pool(() => new LightningArc(scene));
+        this.meteors = new Pool(() => new Meteor(scene, METEOR_LOOK));
+        this.screenShake = new ScreenShake(scene.cameras.main);
     }
 
     /** Off-8C: casts from another body from now on (the Mage's spells move to the next Mage hired; pools are kept). */
@@ -239,6 +289,18 @@ export class OffSpells {
         return this.spell !== undefined && offSpellOnSelf(OFF_SPELLS[this.spell]);
     }
 
+    /**
+     * Off-9A (the owner, 8-nov-2026): a blow or a spell that hurts the caster while it prepares the spell or holds it
+     * ready drops it (no mana spent). True when there was one to drop.
+     */
+    public interrupt(): boolean {
+        if (this.state === 'idle') return false;
+        this.cancel();
+        this.cooldownMs = OFF_CASTING.betweenCastsMs;
+        this.interrupts++;
+        return true;
+    }
+
     /** Right click, moving or dying: the spell is dropped (no mana spent). */
     public cancel(): void {
         if (this.state === 'idle') return;
@@ -252,7 +314,7 @@ export class OffSpells {
      * The click with a spell ready: at the monster (when the click was on one) or at the ground at (px, py). Returns
      * true when the click was taken by the spell (also while still preparing: the click does nothing else then).
      */
-    public release(px: number, py: number, monster: OffMonster | undefined, ally?: OffSpellAlly): boolean {
+    public release(px: number, py: number, monster: OffFoe | undefined, ally?: OffSpellAlly): boolean {
         if (this.state === 'preparing') return true;
         if (this.state !== 'ready' || this.spell === undefined) return false;
         const id = this.spell;
@@ -278,16 +340,54 @@ export class OffSpells {
             return true;
         }
         this.casts++;
-        this.host.spendMana(def.mana);
+        this.host.spendMana(this.host.manaCost(def));
         const hit = offMagicHit(def.circle, caster);
         if (def.kind === 'hold') {
             this.castHold(def, hit, monster);
             return true;
         }
         const toX = monster ? monster.x : px;
-        const toY = monster ? monster.y - monster.def.base.bodyOffsetY : py;
-        const arriveMs = this.showSpell(def, toX, toY);
-        this.later(arriveMs, () => this.resolve(def, hit, monster, tileX, tileY));
+        const toY = monster ? foeBodyY(monster) : py;
+        // Off-11B: line spells sweep from the caster's tile (Lightning Bolt up to the target, Earth Shock Wave past it).
+        const shape = def.shape ?? 'spot';
+        const line = shape === 'spot' ? [] : offSpellLine(this.mover.tileX, this.mover.tileY, tileX, tileY, shape === 'bolt');
+        let arriveMs: number;
+        if (shape === 'wave') arriveMs = this.showWave(line);
+        else if (def.look === 'blizzard') arriveMs = this.showBlizzard(line, toX, toY);
+        else arriveMs = this.showSpell(def, toX, toY);
+        this.later(arriveMs, () => this.resolve(def, hit, monster, tileX, tileY, line));
+        return true;
+    }
+
+    /**
+     * Off-9A, a Raider Mage: the spell ready goes at a person's body at (toX, toY). The same checks, failing and mana as
+     * `release`; on arrival `onArrive` gets the spell and its hit (the battle rolls the damage there). Self spells go
+     * through `release` as always. False when nothing was cast (not ready, refused, failed).
+     */
+    public releaseAt(toX: number, toY: number, onArrive: (def: OffSpellDef, hit: number) => void): boolean {
+        if (this.state !== 'ready' || this.spell === undefined) return false;
+        const id = this.spell;
+        const def = OFF_SPELLS[id];
+        this.cancel();
+        if (this.refusal(id, def, true)) return false;
+        const direction = directionTowards(this.mover.tileX, this.mover.tileY, Math.floor(toX / TILE_SIZE), Math.floor(toY / TILE_SIZE));
+        if (direction !== undefined) this.mover.face(direction);
+        this.cooldownMs = OFF_CASTING.betweenCastsMs;
+        const caster = this.caster();
+        if (!rollCastWorks(def.circle, caster)) {
+            this.fails++;
+            this.host.castFailed();
+            return false;
+        }
+        this.casts++;
+        this.host.spendMana(def.mana);
+        const hit = offMagicHit(def.circle, caster);
+        if (def.kind === 'hold') {
+            if (def.castEffect) this.effects.acquire().play(def.castEffect, toX, toY);
+            onArrive(def, hit);
+            return true;
+        }
+        this.later(this.showSpell(def, toX, toY), () => onArrive(def, hit));
         return true;
     }
 
@@ -319,6 +419,18 @@ export class OffSpells {
         for (const lightning of [...this.lightnings.active]) {
             if (!lightning.update(deltaMs)) this.lightnings.release(lightning);
         }
+        for (const meteor of [...this.meteors.active]) {
+            if (meteor.update(deltaMs)) {
+                if ((meteor.smokeWaitMs -= deltaMs) <= 0) {
+                    meteor.smokeWaitMs += METEOR_LOOK.smokeEveryMs;
+                    this.effects.acquire().play(METEOR_LOOK.smoke, meteor.x, meteor.y);
+                }
+                continue;
+            }
+            this.landMeteor(meteor);
+            meteor.deactivate();
+            this.meteors.release(meteor);
+        }
     }
 
     // ---- Helpers ----
@@ -328,7 +440,7 @@ export class OffSpells {
         if (!this.host.knows(id)) return OFF_CAST_TEXT.unknown(def.name);
         const hands = this.host.handsRefusal();
         if (hands) return hands;
-        if (this.host.mana < def.mana) return OFF_CAST_TEXT.noMana;
+        if (this.host.mana < this.host.manaCost(def)) return OFF_CAST_TEXT.noMana;
         if (!releasing && this.cooldownMs > 0) return OFF_CAST_TEXT.tooSoon;
         return undefined;
     }
@@ -343,7 +455,7 @@ export class OffSpells {
             return true;
         }
         this.casts++;
-        this.host.spendMana(def.mana);
+        this.host.spendMana(this.host.manaCost(def));
         if (ally) {
             const direction = directionTowards(this.mover.tileX, this.mover.tileY, Math.floor(ally.x / TILE_SIZE), Math.floor(ally.y / TILE_SIZE));
             if (direction !== undefined) this.mover.face(direction);
@@ -363,17 +475,19 @@ export class OffSpells {
     }
 
     /** Hold Person / Paralyze on the clicked monster: it may resist; a held one, or the ground, has no effect. */
-    private castHold(def: OffSpellDef, hit: number, monster: OffMonster | undefined): void {
+    private castHold(def: OffSpellDef, hit: number, monster: OffFoe | undefined): void {
         if (!monster?.isAlive) {
             this.host.eventLine(OFF_CAST_TEXT.noEffect);
             return;
         }
         if (def.castEffect) this.effects.acquire().play(def.castEffect, monster.x, monster.y);
-        if (rollResisted(hit, monster.def.magicResist)) {
+        if (rollResisted(hit, foeMagicResist(monster))) {
             this.host.spellResisted(monster);
             return;
         }
-        if (monster.hold((def.durationSec ?? 0) * 1000, def.power ?? 0)) this.host.spellHeld(monster);
+        // Off-9A: on a Raider (a person) it lasts much less (OFF_HOLD.personMs).
+        const ms = monster.kind === 'person' ? offPersonHoldMs(def.power ?? 0) : (def.durationSec ?? 0) * 1000;
+        if (monster.hold(ms, def.power ?? 0)) this.host.spellHeld(monster);
         else this.host.eventLine(OFF_CAST_TEXT.noEffect);
     }
 
@@ -382,24 +496,44 @@ export class OffSpells {
         return { level: this.host.level, int: stats.int, mag: stats.mag };
     }
 
-    /** The spell arrives: direct roll on the target, then a roll on every monster of the area (the target too). */
-    private resolve(def: OffSpellDef, hit: number, target: OffMonster | undefined, tileX: number, tileY: number): void {
+    /**
+     * The spell arrives: direct roll on the target, then a roll on every monster of the area (the target too).
+     * Off-11B: Lightning Bolt adds the line (each monster once, line or square); Earth Shock Wave hits only its line,
+     * with both rolls (area and direct) on each monster.
+     */
+    private resolve(
+        def: OffSpellDef, hit: number, target: OffFoe | undefined, tileX: number, tileY: number, line: readonly OffTile[],
+    ): void {
         const centreX = target?.isAlive ? target.mover.tileX : tileX;
         const centreY = target?.isAlive ? target.mover.tileY : tileY;
+        const onLine = line.length > 0
+            ? this.host.monstersAround(this.mover.tileX, this.mover.tileY, OFF_SPELL_REACH)
+                .filter((m) => offOnSpellLine(line, m.mover.tileX, m.mover.tileY))
+            : [];
+        if (def.shape === 'wave') {
+            for (const monster of onLine) {
+                if (def.area) this.strike(def, def.area, hit, monster);
+                if (def.direct) this.strike(def, def.direct, hit, monster);
+            }
+            return;
+        }
         if (def.direct && target?.isAlive) this.strike(def, def.direct, hit, target);
-        if (def.area && def.areaRange !== undefined) {
-            for (const monster of this.host.monstersAround(centreX, centreY, def.areaRange)) this.strike(def, def.area, hit, monster);
+        if (!def.area) return;
+        for (const monster of onLine) this.strike(def, def.area, hit, monster);
+        if (def.areaRange === undefined) return;
+        for (const monster of this.host.monstersAround(centreX, centreY, def.areaRange)) {
+            if (!onLine.includes(monster)) this.strike(def, def.area, hit, monster);
         }
     }
 
-    private strike(def: OffSpellDef, dice: OffSpellDice, hit: number, monster: OffMonster): void {
+    private strike(def: OffSpellDef, dice: OffSpellDice, hit: number, monster: OffFoe): void {
         if (!monster.isAlive) return;
-        if (rollResisted(hit, monster.def.magicResist)) {
+        if (rollResisted(hit, foeMagicResist(monster))) {
             this.host.spellResisted(monster);
             return;
         }
-        const damage = rollSpellDamage(dice, this.host.stats.mag, offElementMatch(def, monster.def.base.element));
-        this.host.spellHit(monster, damage, def.element);
+        const damage = this.host.wandDamage(rollSpellDamage(dice, this.host.stats.mag, offElementMatch(def, foeElement(monster))));
+        this.host.spellHit(monster, damage, def.element, def.freezeSec !== undefined ? def.freezeSec * 1000 : undefined);
     }
 
     /**
@@ -412,26 +546,121 @@ export class OffSpells {
 
     /** Draws the spell flying (or falling from the sky) to (toX, toY) from the character (or `from`); returns when it arrives, ms. */
     private showSpell(def: OffSpellDef, toX: number, toY: number, from?: { x: number; y: number }): number {
-        const look = def.look ? getSpell(def.look) : undefined;
+        if (def.look === 'iceStrike') return this.rainShards(OFF_ICE_STRIKE_LOOK, toX, toY);
+        if (def.look === 'massIceStrike') return this.rainShards(OFF_MASS_ICE_STRIKE_LOOK, toX, toY);
+        if (def.look === 'meteorStrike') return this.dropMeteor(toX, toY);
+        const look = offSpellLook(def);
         if (!look) return 0;
         if (look.castSound) this.audio.play(look.castSound);
-        if (look.aim === 'sky') {
-            if (look.skyLightning) this.lightnings.acquire().strike(toX, toY);
-            this.bursts(look.bursts, toX, toY);
-            return look.skyImpactMs ?? 0;
-        }
         const fromX = from?.x ?? this.character.x;
         const fromY = (from?.y ?? this.character.y) - look.originOffsetY;
-        const offsets = look.aim === 'pattern' && look.pattern ? look.pattern : [[0, 0] as const];
-        let arriveMs = 0;
-        offsets.forEach(([dx, dy], index) => {
+        // Off-11B: several shots one after another (Mass Lightning Arrow, Energy Strike, Lightning Strike). The damage
+        // still comes once, when the first one arrives.
+        const fire = (index: number): number => {
+            const [dx, dy] = shotOffset(look, index);
             const x = toX + dx;
             const y = toY + dy;
+            if (look.aim === 'sky') {
+                if (look.skyLightning) this.lightnings.acquire().strike(x, y);
+                this.bursts(look.bursts, x, y);
+                return look.skyImpactMs ?? 0;
+            }
             const flyMs = this.shots.acquire().launch(look, fromX, fromY, x, y);
-            if (index === 0) arriveMs = flyMs;
             this.later(flyMs, () => this.bursts(look.bursts, x, y));
-        });
+            return flyMs;
+        };
+        const arriveMs = fire(0);
+        for (let index = 1; index < look.shots; index++) {
+            if (look.aim === 'pattern' || look.shotIntervalMs <= 0) fire(index);
+            else this.later(index * look.shotIntervalMs, () => fire(index));
+        }
         return arriveMs;
+    }
+
+    /** Off-11B, Ice Strike (and Mass Ice Strike, 11C): shards fall all at once around (x, y) and break as they land; returns when the last lands. */
+    private rainShards(look: typeof OFF_ICE_STRIKE_LOOK | typeof OFF_MASS_ICE_STRIKE_LOOK, x: number, y: number): number {
+        const total = look.largeShards + look.smallShards;
+        let lastMs = 0;
+        for (let i = 0; i < total; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const distance = i === 0 ? 0 : Math.sqrt(Math.random()) * look.spreadPx;
+            const shardX = x + Math.cos(angle) * distance;
+            const shardY = y + Math.sin(angle) * distance;
+            const fallMs = Phaser.Math.Between(look.fallMs[0], look.fallMs[1]);
+            const fallPx = Phaser.Math.Between(look.fallPx[0], look.fallPx[1]);
+            this.dropShard(i < look.largeShards ? look.largeShard : look.smallShard, look.impact, look.impactSound, shardX, shardY, fallPx, fallMs);
+            lastMs = Math.max(lastMs, fallMs);
+        }
+        return lastMs;
+    }
+
+    /** One ice shard falling `fallPx` onto (x, y) in `fallMs`, breaking with its sound as it lands. */
+    private dropShard(key: EffectKey, impact: EffectKey, sound: SoundKey, x: number, y: number, fallPx: number, fallMs: number): void {
+        this.effects.acquire().play(key, x, y, fallPx, fallMs);
+        this.later(fallMs, () => {
+            this.effects.acquire().play(impact, x, y);
+            this.audio.play(sound);
+        });
+    }
+
+    /**
+     * Off-11C, Blizzard: Survivors' line of falling ice, one step per tile of the line and a last one on the target,
+     * with more shards and a wider spread each step. Returns when the last step's first shards land (the damage).
+     */
+    private showBlizzard(line: readonly OffTile[], toX: number, toY: number): number {
+        const look = OFF_BLIZZARD_LOOK;
+        const points = [...line.map((tile) => ({ x: (tile.x + 0.5) * TILE_SIZE, y: (tile.y + 0.5) * TILE_SIZE })), { x: toX, y: toY }];
+        points.forEach((point, index) => {
+            const share = (index + 1) / points.length;
+            const count = Math.max(1, Math.round(share * look.maxShards));
+            const spread = look.minSpread + (look.maxSpread - look.minSpread) * share;
+            this.later(index * look.stepMs, () => {
+                for (let i = 0; i < count; i++) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const distance = Math.sqrt(Math.random()) * spread;
+                    const key = look.shards[Phaser.Math.Between(0, look.shards.length - 1)] ?? look.shards[0];
+                    this.dropShard(
+                        key, look.impact, look.impactSound, point.x + Math.cos(angle) * distance, point.y + Math.sin(angle) * distance,
+                        Phaser.Math.Between(look.fallPx[0], look.fallPx[1]), Phaser.Math.Between(look.fallMs[0], look.fallMs[1]),
+                    );
+                }
+            });
+        });
+        return (points.length - 1) * look.stepMs + look.fallMs[0];
+    }
+
+    /** Off-11C, Meteor Strike: Survivors' meteor falls onto (x, y); returns when it lands (the damage). */
+    private dropMeteor(x: number, y: number): number {
+        if (OFF_METEOR.castSound) this.audio.play(OFF_METEOR.castSound);
+        this.meteors.acquire().launch(OFF_METEOR, 1, x, y);
+        return (Math.hypot(METEOR_LOOK.fromDx, METEOR_LOOK.fromDy) / METEOR_LOOK.speed) * 1000;
+    }
+
+    /** The meteor lands: its explosions, small blasts around, the sound and the shake (as Survivors' WeaponSystem). */
+    private landMeteor(meteor: Meteor): void {
+        const { targetX: x, targetY: y } = meteor;
+        for (const key of METEOR_LOOK.impact) this.effects.acquire().play(key, x, y);
+        const spread = METEOR_LOOK.burstSpread;
+        for (let i = 0; i < METEOR_LOOK.burstCount; i++) {
+            this.effects.acquire().play(METEOR_LOOK.burst, x + Phaser.Math.Between(-spread, spread), y + Phaser.Math.Between(-spread, spread));
+        }
+        this.audio.play(OFF_METEOR.impactSound);
+        this.screenShake.shake(OFF_METEOR.shakePx, OFF_METEOR.shakeMs);
+    }
+
+    /** Off-11B, Earth Shock Wave: a rock torrent and its dust on each tile of the line; the damage as it starts. */
+    private showWave(line: readonly OffTile[]): number {
+        const look = OFF_EARTH_SHOCK_LOOK;
+        this.audio.play(look.sound);
+        line.forEach((tile, index) => {
+            const x = (tile.x + 0.5) * TILE_SIZE;
+            const y = (tile.y + 0.5) * TILE_SIZE;
+            this.later(index * look.stepMs, () => {
+                this.effects.acquire().play(look.torrent, x, y);
+                this.effects.acquire().play(look.dust, x, y);
+            });
+        });
+        return look.stepMs;
     }
 
     private bursts(bursts: readonly SpellBurst[], x: number, y: number): void {

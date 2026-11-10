@@ -83,6 +83,8 @@ export interface CharacterInfoOff {
     /** Level points to spend, and the top of a stat. */
     points: number;
     statMax: number;
+    /** Off-9B: Raiders killed (the "Enemy Kills" box). */
+    enemyKills: number;
     /** Health, mana and stamina boxes ("now/max") with these stats. */
     values: (stats: Readonly<Stats>) => { health: string; mana: string; stamina: string };
     /** What a shown stat does, under the window, with these stats (Off-7C: DEX shows the hit ratio it gives). */
@@ -314,7 +316,7 @@ export class CharacterInfoScene extends Phaser.Scene {
         }
     }
 
-    /** Helbreath Off: name, level, experience, and health / mana / stamina (filled in refresh()). */
+    /** Helbreath Off: name, level, experience, Enemy Kills (Off-9B), and health / mana / stamina (filled in refresh()). */
     private fillOffBoxes(off: CharacterInfoOff): void {
         const b = CHARACTER_INFO_BOXES;
         const centerX = this.sx(b.name.x + b.name.width / 2);
@@ -323,6 +325,7 @@ export class CharacterInfoScene extends Phaser.Scene {
         this.boxText(b.level, String(off.level));
         this.boxText(b.exp, off.exp.toLocaleString('en-US'));
         this.boxText(b.nextExp, off.nextExp === undefined ? '—' : off.nextExp.toLocaleString('en-US'));
+        this.boxText(b.kills, off.enemyKills.toLocaleString('en-US'));
         this.startTexts = { health: this.boxText(b.health, ''), mana: this.boxText(b.mana, ''), stamina: this.boxText(b.stamina, '') };
     }
 

@@ -5,7 +5,7 @@
 // - El daño: los dados de la magia con el bonus de MAG y el elemento (±20 %, como Survivors).
 import Phaser from 'phaser';
 import { elementMatch, elementMultiplier, type ElementMatch, type MagicElement } from '../../data/elements';
-import { OFF_CASTING, type OffSpellDef, type OffSpellDice } from '../data/offSpells';
+import { OFF_CASTING, OFF_SPELL_LINE, type OffSpellDef, type OffSpellDice } from '../data/offSpells';
 import { rollDice } from './OffCombatRules';
 
 /** What the caster brings: its level and stats. */
@@ -93,4 +93,29 @@ export function offElementMatch(spell: OffSpellDef, monsterElement: MagicElement
 export function rollHeal(dice: OffSpellDice): number {
     const [count, sides, bonus] = dice;
     return rollDice(count, sides) + bonus;
+}
+
+/**
+ * Off-11B: the tiles a line spell sweeps (server DAMAGE_LINEAR and DAMAGE_LINEAR_SPDOWN): the points 2 to 9 tiles from
+ * the caster towards the target (GetPoint2), each with its four neighbours. `stopNearTarget` (Lightning Bolt) ends the
+ * line once it is within a tile of the target; Earth Shock Wave goes on past it.
+ */
+export function offSpellLine(fromX: number, fromY: number, toX: number, toY: number, stopNearTarget: boolean): { x: number; y: number }[] {
+    const dx = toX - fromX;
+    const dy = toY - fromY;
+    const length = Math.max(Math.abs(dx), Math.abs(dy));
+    const tiles: { x: number; y: number }[] = [];
+    if (length === 0) return tiles;
+    for (let step = OFF_SPELL_LINE.firstStep; step <= OFF_SPELL_LINE.lastStep; step++) {
+        const x = fromX + Math.round((dx * step) / length);
+        const y = fromY + Math.round((dy * step) / length);
+        tiles.push({ x, y });
+        if (stopNearTarget && Math.max(Math.abs(toX - x), Math.abs(toY - y)) <= 1) break;
+    }
+    return tiles;
+}
+
+/** Off-11B: whether a tile is on a line's tile or one of its four neighbours. */
+export function offOnSpellLine(line: readonly { x: number; y: number }[], tileX: number, tileY: number): boolean {
+    return line.some((tile) => Math.abs(tile.x - tileX) + Math.abs(tile.y - tileY) <= 1);
 }
