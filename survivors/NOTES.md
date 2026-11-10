@@ -1725,3 +1725,6 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - Los textos con Alegreya (title, name, number) llevan `setFontStyle('500')`: main.ts solo importa ese peso de Alegreya (y 400 / 500 de Alegreya Sans).
 - Todo texto con caja usa `maxWidth`: `offFitText` lo encoge hasta `minSize` y, si aun así no cabe, lo apunta en `offLayoutIssues(scene)`. Las ventanas nuevas deben exponerlo en su `debugState` para que el `check` lo vea.
 - Las líneas de 1 px van en medias coordenadas (`x + 0.5`) para que salgan nítidas.
+- Revisión con `disenar-ui` + `revisor-ui` (10-nov-2026): toda pieza pulsable sale de `makeControl` y ofrece `setFocused` / `setEnabled` / `setVisible` / `press` / `destroy` (la ventana mueve el foco y llama a `press()` con A / Enter; lo escondido no recibe clics). El anillo de foco va en un Graphics propio con `focusDepth`: dentro del dibujo de la pieza lo tapaba la casilla de al lado.
+- Comparaciones: `offStatRow(..., trend)` pone ▲ / ▼ dibujados (no letras) además del color. El ✕ de cerrar también va dibujado (`offCloseButton`): Alegreya Sans no tiene ese signo.
+- Mínimos al encoger: body 13, number 16 (tabla de disenar-ui). Una fila de lista de 192 px no cabe "Absolute Magic Protection": la lista de magias necesita ~250 px (comprobarlo en la 12C).

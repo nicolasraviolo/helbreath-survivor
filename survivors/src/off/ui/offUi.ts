@@ -1,9 +1,13 @@
 // Helbreath Off, Fase Off-12A: las piezas del estilo nuevo de las ventanas (colores y medidas en off/config/offTheme.ts).
-// Marco con borde de bronce y esquinas doradas, pestaña, botón (principal dorado, normal y rojo), casilla de objeto,
-// separador con rombo, fila de dato (nombre a la izquierda, valor a la derecha), barra y circulito del mando.
+// Marco, pestaña, botón (principal dorado, normal, rojo), cierre ✕, casilla de objeto, fila de lista, fila de tecla,
+// separador con rombo, fila de dato con comparación (▲ / ▼ además del color), barra, circulito A/B/X/Y y pastilla
+// LB / RB / Start.
 // - **Nada se sale de su caja**: los textos con ancho máximo se encogen hasta `minSize` (offTheme) y, si aun así no
-//   caben, se apuntan en una lista de avisos de la escena (offLayoutIssues), que el `check` muestra (situación offuikit).
-// - Las piezas no saben de teclado ni de mando: la ventana que las usa decide el foco y llama a setFocused / setOn.
+//   caben, se apuntan en los avisos de la escena (offLayoutIssues), que el `check` muestra (situación offuikit). El aviso
+//   se borra solo si el texto vuelve a caber.
+// - **Mando y teclado**: las piezas no leen controles. La ventana mueve el foco (setFocused: anillo dorado por fuera,
+//   igual en todas) y llama a press() con A / Enter. setEnabled(false) apaga (gris, sin clic) y setVisible(false)
+//   esconde también la zona de clic (para las pestañas que se cambian).
 import Phaser from 'phaser';
 import {
     OFF_THEME_COLOR, OFF_THEME_INK, OFF_THEME_PAD, OFF_THEME_SIZE, OFF_THEME_TEXT, OFF_THEME_TEXT_RESOLUTION,
@@ -12,24 +16,31 @@ import {
 
 const S = OFF_THEME_SIZE;
 const C = OFF_THEME_COLOR;
+const INK = OFF_THEME_INK;
 
 // ---------------------------------------------------------------- avisos de maquetación
 
-const layoutIssues = new WeakMap<Phaser.Scene, Set<string>>();
+const layoutIssues = new WeakMap<Phaser.Scene, Map<Phaser.GameObjects.Text, string>>();
 
-/** Texts that didn't fit their box even at their smallest size (empty = all fine). */
+/** Texts that don't fit their box even at their smallest size (empty = all fine). */
 export function offLayoutIssues(scene: Phaser.Scene): string[] {
-    return [...(layoutIssues.get(scene) ?? [])];
+    return [...(layoutIssues.get(scene)?.values() ?? [])];
 }
 
-function reportIssue(scene: Phaser.Scene, issue: string): void {
-    let set = layoutIssues.get(scene);
-    if (!set) {
-        set = new Set();
-        layoutIssues.set(scene, set);
+function setIssue(t: Phaser.GameObjects.Text, issue: string | undefined): void {
+    const scene = t.scene;
+    let map = layoutIssues.get(scene);
+    if (!issue) {
+        map?.delete(t);
+        return;
+    }
+    if (!map) {
+        map = new Map();
+        layoutIssues.set(scene, map);
         scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => layoutIssues.delete(scene));
     }
-    set.add(issue);
+    map.set(t, issue);
+    t.once(Phaser.GameObjects.Events.DESTROY, () => layoutIssues.get(scene)?.delete(t));
 }
 
 // ---------------------------------------------------------------- texto
@@ -47,11 +58,11 @@ export function offText(scene: Phaser.Scene, x: number, y: number, text: string,
     const k = OFF_THEME_TEXT[kind];
     const t = scene.add.text(x, y, text, {
         fontFamily: k.font,
+        fontStyle: k.weight,
         fontSize: `${k.size}px`,
         color: options.color ?? k.color,
         resolution: OFF_THEME_TEXT_RESOLUTION,
     });
-    if (kind === 'name' || kind === 'title' || kind === 'number') t.setFontStyle('500');
     if (k.spacing) t.setLetterSpacing(k.spacing);
     t.setOrigin(options.originX ?? 0, options.originY ?? 0);
     if (options.maxWidth !== undefined) offFitText(t, kind, options.maxWidth);
@@ -67,7 +78,7 @@ export function offFitText(t: Phaser.GameObjects.Text, kind: OffTextKind, maxWid
         size -= 1;
         t.setFontSize(size);
     }
-    if (t.width > maxWidth + 0.5) reportIssue(t.scene, `"${t.text}" is ${Math.ceil(t.width)} px wide, room for ${Math.floor(maxWidth)}`);
+    setIssue(t, t.width > maxWidth + 0.5 ? `"${t.text}" is ${Math.ceil(t.width)} px wide, room for ${Math.floor(maxWidth)}` : undefined);
 }
 
 /** A section label in capitals (EQUIPMENT, KEYS). */
@@ -75,7 +86,7 @@ export function offLabel(scene: Phaser.Scene, x: number, y: number, text: string
     return offText(scene, x, y, text.toUpperCase(), 'label', options);
 }
 
-// ---------------------------------------------------------------- marco
+// ---------------------------------------------------------------- marco y líneas
 
 export interface OffFrameOptions {
     fill?: number;
@@ -109,7 +120,7 @@ export function offFrame(scene: Phaser.Scene, x: number, y: number, w: number, h
     return g;
 }
 
-/** A plain box: fill and a 1 px border (the bag's well, a stat tile). */
+/** A plain box: fill and a 1 px border (the bag's well, a stat tile, an icon tile). */
 export function offBox(scene: Phaser.Scene, x: number, y: number, w: number, h: number, fill: number = C.card, border: number = C.line): Phaser.GameObjects.Graphics {
     const g = scene.add.graphics();
     g.fillStyle(fill, 1).fillRect(x, y, w, h);
@@ -132,36 +143,107 @@ export function offDivider(scene: Phaser.Scene, x: number, y: number, w: number)
 }
 
 /** A thin horizontal line (under rows and headers). */
-export function offRule(scene: Phaser.Scene, x: number, y: number, w: number, color: number = C.cellLine): Phaser.GameObjects.Rectangle {
+export function offRule(scene: Phaser.Scene, x: number, y: number, w: number, color: number = C.rowLine): Phaser.GameObjects.Rectangle {
     return scene.add.rectangle(x, y, w, 1, color).setOrigin(0, 0);
+}
+
+/** The focus ring every piece uses: gold, outside the piece's box. */
+function drawFocusRing(g: Phaser.GameObjects.Graphics, x: number, y: number, w: number, h: number): void {
+    const out = S.focusGap + S.focusRing / 2;
+    g.lineStyle(S.focusRing, C.gold, 1).strokeRect(x - out, y - out, w + out * 2, h + out * 2);
 }
 
 // ---------------------------------------------------------------- piezas que se pulsan
 
-/** Makes a rectangle area clickable with the hand cursor; `onHover` gets true / false. */
-function clickArea(scene: Phaser.Scene, x: number, y: number, w: number, h: number, onClick: () => void, onHover?: (over: boolean) => void): Phaser.GameObjects.Zone {
-    const zone = scene.add.zone(x, y, w, h).setOrigin(0, 0).setInteractive({ useHandCursor: true });
-    zone.on(Phaser.Input.Events.POINTER_UP, onClick);
-    if (onHover) {
-        zone.on(Phaser.Input.Events.POINTER_OVER, () => onHover(true));
-        zone.on(Phaser.Input.Events.POINTER_OUT, () => onHover(false));
-    }
-    return zone;
-}
-
-export type OffButtonVariant = 'main' | 'normal' | 'danger';
-
-export interface OffButton {
+/** What every clickable piece offers to the window that drives it with the keyboard or the pad. */
+export interface OffControl {
     readonly x: number;
     readonly y: number;
     readonly width: number;
     readonly height: number;
+    /** Keyboard / pad focus: the gold ring. */
+    setFocused(focused: boolean): void;
+    /** Off: greyed, no hover, clicks and press() do nothing. */
+    setEnabled(enabled: boolean): void;
+    /** Hidden pieces don't take clicks either. */
+    setVisible(visible: boolean): void;
+    /** What a click does (A / Enter call it). Nothing while disabled or hidden. */
+    press(): void;
+    destroy(): void;
+}
+
+/** The shared part of a clickable piece: its click zone, hover, focus, enabled and visible states. */
+interface ControlState {
+    hover: boolean;
+    focused: boolean;
+    enabled: boolean;
+    visible: boolean;
+}
+
+/**
+ * Builds a control around `draw`: a click zone with the hand cursor, hover, and the OffControl methods. `parts` are
+ * the objects to hide with it; `draw` repaints from the state.
+ */
+function makeControl(
+    scene: Phaser.Scene, x: number, y: number, w: number, h: number, onClick: () => void,
+    pieceParts: readonly Phaser.GameObjects.GameObject[], draw: (state: Readonly<ControlState>) => void,
+): OffControl & { readonly state: Readonly<ControlState>; redraw(): void } {
+    const state: ControlState = { hover: false, focused: false, enabled: true, visible: true };
+    const zone = scene.add.zone(x, y, w, h).setOrigin(0, 0).setInteractive({ useHandCursor: true });
+    // The focus ring goes on its own layer above everything: the cell next door would cover it otherwise.
+    const ring = scene.add.graphics().setDepth(S.focusDepth);
+    const parts = [...pieceParts, ring];
+    const redraw = (): void => {
+        draw(state);
+        ring.clear();
+        if (state.focused && state.visible) drawFocusRing(ring, x, y, w, h);
+    };
+    const press = (): void => {
+        if (state.enabled && state.visible) onClick();
+    };
+    zone.on(Phaser.Input.Events.POINTER_UP, press);
+    zone.on(Phaser.Input.Events.POINTER_OVER, () => {
+        state.hover = true;
+        redraw();
+    });
+    zone.on(Phaser.Input.Events.POINTER_OUT, () => {
+        state.hover = false;
+        redraw();
+    });
+    redraw();
+    return {
+        x, y, width: w, height: h, state, redraw, press,
+        setFocused: (f) => {
+            state.focused = f;
+            redraw();
+        },
+        setEnabled: (e) => {
+            state.enabled = e;
+            if (zone.input) zone.input.cursor = e ? 'pointer' : 'default';
+            redraw();
+        },
+        setVisible: (v) => {
+            state.visible = v;
+            if (!v) state.hover = false;
+            for (const p of parts) (p as unknown as Phaser.GameObjects.Components.Visible).setVisible(v);
+            if (zone.input) zone.input.enabled = v;
+            redraw();
+        },
+        destroy: () => {
+            for (const p of parts) p.destroy();
+            zone.destroy();
+        },
+    };
+}
+
+/** Is the hover look on (only for enabled pieces)? */
+const hovering = (s: Readonly<ControlState>): boolean => s.hover && s.enabled;
+
+export type OffButtonVariant = 'main' | 'normal' | 'danger';
+
+export interface OffButton extends OffControl {
     setLabel(label: string): void;
     setVariant(variant: OffButtonVariant): void;
-    /** Keyboard / gamepad focus: a gold border. */
-    setFocused(focused: boolean): void;
-    setVisible(visible: boolean): void;
-    destroy(): void;
 }
 
 export function offButton(
@@ -171,55 +253,31 @@ export function offButton(
     const g = scene.add.graphics();
     const text = offText(scene, x + width / 2, y + height / 2, label, 'body', { originX: 0.5, originY: 0.5 });
     let current = variant;
-    let hover = false;
-    let focused = false;
-    const draw = (): void => {
+    const control = makeControl(scene, x, y, width, height, onClick, [g, text], (s) => {
         g.clear();
-        const main = current === 'main';
-        g.fillStyle(main ? (hover ? C.goldLight : C.gold) : hover ? C.buttonHover : C.button, 1).fillRect(x, y, width, height);
-        g.lineStyle(1, main ? C.goldLight : focused ? C.gold : C.bronze, 1).strokeRect(x + 0.5, y + 0.5, width - 1, height - 1);
-        if (focused) g.lineStyle(1, C.gold, 1).strokeRect(x - 1.5, y - 1.5, width + 3, height + 3);
-        text.setColor(main ? OFF_THEME_INK.onGold : current === 'danger' ? OFF_THEME_INK.bad : OFF_THEME_INK.text);
-        offFitText(text, 'body', width - 8);
-    };
-    const zone = clickArea(scene, x, y, width, height, onClick, (over) => {
-        hover = over;
-        draw();
+        const main = current === 'main' && s.enabled;
+        const fill = main ? (hovering(s) ? C.goldLight : C.gold) : hovering(s) ? C.hover : C.button;
+        g.fillStyle(fill, 1).fillRect(x, y, width, height);
+        g.lineStyle(1, main ? C.goldLight : s.enabled ? C.bronze : C.line, 1).strokeRect(x + 0.5, y + 0.5, width - 1, height - 1);
+        text.setColor(!s.enabled ? INK.faint : main ? INK.onGold : current === 'danger' ? INK.bad : INK.text);
+        offFitText(text, 'body', width - S.textInset * 2);
     });
-    draw();
     return {
-        x, y, width, height,
+        ...control,
         setLabel: (l) => {
             text.setText(l);
-            draw();
+            control.redraw();
         },
         setVariant: (v) => {
             current = v;
-            draw();
-        },
-        setFocused: (f) => {
-            focused = f;
-            draw();
-        },
-        setVisible: (v) => {
-            g.setVisible(v);
-            text.setVisible(v);
-            if (zone.input) zone.input.enabled = v;
-        },
-        destroy: () => {
-            g.destroy();
-            text.destroy();
-            zone.destroy();
+            control.redraw();
         },
     };
 }
 
-export interface OffTab {
-    readonly x: number;
-    readonly width: number;
+export interface OffTab extends OffControl {
     setOn(on: boolean): void;
     setLabel(label: string): void;
-    setFocused(focused: boolean): void;
 }
 
 /** A tab: plain border when closed; filled, with a gold bar on its left, when open. */
@@ -227,127 +285,297 @@ export function offTab(scene: Phaser.Scene, x: number, y: number, width: number,
     const g = scene.add.graphics();
     const text = offText(scene, x + width / 2, y + height / 2, label, 'body', { originX: 0.5, originY: 0.5 });
     let on = false;
-    let hover = false;
-    let focused = false;
-    const draw = (): void => {
+    const control = makeControl(scene, x, y, width, height, onClick, [g, text], (s) => {
         g.clear();
-        if (on || hover) g.fillStyle(on ? C.tabOn : C.buttonHover, 1).fillRect(x, y, width, height);
-        g.lineStyle(1, focused ? C.gold : C.line, 1).strokeRect(x + 0.5, y + 0.5, width - 1, height - 1);
+        if (on || hovering(s)) g.fillStyle(on ? C.tabOn : C.hover, 1).fillRect(x, y, width, height);
+        g.lineStyle(1, C.line, 1).strokeRect(x + 0.5, y + 0.5, width - 1, height - 1);
         if (on) g.fillStyle(C.gold, 1).fillRect(x, y, S.markBar, height);
-        offFitText(text, 'body', width - 8);
-    };
-    clickArea(scene, x, y, width, height, onClick, (over) => {
-        hover = over;
-        draw();
+        text.setColor(s.enabled ? INK.text : INK.faint);
+        offFitText(text, 'body', width - S.textInset * 2);
     });
-    draw();
     return {
-        x, width,
+        ...control,
         setOn: (o) => {
             on = o;
-            draw();
+            control.redraw();
         },
         setLabel: (l) => {
             text.setText(l);
-            draw();
-        },
-        setFocused: (f) => {
-            focused = f;
-            draw();
+            control.redraw();
         },
     };
 }
 
-export type OffCellState = 'empty' | 'item' | 'marked' | 'unmet';
+/** The window's close button: a square like a tab with a drawn ✕ (the letter isn't in Alegreya Sans). */
+export function offCloseButton(scene: Phaser.Scene, x: number, y: number, size: number, onClick: () => void): OffControl {
+    const g = scene.add.graphics();
+    return makeControl(scene, x, y, size, size, onClick, [g], (s) => {
+        g.clear();
+        if (hovering(s)) g.fillStyle(C.hover, 1).fillRect(x, y, size, size);
+        g.lineStyle(1, C.line, 1).strokeRect(x + 0.5, y + 0.5, size - 1, size - 1);
+        const cx = x + size / 2;
+        const cy = y + size / 2;
+        const r = S.closeCross;
+        g.lineStyle(2, Phaser.Display.Color.HexStringToColor(INK.text).color, 1);
+        g.lineBetween(cx - r, cy - r, cx + r, cy + r).lineBetween(cx - r, cy + r, cx + r, cy - r);
+    });
+}
 
-export interface OffCell {
-    readonly x: number;
-    readonly y: number;
+export interface OffCell extends OffControl {
     readonly size: number;
     /** The item picture: the window sets its texture and scale (centred in the cell). */
     readonly icon: Phaser.GameObjects.Image;
-    setState(state: OffCellState): void;
+    /** Marked = the item whose card is shown (gold border, darker gold fill). */
+    setMarked(marked: boolean): void;
+    /** You can't wear it yet: reddish fill, kept while marked or focused. */
+    setUnmet(unmet: boolean): void;
     /** Small number in the bottom-right corner (how many potions); undefined hides it. */
     setCount(count: number | undefined): void;
 }
 
-/** An item cell. `unmet` = you can't wear it yet (reddish, as the old inventory). */
-export function offCell(scene: Phaser.Scene, x: number, y: number, size: number = S.cell, onClick?: () => void): OffCell {
+/** An item cell: empty, with an item, marked, unmet, focused (ring) and hovered. */
+export function offCell(scene: Phaser.Scene, x: number, y: number, size: number = S.cell, onClick: () => void = () => undefined): OffCell {
     const g = scene.add.graphics();
     const icon = scene.add.image(x + size / 2, y + size / 2, '__DEFAULT').setVisible(false);
-    const count = offText(scene, x + size - 2, y + size + 1, '', 'small', { color: OFF_THEME_INK.text, originX: 1, originY: 1 }).setVisible(false);
-    const draw = (state: OffCellState): void => {
+    const count = offText(scene, x + size - S.countInset, y + size - S.countInset, '', 'small', { color: INK.text, originX: 1, originY: 1 })
+        .setStroke(INK.dark, S.countOutline)
+        .setVisible(false);
+    let marked = false;
+    let unmet = false;
+    let counted = false;
+    const control = makeControl(scene, x, y, size, size, onClick, [g, count], (s) => {
         g.clear();
-        const fill = state === 'marked' ? C.marked : state === 'unmet' ? C.unmet : C.cell;
-        g.fillStyle(fill, 1).fillRect(x, y, size, size);
-        g.lineStyle(1, state === 'marked' ? C.gold : C.cellLine, 1).strokeRect(x + 0.5, y + 0.5, size - 1, size - 1);
-    };
-    if (onClick) clickArea(scene, x, y, size, size, onClick);
-    draw('empty');
+        g.fillStyle(unmet ? C.unmet : marked ? C.marked : hovering(s) ? C.hover : C.cell, 1).fillRect(x, y, size, size);
+        g.lineStyle(1, marked ? C.gold : hovering(s) ? C.bronze : C.cellBorder, 1).strokeRect(x + 0.5, y + 0.5, size - 1, size - 1);
+        count.setVisible(counted && s.visible);
+    });
     return {
-        x, y, size, icon,
-        setState: draw,
+        ...control,
+        size,
+        icon,
+        setVisible: (v) => {
+            control.setVisible(v);
+            if (!v) icon.setVisible(false);
+        },
+        setMarked: (m) => {
+            marked = m;
+            control.redraw();
+        },
+        setUnmet: (u) => {
+            unmet = u;
+            control.redraw();
+        },
         setCount: (n) => {
-            count.setVisible(n !== undefined);
+            counted = n !== undefined;
             if (n !== undefined) count.setText(String(n));
+            control.redraw();
+        },
+    };
+}
+
+/** One column of a list row: its text, width (the first column takes what's left) and alignment. */
+export interface OffListColumn {
+    text: string;
+    width?: number;
+    align?: 'left' | 'right';
+    color?: string;
+    kind?: OffTextKind;
+}
+
+export interface OffListRow extends OffControl {
+    setMarked(marked: boolean): void;
+    setTexts(texts: readonly string[]): void;
+}
+
+/**
+ * A selectable list row (spells, items): columns of text, a line under it; marked = gold bar on the left and darker
+ * gold fill. The first column is the name: it takes the room the others leave and shrinks if needed.
+ */
+export function offListRow(scene: Phaser.Scene, x: number, y: number, width: number, columns: readonly OffListColumn[], onClick: () => void): OffListRow {
+    const h = S.listRowHeight;
+    const pad = S.listRowPadding;
+    const g = scene.add.graphics();
+    const fixed = columns.slice(1).reduce((sum, c) => sum + (c.width ?? 0), 0);
+    const placed = columns.map((col, i) => ({ col, w: i === 0 ? width - pad * 2 - fixed : col.width ?? 0, left: x + pad }));
+    // The other columns sit side by side from the right edge, the last one at the far right.
+    let cursor = x + width - pad;
+    for (let i = placed.length - 1; i > 0; i -= 1) {
+        const p = placed[i];
+        if (!p) continue;
+        p.left = cursor - p.w;
+        cursor = p.left;
+    }
+    const texts = placed.map(({ col, w, left }) => {
+        const kind = col.kind ?? 'body';
+        const t = offText(scene, col.align === 'right' ? left + w : left, y + h / 2, col.text, kind, {
+            color: col.color, originX: col.align === 'right' ? 1 : 0, originY: 0.5, maxWidth: w,
+        });
+        return { t, kind, w };
+    });
+    let marked = false;
+    const control = makeControl(scene, x, y, width, h, onClick, [g, ...texts.map((t) => t.t)], (s) => {
+        g.clear();
+        if (marked || hovering(s)) g.fillStyle(marked ? C.marked : C.hover, 1).fillRect(x, y, width, h - 1);
+        if (marked) g.fillStyle(C.gold, 1).fillRect(x, y, S.markBar, h - 1);
+        g.fillStyle(C.rowLine, 1).fillRect(x, y + h - 1, width, 1);
+        texts[0]?.t.setColor(s.enabled ? columns[0]?.color ?? INK.text : INK.faint);
+    });
+    return {
+        ...control,
+        setMarked: (m) => {
+            marked = m;
+            control.redraw();
+        },
+        setTexts: (values) => {
+            values.forEach((v, i) => {
+                const entry = texts[i];
+                if (!entry) return;
+                entry.t.setText(v);
+                offFitText(entry.t, entry.kind, entry.w);
+            });
+        },
+    };
+}
+
+export interface OffKeyRow extends OffControl {
+    /** The spell on this key; undefined = empty ("Empty" in the faint colour). */
+    setName(name: string | undefined): void;
+    setMarked(marked: boolean): void;
+}
+
+/** A key row: the key's number, the spell on it and, for keys 1–4, the pad button that casts it too (RT + A/B/X/Y). */
+export function offKeyRow(scene: Phaser.Scene, x: number, y: number, width: number, key: number, pad: OffPadButton | undefined, onClick: () => void): OffKeyRow {
+    const h = S.keyRowHeight;
+    const g = scene.add.graphics();
+    const mid = y + h / 2;
+    const number = offText(scene, x + S.textInset + S.keyNumberWidth / 2, mid, String(key), 'keyNumber', { originX: 0.5, originY: 0.5 });
+    const nameX = x + S.textInset * 2 + S.keyNumberWidth;
+    const nameRoom = width - (nameX - x) - (pad ? S.badge + S.textInset * 2 : S.textInset * 2);
+    const name = offText(scene, nameX, mid, '', 'body', { originY: 0.5 });
+    const parts: Phaser.GameObjects.GameObject[] = [g, number, name];
+    if (pad) parts.push(offPadBadge(scene, x + width - S.textInset * 2 - S.badge / 2, mid, pad));
+    let marked = false;
+    let empty = true;
+    const control = makeControl(scene, x, y, width, h, onClick, parts, (s) => {
+        g.clear();
+        g.fillStyle(marked ? C.marked : hovering(s) ? C.hover : C.cell, 1).fillRect(x, y, width, h);
+        g.lineStyle(1, marked ? C.gold : C.cellBorder, 1).strokeRect(x + 0.5, y + 0.5, width - 1, h - 1);
+        name.setColor(empty || !s.enabled ? INK.faint : INK.text);
+    });
+    const setName = (n: string | undefined): void => {
+        empty = n === undefined;
+        name.setText(n ?? 'Empty');
+        offFitText(name, 'body', nameRoom);
+        control.redraw();
+    };
+    setName(undefined);
+    return {
+        ...control,
+        setName,
+        setMarked: (m) => {
+            marked = m;
+            control.redraw();
         },
     };
 }
 
 // ---------------------------------------------------------------- datos
 
+/** How a value compares with what you wear: better (green ▲), worse (red ▼), the same. */
+export type OffTrend = 'better' | 'worse' | 'same';
+
 export interface OffStatRow {
-    setValue(value: string, color?: string, note?: string): void;
+    /** `note` = what you wear now ("now 10"); `trend` colours the value and adds an arrow (never colour alone). */
+    setValue(value: string, color?: string, note?: string, trend?: OffTrend): void;
+    setVisible(visible: boolean): void;
+    destroy(): void;
 }
 
 /**
- * A data row: label on the left (dim), value on the right, an optional "(now …)" note after the value, and a thin line
- * under it. If label and value don't fit together, the value side shrinks and the clash is reported.
+ * A data row: label on the left (dim), value on the right, an optional "(now …)" note after the value and a thin line
+ * under it. The label keeps `rowLabelShare` of the row at most; the value gets the rest, shrinking if needed.
  */
-export function offStatRow(scene: Phaser.Scene, x: number, y: number, width: number, label: string, value: string, color?: string, note?: string): OffStatRow {
+export function offStatRow(
+    scene: Phaser.Scene, x: number, y: number, width: number, label: string, value: string,
+    color?: string, note?: string, trend?: OffTrend,
+): OffStatRow {
     const h = S.rowHeight;
     const mid = y + h / 2;
-    const labelText = offText(scene, x, mid, label, 'body', { color: OFF_THEME_INK.dim, originY: 0.5 });
-    const noteText = offText(scene, x + width, mid, '', 'small', { color: OFF_THEME_INK.note, originX: 1, originY: 0.5 });
+    const labelText = offText(scene, x, mid, label, 'body', { color: INK.dim, originY: 0.5, maxWidth: width * S.rowLabelShare });
+    const noteText = offText(scene, x + width, mid, '', 'small', { color: INK.note, originX: 1, originY: 0.5 });
     const valueText = offText(scene, x + width, mid, '', 'body', { originX: 1, originY: 0.5 });
-    offRule(scene, x, y + h - 1, width);
-    const set = (v: string, c?: string, n?: string): void => {
+    const arrow = scene.add.graphics();
+    const rule = offRule(scene, x, y + h - 1, width);
+    const set = (v: string, c?: string, n?: string, t?: OffTrend): void => {
         noteText.setText(n ? `(${n})` : '');
-        const noteWidth = n ? noteText.width + 5 : 0;
-        valueText.setText(v).setColor(c ?? OFF_THEME_INK.text);
+        const noteWidth = n ? noteText.width + S.noteGap : 0;
+        const arrowWidth = t && t !== 'same' ? S.arrow * 2 + S.noteGap : 0;
+        const trendColor = t === 'better' ? INK.good : t === 'worse' ? INK.bad : undefined;
+        valueText.setText(v).setColor(c ?? trendColor ?? INK.text);
         valueText.setX(x + width - noteWidth);
-        const room = width - labelText.width - S.rowGap - noteWidth;
-        offFitText(valueText, 'body', room);
+        offFitText(valueText, 'body', width - labelText.width - S.rowGap - noteWidth - arrowWidth);
+        arrow.clear();
+        if (arrowWidth) {
+            const ax = valueText.x - valueText.width - S.noteGap - S.arrow;
+            const a = S.arrow;
+            arrow.fillStyle(t === 'better' ? C.better : C.worse, 1);
+            if (t === 'better') arrow.fillTriangle(ax - a, mid + a / 2, ax + a, mid + a / 2, ax, mid - a);
+            else arrow.fillTriangle(ax - a, mid - a / 2, ax + a, mid - a / 2, ax, mid + a);
+        }
     };
-    set(value, color, note);
-    return { setValue: set };
+    set(value, color, note, trend);
+    const parts = [labelText, noteText, valueText, arrow, rule];
+    return {
+        setValue: set,
+        setVisible: (vis) => parts.forEach((p) => p.setVisible(vis)),
+        destroy: () => parts.forEach((p) => p.destroy()),
+    };
 }
 
 export interface OffBar {
     setValue(text: string, ratio: number): void;
+    setVisible(visible: boolean): void;
 }
 
 /** A bar with its label on the left and value on the right above it (health, mana, stamina, experience). */
 export function offBar(scene: Phaser.Scene, x: number, y: number, width: number, label: string, color: number): OffBar {
-    offText(scene, x, y, label, 'small', { color: OFF_THEME_INK.dim });
-    const value = offText(scene, x + width, y, '', 'small', { color: OFF_THEME_INK.text, originX: 1 });
-    const barY = y + OFF_THEME_TEXT.small.size + S.barGap + 2;
-    scene.add.rectangle(x, barY, width, S.barHeight, C.barBack).setOrigin(0, 0);
+    const labelText = offText(scene, x, y, label, 'small', { maxWidth: width / 2 });
+    const value = offText(scene, x + width, y, '', 'small', { color: INK.text, originX: 1 });
+    const barY = y + labelText.height + S.barGap;
+    const back = scene.add.rectangle(x, barY, width, S.barHeight, C.barBack).setOrigin(0, 0);
     const fill = scene.add.rectangle(x, barY, width, S.barHeight, color).setOrigin(0, 0);
     return {
         setValue: (text, ratio) => {
             value.setText(text);
+            offFitText(value, 'small', width - labelText.width - S.rowGap);
             fill.width = Math.round(width * Math.max(0, Math.min(1, ratio)));
         },
+        setVisible: (v) => [labelText, value, back, fill].forEach((p) => p.setVisible(v)),
     };
 }
 
 /** Height a bar takes (label line + gap + bar), for stacking them. */
-export const OFF_BAR_HEIGHT = OFF_THEME_TEXT.small.size + S.barGap + 2 + S.barHeight;
+export function offBarHeight(scene: Phaser.Scene): number {
+    const probe = offText(scene, 0, 0, 'Mg', 'small');
+    const h = probe.height;
+    probe.destroy();
+    return h + S.barGap + S.barHeight;
+}
+
+// ---------------------------------------------------------------- mando
 
 /** A round gamepad badge (A green, B red, X blue, Y yellow) centred on (cx, cy). */
 export function offPadBadge(scene: Phaser.Scene, cx: number, cy: number, button: OffPadButton): Phaser.GameObjects.Container {
     const circle = scene.add.circle(0, 0, S.badge / 2, OFF_THEME_PAD[button]);
-    const letter = offText(scene, 0, 0, button, 'badge', { originX: 0.5, originY: 0.5 }).setFontStyle('500');
+    const letter = offText(scene, 0, 0, button, 'badge', { originX: 0.5, originY: 0.5 });
     return scene.add.container(cx, cy, [circle, letter]);
+}
+
+/** A pill for the other pad buttons (LB, RB, LT, RT, Start), its left edge at x, centred on cy. Returns it and its width. */
+export function offPadPill(scene: Phaser.Scene, x: number, cy: number, label: string): { pill: Phaser.GameObjects.Container; width: number } {
+    const letters = offText(scene, 0, 0, label, 'badge', { color: INK.text, originX: 0.5, originY: 0.5 });
+    const width = Math.ceil(letters.width) + S.pillPadding * 2;
+    const g = scene.add.graphics();
+    g.fillStyle(C.padPill, 1).fillRoundedRect(-width / 2, -S.pillHeight / 2, width, S.pillHeight, S.pillHeight / 2);
+    return { pill: scene.add.container(x + width / 2, cy, [g, letters]), width };
 }
