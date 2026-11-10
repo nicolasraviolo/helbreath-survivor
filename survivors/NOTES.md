@@ -163,6 +163,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Pausa, William y Select Map (Off-13B)
 - Almacén y objetos apilados (Off-13C)
 - Tienda y herrero (Off-13D)
+- Inicio y Select Character (Off-13E)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -1607,7 +1608,7 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - **Probar:** `check offcritstrike` (Level 30, 3 golpes y la recarga; en eval medias de daño y cargas guardadas) / `offcritnone`.
 
 ## Select Character en Helbreath Off (8-nov-2026)
-- Es la `CharacterSlotsScene` de Survivors copiada a `off/scenes/OffSlotsScene.ts`, con las mismas medidas (`config/characterSlots.ts`) y con crear y borrar como en la Fase 17A. Los textos van en `off/config/offSlots.ts`.
+- (Off-13E: rehecha con el estilo de Off, ver "Inicio y Select Character (Off-13E)"; lo de abajo sobre las medidas ya no vale.) Era la `CharacterSlotsScene` de Survivors copiada a `off/scenes/OffSlotsScene.ts`, con las mismas medidas (`config/characterSlots.ts`) y con crear y borrar como en la Fase 17A. Los textos van en `off/config/offSlots.ts`.
 - Guardado: un personaje por hueco y por clave. El hueco 1 conserva `hb-off.character` (así un guardado de antes no se pierde ni hay que migrarlo) y los demás van en `hb-off.character.2` … `.4`; `hb-off.slot` dice cuál se juega. `offSaveStore.character` y todos sus métodos trabajan siempre con el hueco elegido (`select(i)`); `peek(i)` lee otro sin cambiar de hueco. `?offreset` vacía los cuatro.
 - Los muñecos se visten con `dressOffBody` (`off/entities/OffCharacter.ts`), lo mismo que el personaje del mundo: arma y escudo solo si los lleva puestos.
 - En una copia aparte del repo (worktree) el script de comprobación puede usar otro puerto: `CHECK_PORT=8091 node scripts/check.mjs …`, con `./node_modules/.bin/vite --port 8091` en marcha. Ahí salen 7 errores 403 de las fuentes (`@fontsource`): Vite no deja leerlas desde fuera de esa copia. No pasa en la copia principal.
@@ -1770,6 +1771,13 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - El límite de 20 pociones sigue contando objetos (no celdas).
 - Pieza `off/ui/offItemGrid.ts` (pozo + celdas + `show(stacks)` + `step`), usada por la Bag, el almacén y el muestrario. `offSetItemIcon` pinta un icono teñido. `offPadHints` acepta botones que no son A/B/X/Y ("LB / RB") como píldora.
 - La tienda (13D) también junta los montones en Sell (una fila "Red Potion ×6") y vende el `last`.
+
+## Inicio y Select Character (Off-13E)
+- `off/scenes/OffSlotsScene.ts` rehecha: ya no usa el arte del original salvo la imagen de fondo (`SLOTS_BACKGROUND`, oscurecida al 90 % para que no asomen los marcos de madera pintados en ella). Medidas y textos en `off/config/offSlots.ts`; la tarjeta es la pieza `offSlotCard` (`off/ui/offUi.ts`).
+- Dos filas de foco: las tarjetas (las mueve la escena, dan la vuelta) y los botones (`offFocusGroup`). Hay **un hueco marcado** (borde dorado fino, el que juega Start) y **un foco** (anillo); con el foco en los botones la tarjeta sigue marcada pero sin anillo. El ratón sobre un botón le pasa el foco (`setOnHover` sustituye al del grupo).
+- Start y Delete se apagan en un hueco vacío y Create pasa a principal (crea en ese hueco); Create se apaga con los 4 llenos. Las pistas del mando se rehacen en cada cambio (`refreshHints`): la A dice Start / Create / Select según el foco.
+- `offPadHints` acepta `OFF_PAD_DPAD` como botón: dibuja la cruceta (`offPadDpad`). `offButton` apagado ya no tiene relleno (en todas las ventanas).
+- El inicio de Off (`OffHomeScene`, `off/config/offHome.ts`) es una ventana Off centrada donde estaba el panel del menú principal.
 
 ## Tienda y herrero (Off-13D)
 - Una escena para los dos (`off/scenes/OffStoreScene.ts`, medidas en `off/config/offStore.ts`, textos en `OFF_STORE_TEXT`). Lista con `offListRow` (Off-13D: parámetro `indent` para el dibujo del objeto antes del nombre), ficha `offItemCard` y, para magias, las líneas de `offSpellBoxLines` (lo único que queda de `off/ui/offItemBox.ts`, más `offItemNameColor`). `off/config/offEquipment.ts` se borró: era el cuadro viejo.

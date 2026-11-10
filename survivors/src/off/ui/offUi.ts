@@ -268,7 +268,8 @@ export function offButton(
         g.clear();
         const main = current === 'main' && s.enabled;
         const fill = main ? (hovering(s) ? C.goldLight : C.gold) : hovering(s) ? C.hover : C.button;
-        g.fillStyle(fill, 1).fillRect(x, y, width, height);
+        // Off-13E (revisor-ui): a disabled button has no fill, so it doesn't look like a normal one.
+        if (s.enabled) g.fillStyle(fill, 1).fillRect(x, y, width, height);
         g.lineStyle(1, main ? C.goldLight : s.enabled ? C.bronze : C.line, 1).strokeRect(x + 0.5, y + 0.5, width - 1, height - 1);
         text.setColor(!s.enabled ? INK.dim : main ? INK.onGold : current === 'danger' ? INK.bad : INK.text);
         offFitText(text, 'body', width - S.textInset * 2);
@@ -675,6 +676,19 @@ export function offPadPill(scene: Phaser.Scene, x: number, cy: number, label: st
     return { pill: scene.add.container(x + width / 2, cy, [g, letters]), width };
 }
 
+/** Off-13E: in a hints row, this "button" draws the pad's cross ("(+) Move"). */
+export const OFF_PAD_DPAD = 'dpad';
+
+/** The pad's cross (d-pad) as a small grey plus, centred on (cx, cy), as big as a badge. */
+export function offPadDpad(scene: Phaser.Scene, cx: number, cy: number): Phaser.GameObjects.Graphics {
+    const g = scene.add.graphics({ x: cx, y: cy });
+    const half = S.badge / 2;
+    const arm = S.dpadArm / 2;
+    g.fillStyle(C.padPill, 1);
+    g.fillRoundedRect(-arm, -half, arm * 2, S.badge, 2).fillRoundedRect(-half, -arm, S.badge, arm * 2, 2);
+    return g;
+}
+
 /**
  * Off-13B: the pad hints row of a window ("(A) Select   (B) Back"), centred on (cx, cy). Hidden at first: the window
  * shows it while the pad is in use (its row is kept anyway, so the window doesn't change size). Off-13C: a button
@@ -687,6 +701,9 @@ export function offPadHints(scene: Phaser.Scene, cx: number, cy: number, hints: 
         if (i > 0) x += S.hintGap;
         if (isOffPadButton(button)) {
             parts.push(offPadBadge(scene, x + S.badge / 2, 0, button));
+            x += S.badge + S.hintBadgeGap;
+        } else if (button === OFF_PAD_DPAD) {
+            parts.push(offPadDpad(scene, x + S.badge / 2, 0));
             x += S.badge + S.hintBadgeGap;
         } else {
             const pill = offPadPill(scene, x, 0, button);
@@ -772,5 +789,83 @@ export function offFocusGroup(controls: readonly OffControl[], start = 0): OffFo
             if (at >= 0) controls[at]?.press();
         },
         blur: () => set(-1),
+    };
+}
+
+// ---------------------------------------------------------------- tarjeta de personaje (Off-13E)
+
+/** Inside measures of a character slot card, from its top-left corner (the window passes its own). */
+export interface OffSlotCardLayout {
+    width: number;
+    height: number;
+    pad: number;
+    /** Dark well for the character, from the top (its width is the card's minus pad on each side). */
+    wellHeight: number;
+    /** The character's feet, from the well's top. */
+    feetInWell: number;
+    /** Top of the name, and of the Level and EXP rows. */
+    nameTop: number;
+    rowsTop: number;
+    /** "Empty" and its line under it, around the card's middle. */
+    emptyLineGap: number;
+}
+
+/** What a card shows: the character (undefined = an empty slot) and its words. */
+export interface OffSlotCardContent {
+    character: { name: string; level: string; exp: string } | undefined;
+    levelLabel: string;
+    expLabel: string;
+    emptyLabel: string;
+    emptyLine: string;
+}
+
+export interface OffSlotCard extends OffControl {
+    /** The chosen slot: thin gold border and darker fill (the ring is the focus, apart). */
+    setMarked(marked: boolean): void;
+    /** Where the window stands the character sprite (its feet). */
+    readonly feetX: number;
+    readonly feetY: number;
+}
+
+/**
+ * A character slot of Select Character: the card is the button. With a character, a dark well for the walking
+ * sprite (the window adds it), the name and Level / EXP rows; empty, "Empty" and a line under it. Marked = thin gold
+ * border; the focus ring (keyboard / pad) goes outside it, as on every piece.
+ */
+export function offSlotCard(
+    scene: Phaser.Scene, x: number, y: number, layout: OffSlotCardLayout, content: OffSlotCardContent, onClick: () => void,
+): OffSlotCard {
+    const { width: w, height: h, pad } = layout;
+    const g = scene.add.graphics();
+    let marked = false;
+    const control = makeControl(scene, x, y, w, h, onClick, [g], (s) => {
+        g.clear();
+        g.fillStyle(marked || hovering(s) ? C.marked : C.card, 1).fillRect(x, y, w, h);
+        g.lineStyle(1, marked ? C.gold : hovering(s) ? C.bronze : C.line, 1).strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+        if (content.character) {
+            g.fillStyle(C.well, 1).fillRect(x + pad, y + pad, w - pad * 2, layout.wellHeight);
+            g.lineStyle(1, C.cellBorder, 1).strokeRect(x + pad + 0.5, y + pad + 0.5, w - pad * 2 - 1, layout.wellHeight - 1);
+        }
+    });
+    const cx = x + w / 2;
+    const innerW = w - pad * 2;
+    const c = content.character;
+    if (c) {
+        offText(scene, cx, y + layout.nameTop, c.name, 'name', { originX: 0.5, maxWidth: innerW });
+        offStatRow(scene, x + pad, y + layout.rowsTop, innerW, content.levelLabel, c.level);
+        offStatRow(scene, x + pad, y + layout.rowsTop + S.rowHeight, innerW, content.expLabel, c.exp);
+    } else {
+        const mid = y + h / 2;
+        offText(scene, cx, mid - layout.emptyLineGap / 2, content.emptyLabel, 'name', { originX: 0.5, originY: 1, color: INK.dim, maxWidth: innerW });
+        offText(scene, cx, mid + layout.emptyLineGap / 2, content.emptyLine, 'small', { originX: 0.5, maxWidth: innerW });
+    }
+    return {
+        ...control,
+        feetX: cx,
+        feetY: y + pad + layout.feetInWell,
+        setMarked: (m) => {
+            marked = m;
+            control.redraw();
+        },
     };
 }

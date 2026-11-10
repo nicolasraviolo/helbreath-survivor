@@ -123,6 +123,11 @@ const PRESETS = {
     offslotsnew: 'off=slots&offlevel=5',
     offslotsdelete: 'off=slots&offlevel=5',
     offslotsold: 'off=slots',
+    // Off-13E. offslotsfull: los cuatro huecos llenos (nombre de 10 W y EXP enorme; Create apagado). offslotspad: pistas
+    // del mando, hueco 2 (vacío) marcado y foco bajado a los botones (cae en Create; Start y Delete apagados).
+    offslotsfull: 'off=slots',
+    offslotspad: 'off=slots&offlevel=5',
+    offhome: 'off=game',
     // Fase Off-3B (Off-12C: pestaña Stats de la ventana del personaje): offchar la abre en el nivel 5 (12 puntos);
     // offassign reparte 3 en Str y 2 en Vit con los + y Confirm (en eval: stats, puntos y máximos antes y después, y lo
     // guardado). offstamina corre con 5 de
@@ -821,6 +826,9 @@ const PRESET_EVAL = {
     offcyclops: "new Promise((r) => { const log = []; const t = setInterval(() => { const s = o.debugState(); log.push(s.hp); }, 1000); setTimeout(() => { clearInterval(t); r(log); }, 15000); })",
     offtroll: "new Promise((r) => { const log = []; const t = setInterval(() => { if (!o.debugState().target) o.debugFight('troll'); log.push(o.debugState()); }, 1000); setTimeout(() => { clearInterval(t); const pick = (s) => s && ({ tile: s.tile, hp: [s.hp, s.maxHp], level: s.level, exp: s.exp, kills: s.kills, target: s.target, gold: s.gold, dead: s.dead }); r({ start: pick(log[0]), mid: pick(log[10]), end: pick(log[log.length - 1]) }); }, 20000); })",
     offdeath: "new Promise((r) => { o.battle.exp += 200; const start = o.debugState(); o.battle.hp = 0; o.battle.die(); setTimeout(() => r({ start, end: o.debugState() }), 4000); })",
+    offslotsfull: "(game.scene.getScene('OffSlots').debugShowPadHints(), game.scene.getScene('OffSlots').debugState())",
+    offslotspad: "(() => { const s = game.scene.getScene('OffSlots'); s.debugShowPadHints(); s.moveFocus('right'); const card = s.debugState(); s.moveFocus('down'); return { card, buttons: s.debugState() }; })()",
+    offhome: "(game.scene.getScene('OffHome').debugShowPadHints(), game.scene.getScene('OffHome').debugState())",
     offslotsnew: "new Promise((r) => { game.scene.getScene('OffSlots').newCharacter(); setTimeout(() => { const c = game.scene.getScene('OffCreate'); c.applyPreset('warrior'); c.createCharacter(); setTimeout(() => r({ world: game.scene.isActive('OffWorld'), slot: localStorage.getItem('hb-off.slot'), one: JSON.parse(localStorage.getItem('hb-off.character'))?.name, two: JSON.parse(localStorage.getItem('hb-off.character.2'))?.created }), 4000); }, 600); })",
     offslotsdelete: "new Promise((r) => { const sl = game.scene.getScene('OffSlots'); sl.deleteFocused(); setTimeout(() => { const asked = game.scene.isActive('OffDialog'); game.scene.getScene('OffDialog').answer(1); setTimeout(() => r({ asked, left: localStorage.getItem('hb-off.character'), slotsActive: game.scene.isActive('OffSlots') }), 800); }, 600); })",
     offcreated: "new Promise((r) => { const c = game.scene.getScene('OffCreate'); c.changeStat('str', 1); const one = c.stats.str; c.createCharacter(); const blocked = game.scene.isActive('OffCreate'); c.applyPreset('warrior'); c.createCharacter(); setTimeout(() => r({ oneStr: one, blockedWithPointsLeft: blocked, saved: JSON.parse(localStorage.getItem('hb-off.character')), world: game.scene.isActive('OffWorld') }), 4000); })",
@@ -987,6 +995,14 @@ async function runScenario(browser, name) {
         await page.addInitScript(() => performance.setResourceTimingBufferSize(100000));
     }
 
+    // offslotsfull: four characters, one of them with the longest name and a huge EXP.
+    if (name === 'offslotsfull') {
+        await page.addInitScript(() => {
+            const names = ['WWWWWWWWWW', 'Gorn', 'Kaila', 'Wolfbane'];
+            names.forEach((n, i) => localStorage.setItem(i === 0 ? 'hb-off.character' : `hb-off.character.${i + 1}`, JSON.stringify({ version: 8, created: true, name: n, look: { gender: i % 2 ? 'female' : 'male', skin: i % 3, hairStyle: 1, hairColor: 2, underwear: 0 }, stats: { str: 14, vit: 12, dex: 14, int: 10, mag: 10 }, exp: i === 0 ? 99999999999 : 1000 * (i + 1), points: 0, equipment: {}, gold: 0, bag: [], warehouse: [], spells: [], spellKeys: [], padSpells: [] })));
+            localStorage.setItem('hb-off.slot', '0');
+        });
+    }
     // offslotsold: a save from before Select Character (one character, no hb-off.slot).
     if (name === 'offslotsold') {
         await page.addInitScript(() => localStorage.setItem('hb-off.character', JSON.stringify({ version: 8, created: true, name: 'Oldie', look: { gender: 'female', skin: 0, hairStyle: 1, hairColor: 2, underwear: 0 }, stats: { str: 14, vit: 12, dex: 14, int: 10, mag: 10 }, exp: 500, points: 0, equipment: {}, gold: 0, bag: [], warehouse: [], spells: [], spellKeys: [], padSpells: [] })));

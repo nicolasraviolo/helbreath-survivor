@@ -1,55 +1,44 @@
-// Helbreath Off (8-nov-2026): pantalla "Select Character" del original, copiada de la de Survivors
-// (scenes/CharacterSlotsScene.ts; mismas medidas, fondo y botones, config/characterSlots.ts) con crear y borrar
-// personajes como la de la Fase 17A. Sale al pulsar Play en la pantalla de Off si hay algún personaje.
-// - Cuatro huecos (OffSaveStore): en cada uno el personaje caminando en el sitio y girando, vestido con su equipo, y
-//   debajo su nombre, Level y EXP. Abajo, la ayuda del marcado: nombre, Level y su ciudad.
-// - Start juega con el marcado (en un hueco vacío, abre Create New Character ahí). Create New Character abre la pantalla
-//   de crear en el primer hueco libre. Delete Character pregunta (OffDialogScene, Off-13A) y borra. Log Out vuelve a la pantalla
-//   de Off. Change Password se ve apagado, como en Survivors.
-// - Como en el original: un clic marca el hueco y otro clic en el mismo juega.
-// Teclado: ←/→ cambia de hueco, Enter juega, Supr borra, Esc vuelve. Mando: cruceta/stick, A, Y (borrar) y B.
+// Helbreath Off: pantalla "Select Character" (8-nov-2026), que sale al pulsar Play en la pantalla de Off si hay algún
+// personaje. Fase Off-13E (10-nov-2026): rehecha entera con el estilo oscuro de la Off-12 (medidas y textos en
+// off/config/offSlots.ts; antes era la de Survivors con el arte del original).
+// - Detrás, la imagen del original muy oscurecida. Encima, una ventana con cuatro tarjetas (offSlotCard): el personaje
+//   caminando en el sitio y girando, vestido con su equipo, con nombre, Level y EXP; o "Empty".
+// - Bajo las tarjetas, el hueco marcado: nombre, Level y ciudad; los puntos sin repartir o por qué un botón está apagado.
+// - Botones Start, Create New Character, Delete Character y Log Out. Start y Delete se apagan en un hueco vacío (ahí el
+//   principal es Create, que crea en ese hueco); Create se apaga con los cuatro huecos llenos. Change Password ya no está.
+// - Ratón: un clic marca el hueco y otro clic en el mismo juega (como el original); los botones, con un clic.
+// - Teclado y mando: ←/→ cambia de hueco (da la vuelta), ↓ baja a los botones (a Start, o a Create en un hueco vacío),
+//   ↑ o Esc / B vuelven a las tarjetas. En las tarjetas, Enter / A juega (o crea en un hueco vacío), Supr / Y borra
+//   (pregunta, OffDialogScene) y Esc / B vuelve a la pantalla de Off.
 import Phaser from 'phaser';
-import {
-    SLOTS_BACKGROUND,
-    SLOTS_BUTTON_HIT_PAD,
-    SLOTS_BUTTON_LIT_OFFSET,
-    SLOTS_BUTTONS,
-    SLOTS_CHARACTER_SCALE,
-    SLOTS_DIM_ALPHA,
-    SLOTS_DISABLED_SHADE,
-    SLOTS_HELP,
-    SLOTS_HELP_STYLE,
-    SLOTS_INPUT_DELAY_MS,
-    SLOTS_LAYOUT,
-    SLOTS_NAME_STYLE,
-    SLOTS_SCALE,
-    SLOTS_TEXT_STYLE,
-    SLOTS_TEXTURE,
-    SLOTS_TURN_MS,
-} from '../../config/characterSlots';
+import { SLOTS_BACKGROUND, SLOTS_INPUT_DELAY_MS, SLOTS_SCALE, SLOTS_TURN_MS } from '../../config/characterSlots';
+import { GAME_HEIGHT, GAME_WIDTH } from '../../config/gameConfig';
 import { CharacterSprite } from '../../entities/CharacterSprite';
 import { Direction } from '../../hb/directions';
 import { PlayerState } from '../../hb/playerAppearance';
 import { openOverlay } from '../../scenes/MenuOverlayScene';
 import { Action, InputSystem } from '../../systems/InputSystem';
-import { OFF_SLOTS } from '../config/offSlots';
+import { OFF_DIALOG_TEXT } from '../config/offDialog';
+import { OFF_SLOT_CARD, OFF_SLOTS, OFF_SLOTS_LAYOUT } from '../config/offSlots';
+import { OFF_THEME_COLOR, OFF_THEME_INK } from '../config/offTheme';
 import { offEquipmentLook } from '../data/offItems';
 import { offLevelForExp } from '../data/offLevel';
 import { OFF_PLACES, offHomePlace } from '../data/offPlaces';
 import { OFF_NOVICE } from '../data/offWorld';
 import { dressOffBody } from '../entities/OffCharacter';
 import { OFF_CHARACTER_SLOT_COUNT, offSaveStore } from '../systems/OffSaveStore';
+import {
+    OFF_PAD_DPAD, offButton, offDivider, offFitText, offFocusGroup, offFrame, offLayoutIssues, offPadHints, offRule, offSlotCard, offText,
+    type OffButton, type OffFocusGroup, type OffSlotCard,
+} from '../ui/offUi';
 import { OFF_CREATE_SCENE_KEY, type OffCreateSceneData } from './OffCreateScene';
 import { OFF_DIALOG_SCENE_KEY, type OffDialogSceneData } from './OffDialogScene';
-import { OFF_DIALOG_TEXT } from '../config/offDialog';
 import { startOffWorld } from './OffWorldScene';
 
 export const OFF_SLOTS_SCENE_KEY = 'OffSlots';
 
-/** 640x480 coordinates of the original image → screen pixels. */
-function s(value: number): number {
-    return Math.round(value * SLOTS_SCALE);
-}
+const L = OFF_SLOTS_LAYOUT;
+const T = OFF_SLOTS;
 
 /** The original turns the characters this way round (m_cMenuDir 1..8). */
 const DIRECTIONS_CLOCKWISE = [
@@ -57,10 +46,8 @@ const DIRECTIONS_CLOCKWISE = [
     Direction.North, Direction.NorthEast, Direction.East, Direction.SouthEast,
 ] as const;
 
-interface Slot {
-    frame: Phaser.GameObjects.Image;
-    sprite: CharacterSprite | undefined;
-}
+/** The buttons, in their order on the row. */
+const Button = { Start: 0, Create: 1, Delete: 2, LogOut: 3 } as const;
 
 export interface OffSlotsSceneData {
     /** Slot marked when the screen opens (default: the one last played). */
@@ -69,9 +56,18 @@ export interface OffSlotsSceneData {
 
 export class OffSlotsScene extends Phaser.Scene {
     private inputSystem!: InputSystem;
-    private slots: Slot[] = [];
-    private focused = 0;
-    private helpText!: Phaser.GameObjects.Text;
+    private cards: OffSlotCard[] = [];
+    private sprites: (CharacterSprite | undefined)[] = [];
+    private buttons: OffButton[] = [];
+    private buttonGroup!: OffFocusGroup;
+    /** Where the keyboard / pad focus is: on the cards or on the button row. */
+    private onButtons = false;
+    private marked = 0;
+    /** The mouse marked the slot: the third line says a second click plays. */
+    private markedByClick = false;
+    private infoLines: Phaser.GameObjects.Text[] = [];
+    private hints: Phaser.GameObjects.Container | undefined;
+    private forcePadHints = false;
     private openedAt = 0;
     private walkTime = 0;
     private initialFocus: number | undefined;
@@ -82,119 +78,224 @@ export class OffSlotsScene extends Phaser.Scene {
 
     init(data: OffSlotsSceneData): void {
         this.initialFocus = data.focus;
+        this.cards = [];
+        this.sprites = [];
+        this.buttons = [];
+        this.onButtons = false;
+        this.markedByClick = false;
+        this.hints = undefined;
+        this.forcePadHints = false;
+        this.walkTime = 0;
     }
 
     create(): void {
-        this.slots = [];
-        this.walkTime = 0;
         this.openedAt = this.time.now;
         this.add.image(0, 0, SLOTS_BACKGROUND.texture, SLOTS_BACKGROUND.frame).setOrigin(0).setScale(SLOTS_SCALE);
-        for (let i = 0; i < OFF_CHARACTER_SLOT_COUNT; i++) this.slots.push(this.createSlot(i));
-        this.createButtons();
-        this.helpText = this.add.text(s(SLOTS_HELP.x), s(SLOTS_HELP.y), '', {
-            ...SLOTS_HELP_STYLE, lineSpacing: 2, wordWrap: { width: s(SLOTS_HELP.width) },
-        }).setOrigin(0.5);
+        this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, L.shadeColor, L.shadeAlpha).setOrigin(0);
+        offFrame(this, L.x, L.y, L.w, L.h, { fill: OFF_THEME_COLOR.window, big: true });
+        const cx = L.x + L.w / 2;
+        const innerW = L.w - L.sidePad * 2;
+        const left = L.x + L.sidePad;
+        offText(this, cx, L.y + L.titleTop, T.title, 'title', { originX: 0.5, maxWidth: innerW });
+        offDivider(this, left, L.y + L.dividerTop, innerW);
+
+        for (let i = 0; i < OFF_CHARACTER_SLOT_COUNT; i++) this.createCard(i, left + i * (OFF_SLOT_CARD.width + L.cardGap));
+
+        const infoY = L.y + L.infoTop;
+        this.infoLines = [
+            offText(this, cx, infoY, '', 'body', { originX: 0.5 }),
+            offText(this, cx, infoY + L.infoLineGap, '', 'small', { originX: 0.5 }),
+            offText(this, cx, infoY + L.infoLineGap + L.infoSmallGap, '', 'small', { originX: 0.5 }),
+        ];
+        this.createButtons(left);
+        offRule(this, left, L.y + L.dividerBottom, innerW, OFF_THEME_COLOR.line);
 
         this.inputSystem = new InputSystem(this);
-        // Slots and buttons have their own click handlers: a click elsewhere does nothing.
+        // Cards and buttons have their own click zones: a click elsewhere does nothing.
         this.inputSystem.setPointerMaxY(-1);
 
         // Back from the delete question: drawn again with the same slot marked.
-        const onResume = () => this.scene.restart({ focus: this.focused } satisfies OffSlotsSceneData);
+        const onResume = () => this.scene.restart({ focus: this.marked } satisfies OffSlotsSceneData);
         this.events.on(Phaser.Scenes.Events.RESUME, onResume);
         this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.events.off(Phaser.Scenes.Events.RESUME, onResume));
 
-        this.focus(this.initialFocus ?? offSaveStore.slot);
+        this.mark(this.initialFocus ?? offSaveStore.slot);
+    }
+
+    private createCard(index: number, x: number): void {
+        const saved = offSaveStore.peek(index);
+        const card = offSlotCard(this, x, L.y + L.cardsTop, OFF_SLOT_CARD, {
+            character: saved && {
+                name: saved.name,
+                level: String(offLevelForExp(saved.exp)),
+                exp: saved.exp.toLocaleString('en-US'),
+            },
+            levelLabel: T.levelLabel,
+            expLabel: T.expLabel,
+            emptyLabel: T.emptyLabel,
+            emptyLine: T.emptyLine,
+        }, () => {
+            if (this.ready()) this.onCardClicked(index);
+        });
+        this.cards.push(card);
+        if (!saved) {
+            this.sprites.push(undefined);
+            return;
+        }
+        const sprite = new CharacterSprite(this, OFF_NOVICE, saved.look, card.feetX, card.feetY);
+        sprite.container.setScale(L.characterScale * SLOTS_SCALE);
+        dressOffBody(sprite, OFF_NOVICE, offEquipmentLook(saved.equipment));
+        sprite.setPose(PlayerState.Walk, Direction.South);
+        this.sprites.push(sprite);
+    }
+
+    private createButtons(left: number): void {
+        const actions = [
+            () => this.enter(this.marked),
+            () => this.newCharacter(),
+            () => this.deleteFocused(),
+            () => this.logOut(),
+        ];
+        let x = left;
+        L.buttonWidths.forEach((width, i) => {
+            const button = offButton(this, x, L.y + L.buttonsTop, T.buttons[i] ?? '', 'normal', () => {
+                if (this.ready()) actions[i]?.();
+            }, width, L.buttonHeight);
+            this.buttons.push(button);
+            x += width + L.buttonGap;
+        });
+        this.buttonGroup = offFocusGroup(this.buttons);
+        this.buttonGroup.blur();
+        // The mouse over a button takes the focus there (never two lit pieces at once).
+        this.buttons.forEach((b, i) => b.setOnHover(() => this.focusButton(i)));
     }
 
     override update(_time: number, delta: number): void {
         this.updateCharacters(delta);
         const input = this.inputSystem;
         input.update();
+        this.hints?.setVisible(this.forcePadHints || input.getLastDevice() === 'gamepad');
         if (!this.ready()) return;
-        if (input.justPressed(Action.MenuLeft)) this.focus(this.step(-1));
-        if (input.justPressed(Action.MenuRight)) this.focus(this.step(1));
-        if (input.justPressed(Action.Confirm)) this.enter(this.focused);
-        if (input.justPressed(Action.OffDrop)) this.deleteFocused();
-        if (input.justPressed(Action.Back)) this.logOut();
-    }
-
-    /** Next slot in that direction, going round. */
-    private step(direction: number): number {
-        return (this.focused + direction + OFF_CHARACTER_SLOT_COUNT) % OFF_CHARACTER_SLOT_COUNT;
-    }
-
-    private createSlot(index: number): Slot {
-        const { step, frame: f, character: c, textX, textY } = SLOTS_LAYOUT;
-        const dx = index * step;
-        const frame = this.add.image(s(f.x + dx), s(f.y), SLOTS_TEXTURE, f.normal).setOrigin(0).setScale(SLOTS_SCALE);
-        frame.setInteractive({ useHandCursor: true }).on(Phaser.Input.Events.POINTER_UP, () => {
-            if (this.ready()) this.onSlotClicked(index);
-        });
-        const saved = offSaveStore.peek(index);
-        if (!saved) {
-            this.add.text(s(textX + dx), s(textY[0] ?? 0), OFF_SLOTS.emptyLabel, SLOTS_TEXT_STYLE).setOrigin(0.5).setAlpha(SLOTS_DIM_ALPHA);
-            return { frame, sprite: undefined };
+        if (input.justPressed(Action.MenuLeft)) this.moveFocus('left');
+        else if (input.justPressed(Action.MenuRight)) this.moveFocus('right');
+        else if (input.justPressed(Action.MenuDown)) this.moveFocus('down');
+        else if (input.justPressed(Action.MenuUp)) this.moveFocus('up');
+        if (input.justPressed(Action.Confirm)) this.confirm();
+        // Y / Del only on the cards: on the buttons its hint isn't shown (Delete Character is there to press).
+        if (!this.onButtons && input.justPressed(Action.OffDrop)) this.deleteFocused();
+        if (input.justPressed(Action.Back)) {
+            if (this.onButtons) this.moveFocus('up');
+            else this.logOut();
         }
-        const sprite = new CharacterSprite(this, OFF_NOVICE, saved.look, s(c.x + dx), s(c.y));
-        sprite.container.setScale(SLOTS_CHARACTER_SCALE * SLOTS_SCALE);
-        dressOffBody(sprite, OFF_NOVICE, offEquipmentLook(saved.equipment));
-        sprite.setPose(PlayerState.Walk, Direction.South);
-        const lines: Array<[string, Phaser.Types.GameObjects.Text.TextStyle]> = [
-            [saved.name, SLOTS_NAME_STYLE],
-            [String(offLevelForExp(saved.exp)), SLOTS_TEXT_STYLE],
-            [saved.exp.toLocaleString('en-US'), SLOTS_TEXT_STYLE],
-        ];
-        lines.forEach(([text, style], i) => this.add.text(s(textX + dx), s(textY[i] ?? 0), text, style).setOrigin(0.5));
-        return { frame, sprite };
     }
 
-    private createButtons(): void {
-        const { x, play, newCharacter, delete: del, unused, back } = SLOTS_BUTTONS;
-        this.addButton(x, play.y, play.frame, () => this.enter(this.focused));
-        this.addButton(x, newCharacter.y, newCharacter.frame, () => this.newCharacter());
-        this.addButton(x, del.y, del.frame, () => this.deleteFocused());
-        this.addButton(x, back.y, back.frame, () => this.logOut());
-        // Change Password: not used, as in Survivors.
-        this.add.rectangle(s(x), s(unused.y), s(unused.width), s(unused.height), SLOTS_DISABLED_SHADE.color, SLOTS_DISABLED_SHADE.alpha)
-            .setOrigin(0).setStrokeStyle(1, SLOTS_DISABLED_SHADE.border);
+    /** Keyboard / pad: along the cards (going round) or the buttons; down / up between the two rows. */
+    public moveFocus(direction: 'left' | 'right' | 'up' | 'down'): void {
+        const step = direction === 'left' ? -1 : direction === 'right' ? 1 : 0;
+        if (this.onButtons) {
+            if (step !== 0) this.buttonGroup.move(step);
+            else if (direction === 'up') this.focusCards();
+            return;
+        }
+        if (step !== 0) this.mark((this.marked + step + OFF_CHARACTER_SLOT_COUNT) % OFF_CHARACTER_SLOT_COUNT);
+        else if (direction === 'down') this.focusButton(this.markedSaved() ? Button.Start : Button.Create);
     }
 
-    private addButton(x: number, y: number, frame: number, onClick: () => void): void {
-        const image = this.add.image(s(x), s(y), SLOTS_TEXTURE, frame).setOrigin(0).setScale(SLOTS_SCALE);
-        const pad = SLOTS_BUTTON_HIT_PAD;
-        const hitArea = new Phaser.Geom.Rectangle(-pad.x, -pad.y, image.width + pad.x * 2, image.height + pad.y * 2);
-        image.setInteractive({ hitArea, hitAreaCallback: Phaser.Geom.Rectangle.Contains, useHandCursor: true });
-        // setFrame(…, false, false): keeps size and origin, so the click area stays on the button (as Survivors).
-        image.on(Phaser.Input.Events.POINTER_OVER, () => image.setFrame(frame + SLOTS_BUTTON_LIT_OFFSET, false, false));
-        image.on(Phaser.Input.Events.POINTER_OUT, () => image.setFrame(frame, false, false));
-        image.on(Phaser.Input.Events.POINTER_UP, () => {
-            if (this.ready()) onClick();
-        });
+    /** Enter / A: plays (or creates) on a card; presses the button with the focus. */
+    private confirm(): void {
+        if (this.onButtons) this.buttonGroup.press();
+        else this.enter(this.marked);
     }
 
     /** As in the original: a character is marked first and plays on the second click. */
-    private onSlotClicked(index: number): void {
-        if (index === this.focused) this.enter(index);
-        else this.focus(index);
-    }
-
-    private focus(index: number): void {
-        this.focused = index;
-        this.slots.forEach((slot, i) => slot.frame.setFrame(i === index ? SLOTS_LAYOUT.frame.focused : SLOTS_LAYOUT.frame.normal));
-        const saved = offSaveStore.peek(index);
-        if (!saved) {
-            this.helpText.setText(OFF_SLOTS.emptyHelp);
+    private onCardClicked(index: number): void {
+        if (index === this.marked) {
+            this.enter(index);
             return;
         }
-        const home = OFF_PLACES[offHomePlace(saved.faction)].name;
-        const lines: string[] = [OFF_SLOTS.characterHelp(saved.name, offLevelForExp(saved.exp), home)];
-        if (saved.points > 0) lines.push(OFF_SLOTS.pointsHelp(saved.points));
-        lines.push(OFF_SLOTS.controlsHelp);
-        this.helpText.setText(lines.join('\n'));
+        this.onButtons = false;
+        this.buttonGroup.blur();
+        this.mark(index, true);
     }
 
-    /** Start: plays with the character in that slot; on an empty slot, creates one there. */
+    private focusCards(): void {
+        this.onButtons = false;
+        this.buttonGroup.blur();
+        this.refresh();
+    }
+
+    private focusButton(index: number): void {
+        this.onButtons = true;
+        this.buttonGroup.focusAt(index);
+        this.refresh();
+    }
+
+    private mark(index: number, byClick = false): void {
+        this.marked = index;
+        this.markedByClick = byClick;
+        this.refresh();
+    }
+
+    private markedSaved(): boolean {
+        return offSaveStore.peek(this.marked) !== undefined;
+    }
+
+    /** Draws the state again: marked card and focus ring, buttons on or off, information lines and pad hints. */
+    private refresh(): void {
+        this.cards.forEach((card, i) => {
+            card.setMarked(i === this.marked);
+            card.setFocused(!this.onButtons && i === this.marked);
+        });
+        const saved = offSaveStore.peek(this.marked);
+        const full = offSaveStore.firstFree < 0;
+        const [start, create, del] = [this.buttons[Button.Start], this.buttons[Button.Create], this.buttons[Button.Delete]];
+        start?.setEnabled(saved !== undefined);
+        start?.setVariant(saved ? 'main' : 'normal');
+        create?.setEnabled(!full);
+        create?.setVariant(saved ? 'normal' : 'main');
+        del?.setEnabled(saved !== undefined);
+        this.refreshInfo(full);
+        this.refreshHints();
+    }
+
+    private refreshInfo(full: boolean): void {
+        const saved = offSaveStore.peek(this.marked);
+        const lines: [string, string][] = [];
+        if (saved) {
+            const home = OFF_PLACES[offHomePlace(saved.faction)].name;
+            lines.push([T.characterInfo(saved.name, offLevelForExp(saved.exp), home), OFF_THEME_INK.text]);
+            if (saved.points > 0) lines.push([T.pointsInfo(saved.points), OFF_THEME_INK.gold]);
+        } else {
+            lines.push([T.emptyInfo, OFF_THEME_INK.text], [T.emptyReason, OFF_THEME_INK.dim]);
+        }
+        if (this.markedByClick && saved) lines.push([T.clickAgain, OFF_THEME_INK.dim]);
+        else if (full) lines.push([T.fullReason, OFF_THEME_INK.dim]);
+        // One after another, with no empty line between them.
+        const width = L.w - L.sidePad * 2;
+        this.infoLines.forEach((t, i) => {
+            const [text, color] = lines[i] ?? ['', OFF_THEME_INK.dim];
+            t.setText(text).setColor(color);
+            offFitText(t, i === 0 ? 'body' : 'small', width);
+        });
+    }
+
+    /** The pad hints row: what A does depends on where the focus is. */
+    private refreshHints(): void {
+        const visible = this.hints?.visible ?? false;
+        this.hints?.destroy();
+        const saved = this.markedSaved();
+        const hints: [string, string][] = [[OFF_PAD_DPAD, T.hintMove]];
+        if (this.onButtons) {
+            hints.push(['A', T.hintSelect], ['B', T.hintBackToSlots]);
+        } else {
+            hints.push(['A', saved ? T.hintStart : T.hintCreate]);
+            if (saved) hints.push(['Y', T.hintDelete]);
+            hints.push(['B', T.hintLogOut]);
+        }
+        this.hints = offPadHints(this, L.x + L.w / 2, L.y + L.hintsCentreY, hints).setVisible(visible);
+    }
+
+    /** Start (and Enter / A on a card): plays with the character in that slot; on an empty slot, creates one there. */
     public enter(index: number): void {
         if (!offSaveStore.peek(index)) {
             this.openCreate(index);
@@ -204,32 +305,25 @@ export class OffSlotsScene extends Phaser.Scene {
         startOffWorld(this);
     }
 
-    /** Create New Character: in the first empty slot. */
+    /** Create New Character: on the marked slot if it's empty, else in the first empty one. */
     public newCharacter(): void {
-        const free = offSaveStore.firstFree;
-        if (free < 0) {
-            this.helpText.setText(OFF_SLOTS.fullHelp);
-            return;
-        }
-        this.openCreate(free);
+        const slot = this.markedSaved() ? offSaveStore.firstFree : this.marked;
+        if (slot >= 0) this.openCreate(slot);
     }
 
     private openCreate(slot: number): void {
         this.scene.start(OFF_CREATE_SCENE_KEY, { slot } satisfies OffCreateSceneData);
     }
 
-    /** Delete Character: asks first (OffDialogScene). */
+    /** Delete Character: asks first (OffDialogScene), "No" marked. Nothing on an empty slot. */
     public deleteFocused(): void {
-        if (!offSaveStore.peek(this.focused)) {
-            this.helpText.setText(OFF_SLOTS.deleteEmptyHelp);
-            return;
-        }
-        // Off-13A: the new question window; "No" marked first, so nobody is deleted by mistake.
-        const slot = this.focused;
+        const slot = this.marked;
+        const saved = offSaveStore.peek(slot);
+        if (!saved) return;
         const data: Omit<OffDialogSceneData, 'returnTo'> = {
-            title: OFF_SLOTS.deleteTitle,
-            question: OFF_SLOTS.deleteQuestion(offSaveStore.peek(slot)?.name ?? ''),
-            warning: OFF_SLOTS.deleteWarning,
+            title: T.deleteTitle,
+            question: T.deleteQuestion(saved.name),
+            warning: T.deleteWarning,
             buttons: [
                 { label: OFF_DIALOG_TEXT.no, variant: 'normal' },
                 // Select Character restarts when it resumes; the delete runs first, so it's drawn without the character.
@@ -250,7 +344,7 @@ export class OffSlotsScene extends Phaser.Scene {
         this.walkTime += delta;
         const turn = Math.floor(this.walkTime / SLOTS_TURN_MS) % DIRECTIONS_CLOCKWISE.length;
         const direction = DIRECTIONS_CLOCKWISE[turn] ?? Direction.South;
-        for (const { sprite } of this.slots) {
+        for (const sprite of this.sprites) {
             if (!sprite) continue;
             if (sprite.direction !== direction) sprite.setPose(PlayerState.Walk, direction);
             sprite.update(delta);
@@ -259,5 +353,25 @@ export class OffSlotsScene extends Phaser.Scene {
 
     private ready(): boolean {
         return this.time.now - this.openedAt >= SLOTS_INPUT_DELAY_MS;
+    }
+
+    // ---------------------------------------------------------------- development
+
+    /** `check`: the window as if the pad were in use. */
+    public debugShowPadHints(): void {
+        this.forcePadHints = true;
+        this.hints?.setVisible(true);
+    }
+
+    /** `check`: marked slot, where the focus is, which buttons are on, the information lines and whether all fits. */
+    public debugState(): { marked: number; focus: string; enabled: string[]; info: string[]; issues: string[] } {
+        const focusIndex = this.buttonGroup.index();
+        return {
+            marked: this.marked,
+            focus: this.onButtons ? T.buttons[focusIndex] ?? '' : `slot ${this.marked + 1}`,
+            enabled: this.buttons.flatMap((b, i) => (b.isEnabled() ? [T.buttons[i] ?? ''] : [])),
+            info: this.infoLines.map((t) => t.text).filter((t) => t !== ''),
+            issues: offLayoutIssues(this),
+        };
     }
 }

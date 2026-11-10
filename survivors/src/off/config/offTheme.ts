@@ -164,6 +164,8 @@ export const OFF_THEME_SIZE = {
     /** Space between a bar's label line and the bar. */
     barGap: 3,
     badge: 18,
+    /** Off-13E: thickness of the d-pad cross's arms in a hints row. */
+    dpadArm: 6,
     /** Pill for LB / RB / Start: height, side padding. */
     pillHeight: 16,
     pillPadding: 5,
