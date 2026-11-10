@@ -21,7 +21,7 @@ import { MainMenuScene } from './scenes/MainMenuScene';
 import { GameSelectScene } from './scenes/GameSelectScene';
 import { OffCreateScene } from './off/scenes/OffCreateScene';
 import { OffBagScene } from './off/scenes/OffBagScene';
-import { OffConfirmScene } from './off/scenes/OffConfirmScene';
+import { OffDialogScene } from './off/scenes/OffDialogScene';
 import { OffMapSelectScene } from './off/scenes/OffMapSelectScene';
 import { OffMercenaryScene } from './off/scenes/OffMercenaryScene';
 import { OffStoreScene } from './off/scenes/OffStoreScene';
@@ -29,7 +29,6 @@ import { OffUiKitScene } from './off/scenes/OffUiKitScene';
 import { OffWarehouseScene } from './off/scenes/OffWarehouseScene';
 import { OffHomeScene } from './off/scenes/OffHomeScene';
 import { OffSlotsScene } from './off/scenes/OffSlotsScene';
-import { OffDeleteScene } from './off/scenes/OffDeleteScene';
 import { OffHudScene } from './off/scenes/OffHudScene';
 import { OffWorldScene } from './off/scenes/OffWorldScene';
 import { CharacterSlotsScene } from './scenes/CharacterSlotsScene';
@@ -80,7 +79,7 @@ function startGame(): void {
         plugins: { scene: [{ key: 'RenderScale', plugin: RenderScalePlugin, mapping: 'renderScale' }] },
         // HudScene, LevelUpScene y los menús que se abren encima (pausa, ajustes...) van después para dibujarse encima.
         scene: [
-            BootScene, PreloadScene, GameSelectScene, OffHomeScene, OffSlotsScene, OffDeleteScene, OffCreateScene, OffWorldScene, OffHudScene, OffBagScene, OffConfirmScene, OffMapSelectScene, OffMercenaryScene, OffStoreScene, OffWarehouseScene, OffUiKitScene, MainMenuScene, CharacterSlotsScene, TownScene, MapSelectScene, MapLoadScene, GameScene, HudScene, LevelUpScene, LootScene, GameOverScene,
+            BootScene, PreloadScene, GameSelectScene, OffHomeScene, OffSlotsScene, OffCreateScene, OffWorldScene, OffHudScene, OffBagScene, OffDialogScene, OffMapSelectScene, OffMercenaryScene, OffStoreScene, OffWarehouseScene, OffUiKitScene, MainMenuScene, CharacterSlotsScene, TownScene, MapSelectScene, MapLoadScene, GameScene, HudScene, LevelUpScene, LootScene, GameOverScene,
             PauseScene, CharacterInfoScene, EquipmentScene, WarehouseScene, SettingsScene, ControlsScene, CreditsScene, RunChoiceScene, TransferScene, NpcDialogScene, ShopScene, DyeScene, SmithScene, ReleaseNotesScene, AchievementsScene, MissionsScene, HowToPlayScene, SpriteTestScene,
         ],
     });

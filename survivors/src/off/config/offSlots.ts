@@ -11,5 +11,6 @@ export const OFF_SLOTS = {
     pointsHelp: (points: number) => `${points} points to assign (C in the world).`,
     controlsHelp: 'Del / Y: delete.',
     deleteTitle: 'Delete Character',
-    deleteQuestion: (name: string) => `Delete ${name}?\nThis can't be undone.`,
+    deleteQuestion: (name: string) => `Delete ${name}?`,
+    deleteWarning: "This can't be undone.",
 } as const;

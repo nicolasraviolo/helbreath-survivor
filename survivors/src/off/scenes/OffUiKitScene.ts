@@ -4,6 +4,7 @@
 // llegas, oro grande, 120 pociones), para ver de un vistazo que nada se sale ni se solapa. Abajo dice si algún texto no
 // cabe (offLayoutIssues); el check `offuikit` lo devuelve en texto.
 // Las piezas responden al ratón (sin teclado: eso llega con las ventanas de verdad).
+// Off-13A: el botón Dialog (abajo a la derecha) abre la ventana de pregunta de verdad encima (OffDialogScene).
 import Phaser from 'phaser';
 import { setColouredTexture } from '../../hb/additiveTint';
 import { itemPackTexture } from '../../config/equipment';
@@ -12,6 +13,10 @@ import { lookLoader } from '../../systems/LookLoader';
 import { OFF_THEME_COLOR, OFF_THEME_INK, OFF_THEME_SIZE, OFF_THEME_TEXT, type OffPadButton } from '../config/offTheme';
 import { offBagItemPicture, offItemTint, type OffBagItemKey } from '../data/offItems';
 import { offSaveStore } from '../systems/OffSaveStore';
+import { openOverlay } from '../../scenes/MenuOverlayScene';
+import { OFF_DIALOG_TEXT } from '../config/offDialog';
+import { OFF_SLOTS } from '../config/offSlots';
+import { OFF_DIALOG_SCENE_KEY, type OffDialogSceneData } from './OffDialogScene';
 import {
     offBar, offBarHeight, offBox, offButton, offCell, offCloseButton, offDivider, offFrame, offKeyRow, offLabel,
     offLayoutIssues, offListRow, offPadPill, offRule, offStatRow, offTab, offText, type OffCell, type OffTab, type OffTrend,
@@ -103,8 +108,23 @@ export class OffUiKitScene extends Phaser.Scene {
         this.issuesText = offText(this, GAME_WIDTH / 2, w.y + w.h - 8, '', 'small', { originX: 0.5, originY: 1 });
         this.add.rectangle(0, GAME_HEIGHT - KIT.hudH, GAME_WIDTH, KIT.hudH, KIT.hudBack).setOrigin(0, 0);
         offText(this, GAME_WIDTH / 2, GAME_HEIGHT - KIT.hudH / 2, 'game HUD', 'small', { originX: 0.5, originY: 0.5 });
+        // Off-13A: opens the real question window over the kit (the kit waits paused underneath).
+        offButton(this, GAME_WIDTH - KIT.pad - S.buttonWidth, GAME_HEIGHT - (KIT.hudH + S.buttonHeight) / 2, 'Dialog', 'normal', () => this.openDialog());
         void lookLoader.ensure(this, ['item.pack']).then(() => this.showIcons());
         this.refreshIssues();
+    }
+
+    /** The question window with the longest texts it gets today (Delete with a 10-letter name). */
+    public openDialog(): void {
+        const data: Omit<OffDialogSceneData, 'returnTo'> = {
+            title: OFF_SLOTS.deleteTitle,
+            question: OFF_SLOTS.deleteQuestion('WWWWWWWWWW'),
+            warning: OFF_SLOTS.deleteWarning,
+            buttons: [{ label: OFF_DIALOG_TEXT.no, variant: 'normal' }, { label: OFF_DIALOG_TEXT.yes, variant: 'danger' }],
+            focus: 0,
+            cancel: 0,
+        };
+        openOverlay(this, OFF_DIALOG_SCENE_KEY, data);
     }
 
     /** For `check offuikit`: texts that don't fit (empty = fine) and whether the fonts loaded. */

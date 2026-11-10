@@ -170,6 +170,10 @@ export interface OffControl {
     setVisible(visible: boolean): void;
     /** What a click does (A / Enter call it). Nothing while disabled or hidden. */
     press(): void;
+    /** Can it be pressed now (enabled and visible)? A focus group skips the ones that can't. */
+    isEnabled(): boolean;
+    /** Called when the mouse comes over it (a focus group moves its ring there: never two lit pieces at once). */
+    setOnHover(onHover: (() => void) | undefined): void;
     destroy(): void;
 }
 
@@ -190,6 +194,7 @@ function makeControl(
     pieceParts: readonly Phaser.GameObjects.GameObject[], draw: (state: Readonly<ControlState>) => void,
 ): OffControl & { readonly state: Readonly<ControlState>; redraw(): void } {
     const state: ControlState = { hover: false, focused: false, enabled: true, visible: true };
+    let onHover: (() => void) | undefined;
     const zone = scene.add.zone(x, y, w, h).setOrigin(0, 0).setInteractive({ useHandCursor: true });
     // The focus ring goes on its own layer above everything: the cell next door would cover it otherwise.
     const ring = scene.add.graphics().setDepth(S.focusDepth);
@@ -206,6 +211,7 @@ function makeControl(
     zone.on(Phaser.Input.Events.POINTER_OVER, () => {
         state.hover = true;
         redraw();
+        if (state.enabled && state.visible) onHover?.();
     });
     zone.on(Phaser.Input.Events.POINTER_OUT, () => {
         state.hover = false;
@@ -214,6 +220,10 @@ function makeControl(
     redraw();
     return {
         x, y, width: w, height: h, state, redraw, press,
+        isEnabled: () => state.enabled && state.visible,
+        setOnHover: (f) => {
+            onHover = f;
+        },
         setFocused: (f) => {
             state.focused = f;
             redraw();
@@ -656,4 +666,62 @@ export function offPadPill(scene: Phaser.Scene, x: number, cy: number, label: st
     const g = scene.add.graphics();
     g.fillStyle(C.padPill, 1).fillRoundedRect(-width / 2, -S.pillHeight / 2, width, S.pillHeight, S.pillHeight / 2);
     return { pill: scene.add.container(x + width / 2, cy, [g, letters]), width };
+}
+
+// ---------------------------------------------------------------- foco (Off-13A)
+
+export interface OffFocusGroup {
+    /** Index of the piece with the ring (-1 when none can take it). */
+    index(): number;
+    /** Puts the ring on piece i (the next one that can be pressed, if i can't). */
+    focusAt(i: number): void;
+    /**
+     * One step along the group (−1 / +1), skipping the pieces that can't be pressed. False at the edge: the window
+     * decides what lies beyond (another group, or nothing).
+     */
+    move(step: number): boolean;
+    /** Presses the piece with the ring (A / Enter). */
+    press(): void;
+    /** Takes the ring off (the focus went to another group). */
+    blur(): void;
+}
+
+/**
+ * Carries the keyboard / pad ring along a row or column of pieces (buttons of a question, a pause menu). The mouse
+ * moves the ring too: the piece under it takes it, so only one piece is ever lit.
+ */
+export function offFocusGroup(controls: readonly OffControl[], start = 0): OffFocusGroup {
+    let at = -1;
+    const pressable = (i: number): boolean => controls[i]?.isEnabled() ?? false;
+    const set = (i: number): void => {
+        if (at >= 0) controls[at]?.setFocused(false);
+        at = i;
+        if (at >= 0) controls[at]?.setFocused(true);
+    };
+    const nearest = (i: number): number => {
+        for (let d = 0; d < controls.length; d += 1) {
+            if (pressable(i + d)) return i + d;
+            if (pressable(i - d)) return i - d;
+        }
+        return -1;
+    };
+    controls.forEach((c, i) => c.setOnHover(() => set(i)));
+    set(nearest(start));
+    return {
+        index: () => at,
+        focusAt: (i) => set(nearest(i)),
+        move: (step) => {
+            for (let i = at + step; i >= 0 && i < controls.length; i += step) {
+                if (pressable(i)) {
+                    set(i);
+                    return true;
+                }
+            }
+            return false;
+        },
+        press: () => {
+            if (at >= 0) controls[at]?.press();
+        },
+        blur: () => set(-1),
+    };
 }

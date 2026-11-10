@@ -19,7 +19,7 @@
 // al mundo al cerrarla.
 // Fase Off-5A: el mundo carga el sitio que le digan (off/data/offPlaces.ts: Traveler Zone, Aresden o Elvine) y tiene
 // portales. Pisar uno lleva al otro sitio con la vida, el maná y la estamina que tenías; el de una ciudad, sin bando,
-// pregunta antes si quieres unirte (OffConfirmScene, con el mundo en pausa). Al morir lejos de casa se reaparece en tu
+// pregunta antes si quieres unirte (OffDialogScene desde la Off-13A, con el mundo en pausa). Al morir lejos de casa se reaparece en tu
 // ciudad (o en Traveler Zone sin bando).
 // Fase Off-7A: el teleport de la ciudad pregunta adónde ir (Traveler Zone o Promiseland; desde la Off-10C, OffMapSelectScene). En
 // Promiseland se llega por la puerta de tu ciudad (Elvine arriba, Aresden abajo) y por ella se vuelve.
@@ -70,7 +70,8 @@ import { OFF_WAREHOUSE_SCENE_KEY, type OffWarehouseSceneData } from './OffWareho
 import { EVENT_LIST_EVENT } from '../../config/hud';
 import { Portal } from '../../entities/Portal';
 import { openOverlay } from '../../scenes/MenuOverlayScene';
-import { OFF_CONFIRM_SCENE_KEY, type OffConfirmSceneData } from './OffConfirmScene';
+import { OFF_DIALOG_SCENE_KEY, type OffDialogSceneData } from './OffDialogScene';
+import { OFF_DIALOG_TEXT } from '../config/offDialog';
 import { OFF_MAP_SELECT_SCENE_KEY, type OffMapSelectSceneData } from './OffMapSelectScene';
 import type { OffCarriedVitals } from '../systems/OffBattle';
 import { OffCharacter } from '../entities/OffCharacter';
@@ -565,15 +566,27 @@ export class OffWorldScene extends Phaser.Scene {
         if (this.window) return;
         this.stopForWindow();
         this.mover.cancel();
-        const data: Omit<OffConfirmSceneData, 'returnTo'> = {
-            faction,
-            onYes: () => {
-                offSaveStore.joinFaction(faction);
-                // Off-10C: to your new home, the Farm.
-                this.travel({ place: offFarmOf(faction), at: offTeleportArrival(offFarmOf(faction)), carried: this.carriedVitals(), message: OFF_PLACE_TEXT.joined(faction) });
-            },
+        // Off-13A: the new question window; "No" marked first (joining is for ever), "Yes" in gold.
+        const data: Omit<OffDialogSceneData, 'returnTo'> = {
+            title: OFF_PLACE_TEXT.joinTitle(faction),
+            question: OFF_PLACE_TEXT.joinQuestion(faction),
+            warning: OFF_PLACE_TEXT.joinWarning,
+            buttons: [
+                { label: OFF_DIALOG_TEXT.no, variant: 'normal' },
+                {
+                    label: OFF_DIALOG_TEXT.yes,
+                    variant: 'main',
+                    onPress: () => {
+                        offSaveStore.joinFaction(faction);
+                        // Off-10C: to your new home, the Farm.
+                        this.travel({ place: offFarmOf(faction), at: offTeleportArrival(offFarmOf(faction)), carried: this.carriedVitals(), message: OFF_PLACE_TEXT.joined(faction) });
+                    },
+                },
+            ],
+            focus: 0,
+            cancel: 0,
         };
-        openOverlay(this, OFF_CONFIRM_SCENE_KEY, data);
+        openOverlay(this, OFF_DIALOG_SCENE_KEY, data);
     }
 
     /** A teleport (Off-7A; Off-10C the Farm's too): Select Map, over the world, which waits paused. */

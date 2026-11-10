@@ -3,10 +3,10 @@
 Léelo solo en sesiones de Helbreath Off (después de `PROGRESS.md`). Plan: `docs/PLAN-OFF.md`. Detalle de cada bloque hecho: `PROGRESS-historial.md` (grep). Atajos y situaciones del `check`: `CHECK.md`, sección "Helbreath Off".
 
 ## Estado
-- **Off-12 · Rediseño de ventanas ✅** (10-nov-2026, 12A–12D): una sola ventana del personaje (I / X Bag, C / Y Stats, B Magic), RT + A/B/X/Y = teclas 1–4, LB / RB cambian de pestaña. El 12D falta probarlo con mando real.
-- **Siguiente:** fase nueva (por planear en `docs/PLAN-OFF.md`) para llevar el estilo a tienda, almacén, mercenarios y crear personaje.
-- **UI:** todo cambio de interfaz pasa por el agente `revisor-ui` (critica el boceto antes de programar y revisa después).
-- Off-0 a Off-12 ✅ (6 → 10-nov-2026), fusionadas en `master` y escondidas tras `?off`. Pendientes sin fase: 11D (magias sin dibujo) y Detect Invisibility.
+- **Off-13 · El estilo nuevo en el resto de ventanas** (plan en `docs/PLAN-OFF.md`, rama `fase-Off-13`). **13A ✅** (10-nov-2026): ventana de pregunta nueva (unirse a ciudad, borrar personaje) y pieza `offFocusGroup`.
+- **Siguiente: 13B** pausa propia de Off, ventana de William (mercenarios) y Select Map, con `offFocusGroup` y el estilo Off-12.
+- **UI:** todo cambio de interfaz pasa por el agente `revisor-ui` (critica el boceto antes de programar y revisa después). La revisión de todas las ventanas viejas (10-nov-2026) está resumida por bloque en PLAN-OFF.md; cada fallo se arregla al rehacer su pantalla.
+- Off-0 a Off-12 ✅ (6 → 10-nov-2026), fusionadas en `master` y escondidas tras `?off`. Pendientes sin fase: 11D (magias sin dibujo) y Detect Invisibility. 12D y 13A sin probar con mando real.
 
 ## A vigilar
 - Lanzar con RT + botones ya probado con mando real (9-nov-2026); Critical Strike con LT, sin probar.
@@ -21,6 +21,7 @@ Léelo solo en sesiones de Helbreath Off (después de `PROGRESS.md`). Plan: `doc
 
 ## Pistas para trabajar
 - Ventana del personaje (Off-12B/C): `off/scenes/OffBagScene.ts` (cabecera, columna del personaje, Bag; cambiar de pestaña = `scene.restart`), Stats `off/ui/offStatsPage.ts`, Magic `off/ui/offMagicPage.ts`, medidas `off/config/offBag.ts`, ficha `off/ui/offItemCard.ts`. NOTES.md "Ventana del personaje con la bolsa (Off-12B)" y "Pestañas Stats y Magic (Off-12C)".
+- Pregunta (Off-13A): `off/scenes/OffDialogScene.ts` (una para todas: título, pregunta, aviso, botones, `focus`, `cancel`), medidas `off/config/offDialog.ts`, foco con `offFocusGroup`. Retardo de entrada con `game.loop.time`, no `this.time.now`. NOTES.md "Ventana de pregunta (Off-13A)".
 - Ventanas nuevas (Off-12): estilo en `off/config/offTheme.ts`, piezas en `off/ui/offUi.ts`, muestrario `?off=uikit`. Todo texto con `maxWidth`; exponer `offLayoutIssues` en `debugState` y comprobar con captura. Maquetas aprobadas descritas en DECISIONES.md (10-nov-2026). NOTES.md "Estilo nuevo de ventanas (Off-12A)".
 - Select Character de Off: `off/scenes/OffSlotsScene.ts`, `OffDeleteScene.ts`, `off/config/offSlots.ts`, huecos en `OffSaveStore` (`hb-off.character`, `.2`–`.4`, `hb-off.slot`). Cada hueco guarda su propio sitio. NOTES.md, "Select Character en Helbreath Off".
 - Mercenarios: `off/data/offMercenary.ts`, `OffMercenaryAI`, `off/systems/OffMercenarySpells.ts`, `OffMercenaryTalk.ts`.

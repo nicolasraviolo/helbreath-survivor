@@ -4,7 +4,7 @@
 // - Cuatro huecos (OffSaveStore): en cada uno el personaje caminando en el sitio y girando, vestido con su equipo, y
 //   debajo su nombre, Level y EXP. Abajo, la ayuda del marcado: nombre, Level y su ciudad.
 // - Start juega con el marcado (en un hueco vacío, abre Create New Character ahí). Create New Character abre la pantalla
-//   de crear en el primer hueco libre. Delete Character pregunta (OffDeleteScene) y borra. Log Out vuelve a la pantalla
+//   de crear en el primer hueco libre. Delete Character pregunta (OffDialogScene, Off-13A) y borra. Log Out vuelve a la pantalla
 //   de Off. Change Password se ve apagado, como en Survivors.
 // - Como en el original: un clic marca el hueco y otro clic en el mismo juega.
 // Teclado: ←/→ cambia de hueco, Enter juega, Supr borra, Esc vuelve. Mando: cruceta/stick, A, Y (borrar) y B.
@@ -40,7 +40,8 @@ import { OFF_NOVICE } from '../data/offWorld';
 import { dressOffBody } from '../entities/OffCharacter';
 import { OFF_CHARACTER_SLOT_COUNT, offSaveStore } from '../systems/OffSaveStore';
 import { OFF_CREATE_SCENE_KEY, type OffCreateSceneData } from './OffCreateScene';
-import { OFF_DELETE_SCENE_KEY, type OffDeleteSceneData } from './OffDeleteScene';
+import { OFF_DIALOG_SCENE_KEY, type OffDialogSceneData } from './OffDialogScene';
+import { OFF_DIALOG_TEXT } from '../config/offDialog';
 import { startOffWorld } from './OffWorldScene';
 
 export const OFF_SLOTS_SCENE_KEY = 'OffSlots';
@@ -217,14 +218,27 @@ export class OffSlotsScene extends Phaser.Scene {
         this.scene.start(OFF_CREATE_SCENE_KEY, { slot } satisfies OffCreateSceneData);
     }
 
-    /** Delete Character: asks first (OffDeleteScene). */
+    /** Delete Character: asks first (OffDialogScene). */
     public deleteFocused(): void {
         if (!offSaveStore.peek(this.focused)) {
             this.helpText.setText(OFF_SLOTS.deleteEmptyHelp);
             return;
         }
-        const data: Omit<OffDeleteSceneData, 'returnTo'> = { slot: this.focused };
-        openOverlay(this, OFF_DELETE_SCENE_KEY, data);
+        // Off-13A: the new question window; "No" marked first, so nobody is deleted by mistake.
+        const slot = this.focused;
+        const data: Omit<OffDialogSceneData, 'returnTo'> = {
+            title: OFF_SLOTS.deleteTitle,
+            question: OFF_SLOTS.deleteQuestion(offSaveStore.peek(slot)?.name ?? ''),
+            warning: OFF_SLOTS.deleteWarning,
+            buttons: [
+                { label: OFF_DIALOG_TEXT.no, variant: 'normal' },
+                // Select Character restarts when it resumes; the delete runs first, so it's drawn without the character.
+                { label: OFF_DIALOG_TEXT.yes, variant: 'danger', onPress: () => offSaveStore.remove(slot) },
+            ],
+            focus: 0,
+            cancel: 0,
+        };
+        openOverlay(this, OFF_DIALOG_SCENE_KEY, data);
     }
 
     private logOut(): void {

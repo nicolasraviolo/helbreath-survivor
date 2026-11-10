@@ -2,6 +2,13 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
+**Helbreath Off · Fase Off-13, bloque A: piezas comunes y preguntas (2026-11-10).**
+- **Qué hace:** una sola **ventana de pregunta** con el estilo de la Off-12 (`OffDialogScene`) sustituye a la de unirse a una ciudad y a la de borrar personaje: título, separador, pregunta, aviso en rojo, botones No / Yes y pistas A / B solo con mando. Abre siempre con **No** marcado; al unirse, **Yes en dorado**; al borrar, Yes en rojo. Flechas o cruceta cambian, Enter / A elige, Esc / B = No; el ratón mueve el anillo. La pulsación que la abre ya no la contesta. Título de unirse: "Join Aresden". Pieza nueva `offFocusGroup` (para la pausa y Select Character) y botón **Dialog** en `?off=uikit`.
+- **Decisiones:** plan de la Off-13 (6 bloques) tras la revisión de `revisor-ui` de todas las ventanas; nada de parches en lo viejo. Yes dorado al unirse (propietario). La rejilla de la bolsa como pieza pasa al 13C, donde se usa.
+- **Comprobado:** build; `check offjoinask offjoinkeys offjoin offdeleteask offdeletelong offslotsdelete offuikit offuikitdialog offportal offtravelerhome offslots` sin errores, `issues: []`; capturas centradas (360 × 200 en 220, 200); `revisor-ui` antes (boceto) y después, sin fallos. Sin probar con mando real.
+- **Cómo probar:** `?off=world&offreset&offplace=traveler&offat=81,79` y pisar el portal; en `?off=slots`, Supr / Y.
+- **Código:** `off/scenes/OffDialogScene.ts`, `off/config/offDialog.ts`, `offFocusGroup` + `isEnabled` / `setOnHover` en `off/ui/offUi.ts`; borrados `OffConfirmScene` y `OffDeleteScene`. NOTES.md "Ventana de pregunta (Off-13A)".
+
 **Helbreath Off · Fase Off-12, bloque D: mando, teclado y repaso (2026-11-10).**
 - **Qué hace:** en la ventana del personaje, **LB / RB** pasan a la pestaña anterior / siguiente dando la vuelta (Tab, a la siguiente); pastillas "LB" y "RB" junto a las pestañas, solo con mando (su hueco siempre reservado). La bolsa **recuerda filtro, objeto marcado y celda** al volver de otra pestaña (si el mundo cambió la bolsa, no marca otro objeto). **Cerrar con puntos sin confirmar avisa** una vez ("Your new points are not confirmed. Close again to drop them.") y cierra a la segunda; si repartes otros, vuelve a avisar. Magic alineada con Stats (2 px).
 - **Decisiones:** plan aprobado por el propietario tras un repaso previo de `revisor-ui`; desde ahora todo cambio de UI pasa por el agente antes (boceto) y después (revisión). Con RT pulsado en Magic, LB / RB no cambian de pestaña (detalle aceptado).
