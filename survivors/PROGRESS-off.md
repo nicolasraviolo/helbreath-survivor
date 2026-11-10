@@ -3,10 +3,10 @@
 Léelo solo en sesiones de Helbreath Off (después de `PROGRESS.md`). Plan: `docs/PLAN-OFF.md`. Detalle de cada bloque hecho: `PROGRESS-historial.md` (grep). Atajos y situaciones del `check`: `CHECK.md`, sección "Helbreath Off".
 
 ## Estado
-- **Fase en curso: Off-12 · Rediseño de ventanas** (rama `fase-Off-12`). **12A estilo base ✅**, **12B pestaña Bag ✅** y **12C pestañas Stats y Magic ✅** y **12D mando y repaso ✅** (10-nov-2026): una sola ventana del personaje (I / X Bag, C / Y Stats, B Magic), RT + A/B/X/Y = teclas 1–4, LB / RB cambian de pestaña. 12D pendiente de probar con mando real.
-- **Siguiente:** cerrar la fase Off-12 (`/checkpoint fase`) o seguir con el mismo estilo en tienda, almacén, mercenarios y crear personaje. Ver `docs/PLAN-OFF.md`.
+- **Off-12 · Rediseño de ventanas ✅** (10-nov-2026, 12A–12D): una sola ventana del personaje (I / X Bag, C / Y Stats, B Magic), RT + A/B/X/Y = teclas 1–4, LB / RB cambian de pestaña. El 12D falta probarlo con mando real.
+- **Siguiente:** fase nueva (por planear en `docs/PLAN-OFF.md`) para llevar el estilo a tienda, almacén, mercenarios y crear personaje.
 - **UI:** todo cambio de interfaz pasa por el agente `revisor-ui` (critica el boceto antes de programar y revisa después).
-- Off-0 a Off-11 ✅ (6 → 10-nov-2026), fusionadas en `master` y escondidas tras `?off`. Pendientes sin fase: 11D (magias sin dibujo) y Detect Invisibility.
+- Off-0 a Off-12 ✅ (6 → 10-nov-2026), fusionadas en `master` y escondidas tras `?off`. Pendientes sin fase: 11D (magias sin dibujo) y Detect Invisibility.
 
 ## A vigilar
 - Lanzar con RT + botones ya probado con mando real (9-nov-2026); Critical Strike con LT, sin probar.

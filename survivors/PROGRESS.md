@@ -7,12 +7,12 @@
 Sin leer enteros (grep): `CHECK.md` (situaciones del check y atajos), `PROGRESS-historial.md` (bloques hechos), `NOTES.md`, `docs/DECISIONES.md`.
 
 ## Estado
-- **Helbreath Off:** Fase Off-12 (rediseño de ventanas) en curso, rama `fase-Off-12`: 12A a 12D ✅ (10-nov-2026). Siguiente: cerrar la fase o llevar el estilo a tienda, almacén, etc. (ver `PROGRESS-off.md`).
+- **Helbreath Off:** Fase Off-12 (rediseño de ventanas) ✅ (10-nov-2026), en `master`. Siguiente: fase nueva para llevar el estilo a tienda, almacén, mercenarios y crear personaje (ver `PROGRESS-off.md`).
 - **Survivors:** en pausa. Fase 30 ✅ (28-oct-2026). Siguiente: Fase 31, Aresden y Elvine.
 
 **Fases completadas** (✅):
 - Survivors: 0–30 (16 → 28-oct-2026), con 21½, 27½, 28½ y 28¾. Aplazados: 8 Arquero (→ 34), 21C, 22F y dos mapas de la 30.
-- Helbreath Off: Off-0 a Off-11 (6 → 10-nov-2026). Aplazado: 11D.
+- Helbreath Off: Off-0 a Off-12 (6 → 10-nov-2026). Aplazado: 11D.
 
 ## Reglas comunes
 - Idioma del juego: **solo inglés** (regla 9 de CLAUDE.md).

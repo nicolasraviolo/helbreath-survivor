@@ -85,12 +85,12 @@ Cada fase se hace por bloques, uno por sesión, y se espera el OK del propietari
   - **11D Magias sin dibujo** (copiar de sp-client): Spike Field, Cloud Kill, Mass Poison, Earthworm Strike, Armor Break. **Pendiente:** el propietario cerró la Off-11 sin él (9-nov-2026).
   - Mass Fire Strike, Bloody Shock Wave, Ice Storm y Haste: libros que caen muy poco (Earth Shock Wave pasó a la tienda en la 11B). Fuera: Confusion, Illusion, Cancellation, Inhibition Casting, Scan, Resurrection.
 
-- **Off-12 · Rediseño de ventanas** (plan del 10-nov-2026, ver DECISIONES.md). Un estilo propio, cerca del original pero moderno (maqueta v3: fondo oscuro, bordes de bronce, esquinas doradas, Alegreya), que luego se llevará al resto de ventanas. Inventory, Equipment, Character y el libro de magias se juntan en **una sola ventana**: el personaje con su equipo siempre a la izquierda y pestañas **Bag / Stats / Magic** a la derecha (Magic solo si sabes alguna magia). Bloques:
+- **Off-12 · Rediseño de ventanas ✅** (terminada el 10-nov-2026 con 12A–12D; plan del 10-nov-2026, ver DECISIONES.md). Un estilo propio, cerca del original pero moderno (maqueta v3: fondo oscuro, bordes de bronce, esquinas doradas, Alegreya), que luego se llevará al resto de ventanas. Inventory, Equipment, Character y el libro de magias se juntan en **una sola ventana**: el personaje con su equipo siempre a la izquierda y pestañas **Bag / Stats / Magic** a la derecha (Magic solo si sabes alguna magia). Bloques:
   - **12A Estilo base ✅** (10-nov-2026): letras, colores y medidas (`off/config/offTheme.ts`), piezas de dibujo (`off/ui/offUi.ts`) y muestrario `?off=uikit` con aviso de textos que no caben.
   - **12B Ventana nueva con la pestaña Bag ✅** (10-nov-2026): columna del personaje (muñeco, 8 huecos, barras) y bolsa 10 × 5 con filtros y ficha del objeto en el orden del original; sustituye a Inventory y Equipment.
   - **12C Pestañas Stats y Magic ✅** (10-nov-2026; C / Y y B ya abren Stats y Magic): repartir puntos con + / − y Confirm; magias por círculos y teclas 1–8, donde **1–4 son también RT + A/B/X/Y** (se unen los huecos del mando con las teclas y se adaptan los guardados).
   - **12D Mando, teclado y repaso ✅** (10-nov-2026): LB / RB (y Tab) cambian de pestaña con pistas en la cabecera; la bolsa recuerda filtro y objeto; aviso al cerrar con puntos sin confirmar; repaso de alineado con `revisor-ui`.
-  - Después: el mismo estilo en tienda, almacén, mercenarios, crear personaje, etc.
+  - Después (fase nueva): el mismo estilo en tienda, almacén, mercenarios, crear personaje, etc.
 
 ## Pendiente de decidir más adelante
 
