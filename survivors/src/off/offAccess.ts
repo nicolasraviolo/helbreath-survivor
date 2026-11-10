@@ -5,9 +5,10 @@
 //   ?off=world → directo a andar por el mundo de Off (Fase Off-1)
 //   ?off=create → directo a la pantalla de crear personaje de Off (Fase Off-3A)
 //   ?off=slots → directo a Select Character de Off (8-nov-2026)
+//   ?off=uikit → muestrario del estilo nuevo de las ventanas (Fase Off-12A, solo desarrollo)
 
 /** How the page reaches Helbreath Off: not at all, through the game choice screen, or straight into Off. */
-export type OffAccess = 'hidden' | 'select' | 'game' | 'world' | 'create' | 'slots';
+export type OffAccess = 'hidden' | 'select' | 'game' | 'world' | 'create' | 'slots' | 'uikit';
 
 function readOffAccess(): OffAccess {
     const params = new URLSearchParams(window.location.search);
@@ -15,7 +16,7 @@ function readOffAccess(): OffAccess {
     const value = params.get('off');
     // Off-9A: ?off=raiders is the world (debugStart puts you in Promiseland with ?offraid).
     if (value === 'raiders') return 'world';
-    return value === 'game' || value === 'world' || value === 'create' || value === 'slots' ? value : 'select';
+    return value === 'game' || value === 'world' || value === 'create' || value === 'slots' || value === 'uikit' ? value : 'select';
 }
 
 export const OFF_ACCESS = readOffAccess();

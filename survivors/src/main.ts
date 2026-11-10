@@ -4,6 +4,11 @@ import '@fontsource/comic-neue/latin-400.css';
 import '@fontsource/comic-neue/latin-700.css';
 // Letra pixel art de los números de daño (Micro 5, licencia OFL; elegida por el propietario el 4-nov-2026).
 import '@fontsource/micro-5/latin-400.css';
+// Letras del nuevo estilo de ventanas de Helbreath Off (Fase Off-12, licencia OFL): Alegreya para títulos y nombres,
+// Alegreya Sans para el texto (off/config/offTheme.ts).
+import '@fontsource/alegreya/latin-500.css';
+import '@fontsource/alegreya-sans/latin-400.css';
+import '@fontsource/alegreya-sans/latin-500.css';
 import { BACKGROUND_COLOR } from './config/gameConfig';
 import { TOUCH_POINTERS } from './config/touch';
 import { loadUiFont } from './config/ui';
@@ -15,13 +20,12 @@ import { TownScene } from './scenes/TownScene';
 import { MainMenuScene } from './scenes/MainMenuScene';
 import { GameSelectScene } from './scenes/GameSelectScene';
 import { OffCreateScene } from './off/scenes/OffCreateScene';
-import { OffEquipmentScene } from './off/scenes/OffEquipmentScene';
-import { OffInventoryScene } from './off/scenes/OffInventoryScene';
+import { OffBagScene } from './off/scenes/OffBagScene';
 import { OffConfirmScene } from './off/scenes/OffConfirmScene';
 import { OffMapSelectScene } from './off/scenes/OffMapSelectScene';
 import { OffMercenaryScene } from './off/scenes/OffMercenaryScene';
 import { OffStoreScene } from './off/scenes/OffStoreScene';
-import { OffSpellBookScene } from './off/scenes/OffSpellBookScene';
+import { OffUiKitScene } from './off/scenes/OffUiKitScene';
 import { OffWarehouseScene } from './off/scenes/OffWarehouseScene';
 import { OffHomeScene } from './off/scenes/OffHomeScene';
 import { OffSlotsScene } from './off/scenes/OffSlotsScene';
@@ -76,7 +80,7 @@ function startGame(): void {
         plugins: { scene: [{ key: 'RenderScale', plugin: RenderScalePlugin, mapping: 'renderScale' }] },
         // HudScene, LevelUpScene y los menús que se abren encima (pausa, ajustes...) van después para dibujarse encima.
         scene: [
-            BootScene, PreloadScene, GameSelectScene, OffHomeScene, OffSlotsScene, OffDeleteScene, OffCreateScene, OffWorldScene, OffHudScene, OffEquipmentScene, OffInventoryScene, OffConfirmScene, OffMapSelectScene, OffMercenaryScene, OffStoreScene, OffSpellBookScene, OffWarehouseScene, MainMenuScene, CharacterSlotsScene, TownScene, MapSelectScene, MapLoadScene, GameScene, HudScene, LevelUpScene, LootScene, GameOverScene,
+            BootScene, PreloadScene, GameSelectScene, OffHomeScene, OffSlotsScene, OffDeleteScene, OffCreateScene, OffWorldScene, OffHudScene, OffBagScene, OffConfirmScene, OffMapSelectScene, OffMercenaryScene, OffStoreScene, OffWarehouseScene, OffUiKitScene, MainMenuScene, CharacterSlotsScene, TownScene, MapSelectScene, MapLoadScene, GameScene, HudScene, LevelUpScene, LootScene, GameOverScene,
             PauseScene, CharacterInfoScene, EquipmentScene, WarehouseScene, SettingsScene, ControlsScene, CreditsScene, RunChoiceScene, TransferScene, NpcDialogScene, ShopScene, DyeScene, SmithScene, ReleaseNotesScene, AchievementsScene, MissionsScene, HowToPlayScene, SpriteTestScene,
         ],
     });

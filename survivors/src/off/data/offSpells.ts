@@ -239,11 +239,8 @@ export function offDiceRange(dice: OffSpellDice): string {
     return `${low} – ${high}`;
 }
 
-/** The gamepad's spells (Off-6C): RT + A, B, X, Y. */
+/** Keys 1–4 are also the gamepad's RT + A, B, X, Y (Off-12C; before, the pad had its own four). */
 export const OFF_PAD_SPELL_COUNT = 4;
-
-/** Which spell each gamepad button casts with RT held (undefined = none). */
-export type OffPadSpells = (OffSpellId | undefined)[];
 
 /** "RT + X" for the gamepad button at index 2. */
 export function offPadSpellName(index: number): string {

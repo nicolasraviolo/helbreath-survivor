@@ -77,12 +77,10 @@ export enum Action {
     /** Helbreath Off: mark the next / previous monster near you (RB / LB; with the mouse, a click marks one). */
     OffNextTarget = 'offNextTarget',
     OffPrevTarget = 'offPrevTarget',
-    /** Helbreath Off (Fase Off-4B): open / close the Inventory (I or gamepad X); before, the Equipment screen (Off-3C). */
+    /** Helbreath Off (Fase Off-4B; Off-12B): open / close the character window on its Bag tab (I or gamepad X). */
     OffInventory = 'offInventory',
     /** Helbreath Off (Fase Off-4B): in the Inventory, drop the marked item (Delete or gamepad Y). */
     OffDrop = 'offDrop',
-    /** Helbreath Off (Fase Off-4B): from the Inventory, open the Equipment screen (E; with the gamepad, its button). */
-    OffOpenEquipment = 'offOpenEquipment',
     /** Helbreath Off (Off-5B): Buy / Sell in a store, bag / warehouse in the warehouse (Tab; LB / RB on a pad). */
     OffSwitchTab = 'offSwitchTab',
     /** Helbreath Off (Off-6A): open / close the spell book (B). */
@@ -165,11 +163,9 @@ const KEYBOARD_ACTIONS: Record<Action, number[]> = {
     [Action.OffAttack]: [KEY.SPACE],
     [Action.OffInventory]: [KEY.I],
     [Action.OffDrop]: [KEY.DELETE],
-    [Action.OffOpenEquipment]: [KEY.E],
     [Action.OffSwitchTab]: [KEY.TAB],
     // B is also DebugAddMagic in development, but that one only acts in Survivors' run.
     [Action.OffSpellBook]: [KEY.B],
-    // E is also OffOpenEquipment, but that one only acts in the Inventory (and the potions only with no window open).
     [Action.OffDrinkHealth]: [KEY.Q],
     [Action.OffDrinkMana]: [KEY.E],
     // Off-8A: Alt, as the original's crit (captured, so the browser's menu does not open).

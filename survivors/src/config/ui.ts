@@ -4,6 +4,7 @@
 // Windows, Mac y móviles. Si por lo que sea no carga, se usa Comic Sans MS del sistema.
 
 import { byDevice, TEXT_RESOLUTION } from './device';
+import { OFF_THEME_FONT_FACES } from '../off/config/offTheme';
 
 export const UI_FONT_NAME = 'Comic Neue';
 export const UI_FONT = `"${UI_FONT_NAME}", "Comic Sans MS", sans-serif`;
@@ -34,6 +35,8 @@ export const DAMAGE_FONT = `"${DAMAGE_FONT_NAME}", monospace`;
 export function loadUiFont(): Promise<void> {
     const loads = UI_FONT_WEIGHTS.map((weight) => document.fonts.load(`${weight} ${px(UI_FONT_SIZE.normal)} "${UI_FONT_NAME}"`));
     loads.push(document.fonts.load(`400 16px "${DAMAGE_FONT_NAME}"`));
+    // Off-12: the new window style's fonts (off/config/offTheme.ts), so the first Off window doesn't jump.
+    for (const font of OFF_THEME_FONT_FACES) loads.push(document.fonts.load(font));
     const timeout = new Promise<void>((resolve) => setTimeout(resolve, UI_FONT_TIMEOUT_MS));
     return Promise.race([Promise.all(loads).then(() => undefined), timeout]);
 }

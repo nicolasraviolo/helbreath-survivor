@@ -12,9 +12,8 @@
 // Fase Off-3B: correr gasta estamina (sin ella se anda) y C, Y o Start del mando (o el casco de la barra) abren la
 // ventana Character de Survivors en su modo de Off (openCharacter), con el mundo en pausa y el HUD escondido.
 // Fase Off-4A: botín en el suelo, que se recoge al pisarlo (OffBattle, OffGroundItems); el oro va en el HUD.
-// Fase Off-4B: I / X abren el inventario (OffInventoryScene) a la derecha, **sin parar el mundo**: con él abierto, el
-// personaje anda con el ratón (fuera del panel) y el stick; teclas y cruceta son del inventario. Equipment y Character
-// tampoco paran el mundo (propietario, 7-nov-2026: solo Esc o Start pausan), pero tapan la pantalla: mientras están
+// Fase Off-4B (Off-12B): I / X abren la ventana del personaje con la bolsa (OffBagScene), **sin parar el mundo**.
+// Ella y Character tampoco paran el mundo (propietario, 7-nov-2026: solo Esc o Start pausan), pero tapan la pantalla: mientras están
 // abiertas, el personaje no recibe órdenes (se queda quieto, y los monstruos le pueden pegar). C / Y abren Character.
 // Cada frame se leen todas las teclas aunque haya una ventana abierta, para que una pulsación de la ventana no llegue
 // al mundo al cerrarla.
@@ -26,8 +25,9 @@
 // Promiseland se llega por la puerta de tu ciudad (Elvine arriba, Aresden abajo) y por ella se vuelve.
 // Fase Off-5B: pisar la puerta de la tienda, el herrero o el almacén de tu ciudad abre su ventana (OffStoreScene /
 // OffWarehouseScene) encima del mundo, que sigue; como los portales, hay que salir de la puerta para que vuelva a abrir.
-// Fase Off-6A: B abre el libro de magias (OffSpellBookScene), que tapa el mundo como Character; la tienda tiene la
-// pestaña Magic.
+// Fase Off-6A: B abre el libro de magias, que tapa el mundo como Character; la tienda tiene la pestaña Magic.
+// Fase Off-12C: Character y el libro pasan a ser las pestañas Stats y Magic de la ventana del personaje (OffBagScene):
+// C / Y la abren en Stats y B en Magic. RT + A/B/X/Y lanzan las magias de las teclas 1–4.
 // Fase Off-6B: 1–8 preparan la magia de esa tecla (OffBattle.spells); con ella preparada o lista, el clic izquierdo
 // la lanza (al monstruo o al suelo) en vez de andar o pegar, y el clic derecho, el stick o las flechas la cancelan.
 // Fase Off-6C: con RT pulsado, A/B/X/Y preparan las magias del mando (no atacan ni abren ventanas); al soltar RT, en
@@ -66,7 +66,6 @@ import {
     OFF_PLACE_TEXT, OFF_PLACES, offArrivalIn, offFarmOf, offGateArrival, offHomePlace, offTeleportArrival, offTeleportDestinations, type OffBuildingKind, type OffDoorDef, type OffNpcOpens, type OffFaction, type OffPlaceDef, type OffPlaceId, type OffPortalDef,
 } from '../data/offPlaces';
 import { OFF_STORE_SCENE_KEY, type OffStoreSceneData, type OffStoreTab } from './OffStoreScene';
-import { OFF_SPELL_BOOK_SCENE_KEY, type OffSpellBookSceneData } from './OffSpellBookScene';
 import { OFF_WAREHOUSE_SCENE_KEY, type OffWarehouseSceneData } from './OffWarehouseScene';
 import { EVENT_LIST_EVENT } from '../../config/hud';
 import { Portal } from '../../entities/Portal';
@@ -76,14 +75,13 @@ import { OFF_MAP_SELECT_SCENE_KEY, type OffMapSelectSceneData } from './OffMapSe
 import type { OffCarriedVitals } from '../systems/OffBattle';
 import { OffCharacter } from '../entities/OffCharacter';
 import { offLevelProgress } from '../data/offLevel';
-import { OFF_CAST_TEXT, OFF_PAD_AIM, OFF_SPELLS } from '../data/offSpells';
+import { OFF_CAST_TEXT, OFF_PAD_AIM, OFF_PAD_SPELL_COUNT, OFF_SPELLS } from '../data/offSpells';
 import { OffAimReticle } from '../ui/OffAimReticle';
 import type { OffMonster } from '../entities/OffMonster';
 import { OffBattle } from '../systems/OffBattle';
 import { OffDuel, type OffDuelKind, type OffDuelReport } from '../dev/offDuel';
 import { offSaveStore } from '../systems/OffSaveStore';
 import { OFF_HUD_SCENE_KEY, OFF_OPEN_CHARACTER_EVENT, OFF_OPEN_PAUSE_EVENT, type OffHudSceneData, type OffHudState } from './OffHudScene';
-import { offCharacterInfo } from './offCharacterInfo';
 import { isOffGoodId } from '../data/offGoods';
 import { isOffGearKey, offEquipmentLook, offGearId, offGearRolls, offWeaponTint } from '../data/offItems';
 import { rollKillLoot } from '../systems/OffLootRoller';
@@ -91,8 +89,7 @@ import { isOffMonsterId, OFF_MONSTERS, type OffMonsterId } from '../data/offMons
 import { OFF_RAIDS } from '../data/offRaiders';
 import { offHitChance, offPlayerHitRatio } from '../systems/OffCombatRules';
 import { offAttackMs } from '../data/offCombat';
-import { OFF_EQUIPMENT_SCENE_KEY, type OffEquipmentSceneData } from './OffEquipmentScene';
-import { OFF_INVENTORY_SCENE_KEY, type OffInventorySceneData } from './OffInventoryScene';
+import { OFF_BAG_SCENE_KEY, type OffBagSceneData, type OffCharacterTab } from './OffBagScene';
 import type { PauseSceneData } from '../../scenes/PauseScene';
 import type { MenuOverlayData } from '../../scenes/MenuOverlayScene';
 import { directionOffset, findFreeTile, TileMover, type TilePoint } from '../systems/TileMover';
@@ -244,8 +241,8 @@ export class OffWorldScene extends Phaser.Scene {
     private lastTile: TilePoint = { x: 0, y: 0 };
     /** Off-7E: time since `where` was last saved while walking. */
     private whereSaveMs = 0;
-    /** Window open over the world (Off-4B): the side Inventory, or a screen that covers it (Equipment, Character). */
-    private window: 'inventory' | 'cover' | undefined;
+    /** Window open over the world: a screen that covers it (the bag, Character, shops...). */
+    private window: 'cover' | undefined;
     /**
      * Game frame in which a window closed. Phaser updates the scenes from the top one down, so the window reads a key
      * (I, Esc, C...) and closes before the world reads that same key: on that frame the world must not act on it, or I
@@ -380,7 +377,7 @@ export class OffWorldScene extends Phaser.Scene {
             settings.off(SETTINGS_CHANGED, onSettings);
             this.events.off(OFF_OPEN_CHARACTER_EVENT, this.openCharacter, this);
             this.events.off(OFF_OPEN_PAUSE_EVENT, this.openPause, this);
-            for (const key of [OFF_INVENTORY_SCENE_KEY, OFF_EQUIPMENT_SCENE_KEY, OFF_STORE_SCENE_KEY, OFF_WAREHOUSE_SCENE_KEY]) this.scene.stop(key);
+            for (const key of [OFF_BAG_SCENE_KEY, OFF_STORE_SCENE_KEY, OFF_WAREHOUSE_SCENE_KEY]) this.scene.stop(key);
             this.input.off(Phaser.Input.Events.POINTER_DOWN, this.onPointerDown, this);
             this.input.off(Phaser.Input.Events.POINTER_UP, this.onPointerUp, this);
             this.audio.stopLoop('sfx.footsteps');
@@ -389,7 +386,7 @@ export class OffWorldScene extends Phaser.Scene {
         const hud: OffHudSceneData = { worldSceneKey: OFF_WORLD_SCENE_KEY, getState: () => this.hudState() };
         this.scene.launch(OFF_HUD_SCENE_KEY, hud);
         const open = DEBUG_START.offOpen;
-        if (open === 'bag') this.time.delayedCall(0, () => this.openInventory());
+        if (open === 'bag' || open === 'stats') this.time.delayedCall(0, () => this.openBag(open));
         else if (open === 'book') this.time.delayedCall(0, () => this.openSpellBook());
         else if (open === 'magic') this.time.delayedCall(0, () => this.openBuilding('shop', 'magic'));
         else if (open !== undefined) this.time.delayedCall(0, () => this.openBuilding(open));
@@ -473,7 +470,7 @@ export class OffWorldScene extends Phaser.Scene {
                 return;
             }
             if (inventory) {
-                this.openInventory();
+                this.openBag();
                 return;
             }
             if (spellBook) {
@@ -564,10 +561,6 @@ export class OffWorldScene extends Phaser.Scene {
 
     /** "Do you want to join ...?" over the world, which waits paused; Yes joins for ever and goes there. */
     private askToJoin(faction: OffFaction): void {
-        if (this.window === 'inventory') {
-            this.scene.stop(OFF_INVENTORY_SCENE_KEY);
-            this.closeInventory();
-        }
         // Under Equipment or Character the character cannot walk in: nothing to ask.
         if (this.window) return;
         this.stopForWindow();
@@ -585,10 +578,6 @@ export class OffWorldScene extends Phaser.Scene {
 
     /** A teleport (Off-7A; Off-10C the Farm's too): Select Map, over the world, which waits paused. */
     private askDestination(): void {
-        if (this.window === 'inventory') {
-            this.scene.stop(OFF_INVENTORY_SCENE_KEY);
-            this.closeInventory();
-        }
         if (this.window) return;
         this.stopForWindow();
         this.mover.cancel();
@@ -617,10 +606,6 @@ export class OffWorldScene extends Phaser.Scene {
     /** The shop's, the blacksmith's or the warehouse's window over the world (the Inventory closes first). */
     public openBuilding(kind: OffBuildingKind, tab?: OffStoreTab): void {
         if (!this.scene.isActive()) return;
-        if (this.window === 'inventory') {
-            this.scene.stop(OFF_INVENTORY_SCENE_KEY);
-            this.closeInventory();
-        }
         if (this.window) return;
         this.coverWorld();
         const onClose = () => {
@@ -708,10 +693,6 @@ export class OffWorldScene extends Phaser.Scene {
     /** William's window over the world, which waits paused. */
     public openMercenaries(): void {
         if (!this.scene.isActive() || this.leaving) return;
-        if (this.window === 'inventory') {
-            this.scene.stop(OFF_INVENTORY_SCENE_KEY);
-            this.closeInventory();
-        }
         if (this.window) return;
         this.stopForWindow();
         this.mover.cancel();
@@ -809,57 +790,30 @@ export class OffWorldScene extends Phaser.Scene {
         this.scene.bringToTop('Pause');
     }
 
-    /** The Character window over the world, which goes on underneath (Off-4B); the HUD hides while it is open. */
+    /** C / Y: the character window on its Stats tab (Off-12C; before, Survivors' Character window in its Off mode). */
     public openCharacter(): void {
-        if (!this.scene.isActive() || this.window) return;
-        this.coverWorld();
-        // CharacterInfo "resumes" the world (returnTo; it was never paused). Spent points are read at once by both.
-        this.scene.launch('CharacterInfo', offCharacterInfo(this.battle, OFF_WORLD_SCENE_KEY, () => this.uncoverWorld()));
+        this.openBag('stats');
     }
 
-    /** The Equipment screen (Off-3C) over the world, which goes on; on closing, the character wears the new gear. */
-    public openEquipment(): void {
-        if (!this.scene.isActive() || (this.window && this.window !== 'inventory')) return;
+    /** B: the character window on its Magic tab (Off-12C; before, the spell book), or Bag with no spells known. */
+    public openSpellBook(): void {
+        this.openBag(offSaveStore.character.spells.length > 0 ? 'magic' : 'bag');
+    }
+
+    /** The character window (Off-12B) on that tab over the world, which goes on; the HUD hides while it is open. */
+    public openBag(tab: OffCharacterTab = 'bag'): void {
+        if (!this.scene.isActive() || this.window) return;
         this.coverWorld();
-        const data: OffEquipmentSceneData = {
-            vitals: { hp: this.battle.hp, mana: this.battle.vitals.mana, stamina: this.battle.vitals.stamina },
+        const data: OffBagSceneData = {
+            battle: this.battle,
+            tab,
+            onGearChange: () => this.dressCharacter(),
             onClose: () => {
                 this.uncoverWorld();
                 this.dressCharacter();
             },
         };
-        this.scene.launch(OFF_EQUIPMENT_SCENE_KEY, data);
-    }
-
-    /** The spell book (Off-6A) over the world, which goes on; the HUD hides while it is open. */
-    public openSpellBook(): void {
-        if (!this.scene.isActive() || this.window) return;
-        this.coverWorld();
-        const data: OffSpellBookSceneData = { onClose: () => this.uncoverWorld() };
-        this.scene.launch(OFF_SPELL_BOOK_SCENE_KEY, data);
-    }
-
-    /** The Inventory (Off-4B) on the right; the world goes on and the character still walks (mouse and stick). */
-    public openInventory(): void {
-        if (!this.scene.isActive() || this.window) return;
-        this.window = 'inventory';
-        this.inputSystem.setStickOnlyMove(true);
-        const data: OffInventorySceneData = {
-            battle: this.battle,
-            onGearChange: () => this.dressCharacter(),
-            openEquipment: () => {
-                this.closeInventory();
-                this.openEquipment();
-            },
-            onClose: () => this.closeInventory(),
-        };
-        this.scene.launch(OFF_INVENTORY_SCENE_KEY, data);
-    }
-
-    private closeInventory(): void {
-        if (this.window === 'inventory') this.window = undefined;
-        this.windowClosedFrame = this.game.loop.frame;
-        this.inputSystem.setStickOnlyMove(false);
+        this.scene.launch(OFF_BAG_SCENE_KEY, data);
     }
 
     /** What the character wears now, on the sprite (items not downloaded yet appear when they arrive). */
@@ -906,9 +860,9 @@ export class OffWorldScene extends Phaser.Scene {
         this.holdStillIfCasting();
     }
 
-    /** RT + A/B/X/Y (Off-6C): prepares that button's spell; it is cast by itself once ready (updatePadCast). */
+    /** RT + A/B/X/Y (Off-6C): prepares the spell of key 1–4 (Off-12C); it is cast by itself once ready (updatePadCast). */
     private pressPadSpell(index: number): void {
-        const id = offSaveStore.character.padSpells[index];
+        const id = offSaveStore.character.spellKeys[index];
         if (this.battle.dead || id === undefined) return;
         this.stopForSpell();
         this.padCast = this.battle.spells.pressSpell(id);
@@ -933,7 +887,7 @@ export class OffWorldScene extends Phaser.Scene {
     private padCrossSlots(): { name: string | undefined; usable: boolean }[] {
         const battle = this.battle;
         return [0, 1, 2, 3].map((index) => {
-            const id = offSaveStore.character.padSpells[index];
+            const id = offSaveStore.character.spellKeys[index];
             if (id === undefined) return { name: undefined, usable: false };
             const def = OFF_SPELLS[id];
             return { name: def.name, usable: battle.vitals.mana >= battle.manaCost(def) };
@@ -1238,7 +1192,7 @@ export class OffWorldScene extends Phaser.Scene {
             held: this.battle.pits.monsters.filter((m) => m.isAlive && m.isHeld).length,
             poisoned: this.battle.pits.monsters.filter((m) => m.isAlive && m.isPoisoned).length,
             shield: this.battle.protection ? `${this.battle.protection.spell} ${Math.ceil(this.battle.protection.leftMs / 1000)}s` : undefined,
-            padSpells: offSaveStore.character.padSpells.map((k) => k ?? '-'),
+            padSpells: offSaveStore.character.spellKeys.slice(0, OFF_PAD_SPELL_COUNT).map((k) => k ?? '-'),
             ground: this.battle.ground.items.map((g) => `${'gold' in g.content ? `${g.content.gold} gold` : g.content.item} at ${g.tileX},${g.tileY}`),
         };
     }

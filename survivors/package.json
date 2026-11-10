@@ -17,6 +17,8 @@
     "announce": "node --no-warnings scripts/discord-announce.mjs"
   },
   "dependencies": {
+    "@fontsource/alegreya": "^5.3.0",
+    "@fontsource/alegreya-sans": "^5.3.0",
     "@fontsource/comic-neue": "^5.3.0",
     "@fontsource/micro-5": "^5.3.0",
     "phaser": "^3.90.0"

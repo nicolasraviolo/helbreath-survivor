@@ -110,7 +110,7 @@
 //   ?offstats=str:30,dex:20 → Helbreath Off: pone esos stats (Fase Off-3C)
 //   ?offgold=500 → Helbreath Off: el personaje tiene ese oro (Fase Off-4A)
 //   ?offbag=shortSword,redPotion → Helbreath Off: la bolsa lleva eso (off/data/offItems.ts y offGoods.ts; Fase Off-4A)
-//   ?offopen=bag → Helbreath Off: el inventario abierto al entrar en el mundo (Fase Off-4B); shop, smith, warehouse (Off-5B); magic = la tienda en la pestaña Magic, book = el libro de magias (Off-6A)
+//   ?offopen=bag → Helbreath Off: el inventario abierto al entrar en el mundo (Fase Off-4B); shop, smith, warehouse (Off-5B); magic = la tienda en la pestaña Magic, book = la ventana del personaje en Magic (antes el libro, Off-6A); stats = en Stats (Off-12C)
 //   ?offfaction=aresden → Helbreath Off: el personaje es de ese bando (aresden, elvine; none = sin bando) (Fase Off-5A)
 //   ?offplace=aresden&offat=120,160 → Helbreath Off: empieza en ese sitio (traveler, aresden, elvine), en esa casilla (Off-5A)
 //   ?offspells=all → Helbreath Off: el personaje sabe todas las magias (o ?offspells=magicMissile,heal), en 1–8 por orden (Off-6A)
@@ -246,8 +246,8 @@ interface DebugStart {
     offBag: string[];
     /** Helbreath Off: ?offwarehouse=cape,redPotion fills the warehouse (Off-5B). */
     offWarehouse: string[];
-    /** ?offopen=bag|shop|smith|warehouse|magic|book: that Helbreath Off window open on entering the world (Off-4B / 5B / 6A; magic = the shop on its Magic tab). */
-    offOpen: 'bag' | 'shop' | 'smith' | 'warehouse' | 'magic' | 'book' | undefined;
+    /** ?offopen=bag|stats|book|shop|smith|warehouse|magic: that Helbreath Off window open on entering the world (magic = the shop on its Magic tab; book / stats = the character window on its Magic / Stats tab, Off-12C). */
+    offOpen: 'bag' | 'stats' | 'shop' | 'smith' | 'warehouse' | 'magic' | 'book' | undefined;
     /** ?offspells=all|a,b: Helbreath Off's character knows those spells (Off-6A). */
     offSpells: 'all' | string[];
     /** ?offfaction=aresden|elvine|none: Helbreath Off's character has that faction, or none (Fase Off-5A). */
@@ -406,7 +406,7 @@ function readBuild(value: string | null): Partial<Stats> | undefined {
 
 /** ?offfaction=aresden|elvine|none → that faction, 'none', or undefined (anything else). */
 function parseOffOpen(value: string | null): DebugStart['offOpen'] {
-    return value === 'bag' || value === 'shop' || value === 'smith' || value === 'warehouse' || value === 'magic' || value === 'book' ? value : undefined;
+    return value === 'bag' || value === 'stats' || value === 'shop' || value === 'smith' || value === 'warehouse' || value === 'magic' || value === 'book' ? value : undefined;
 }
 
 function parseOffFaction(value: string | null): OffFaction | 'none' | undefined {
