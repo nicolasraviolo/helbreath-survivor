@@ -1,17 +1,38 @@
-// Helbreath Off (Fase Off-4B): textos del inventario (la ventana Inventory, off/scenes/OffInventoryScene.ts). Lo que
-// pasa al usar o tirar algo sale también en la lista de abajo a la izquierda. Medidas de la ventana en
-// off/config/offInventory.ts; tamaño de la bolsa y límite de pociones en off/data/offLoot.ts.
+// Helbreath Off (Fase Off-4B; Off-12B): textos de la bolsa (la ventana del personaje, pestaña Bag,
+// off/scenes/OffBagScene.ts). Lo que pasa al usar o tirar algo sale también en la lista de abajo a la izquierda.
+// Medidas de la ventana en off/config/offBag.ts; tamaño de la bolsa y límite de pociones en off/data/offLoot.ts.
 import type { OffPotionRestores } from './offGoods';
 
 const BAR_NAMES: Record<OffPotionRestores, string> = { hp: 'Health', mana: 'Mana', stamina: 'Stamina' };
 
 export const OFF_BAG_TEXT = {
-    title: 'Inventory',
-    equipmentButton: 'Equipment',
+    tab: 'Bag',
+    equipmentLabel: 'Equipment',
+    /** Short names inside the empty slots (they must fit a 44 px slot). */
+    slotNames: { weapon: 'Weapon', shield: 'Shield', helm: 'Helm', body: 'Body', legs: 'Legs', boots: 'Boots', cape: 'Cape', ring: 'Ring' },
     dropButton: 'Drop',
-    gold: (amount: number) => `Gold: ${amount.toLocaleString('en-US')}`,
-    potions: (count: number, limit: number) => `Potions: ${count} / ${limit}`,
+    equipButton: 'Equip',
+    drinkButton: 'Drink',
+    useButton: 'Use',
+    removeButton: 'Remove',
+    /** Filters over the bag (Off-12B). */
+    filters: { all: 'All', weapon: 'Weapons', armor: 'Armor', potion: 'Potions' },
+    goldLabel: 'Gold',
+    gold: (amount: number) => amount.toLocaleString('en-US'),
+    potions: (count: number, limit: number) => `Potions ${count} / ${limit}`,
+    items: (count: number, size: number) => `${count} / ${size}`,
+    /** Header under the name: city (or none yet) and level. */
+    subtitle: (city: string | undefined, level: number) => `${city ?? 'Traveler'} · Level ${level}`,
+    expToNext: (left: number, next: number) => `${left.toLocaleString('en-US')} to lv ${next}`,
+    expMax: 'Max level',
     empty: 'Your bag is empty. Monsters drop gold, potions and gear: walk over them to pick them up.',
+    pickHint: 'Choose an item to see it here.',
+    removed: (name: string) => `You took off the ${name}. It went back to your bag.`,
+    /** Card of an empty slot. */
+    emptySlot: 'Nothing worn here.',
+    emptySlotHint: 'Pick something for it from your bag.',
+    bareHands: 'Spells need an empty hand or a wand.',
+    worn: 'worn',
     equipped: (name: string) => `You put on the ${name}.`,
     /** Off-7E: a two-handed weapon and a shield don't go together. */
     equippedTakingOff: (name: string, off: string) => `You put on the ${name}. The ${off} went back to your bag.`,
@@ -23,7 +44,4 @@ export const OFF_BAG_TEXT = {
     dropped: (name: string) => `You dropped the ${name}.`,
     /** Quick potions (Off-7B): nothing of that kind to drink. */
     noPotion: (what: 'hp' | 'mana') => `You have no ${what === 'hp' ? 'Health' : 'Mana'} potions.`,
-    /** Help line under the grid, by device. */
-    helpMouse: 'Double-click: use or wear · Del: drop · E: Equipment · I: close',
-    helpPad: 'A: use or wear · Y: drop · X: close',
 } as const;

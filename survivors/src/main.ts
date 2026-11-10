@@ -20,8 +20,7 @@ import { TownScene } from './scenes/TownScene';
 import { MainMenuScene } from './scenes/MainMenuScene';
 import { GameSelectScene } from './scenes/GameSelectScene';
 import { OffCreateScene } from './off/scenes/OffCreateScene';
-import { OffEquipmentScene } from './off/scenes/OffEquipmentScene';
-import { OffInventoryScene } from './off/scenes/OffInventoryScene';
+import { OffBagScene } from './off/scenes/OffBagScene';
 import { OffConfirmScene } from './off/scenes/OffConfirmScene';
 import { OffMapSelectScene } from './off/scenes/OffMapSelectScene';
 import { OffMercenaryScene } from './off/scenes/OffMercenaryScene';
@@ -82,7 +81,7 @@ function startGame(): void {
         plugins: { scene: [{ key: 'RenderScale', plugin: RenderScalePlugin, mapping: 'renderScale' }] },
         // HudScene, LevelUpScene y los menús que se abren encima (pausa, ajustes...) van después para dibujarse encima.
         scene: [
-            BootScene, PreloadScene, GameSelectScene, OffHomeScene, OffSlotsScene, OffDeleteScene, OffCreateScene, OffWorldScene, OffHudScene, OffEquipmentScene, OffInventoryScene, OffConfirmScene, OffMapSelectScene, OffMercenaryScene, OffStoreScene, OffSpellBookScene, OffWarehouseScene, OffUiKitScene, MainMenuScene, CharacterSlotsScene, TownScene, MapSelectScene, MapLoadScene, GameScene, HudScene, LevelUpScene, LootScene, GameOverScene,
+            BootScene, PreloadScene, GameSelectScene, OffHomeScene, OffSlotsScene, OffDeleteScene, OffCreateScene, OffWorldScene, OffHudScene, OffBagScene, OffConfirmScene, OffMapSelectScene, OffMercenaryScene, OffStoreScene, OffSpellBookScene, OffWarehouseScene, OffUiKitScene, MainMenuScene, CharacterSlotsScene, TownScene, MapSelectScene, MapLoadScene, GameScene, HudScene, LevelUpScene, LootScene, GameOverScene,
             PauseScene, CharacterInfoScene, EquipmentScene, WarehouseScene, SettingsScene, ControlsScene, CreditsScene, RunChoiceScene, TransferScene, NpcDialogScene, ShopScene, DyeScene, SmithScene, ReleaseNotesScene, AchievementsScene, MissionsScene, HowToPlayScene, SpriteTestScene,
         ],
     });

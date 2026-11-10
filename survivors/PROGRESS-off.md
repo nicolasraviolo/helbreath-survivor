@@ -3,8 +3,8 @@
 Léelo solo en sesiones de Helbreath Off (después de `PROGRESS.md`). Plan: `docs/PLAN-OFF.md`. Detalle de cada bloque hecho: `PROGRESS-historial.md` (grep). Atajos y situaciones del `check`: `CHECK.md`, sección "Helbreath Off".
 
 ## Estado
-- **Fase en curso: Off-12 · Rediseño de ventanas** (rama `fase-Off-12`). **12A estilo base ✅** (10-nov-2026): letras Alegreya, colores y piezas de dibujo comunes, muestrario `?off=uikit`.
-- **Siguiente: 12B**, la ventana nueva (personaje y equipo a la izquierda, pestaña Bag con bolsa, filtros y ficha del objeto) que sustituye a Inventory y Equipment. Después 12C (Stats y Magic, teclas 1–4 = RT + A/B/X/Y) y 12D (mando, teclado y repaso). Ver `docs/PLAN-OFF.md`.
+- **Fase en curso: Off-12 · Rediseño de ventanas** (rama `fase-Off-12`). **12A estilo base ✅** y **12B ventana del personaje con la pestaña Bag ✅** (10-nov-2026): sustituye a Inventory y Equipment (I / X, `?offopen=bag`).
+- **Siguiente: 12C**, pestañas Stats y Magic en esa ventana (repartir puntos; magias por círculos; teclas 1–4 = RT + A/B/X/Y). Después 12D (LB / RB, I / C / B por pestaña, repaso). Ver `docs/PLAN-OFF.md`.
 - Off-0 a Off-11 ✅ (6 → 10-nov-2026), fusionadas en `master` y escondidas tras `?off`. Pendientes sin fase: 11D (magias sin dibujo) y Detect Invisibility.
 
 ## A vigilar
@@ -19,6 +19,7 @@ Léelo solo en sesiones de Helbreath Off (después de `PROGRESS.md`). Plan: `doc
 - Guardado en claves `hb-off.*`; toda clave nueva va a `TRANSFER_KEYS` y hay que **volver a publicar el servidor** (`pnpm --dir survivors exec wrangler deploy --config metrics-server/wrangler.toml`).
 
 ## Pistas para trabajar
+- Ventana del personaje (Off-12B): `off/scenes/OffBagScene.ts`, medidas `off/config/offBag.ts`, ficha `off/ui/offItemCard.ts`; las pestañas de la 12C van en la misma escena. NOTES.md "Ventana del personaje con la bolsa (Off-12B)".
 - Ventanas nuevas (Off-12): estilo en `off/config/offTheme.ts`, piezas en `off/ui/offUi.ts`, muestrario `?off=uikit`. Todo texto con `maxWidth`; exponer `offLayoutIssues` en `debugState` y comprobar con captura. Maquetas aprobadas descritas en DECISIONES.md (10-nov-2026). NOTES.md "Estilo nuevo de ventanas (Off-12A)".
 - Select Character de Off: `off/scenes/OffSlotsScene.ts`, `OffDeleteScene.ts`, `off/config/offSlots.ts`, huecos en `OffSaveStore` (`hb-off.character`, `.2`–`.4`, `hb-off.slot`). Cada hueco guarda su propio sitio. NOTES.md, "Select Character en Helbreath Off".
 - Mercenarios: `off/data/offMercenary.ts`, `OffMercenaryAI`, `off/systems/OffMercenarySpells.ts`, `OffMercenaryTalk.ts`.

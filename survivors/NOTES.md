@@ -157,6 +157,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Lanzar magias en Off: pararse, mirilla y cruz de RT (9-nov-2026)
 - Magias de los círculos 8–10 en Off (Off-11C)
 - Estilo nuevo de ventanas (Off-12A)
+- Ventana del personaje con la bolsa (Off-12B)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -1728,3 +1729,11 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - Revisión con `disenar-ui` + `revisor-ui` (10-nov-2026): toda pieza pulsable sale de `makeControl` y ofrece `setFocused` / `setEnabled` / `setVisible` / `press` / `destroy` (la ventana mueve el foco y llama a `press()` con A / Enter; lo escondido no recibe clics). El anillo de foco va en un Graphics propio con `focusDepth`: dentro del dibujo de la pieza lo tapaba la casilla de al lado.
 - Comparaciones: `offStatRow(..., trend)` pone ▲ / ▼ dibujados (no letras) además del color. El ✕ de cerrar también va dibujado (`offCloseButton`): Alegreya Sans no tiene ese signo.
 - Mínimos al encoger: body 13, number 16 (tabla de disenar-ui). Una fila de lista de 192 px no cabe "Absolute Magic Protection": la lista de magias necesita ~250 px (comprobarlo en la 12C).
+
+## Ventana del personaje con la bolsa (Off-12B)
+- `off/scenes/OffBagScene.ts` (medidas en `off/config/offBag.ts`, ficha en `off/ui/offItemCard.ts`). Tapa el mundo con `coverWorld` (el personaje quieto, el HUD dormido; los monstruos siguen), así que la ventana puede bajar hasta y = 588: el HUD no se ve.
+- La ficha nueva (`offItemCard`) es aparte del cuadro viejo (`offItemBox`), que siguen usando tienda, almacén y libro hasta su rediseño.
+- El muñeco (`PaperDoll`) coloca sus piezas en coordenadas de la ventana Character original (270 × 376): con escala 1,2 el cuerpo ocupa más o menos x 50–93 e y 120–263 de esa ventana; `OFF_BAG_CHARACTER.doll` dice dónde va su (0, 0).
+- Los huecos llevan nombres cortos (`OFF_BAG_TEXT.slotNames`): "Body armor" no cabe en 44 px.
+- La bolsa filtrada enseña índices de la bolsa (`shown`); las funciones de desarrollo (`use`, `drop`, `debugMark`) usan siempre el índice real de la bolsa.
+- La acción de teclado `OffOpenEquipment` (E) se quitó: E solo bebe maná.

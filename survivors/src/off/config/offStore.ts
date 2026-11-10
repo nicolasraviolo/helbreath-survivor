@@ -1,5 +1,5 @@
 // Helbreath Off (Fase Off-5B): medidas de las ventanas de la tienda y el herrero (off/scenes/OffStoreScene.ts) y del
-// almacén (off/scenes/OffWarehouseScene.ts). Mismo estilo que el inventario de Off (off/config/offInventory.ts): el
+// almacén (off/scenes/OffWarehouseScene.ts). Mismo estilo que el inventario viejo de Off (antes de la Off-12B): el
 // pergamino "Item for Sale" de Survivors no tiene sitio para 40 objetos y el cuadro de stats.
 import { byDevice } from '../../config/device';
 import { UI_TEXT } from '../../config/ui';
