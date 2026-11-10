@@ -7,7 +7,7 @@
 Sin leer enteros (grep): `CHECK.md` (situaciones del check y atajos), `PROGRESS-historial.md` (bloques hechos), `NOTES.md`, `docs/DECISIONES.md`.
 
 ## Estado
-- **Helbreath Off:** ninguna fase en curso; Off-0 a Off-11 ✅ (10-nov-2026). Siguiente: a elegir entre 11D, Detect Invisibility o volver a Survivors (ver `PROGRESS-off.md`).
+- **Helbreath Off:** Fase Off-12 (rediseño de ventanas) en curso, rama `fase-Off-12`: 12A ✅ (10-nov-2026). Siguiente: 12B, la ventana nueva con la pestaña Bag (ver `PROGRESS-off.md`).
 - **Survivors:** en pausa. Fase 30 ✅ (28-oct-2026). Siguiente: Fase 31, Aresden y Elvine.
 
 **Fases completadas** (✅):
@@ -16,7 +16,7 @@ Sin leer enteros (grep): `CHECK.md` (situaciones del check y atajos), `PROGRESS-
 
 ## Reglas comunes
 - Idioma del juego: **solo inglés** (regla 9 de CLAUDE.md).
-- Fuente: **Comic Neue** (15; 12 en la barra inferior). Números de daño en Georgia. Con el propietario: "letra de títulos" = la caligráfica (`SpriteText` `'calligraphy'`), "letra de cartas" = `'title'`, "letra de texto" = Comic Neue.
+- Fuente: **Comic Neue** (15; 12 en la barra inferior); las ventanas rediseñadas de Off (desde la Off-12), Alegreya y Alegreya Sans. Números de daño en Georgia. Con el propietario: "letra de títulos" = la caligráfica (`SpriteText` `'calligraphy'`), "letra de cartas" = `'title'`, "letra de texto" = Comic Neue.
 - Controles: nunca en pantalla; se explican en **How to Play** (`data/howToPlay.ts`).
 - Settings: sí/no con casilla (`MenuList`, `checked`); volumen y opciones de varios valores, con flechas ◄ ►.
 - Sesiones en la nube (claude.ai/code): trabajan en otra copia; el propietario ve los cambios con `git pull` en su rama.

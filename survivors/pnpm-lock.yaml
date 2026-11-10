@@ -166,6 +166,12 @@ importers:
 
   .:
     dependencies:
+      '@fontsource/alegreya':
+        specifier: ^5.3.0
+        version: 5.3.0
+      '@fontsource/alegreya-sans':
+        specifier: ^5.3.0
+        version: 5.3.0
       '@fontsource/comic-neue':
         specifier: ^5.3.0
         version: 5.3.0
@@ -555,6 +561,12 @@ packages:
     engines: {node: '>=18'}
     cpu: [x64]
     os: [win32]
+
+  '@fontsource/alegreya-sans@5.3.0':
+    resolution: {integrity: sha512-Uf0RbuwzhSS3NQrBFcRzEUm7TxDQW3qdAbQ6JIOhsIW6V+YN2dqlR99lhfEE38R3GHgMCMJBzqSp7aJxhNXSOw==}
+
+  '@fontsource/alegreya@5.3.0':
+    resolution: {integrity: sha512-YCsp9dHYfMNdggXxinMMS0nkGlZkzs2MvPL7qPVjSO4DM1uJ29hmKEdTC/fBP+2K4Aa+4Z44JuOQz05eDcvNJA==}
 
   '@fontsource/comic-neue@5.3.0':
     resolution: {integrity: sha512-uZsyUTExw8tCySNhL65dN6rEUhASMPGintSS5Kw/ZkrQTK1vcAgramzOLT/mZKtZ+EXr03MHj0s5osVVJITCow==}
@@ -1291,6 +1303,10 @@ snapshots:
 
   '@esbuild/win32-x64@0.28.2':
     optional: true
+
+  '@fontsource/alegreya-sans@5.3.0': {}
+
+  '@fontsource/alegreya@5.3.0': {}
 
   '@fontsource/comic-neue@5.3.0': {}
 

@@ -2,6 +2,13 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
+**Helbreath Off · Fase Off-12, bloque A: estilo base de las ventanas (2026-11-10).**
+- **Qué hace:** el estilo nuevo de ventanas que salió de las maquetas aprobadas (v3: fondo oscuro, bordes de bronce, esquinas doradas, dorado para lo marcado), listo para usar: letras **Alegreya** (títulos y nombres) y **Alegreya Sans** (texto) incluidas con `@fontsource` y esperadas al arrancar; colores, letras y medidas en un solo archivo; piezas de dibujo (marco, pestaña, botón principal / normal / rojo con foco, casilla vacía / con objeto / marcada / sin STR, separador con rombo, fila de dato con "(now …)", barra, circulito A/B/X/Y). Los textos con caja se encogen hasta un mínimo y, si no caben, se avisan. Ninguna ventana del juego cambia todavía.
+- **Decisiones del propietario** (maquetas, 10-nov-2026): una sola ventana con el personaje a la izquierda y pestañas Bag / Stats / Magic; ficha de objeto en el orden del original; teclas 1–4 = RT + A/B/X/Y; comprobar siempre con captura que nada se sale. DECISIONES.md, 10-nov-2026.
+- **Comprobado:** build; `check offuikit` (`issues: []`, letras cargadas), `off offbag offequip menu` sin errores; captura revisada (alineado y centrado). Probado por el propietario.
+- **Cómo probar:** `?off=uikit`.
+- **Código:** `off/config/offTheme.ts`, `off/ui/offUi.ts` (`offFrame`, `offTab`, `offButton`, `offCell`, `offStatRow`, `offBar`, `offPadBadge`, `offFitText`, `offLayoutIssues`), `off/scenes/OffUiKitScene.ts`, `offAccess` (`uikit`), `PreloadScene`, `config/ui.ts` (`OFF_THEME_FONT_FACES`), `main.ts`, `scripts/check.mjs` (`offuikit`). NOTES.md "Estilo nuevo de ventanas (Off-12A)".
+
 **Helbreath Off · Fase Off-9, bloque C: medir y ajustar los Raiders (2026-11-09).**
 - **Qué hace:** los Raiders llegan **mucho menos** (una tirada cada 12 min en Promiseland, 50 %; antes cada 3 min) y su fuerza **crece con su nivel** (`OFF_RAIDER_POWER`: vida ×1–1,2, golpes ×1–3,2, magias de daño ×0,65–2,2, del nivel 10 al 50). El Mago se deja alcanzar más (se aparta cada 4,5 s, paraliza cada 16 s, se cura con parálisis solo bajo el 50 %). La pareja llega 2 niveles por debajo (antes 3).
 - **Peleas de prueba:** `check offduel<10|30|50><w|m|p|i>` (Guerrero, Mago, pareja con Gorn, invisible): 10 peleas seguidas con `?offfast=8` (el mundo de Off N veces más rápido), un jugador "de mentira" que pega, usa Critical Strike y bebe bajo el 40 % (una poción cada 0,4 s). Pelea en 90,80, vuelve a su sitio y nivel cada pelea, y caen los monstruos cercanos.

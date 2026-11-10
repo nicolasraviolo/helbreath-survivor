@@ -85,6 +85,13 @@ Cada fase se hace por bloques, uno por sesión, y se espera el OK del propietari
   - **11D Magias sin dibujo** (copiar de sp-client): Spike Field, Cloud Kill, Mass Poison, Earthworm Strike, Armor Break. **Pendiente:** el propietario cerró la Off-11 sin él (9-nov-2026).
   - Mass Fire Strike, Bloody Shock Wave, Ice Storm y Haste: libros que caen muy poco (Earth Shock Wave pasó a la tienda en la 11B). Fuera: Confusion, Illusion, Cancellation, Inhibition Casting, Scan, Resurrection.
 
+- **Off-12 · Rediseño de ventanas** (plan del 10-nov-2026, ver DECISIONES.md). Un estilo propio, cerca del original pero moderno (maqueta v3: fondo oscuro, bordes de bronce, esquinas doradas, Alegreya), que luego se llevará al resto de ventanas. Inventory, Equipment, Character y el libro de magias se juntan en **una sola ventana**: el personaje con su equipo siempre a la izquierda y pestañas **Bag / Stats / Magic** a la derecha (Magic solo si sabes alguna magia). Bloques:
+  - **12A Estilo base ✅** (10-nov-2026): letras, colores y medidas (`off/config/offTheme.ts`), piezas de dibujo (`off/ui/offUi.ts`) y muestrario `?off=uikit` con aviso de textos que no caben.
+  - **12B Ventana nueva con la pestaña Bag**: columna del personaje (muñeco, 8 huecos, barras) y bolsa 10 × 5 con filtros y ficha del objeto en el orden del original; sustituye a Inventory y Equipment.
+  - **12C Pestañas Stats y Magic**: repartir puntos con + / − y Confirm; magias por círculos y teclas 1–8, donde **1–4 son también RT + A/B/X/Y** (se unen los huecos del mando con las teclas y se adaptan los guardados).
+  - **12D Mando, teclado y repaso**: LB / RB cambian de pestaña, I / C / B abren cada una; repaso de alineado con capturas.
+  - Después: el mismo estilo en tienda, almacén, mercenarios, crear personaje, etc.
+
 ## Pendiente de decidir más adelante
 
 - **Detect Invisibility** (Magic.cfg: círculo 3, 1.200 de oro; quita la invisibilidad alrededor): para ver a los Raiders invisibles de la 9B (propietario, 9-nov-2026: fuera de la 9B).

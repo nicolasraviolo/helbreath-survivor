@@ -156,6 +156,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Magias de los círculos 6–10 en Off (Off-11B)
 - Lanzar magias en Off: pararse, mirilla y cruz de RT (9-nov-2026)
 - Magias de los círculos 8–10 en Off (Off-11C)
+- Estilo nuevo de ventanas (Off-12A)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -1717,3 +1718,10 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - **Kaila** sabe las cuatro (`OFF_MERCENARY_SPELLS`); como usa la de círculo más alto, a partir de tu nivel 135 casi siempre lanza Blizzard.
 - **Congelado comprobado** (9-nov-2026, monstruos con vida subida en el eval): Mass Ice Strike frena ~7 s y Blizzard ~2 s. Es el mismo camino que Mass Chill Wind (10 s), que en la 11B no se llegó a ver.
 - Pruebas: `check offmassicestrike` / `offmeteor` / `offmassmissile` / `offblizzard` (teclas 1–4, INT y MAG 200, Giant Scorpion de Aresden) y `offmercmagehigh` (Kaila a Level 140, 20 s: `mercCasts`).
+
+## Estilo nuevo de ventanas (Off-12A)
+- Colores, letras y medidas en `off/config/offTheme.ts`; piezas en `off/ui/offUi.ts`; muestrario `?off=uikit` (`OffUiKitScene`).
+- `offTheme.ts` no puede importar `config/ui.ts`: `ui.ts` lo importa para esperar a Alegreya al arrancar (`OFF_THEME_FONT_FACES`), y sería un ciclo.
+- Los textos con Alegreya (title, name, number) llevan `setFontStyle('500')`: main.ts solo importa ese peso de Alegreya (y 400 / 500 de Alegreya Sans).
+- Todo texto con caja usa `maxWidth`: `offFitText` lo encoge hasta `minSize` y, si aun así no cabe, lo apunta en `offLayoutIssues(scene)`. Las ventanas nuevas deben exponerlo en su `debugState` para que el `check` lo vea.
+- Las líneas de 1 px van en medias coordenadas (`x + 0.5`) para que salgan nítidas.

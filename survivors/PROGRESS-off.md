@@ -3,8 +3,9 @@
 Léelo solo en sesiones de Helbreath Off (después de `PROGRESS.md`). Plan: `docs/PLAN-OFF.md`. Detalle de cada bloque hecho: `PROGRESS-historial.md` (grep). Atajos y situaciones del `check`: `CHECK.md`, sección "Helbreath Off".
 
 ## Estado
-- **Ninguna fase en curso.** Off-0 a Off-11 ✅ (6 → 10-nov-2026; etiquetas `fase-Off-0` … `fase-Off-11`), fusionadas en `master` y escondidas tras `?off`. La última en cerrarse fue la **Off-9 Raiders** (10-nov-2026, probada por el propietario), después de la Off-10 (las Farms como casa) y la Off-11 (varitas y magias de los círculos 6–10).
-- **Siguiente (a elegir):** **11D** magias sin dibujo (Spike Field, Cloud Kill, Mass Poison, Earthworm Strike, Armor Break), **Detect Invisibility** para ver a los Raiders invisibles, o volver a Survivors (Fase 31). Ver `docs/PLAN-OFF.md`.
+- **Fase en curso: Off-12 · Rediseño de ventanas** (rama `fase-Off-12`). **12A estilo base ✅** (10-nov-2026): letras Alegreya, colores y piezas de dibujo comunes, muestrario `?off=uikit`.
+- **Siguiente: 12B**, la ventana nueva (personaje y equipo a la izquierda, pestaña Bag con bolsa, filtros y ficha del objeto) que sustituye a Inventory y Equipment. Después 12C (Stats y Magic, teclas 1–4 = RT + A/B/X/Y) y 12D (mando, teclado y repaso). Ver `docs/PLAN-OFF.md`.
+- Off-0 a Off-11 ✅ (6 → 10-nov-2026), fusionadas en `master` y escondidas tras `?off`. Pendientes sin fase: 11D (magias sin dibujo) y Detect Invisibility.
 
 ## A vigilar
 - Lanzar con RT + botones ya probado con mando real (9-nov-2026); Critical Strike con LT, sin probar.
@@ -18,6 +19,7 @@ Léelo solo en sesiones de Helbreath Off (después de `PROGRESS.md`). Plan: `doc
 - Guardado en claves `hb-off.*`; toda clave nueva va a `TRANSFER_KEYS` y hay que **volver a publicar el servidor** (`pnpm --dir survivors exec wrangler deploy --config metrics-server/wrangler.toml`).
 
 ## Pistas para trabajar
+- Ventanas nuevas (Off-12): estilo en `off/config/offTheme.ts`, piezas en `off/ui/offUi.ts`, muestrario `?off=uikit`. Todo texto con `maxWidth`; exponer `offLayoutIssues` en `debugState` y comprobar con captura. Maquetas aprobadas descritas en DECISIONES.md (10-nov-2026). NOTES.md "Estilo nuevo de ventanas (Off-12A)".
 - Select Character de Off: `off/scenes/OffSlotsScene.ts`, `OffDeleteScene.ts`, `off/config/offSlots.ts`, huecos en `OffSaveStore` (`hb-off.character`, `.2`–`.4`, `hb-off.slot`). Cada hueco guarda su propio sitio. NOTES.md, "Select Character en Helbreath Off".
 - Mercenarios: `off/data/offMercenary.ts`, `OffMercenaryAI`, `off/systems/OffMercenarySpells.ts`, `OffMercenaryTalk.ts`.
 - Raiders: `off/data/offRaiders.ts`, `OffRaiderAI`, `OffBattle.updateRaids`, `OffFoe`; NOTES.md "Raiders (Off-9A)". Números ajustados en la 9C.

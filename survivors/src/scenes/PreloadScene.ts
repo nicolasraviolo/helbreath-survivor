@@ -9,6 +9,7 @@ import { HBSpriteFile, SpriteType } from '../hb/HBSprite';
 import { OFF_ACCESS } from '../off/offAccess';
 import { OFF_CREATE_SCENE_KEY } from '../off/scenes/OffCreateScene';
 import { OFF_SLOTS_SCENE_KEY } from '../off/scenes/OffSlotsScene';
+import { OFF_UI_KIT_SCENE_KEY } from '../off/scenes/OffUiKitScene';
 import { startOffWorld } from '../off/scenes/OffWorldScene';
 import { ACTIVE_CHARACTER_KEY, characterStore } from '../systems/CharacterStore';
 import { loadTimer } from '../systems/LoadTimer';
@@ -101,6 +102,10 @@ export class PreloadScene extends Phaser.Scene {
         }
         if (OFF_ACCESS === 'slots') {
             this.scene.start(OFF_SLOTS_SCENE_KEY);
+            return;
+        }
+        if (OFF_ACCESS === 'uikit') {
+            this.scene.start(OFF_UI_KIT_SCENE_KEY);
             return;
         }
         if (OFF_ACCESS === 'game') {
