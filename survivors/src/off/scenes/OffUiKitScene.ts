@@ -4,6 +4,7 @@
 // llegas, oro grande, 120 pociones), para ver de un vistazo que nada se sale ni se solapa. Abajo dice si algún texto no
 // cabe (offLayoutIssues); el check `offuikit` lo devuelve en texto.
 // Las piezas responden al ratón (sin teclado: eso llega con las ventanas de verdad).
+// Off-13F: caja de texto y fila de opción ◀ valor ▶.
 // Off-13A: el botón Dialog (abajo a la derecha) abre la ventana de pregunta de verdad encima (OffDialogScene).
 import Phaser from 'phaser';
 import { setColouredTexture } from '../../hb/additiveTint';
@@ -20,7 +21,7 @@ import { OFF_SLOTS } from '../config/offSlots';
 import { OFF_DIALOG_SCENE_KEY, type OffDialogSceneData } from './OffDialogScene';
 import {
     offBar, offBarHeight, offBox, offButton, offCloseButton, offDivider, offFrame, offKeyRow, offLabel,
-    offLayoutIssues, offListRow, offPadPill, offRule, offStatRow, offTab, offText, type OffTab, type OffTrend,
+    offLayoutIssues, offListRow, offOptionRow, offPadPill, offRule, offStatRow, offTab, offText, offTextBox, type OffTab, type OffTrend,
 } from '../ui/offUi';
 
 export const OFF_UI_KIT_SCENE_KEY = 'OffUiKit';
@@ -194,6 +195,14 @@ export class OffUiKitScene extends Phaser.Scene {
             if (row.state === 'disabled') r.setEnabled(false);
         });
 
+        // Off-13F: text box (the name), with the focus ring, the cursor and its counter.
+        const boxY = ly + SAMPLE_LIST.length * S.listRowHeight + 8;
+        offLabel(this, inX, boxY, 'Text box');
+        const box = offTextBox(this, inX, boxY + KIT.labelGap, inW, () => undefined);
+        box.setText('WWWWWWWWWW', false, true);
+        box.setCounter('10/10');
+        box.setFocused(true);
+
         const bars: readonly [string, number, string, number][] = [
             ['Health', OFF_THEME_COLOR.health, '140 / 140', 1],
             ['Mana', OFF_THEME_COLOR.mana, '96 / 150', 0.64],
@@ -247,10 +256,11 @@ export class OffUiKitScene extends Phaser.Scene {
         });
         y += this.grid.height + KIT.sectionGap;
 
-        offLabel(this, col.x, y, 'Divider');
-        y += KIT.labelGap + 4;
-        offDivider(this, col.x, y, col.w);
-        y += KIT.sectionGap - 4;
+        // Off-13F: option row ◀ value ▶ (the dividers are in the cards on the right).
+        offLabel(this, col.x, y, 'Option row');
+        y += KIT.labelGap;
+        offOptionRow(this, col.x, y, col.w, 'Hair Color', () => undefined, () => undefined, () => undefined).setValue('Purple');
+        y += S.optionRowHeight + KIT.sectionGap - 4;
 
         offLabel(this, col.x, y, 'Keys');
         offText(this, col.x + col.w, y, '1–4 also RT + pad', 'small', { originX: 1 });

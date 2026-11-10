@@ -7,7 +7,7 @@
 Sin leer enteros (grep): `CHECK.md` (situaciones del check y atajos), `PROGRESS-historial.md` (bloques hechos), `NOTES.md`, `docs/DECISIONES.md`.
 
 ## Estado
-- **Helbreath Off:** Fase Off-13 (el estilo nuevo en el resto de ventanas), rama `fase-Off-13`: 13A–13E ✅ (10-nov-2026). Siguiente: 13F Create New Character (ver `PROGRESS-off.md`).
+- **Helbreath Off:** Fase Off-13 (el estilo nuevo en el resto de ventanas), rama `fase-Off-13`: 13A–13F ✅ (10-nov-2026), todos los bloques hechos. Siguiente: cerrar la fase con `/checkpoint fase` (ver `PROGRESS-off.md`).
 - **Survivors:** en pausa. Fase 30 ✅ (28-oct-2026). Siguiente: Fase 31, Aresden y Elvine.
 
 **Fases completadas** (✅):

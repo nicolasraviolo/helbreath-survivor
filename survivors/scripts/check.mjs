@@ -115,6 +115,12 @@ const PRESETS = {
     // eval sale lo guardado y la escena a la que llega.
     offcreate: 'off=create&offreset',
     offcreated: 'off=create&offreset',
+    // Off-13F (pantalla rehecha). offcreatepad: pistas del mando, nombre al azar, ↓↓ y → (cambia el aspecto) y A (va al
+    // primer stat con puntos). offcreatefull: nombre de 10 W, Warrior y A (foco en Create encendido). offcreatecancel:
+    // reparte un punto y Cancel pregunta; No se queda en la pantalla.
+    offcreatepad: 'off=create&offreset',
+    offcreatefull: 'off=create&offreset',
+    offcreatecancel: 'off=create&offreset',
     // Select Character de Off (8-nov-2026). offslots: la pantalla con un personaje de nivel 5 en el hueco 1.
     // offslotsnew: Create New Character, crea un Warrior en el hueco 2 y vuelve (en eval: los huecos guardados).
     // offslotsdelete: borra el del hueco 1 con Yes (en eval: lo que queda). offslotsold: un guardado de antes (un solo
@@ -831,6 +837,10 @@ const PRESET_EVAL = {
     offhome: "(game.scene.getScene('OffHome').debugShowPadHints(), game.scene.getScene('OffHome').debugState())",
     offslotsnew: "new Promise((r) => { game.scene.getScene('OffSlots').newCharacter(); setTimeout(() => { const c = game.scene.getScene('OffCreate'); c.applyPreset('warrior'); c.createCharacter(); setTimeout(() => r({ world: game.scene.isActive('OffWorld'), slot: localStorage.getItem('hb-off.slot'), one: JSON.parse(localStorage.getItem('hb-off.character'))?.name, two: JSON.parse(localStorage.getItem('hb-off.character.2'))?.created }), 4000); }, 600); })",
     offslotsdelete: "new Promise((r) => { const sl = game.scene.getScene('OffSlots'); sl.deleteFocused(); setTimeout(() => { const asked = game.scene.isActive('OffDialog'); game.scene.getScene('OffDialog').answer(1); setTimeout(() => r({ asked, left: localStorage.getItem('hb-off.character'), slotsActive: game.scene.isActive('OffSlots') }), 800); }, 600); })",
+    offcreate: "game.scene.getScene('OffCreate').debugState()",
+    offcreatepad: "(() => { const c = game.scene.getScene('OffCreate'); c.debugShowPadHints(); c.randomName(); const first = c.debugState().name; c.randomName(); const second = c.debugState().name; c.moveFocus(1); c.moveFocus(1); const before = c.debugState().look[1]; c.horizontal(1); const after = c.debugState(); c.confirm(); return { first, second, skinBefore: before, skinAfter: after.look[1], focusAfterChange: after.focus, focusAfterA: c.debugState().focus, state: c.debugState() }; })()",
+    offcreatefull: "(() => { const c = game.scene.getScene('OffCreate'); c.debugShowPadHints(); c.nameInput.setValue('WWWWWWWWWW'); c.applyPreset('warrior'); c.confirm(); return c.debugState(); })()",
+    offcreatecancel: "new Promise((r) => { const c = game.scene.getScene('OffCreate'); c.changeStat('str', 1); c.cancel(); setTimeout(() => { const asked = game.scene.isActive('OffDialog'); game.scene.getScene('OffDialog').answer(0); setTimeout(() => r({ asked, stillCreating: game.scene.isActive('OffCreate'), stats: c.debugState().stats }), 800); }, 600); })",
     offcreated: "new Promise((r) => { const c = game.scene.getScene('OffCreate'); c.changeStat('str', 1); const one = c.stats.str; c.createCharacter(); const blocked = game.scene.isActive('OffCreate'); c.applyPreset('warrior'); c.createCharacter(); setTimeout(() => r({ oneStr: one, blockedWithPointsLeft: blocked, saved: JSON.parse(localStorage.getItem('hb-off.character')), world: game.scene.isActive('OffWorld') }), 4000); })",
     offchar: "o.openCharacter(), new Promise((r) => setTimeout(() => r({ open: game.scene.isActive('OffBag'), tab: game.scene.getScene('OffBag').debugState().tab, worldPaused: game.scene.isPaused('OffWorld'), state: o.debugState() }), 800))",
     offassign: "new Promise((r) => { const before = o.debugState(); o.openCharacter(); setTimeout(() => { const c = game.scene.getScene('OffBag').debugPage; for (let i = 0; i < 3; i++) c.change('str', 1); c.change('vit', 1); c.change('vit', 1); c.confirm(); setTimeout(() => r({ before, after: o.debugState(), worldRunning: game.scene.isActive('OffWorld'), saved: JSON.parse(localStorage.getItem('hb-off.character')) }), 500); }, 500); })",

@@ -1,6 +1,6 @@
 // Helbreath Off, Fase Off-12A: las piezas del estilo nuevo de las ventanas (colores y medidas en off/config/offTheme.ts).
 // Marco, pestaña, botón (principal dorado, normal, rojo), cierre ✕, casilla de objeto, fila de lista, fila de tecla,
-// fila de stat con − / + (Off-12C),
+// fila de stat con − / + (Off-12C), caja de texto y fila de opción ◀ valor ▶ (Off-13F),
 // separador con rombo, fila de dato con comparación (▲ / ▼ además del color), barra, circulito A/B/X/Y y pastilla
 // LB / RB / Start.
 // - **Nada se sale de su caja**: los textos con ancho máximo se encogen hasta `minSize` (offTheme) y, si aun así no
@@ -255,7 +255,11 @@ export type OffButtonVariant = 'main' | 'normal' | 'danger';
 export interface OffButton extends OffControl {
     setLabel(label: string): void;
     setVariant(variant: OffButtonVariant): void;
+    /** Off-13F: "this one is applied" (Warrior / Magician): darker fill, green text with a ✓ (not the gold of the focus). */
+    setChecked(checked: boolean): void;
 }
+
+const CHECK_MARK = '✓ ';
 
 export function offButton(
     scene: Phaser.Scene, x: number, y: number, label: string, variant: OffButtonVariant, onClick: () => void,
@@ -264,24 +268,33 @@ export function offButton(
     const g = scene.add.graphics();
     const text = offText(scene, x + width / 2, y + height / 2, label, 'body', { originX: 0.5, originY: 0.5 });
     let current = variant;
+    let base = label;
+    let checked = false;
     const control = makeControl(scene, x, y, width, height, onClick, [g, text], (s) => {
         g.clear();
         const main = current === 'main' && s.enabled;
-        const fill = main ? (hovering(s) ? C.goldLight : C.gold) : hovering(s) ? C.hover : C.button;
+        const rest = checked ? C.marked : C.button;
+        const fill = main ? (hovering(s) ? C.goldLight : C.gold) : hovering(s) ? C.hover : rest;
         // Off-13E (revisor-ui): a disabled button has no fill, so it doesn't look like a normal one.
         if (s.enabled) g.fillStyle(fill, 1).fillRect(x, y, width, height);
         g.lineStyle(1, main ? C.goldLight : s.enabled ? C.bronze : C.line, 1).strokeRect(x + 0.5, y + 0.5, width - 1, height - 1);
-        text.setColor(!s.enabled ? INK.dim : main ? INK.onGold : current === 'danger' ? INK.bad : INK.text);
+        text.setText(checked ? CHECK_MARK + base : base);
+        text.setColor(!s.enabled ? INK.dim : main ? INK.onGold : current === 'danger' ? INK.bad : checked ? INK.good : INK.text);
         offFitText(text, 'body', width - S.textInset * 2);
     });
     return {
         ...control,
         setLabel: (l) => {
-            text.setText(l);
+            base = l;
             control.redraw();
         },
         setVariant: (v) => {
             current = v;
+            control.redraw();
+        },
+        setChecked: (c) => {
+            if (c === checked) return;
+            checked = c;
             control.redraw();
         },
     };
@@ -509,9 +522,11 @@ export interface OffStepperRow extends OffControl {
 export function offStepperRow(
     scene: Phaser.Scene, x: number, y: number, width: number, label: string,
     onMinus: () => void, onPlus: () => void, onClick: () => void,
+    /** Off-13F: `true` = the short row (stepperCompactHeight, stepperCompactButton). */
+    compact = false,
 ): OffStepperRow {
-    const h = S.stepperRowHeight;
-    const b = S.stepperButton;
+    const h = compact ? S.stepperCompactHeight : S.stepperRowHeight;
+    const b = compact ? S.stepperCompactButton : S.stepperButton;
     const mid = y + h / 2;
     const pad = S.listRowPadding;
     const plusX = x + width - pad - b;
@@ -568,6 +583,108 @@ export function offStepperRow(
         },
         setMinusEnabled: (e) => minus.setEnabled(e),
         setPlusEnabled: (e) => plus.setEnabled(e),
+    };
+}
+
+export interface OffTextBox extends OffControl {
+    /** What it shows: the typed text (with the cursor while `cursor`), or the placeholder in a fainter ink. */
+    setText(text: string, placeholder: boolean, cursor: boolean): void;
+    /** Small text on the right ("7/10"). */
+    setCounter(text: string): void;
+}
+
+/**
+ * Off-13F: a text box (the character's name). Dark well, bronze border (gold with the focus, plus the ring), the text
+ * in the name font and a gold cursor after it. It doesn't read keys: the window types into it (ui/TextInput.ts).
+ */
+export function offTextBox(scene: Phaser.Scene, x: number, y: number, width: number, onClick: () => void, height: number = S.textBoxHeight): OffTextBox {
+    const g = scene.add.graphics();
+    const pad = S.listRowPadding;
+    const mid = y + height / 2;
+    const value = offText(scene, x + pad, mid, '', 'name', { originY: 0.5 });
+    const counter = offText(scene, x + width - pad, mid, '', 'small', { originX: 1, originY: 0.5 });
+    const cursor = scene.add.rectangle(0, y + S.cursorInset, S.cursorWidth, height - S.cursorInset * 2, C.gold).setOrigin(0, 0);
+    const control = makeControl(scene, x, y, width, height, onClick, [g, value, counter, cursor], (s) => {
+        g.clear();
+        g.fillStyle(C.cell, 1).fillRect(x, y, width, height);
+        g.lineStyle(1, s.focused ? C.gold : hovering(s) ? C.goldLight : C.bronze, 1).strokeRect(x + 0.5, y + 0.5, width - 1, height - 1);
+    });
+    let atStart = true;
+    /** Shrinks the text to leave room for the counter, and puts the cursor after it (at the start on the placeholder). */
+    const fit = (): void => {
+        // Con el texto de ejemplo, el cursor va al principio y el ejemplo empieza justo después (sin pisarlo).
+        const textX = atStart ? x + pad + S.cursorWidth + S.cursorGap : x + pad;
+        value.setX(textX);
+        offFitText(value, 'name', width - pad - (textX - x) - S.rowGap - counter.width);
+        cursor.setX(atStart ? x + pad : value.x + value.width + 1);
+    };
+    return {
+        ...control,
+        setText: (text, placeholder, showCursor) => {
+            value.setText(text).setColor(placeholder ? INK.note : INK.text);
+            atStart = placeholder;
+            fit();
+            cursor.setVisible(showCursor && control.state.visible);
+        },
+        setCounter: (text) => {
+            if (text === counter.text) return;
+            counter.setText(text);
+            fit();
+        },
+    };
+}
+
+export interface OffOptionRow extends OffControl {
+    setValue(value: string): void;
+}
+
+/**
+ * Off-13F: a row to pick one of several values: name on the left, then ◀ value ▶ on the right. The row takes the focus
+ * (the window turns ← / → into ◀ / ▶); the arrows take clicks on the full row height, a little wider than drawn.
+ */
+export function offOptionRow(
+    scene: Phaser.Scene, x: number, y: number, width: number, label: string,
+    onPrev: () => void, onNext: () => void, onClick: () => void, height: number = S.optionRowHeight,
+): OffOptionRow {
+    const a = S.optionArrow;
+    const pad = S.listRowPadding;
+    const mid = y + height / 2;
+    const nextX = x + width - pad - a;
+    const prevX = nextX - S.optionValueWidth - a;
+    const g = scene.add.graphics();
+    const name = offText(scene, x + pad, mid, label, 'body', { originY: 0.5, maxWidth: prevX - S.rowGap - x - pad });
+    const value = offText(scene, prevX + a + S.optionValueWidth / 2, mid, '', 'body', { originX: 0.5, originY: 0.5 });
+    const row = makeControl(scene, x, y, width, height, onClick, [g, name, value], (s) => {
+        g.clear();
+        if (hovering(s)) g.fillStyle(C.hover, 1).fillRect(x, y, width, height - 1);
+        g.fillStyle(C.rowLine, 1).fillRect(x, y + height - 1, width, 1);
+    });
+    const arrow = (ax: number, forward: boolean, onPress: () => void): OffControl => {
+        const ag = scene.add.graphics();
+        // Click zone: the whole row height and the gap beside the arrow (the drawn square is smaller).
+        const zx = ax - S.rowGap / 2;
+        return makeControl(scene, zx, y, a + S.rowGap, height, onPress, [ag], (s) => {
+            ag.clear();
+            const top = mid - a / 2;
+            ag.fillStyle(hovering(s) ? C.hover : C.button, 1).fillRect(ax, top, a, a);
+            ag.lineStyle(1, s.enabled ? C.bronze : C.line, 1).strokeRect(ax + 0.5, top + 0.5, a - 1, a - 1);
+            const t = S.optionTriangle;
+            const cx = ax + a / 2;
+            ag.fillStyle(Phaser.Display.Color.HexStringToColor(s.enabled ? INK.text : INK.faint).color, 1);
+            if (forward) ag.fillTriangle(cx - t / 2, mid - t, cx - t / 2, mid + t, cx + t, mid);
+            else ag.fillTriangle(cx + t / 2, mid - t, cx + t / 2, mid + t, cx - t, mid);
+        });
+    };
+    const prev = arrow(prevX, false, onPrev);
+    const next = arrow(nextX, true, onNext);
+    return {
+        ...row,
+        setVisible: (v) => [row, prev, next].forEach((c) => c.setVisible(v)),
+        destroy: () => [row, prev, next].forEach((c) => c.destroy()),
+        setValue: (v) => {
+            value.setText(v);
+            offFitText(value, 'body', S.optionValueWidth - S.textInset * 2);
+        },
     };
 }
 

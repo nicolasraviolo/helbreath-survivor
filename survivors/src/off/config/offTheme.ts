@@ -188,4 +188,18 @@ export const OFF_THEME_SIZE = {
     stepperButton: 28,
     stepperValueWidth: 56,
     stepperSign: 6,
+    /** Off-13F: the short stepper row (Create New Character, five stats under five look rows). */
+    stepperCompactHeight: 28,
+    stepperCompactButton: 24,
+    /** Off-13F: text box (the name), its blinking cursor (width, and how much shorter than the box). */
+    textBoxHeight: 30,
+    cursorWidth: 2,
+    cursorInset: 8,
+    /** Off-13F: gap between the cursor and the placeholder text that follows it. */
+    cursorGap: 3,
+    /** Off-13F: option row ‹ value ›: its height, the square arrow buttons, the value between them, the triangle's half-size. */
+    optionRowHeight: 26,
+    optionArrow: 22,
+    optionValueWidth: 96,
+    optionTriangle: 4,
 } as const;

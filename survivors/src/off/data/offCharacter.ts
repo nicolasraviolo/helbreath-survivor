@@ -111,20 +111,21 @@ export function offStaminaRegen(vit: number, level: number): number {
     return die(Math.floor(vit / 3)) + bonus;
 }
 
-/** What the player reads on the creation screen. */
-export const OFF_CREATE_TEXT = {
-    statsTitle: 'Spend your stat points.',
-    pointsLeft: (points: number) => (points > 0 ? `Points left: ${points}` : 'All points spent.'),
-    spendFirst: (points: number) => `Spend ${points} more point${points === 1 ? '' : 's'} first.`,
-    values: ['Health', 'Mana', 'Stamina'] as const,
-    description: [
-        'Every stat starts at 10 and',
-        'can go up to 14.',
-        '',
-        'Warrior and Magician',
-        'spend the points for you.',
-    ],
-} as const;
+/**
+ * Off-13F (propietario, 10-nov-2026): with the pad there is no keyboard to type a name, so Random (Y) picks one of
+ * these. Fantasy names that fit the name box: 10 letters at most, letters only.
+ */
+export const OFF_RANDOM_NAMES: readonly string[] = [
+    'Aldric', 'Brenna', 'Caelum', 'Darian', 'Elowen', 'Faelan', 'Garrick', 'Halvar', 'Ilyra', 'Isolde',
+    'Kaelith', 'Lorcan', 'Maelis', 'Mirelle', 'Nerys', 'Orin', 'Perrin', 'Rowan', 'Sabine', 'Seren',
+    'Tavish', 'Thorne', 'Ulric', 'Vesna', 'Wynne', 'Ysolde', 'Zarek', 'Brannoc', 'Corwin', 'Eamon',
+];
+
+/** A random name from OFF_RANDOM_NAMES, never the one shown now (so each press changes it). */
+export function offRandomName(current: string): string {
+    const others = OFF_RANDOM_NAMES.filter((name) => name !== current);
+    return others[Math.floor(Math.random() * others.length)] ?? OFF_CREATION.defaultName;
+}
 
 /** What each stat does in Off, under the Character window (Charisma is not used). */
 export const OFF_STAT_HELP: Readonly<Record<OffStatId, string>> = {

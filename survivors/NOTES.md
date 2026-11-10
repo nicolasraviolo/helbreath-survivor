@@ -164,6 +164,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Almacén y objetos apilados (Off-13C)
 - Tienda y herrero (Off-13D)
 - Inicio y Select Character (Off-13E)
+- Create New Character (Off-13F)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -1456,6 +1457,7 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - **Check:** `offlevel` (de cero, mata Slimes 20 s), `offdeath` (nivel 10 + 200, muere: la experiencia antes y después). Cada `check` abre un navegador limpio: el guardado se ve con `--eval="localStorage.getItem('hb-off.character')"` en la misma visita.
 
 ## Crear personaje en Helbreath Off (Fase Off-3A)
+- (Off-13F: rehecha con el estilo de Off, ver "Create New Character (Off-13F)"; lo de las medidas del original ya no vale.)
 - **Pantalla:** `off/scenes/OffCreateScene.ts` sobre el fondo `gamedialog86.spr` hoja 9 y las medidas de `config/characterSelect.ts` (la usó `CharacterSelectScene` de Survivors, borrada el 22-oct-2026 en el commit `d1b5f02`; `git show d1b5f02^:survivors/src/scenes/CharacterSelectScene.ts`). La caja del nombre es `ui/TextInput.ts` (un `<input>` invisible), recuperada del mismo commit.
 - **El dibujo de los stats tiene + a la izquierda y − a la derecha** (en las mismas x que las flechas ← → del aspecto) y **6 filas**: la de Charisma se tapa con un recorte de la madera del mismo fondo dos filas más abajo (`OFF_CREATE.hiddenRow`, `setCrop`), que no se nota; un rectángulo de color sí se notaba.
 - Los botones Warrior / Magician de abajo eran presets de stats en el original: `OFF_PRESETS` en `off/data/offCharacter.ts`.
@@ -1771,6 +1773,14 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - El límite de 20 pociones sigue contando objetos (no celdas).
 - Pieza `off/ui/offItemGrid.ts` (pozo + celdas + `show(stacks)` + `step`), usada por la Bag, el almacén y el muestrario. `offSetItemIcon` pinta un icono teñido. `offPadHints` acepta botones que no son A/B/X/Y ("LB / RB") como píldora.
 - La tienda (13D) también junta los montones en Sell (una fila "Red Potion ×6") y vende el `last`.
+
+## Create New Character (Off-13F)
+- `off/scenes/OffCreateScene.ts` rehecha: del original solo queda la imagen de fondo (`SELECT_BACKGROUND`, oscurecida al 90 %). Medidas y textos en `off/config/offCreate.ts`; los textos viejos (`OFF_CREATE_TEXT` de `offCharacter.ts`) se borraron. `config/characterSelect.ts` ya solo se usa por el fondo y el `assetManifest`.
+- Piezas nuevas en `off/ui/offUi.ts` (también en `?off=uikit`): `offTextBox` (caja con cursor y contador; no lee teclas, escribe en ella `ui/TextInput.ts`) y `offOptionRow` (◀ valor ▶; las flechas cogen clics en todo el alto de la fila). `offStepperRow(..., compact)` = fila corta (28 de alto, botones de 24). `offButton.setChecked` = "aplicado" (relleno oscuro, verde con ✓), distinto del anillo del foco.
+- El cursor del nombre se coloca en `fit()` de `offTextBox`, que se llama tanto al cambiar el texto como el contador (el contador encoge el nombre y movía el texto debajo del cursor). Con el texto de ejemplo ("Novice") el cursor va al principio y el ejemplo se corre `cursorWidth + cursorGap` a la derecha, para no pisar la primera letra.
+- Foco por filas (nombre, 5 de aspecto, 5 stats, Warrior/Magician, Create/Cancel) llevado por la escena (`rowControls`, `setFocus`); en las filas de dos botones, ←/→ cambia de columna. Con Create apagado el foco que cae en él pasa a Cancel.
+- En el PC el `<input>` invisible tiene siempre el foco: mientras, el `InputSystem` no lee teclado y las teclas llegan por `onNameKey` (Enter, Esc y flechas). Un clic en el lienzo se lo quita, así que `pointerup` lo devuelve (salvo con la pregunta abierta). Random: Y del mando (`Action.OffDrop`; Supr del teclado, que mientras se escribe borra letras). `TextInput.setValue` pone el nombre al azar (`offRandomName`, lista `OFF_RANDOM_NAMES` en `offCharacter.ts`).
+- Cancel con nombre escrito o puntos gastados pregunta con `OffDialogScene` (se quita el foco al `<input>` antes, para que Enter / Esc no lleguen a la pantalla de debajo).
 
 ## Inicio y Select Character (Off-13E)
 - `off/scenes/OffSlotsScene.ts` rehecha: ya no usa el arte del original salvo la imagen de fondo (`SLOTS_BACKGROUND`, oscurecida al 90 % para que no asomen los marcos de madera pintados en ella). Medidas y textos en `off/config/offSlots.ts`; la tarjeta es la pieza `offSlotCard` (`off/ui/offUi.ts`).
