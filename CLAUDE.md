@@ -28,6 +28,7 @@ No sabe programar. Explica lo que haces en español sencillo, dile siempre **có
 
 ## Forma de trabajar
 - **Un bloque por sesión** (`/fase N`). Antes de programar, presenta un plan corto y espera el OK. Al cerrar el bloque, `/checkpoint` y sesión nueva: las sesiones largas gastan muchísimos tokens.
+- **Cambios de UI** (ventanas, menús, HUD, tooltips, botones): boceto con la skill `disenar-ui`; en ventanas nuevas o rediseñadas, el agente `revisor-ui` lo critica **antes** de enseñarlo al propietario, y siempre revisa el resultado **después** de programar (arreglar lo Alta/Media antes de pasarlo). En retoques pequeños basta la revisión final.
 - Para investigar `sp-client` usa un **subagente** y trae solo un resumen; no vuelques archivos grandes a la conversación.
 - Cambios pequeños. Tras cada bloque: `pnpm --dir survivors exec tsc --noEmit` y corregir errores.
 - **Comprobar el juego:** `pnpm --dir survivors check <situaciones> [--mobile]` (lista de situaciones en `survivors/CHECK.md`). Da escenas, FPS, estado y errores de consola en texto, y guarda capturas pequeñas en `survivors/.check/`. Hazlo tú antes de pedir al propietario que pruebe.
