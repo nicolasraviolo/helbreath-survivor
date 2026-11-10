@@ -1,5 +1,5 @@
-// Helbreath Off (Fase Off-5B): medidas de las ventanas de la tienda y el herrero (off/scenes/OffStoreScene.ts) y del
-// almacén (off/scenes/OffWarehouseScene.ts). Mismo estilo que el inventario viejo de Off (antes de la Off-12B): el
+// Helbreath Off (Fase Off-5B): medidas de las ventanas de la tienda y el herrero (off/scenes/OffStoreScene.ts). El
+// almacén pasó al estilo nuevo en la Off-13C (off/config/offWarehouse.ts). Mismo estilo que el inventario viejo de Off (antes de la Off-12B): el
 // pergamino "Item for Sale" de Survivors no tiene sitio para 40 objetos y el cuadro de stats.
 import { byDevice } from '../../config/device';
 import { UI_TEXT } from '../../config/ui';
@@ -54,20 +54,6 @@ export const OFF_STORE_SIDE = {
     buttonBackground: 0x3a2a14,
     buttonBorder: 0x8a7038,
     disabledAlpha: 0.4,
-} as const;
-
-/** The warehouse: the bag (10 × 5) and the warehouse (10 × 12 = 120), side by side. */
-export const OFF_WAREHOUSE_GRID = {
-    columns: 10,
-    bagRows: 5,
-    warehouseRows: 12,
-    cell: byDevice(32, 32),
-    gap: 2,
-    iconSize: byDevice(28, 28),
-    background: 0x2e2216,
-    border: 0x5a4a30,
-    focusColor: 0xffd860,
-    labelHeight: byDevice(22, 24),
 } as const;
 
 export const OFF_STORE_TITLE_STYLE = { ...UI_TEXT, fontSize: byDevice('19px', '22px'), fontStyle: 'bold', color: '#e8c060' } as const;

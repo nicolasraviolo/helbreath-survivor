@@ -111,6 +111,8 @@ export const OFF_THEME_TEXT = {
     /** Section labels in capitals (EQUIPMENT, KEYS). */
     label: { font: TEXT_FONT, weight: '400', size: 11, color: OFF_THEME_INK.gold, spacing: 1.3, minSize: 10 },
     /** The letters of a pad badge or pill. */
+    /** Off-13C: the count of a stack in a cell ("20"), bolder than `small` so a 2 doesn't read as a z. */
+    count: { font: TEXT_FONT, weight: '500', size: 13, color: OFF_THEME_INK.text, spacing: 0, minSize: 13 },
     badge: { font: TEXT_FONT, weight: '500', size: 11, color: OFF_THEME_INK.dark, spacing: 0, minSize: 10 },
 } as const;
 export type OffTextKind = keyof typeof OFF_THEME_TEXT;
@@ -153,7 +155,7 @@ export const OFF_THEME_SIZE = {
     cellGap: 2,
     /** A potion count sits this far inside the cell's bottom-right corner, with an outline this thick. */
     countInset: 2,
-    countOutline: 3,
+    countOutline: 2,
     /** Square tile with the item or spell picture in a card. */
     iconTile: 40,
     /** Equipment slot (icon + name). */

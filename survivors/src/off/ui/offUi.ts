@@ -348,7 +348,7 @@ export interface OffCell extends OffControl {
 export function offCell(scene: Phaser.Scene, x: number, y: number, size: number = S.cell, onClick: () => void = () => undefined): OffCell {
     const g = scene.add.graphics();
     const icon = scene.add.image(x + size / 2, y + size / 2, '__DEFAULT').setVisible(false);
-    const count = offText(scene, x + size - S.countInset, y + size - S.countInset, '', 'small', { color: INK.text, originX: 1, originY: 1 })
+    const count = offText(scene, x + size - S.countInset, y + size - S.countInset, '', 'count', { originX: 1, originY: 1 })
         .setStroke(INK.dark, S.countOutline)
         .setVisible(false);
     let marked = false;
@@ -652,6 +652,10 @@ export function offBarHeight(scene: Phaser.Scene): number {
 
 // ---------------------------------------------------------------- mando
 
+function isOffPadButton(button: string): button is OffPadButton {
+    return button in OFF_THEME_PAD;
+}
+
 /** A round gamepad badge (A green, B red, X blue, Y yellow) centred on (cx, cy). */
 export function offPadBadge(scene: Phaser.Scene, cx: number, cy: number, button: OffPadButton): Phaser.GameObjects.Container {
     const circle = scene.add.circle(0, 0, S.badge / 2, OFF_THEME_PAD[button]);
@@ -670,15 +674,22 @@ export function offPadPill(scene: Phaser.Scene, x: number, cy: number, label: st
 
 /**
  * Off-13B: the pad hints row of a window ("(A) Select   (B) Back"), centred on (cx, cy). Hidden at first: the window
- * shows it while the pad is in use (its row is kept anyway, so the window doesn't change size).
+ * shows it while the pad is in use (its row is kept anyway, so the window doesn't change size). Off-13C: a button
+ * other than A / B / X / Y ("LB / RB") goes in a pill.
  */
-export function offPadHints(scene: Phaser.Scene, cx: number, cy: number, hints: readonly (readonly [OffPadButton, string])[]): Phaser.GameObjects.Container {
+export function offPadHints(scene: Phaser.Scene, cx: number, cy: number, hints: readonly (readonly [OffPadButton | string, string])[]): Phaser.GameObjects.Container {
     const parts: Phaser.GameObjects.GameObject[] = [];
     let x = 0;
     hints.forEach(([button, word], i) => {
         if (i > 0) x += S.hintGap;
-        parts.push(offPadBadge(scene, x + S.badge / 2, 0, button));
-        x += S.badge + S.hintBadgeGap;
+        if (isOffPadButton(button)) {
+            parts.push(offPadBadge(scene, x + S.badge / 2, 0, button));
+            x += S.badge + S.hintBadgeGap;
+        } else {
+            const pill = offPadPill(scene, x, 0, button);
+            parts.push(pill.pill);
+            x += pill.width + S.hintBadgeGap;
+        }
         const t = offText(scene, x, 0, word, 'small', { originY: 0.5 });
         parts.push(t);
         x += t.width;

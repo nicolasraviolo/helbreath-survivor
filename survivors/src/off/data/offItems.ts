@@ -494,6 +494,49 @@ export function offBagKeyId(key: OffBagItemKey): OffBagItemId {
     return isOffGoodId(key) ? key : offGearId(key);
 }
 
+/**
+ * Off-13C: one cell of the bag or the warehouse. Goods (potions, Slime Jelly) of the same kind share a cell with their
+ * count; gear never stacks. The save keeps one entry per item: stacks only exist when drawing and counting room.
+ */
+export interface OffItemStack {
+    key: OffBagItemKey;
+    count: number;
+    /** Index of its first item in the list (where the cell sits) and of its last one (the one that leaves first). */
+    first: number;
+    last: number;
+}
+
+/** The cells of a bag or warehouse list, in the order their first item came in. */
+export function offStacks(items: readonly OffBagItemKey[]): OffItemStack[] {
+    const stacks: OffItemStack[] = [];
+    const goods = new Map<OffBagItemKey, OffItemStack>();
+    items.forEach((key, index) => {
+        const stack = isOffGoodId(key) ? goods.get(key) : undefined;
+        if (stack) {
+            stack.count += 1;
+            stack.last = index;
+            return;
+        }
+        const fresh = { key, count: 1, first: index, last: index };
+        stacks.push(fresh);
+        if (isOffGoodId(key)) goods.set(key, fresh);
+    });
+    return stacks;
+}
+
+/** Whether one more of that fits in a list of that many cells (a good joins its stack without a new cell). */
+export function offStackFits(items: readonly OffBagItemKey[], key: OffBagItemKey, cells: number): boolean {
+    if (isOffGoodId(key) && items.includes(key)) return true;
+    return offStacks(items).length < cells;
+}
+
+/** A list cut to that many cells (an old save or a debug start): gear past the last cell and new goods stay out. */
+export function offCutToCells(items: readonly OffBagItemKey[], cells: number): OffBagItemKey[] {
+    const kept: OffBagItemKey[] = [];
+    for (const key of items) if (offStackFits(kept, key, cells)) kept.push(key);
+    return kept;
+}
+
 export function isOffBagItemKey(text: string): text is OffBagItemKey {
     return isOffGoodId(text) || isOffGearKey(text);
 }

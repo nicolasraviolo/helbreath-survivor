@@ -88,11 +88,22 @@ export const OFF_STORE_TEXT = {
     stored: (name: string) => `You stored the ${name}.`,
     taken: (name: string) => `You took the ${name}.`,
     warehouseFull: 'The warehouse is full.',
-    bagLabel: (count: number, size: number) => `Bag ${count} / ${size}`,
-    warehouseLabel: (count: number, size: number) => `Warehouse ${count} / ${size}`,
     /** Help line, by device. */
     storeHelpMouse: 'Click: mark · Double-click or Enter: buy / sell / learn · Tab: change tab · Esc: close',
     storeHelpPad: 'A: buy / sell / learn · LB / RB: change tab · B: close',
-    warehouseHelpMouse: 'Click: move it to the other side · Tab: change side · Esc: close',
-    warehouseHelpPad: 'A: move it to the other side · LB / RB: change side · B: close',
+} as const;
+
+/** Off-13C: the warehouse window's words (stored / taken / full come from OFF_STORE_TEXT). */
+export const OFF_WAREHOUSE_TEXT = {
+    subtitle: 'Shared by both cities · your gold stays with you',
+    bagLabel: (cells: number, size: number) => `Bag ${cells} / ${size}`,
+    warehouseLabel: (cells: number, size: number) => `Warehouse ${cells} / ${size}`,
+    storeButton: 'Store →',
+    takeButton: '← Take',
+    pickHint: 'Pick an item to see it here.',
+    bagEmpty: 'Your bag is empty.',
+    warehouseEmpty: 'The warehouse is empty.',
+    /** Under the columns while there is no result to show, by device. */
+    helpMouse: 'Double-click or Enter: move one · Tab: change side · Esc: close',
+    helpPad: [['A', 'Move one'], ['LB / RB', 'Change side'], ['B', 'Close']],
 } as const;

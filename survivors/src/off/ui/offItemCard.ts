@@ -4,7 +4,7 @@
 //   Defense Ratio y Physical Absorption (armaduras) → Level → Required Str (con la STR de velocidad máxima).
 // Sin Endurance (Off no gasta objetos). La comparación con lo que llevas puesto va al final de la fila, en gris
 // "(now …)", con flecha ▲ / ▼ y color (offStatRow); ya cuenta Sharp, Ancient y tu STR.
-// La tienda, el almacén y el libro siguen con el cuadro viejo (off/ui/offItemBox.ts) hasta su rediseño.
+// El almacén la usa desde la Off-13C; la tienda sigue con el cuadro viejo (off/ui/offItemBox.ts) hasta la 13D.
 import { offBestSpeedStr, offSpeedLabel } from '../data/offCombat';
 import { offGood } from '../data/offGoods';
 import {
@@ -66,6 +66,11 @@ export function offItemKind(id: OffBagItemKey): string {
     const item = offGearDef(id);
     if (item.kind === 'weapon') return item.wand ? 'Wand' : item.twoHanded ? 'Two-handed weapon' : 'Weapon';
     return SLOT_KIND[item.slot];
+}
+
+/** Off-13C: the kind line of a stack of potions or Slime Jelly says how many there are ("Potion · ×7"). */
+export function offStackKind(kind: string, count: number): string {
+    return count > 1 ? `${kind} · ×${count}` : kind;
 }
 
 /**

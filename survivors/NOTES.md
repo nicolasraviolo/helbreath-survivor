@@ -161,6 +161,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Pestañas Stats y Magic (Off-12C)
 - Ventana de pregunta (Off-13A)
 - Pausa, William y Select Map (Off-13B)
+- Almacén y objetos apilados (Off-13C)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -1760,3 +1761,11 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - Una ventana que abre otra encima con `openOverlay` reinicia su retardo de entrada en `RESUME`; el listener se quita en `SHUTDOWN`, porque `scene.events` sobrevive entre aperturas y se acumularía.
 - Piezas nuevas en `offUi.ts`: `offPadHints` (fila de pistas A/B) y `offCardControl` (tarjeta que es botón, Select Map). Precios con `offGoldText` (`config/offMercenaryWindow.ts`).
 - Controls (`data/offControls.ts`) es una lista a mano: si cambia un control en `InputSystem` u `OffWorldScene`, hay que cambiarlo ahí.
+
+## Almacén y objetos apilados (Off-13C)
+- **Montones solo al dibujar:** la partida sigue guardando una entrada por objeto (`bag`, `warehouse`). `offStacks(items)` (`off/data/offItems.ts`) junta pociones y Slime Jelly del mismo tipo en una celda (`first` = dónde está la celda, `last` = el que sale primero); el equipo nunca se apila. No hizo falta versión nueva del guardado.
+- **El espacio se cuenta por celdas:** `offStackFits` (cabe si se suma a un montón o queda celda libre) en `roomFor`, `warehouseRoomFor`, `unequip`, la regla de dos manos y `tidyHands`. Al leer la partida y en `?offbag` / `?offwarehouse` se recorta con `offCutToCells`, **nunca** con `slice(0, 50)`: con montones caben más de 50 objetos. Una versión del juego anterior a la 13C recortaría a 50 objetos una partida nueva.
+- Las acciones sobre un montón (beber, tirar, guardar, sacar) usan su índice `last`: así la celda no se mueve mientras quedan. En la Bag, `stackOf` vuelve a encontrar el montón marcado si su primer objeto cambió de índice.
+- El límite de 20 pociones sigue contando objetos (no celdas).
+- Pieza `off/ui/offItemGrid.ts` (pozo + celdas + `show(stacks)` + `step`), usada por la Bag, el almacén y el muestrario. `offSetItemIcon` pinta un icono teñido. `offPadHints` acepta botones que no son A/B/X/Y ("LB / RB") como píldora.
+- La tienda (13D) aún lista cada poción en su fila al vender.
