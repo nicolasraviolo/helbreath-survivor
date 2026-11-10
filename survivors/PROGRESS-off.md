@@ -3,10 +3,10 @@
 Léelo solo en sesiones de Helbreath Off (después de `PROGRESS.md`). Plan: `docs/PLAN-OFF.md`. Detalle de cada bloque hecho: `PROGRESS-historial.md` (grep). Atajos y situaciones del `check`: `CHECK.md`, sección "Helbreath Off".
 
 ## Estado
-- **Off-13 · El estilo nuevo en el resto de ventanas** (plan en `docs/PLAN-OFF.md`, rama `fase-Off-13`). **13A–13F ✅** (10-nov-2026): preguntas, pausa con Controls, William, Select Map, almacén con montones, tienda y herrero, inicio y Select Character, y **Create New Character** (caja de nombre, filas ◀ ▶, Create como botón, Y = nombre al azar).
-- **Siguiente:** cerrar la Off-13 con `/checkpoint fase` (fusionar en `master`, etiqueta `fase-Off-13`) cuando el propietario dé el OK; después, nueva fase de Off por decidir.
+- **Off-13 ✅** (10-nov-2026, fusionada en `master`): el estilo nuevo de la Off-12 en todas las ventanas (preguntas, pausa, William, Select Map, almacén, tienda y herrero, inicio, Select Character y Create New Character). Detalle por bloque en `PROGRESS-historial.md`.
+- **Siguiente:** fase nueva de Off por decidir con el propietario (candidatas: 11D magias sin dibujo, Detect Invisibility, probar con mando real).
 - **UI:** todo cambio de interfaz pasa por el agente `revisor-ui` (critica el boceto antes de programar y revisa después). La revisión de todas las ventanas viejas (10-nov-2026) está resumida por bloque en PLAN-OFF.md; cada fallo se arregla al rehacer su pantalla.
-- Off-0 a Off-12 ✅ (6 → 10-nov-2026), fusionadas en `master` y escondidas tras `?off`. Pendientes sin fase: 11D (magias sin dibujo) y Detect Invisibility. 12D y 13A–13F sin probar con mando real. Con 0 de oro, el "0" de Alegreya (cifras antiguas) se ve pequeño en las ventanas nuevas.
+- Off-0 a Off-13 ✅ (6 → 10-nov-2026), fusionadas en `master` y escondidas tras `?off`. Pendientes sin fase: 11D (magias sin dibujo) y Detect Invisibility. 12D y la Off-13 sin probar con mando real. Con 0 de oro, el "0" de Alegreya (cifras antiguas) se ve pequeño en las ventanas nuevas.
 
 ## A vigilar
 - Lanzar con RT + botones ya probado con mando real (9-nov-2026); Critical Strike con LT, sin probar.
