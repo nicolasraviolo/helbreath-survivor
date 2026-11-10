@@ -67,7 +67,7 @@ export const OFF_THEME_INK = {
     dim: '#a8997a',
     /** "(now …)" comparisons and fine print. */
     note: '#978769',
-    /** Filler of empty slots and keys ("Empty"), and disabled buttons. */
+    /** Filler of empty slots and keys ("Empty"). Off-13D: disabled buttons use `dim` (faint gave 3.3:1). */
     faint: '#7d6a4a',
     gold: '#d8b46a',
     /** Section labels inside lists (CIRCLE 3). */
@@ -111,6 +111,8 @@ export const OFF_THEME_TEXT = {
     /** Section labels in capitals (EQUIPMENT, KEYS). */
     label: { font: TEXT_FONT, weight: '400', size: 11, color: OFF_THEME_INK.gold, spacing: 1.3, minSize: 10 },
     /** The letters of a pad badge or pill. */
+    /** Off-13C: the count of a stack in a cell ("20"), bolder than `small` so a 2 doesn't read as a z. */
+    count: { font: TEXT_FONT, weight: '500', size: 13, color: OFF_THEME_INK.text, spacing: 0, minSize: 13 },
     badge: { font: TEXT_FONT, weight: '500', size: 11, color: OFF_THEME_INK.dark, spacing: 0, minSize: 10 },
 } as const;
 export type OffTextKind = keyof typeof OFF_THEME_TEXT;
@@ -153,7 +155,7 @@ export const OFF_THEME_SIZE = {
     cellGap: 2,
     /** A potion count sits this far inside the cell's bottom-right corner, with an outline this thick. */
     countInset: 2,
-    countOutline: 3,
+    countOutline: 2,
     /** Square tile with the item or spell picture in a card. */
     iconTile: 40,
     /** Equipment slot (icon + name). */
@@ -162,9 +164,14 @@ export const OFF_THEME_SIZE = {
     /** Space between a bar's label line and the bar. */
     barGap: 3,
     badge: 18,
+    /** Off-13E: thickness of the d-pad cross's arms in a hints row. */
+    dpadArm: 6,
     /** Pill for LB / RB / Start: height, side padding. */
     pillHeight: 16,
     pillPadding: 5,
+    /** Pad hints row (Off-13B, as the question's): badge to its word, and between two hints. */
+    hintBadgeGap: 6,
+    hintGap: 18,
     /** Divider: the small diamond in the middle and the gap around it. */
     diamond: 3,
     diamondGap: 7,
@@ -181,4 +188,18 @@ export const OFF_THEME_SIZE = {
     stepperButton: 28,
     stepperValueWidth: 56,
     stepperSign: 6,
+    /** Off-13F: the short stepper row (Create New Character, five stats under five look rows). */
+    stepperCompactHeight: 28,
+    stepperCompactButton: 24,
+    /** Off-13F: text box (the name), its blinking cursor (width, and how much shorter than the box). */
+    textBoxHeight: 30,
+    cursorWidth: 2,
+    cursorInset: 8,
+    /** Off-13F: gap between the cursor and the placeholder text that follows it. */
+    cursorGap: 3,
+    /** Off-13F: option row ‹ value ›: its height, the square arrow buttons, the value between them, the triangle's half-size. */
+    optionRowHeight: 26,
+    optionArrow: 22,
+    optionValueWidth: 96,
+    optionTriangle: 4,
 } as const;

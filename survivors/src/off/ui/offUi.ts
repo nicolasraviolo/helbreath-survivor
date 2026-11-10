@@ -1,6 +1,6 @@
 // Helbreath Off, Fase Off-12A: las piezas del estilo nuevo de las ventanas (colores y medidas en off/config/offTheme.ts).
 // Marco, pestaña, botón (principal dorado, normal, rojo), cierre ✕, casilla de objeto, fila de lista, fila de tecla,
-// fila de stat con − / + (Off-12C),
+// fila de stat con − / + (Off-12C), caja de texto y fila de opción ◀ valor ▶ (Off-13F),
 // separador con rombo, fila de dato con comparación (▲ / ▼ además del color), barra, circulito A/B/X/Y y pastilla
 // LB / RB / Start.
 // - **Nada se sale de su caja**: los textos con ancho máximo se encogen hasta `minSize` (offTheme) y, si aun así no
@@ -170,6 +170,10 @@ export interface OffControl {
     setVisible(visible: boolean): void;
     /** What a click does (A / Enter call it). Nothing while disabled or hidden. */
     press(): void;
+    /** Can it be pressed now (enabled and visible)? A focus group skips the ones that can't. */
+    isEnabled(): boolean;
+    /** Called when the mouse comes over it (a focus group moves its ring there: never two lit pieces at once). */
+    setOnHover(onHover: (() => void) | undefined): void;
     destroy(): void;
 }
 
@@ -190,6 +194,7 @@ function makeControl(
     pieceParts: readonly Phaser.GameObjects.GameObject[], draw: (state: Readonly<ControlState>) => void,
 ): OffControl & { readonly state: Readonly<ControlState>; redraw(): void } {
     const state: ControlState = { hover: false, focused: false, enabled: true, visible: true };
+    let onHover: (() => void) | undefined;
     const zone = scene.add.zone(x, y, w, h).setOrigin(0, 0).setInteractive({ useHandCursor: true });
     // The focus ring goes on its own layer above everything: the cell next door would cover it otherwise.
     const ring = scene.add.graphics().setDepth(S.focusDepth);
@@ -206,6 +211,7 @@ function makeControl(
     zone.on(Phaser.Input.Events.POINTER_OVER, () => {
         state.hover = true;
         redraw();
+        if (state.enabled && state.visible) onHover?.();
     });
     zone.on(Phaser.Input.Events.POINTER_OUT, () => {
         state.hover = false;
@@ -214,6 +220,10 @@ function makeControl(
     redraw();
     return {
         x, y, width: w, height: h, state, redraw, press,
+        isEnabled: () => state.enabled && state.visible,
+        setOnHover: (f) => {
+            onHover = f;
+        },
         setFocused: (f) => {
             state.focused = f;
             redraw();
@@ -245,7 +255,11 @@ export type OffButtonVariant = 'main' | 'normal' | 'danger';
 export interface OffButton extends OffControl {
     setLabel(label: string): void;
     setVariant(variant: OffButtonVariant): void;
+    /** Off-13F: "this one is applied" (Warrior / Magician): darker fill, green text with a ✓ (not the gold of the focus). */
+    setChecked(checked: boolean): void;
 }
+
+const CHECK_MARK = '✓ ';
 
 export function offButton(
     scene: Phaser.Scene, x: number, y: number, label: string, variant: OffButtonVariant, onClick: () => void,
@@ -254,23 +268,33 @@ export function offButton(
     const g = scene.add.graphics();
     const text = offText(scene, x + width / 2, y + height / 2, label, 'body', { originX: 0.5, originY: 0.5 });
     let current = variant;
+    let base = label;
+    let checked = false;
     const control = makeControl(scene, x, y, width, height, onClick, [g, text], (s) => {
         g.clear();
         const main = current === 'main' && s.enabled;
-        const fill = main ? (hovering(s) ? C.goldLight : C.gold) : hovering(s) ? C.hover : C.button;
-        g.fillStyle(fill, 1).fillRect(x, y, width, height);
+        const rest = checked ? C.marked : C.button;
+        const fill = main ? (hovering(s) ? C.goldLight : C.gold) : hovering(s) ? C.hover : rest;
+        // Off-13E (revisor-ui): a disabled button has no fill, so it doesn't look like a normal one.
+        if (s.enabled) g.fillStyle(fill, 1).fillRect(x, y, width, height);
         g.lineStyle(1, main ? C.goldLight : s.enabled ? C.bronze : C.line, 1).strokeRect(x + 0.5, y + 0.5, width - 1, height - 1);
-        text.setColor(!s.enabled ? INK.faint : main ? INK.onGold : current === 'danger' ? INK.bad : INK.text);
+        text.setText(checked ? CHECK_MARK + base : base);
+        text.setColor(!s.enabled ? INK.dim : main ? INK.onGold : current === 'danger' ? INK.bad : checked ? INK.good : INK.text);
         offFitText(text, 'body', width - S.textInset * 2);
     });
     return {
         ...control,
         setLabel: (l) => {
-            text.setText(l);
+            base = l;
             control.redraw();
         },
         setVariant: (v) => {
             current = v;
+            control.redraw();
+        },
+        setChecked: (c) => {
+            if (c === checked) return;
+            checked = c;
             control.redraw();
         },
     };
@@ -338,7 +362,7 @@ export interface OffCell extends OffControl {
 export function offCell(scene: Phaser.Scene, x: number, y: number, size: number = S.cell, onClick: () => void = () => undefined): OffCell {
     const g = scene.add.graphics();
     const icon = scene.add.image(x + size / 2, y + size / 2, '__DEFAULT').setVisible(false);
-    const count = offText(scene, x + size - S.countInset, y + size - S.countInset, '', 'small', { color: INK.text, originX: 1, originY: 1 })
+    const count = offText(scene, x + size - S.countInset, y + size - S.countInset, '', 'count', { originX: 1, originY: 1 })
         .setStroke(INK.dark, S.countOutline)
         .setVisible(false);
     let marked = false;
@@ -391,13 +415,16 @@ export interface OffListRow extends OffControl {
 /**
  * A selectable list row (spells, items): columns of text, a line under it; marked = gold bar on the left and darker
  * gold fill. The first column is the name: it takes the room the others leave and shrinks if needed.
+ * Off-13D: `indent` leaves room before the name (the store draws the item's picture there).
  */
-export function offListRow(scene: Phaser.Scene, x: number, y: number, width: number, columns: readonly OffListColumn[], onClick: () => void): OffListRow {
+export function offListRow(
+    scene: Phaser.Scene, x: number, y: number, width: number, columns: readonly OffListColumn[], onClick: () => void, indent = 0,
+): OffListRow {
     const h = S.listRowHeight;
     const pad = S.listRowPadding;
     const g = scene.add.graphics();
     const fixed = columns.slice(1).reduce((sum, c) => sum + (c.width ?? 0), 0);
-    const placed = columns.map((col, i) => ({ col, w: i === 0 ? width - pad * 2 - fixed : col.width ?? 0, left: x + pad }));
+    const placed = columns.map((col, i) => ({ col, w: i === 0 ? width - pad * 2 - fixed - indent : col.width ?? 0, left: x + pad + (i === 0 ? indent : 0) }));
     // The other columns sit side by side from the right edge, the last one at the far right.
     let cursor = x + width - pad;
     for (let i = placed.length - 1; i > 0; i -= 1) {
@@ -495,9 +522,11 @@ export interface OffStepperRow extends OffControl {
 export function offStepperRow(
     scene: Phaser.Scene, x: number, y: number, width: number, label: string,
     onMinus: () => void, onPlus: () => void, onClick: () => void,
+    /** Off-13F: `true` = the short row (stepperCompactHeight, stepperCompactButton). */
+    compact = false,
 ): OffStepperRow {
-    const h = S.stepperRowHeight;
-    const b = S.stepperButton;
+    const h = compact ? S.stepperCompactHeight : S.stepperRowHeight;
+    const b = compact ? S.stepperCompactButton : S.stepperButton;
     const mid = y + h / 2;
     const pad = S.listRowPadding;
     const plusX = x + width - pad - b;
@@ -554,6 +583,108 @@ export function offStepperRow(
         },
         setMinusEnabled: (e) => minus.setEnabled(e),
         setPlusEnabled: (e) => plus.setEnabled(e),
+    };
+}
+
+export interface OffTextBox extends OffControl {
+    /** What it shows: the typed text (with the cursor while `cursor`), or the placeholder in a fainter ink. */
+    setText(text: string, placeholder: boolean, cursor: boolean): void;
+    /** Small text on the right ("7/10"). */
+    setCounter(text: string): void;
+}
+
+/**
+ * Off-13F: a text box (the character's name). Dark well, bronze border (gold with the focus, plus the ring), the text
+ * in the name font and a gold cursor after it. It doesn't read keys: the window types into it (ui/TextInput.ts).
+ */
+export function offTextBox(scene: Phaser.Scene, x: number, y: number, width: number, onClick: () => void, height: number = S.textBoxHeight): OffTextBox {
+    const g = scene.add.graphics();
+    const pad = S.listRowPadding;
+    const mid = y + height / 2;
+    const value = offText(scene, x + pad, mid, '', 'name', { originY: 0.5 });
+    const counter = offText(scene, x + width - pad, mid, '', 'small', { originX: 1, originY: 0.5 });
+    const cursor = scene.add.rectangle(0, y + S.cursorInset, S.cursorWidth, height - S.cursorInset * 2, C.gold).setOrigin(0, 0);
+    const control = makeControl(scene, x, y, width, height, onClick, [g, value, counter, cursor], (s) => {
+        g.clear();
+        g.fillStyle(C.cell, 1).fillRect(x, y, width, height);
+        g.lineStyle(1, s.focused ? C.gold : hovering(s) ? C.goldLight : C.bronze, 1).strokeRect(x + 0.5, y + 0.5, width - 1, height - 1);
+    });
+    let atStart = true;
+    /** Shrinks the text to leave room for the counter, and puts the cursor after it (at the start on the placeholder). */
+    const fit = (): void => {
+        // Con el texto de ejemplo, el cursor va al principio y el ejemplo empieza justo después (sin pisarlo).
+        const textX = atStart ? x + pad + S.cursorWidth + S.cursorGap : x + pad;
+        value.setX(textX);
+        offFitText(value, 'name', width - pad - (textX - x) - S.rowGap - counter.width);
+        cursor.setX(atStart ? x + pad : value.x + value.width + 1);
+    };
+    return {
+        ...control,
+        setText: (text, placeholder, showCursor) => {
+            value.setText(text).setColor(placeholder ? INK.note : INK.text);
+            atStart = placeholder;
+            fit();
+            cursor.setVisible(showCursor && control.state.visible);
+        },
+        setCounter: (text) => {
+            if (text === counter.text) return;
+            counter.setText(text);
+            fit();
+        },
+    };
+}
+
+export interface OffOptionRow extends OffControl {
+    setValue(value: string): void;
+}
+
+/**
+ * Off-13F: a row to pick one of several values: name on the left, then ◀ value ▶ on the right. The row takes the focus
+ * (the window turns ← / → into ◀ / ▶); the arrows take clicks on the full row height, a little wider than drawn.
+ */
+export function offOptionRow(
+    scene: Phaser.Scene, x: number, y: number, width: number, label: string,
+    onPrev: () => void, onNext: () => void, onClick: () => void, height: number = S.optionRowHeight,
+): OffOptionRow {
+    const a = S.optionArrow;
+    const pad = S.listRowPadding;
+    const mid = y + height / 2;
+    const nextX = x + width - pad - a;
+    const prevX = nextX - S.optionValueWidth - a;
+    const g = scene.add.graphics();
+    const name = offText(scene, x + pad, mid, label, 'body', { originY: 0.5, maxWidth: prevX - S.rowGap - x - pad });
+    const value = offText(scene, prevX + a + S.optionValueWidth / 2, mid, '', 'body', { originX: 0.5, originY: 0.5 });
+    const row = makeControl(scene, x, y, width, height, onClick, [g, name, value], (s) => {
+        g.clear();
+        if (hovering(s)) g.fillStyle(C.hover, 1).fillRect(x, y, width, height - 1);
+        g.fillStyle(C.rowLine, 1).fillRect(x, y + height - 1, width, 1);
+    });
+    const arrow = (ax: number, forward: boolean, onPress: () => void): OffControl => {
+        const ag = scene.add.graphics();
+        // Click zone: the whole row height and the gap beside the arrow (the drawn square is smaller).
+        const zx = ax - S.rowGap / 2;
+        return makeControl(scene, zx, y, a + S.rowGap, height, onPress, [ag], (s) => {
+            ag.clear();
+            const top = mid - a / 2;
+            ag.fillStyle(hovering(s) ? C.hover : C.button, 1).fillRect(ax, top, a, a);
+            ag.lineStyle(1, s.enabled ? C.bronze : C.line, 1).strokeRect(ax + 0.5, top + 0.5, a - 1, a - 1);
+            const t = S.optionTriangle;
+            const cx = ax + a / 2;
+            ag.fillStyle(Phaser.Display.Color.HexStringToColor(s.enabled ? INK.text : INK.faint).color, 1);
+            if (forward) ag.fillTriangle(cx - t / 2, mid - t, cx - t / 2, mid + t, cx + t, mid);
+            else ag.fillTriangle(cx + t / 2, mid - t, cx + t / 2, mid + t, cx - t, mid);
+        });
+    };
+    const prev = arrow(prevX, false, onPrev);
+    const next = arrow(nextX, true, onNext);
+    return {
+        ...row,
+        setVisible: (v) => [row, prev, next].forEach((c) => c.setVisible(v)),
+        destroy: () => [row, prev, next].forEach((c) => c.destroy()),
+        setValue: (v) => {
+            value.setText(v);
+            offFitText(value, 'body', S.optionValueWidth - S.textInset * 2);
+        },
     };
 }
 
@@ -642,6 +773,10 @@ export function offBarHeight(scene: Phaser.Scene): number {
 
 // ---------------------------------------------------------------- mando
 
+function isOffPadButton(button: string): button is OffPadButton {
+    return button in OFF_THEME_PAD;
+}
+
 /** A round gamepad badge (A green, B red, X blue, Y yellow) centred on (cx, cy). */
 export function offPadBadge(scene: Phaser.Scene, cx: number, cy: number, button: OffPadButton): Phaser.GameObjects.Container {
     const circle = scene.add.circle(0, 0, S.badge / 2, OFF_THEME_PAD[button]);
@@ -656,4 +791,198 @@ export function offPadPill(scene: Phaser.Scene, x: number, cy: number, label: st
     const g = scene.add.graphics();
     g.fillStyle(C.padPill, 1).fillRoundedRect(-width / 2, -S.pillHeight / 2, width, S.pillHeight, S.pillHeight / 2);
     return { pill: scene.add.container(x + width / 2, cy, [g, letters]), width };
+}
+
+/** Off-13E: in a hints row, this "button" draws the pad's cross ("(+) Move"). */
+export const OFF_PAD_DPAD = 'dpad';
+
+/** The pad's cross (d-pad) as a small grey plus, centred on (cx, cy), as big as a badge. */
+export function offPadDpad(scene: Phaser.Scene, cx: number, cy: number): Phaser.GameObjects.Graphics {
+    const g = scene.add.graphics({ x: cx, y: cy });
+    const half = S.badge / 2;
+    const arm = S.dpadArm / 2;
+    g.fillStyle(C.padPill, 1);
+    g.fillRoundedRect(-arm, -half, arm * 2, S.badge, 2).fillRoundedRect(-half, -arm, S.badge, arm * 2, 2);
+    return g;
+}
+
+/**
+ * Off-13B: the pad hints row of a window ("(A) Select   (B) Back"), centred on (cx, cy). Hidden at first: the window
+ * shows it while the pad is in use (its row is kept anyway, so the window doesn't change size). Off-13C: a button
+ * other than A / B / X / Y ("LB / RB") goes in a pill.
+ */
+export function offPadHints(scene: Phaser.Scene, cx: number, cy: number, hints: readonly (readonly [OffPadButton | string, string])[]): Phaser.GameObjects.Container {
+    const parts: Phaser.GameObjects.GameObject[] = [];
+    let x = 0;
+    hints.forEach(([button, word], i) => {
+        if (i > 0) x += S.hintGap;
+        if (isOffPadButton(button)) {
+            parts.push(offPadBadge(scene, x + S.badge / 2, 0, button));
+            x += S.badge + S.hintBadgeGap;
+        } else if (button === OFF_PAD_DPAD) {
+            parts.push(offPadDpad(scene, x + S.badge / 2, 0));
+            x += S.badge + S.hintBadgeGap;
+        } else {
+            const pill = offPadPill(scene, x, 0, button);
+            parts.push(pill.pill);
+            x += pill.width + S.hintBadgeGap;
+        }
+        const t = offText(scene, x, 0, word, 'small', { originY: 0.5 });
+        parts.push(t);
+        x += t.width;
+    });
+    return scene.add.container(Math.round(cx - x / 2), cy, parts).setVisible(false);
+}
+
+// ---------------------------------------------------------------- tarjeta que se pulsa (Off-13B)
+
+/**
+ * A framed card that is itself the button (a map in Select Map): darker border at rest, bronze under the mouse, gold
+ * while it has the focus (plus the ring). Its contents are added by the window after it, on top.
+ */
+export function offCardControl(scene: Phaser.Scene, x: number, y: number, w: number, h: number, onClick: () => void): OffControl {
+    const g = scene.add.graphics();
+    const control = makeControl(scene, x, y, w, h, onClick, [g], (s) => {
+        g.clear();
+        g.fillStyle(hovering(s) || s.focused ? C.marked : C.card, 1).fillRect(x, y, w, h);
+        const border = !s.enabled ? C.line : s.focused ? C.gold : hovering(s) ? C.bronze : C.line;
+        g.lineStyle(1, border, 1).strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+    });
+    return control;
+}
+
+// ---------------------------------------------------------------- foco (Off-13A)
+
+export interface OffFocusGroup {
+    /** Index of the piece with the ring (-1 when none can take it). */
+    index(): number;
+    /** Puts the ring on piece i (the next one that can be pressed, if i can't). */
+    focusAt(i: number): void;
+    /**
+     * One step along the group (−1 / +1), skipping the pieces that can't be pressed. False at the edge: the window
+     * decides what lies beyond (another group, or nothing).
+     */
+    move(step: number): boolean;
+    /** Presses the piece with the ring (A / Enter). */
+    press(): void;
+    /** Takes the ring off (the focus went to another group). */
+    blur(): void;
+}
+
+/**
+ * Carries the keyboard / pad ring along a row or column of pieces (buttons of a question, a pause menu). The mouse
+ * moves the ring too: the piece under it takes it, so only one piece is ever lit.
+ */
+export function offFocusGroup(controls: readonly OffControl[], start = 0): OffFocusGroup {
+    let at = -1;
+    const pressable = (i: number): boolean => controls[i]?.isEnabled() ?? false;
+    const set = (i: number): void => {
+        if (at >= 0) controls[at]?.setFocused(false);
+        at = i;
+        if (at >= 0) controls[at]?.setFocused(true);
+    };
+    const nearest = (i: number): number => {
+        for (let d = 0; d < controls.length; d += 1) {
+            if (pressable(i + d)) return i + d;
+            if (pressable(i - d)) return i - d;
+        }
+        return -1;
+    };
+    controls.forEach((c, i) => c.setOnHover(() => set(i)));
+    set(nearest(start));
+    return {
+        index: () => at,
+        focusAt: (i) => set(nearest(i)),
+        move: (step) => {
+            for (let i = at + step; i >= 0 && i < controls.length; i += step) {
+                if (pressable(i)) {
+                    set(i);
+                    return true;
+                }
+            }
+            return false;
+        },
+        press: () => {
+            if (at >= 0) controls[at]?.press();
+        },
+        blur: () => set(-1),
+    };
+}
+
+// ---------------------------------------------------------------- tarjeta de personaje (Off-13E)
+
+/** Inside measures of a character slot card, from its top-left corner (the window passes its own). */
+export interface OffSlotCardLayout {
+    width: number;
+    height: number;
+    pad: number;
+    /** Dark well for the character, from the top (its width is the card's minus pad on each side). */
+    wellHeight: number;
+    /** The character's feet, from the well's top. */
+    feetInWell: number;
+    /** Top of the name, and of the Level and EXP rows. */
+    nameTop: number;
+    rowsTop: number;
+    /** "Empty" and its line under it, around the card's middle. */
+    emptyLineGap: number;
+}
+
+/** What a card shows: the character (undefined = an empty slot) and its words. */
+export interface OffSlotCardContent {
+    character: { name: string; level: string; exp: string } | undefined;
+    levelLabel: string;
+    expLabel: string;
+    emptyLabel: string;
+    emptyLine: string;
+}
+
+export interface OffSlotCard extends OffControl {
+    /** The chosen slot: thin gold border and darker fill (the ring is the focus, apart). */
+    setMarked(marked: boolean): void;
+    /** Where the window stands the character sprite (its feet). */
+    readonly feetX: number;
+    readonly feetY: number;
+}
+
+/**
+ * A character slot of Select Character: the card is the button. With a character, a dark well for the walking
+ * sprite (the window adds it), the name and Level / EXP rows; empty, "Empty" and a line under it. Marked = thin gold
+ * border; the focus ring (keyboard / pad) goes outside it, as on every piece.
+ */
+export function offSlotCard(
+    scene: Phaser.Scene, x: number, y: number, layout: OffSlotCardLayout, content: OffSlotCardContent, onClick: () => void,
+): OffSlotCard {
+    const { width: w, height: h, pad } = layout;
+    const g = scene.add.graphics();
+    let marked = false;
+    const control = makeControl(scene, x, y, w, h, onClick, [g], (s) => {
+        g.clear();
+        g.fillStyle(marked || hovering(s) ? C.marked : C.card, 1).fillRect(x, y, w, h);
+        g.lineStyle(1, marked ? C.gold : hovering(s) ? C.bronze : C.line, 1).strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+        if (content.character) {
+            g.fillStyle(C.well, 1).fillRect(x + pad, y + pad, w - pad * 2, layout.wellHeight);
+            g.lineStyle(1, C.cellBorder, 1).strokeRect(x + pad + 0.5, y + pad + 0.5, w - pad * 2 - 1, layout.wellHeight - 1);
+        }
+    });
+    const cx = x + w / 2;
+    const innerW = w - pad * 2;
+    const c = content.character;
+    if (c) {
+        offText(scene, cx, y + layout.nameTop, c.name, 'name', { originX: 0.5, maxWidth: innerW });
+        offStatRow(scene, x + pad, y + layout.rowsTop, innerW, content.levelLabel, c.level);
+        offStatRow(scene, x + pad, y + layout.rowsTop + S.rowHeight, innerW, content.expLabel, c.exp);
+    } else {
+        const mid = y + h / 2;
+        offText(scene, cx, mid - layout.emptyLineGap / 2, content.emptyLabel, 'name', { originX: 0.5, originY: 1, color: INK.dim, maxWidth: innerW });
+        offText(scene, cx, mid + layout.emptyLineGap / 2, content.emptyLine, 'small', { originX: 0.5, maxWidth: innerW });
+    }
+    return {
+        ...control,
+        feetX: cx,
+        feetY: y + pad + layout.feetInWell,
+        setMarked: (m) => {
+            marked = m;
+            control.redraw();
+        },
+    };
 }

@@ -16,8 +16,6 @@
 // Desde arriba de cada pestaña, ↑ sube a la cabecera; ← → recorren pestañas y ✕, y ↓ vuelve a bajar.
 // LB / RB y las teclas de cada pestaña llegan en la 12D.
 import Phaser from 'phaser';
-import { setColouredTexture } from '../../hb/additiveTint';
-import { itemPackTexture } from '../../config/equipment';
 import { CHARACTER_INFO_INPUT_DELAY_MS } from '../../config/characterInfo';
 import { GAME_HEIGHT, GAME_WIDTH } from '../../config/gameConfig';
 import { EQUIP_SLOT_NAMES } from '../../data/items';
@@ -30,15 +28,16 @@ import { OFF_THEME_COLOR, OFF_THEME_INK, OFF_THEME_SIZE } from '../config/offThe
 import { OFF_BAG_TEXT } from '../data/offBag';
 import { offGood } from '../data/offGoods';
 import {
-    isOffGearKey, offBagItemPicture, offEquipmentLook, offGearDef, offItemTint, offWearCheck,
-    type OffBagItemKey, type OffEquipment, type OffSlotId, type OffWearer,
+    isOffGearKey, offEquipmentLook, offGearDef, offStacks, offWearCheck,
+    type OffBagItemKey, type OffItemStack, type OffEquipment, type OffSlotId, type OffWearer,
 } from '../data/offItems';
 import { OFF_LEVEL, offExpForLevel } from '../data/offLevel';
 import { OFF_LOOT } from '../data/offLoot';
 import { OFF_NOVICE } from '../data/offWorld';
 import type { OffBattle, OffUseResult } from '../systems/OffBattle';
 import { offSaveStore } from '../systems/OffSaveStore';
-import { offEmptySlotCard, offItemCard, type OffItemCard } from '../ui/offItemCard';
+import { offEmptySlotCard, offItemCard, offStackKind, type OffItemCard } from '../ui/offItemCard';
+import { offItemGrid, offItemGridSize, offSetItemIcon, type OffItemGrid } from '../ui/offItemGrid';
 import { OffMagicPage } from '../ui/offMagicPage';
 import { OffStatsPage } from '../ui/offStatsPage';
 import type { OffWindowPage } from '../ui/offWindowPage';
@@ -127,9 +126,10 @@ export class OffBagScene extends Phaser.Scene {
     private focus: Focus = { kind: 'cell', i: 0 };
     private selected: Selected;
     private filter: OffBagFilter = 'all';
-    /** Bag index shown in each cell (by filter). */
-    private shown: number[] = [];
+    /** The stack shown in each cell (by filter; potions and Slime Jelly of a kind share one, Off-13C). */
+    private shown: OffItemStack[] = [];
     private cells: OffCell[] = [];
+    private grid!: OffItemGrid;
     private slotCells: OffCell[] = [];
     private slotLabels: Phaser.GameObjects.Text[] = [];
     private filterTabs: OffTab[] = [];
@@ -349,16 +349,12 @@ export class OffBagScene extends Phaser.Scene {
     }
 
     private createBag(): void {
-        const step = G.cell + G.gap;
-        const wellW = G.columns * step - G.gap + G.wellPad * 2;
-        const wellH = G.rows * step - G.gap + G.wellPad * 2;
         const top = W.top;
-        offBox(this, G.x, top, wellW, wellH, C.well, C.line);
-        for (let i = 0; i < G.columns * G.rows; i += 1) {
-            const x = G.x + G.wellPad + (i % G.columns) * step;
-            const y = top + G.wellPad + Math.floor(i / G.columns) * step;
-            this.cells.push(offCell(this, x, y, G.cell, () => this.clickCell(i)));
-        }
+        const grid = offItemGrid(this, G.x, top, G, (i) => this.clickCell(i));
+        const wellW = grid.width;
+        const wellH = grid.height;
+        this.cells = [...grid.cells];
+        this.grid = grid;
         // Filters: vertical tabs right of the well; the item count under them.
         const fx = G.x + wellW + G.filterGap;
         const fw = W.x + W.w - W.pad - fx;
@@ -374,8 +370,7 @@ export class OffBagScene extends Phaser.Scene {
     }
 
     private createCard(): void {
-        const step = G.cell + G.gap;
-        const wellH = G.rows * step - G.gap + G.wellPad * 2;
+        const wellH = offItemGridSize(G).height;
         const goldLineH = this.goldText.height;
         const x = G.x;
         const y = W.top + wellH + G.goldGap + goldLineH + CARD.gap;
@@ -420,20 +415,40 @@ export class OffBagScene extends Phaser.Scene {
             this.setFocus(this.focus);
             return;
         }
-        this.shown = this.bag.map((_id, index) => index).filter((index) => this.passes(this.bag[index]));
-        // The selected item left the bag (used, dropped, worn): select what is now in that cell.
-        if (this.selected?.kind === 'bag' && this.selected.index >= this.bag.length) {
-            this.selected = this.focus.kind === 'cell' && this.shown[this.focus.i] !== undefined
-                ? { kind: 'bag', index: this.shown[this.focus.i] ?? 0 }
-                : undefined;
+        const stacks = offStacks(this.bag);
+        this.shown = stacks.filter((stack) => this.passes(stack.key));
+        // The selected item left the bag (used, dropped, worn): select what is now in that cell. One of a stack
+        // left: the stack's first item may have moved (Off-13C).
+        if (this.selected?.kind === 'bag') {
+            const stack = this.stackOf(this.selected.index, stacks);
+            if (stack) this.selected = { kind: 'bag', index: stack.first };
+            else {
+                const inCell = this.focus.kind === 'cell' ? this.shown[this.focus.i] : undefined;
+                this.selected = inCell ? { kind: 'bag', index: inCell.first } : undefined;
+            }
         }
         this.drawCells();
         this.drawSlots();
         this.filterTabs.forEach((t, i) => t.setOn(FILTERS[i] === this.filter));
         this.goldText.setText(OFF_BAG_TEXT.gold(saved.gold));
         this.potionsText.setText(OFF_BAG_TEXT.potions(offSaveStore.potionCount, OFF_LOOT.potionLimit));
-        this.countText.setText(OFF_BAG_TEXT.items(this.bag.length, OFF_LOOT.bagSize));
+        this.countText.setText(OFF_BAG_TEXT.items(stacks.length, OFF_LOOT.bagSize));
         this.setFocus(this.focus);
+    }
+
+    /**
+     * The stack holding that bag index: gear by its own index; a good by its kind (the index a stack's first item had
+     * may now hold the next one of the same stack). Undefined if the index is past the bag.
+     */
+    private stackOf(index: number, stacks: readonly OffItemStack[] = offStacks(this.bag)): OffItemStack | undefined {
+        const id = this.bag[index];
+        if (id === undefined) return undefined;
+        return stacks.find((s) => s.first === index || (!isOffGearKey(id) && s.key === id));
+    }
+
+    /** The bag index an action takes from the stack marked: its last item (the stack keeps its cell, Off-13C). */
+    private actionIndex(index: number): number {
+        return this.stackOf(index)?.last ?? index;
     }
 
     private passes(id: OffBagItemKey | undefined): boolean {
@@ -448,12 +463,12 @@ export class OffBagScene extends Phaser.Scene {
         const who = this.wearer;
         const forSlot = this.selected?.kind === 'slot' ? this.selected.slot : undefined;
         const marked = this.selected?.kind === 'bag' ? this.selected.index : undefined;
+        this.grid.show(this.shown, offSaveStore.character.look.gender, this.iconsReady);
         this.cells.forEach((cell, i) => {
-            const index = this.shown[i];
-            const id = index === undefined ? undefined : this.bag[index];
-            cell.setMarked(index !== undefined && index === marked);
+            const stack = this.shown[i];
+            const id = stack?.key;
+            cell.setMarked(stack !== undefined && stack.first === marked);
             cell.setUnmet(id !== undefined && isOffGearKey(id) && offWearCheck(id, who) !== 'ok');
-            this.setIcon(cell.icon, id, G.iconRoom);
             // A slot is marked: what doesn't go in it is dimmed.
             const fits = forSlot === undefined || (id !== undefined && isOffGearKey(id) && offGearDef(id).slot === forSlot);
             cell.icon.setAlpha(fits ? 1 : G.dimAlpha);
@@ -473,14 +488,7 @@ export class OffBagScene extends Phaser.Scene {
     }
 
     private setIcon(image: Phaser.GameObjects.Image, id: OffBagItemKey | undefined, room: number): void {
-        const frame = id !== undefined && this.iconsReady ? offBagItemPicture(id, offSaveStore.character.look.gender) : undefined;
-        if (!frame || id === undefined) {
-            image.setVisible(false);
-            return;
-        }
-        setColouredTexture(image, itemPackTexture(frame.sheet), frame.frame, offItemTint(id));
-        image.setVisible(true);
-        image.setScale(Math.min(1, room / Math.max(image.frame.width, image.frame.height)));
+        offSetItemIcon(image, id, room, offSaveStore.character.look.gender, this.iconsReady);
     }
 
     /** Health, mana, stamina and experience, now (the world goes on underneath). */
@@ -522,6 +530,7 @@ export class OffBagScene extends Phaser.Scene {
             if (id !== undefined) {
                 const worn = isOffGearKey(id) ? this.equipment[offGearDef(id).slot] : undefined;
                 card = offItemCard(id, worn, who);
+                card.kind = offStackKind(card.kind, this.stackOf(sel.index)?.count ?? 1);
                 pictureOf = id;
                 canDrop = true;
                 if (isOffGearKey(id)) {
@@ -583,8 +592,8 @@ export class OffBagScene extends Phaser.Scene {
         this.control(this.focus)?.setFocused(false);
         this.focus = focus;
         if (focus.kind === 'cell') {
-            const index = this.shown[focus.i];
-            this.selected = index === undefined ? undefined : { kind: 'bag', index };
+            const stack = this.shown[focus.i];
+            this.selected = stack === undefined ? undefined : { kind: 'bag', index: stack.first };
         } else if (focus.kind === 'slot') {
             const slot = SLOTS[focus.i];
             if (slot) this.selected = { kind: 'slot', slot };
@@ -760,13 +769,13 @@ export class OffBagScene extends Phaser.Scene {
     private pressMain(): void {
         if (!this.ready()) return;
         const sel = this.selected;
-        if (sel?.kind === 'bag') this.showResult(this.use(sel.index));
+        if (sel?.kind === 'bag') this.showResult(this.use(this.actionIndex(sel.index)));
         else if (sel?.kind === 'slot') this.showResult(this.remove(sel.slot));
     }
 
     private pressDrop(): void {
         if (!this.ready()) return;
-        if (this.selected?.kind === 'bag') this.showResult(this.drop(this.selected.index));
+        if (this.selected?.kind === 'bag') this.showResult(this.drop(this.actionIndex(this.selected.index)));
     }
 
     /** Filter tab: the bag shows only that kind; the focus stays on the tab. */

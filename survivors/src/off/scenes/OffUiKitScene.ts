@@ -4,6 +4,8 @@
 // llegas, oro grande, 120 pociones), para ver de un vistazo que nada se sale ni se solapa. Abajo dice si algún texto no
 // cabe (offLayoutIssues); el check `offuikit` lo devuelve en texto.
 // Las piezas responden al ratón (sin teclado: eso llega con las ventanas de verdad).
+// Off-13F: caja de texto y fila de opción ◀ valor ▶.
+// Off-13A: el botón Dialog (abajo a la derecha) abre la ventana de pregunta de verdad encima (OffDialogScene).
 import Phaser from 'phaser';
 import { setColouredTexture } from '../../hb/additiveTint';
 import { itemPackTexture } from '../../config/equipment';
@@ -12,9 +14,14 @@ import { lookLoader } from '../../systems/LookLoader';
 import { OFF_THEME_COLOR, OFF_THEME_INK, OFF_THEME_SIZE, OFF_THEME_TEXT, type OffPadButton } from '../config/offTheme';
 import { offBagItemPicture, offItemTint, type OffBagItemKey } from '../data/offItems';
 import { offSaveStore } from '../systems/OffSaveStore';
+import { offItemGrid, type OffItemGrid } from '../ui/offItemGrid';
+import { openOverlay } from '../../scenes/MenuOverlayScene';
+import { OFF_DIALOG_TEXT } from '../config/offDialog';
+import { OFF_SLOTS } from '../config/offSlots';
+import { OFF_DIALOG_SCENE_KEY, type OffDialogSceneData } from './OffDialogScene';
 import {
-    offBar, offBarHeight, offBox, offButton, offCell, offCloseButton, offDivider, offFrame, offKeyRow, offLabel,
-    offLayoutIssues, offListRow, offPadPill, offRule, offStatRow, offTab, offText, type OffCell, type OffTab, type OffTrend,
+    offBar, offBarHeight, offBox, offButton, offCloseButton, offDivider, offFrame, offKeyRow, offLabel,
+    offLayoutIssues, offListRow, offOptionRow, offPadPill, offRule, offStatRow, offTab, offText, offTextBox, type OffTab, type OffTrend,
 } from '../ui/offUi';
 
 export const OFF_UI_KIT_SCENE_KEY = 'OffUiKit';
@@ -83,7 +90,7 @@ const SAMPLE_ITEM_ROWS: readonly [string, string, string?, string?, OffTrend?][]
 ];
 
 export class OffUiKitScene extends Phaser.Scene {
-    private cells: OffCell[] = [];
+    private grid!: OffItemGrid;
     private cardIcon!: Phaser.GameObjects.Image;
     private issuesText!: Phaser.GameObjects.Text;
 
@@ -92,7 +99,6 @@ export class OffUiKitScene extends Phaser.Scene {
     }
 
     create(): void {
-        this.cells = [];
         this.cameras.main.setBackgroundColor(KIT.sceneBack);
         const w = KIT.window;
         offFrame(this, w.x, w.y, w.w, w.h, { fill: OFF_THEME_COLOR.window, big: true });
@@ -103,8 +109,23 @@ export class OffUiKitScene extends Phaser.Scene {
         this.issuesText = offText(this, GAME_WIDTH / 2, w.y + w.h - 8, '', 'small', { originX: 0.5, originY: 1 });
         this.add.rectangle(0, GAME_HEIGHT - KIT.hudH, GAME_WIDTH, KIT.hudH, KIT.hudBack).setOrigin(0, 0);
         offText(this, GAME_WIDTH / 2, GAME_HEIGHT - KIT.hudH / 2, 'game HUD', 'small', { originX: 0.5, originY: 0.5 });
+        // Off-13A: opens the real question window over the kit (the kit waits paused underneath).
+        offButton(this, GAME_WIDTH - KIT.pad - S.buttonWidth, GAME_HEIGHT - (KIT.hudH + S.buttonHeight) / 2, 'Dialog', 'normal', () => this.openDialog());
         void lookLoader.ensure(this, ['item.pack']).then(() => this.showIcons());
         this.refreshIssues();
+    }
+
+    /** The question window with the longest texts it gets today (Delete with a 10-letter name). */
+    public openDialog(): void {
+        const data: Omit<OffDialogSceneData, 'returnTo'> = {
+            title: OFF_SLOTS.deleteTitle,
+            question: OFF_SLOTS.deleteQuestion('WWWWWWWWWW'),
+            warning: OFF_SLOTS.deleteWarning,
+            buttons: [{ label: OFF_DIALOG_TEXT.no, variant: 'normal' }, { label: OFF_DIALOG_TEXT.yes, variant: 'danger' }],
+            focus: 0,
+            cancel: 0,
+        };
+        openOverlay(this, OFF_DIALOG_SCENE_KEY, data);
     }
 
     /** For `check offuikit`: texts that don't fit (empty = fine) and whether the fonts loaded. */
@@ -174,6 +195,14 @@ export class OffUiKitScene extends Phaser.Scene {
             if (row.state === 'disabled') r.setEnabled(false);
         });
 
+        // Off-13F: text box (the name), with the focus ring, the cursor and its counter.
+        const boxY = ly + SAMPLE_LIST.length * S.listRowHeight + 8;
+        offLabel(this, inX, boxY, 'Text box');
+        const box = offTextBox(this, inX, boxY + KIT.labelGap, inW, () => undefined);
+        box.setText('WWWWWWWWWW', false, true);
+        box.setCounter('10/10');
+        box.setFocused(true);
+
         const bars: readonly [string, number, string, number][] = [
             ['Health', OFF_THEME_COLOR.health, '140 / 140', 1],
             ['Mana', OFF_THEME_COLOR.mana, '96 / 150', 0.64],
@@ -212,26 +241,26 @@ export class OffUiKitScene extends Phaser.Scene {
         offText(this, px, mid, 'tabs', 'small', { originY: 0.5 });
         y += S.buttonHeight + KIT.sectionGap;
 
-        offLabel(this, col.x, y, 'Cells');
+        offLabel(this, col.x, y, 'Item grid');
         offText(this, col.x + col.w, y, 'Gold 9,999,999', 'small', { originX: 1 });
         y += KIT.labelGap;
-        const step = S.cell + S.cellGap;
-        const wellPad = S.cellGap + 1;
-        offBox(this, col.x, y, step * SAMPLE_CELLS.length - S.cellGap + wellPad * 2, S.cell + wellPad * 2, OFF_THEME_COLOR.well, OFF_THEME_COLOR.line);
-        this.cells = SAMPLE_CELLS.map((c, i) => {
-            const cell = offCell(this, col.x + wellPad + i * step, y + wellPad);
-            cell.setMarked(c.marked === true);
-            cell.setUnmet(c.unmet === true);
-            cell.setFocused(c.focused === true);
-            cell.setCount(c.count);
-            return cell;
+        // Off-13C: the grid piece (one row here); a count above 1 = a stack of potions.
+        this.grid = offItemGrid(this, col.x, y, {
+            columns: SAMPLE_CELLS.length, rows: 1, cell: S.cell, gap: S.cellGap, wellPad: S.cellGap + 1, iconRoom: S.cell - S.countInset * 2,
+        }, () => undefined);
+        this.grid.cells.forEach((cell, i) => {
+            const c = SAMPLE_CELLS[i];
+            cell.setMarked(c?.marked === true);
+            cell.setUnmet(c?.unmet === true);
+            cell.setFocused(c?.focused === true);
         });
-        y += S.cell + wellPad * 2 + KIT.sectionGap;
+        y += this.grid.height + KIT.sectionGap;
 
-        offLabel(this, col.x, y, 'Divider');
-        y += KIT.labelGap + 4;
-        offDivider(this, col.x, y, col.w);
-        y += KIT.sectionGap - 4;
+        // Off-13F: option row ◀ value ▶ (the dividers are in the cards on the right).
+        offLabel(this, col.x, y, 'Option row');
+        y += KIT.labelGap;
+        offOptionRow(this, col.x, y, col.w, 'Hair Color', () => undefined, () => undefined, () => undefined).setValue('Purple');
+        y += S.optionRowHeight + KIT.sectionGap - 4;
 
         offLabel(this, col.x, y, 'Keys');
         offText(this, col.x + col.w, y, '1–4 also RT + pad', 'small', { originX: 1 });
@@ -302,10 +331,8 @@ export class OffUiKitScene extends Phaser.Scene {
             image.setVisible(true);
             image.setScale(Math.min(1, room / Math.max(image.frame.width, image.frame.height)));
         };
-        this.cells.forEach((cell, i) => {
-            const item = SAMPLE_CELLS[i]?.item;
-            if (item !== undefined) place(cell.icon, item, cell.size - S.countInset * 2);
-        });
+        const items = SAMPLE_CELLS.flatMap((c) => (c.item ? [{ key: c.item, count: c.count ?? 1 }] : []));
+        this.grid.show(items, gender, true);
         place(this.cardIcon, 'chainMail', S.iconTile - 4);
     }
 }

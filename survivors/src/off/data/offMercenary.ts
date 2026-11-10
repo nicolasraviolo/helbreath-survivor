@@ -312,13 +312,11 @@ export const OFF_MERCENARY_LOOK = {
 export const OFF_MERCENARY_TEXT = {
     npcName: 'William',
     npcLine: 'Need a sword or a spell at your side?\nI have brave fighters for hire.',
+    /** Off-13B: one line per offer in the new window (what it does for you). */
+    roleLine: { warrior: 'Tank: lots of health and defence.', mage: 'Healer: heals you and casts shields.' } as Readonly<Record<OffMercenaryId, string>>,
+    /** Off-13B: William's line in one row (the new window). */
+    npcShortLine: 'Brave fighters for hire, paid once.',
     title: 'Mercenaries',
-    offer: (name: string, kind: string, level: number, price: number) => `${name} the ${kind} · Level ${level} · ${price} gold`,
-    yourGold: (gold: number) => `You have ${gold} gold.`,
-    hire: (name: string, price: number) => `Hire ${name} (${price} gold)`,
-    hireShort: 'Not enough gold',
-    dismiss: (name: string) => `Dismiss ${name}`,
-    close: 'Close',
     hired: (name: string) => `${name} is now at your side.`,
     dismissed: (name: string) => `${name} has left you.`,
     noGold: 'You don\'t have enough gold.',

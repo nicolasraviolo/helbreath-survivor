@@ -43,7 +43,7 @@ import { cleanName, readLook } from '../../systems/CharacterStore';
 import { isRecord } from '../../systems/SaveStore';
 import { OFF_CREATION, OFF_OLD_SAVE_STATS, OFF_STAT_IDS, OFF_STAT_MAX, type OffStats } from '../data/offCharacter';
 import {
-    isOffGearKey, OFF_START_EQUIPMENT, readOffBagKey, readOffGearKey, offBagKeyId, offGearDef, offHandsClash, offTwoHanded, offWearCheck, readOffEquipment, type OffBagItemId, type OffBagItemKey, type OffEquipment,
+    isOffGearKey, OFF_START_EQUIPMENT, offCutToCells, offStackFits, offStacks, readOffBagKey, readOffGearKey, offBagKeyId, offGearDef, offHandsClash, offTwoHanded, offWearCheck, readOffEquipment, type OffBagItemId, type OffBagItemKey, type OffEquipment,
     type OffGearKey, type OffSlotId,
 } from '../data/offItems';
 import { isOffPotion } from '../data/offGoods';
@@ -167,13 +167,13 @@ class OffSaveStoreImpl {
             this.data = { ...this.data, equipment };
         }
         if (DEBUG_START.offGold !== undefined) this.data = { ...this.data, gold: DEBUG_START.offGold };
-        const bag = DEBUG_START.offBag.map(readOffBagKey).filter((key) => key !== undefined).slice(0, OFF_LOOT.bagSize);
-        if (bag.length > 0) this.data = { ...this.data, bag };
+        const bag = DEBUG_START.offBag.map(readOffBagKey).filter((key) => key !== undefined);
+        if (bag.length > 0) this.data = { ...this.data, bag: offCutToCells(bag, OFF_LOOT.bagSize) };
         const faction = DEBUG_START.offFaction;
         // Off-7E: a faction given by hand starts at home, not where the last test left it.
         if (faction !== undefined) this.data = { ...this.data, faction: faction === 'none' ? undefined : faction, where: undefined };
-        const warehouse = DEBUG_START.offWarehouse.map(readOffBagKey).filter((key) => key !== undefined).slice(0, OFF_STORE.warehouseSize);
-        if (warehouse.length > 0) this.data = { ...this.data, warehouse };
+        const warehouse = DEBUG_START.offWarehouse.map(readOffBagKey).filter((key) => key !== undefined);
+        if (warehouse.length > 0) this.data = { ...this.data, warehouse: offCutToCells(warehouse, OFF_STORE.warehouseSize) };
         const spells = DEBUG_START.offSpells === 'all' ? [...OFF_SPELL_IDS] : DEBUG_START.offSpells.filter(isOffSpellId);
         if (spells.length > 0) {
             const spellKeys = noSpellKeys().map((_, i) => spells[i]);
@@ -273,7 +273,7 @@ class OffSaveStoreImpl {
         // Off-7E: a two-handed weapon and a shield don't go together: the other one goes back to the bag, if it fits.
         const clash = offHandsClash(this.data.equipment, id);
         const clashing = clash ? this.data.equipment[clash] : undefined;
-        if (clashing && worn && this.data.bag.length >= OFF_LOOT.bagSize) return 'bagFull';
+        if (clashing && worn && offStacks(this.data.bag).length >= OFF_LOOT.bagSize) return 'bagFull';
         const bag = [...this.data.bag];
         if (worn) bag[index] = worn;
         else bag.splice(index, 1);
@@ -291,7 +291,7 @@ class OffSaveStoreImpl {
     public unequip(slot: OffSlotId): OffEquipResult {
         const worn = this.data.equipment[slot];
         if (!worn) return 'none';
-        if (this.data.bag.length >= OFF_LOOT.bagSize) return 'bagFull';
+        if (!offStackFits(this.data.bag, worn, OFF_LOOT.bagSize)) return 'bagFull';
         const equipment = { ...this.data.equipment };
         delete equipment[slot];
         this.data = { ...this.data, equipment, bag: [...this.data.bag, worn] };
@@ -350,9 +350,9 @@ class OffSaveStoreImpl {
         return 'ok';
     }
 
-    /** Whether one more of that fits in the bag: 'ok', 'bagFull' or 'potionLimit'. */
+    /** Whether one more of that fits in the bag: 'ok', 'bagFull' or 'potionLimit' (a potion or Jelly joins its stack, Off-13C). */
     public roomFor(id: OffBagItemKey): OffTradeResult {
-        if (this.data.bag.length >= OFF_LOOT.bagSize) return 'bagFull';
+        if (!offStackFits(this.data.bag, id, OFF_LOOT.bagSize)) return 'bagFull';
         if (isOffPotion(id) && this.potionCount >= OFF_LOOT.potionLimit) return 'potionLimit';
         return 'ok';
     }
@@ -380,11 +380,16 @@ class OffSaveStoreImpl {
         return price;
     }
 
-    /** That bag cell into the warehouse, at its end (Off-5B). */
+    /** Whether one more of that fits in the warehouse (a potion or Jelly joins its stack, Off-13C). */
+    public warehouseRoomFor(id: OffBagItemKey): OffTradeResult {
+        return offStackFits(this.data.warehouse, id, OFF_STORE.warehouseSize) ? 'ok' : 'warehouseFull';
+    }
+
+    /** That bag item into the warehouse, at its end (Off-5B; one item of a stack, Off-13C). */
     public store(index: number): OffTradeResult {
         const id = this.data.bag[index];
         if (id === undefined) return 'none';
-        if (this.data.warehouse.length >= OFF_STORE.warehouseSize) return 'warehouseFull';
+        if (this.warehouseRoomFor(id) !== 'ok') return 'warehouseFull';
         const bag = [...this.data.bag];
         bag.splice(index, 1);
         this.data = { ...this.data, bag, warehouse: [...this.data.warehouse, id] };
@@ -392,7 +397,7 @@ class OffSaveStoreImpl {
         return 'ok';
     }
 
-    /** That warehouse cell back into the bag (Off-5B); the potion limit counts, as when picking one up. */
+    /** That warehouse item back into the bag (Off-5B; one of a stack, Off-13C); the potion limit counts, as when picking one up. */
     public takeFromWarehouse(index: number): OffTradeResult {
         const id = this.data.warehouse[index];
         if (id === undefined) return 'none';
@@ -560,8 +565,8 @@ function tidyHands(equipment: OffEquipment, bag: OffBagItemKey[], warehouse: Off
     if (!shield || !equipment.weapon || !offTwoHanded(equipment.weapon)) return { equipment, bag, warehouse };
     const rest = { ...equipment };
     delete rest.shield;
-    if (bag.length < OFF_LOOT.bagSize) return { equipment: rest, bag: [...bag, shield], warehouse };
-    if (warehouse.length < OFF_STORE.warehouseSize) return { equipment: rest, bag, warehouse: [...warehouse, shield] };
+    if (offStackFits(bag, shield, OFF_LOOT.bagSize)) return { equipment: rest, bag: [...bag, shield], warehouse };
+    if (offStackFits(warehouse, shield, OFF_STORE.warehouseSize)) return { equipment: rest, bag, warehouse: [...warehouse, shield] };
     return { equipment, bag, warehouse };
 }
 
@@ -584,7 +589,7 @@ function readStats(value: unknown): OffStats | undefined {
     return stats;
 }
 
-/** The bag (or the warehouse) read back from a save: unknown items are dropped. */
+/** The bag (or the warehouse) read back from a save: unknown items are dropped; cut by cells (stacks, Off-13C). */
 function readBag(value: unknown, size: number = OFF_LOOT.bagSize): OffBagItemKey[] {
     if (!Array.isArray(value)) return [];
     const keys: OffBagItemKey[] = [];
@@ -592,7 +597,7 @@ function readBag(value: unknown, size: number = OFF_LOOT.bagSize): OffBagItemKey
         const key = typeof text === 'string' ? readOffBagKey(text) : undefined;
         if (key) keys.push(key);
     }
-    return keys.slice(0, size);
+    return offCutToCells(keys, size);
 }
 
 /**

@@ -5,7 +5,7 @@
 // - Aresden y Elvine: la ciudad entera (Off-5C; ~17,8 MB de suelo frente a 10,8 del recorte de la Off-5A), con la
 //   tienda, el herrero y el almacén (Off-5B), sus 8 pits (offPits.ts) y un portal nuestro (el efecto del teleport de
 //   la ciudad de Survivors) que vuelve a Traveler Zone.
-// - Al pisar el portal de una ciudad sin bando, sale "Do you want to join ...?" (OffConfirmScene); con Yes, el
+// - Al pisar el portal de una ciudad sin bando, sale "Do you want to join ...?" (OffDialogScene desde la Off-13A); con Yes, el
 //   personaje queda unido para siempre (propietario, 6-nov-2026). Ya unido, su portal lleva directo a su ciudad y el
 //   del otro bando no deja pasar.
 // - Al morir se vuelve a la ciudad propia; sin bando, a Traveler Zone.
@@ -333,13 +333,14 @@ export function offArrivalIn(place: OffPlaceId, faction: OffFaction | undefined)
 }
 
 export const OFF_PLACE_TEXT = {
-    joinTitle: (faction: OffFaction) => OFF_PLACES[offCityOf(faction)].name,
+    joinTitle: (faction: OffFaction) => `Join ${OFF_PLACES[offCityOf(faction)].name}`,
     joinQuestion: (faction: OffFaction) => `Do you want to join ${OFF_PLACES[offCityOf(faction)].name}?`,
     joinWarning: 'You can never change it.',
     joined: (faction: OffFaction) => `You are now a citizen of ${OFF_PLACES[offCityOf(faction)].name}.`,
     otherCity: (faction: OffFaction) => `Only citizens of ${OFF_PLACES[offCityOf(faction)].name} can enter.`,
     mapSelectTitle: 'Select Map',
-    mapSelectPlay: 'Play',
+    /** Off-13B: where you are now (the place you stand in is never a card). */
+    mapSelectHere: (place: string) => `You are in ${place}.`,
+    mapSelectTravel: 'Travel',
     mapSelectBack: 'Back',
-    mapSelectHelp: (place: string) => `Press Play to go to ${place}.`,
 } as const;

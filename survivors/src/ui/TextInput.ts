@@ -78,6 +78,15 @@ export class TextInput {
         this.element.blur();
     }
 
+    /** Off-13F: replaces the text (the Random name button), cleaned like typed text; onChange is called. */
+    public setValue(value: string): void {
+        const cleaned = this.options.clean(value);
+        this.element.value = cleaned;
+        const end = cleaned.length;
+        if (this.isFocused) this.element.setSelectionRange(end, end);
+        this.options.onChange(cleaned);
+    }
+
     private setFocused(focused: boolean): void {
         if (focused === this.isFocused) return;
         this.isFocused = focused;
