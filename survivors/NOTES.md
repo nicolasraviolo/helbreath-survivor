@@ -158,6 +158,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Magias de los círculos 8–10 en Off (Off-11C)
 - Estilo nuevo de ventanas (Off-12A)
 - Ventana del personaje con la bolsa (Off-12B)
+- Pestañas Stats y Magic (Off-12C)
 
 ## Sprites (`.spr`): formato y carga
 - **Binario little-endian:**
@@ -1737,3 +1738,12 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - Los huecos llevan nombres cortos (`OFF_BAG_TEXT.slotNames`): "Body armor" no cabe en 44 px.
 - La bolsa filtrada enseña índices de la bolsa (`shown`); las funciones de desarrollo (`use`, `drop`, `debugMark`) usan siempre el índice real de la bolsa.
 - La acción de teclado `OffOpenEquipment` (E) se quitó: E solo bebe maná.
+
+## Pestañas Stats y Magic (Off-12C)
+- `off/ui/offStatsPage.ts` y `off/ui/offMagicPage.ts` implementan `OffWindowPage` (`off/ui/offWindowPage.ts`): la escena `OffBagScene` dibuja cabecera y columna del personaje y les pasa flechas, A y el resto de teclas (`handleInput`; si devuelve true, B no cierra: RT + B / RT + X ponen magias).
+- **Cambiar de pestaña = `scene.restart`** con `tab`, `pending` (puntos sin confirmar) y `fromTab` (sin espera de entrada, foco en la pestaña). Más simple que esconder y enseñar cada pieza; la columna del personaje se vuelve a montar igual.
+- **RT + A/B/X/Y = teclas 1–4.** `padSpells` desapareció del guardado (versión 14): al leer uno viejo, una tecla 1–4 vacía se llena con la magia de ese botón. `OffWorldScene` lee `spellKeys[0..3]` para el mando y la cruz.
+- C / Y abren la ventana en Stats y B en Magic (Bag si no sabes magias); `OffSpellBookScene` y `offCharacterInfo.ts` se borraron. El modo `off` de `scenes/CharacterInfoScene.ts` (Survivors) se quedó sin uso: se puede quitar cuando se toque esa escena.
+- Off esconde How to Play en su pausa (`hideHowToPlay`): los controles nuevos no se explican en ningún sitio todavía.
+- `offStepperRow` (fila con − / +): la fila coge el foco y la ventana convierte ← → en − / +; los botones solo toman clics (su zona va encima de la de la fila).
+- La lista de magias deja 8 px bajo las filas para la flecha de "hay más" (`moreArrowRoom`): pegada, tocaba el anillo de foco. Las flechas van dibujadas (Alegreya Sans no tiene ▲ / ▼).

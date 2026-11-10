@@ -25,6 +25,8 @@ export interface OffBoxLine {
     value: string;
     /** Value colour (requirements: green / red). */
     valueColor?: string;
+    /** Off-12C: a requirement line, met or not (the new card colours it from this). */
+    met?: boolean;
     /** "(now …)" and whether the marked item is better (1), worse (−1) or the same (0). */
     now?: { text: string; better: number };
 }
@@ -180,6 +182,6 @@ export function offSpellBoxLines(id: OffSpellId, int: number, equipment?: Readon
     }
     if (spell.element) lines.push({ label: 'Element', value: OFF_ELEMENT_NAMES[spell.element] });
     const met = int >= spell.reqInt;
-    lines.push({ label: 'Needs', value: `Int ${spell.reqInt}`, valueColor: met ? EQUIPMENT_MET_COLOR : EQUIPMENT_UNMET_COLOR, now: { text: `(you have ${int})`, better: 0 } });
+    lines.push({ label: 'Needs', value: `Int ${spell.reqInt}`, met, valueColor: met ? EQUIPMENT_MET_COLOR : EQUIPMENT_UNMET_COLOR, now: { text: `(you have ${int})`, better: 0 } });
     return lines;
 }

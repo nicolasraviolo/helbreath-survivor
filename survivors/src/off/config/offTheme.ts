@@ -176,4 +176,9 @@ export const OFF_THEME_SIZE = {
     arrow: 4,
     /** The ✕ of the close button: half its size. */
     closeCross: 5,
+    /** Stat row with − / + (Off-12C): its height, the square buttons, the width of the value and the sign's half-length. */
+    stepperRowHeight: 40,
+    stepperButton: 28,
+    stepperValueWidth: 56,
+    stepperSign: 6,
 } as const;

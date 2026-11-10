@@ -10,7 +10,11 @@
 // - Ratón: clic marca, doble clic usa (equipa, bebe o quita). Teclado y mando: flechas / cruceta mueven el foco por
 //   toda la ventana sin atascos (bolsa ↔ huecos a la izquierda, ↔ filtros a la derecha, ↓ botones, ↑ ✕);
 //   Enter / A pulsa lo enfocado, Supr / Y tira, Esc / B / I / X cierran. Los controles no se escriben en pantalla.
-// Stats y Magic llegan en la 12C; LB / RB y las teclas de cada pestaña en la 12D.
+// Fase Off-12C: pestañas Stats (off/ui/offStatsPage.ts) y Magic (off/ui/offMagicPage.ts, solo si sabes alguna magia)
+// en la cabecera, junto al ✕. Cambiar de pestaña vuelve a montar la escena con la pestaña nueva (scene.restart): la
+// columna del personaje es la misma y los puntos repartidos sin confirmar pasan de una a otra (se pierden al cerrar).
+// Desde arriba de cada pestaña, ↑ sube a la cabecera; ← → recorren pestañas y ✕, y ↓ vuelve a bajar.
+// LB / RB y las teclas de cada pestaña llegan en la 12D.
 import Phaser from 'phaser';
 import { setColouredTexture } from '../../hb/additiveTint';
 import { itemPackTexture } from '../../config/equipment';
@@ -21,6 +25,7 @@ import { PaperDoll } from '../../entities/PaperDoll';
 import { Action, InputSystem } from '../../systems/InputSystem';
 import { lookLoader } from '../../systems/LookLoader';
 import { OFF_BAG_CARD, OFF_BAG_CHARACTER, OFF_BAG_GRID, OFF_BAG_WINDOW } from '../config/offBag';
+import { OFF_STAT_IDS, type OffStats } from '../data/offCharacter';
 import { OFF_THEME_COLOR, OFF_THEME_INK, OFF_THEME_SIZE } from '../config/offTheme';
 import { OFF_BAG_TEXT } from '../data/offBag';
 import { offGood } from '../data/offGoods';
@@ -34,6 +39,9 @@ import { OFF_NOVICE } from '../data/offWorld';
 import type { OffBattle, OffUseResult } from '../systems/OffBattle';
 import { offSaveStore } from '../systems/OffSaveStore';
 import { offEmptySlotCard, offItemCard, type OffItemCard } from '../ui/offItemCard';
+import { OffMagicPage } from '../ui/offMagicPage';
+import { OffStatsPage } from '../ui/offStatsPage';
+import type { OffWindowPage } from '../ui/offWindowPage';
 import {
     offBar, offBarHeight, offBox, offButton, offCell, offCloseButton, offDivider, offFitText, offFrame, offLabel,
     offLayoutIssues, offRule, offStatRow, offTab, offText, type OffBar, type OffButton, type OffCell, type OffControl, type OffTab,
@@ -41,8 +49,17 @@ import {
 
 export const OFF_BAG_SCENE_KEY = 'OffBag';
 
+/** The window's tabs (Off-12C). */
+export type OffCharacterTab = 'bag' | 'stats' | 'magic';
+
 export interface OffBagSceneData {
     battle: OffBattle;
+    /** The tab it opens on (Bag if left out; Magic needs a spell learned). */
+    tab?: OffCharacterTab;
+    /** Internal (tab change): points spread and not confirmed, kept from the other tab. */
+    pending?: OffStats;
+    /** Internal (tab change): no input delay, and the focus starts on the tab. */
+    fromTab?: boolean;
     /** Gear changed: the world dresses the character again. */
     onGearChange: () => void;
     /** After closing. */
@@ -70,6 +87,7 @@ type Focus =
     | { kind: 'slot'; i: number }
     | { kind: 'filter'; i: number }
     | { kind: 'button'; id: ButtonId }
+    | { kind: 'tab'; i: number }
     | { kind: 'close' };
 
 /** What the card shows: an item of the bag (its index in the bag), or a slot. */
@@ -79,6 +97,12 @@ type MainAction = 'equip' | 'drink' | 'use' | 'remove';
 
 export class OffBagScene extends Phaser.Scene {
     private params!: OffBagSceneData;
+    private tab: OffCharacterTab = 'bag';
+    private tabs: OffCharacterTab[] = [];
+    private tabButtons: OffTab[] = [];
+    /** Stats or Magic (undefined on Bag, which the scene draws itself). */
+    private page: OffWindowPage | undefined;
+    private added: OffStats = noPoints();
     private inputSystem!: InputSystem;
     private openedAt = 0;
     private focus: Focus = { kind: 'cell', i: 0 };
@@ -118,6 +142,11 @@ export class OffBagScene extends Phaser.Scene {
 
     init(data: OffBagSceneData): void {
         this.params = data;
+        this.tabs = offSaveStore.character.spells.length > 0 ? ['bag', 'stats', 'magic'] : ['bag', 'stats'];
+        this.tab = data.tab !== undefined && this.tabs.includes(data.tab) ? data.tab : 'bag';
+        this.tabButtons = [];
+        this.page = undefined;
+        this.added = data.pending ?? noPoints();
         this.cells = [];
         this.slotCells = [];
         this.slotLabels = [];
@@ -138,19 +167,32 @@ export class OffBagScene extends Phaser.Scene {
     }
 
     create(): void {
-        this.openedAt = this.time.now;
+        this.openedAt = this.params.fromTab ? -CHARACTER_INFO_INPUT_DELAY_MS : this.time.now;
         // The world shows dimmed round the window; clicks stop here (the world takes no orders while it is open).
         this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.55).setOrigin(0).setInteractive();
         offFrame(this, W.x, W.y, W.w, W.h, { fill: C.window, big: true });
         this.createHeader();
         this.createCharacter();
-        this.createBag();
-        this.createCard();
         this.messageText = offText(this, GAME_WIDTH / 2, W.messageY, '', 'small', { originX: 0.5, originY: 0.5 });
+        const say = (line: string): void => this.say(line);
+        if (this.tab === 'bag') {
+            this.createBag();
+            this.createCard();
+        } else if (this.tab === 'stats') {
+            this.page = new OffStatsPage(this, this.params.battle, this.added, say);
+        } else {
+            this.page = new OffMagicPage(this, this.params.battle, say);
+        }
         this.inputSystem = new InputSystem(this);
         // Every piece has its own click zone: the input system's own pointer moves nothing here.
         this.inputSystem.setPointerMaxY(-1);
         this.selected = this.bag.length > 0 ? { kind: 'bag', index: 0 } : undefined;
+        if (this.page) this.page.focusFirst();
+        else this.focus = { kind: 'cell', i: 0 };
+        if (this.params.fromTab) {
+            this.page?.blur();
+            this.focus = { kind: 'tab', i: this.tabs.indexOf(this.tab) };
+        }
         this.refresh();
         this.updateBars();
         if (!this.iconsReady) {
@@ -171,16 +213,20 @@ export class OffBagScene extends Phaser.Scene {
         // Picked up, drunk or worn meanwhile (the world goes on): draw it all again.
         const saved = offSaveStore.character;
         if (this.drawnBag !== saved.bag || this.drawnEquipment !== saved.equipment || this.drawnGold !== saved.gold) this.refresh();
+        this.page?.update();
         if (!this.ready()) return;
-        if (input.justPressed(Action.Back) || input.justPressed(Action.Pause) || input.justPressed(Action.OffInventory)) {
+        // A page may use B or X itself (Magic: RT + B / RT + X put a spell on a key).
+        const pageUsed = this.page?.handleInput(input) ?? false;
+        if (!pageUsed && (input.justPressed(Action.Back) || input.justPressed(Action.Pause) || input.justPressed(Action.OffInventory) || input.justPressed(Action.OffSpellBook))) {
             this.close();
             return;
         }
+        if (pageUsed) return;
         if (input.justPressed(Action.MenuLeft)) this.move(-1, 0);
         else if (input.justPressed(Action.MenuRight)) this.move(1, 0);
         else if (input.justPressed(Action.MenuUp)) this.move(0, -1);
         else if (input.justPressed(Action.MenuDown)) this.move(0, 1);
-        if (input.justPressed(Action.OffDrop)) this.dropButton.press();
+        if (this.tab === 'bag' && input.justPressed(Action.OffDrop)) this.dropButton.press();
         if (input.justPressed(Action.Pick)) this.pressFocused();
     }
 
@@ -206,11 +252,16 @@ export class OffBagScene extends Phaser.Scene {
         const city = saved.faction ? saved.faction.charAt(0).toUpperCase() + saved.faction.slice(1) : undefined;
         const close = S.tabHeight;
         const tabY = top + (W.headerH - S.tabHeight) / 2;
-        const tabX = right - close - S.textInset * 2 - W.tabW;
+        const count = this.tabs.length;
+        const tabX = right - close - S.textInset * 2 - count * W.tabW - (count - 1) * W.tabGap;
         offText(this, x, top, saved.name, 'title', { maxWidth: tabX - x - S.padding });
         offText(this, x, top + W.subtitleGap, OFF_BAG_TEXT.subtitle(city, offSaveStore.level), 'small', { maxWidth: tabX - x - S.padding });
         offRule(this, x, top + W.headerH, right - x, C.line);
-        offTab(this, tabX, tabY, W.tabW, OFF_BAG_TEXT.tab, () => undefined).setOn(true);
+        this.tabs.forEach((tab, i) => {
+            const button = offTab(this, tabX + i * (W.tabW + W.tabGap), tabY, W.tabW, OFF_BAG_TEXT.tabs[tab], () => this.showTab(tab));
+            button.setOn(tab === this.tab);
+            this.tabButtons.push(button);
+        });
         this.closeButton = offCloseButton(this, right - close, tabY, close, () => this.close());
     }
 
@@ -324,6 +375,10 @@ export class OffBagScene extends Phaser.Scene {
         this.drawnEquipment = saved.equipment;
         this.drawnGold = saved.gold;
         if (gearChanged || !this.doll) this.buildDoll();
+        if (this.tab !== 'bag') {
+            this.setFocus(this.focus);
+            return;
+        }
         this.shown = this.bag.map((_id, index) => index).filter((index) => this.passes(this.bag[index]));
         // The selected item left the bag (used, dropped, worn): select what is now in that cell.
         if (this.selected?.kind === 'bag' && this.selected.index >= this.bag.length) {
@@ -477,6 +532,7 @@ export class OffBagScene extends Phaser.Scene {
             case 'slot': return this.slotCells[focus.i];
             case 'filter': return this.filterTabs[focus.i];
             case 'button': return focus.id === 'drop' ? this.dropButton : this.mainButton;
+            case 'tab': return this.tabButtons[focus.i];
             case 'close': return this.closeButton;
         }
     }
@@ -493,6 +549,7 @@ export class OffBagScene extends Phaser.Scene {
             if (slot) this.selected = { kind: 'slot', slot };
         }
         this.control(focus)?.setFocused(true);
+        if (this.tab !== 'bag') return;
         this.drawCells();
         this.drawSlots();
         this.drawCard();
@@ -501,6 +558,14 @@ export class OffBagScene extends Phaser.Scene {
     /** Arrows / d-pad round the whole window: every piece can be reached and left (the edges stop). */
     private move(dx: number, dy: number): void {
         const f = this.focus;
+        if (f.kind === 'tab' || f.kind === 'close') {
+            this.moveInHeader(dx, dy);
+            return;
+        }
+        if (this.page) {
+            if (!this.page.move(dx, dy)) this.toHeader();
+            return;
+        }
         const lastRow = G.rows - 1;
         const lastCol = G.columns - 1;
         switch (f.kind) {
@@ -510,7 +575,7 @@ export class OffBagScene extends Phaser.Scene {
                 if (dx < 0 && col === 0) this.setFocus({ kind: 'slot', i: this.activeSlot(1, row) });
                 else if (dx > 0 && col === lastCol) this.setFocus({ kind: 'filter', i: Math.min(row, FILTERS.length - 1) });
                 else if (dx !== 0) this.setFocus({ kind: 'cell', i: f.i + dx });
-                else if (dy < 0 && row === 0) this.setFocus({ kind: 'close' });
+                else if (dy < 0 && row === 0) this.toHeader();
                 else if (dy > 0 && row === lastRow) this.setFocus({ kind: 'button', id: col < G.columns / 2 ? 'drop' : 'main' });
                 else this.setFocus({ kind: 'cell', i: f.i + dy * G.columns });
                 return;
@@ -521,7 +586,7 @@ export class OffBagScene extends Phaser.Scene {
                 if (dx > 0 && side === 1) this.setFocus({ kind: 'cell', i: row * G.columns });
                 else if (dx > 0) this.setFocus({ kind: 'slot', i: this.activeSlot(1, row) });
                 else if (dx < 0 && side === 1) this.setFocus({ kind: 'slot', i: row });
-                else if (dy < 0 && row === 0) this.setFocus({ kind: 'close' });
+                else if (dy < 0 && row === 0) this.toHeader();
                 else if (dy !== 0) {
                     const next = row + dy;
                     // The ring is still to come: skip it.
@@ -544,12 +609,44 @@ export class OffBagScene extends Phaser.Scene {
                 else if (dy < 0) this.setFocus({ kind: 'cell', i: lastRow * G.columns + (f.id === 'drop' ? 2 : lastCol - 2) });
                 return;
             }
-            case 'close': {
-                if (dy > 0) this.setFocus({ kind: 'filter', i: 0 });
-                else if (dx < 0) this.setFocus({ kind: 'cell', i: lastCol });
-                return;
-            }
         }
+    }
+
+    /** The focus goes up to the open tab (the page lets go of its own). */
+    private toHeader(): void {
+        this.page?.blur();
+        this.setFocus({ kind: 'tab', i: this.tabs.indexOf(this.tab) });
+    }
+
+    /** Header: ← → along the tabs and ✕; ↓ back into the page (from ✕ on Bag: the filters under it). */
+    private moveInHeader(dx: number, dy: number): void {
+        const f = this.focus;
+        const at = f.kind === 'tab' ? f.i : this.tabs.length;
+        if (dx !== 0) {
+            const next = Phaser.Math.Clamp(at + dx, 0, this.tabs.length);
+            this.setFocus(next === this.tabs.length ? { kind: 'close' } : { kind: 'tab', i: next });
+            return;
+        }
+        if (dy <= 0) return;
+        if (this.page) this.enterPage(this.page); else if (f.kind === 'close') this.setFocus({ kind: 'filter', i: 0 });
+        else this.setFocus({ kind: 'cell', i: G.columns - 1 });
+    }
+
+    /** The focus leaves the header for the page's own (the scene keeps a non-header focus it never draws). */
+    private enterPage(page: OffWindowPage): void {
+        this.control(this.focus)?.setFocused(false);
+        this.focus = { kind: 'cell', i: 0 };
+        page.focusFirst();
+    }
+
+    /** Opens another tab: the window is built again on it, the unconfirmed points kept. */
+    public showTab(tab: OffCharacterTab): void {
+        if (!this.ready() || !this.tabs.includes(tab)) return;
+        if (tab === this.tab) {
+            this.setFocus({ kind: 'tab', i: this.tabs.indexOf(tab) });
+            return;
+        }
+        this.scene.restart({ ...this.params, tab, pending: this.added, fromTab: true });
     }
 
     /** The slot at that side and row, or the lowest working one above it (the ring is still to come). */
@@ -564,7 +661,8 @@ export class OffBagScene extends Phaser.Scene {
     private pressFocused(): void {
         const f = this.focus;
         if (f.kind === 'slot' && SLOTS[f.i] === undefined) return;
-        if (f.kind === 'cell' || f.kind === 'slot') this.mainButton.press();
+        if (this.page && f.kind !== 'tab' && f.kind !== 'close') this.page.pressFocused();
+        else if (f.kind === 'cell' || f.kind === 'slot') this.mainButton.press();
         else this.control(f)?.press();
     }
 
@@ -640,9 +738,14 @@ export class OffBagScene extends Phaser.Scene {
     }
 
     private showResult(result: OffUseResult): void {
-        this.messageText.setText(result.line ?? '');
-        offFitText(this.messageText, 'small', W.w - W.pad * 2);
+        this.say(result.line ?? '');
         this.refresh();
+    }
+
+    /** The message line under the columns. */
+    private say(line: string): void {
+        this.messageText.setText(line);
+        offFitText(this.messageText, 'small', W.w - W.pad * 2);
     }
 
     public close(): void {
@@ -667,6 +770,11 @@ export class OffBagScene extends Phaser.Scene {
         this.setFocus({ kind: 'slot', i: SLOTS.indexOf(slot) });
     }
 
+    /** The Stats or Magic page, for `check offstats` / `offmagic`. */
+    public get debugPage(): OffWindowPage | undefined {
+        return this.page;
+    }
+
     /** Pad / arrows, for `check offbagpad`: 'left' | 'right' | 'up' | 'down' | 'a'. */
     public debugInput(key: 'left' | 'right' | 'up' | 'down' | 'a'): string {
         if (key === 'a') this.pressFocused();
@@ -676,6 +784,8 @@ export class OffBagScene extends Phaser.Scene {
 
     private focusName(): string {
         const f = this.focus;
+        if (f.kind === 'tab') return `tab ${this.tabs[f.i] ?? ''}`;
+        if (this.page && f.kind !== 'close') return this.page.focusName();
         if (f.kind === 'cell') return `cell ${f.i}`;
         if (f.kind === 'slot') return `slot ${SLOTS[f.i] ?? 'ring'}`;
         if (f.kind === 'filter') return `filter ${FILTERS[f.i]}`;
@@ -685,11 +795,15 @@ export class OffBagScene extends Phaser.Scene {
 
     /** What the window shows, in text. */
     public debugState(): {
+        tab: OffCharacterTab; tabs: OffCharacterTab[]; page: Record<string, unknown> | undefined;
         bag: string[]; info: string; message: string; box: string[]; filter: OffBagFilter; focus: string; main: string; issues: string[];
     } {
         return {
+            tab: this.tab,
+            tabs: [...this.tabs],
+            page: this.page?.debugState(),
             bag: [...this.bag],
-            info: `Gold ${this.goldText.text} · ${this.potionsText.text} · ${this.countText.text}`,
+            info: this.tab === 'bag' ? `Gold ${this.goldText.text} · ${this.potionsText.text} · ${this.countText.text}` : '',
             message: this.messageText.text,
             box: [...this.cardTexts],
             filter: this.filter,
@@ -698,4 +812,10 @@ export class OffBagScene extends Phaser.Scene {
             issues: offLayoutIssues(this),
         };
     }
+}
+
+function noPoints(): OffStats {
+    const out = {} as OffStats;
+    for (const id of OFF_STAT_IDS) out[id] = 0;
+    return out;
 }

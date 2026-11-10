@@ -1,5 +1,6 @@
 // Helbreath Off, Fase Off-12A: las piezas del estilo nuevo de las ventanas (colores y medidas en off/config/offTheme.ts).
 // Marco, pestaña, botón (principal dorado, normal, rojo), cierre ✕, casilla de objeto, fila de lista, fila de tecla,
+// fila de stat con − / + (Off-12C),
 // separador con rombo, fila de dato con comparación (▲ / ▼ además del color), barra, circulito A/B/X/Y y pastilla
 // LB / RB / Start.
 // - **Nada se sale de su caja**: los textos con ancho máximo se encogen hasta `minSize` (offTheme) y, si aun así no
@@ -476,6 +477,83 @@ export function offKeyRow(scene: Phaser.Scene, x: number, y: number, width: numb
             marked = m;
             control.redraw();
         },
+    };
+}
+
+export interface OffStepperRow extends OffControl {
+    /** The value (and whether it went up with points not confirmed yet: green with ▲). */
+    setValue(value: string, raised: boolean): void;
+    setMinusEnabled(enabled: boolean): void;
+    setPlusEnabled(enabled: boolean): void;
+}
+
+/**
+ * Off-12C: a stat row to spend points: name on the left, the value, then − and + buttons. The row itself takes the
+ * focus (the window turns ← / → into − / +); the buttons only take clicks. A raised value is green with ▲ (never colour
+ * alone).
+ */
+export function offStepperRow(
+    scene: Phaser.Scene, x: number, y: number, width: number, label: string,
+    onMinus: () => void, onPlus: () => void, onClick: () => void,
+): OffStepperRow {
+    const h = S.stepperRowHeight;
+    const b = S.stepperButton;
+    const mid = y + h / 2;
+    const pad = S.listRowPadding;
+    const plusX = x + width - pad - b;
+    const minusX = plusX - S.rowGap - b;
+    const valueRight = minusX - S.rowGap * 2;
+    const g = scene.add.graphics();
+    const name = offText(scene, x + pad, mid, label, 'body', { originY: 0.5, maxWidth: valueRight - S.stepperValueWidth - S.rowGap - x - pad });
+    const value = offText(scene, valueRight, mid, '', 'number', { originX: 1, originY: 0.5 });
+    const arrow = scene.add.graphics();
+    let raised = false;
+    const row = makeControl(scene, x, y, width, h, onClick, [g, name, value, arrow], (s) => {
+        g.clear();
+        if (hovering(s)) g.fillStyle(C.hover, 1).fillRect(x, y, width, h - 1);
+        g.fillStyle(C.rowLine, 1).fillRect(x, y + h - 1, width, 1);
+    });
+    const sign = (bx: number, plus: boolean) => {
+        const sg = scene.add.graphics();
+        const control = makeControl(scene, bx, mid - b / 2, b, b, plus ? onPlus : onMinus, [sg], (s) => {
+            sg.clear();
+            sg.fillStyle(hovering(s) ? C.hover : C.button, 1).fillRect(bx, mid - b / 2, b, b);
+            sg.lineStyle(1, s.enabled ? C.bronze : C.line, 1).strokeRect(bx + 0.5, mid - b / 2 + 0.5, b - 1, b - 1);
+            const ink = Phaser.Display.Color.HexStringToColor(s.enabled ? INK.text : INK.faint).color;
+            const cx = bx + b / 2;
+            const r = S.stepperSign;
+            sg.lineStyle(2, ink, 1).lineBetween(cx - r, mid, cx + r, mid);
+            if (plus) sg.lineBetween(cx, mid - r, cx, mid + r);
+        });
+        return control;
+    };
+    const minus = sign(minusX, false);
+    const plus = sign(plusX, true);
+    return {
+        ...row,
+        setVisible: (v) => {
+            row.setVisible(v);
+            minus.setVisible(v);
+            plus.setVisible(v);
+        },
+        destroy: () => {
+            row.destroy();
+            minus.destroy();
+            plus.destroy();
+        },
+        setValue: (v, up) => {
+            raised = up;
+            value.setText(v).setColor(raised ? INK.good : INK.text);
+            offFitText(value, 'number', S.stepperValueWidth);
+            arrow.clear();
+            if (raised) {
+                const a = S.arrow;
+                const ax = valueRight - value.width - S.noteGap - a;
+                arrow.fillStyle(C.better, 1).fillTriangle(ax - a, mid + a / 2, ax + a, mid + a / 2, ax, mid - a);
+            }
+        },
+        setMinusEnabled: (e) => minus.setEnabled(e),
+        setPlusEnabled: (e) => plus.setEnabled(e),
     };
 }
 

@@ -22,6 +22,8 @@ export const OFF_BAG_WINDOW = {
     subtitleGap: 28,
     headerH: 44,
     tabW: 90,
+    /** Gap between the header's tabs (Bag / Stats / Magic, Off-12C). */
+    tabGap: 6,
     /** Content (columns) top. */
     top: 81,
     /** Bottom of the columns; the message line goes centred under them. */
@@ -81,3 +83,44 @@ export const OFF_BAG_CARD = {
     dividerGap: 10,
     rowsGap: 6,
 } as const;
+
+/**
+ * Off-12C, Stats tab, right of the character: attributes with − / + on the left (points, the five stats, the help of
+ * the focused one, Reset and Confirm), details on the right (maxima and hit ratio with what you have now, level...).
+ */
+export const OFF_STATS_PAGE = {
+    x: 256,
+    /** Attributes panel width; the details panel takes the rest after the gap. */
+    attributesW: 268,
+    gap: 12,
+    /** Under the panel label, before the first row. */
+    labelGap: 26,
+    rowGap: 4,
+    /** Gap between the rows and the help, and between the help and the buttons. */
+    helpGap: 14,
+    /** Rows of the details panel: gap before the divider and after it. */
+    dividerGap: 10,
+} as const;
+
+/**
+ * Off-12C, Magic tab: the list of spells (by circle) on the left, the marked spell's card on the right and the keys
+ * 1–8 under both, in two columns (1–4, which are also RT + A/B/X/Y, and 5–8).
+ */
+export const OFF_MAGIC_PAGE = {
+    x: 256,
+    /** List panel width (a row fits "Absolute Magic Protection" with its key and mana); the card takes the rest. */
+    listW: 266,
+    gap: 12,
+    labelGap: 24,
+    /** Columns of a list row after the name. */
+    keyColumn: 22,
+    manaColumn: 34,
+    /** Gap between the list / card and the keys panel at the bottom (its height comes from its 4 rows). */
+    keysGap: 12,
+    keyColumnsGap: 16,
+    /** Mouse wheel: rows per notch. */
+    wheelRows: 2,
+    /** Room kept under the list rows for the "more below" arrow. */
+    moreArrowRoom: 8,
+} as const;
+
