@@ -2,6 +2,13 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
+**Helbreath Off · fuera de fase: elegir monstruo con el stick derecho (2026-11-11).**
+- **Qué hace:** con mando, el stick derecho marca el monstruo hacia el que apunta (el más cercano a la línea del stick, con la flecha a los pies; la marca se queda al soltarlo) y A le pega; con A mantenido, cambiar de monstruo con el stick sigue pegando al nuevo. Sin elegir ninguno, A va al más cercano, **primero el de delante**; el que pegabas solo se mantiene mientras siga a tu alcance (antes la marca se quedaba hasta 8 casillas). Con RT pulsado el stick sigue apuntando magias. LB / RB siguen valiendo. Controls: "Choose target: Right stick or LB RB".
+- **Decisiones:** propietario: "al mob cercano, o al que apuntes con el stick derecho". A criterio de Claude: LB / RB se quedan; el clic derecho del ratón no marca (cancela magias).
+- **Comprobado:** build; `check offpadtarget offcontrols offpadaim offfight` sin errores; el stick marcó cada monstruo al que apuntaba. Sin probar con mando real.
+- **Cómo probar:** http://localhost:8090/?off con mando, junto a un grupo de monstruos: empujar el stick derecho hacia uno (aro y flecha), soltar y pulsar A.
+- **Código:** `OffBattle.aimTarget` / `frontMonster` / `targetChosen` / `chooseTarget`, `OffWorldScene.updateCombatInput` (`targetAim`), `OFF_PAD_TARGET` en `off/data/offCombat.ts`, fila en `off/data/offControls.ts`.
+
 **Helbreath Off · Fase Off-13, bloque F: Create New Character (2026-11-10).**
 - **Qué hace:** Create New Character rehecha con el estilo de la Off-12 (`OffCreateScene`) sobre la imagen del original oscurecida: caja de nombre legible con cursor y contador (`offTextBox`), botón Random, 5 filas de aspecto ◀ valor ▶ con el valor escrito (`offOptionRow`), 5 stats con − / + y números a 18, "Points left" / "✓ All points spent", personaje grande y pequeño girando, valores al nivel 1, Quick pick Warrior / Magician (✓ al aplicarse), Create como botón (apagado con el motivo encima) y Cancel, que pregunta si hay cambios. Foco con anillo por filas, pistas del mando.
 - **Decisiones:** propietario: nombre con mando = **Y pone un nombre al azar** (`OFF_RANDOM_NAMES`). De `revisor-ui`: arreglado el cursor que pisaba "Novice"; Create más ancho que Cancel a propósito (principal).

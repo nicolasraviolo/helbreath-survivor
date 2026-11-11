@@ -7,7 +7,7 @@
 Sin leer enteros (grep): `CHECK.md` (situaciones del check y atajos), `PROGRESS-historial.md` (bloques hechos), `NOTES.md`, `docs/DECISIONES.md`.
 
 ## Estado
-- **Helbreath Off:** Fase Off-13 ✅ (10-nov-2026, el estilo nuevo en el resto de ventanas), fusionada en `master`. Siguiente: fase nueva por decidir (ver `PROGRESS-off.md`).
+- **Helbreath Off:** Fase Off-13 ✅ (10-nov-2026, el estilo nuevo en el resto de ventanas), fusionada en `master`. 11-nov-2026: elegir monstruo con el stick derecho (sin probar con mando real). Siguiente: fase nueva por decidir (ver `PROGRESS-off.md`).
 - **Survivors:** en pausa. Fase 30 ✅ (28-oct-2026). Siguiente: Fase 31, Aresden y Elvine.
 
 **Fases completadas** (✅):

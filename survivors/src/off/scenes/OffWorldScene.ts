@@ -1,6 +1,8 @@
 // Helbreath Off (Fase Off-1): andar por Traveler Zone, sin oleadas ni tiempo.
 // Fase Off-2: pits de monstruos y combate (off/systems/OffBattle.ts). Clic en un monstruo = ir y pegarle (mantenido,
 // sigue pegando); A o Espacio = pegar al marcado o al más cercano; LB / RB = cambiar de monstruo marcado.
+// 11-nov-2026 (propietario): el stick derecho marca el monstruo hacia el que apunta (flecha a los pies) y A le pega;
+// sin elegir ninguno, A va al más cercano, primero el de delante (OFF_PAD_TARGET). LB / RB siguen valiendo.
 // Se anda casilla a casilla como el original (off/systems/TileMover.ts):
 // - Ratón: clic para ir a una casilla (si está bloqueada, a la libre más cercana); con el clic mantenido sigue al
 //   cursor; clic derecho para (termina la casilla en la que está).
@@ -50,7 +52,7 @@ import { FOOTSTEPS_PER_RUN_CYCLE } from '../../data/audio';
 import { Effect } from '../../entities/Effect';
 import { getMap, type HBMap } from '../../hb/HBMap';
 import { MapView } from '../../hb/mapRenderer';
-import { directionFromVector } from '../../hb/directions';
+import { DIRECTION_NAMES, directionFromVector } from '../../hb/directions';
 import { AudioSystem } from '../../systems/AudioSystem';
 import { Action, InputSystem, OFF_PAD_SPELL_ACTIONS, OFF_SPELL_KEY_ACTIONS } from '../../systems/InputSystem';
 import { runSprites } from '../../systems/LookLoader';
@@ -90,14 +92,14 @@ import { rollKillLoot } from '../systems/OffLootRoller';
 import { isOffMonsterId, OFF_MONSTERS, type OffMonsterId } from '../data/offMonsters';
 import { OFF_RAIDS } from '../data/offRaiders';
 import { offHitChance, offPlayerHitRatio } from '../systems/OffCombatRules';
-import { offAttackMs } from '../data/offCombat';
+import { OFF_COMBAT, offAttackMs } from '../data/offCombat';
 import { OFF_BAG_SCENE_KEY, type OffBagSceneData, type OffCharacterTab } from './OffBagScene';
 import { directionOffset, findFreeTile, TileMover, type TilePoint } from '../systems/TileMover';
 import { OffPathfinder } from '../systems/OffPathfinder';
 import { Npc } from '../../entities/Npc';
 import { TOWN_NPCS, TOWN_TALK, type NpcDef } from '../../data/town';
 import { AimArrow } from '../../ui/AimArrow';
-import { manualAimAngle } from '../../systems/Targeting';
+import { manualAimAngle, type ManualAim } from '../../systems/Targeting';
 import { lookLoader } from '../../systems/LookLoader';
 import { OFF_MERCENARIES, OFF_MERCENARY, OFF_MERCENARY_TEXT, offMercenaryGear, type OffMercenaryId } from '../data/offMercenary';
 import { OFF_MERCENARY_SCENE_KEY, type OffMercenarySceneData } from './OffMercenaryScene';
@@ -255,6 +257,8 @@ export class OffWorldScene extends Phaser.Scene {
     private talkPending: TalkNpc | undefined;
     /** The arrow at the feet while the right stick aims a support spell (Off-8B). */
     private aimArrow!: AimArrow;
+    /** The right stick choosing a monster this frame (11-nov-2026); the arrow at the feet shows it. */
+    private targetAim: Readonly<ManualAim> | undefined;
     /** The mark on the ground where a gamepad spell aimed with the right stick will fall (9-nov-2026). */
     private reticle!: OffAimReticle;
 
@@ -750,7 +754,7 @@ export class OffWorldScene extends Phaser.Scene {
         const spells = this.battle.spells;
         const merc = this.battle.merc;
         const support = spells.busy && spells.onSelf && !this.battle.dead;
-        const aim = support && this.padCast ? this.inputSystem.getManualAim() : undefined;
+        const aim = support && this.padCast ? this.inputSystem.getManualAim() : this.targetAim;
         this.aimArrow.update(aim, this.character.x, this.character.y);
         if (!merc) return;
         let aimed = false;
@@ -965,7 +969,7 @@ export class OffWorldScene extends Phaser.Scene {
         if (aimed) {
             const tiles = (v: number) => Math.round((v / TILE_SIZE) * 10) / 10;
             this.lastPadRelease = `${tiles(aimed.x - this.character.x)},${tiles(aimed.y - this.character.y)} ${aimed.monster?.id ?? 'ground'}`;
-            if (aimed.monster) this.battle.target = aimed.monster;
+            if (aimed.monster) this.battle.chooseTarget(aimed.monster);
             spells.release(aimed.x, aimed.y, aimed.monster);
             return;
         }
@@ -1074,6 +1078,15 @@ export class OffWorldScene extends Phaser.Scene {
             cross: cross?.map((slot) => `${slot.name ?? '-'}${slot.usable ? '' : ' (dim)'}`),
             lastRelease: this.lastPadRelease,
         };
+    }
+
+    /** Development (`check offpadtarget`): where you face and the living monsters near, as tiles from you. */
+    public debugNearFoes(): { facing: string; near: string[] } {
+        const { tileX, tileY } = this.mover;
+        const near = this.battle.pits.monsters
+            .filter((m) => m.isAlive && Math.max(Math.abs(m.mover.tileX - tileX), Math.abs(m.mover.tileY - tileY)) <= OFF_COMBAT.targetRangeTiles)
+            .map((m) => `${m.id} ${m.mover.tileX - tileX},${m.mover.tileY - tileY}`);
+        return { facing: DIRECTION_NAMES[this.mover.facing], near };
     }
 
     /** Development (`check offpadcross`): RT counts as held (true) or not, as if the trigger were pressed. */
@@ -1335,6 +1348,11 @@ export class OffWorldScene extends Phaser.Scene {
         }
         if (keys && next) battle.cycleTarget(1);
         if (keys && previous) battle.cycleTarget(-1);
+        // 11-nov-2026 (owner): the right stick marks the monster it points at (not while it aims a spell, RT held or
+        // one waiting; not the mouse's right click, which has a point and cancels spells).
+        const aim = keys && !this.castTrigger && !this.padCast && !battle.dead ? input.getManualAim() : undefined;
+        this.targetAim = aim && !aim.point ? aim : undefined;
+        if (this.targetAim) battle.aimTarget(this.targetAim.dirX, this.targetAim.dirY);
         const pointer = this.input.activePointer;
         if (this.mouseAttack && !pointer.leftButtonDown()) this.mouseAttack = false;
         if (this.mouseAttack || this.debugHold || (keys && !this.castTrigger && input.isHeld(Action.OffAttack))) battle.setHeld(true);

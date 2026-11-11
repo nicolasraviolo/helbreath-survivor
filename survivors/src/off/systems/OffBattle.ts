@@ -58,7 +58,7 @@ import { HitParticles } from '../../systems/HitParticles';
 import { Pool } from '../../utils/Pool';
 import { OFF_MONSTER_LOOK } from '../config/offMonsterLook';
 import { OFF_REGEN_TEXT, OFF_STAT_IDS, offManaRegen, offMaxHp, type OffStats } from '../data/offCharacter';
-import { OFF_COMBAT, OFF_CRIT_STRIKE, offAttackMs, type OffWeaponDef } from '../data/offCombat';
+import { OFF_COMBAT, OFF_CRIT_STRIKE, OFF_PAD_TARGET, offAttackMs, type OffWeaponDef } from '../data/offCombat';
 import { CRIT_SHOUT, critDamageMultiplier, maxCritCharges } from '../../data/critStrike';
 import { ScreenShake } from '../../systems/ScreenShake';
 import { OffCritStrike } from './OffCritStrike';
@@ -89,7 +89,7 @@ import { BUFFS, BUFF_OVERLAY_ALPHA } from '../../data/pickups';
 import { OffMercenarySpells, type OffMercenaryCastWorld } from './OffMercenarySpells';
 import { OFF_HEAL_NUMBER_COLOR, OFF_WORN_ALPHA } from '../config/offSpellLook';
 import { EFFECTS, type EffectDef, type EffectKey } from '../../config/effects';
-import { directionTowards, findFreeTile, type TileMover, type TilePoint } from './TileMover';
+import { directionOffset, directionTowards, findFreeTile, type TileMover, type TilePoint } from './TileMover';
 import { OffMercenary, type OffCarriedMercenary } from '../entities/OffMercenary';
 import { OFF_MERCENARIES, OFF_MERCENARY, OFF_MERCENARY_CASTER, OFF_MERCENARY_LOOK, OFF_MERCENARY_TEXT, type OffMercenaryId } from '../data/offMercenary';
 import { updateMercenary, type OffMercenaryWorld, type OffOwnerNeeds } from './OffMercenaryAI';
@@ -181,6 +181,8 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost, OffMercenaryWor
     public readonly tally = { exp: 0, gold: 0, potions: 0, valuables: 0, hurt: 0, hits: 0, drunk: 0, absorbed: 0 };
     /** Monster (or Raider, Off-9A) chosen to attack (click, A, LB / RB). */
     public target: OffFoe | undefined;
+    /** The player picked `target` (click, right stick, LB / RB, a spell aimed at it): A keeps on it while it is near (11-nov-2026). */
+    private targetChosen = false;
     /** Monster (or Raider) under the mouse (its name shows). */
     public hovered: OffFoe | undefined;
     /** Off-9A: the Raider slots (OFF_RAIDER_SLOTS), the Raiders alive now, the time towards the next roll, and counts (checks). */
@@ -807,17 +809,56 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost, OffMercenaryWor
         // Another monster: a Critical Strike asked for goes with the mark.
         if (monster !== this.target) this.critQueued = false;
         this.target = monster;
+        this.targetChosen = true;
         this.attackQueued = true;
         this.attackHeld = held;
     }
 
-    /** A or Space: attack the marked monster, or the nearest one. */
+    /**
+     * A or Space (11-nov-2026): the monster you chose (click, right stick, LB / RB) while it is near; else the one
+     * you were hitting while it is still in reach; else the nearest, the one in front of you first.
+     */
     public attackPressed(): void {
         if (this.dead) return;
-        if (!this.target || !this.target.isAlive || this.distanceTo(this.target) > OFF_COMBAT.targetRangeTiles) {
-            this.target = this.nearbyMonsters()[0];
+        const target = this.target;
+        const keep = target?.isAlive
+            && this.distanceTo(target) <= (this.targetChosen ? OFF_COMBAT.targetRangeTiles : this.weapon.range);
+        if (!keep) {
+            this.target = this.frontMonster();
+            this.targetChosen = false;
         }
         if (this.target) this.attackQueued = true;
+    }
+
+    /**
+     * Right stick (11-nov-2026): marks the monster it points at, the one nearest the stick's line (OFF_PAD_TARGET);
+     * the mark stays when the stick is let go. Nothing changes with no monster that way.
+     */
+    public aimTarget(dirX: number, dirY: number): void {
+        if (this.dead) return;
+        const wanted = Math.atan2(dirY, dirX);
+        const maxDiff = Phaser.Math.DegToRad(OFF_PAD_TARGET.aimDegrees);
+        let best: OffFoe | undefined;
+        let bestScore = Infinity;
+        for (const foe of this.nearbyMonsters()) {
+            const dx = foe.mover.tileX - this.mover.tileX;
+            const dy = foe.mover.tileY - this.mover.tileY;
+            const diff = Math.abs(Phaser.Math.Angle.Wrap(Math.atan2(dy, dx) - wanted));
+            if (diff > maxDiff) continue;
+            const score = Phaser.Math.RadToDeg(diff) + this.distanceTo(foe) * OFF_PAD_TARGET.degreesPerTile;
+            if (score < bestScore) {
+                bestScore = score;
+                best = foe;
+            }
+        }
+        if (!best) return;
+        if (best !== this.target) {
+            this.critQueued = false;
+            // Hitting another one: the next blow goes to the new mark (A held keeps on with it).
+            if (this.attackHeld) this.attackQueued = true;
+        }
+        this.target = best;
+        this.targetChosen = true;
     }
 
     /**
@@ -828,8 +869,9 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost, OffMercenaryWor
         if (this.dead || this.critStrike.charges <= 0) return;
         const hovered = this.hovered?.isAlive ? this.hovered : undefined;
         const marked = this.target?.isAlive && this.distanceTo(this.target) <= OFF_COMBAT.targetRangeTiles ? this.target : undefined;
-        const monster = hovered ?? marked ?? this.nearbyMonsters()[0];
+        const monster = hovered ?? marked ?? this.frontMonster();
         if (!monster) return;
+        if (monster !== this.target) this.targetChosen = false;
         this.target = monster;
         this.attackQueued = true;
         this.critQueued = true;
@@ -851,6 +893,13 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost, OffMercenaryWor
     public clearTarget(): void {
         this.stopAttacking();
         this.target = undefined;
+        this.targetChosen = false;
+    }
+
+    /** A spell aimed at this monster marks it as chosen (A goes for it next). */
+    public chooseTarget(foe: OffFoe): void {
+        this.target = foe;
+        this.targetChosen = true;
     }
 
     /** LB / RB: the next (+1) or previous (−1) monster near, by distance. */
@@ -859,12 +908,35 @@ export class OffBattle implements OffMonsterWorld, OffSpellHost, OffMercenaryWor
         if (near.length === 0) return;
         const index = this.target ? near.indexOf(this.target) : -1;
         this.target = near[(index + step + near.length) % near.length];
+        this.targetChosen = true;
     }
 
-    /** A gamepad spell's monster (Off-6C): the marked one if it is alive, else the nearest within reach. */
+    /** A gamepad spell's monster (Off-6C): the marked one if it is alive, else the nearest (in front first). */
     public spellTarget(): OffFoe | undefined {
         if (this.target?.isAlive) return this.target;
-        return this.nearbyMonsters()[0];
+        return this.frontMonster();
+    }
+
+    /**
+     * The nearest monster within reach of the gamepad's targeting, one behind you counting as farther
+     * (OFF_PAD_TARGET.behindPenaltyTiles), so between two about as near, the one you face (11-nov-2026).
+     */
+    private frontMonster(): OffFoe | undefined {
+        const facing = directionOffset(this.mover.facing);
+        const facingAngle = Math.atan2(facing.y, facing.x);
+        let best: OffFoe | undefined;
+        let bestScore = Infinity;
+        for (const foe of this.nearbyMonsters()) {
+            const dx = foe.mover.tileX - this.mover.tileX;
+            const dy = foe.mover.tileY - this.mover.tileY;
+            const off = Math.abs(Phaser.Math.Angle.Wrap(Math.atan2(dy, dx) - facingAngle)) / Math.PI;
+            const score = this.distanceTo(foe) + off * OFF_PAD_TARGET.behindPenaltyTiles;
+            if (score < bestScore) {
+                bestScore = score;
+                best = foe;
+            }
+        }
+        return best;
     }
 
     /** Tile the player may step onto: walkable and nobody there. */

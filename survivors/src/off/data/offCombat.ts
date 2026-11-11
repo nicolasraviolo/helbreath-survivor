@@ -124,6 +124,22 @@ export const OFF_COMBAT = {
 } as const;
 
 /**
+ * Choosing a monster with the gamepad (owner, 11-nov-2026: "al mob cercano, o al que apuntes con el stick derecho"),
+ * all ours. Monsters count within OFF_COMBAT.targetRangeTiles.
+ */
+export const OFF_PAD_TARGET = {
+    /** Right stick: a monster this many degrees or less off the stick's line can be marked. */
+    aimDegrees: 45,
+    /** Right stick: each tile farther counts as this many degrees more off the line (so a near one wins a tie). */
+    degreesPerTile: 6,
+    /**
+     * A with no monster chosen: the nearest, and one straight behind you counts as this many tiles farther (one at
+     * your side, half), so between two about as near, the one in front of you.
+     */
+    behindPenaltyTiles: 1.5,
+} as const;
+
+/**
  * Critical Strike (Off-8A, owner, 8-nov-2026): the original's "crit" (Alt), with Survivors' charges and damage
  * (data/critStrike.ts: 1 + level/10 charges, +1 every CRIT_STRIKE.rechargeMs and every CRIT_STRIKE.hitsPerCharge
  * blows taken, damage × (2 + level/30)). It is apart from the random critical of a Critical weapon (Off-7C).

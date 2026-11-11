@@ -19,7 +19,7 @@ const text = (t: string): OffPadPiece => ({ text: t });
 export const OFF_CONTROL_ROWS: readonly OffControlRow[] = [
     { action: 'Move', keyboard: 'Arrows / WASD · Click', pad: [text('Left stick')] },
     { action: 'Attack / Talk', keyboard: 'Space · Click', pad: [badge('A')] },
-    { action: 'Change target', keyboard: 'Click a monster', pad: [pill('LB'), pill('RB')] },
+    { action: 'Choose target', keyboard: 'Click a monster', pad: [text('Right stick'), text('or'), pill('LB'), pill('RB')] },
     { action: 'Critical Strike', keyboard: 'Alt', pad: [pill('LT')] },
     { action: 'Cast spell', keyboard: '1–8, then click', pad: [pill('RT'), text('+'), badge('A'), badge('B'), badge('X'), badge('Y')] },
     { action: 'Aim spell', keyboard: 'Mouse', pad: [text('Right stick')] },

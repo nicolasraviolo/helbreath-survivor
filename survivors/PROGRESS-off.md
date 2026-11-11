@@ -4,6 +4,7 @@ Léelo solo en sesiones de Helbreath Off (después de `PROGRESS.md`). Plan: `doc
 
 ## Estado
 - **Off-13 ✅** (10-nov-2026, fusionada en `master`): el estilo nuevo de la Off-12 en todas las ventanas (preguntas, pausa, William, Select Map, almacén, tienda y herrero, inicio, Select Character y Create New Character). Detalle por bloque en `PROGRESS-historial.md`.
+- **11-nov-2026, fuera de fase:** con mando, el stick derecho elige el monstruo y A sin marca va al más cercano de delante (`OFF_PAD_TARGET`). Falta probarlo con mando real.
 - **Siguiente:** fase nueva de Off por decidir con el propietario (candidatas: 11D magias sin dibujo, Detect Invisibility, probar con mando real).
 - **UI:** todo cambio de interfaz pasa por el agente `revisor-ui` (critica el boceto antes de programar y revisa después). La revisión de todas las ventanas viejas (10-nov-2026) está resumida por bloque en PLAN-OFF.md; cada fallo se arregla al rehacer su pantalla.
 - Off-0 a Off-13 ✅ (6 → 10-nov-2026), fusionadas en `master` y escondidas tras `?off`. Pendientes sin fase: 11D (magias sin dibujo) y Detect Invisibility. 12D y la Off-13 sin probar con mando real. Con 0 de oro, el "0" de Alegreya (cifras antiguas) se ve pequeño en las ventanas nuevas.
@@ -28,6 +29,7 @@ Léelo solo en sesiones de Helbreath Off (después de `PROGRESS.md`). Plan: `doc
 - Ventanas nuevas (Off-12): estilo en `off/config/offTheme.ts`, piezas en `off/ui/offUi.ts`, muestrario `?off=uikit`. Todo texto con `maxWidth`; exponer `offLayoutIssues` en `debugState` y comprobar con captura. Maquetas aprobadas descritas en DECISIONES.md (10-nov-2026). NOTES.md "Estilo nuevo de ventanas (Off-12A)".
 - Create New Character (Off-13F): `off/scenes/OffCreateScene.ts`, medidas y textos en `off/config/offCreate.ts`, piezas `offTextBox` y `offOptionRow`; NOTES.md "Create New Character (Off-13F)".
 - Inicio y Select Character (Off-13E): `off/scenes/OffHomeScene.ts`, `OffSlotsScene.ts`, medidas y textos en `off/config/offHome.ts` y `offSlots.ts`, tarjeta `offSlotCard`; NOTES.md "Inicio y Select Character (Off-13E)". Huecos en `OffSaveStore` (`hb-off.character`, `.2`–`.4`, `hb-off.slot`). Cada hueco guarda su propio sitio. NOTES.md, "Select Character en Helbreath Off".
+- Apuntado con mando (11-nov-2026): `OffBattle.aimTarget` (stick derecho) y `frontMonster` (A sin marca), `targetChosen`; números en `OFF_PAD_TARGET` (`off/data/offCombat.ts`); `check offpadtarget`.
 - Mercenarios: `off/data/offMercenary.ts`, `OffMercenaryAI`, `off/systems/OffMercenarySpells.ts`, `OffMercenaryTalk.ts`.
 - Raiders: `off/data/offRaiders.ts`, `OffRaiderAI`, `OffBattle.updateRaids`, `OffFoe`; NOTES.md "Raiders (Off-9A)". Números ajustados en la 9C.
 - Medir Raiders (9C): `check offduel<10|30|50><w|m|p|i>` (`src/off/dev/offDuel.ts`, `?offfast=N`); no más de dos a la vez. NOTES.md "Medir los Raiders (Off-9C)".
