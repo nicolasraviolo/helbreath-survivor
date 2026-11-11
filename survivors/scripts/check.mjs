@@ -172,6 +172,8 @@ const PRESETS = {
     offpausequit: 'off=world&offreset&offlevel=5',
     offpausequityes: 'off=world&offreset&offlevel=5',
     offcontrols: 'off=world&offreset&offlevel=5',
+    // 11-nov-2026: clic derecho mantenido = quieto y mirando al cursor (en eval: facing por dirección y la casilla no cambia).
+    offrightturn: 'off=world&offreset&offlevel=5',
     // Settings propia de Off: offsettings la abre desde la pausa (foco Music; en eval: rows, window, issues = []);
     // offsettingspad igual pero como con el mando (pistas abajo y Fullscreen apagada con su nota).
     offsettings: 'off=world&offreset&offlevel=5',
@@ -921,6 +923,7 @@ const PRESET_EVAL = {
     offpause: "o.openPause(), new Promise((r) => setTimeout(() => r({ pause: game.scene.isActive('OffPause'), worldPaused: game.scene.isPaused('OffWorld'), hudPaused: game.scene.isPaused('OffHud'), ...game.scene.getScene('OffPause').debugState() }), 800))",
     offpausequit: "o.openPause(), new Promise((r) => setTimeout(() => { game.scene.getScene('OffPause').askQuit(); setTimeout(() => { const d = game.scene.getScene('OffDialog'); d.debugShowPadHints(); setTimeout(() => r({ dialog: game.scene.isActive('OffDialog'), pausePaused: game.scene.isPaused('OffPause'), ...d.debugState() }), 300); }, 500); }, 800))",
     offpausequityes: "o.openPause(), new Promise((r) => setTimeout(() => { game.scene.getScene('OffPause').askQuit(); setTimeout(() => { game.scene.getScene('OffDialog').answer(1); setTimeout(() => r({ home: game.scene.isActive('OffHome'), world: game.scene.isActive('OffWorld'), hud: game.scene.isActive('OffHud'), pause: game.scene.isActive('OffPause') }), 1500); }, 600); }, 800))",
+    offrightturn: "new Promise((r) => { const p = o.input.activePointer; const cam = o.cameras.main; const ch = o.character; const aim = (dx, dy) => { p.position.set((ch.x + dx * 32 - cam.worldView.x) * cam.zoom, (ch.y + dy * 32 - cam.worldView.y) * cam.zoom); }; const start = o.debugState().tile; const out = {}; p.buttons = 2; const steps = [['E', 3, 0], ['SW', -3, 3], ['N', 0, -3], ['NW', -3, -3]]; let i = 0; const next = () => { if (i > 0) out[steps[i - 1][0]] = o.debugNearFoes().facing; if (i === steps.length) { p.buttons = 0; r({ start, end: o.debugState().tile, moving: o.debugState().moving, out }); return; } aim(steps[i][1], steps[i][2]); i++; setTimeout(next, 300); }; setTimeout(next, 300); })",
     offcontrols: "o.openPause(), new Promise((r) => setTimeout(() => { game.scene.getScene('OffPause').openControls(); setTimeout(() => r({ controls: game.scene.isActive('OffControls'), ...game.scene.getScene('OffControls').debugState() }), 600); }, 800))",
     offsettings: "o.openPause(), new Promise((r) => setTimeout(() => { game.scene.getScene('OffPause').openSettings(); setTimeout(() => r({ settings: game.scene.isActive('OffSettings'), pausePaused: game.scene.isPaused('OffPause'), ...game.scene.getScene('OffSettings').debugState() }), 600); }, 800))",
     offsettingspad: "o.openPause(), new Promise((r) => setTimeout(() => { game.scene.getScene('OffPause').openSettings(); setTimeout(() => { const s = game.scene.getScene('OffSettings'); s.debugPadMode(); setTimeout(() => r(s.debugState()), 300); }, 600); }, 800))",

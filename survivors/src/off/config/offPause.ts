@@ -38,7 +38,7 @@ export const OFF_PAUSE_TEXT = {
 } as const;
 
 const CONTROLS_W = 600;
-const CONTROLS_H = 486;
+const CONTROLS_H = 510;
 
 export const OFF_CONTROLS = {
     x: (GAME_WIDTH - CONTROLS_W) / 2,
@@ -58,9 +58,9 @@ export const OFF_CONTROLS = {
     keyboardWidth: 220,
     /** Space between the pieces of a pad cell (badge, pill, word). */
     pieceGap: 4,
-    buttonsTop: 412,
+    buttonsTop: 436,
     buttonWidth: 110,
-    hintsCentreY: 462,
+    hintsCentreY: 486,
     inputDelayMs: MENU_INPUT_DELAY_MS,
 } as const;
 

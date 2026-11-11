@@ -1366,6 +1366,11 @@ export class OffWorldScene extends Phaser.Scene {
     /** Held click, stick or keys give the next steps. */
     private steer(): void {
         const pointer = this.input.activePointer;
+        // 11-nov-2026 (owner): right click held = stand still and turn to the cursor (sp-client handleRightMouseButton).
+        if (!pointer.wasTouch && pointer.rightButtonDown()) {
+            this.faceCursor(pointer);
+            return;
+        }
         if (this.leftHeld && pointer.leftButtonDown()) {
             const cursor = this.tileUnder(pointer);
             const direction = directionFromVector(cursor.px - this.character.x, cursor.py - this.character.y);
@@ -1394,6 +1399,19 @@ export class OffWorldScene extends Phaser.Scene {
             y: Phaser.Math.Clamp(this.mover.tileY + offset.y * far, 0, this.map.height - 1),
         };
         this.mover.steer(direction, target);
+    }
+
+    /**
+     * Right click held: turns to the cursor once the step under way ends. As the original, not while a spell is being
+     * prepared or waits, nor while attacking or casting, nor with the cursor on its own tile. Same 8 directions as a
+     * held left click (the original picks by signs, nearly always a diagonal; owner chose ours, 11-nov-2026).
+     */
+    private faceCursor(pointer: Phaser.Input.Pointer): void {
+        if (this.mover.isMoving || this.battle.spells.busy || this.character.isActing) return;
+        const cursor = this.tileUnder(pointer);
+        if (cursor.x === this.mover.tileX && cursor.y === this.mover.tileY) return;
+        const direction = directionFromVector(cursor.px - this.character.x, cursor.py - this.character.y);
+        if (direction !== undefined) this.mover.face(direction);
     }
 
     private onPointerDown(pointer: Phaser.Input.Pointer): void {
