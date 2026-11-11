@@ -37,6 +37,15 @@ export const OFF_MOVEMENT = {
 /** Off-7E: while in the world, where the character stands is saved this often (and on leaving or hiding the page). */
 export const OFF_WHERE_SAVE_MS = 5_000;
 
+/**
+ * Recall (propietario, 11-nov-2026): T o cruceta arriba te lleva a casa (tu Farm; Traveler Zone sin bando) tras una
+ * espera quieto, con la animación de lanzar. Moverse, atacar, lanzar, abrir una ventana o recibir daño la cancela.
+ */
+export const OFF_RECALL = {
+    /** Time standing still before you go, in milliseconds. */
+    castMs: 2_500,
+} as const;
+
 /** The novice's look: a man with the default body, hair and underwear. */
 export const OFF_NOVICE_LOOK: CharacterLook = { gender: 'male', skin: 0, hairStyle: 0, hairColor: 7, underwear: 0 };
 

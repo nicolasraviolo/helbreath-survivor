@@ -343,4 +343,8 @@ export const OFF_PLACE_TEXT = {
     mapSelectHere: (place: string) => `You are in ${place}.`,
     mapSelectTravel: 'Travel',
     mapSelectBack: 'Back',
+    /** Recall (11-nov-2026). */
+    recallStart: (place: string) => `Recall to ${place}... Don't move.`,
+    recallCancelled: 'Recall cancelled.',
+    recallHome: 'You are already home.',
 } as const;

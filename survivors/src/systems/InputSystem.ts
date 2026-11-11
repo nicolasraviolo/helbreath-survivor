@@ -106,6 +106,8 @@ export enum Action {
     OffPadSpellB = 'offPadSpellB',
     OffPadSpellX = 'offPadSpellX',
     OffPadSpellY = 'offPadSpellY',
+    /** Helbreath Off (11-nov-2026): Recall, back home after a short wait (T, d-pad up). */
+    OffRecall = 'offRecall',
 }
 
 /** Helbreath Off (Off-6C): the gamepad's spell buttons with RT held, in order (A, B, X, Y). */
@@ -168,6 +170,8 @@ const KEYBOARD_ACTIONS: Record<Action, number[]> = {
     [Action.OffSpellBook]: [KEY.B],
     [Action.OffDrinkHealth]: [KEY.Q],
     [Action.OffDrinkMana]: [KEY.E],
+    // T is also OpenSpriteTest in development, but that one only acts in Survivors' run.
+    [Action.OffRecall]: [KEY.T],
     // Off-8A: Alt, as the original's crit (captured, so the browser's menu does not open).
     [Action.OffCritStrike]: [KEY.ALT],
     // Owner (7-nov-2026): the number keys 1–8, not F1–F8 (on a Mac the F keys need Fn and clash with the system).
@@ -224,6 +228,8 @@ const GAMEPAD_ACTIONS: Partial<Record<Action, number[]>> = {
     // Off-7B: the d-pad doesn't walk in Off (setDpadMoves), so left / right are free for the potions.
     [Action.OffDrinkHealth]: [GAMEPAD_BUTTON.DpadLeft],
     [Action.OffDrinkMana]: [GAMEPAD_BUTTON.DpadRight],
+    // 11-nov-2026: d-pad up, free in Off too.
+    [Action.OffRecall]: [GAMEPAD_BUTTON.DpadUp],
     // Off-8A: LT (L2) is free in Off (RT is the spells' trigger).
     [Action.OffCritStrike]: [GAMEPAD_BUTTON.L2],
 };

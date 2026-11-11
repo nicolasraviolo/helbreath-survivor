@@ -26,6 +26,7 @@ export const OFF_CONTROL_ROWS: readonly OffControlRow[] = [
     { action: 'Cancel spell', keyboard: 'Right click', pad: [text('Move (left stick)')] },
     { action: 'Turn in place', keyboard: 'Hold right click', pad: [text('—')] },
     { action: 'Run / Walk', keyboard: 'R', pad: [pill('R3')] },
+    { action: 'Recall (go home)', keyboard: 'T', pad: [text('D-pad ↑')] },
     { action: 'Potions', keyboard: 'Q health · E mana', pad: [text('D-pad ← health · → mana')] },
     { action: 'Bag', keyboard: 'I', pad: [badge('X')] },
     { action: 'Stats', keyboard: 'C', pad: [badge('Y')] },

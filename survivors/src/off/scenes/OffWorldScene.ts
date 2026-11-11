@@ -63,7 +63,7 @@ import { playAreaBottom } from '../../ui/hudLayout';
 import { setGameViewport, toGame, zoomWorldCamera } from '../../ui/renderScale';
 import { Pool } from '../../utils/Pool';
 import type { MapLoadSceneData } from '../../scenes/MapLoadScene';
-import { OFF_MOVEMENT, OFF_NOVICE, OFF_STEP_MS, OFF_WHERE_SAVE_MS, TILES_PER_ANIMATION_CYCLE } from '../data/offWorld';
+import { OFF_MOVEMENT, OFF_NOVICE, OFF_RECALL, OFF_STEP_MS, OFF_WHERE_SAVE_MS, TILES_PER_ANIMATION_CYCLE } from '../data/offWorld';
 import {
     OFF_PLACE_TEXT, OFF_PLACES, offArrivalIn, offFarmOf, offGateArrival, offHomePlace, offTeleportArrival, offTeleportDestinations, type OffBuildingKind, type OffDoorDef, type OffNpcOpens, type OffFaction, type OffPlaceDef, type OffPlaceId, type OffPortalDef,
 } from '../data/offPlaces';
@@ -233,6 +233,8 @@ export class OffWorldScene extends Phaser.Scene {
     private leftHeld = false;
     /** The stick or the keys were steering last frame (letting go stops the character). */
     private steering = false;
+    /** Recall (11-nov-2026): time left before going home, and the health it started with (a hit cancels it). */
+    private recall: { leftMs: number; hp: number } | undefined;
     /**
      * A spell was started while the stick or the keys were held: the character stands still until they are let go
      * (propietario, 9-nov-2026: once you cast, you stop). Pushing again afterwards walks and drops a spell still waiting.
@@ -310,6 +312,7 @@ export class OffWorldScene extends Phaser.Scene {
         this.aimArrow = new AimArrow(this);
         this.reticle = new OffAimReticle(this);
         this.leaving = false;
+        this.recall = undefined;
         this.whereSaveMs = 0;
         // Off-7E: saved on arriving, every few seconds, on leaving and when the page is hidden or closed.
         this.saveWhere();
@@ -464,6 +467,7 @@ export class OffWorldScene extends Phaser.Scene {
         const spellKey = OFF_SPELL_KEY_ACTIONS.findIndex((action) => input.justPressed(action));
         const drinkHealth = !trigger && input.justPressed(Action.OffDrinkHealth);
         const drinkMana = !trigger && input.justPressed(Action.OffDrinkMana);
+        const recall = !trigger && input.justPressed(Action.OffRecall);
         if (!this.window && this.windowClosedFrame !== this.game.loop.frame) {
             if (pause) {
                 this.openPause();
@@ -487,6 +491,7 @@ export class OffWorldScene extends Phaser.Scene {
             if (drinkHealth && !this.battle.dead) this.battle.drinkQuick('hp');
             if (drinkMana && !this.battle.dead) this.battle.drinkQuick('mana');
             if (padSpell >= 0) this.pressPadSpell(padSpell);
+            if (recall) this.startRecall();
         }
         this.updateNpcs();
         this.updateCombatInput();
@@ -495,9 +500,11 @@ export class OffWorldScene extends Phaser.Scene {
         this.updateSupportAim();
         this.updateReticle();
         if (!this.battle.dead && this.window !== 'cover') this.steer();
+        this.updateRecall(delta);
+        if (this.leaving) return;
         const running = runMode && this.battle.vitals.canRun;
         // A spell started halfway through a step: the step ends now, not after the cast (no slide once it is over).
-        if (this.battle.canMove || (this.mover.isMoving && this.battle.spells.busy)) {
+        if (this.battle.canMove || (this.mover.isMoving && (this.battle.spells.busy || this.recall !== undefined))) {
             this.mover.update(delta, running ? OFF_STEP_MS.run : OFF_STEP_MS.walk);
         } else if (this.battle.isHeld && !this.battle.dead) {
             // Off-9A, held (Hold Person / Paralyze): it finishes the tile it was stepping onto and then stands still,
@@ -857,7 +864,59 @@ export class OffWorldScene extends Phaser.Scene {
     }
 
     /** Stops following the mouse and attacking (a window opens over the world). */
+    // ---- Recall (11-nov-2026) ----
+
+    /** T / d-pad up: stands still casting and, if nothing cancels it, goes home (its Farm; Traveler Zone without a faction). */
+    private startRecall(): void {
+        if (this.battle.dead || this.recall || this.leaving) return;
+        const home = offHomePlace(offSaveStore.character.faction);
+        if (home === this.placeId) {
+            this.events.emit(EVENT_LIST_EVENT, OFF_PLACE_TEXT.recallHome);
+            return;
+        }
+        this.stopForWindow();
+        this.mover.cancel();
+        this.steering = false;
+        this.talkPending = undefined;
+        this.character.cast(this.mover.facing, OFF_RECALL.castMs);
+        this.audio.play('sfx.cast');
+        this.recall = { leftMs: OFF_RECALL.castMs, hp: this.battle.hp };
+        this.events.emit(EVENT_LIST_EVENT, OFF_PLACE_TEXT.recallStart(OFF_PLACES[home].name));
+    }
+
+    /** Counts down; walking, a hit or dying drops it. At the end, home by the teleport's arrival tile. */
+    private updateRecall(delta: number): void {
+        const recall = this.recall;
+        if (!recall) return;
+        if (this.battle.dead || this.mover.goal !== undefined || this.battle.hp < recall.hp) {
+            this.cancelRecall();
+            return;
+        }
+        recall.hp = this.battle.hp;
+        recall.leftMs -= delta;
+        if (recall.leftMs > 0) return;
+        this.recall = undefined;
+        this.character.stopCasting();
+        const home = offHomePlace(offSaveStore.character.faction);
+        const at = offTeleportArrival(home);
+        this.travel({ place: home, ...(at ? { at } : {}), carried: this.carriedVitals() });
+    }
+
+    /** Drops the Recall under way, if any (with a line saying so). */
+    private cancelRecall(): void {
+        if (!this.recall) return;
+        this.recall = undefined;
+        this.character.stopCasting();
+        if (!this.leaving) this.events.emit(EVENT_LIST_EVENT, OFF_PLACE_TEXT.recallCancelled);
+    }
+
+    /** Development (`check offrecall`): presses Recall. */
+    public debugRecall(): void {
+        this.startRecall();
+    }
+
     private stopForWindow(): void {
+        this.cancelRecall();
         this.battle.spells.cancel();
         this.leftHeld = false;
         this.mouseAttack = false;
@@ -872,6 +931,7 @@ export class OffWorldScene extends Phaser.Scene {
     /** 1–8: stops attacking and walking, and prepares that key's spell. */
     private pressSpellKey(index: number): void {
         if (this.battle.dead) return;
+        this.cancelRecall();
         this.stopForSpell();
         this.padCast = false;
         this.battle.spells.press(index);
@@ -882,6 +942,7 @@ export class OffWorldScene extends Phaser.Scene {
     private pressPadSpell(index: number): void {
         const id = offSaveStore.character.spellKeys[index];
         if (this.battle.dead || id === undefined) return;
+        this.cancelRecall();
         this.stopForSpell();
         this.padCast = this.battle.spells.pressSpell(id);
         this.holdStillIfCasting();
@@ -1335,6 +1396,7 @@ export class OffWorldScene extends Phaser.Scene {
         const crit = input.justPressed(Action.OffCritStrike);
         const next = input.justPressed(Action.OffNextTarget);
         const previous = input.justPressed(Action.OffPrevTarget);
+        if (keys && (attack || crit)) this.cancelRecall();
         const talker = keys && attack ? this.nearestNpc() : undefined;
         if (talker) {
             this.talkTo(talker);
@@ -1418,6 +1480,7 @@ export class OffWorldScene extends Phaser.Scene {
         // On the HUD bar, or a screen covers the world: not the world. (On the Inventory's panel, the panel takes it.)
         if (toGame(pointer.downY) >= playAreaBottom() || this.window === 'cover') return;
         this.debugHold = false;
+        if (pointer.leftButtonDown()) this.cancelRecall();
         if (pointer.rightButtonDown()) {
             this.battle.spells.cancel();
             this.leftHeld = false;
