@@ -91,7 +91,7 @@ function drawBrackets(g: Phaser.GameObjects.Graphics, size: number, corner: numb
     }
 }
 
-function toggleFullscreen(scene: Phaser.Scene): void {
+export function toggleFullscreen(scene: Phaser.Scene): void {
     if (scene.scale.isFullscreen) {
         scene.scale.stopFullscreen();
         return;

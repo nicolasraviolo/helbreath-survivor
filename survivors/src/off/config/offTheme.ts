@@ -202,4 +202,8 @@ export const OFF_THEME_SIZE = {
     optionArrow: 22,
     optionValueWidth: 96,
     optionTriangle: 4,
+    /** Settings de Off: la casilla de una fila sí/no (centrada sobre la flecha ▶), medio ancho del ✓ y sitio para "On"/"Off". */
+    checkBox: 18,
+    checkTick: 5,
+    checkStateWidth: 28,
 } as const;

@@ -21,7 +21,7 @@ import { OFF_SLOTS } from '../config/offSlots';
 import { OFF_DIALOG_SCENE_KEY, type OffDialogSceneData } from './OffDialogScene';
 import {
     offBar, offBarHeight, offBox, offButton, offCloseButton, offDivider, offFrame, offKeyRow, offLabel,
-    offLayoutIssues, offListRow, offOptionRow, offPadPill, offRule, offStatRow, offTab, offText, offTextBox, type OffTab, type OffTrend,
+    offCheckRow, offLayoutIssues, offListRow, offOptionRow, offPadPill, offRule, offStatRow, offTab, offText, offTextBox, type OffTab, type OffTrend,
 } from '../ui/offUi';
 
 export const OFF_UI_KIT_SCENE_KEY = 'OffUiKit';
@@ -72,11 +72,10 @@ const SAMPLE_LIST: readonly { name: string; mana: string; key: string; state?: '
 
 /** Sample keys: spell (undefined = empty), pad button for 1–4, state. */
 const SAMPLE_KEYS: readonly { spell?: string; pad?: OffPadButton; marked?: boolean; focused?: boolean }[] = [
-    { spell: 'Magic Missile', pad: 'A' },
+    // Settings de Off: tres teclas (antes cinco) para dejar sitio a las filas sí/no; la vacía tampoco tiene botón.
     { spell: 'Heal', pad: 'B', focused: true },
     { spell: 'Absolute Magic Protection', pad: 'X', marked: true },
-    { pad: 'Y' },
-    { spell: 'Defense Shield' },
+    {},
 ];
 
 /** Item card rows: label, value, colour, "(now …)", better / worse. */
@@ -260,6 +259,15 @@ export class OffUiKitScene extends Phaser.Scene {
         offLabel(this, col.x, y, 'Option row');
         y += KIT.labelGap;
         offOptionRow(this, col.x, y, col.w, 'Hair Color', () => undefined, () => undefined, () => undefined).setValue('Purple');
+        y += S.optionRowHeight;
+        // Settings de Off: la fila sí/no, encendida con foco y desactivada con nota (apagada = casilla vacía, igual que esta).
+        const on = offCheckRow(this, col.x, y, col.w, 'Minimap', () => undefined);
+        on.setChecked(true);
+        on.setFocused(true);
+        y += S.optionRowHeight;
+        const off = offCheckRow(this, col.x, y, col.w, 'Fullscreen', () => undefined);
+        off.setEnabled(false);
+        off.setNote('Keyboard or mouse only');
         y += S.optionRowHeight + KIT.sectionGap - 4;
 
         offLabel(this, col.x, y, 'Keys');

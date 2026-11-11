@@ -2,6 +2,13 @@
 
 Bloques y fases ya terminados, el más reciente arriba. El estado actual está en `PROGRESS.md`. Al cerrar un bloque, su resumen se mueve aquí, arriba del todo.
 
+**Helbreath Off · fuera de fase: Settings con el estilo nuevo (2026-11-11).**
+- **Qué hace:** la pausa de Off abre su propia ventana Settings (`OffSettingsScene`) con el estilo de la Off-12, en vez de la de Survivors (la última ventana vieja de Off). Sin pestañas: Audio (Music, Sound ◄ % ►, flecha apagada en 0 y 100 %), Display (Fullscreen, Large Trees, Smooth Sprites) y Gameplay (Minimap, Screen Shake), con casilla y "On"/"Off" al lado. Todo se aplica al momento. Pistas del mando según la fila. Con mando, Fullscreen se apaga con la nota "Keyboard or mouse only" (el navegador no la deja pedir con el mando).
+- **Decisiones:** propietario: rediseñar Settings en Off; sin fila Controls (ya está en la pausa). A criterio de Claude, con el revisor-ui: fuera Health Bar on Character y Anonymous Stats (no hacen nada en Off), Large Trees con casilla.
+- **Comprobado:** build; `check offsettings offsettingspad offpause offuikit` sin errores, `issues` = `[]`, ventana centrada (230 px a cada lado, 98/97 arriba y abajo); revisor-ui antes (boceto) y después (Media arreglada: Fullscreen activa con mando muestra el ✓ en gris). Sin probar con mando real.
+- **Cómo probar:** http://localhost:8090/?off → partida → Esc → Settings; desmarcar Minimap y volver: el minimapa desaparece.
+- **Código:** `off/scenes/OffSettingsScene.ts`, `off/config/offSettings.ts`, pieza `offCheckRow` y `setPrevEnabled/setNextEnabled` de `offOptionRow` (`off/ui/offUi.ts`), `OffPauseScene.openSettings`, `toggleFullscreen` exportada (`ui/fullscreen.ts`). El muestrario `?off=uikit` enseña la fila sí/no (y 3 teclas en vez de 5).
+
 **Helbreath Off · fuera de fase: elegir monstruo con el stick derecho (2026-11-11).**
 - **Qué hace:** con mando, el stick derecho marca el monstruo hacia el que apunta (el más cercano a la línea del stick, con la flecha a los pies; la marca se queda al soltarlo) y A le pega; con A mantenido, cambiar de monstruo con el stick sigue pegando al nuevo. Sin elegir ninguno, A va al más cercano, **primero el de delante**; el que pegabas solo se mantiene mientras siga a tu alcance (antes la marca se quedaba hasta 8 casillas). Con RT pulsado el stick sigue apuntando magias. LB / RB siguen valiendo. Controls: "Choose target: Right stick or LB RB".
 - **Decisiones:** propietario: "al mob cercano, o al que apuntes con el stick derecho". A criterio de Claude: LB / RB se quedan; el clic derecho del ratón no marca (cancela magias).

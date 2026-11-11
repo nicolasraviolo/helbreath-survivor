@@ -163,6 +163,7 @@ Rutas de código relativas a `sp-client/src/` salvo que se indique.
 - Pausa, William y Select Map (Off-13B)
 - Almacén y objetos apilados (Off-13C)
 - Tienda y herrero (Off-13D)
+- Settings de Off
 - Inicio y Select Character (Off-13E)
 - Create New Character (Off-13F)
 
@@ -1796,3 +1797,9 @@ La partida simulada no separa el daño por arma. Para saber cuánto aporta el cr
 - Armas del herrero por tipo (propietario): `WEAPON_FAMILY` en `off/data/offStore.ts`. **Un arma nueva hay que añadirla ahí**; si no, sale en "Other Weapons". Rapier va con las Short Swords.
 - Vender arma o armadura pregunta con `OffDialogScene` (`openOverlay` pausa la tienda y la reanuda al cerrar); el Sí llama a `sellMarked()`. Ojo en `check`: `scene.launch` no está activo hasta el siguiente fotograma, así que `isActive('OffDialog')` justo después de `act()` da false.
 - ↑ ↓ mantenidos repiten (`isHeld` + `repeatDelayMs` / `repeatMs`); las pestañas reservan siempre el hueco de las píldoras LB / RB para no moverse al cambiar de ratón a mando.
+
+## Settings de Off
+- La pausa de Off abre `OffSettingsScene` (antes la `SettingsScene` de Survivors, que no se toca). Solo opciones con efecto en Off: Music, Sound, Fullscreen, Large Trees, Smooth Sprites, Minimap, Screen Shake. "Health Bar on Character" y "Anonymous Stats" no hacen nada en Off (Off no usa `showPlayerHealthBar` ni `RunMetrics`).
+- Todo se aplica al momento por `SETTINGS_CHANGED` (música, efectos, `XbrPipeline`, árboles y minimapa en `OffWorldScene`), aunque el mundo esté en pausa.
+- Pantalla completa: el navegador solo la deja pedir con un clic o una tecla, nunca con el mando. Con el mando la fila se apaga con la nota "Keyboard or mouse only". En pantalla completa, Esc lo usa el navegador para salir de ella: B o Back cierran la ventana.
+- Large Trees es una casilla (en Survivors, ◄ On/Off ►): en Off todo sí/no va con casilla.

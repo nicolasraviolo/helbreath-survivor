@@ -1,7 +1,7 @@
 // Helbreath Off, Fase Off-13B: la pausa propia de Off, con el estilo de la Off-12 (antes usaba scenes/PauseScene.ts de
 // Survivors, que no se toca). Medidas y textos en off/config/offPause.ts.
 // - La abren Esc, B, Start o el disquete del HUD (OffWorldScene.openPause): el mundo y el HUD esperan parados debajo.
-// - Resume (marcado al abrir), Settings (el de Survivors, encima), Controls (OffControlsScene) y Quit to Menu, que
+// - Resume (marcado al abrir), Settings (OffSettingsScene, encima; antes el de Survivors), Controls (OffControlsScene) y Quit to Menu, que
 //   pregunta antes con la ventana de la 13A (No marcado; salir guarda, así que no avisa en rojo).
 // - ↑/↓ mueven el foco, Enter / A pulsan, Esc / B / Start reanudan. Pistas del mando solo con el mando.
 import Phaser from 'phaser';
@@ -16,6 +16,7 @@ import {
 } from '../ui/offUi';
 import { OFF_CONTROLS_SCENE_KEY } from './OffControlsScene';
 import { OFF_DIALOG_SCENE_KEY, type OffDialogSceneData } from './OffDialogScene';
+import { OFF_SETTINGS_SCENE_KEY } from './OffSettingsScene';
 
 export const OFF_PAUSE_SCENE_KEY = 'OffPause';
 
@@ -58,7 +59,7 @@ export class OffPauseScene extends Phaser.Scene {
 
         const entries: readonly [string, () => void][] = [
             [OFF_PAUSE_TEXT.resume, () => this.resume()],
-            [OFF_PAUSE_TEXT.settings, () => openOverlay(this, 'Settings')],
+            [OFF_PAUSE_TEXT.settings, () => this.openSettings()],
             [OFF_PAUSE_TEXT.controls, () => this.openControls()],
             [OFF_PAUSE_TEXT.quit, () => this.askQuit()],
         ];
@@ -111,6 +112,11 @@ export class OffPauseScene extends Phaser.Scene {
         this.scene.stop();
         this.scene.resume(this.params.returnTo);
         this.scene.resume(this.params.worldSceneKey);
+    }
+
+    /** The Settings window over the pause. */
+    public openSettings(): void {
+        openOverlay(this, OFF_SETTINGS_SCENE_KEY);
     }
 
     /** The Controls window over the pause. */

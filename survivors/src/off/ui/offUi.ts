@@ -1,6 +1,6 @@
 // Helbreath Off, Fase Off-12A: las piezas del estilo nuevo de las ventanas (colores y medidas en off/config/offTheme.ts).
 // Marco, pestaña, botón (principal dorado, normal, rojo), cierre ✕, casilla de objeto, fila de lista, fila de tecla,
-// fila de stat con − / + (Off-12C), caja de texto y fila de opción ◀ valor ▶ (Off-13F),
+// fila de stat con − / + (Off-12C), caja de texto y fila de opción ◀ valor ▶ (Off-13F), fila sí/no con casilla (Settings),
 // separador con rombo, fila de dato con comparación (▲ / ▼ además del color), barra, circulito A/B/X/Y y pastilla
 // LB / RB / Start.
 // - **Nada se sale de su caja**: los textos con ancho máximo se encogen hasta `minSize` (offTheme) y, si aun así no
@@ -636,6 +636,9 @@ export function offTextBox(scene: Phaser.Scene, x: number, y: number, width: num
 
 export interface OffOptionRow extends OffControl {
     setValue(value: string): void;
+    /** Settings de Off: apaga la ◀ o la ▶ en el extremo (volumen a 0 % o al 100 %). */
+    setPrevEnabled(enabled: boolean): void;
+    setNextEnabled(enabled: boolean): void;
 }
 
 /**
@@ -685,8 +688,74 @@ export function offOptionRow(
             value.setText(v);
             offFitText(value, 'body', S.optionValueWidth - S.textInset * 2);
         },
+        setPrevEnabled: (e) => prev.setEnabled(e),
+        setNextEnabled: (e) => next.setEnabled(e),
     };
 }
+
+export interface OffCheckRow extends OffControl {
+    setChecked(checked: boolean): void;
+    /** A note in place of "On" / "Off" (a disabled row says why: "Keyboard or mouse only"); undefined = back to On / Off. */
+    setNote(note: string | undefined): void;
+}
+
+/**
+ * Settings de Off: una fila sí/no. Nombre a la izquierda y, a la derecha, una casilla centrada sobre donde va la ▶ de
+ * las filas de opción, con ✓ verde cuando está activa y la palabra "On" / "Off" al lado (nunca solo el color).
+ * Apagada (setEnabled false): borde gris y textos atenuados. La fila entera toma el foco y el clic.
+ */
+export function offCheckRow(
+    scene: Phaser.Scene, x: number, y: number, width: number, label: string, onClick: () => void, height: number = S.optionRowHeight,
+): OffCheckRow {
+    const b = S.checkBox;
+    const pad = S.listRowPadding;
+    const mid = y + height / 2;
+    const boxCentre = x + width - pad - S.optionArrow / 2;
+    const boxX = boxCentre - b / 2;
+    const g = scene.add.graphics();
+    const name = offText(scene, x + pad, mid, label, 'body', { originY: 0.5, maxWidth: boxX - S.rowGap - x - pad - S.checkStateWidth });
+    const stateText = offText(scene, boxX - S.rowGap, mid, '', 'small', { originX: 1, originY: 0.5 });
+    let checked = false;
+    let note: string | undefined;
+    const control = makeControl(scene, x, y, width, height, onClick, [g, name, stateText], (s) => {
+        g.clear();
+        if (hovering(s)) g.fillStyle(C.hover, 1).fillRect(x, y, width, height - 1);
+        g.fillStyle(C.rowLine, 1).fillRect(x, y + height - 1, width, 1);
+        const top = mid - b / 2;
+        const on = checked && s.enabled;
+        g.fillStyle(C.cell, 1).fillRect(boxX, top, b, b);
+        const border = !s.enabled ? C.line : on ? C.better : hovering(s) ? C.goldLight : C.bronze;
+        g.lineStyle(1, border, 1).strokeRect(boxX + 0.5, top + 0.5, b - 1, b - 1);
+        if (checked) {
+            // ✓ dibujado (dos trazos), del tamaño de la casilla; gris si está activa pero la fila apagada (bloqueada).
+            const t = S.checkTick;
+            g.lineStyle(2, on ? C.better : C.line, 1);
+            g.beginPath();
+            g.moveTo(boxCentre - t, mid);
+            g.lineTo(boxCentre - t / 3, mid + t * 0.7);
+            g.lineTo(boxCentre + t, mid - t * 0.7);
+            g.strokePath();
+        }
+        name.setColor(s.enabled ? INK.text : INK.dim);
+        stateText.setText(note ?? (checked ? OFF_CHECK_TEXT.on : OFF_CHECK_TEXT.off)).setColor(on ? INK.good : INK.dim);
+        // La nota no puede pisar el nombre (se encoge hasta su mínimo; si aun así no cabe, sale en offLayoutIssues).
+        offFitText(stateText, 'small', boxX - S.rowGap - (name.x + name.width + S.rowGap));
+    });
+    return {
+        ...control,
+        setChecked: (c) => {
+            checked = c;
+            control.redraw();
+        },
+        setNote: (n) => {
+            note = n;
+            control.redraw();
+        },
+    };
+}
+
+/** Las palabras junto a la casilla. */
+const OFF_CHECK_TEXT = { on: 'On', off: 'Off' } as const;
 
 // ---------------------------------------------------------------- datos
 
