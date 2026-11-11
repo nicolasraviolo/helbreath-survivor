@@ -91,6 +91,12 @@ export const OFF_REGEN = {
 /** Stamina a running step costs (original). */
 export const OFF_RUN_STEP_STAMINA = 1;
 
+/**
+ * The owner (11-nov-2026): your stamina never runs out; running costs you nothing and the bar stays full.
+ * Raiders still spend theirs (that is how you catch one running away).
+ */
+export const OFF_PLAYER_INFINITE_STAMINA = true;
+
 function die(sides: number): number {
     return sides > 0 ? Phaser.Math.Between(1, sides) : 0;
 }

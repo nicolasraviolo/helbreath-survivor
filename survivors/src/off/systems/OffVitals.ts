@@ -5,6 +5,7 @@
 import {
     OFF_REGEN,
     OFF_REGEN_TEXT,
+    OFF_PLAYER_INFINITE_STAMINA,
     OFF_RUN_STEP_STAMINA,
     offHpRegen,
     offManaRegen,
@@ -57,20 +58,21 @@ export class OffVitals {
 
     /** A running step: false (and nothing spent) when there is no stamina left, so the step is walked. */
     public spendRunStep(): boolean {
+        if (OFF_PLAYER_INFINITE_STAMINA) return true;
         if (this.stamina < OFF_RUN_STEP_STAMINA) return false;
         this.stamina -= OFF_RUN_STEP_STAMINA;
         return true;
     }
 
     public get canRun(): boolean {
-        return this.stamina >= OFF_RUN_STEP_STAMINA;
+        return OFF_PLAYER_INFINITE_STAMINA || this.stamina >= OFF_RUN_STEP_STAMINA;
     }
 
     public update(deltaMs: number): void {
         const owner = this.owner;
         // Stats may grow in the Character window: never above the new maximum, never below it either.
         this.mana = Math.min(this.mana, this.maxMana);
-        this.stamina = Math.min(this.stamina, this.maxStamina);
+        this.stamina = OFF_PLAYER_INFINITE_STAMINA ? this.maxStamina : Math.min(this.stamina, this.maxStamina);
         if (owner.dead) return;
         const stats = owner.stats;
         this.hpWaitMs += deltaMs;
